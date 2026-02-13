@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "appId": "household-task-board-portfolio",
+    "updatedAt": "2026-02-13T00:00:00.000Z"
+  },
+  "portfolio": {
+    "selectedBoardId": "",
+    "filters": {
+      "search": "",
+      "priority": "",
+      "archive": "active",
+      "sort": "priority"
+    },
+    "boardFiles": [
+      "markathon.board.json"
+    ]
+  }
+}

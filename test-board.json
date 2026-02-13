@@ -1,0 +1,89 @@
+{
+  "meta": {
+    "schemaVersion": 3,
+    "appId": "household-task-board",
+    "createdAt": "2026-02-13T00:00:00.000Z",
+    "updatedAt": "2026-02-13T12:51:21.599Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "nextup",
+        "title": "NextUp"
+      },
+      {
+        "status": "inprogress",
+        "title": "In Progress"
+      },
+      {
+        "status": "concluid",
+        "title": "Concluid"
+      }
+    ],
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Build feedback document with official bank template",
+        "description": "Create the feedback document using the bank's official template.",
+        "checklist": [],
+        "archived": false,
+        "createdAt": "2026-02-13T00:00:00.000Z",
+        "updatedAt": "2026-02-13T00:00:00.000Z",
+        "dueDate": "",
+        "tags": [
+          "markathon",
+          "documentation"
+        ],
+        "priority": "high",
+        "status": "backlog"
+      },
+      {
+        "id": 2,
+        "title": "Analyze viability of Markathon strategies",
+        "description": "Assess strategy feasibility, risks, and expected outcomes.",
+        "checklist": [
+          {
+            "text": "Entender se a estratégia se aplica a outros contextos temporários",
+            "done": true
+          }
+        ],
+        "archived": false,
+        "createdAt": "2026-02-13T00:00:00.000Z",
+        "updatedAt": "2026-02-13T12:51:21.599Z",
+        "dueDate": "",
+        "tags": [
+          "markathon",
+          "analysis"
+        ],
+        "priority": "high",
+        "status": "nextup"
+      },
+      {
+        "id": 3,
+        "title": "Prepare Markathon final presentation",
+        "description": "Create a concise summary of strategy, execution plan, and expected impact.",
+        "checklist": [],
+        "archived": false,
+        "createdAt": "2026-02-13T00:00:00.000Z",
+        "updatedAt": "2026-02-13T00:00:00.000Z",
+        "dueDate": "",
+        "tags": [
+          "markathon",
+          "presentation"
+        ],
+        "priority": "medium",
+        "status": "backlog"
+      }
+    ],
+    "settings": {
+      "title": "Test Board",
+      "sortMode": "manual",
+      "showArchivedOnly": false
+    }
+  },
+  "extensions": {}
+}
