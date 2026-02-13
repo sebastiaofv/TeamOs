@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Example Task Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #fafafa;
+            --bg-secondary: #f0f0f0;
+            --bg-card: #ffffff;
+            --border: #d0d0d0;
+            --border-light: #e0e0e0;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --accent: #0066cc;
+            --accent-hover: #0052a3;
+            --priority-high: #cc3300;
+            --priority-medium: #cc9900;
+            --priority-low: #009900;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .header-title-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .title-rename-btn {
+            width: 22px;
+            height: 22px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 11px;
+            line-height: 1;
+        }
+
+        .title-rename-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 6px 16px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--text-secondary);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .toolbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-light);
+            padding: 12px 24px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .search-box {
+            flex: 1;
+            max-width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group select {
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            background: var(--bg-card);
+            cursor: pointer;
+        }
+
+        .save-status {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            min-width: 62px;
+            text-align: right;
+        }
+
+        .save-status.saving {
+            color: var(--accent);
+        }
+
+        .save-status.error {
+            color: var(--priority-high);
+        }
+
+        .board {
+            display: flex;
+            gap: 1px;
+            background: var(--border-light);
+            height: calc(100vh - 100px);
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .column {
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            min-width: 280px;
+            flex: 1 1 0;
+        }
+
+        .column-header {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: grab;
+        }
+
+        .column-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .column-count {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-card);
+            padding: 2px 8px;
+            border: 1px solid var(--border);
+        }
+
+        .column-header-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .column-header-actions {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .column-delete-btn {
+            width: 22px;
+            height: 22px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .column-delete-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .column-rename-btn {
+            width: 22px;
+            height: 22px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 11px;
+            line-height: 1;
+            margin-right: 4px;
+        }
+
+        .column-rename-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .column-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+
+        .column-body.drag-over {
+            background: #e8f4fc;
+        }
+
+        .add-task-card {
+            background: var(--bg-card);
+            border: 1px dashed var(--border);
+            color: var(--text-secondary);
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .add-task-card:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .task-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: grab;
+            transition: all 0.15s ease;
+        }
+
+        .task-card:hover {
+            border-color: var(--text-secondary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .task-card.selected {
+            border-color: var(--accent);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .task-title {
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.3;
+            flex: 1;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .task-card:hover .task-actions {
+            opacity: 1;
+        }
+
+        .task-action-btn {
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            cursor: pointer;
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-action-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .task-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .due-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--priority-high);
+            opacity: 0.85;
+        }
+
+        .search-highlight {
+            background: #fff176;
+            color: #111;
+            padding: 0 1px;
+        }
+
+        .priority-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .priority-high { background: var(--priority-high); }
+        .priority-medium { background: var(--priority-medium); }
+        .priority-low { background: var(--priority-low); }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .modal-close {
+            width: 24px;
+            height: 24px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-secondary);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .undo-toast {
+            position: fixed;
+            left: 16px;
+            bottom: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 8px 10px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 1200;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .undo-toast.active {
+            display: inline-flex;
+        }
+
+        .undo-toast-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .detail-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .detail-item {
+            display: grid;
+            grid-template-columns: 90px 1fr;
+            gap: 10px;
+            align-items: start;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .detail-value {
+            font-size: 13px;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .detail-checklist {
+            list-style: none;
+            display: grid;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .detail-checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .detail-checklist-item.done .detail-checklist-text {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-text {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-title-group">
+        <h1 id="boardTitle">Example Task Board</h1>
+            <button class="title-rename-btn" onclick="renameBoard()" title="Rename board">✎</button>
+        </div>
+        <div class="header-actions">
+            <button class="btn" onclick="newBoard()">New Board</button>
+            <button class="btn" onclick="openBoardFile()">Open</button>
+            <button class="btn" onclick="saveBoard()">Save</button>
+            <button class="btn" onclick="saveBoardAs()">Save As</button>
+            <button class="btn btn-primary" onclick="addColumn()">+ Add Column</button>
+            <button class="btn" onclick="clearAllTasks()">Clear All</button>
+            <span class="save-status" id="saveStatus">Saved</span>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search tasks..." oninput="filterTasks()">
+        </div>
+        <div class="filter-group">
+            <button class="btn" id="archivedToggleBtn" onclick="toggleArchivedView()">Archived: Off</button>
+        </div>
+        <div class="filter-group">
+            <button class="btn" id="sortToggleBtn" onclick="toggleSortMode()">Sort: Manual</button>
+        </div>
+        <div class="filter-group">
+            <label>Priority:</label>
+            <select id="priorityFilter" onchange="filterTasks()">
+                <option value="">All</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="board" id="board">
+    </div>
+
+    <div class="modal" id="taskModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title" id="modalTitle">New Task</span>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <input type="hidden" id="taskId">
+                    <div class="form-group">
+                        <label>Task Name</label>
+                        <input type="text" id="taskName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="taskDescription"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Todo List (one item per line, optional)</label>
+                        <textarea id="taskChecklist" placeholder="[ ] Buy detergent&#10;[x] Start dishwasher"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Due Date</label>
+                            <input type="date" id="taskDueDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Tags (comma separated)</label>
+                            <input type="text" id="taskTags" placeholder="home, deep-clean">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <select id="taskPriority">
+                            <option value="high">High</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="taskDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Task Details</span>
+                <button class="modal-close" onclick="closeDetailModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-list">
+                    <div class="detail-item">
+                        <span class="detail-label">Title</span>
+                        <span class="detail-value" id="detailTitle">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Description</span>
+                        <span class="detail-value" id="detailDescription">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Priority</span>
+                        <span class="detail-value" id="detailPriority">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value" id="detailStatus">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Created</span>
+                        <span class="detail-value" id="detailCreatedAt">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Updated</span>
+                        <span class="detail-value" id="detailUpdatedAt">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Due</span>
+                        <span class="detail-value" id="detailDueDate">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Tags</span>
+                        <span class="detail-value" id="detailTags">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Todo List</span>
+                        <ul class="detail-checklist" id="detailChecklist"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeDetailModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="undo-toast" id="undoToast">
+        <span class="undo-toast-text" id="undoToastText"></span>
+        <button class="btn" onclick="performUndo()">Undo</button>
+    </div>
+
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('householdTasks')) || [];
+        const defaultColumns = [
+            { status: 'todo', title: 'To Do' },
+            { status: 'inprogress', title: 'In Progress' },
+            { status: 'done', title: 'Done' }
+        ];
+        let columns = JSON.parse(localStorage.getItem('householdColumns')) || defaultColumns;
+        const BOARD_SCHEMA_VERSION = 3;
+        const BOARD_APP_ID = 'household-task-board';
+        const DEFAULT_BOARD_TITLE = 'Example Task Board';
+        const MAX_COLUMNS = 5;
+        let boardCreatedAt = new Date().toISOString();
+        let boardExtensions = {};
+        let boardTitle = localStorage.getItem('householdBoardTitle') || DEFAULT_BOARD_TITLE;
+        let boardSortMode = localStorage.getItem('householdBoardSortMode') || 'manual';
+        let showArchivedOnly = localStorage.getItem('householdShowArchivedOnly') === 'true';
+        let currentFileHandle = null;
+        let currentFileName = '';
+        let isDirty = false;
+        let isSaving = false;
+        let saveQueued = false;
+        let suppressChangeTracking = false;
+        let selectedTaskId = null;
+        let pendingNewTaskStatus = null;
+        let draggedColumnStatus = null;
+        let undoAction = null;
+        let undoTimer = null;
+
+        const sampleTasks = [];
+
+        function updateDocumentTitle() {
+            const filePart = currentFileName ? ` - ${currentFileName}` : '';
+            const dirtyPart = isDirty ? '* ' : '';
+            document.title = `${dirtyPart}${boardTitle}${filePart}`;
+        }
+
+        function applyBoardTitle() {
+            document.getElementById('boardTitle').textContent = boardTitle;
+            updateDocumentTitle();
+        }
+
+        function setDirty(nextDirty) {
+            isDirty = nextDirty;
+            updateDocumentTitle();
+        }
+
+        function cloneTemplateTasks() {
+            return sampleTasks.map(task => ({
+                id: task.id,
+                title: task.title,
+                description: task.description || '',
+                checklist: [],
+                archived: false,
+                createdAt: nowIso(),
+                updatedAt: nowIso(),
+                dueDate: '',
+                tags: [],
+                priority: task.priority,
+                status: task.status
+            }));
+        }
+
+        function nowIso() {
+            return new Date().toISOString();
+        }
+
+        function setSaveStatus(label, state = 'saved') {
+            const node = document.getElementById('saveStatus');
+            if (!node) return;
+            node.textContent = label;
+            node.className = `save-status ${state}`;
+        }
+
+        function applyViewControls() {
+            const archivedBtn = document.getElementById('archivedToggleBtn');
+            const sortBtn = document.getElementById('sortToggleBtn');
+            if (archivedBtn) {
+                archivedBtn.textContent = showArchivedOnly ? 'Archived: On' : 'Archived: Off';
+            }
+            if (sortBtn) {
+                sortBtn.textContent = boardSortMode === 'dueDate' ? 'Sort: Due Date' : 'Sort: Manual';
+            }
+        }
+
+        function toggleArchivedView() {
+            showArchivedOnly = !showArchivedOnly;
+            applyViewControls();
+            saveColumns();
+            renderTasks();
+        }
+
+        function toggleSortMode() {
+            boardSortMode = boardSortMode === 'dueDate' ? 'manual' : 'dueDate';
+            applyViewControls();
+            saveColumns();
+            renderTasks();
+        }
+
+        function formatDateTime(value) {
+            const ts = normalizeTimestamp(value);
+            if (!ts) return '-';
+            return new Date(ts).toLocaleString();
+        }
+
+        function touchTask(task) {
+            task.updatedAt = nowIso();
+        }
+
+        function showUndo(message, undoFn) {
+            const toast = document.getElementById('undoToast');
+            const text = document.getElementById('undoToastText');
+            if (!toast || !text) return;
+            undoAction = undoFn;
+            text.textContent = message;
+            toast.classList.add('active');
+            if (undoTimer) clearTimeout(undoTimer);
+            undoTimer = setTimeout(() => hideUndo(), 5000);
+        }
+
+        function hideUndo() {
+            const toast = document.getElementById('undoToast');
+            if (toast) {
+                toast.classList.remove('active');
+            }
+            if (undoTimer) {
+                clearTimeout(undoTimer);
+                undoTimer = null;
+            }
+            undoAction = null;
+        }
+
+        function performUndo() {
+            if (!undoAction) return;
+            const fn = undoAction;
+            hideUndo();
+            fn();
+        }
+
+        function loadTemplateBoard() {
+            columns = normalizeColumns(defaultColumns);
+            tasks = cloneTemplateTasks();
+            boardCreatedAt = new Date().toISOString();
+            boardExtensions = {};
+            boardTitle = DEFAULT_BOARD_TITLE;
+            boardSortMode = 'manual';
+            showArchivedOnly = false;
+        }
+
+        function persistLocalState() {
+            localStorage.setItem('householdTasks', JSON.stringify(tasks));
+            localStorage.setItem('householdColumns', JSON.stringify(columns));
+            localStorage.setItem('householdBoardTitle', boardTitle);
+            localStorage.setItem('householdBoardSortMode', boardSortMode);
+            localStorage.setItem('householdShowArchivedOnly', String(showArchivedOnly));
+        }
+
+        function onBoardChanged() {
+            if (suppressChangeTracking) return;
+            persistLocalState();
+            setDirty(true);
+            if (!currentFileHandle) {
+                setSaveStatus('Unsaved', 'error');
+            }
+            queueAutoSave();
+        }
+
+        function hasExactKeys(obj, expectedKeys) {
+            if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+            const actual = Object.keys(obj).sort();
+            const expected = [...expectedKeys].sort();
+            return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+        }
+
+        function normalizeTask(task) {
+            return {
+                id: task.id,
+                title: task.title,
+                description: task.description || '',
+                checklist: normalizeChecklist(task.checklist),
+                archived: Boolean(task.archived),
+                createdAt: normalizeTimestamp(task.createdAt) || nowIso(),
+                updatedAt: normalizeTimestamp(task.updatedAt) || nowIso(),
+                dueDate: normalizeDueDate(task.dueDate),
+                tags: normalizeTags(task.tags),
+                priority: task.priority,
+                status: task.status
+            };
+        }
+
+        function normalizeTimestamp(value) {
+            if (!value || typeof value !== 'string') return '';
+            return Number.isNaN(Date.parse(value)) ? '' : value;
+        }
+
+        function normalizeDueDate(value) {
+            if (!value || typeof value !== 'string') return '';
+            const trimmed = value.trim();
+            return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
+        }
+
+        function normalizeTags(tags) {
+            if (!Array.isArray(tags)) return [];
+            return tags
+                .map(tag => String(tag).trim())
+                .filter(Boolean)
+                .slice(0, 8);
+        }
+
+        function parseTagsInput(value) {
+            return normalizeTags(value.split(','));
+        }
+
+        function tagsToInput(tags) {
+            return normalizeTags(tags).join(', ');
+        }
+
+        function isTaskOverdue(task) {
+            const due = normalizeDueDate(task.dueDate);
+            if (!due || task.status === 'done' || task.archived) return false;
+            const today = new Date().toISOString().slice(0, 10);
+            return due < today;
+        }
+
+        function serializeBoardData() {
+            const now = new Date().toISOString();
+            return {
+                meta: {
+                    schemaVersion: BOARD_SCHEMA_VERSION,
+                    appId: BOARD_APP_ID,
+                    createdAt: boardCreatedAt || now,
+                    updatedAt: now
+                },
+                board: {
+                    columns: columns.map(col => ({ status: col.status, title: col.title })),
+                    tasks: tasks.map(task => normalizeTask(task)),
+                    settings: {
+                        title: boardTitle,
+                        sortMode: boardSortMode,
+                        showArchivedOnly
+                    }
+                },
+                extensions: boardExtensions
+            };
+        }
+
+        function validateBoardData(data) {
+            if (!hasExactKeys(data, ['meta', 'board', 'extensions'])) {
+                throw new Error('Invalid file root structure.');
+            }
+            if (!hasExactKeys(data.meta, ['schemaVersion', 'appId', 'createdAt', 'updatedAt'])) {
+                throw new Error('Invalid meta structure.');
+            }
+            if (data.meta.schemaVersion !== BOARD_SCHEMA_VERSION) {
+                throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
+            }
+            if (data.meta.appId !== BOARD_APP_ID) {
+                throw new Error('Invalid appId.');
+            }
+            if (!data.meta.createdAt || Number.isNaN(Date.parse(data.meta.createdAt))) {
+                throw new Error('Invalid meta.createdAt.');
+            }
+            if (!data.meta.updatedAt || Number.isNaN(Date.parse(data.meta.updatedAt))) {
+                throw new Error('Invalid meta.updatedAt.');
+            }
+            if (!hasExactKeys(data.board, ['columns', 'tasks', 'settings'])) {
+                throw new Error('Invalid board structure.');
+            }
+            if (!Array.isArray(data.board.columns) || data.board.columns.length === 0) {
+                throw new Error('Board must include at least one column.');
+            }
+            if (data.board.columns.length > MAX_COLUMNS) {
+                throw new Error(`Board cannot have more than ${MAX_COLUMNS} columns.`);
+            }
+            if (!Array.isArray(data.board.tasks)) {
+                throw new Error('Board tasks must be an array.');
+            }
+            if (!hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly'])) {
+                throw new Error('Invalid board.settings structure.');
+            }
+            if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
+                throw new Error('Invalid board.settings.title.');
+            }
+            if (!['manual', 'dueDate'].includes(data.board.settings.sortMode)) {
+                throw new Error('Invalid board.settings.sortMode.');
+            }
+            if (typeof data.board.settings.showArchivedOnly !== 'boolean') {
+                throw new Error('Invalid board.settings.showArchivedOnly.');
+            }
+            if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) {
+                throw new Error('Invalid extensions structure.');
+            }
+
+            const statuses = new Set();
+            data.board.columns.forEach((col) => {
+                if (!hasExactKeys(col, ['status', 'title'])) {
+                    throw new Error('Invalid column structure.');
+                }
+                if (typeof col.status !== 'string' || !col.status.trim()) {
+                    throw new Error('Column status must be a non-empty string.');
+                }
+                if (typeof col.title !== 'string' || !col.title.trim()) {
+                    throw new Error('Column title must be a non-empty string.');
+                }
+                if (statuses.has(col.status)) {
+                    throw new Error('Column statuses must be unique.');
+                }
+                statuses.add(col.status);
+            });
+
+            data.board.tasks.forEach((task) => {
+                if (!hasExactKeys(task, ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'tags', 'priority', 'status'])) {
+                    throw new Error('Invalid task structure.');
+                }
+                if (typeof task.id !== 'number' || !Number.isFinite(task.id)) {
+                    throw new Error('Task id must be a number.');
+                }
+                if (typeof task.title !== 'string' || !task.title.trim()) {
+                    throw new Error('Task title must be a non-empty string.');
+                }
+                if (typeof task.description !== 'string') {
+                    throw new Error('Task description must be a string.');
+                }
+                if (!Array.isArray(task.checklist)) {
+                    throw new Error('Task checklist must be an array.');
+                }
+                if (typeof task.archived !== 'boolean') {
+                    throw new Error('Task archived must be boolean.');
+                }
+                if (!normalizeTimestamp(task.createdAt)) {
+                    throw new Error('Task createdAt must be a valid timestamp.');
+                }
+                if (!normalizeTimestamp(task.updatedAt)) {
+                    throw new Error('Task updatedAt must be a valid timestamp.');
+                }
+                if (typeof task.dueDate !== 'string' || (task.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))) {
+                    throw new Error('Task dueDate must be YYYY-MM-DD or empty.');
+                }
+                if (!Array.isArray(task.tags)) {
+                    throw new Error('Task tags must be an array.');
+                }
+                if (!['high', 'medium', 'low'].includes(task.priority)) {
+                    throw new Error('Task priority is invalid.');
+                }
+                if (typeof task.status !== 'string' || !statuses.has(task.status)) {
+                    throw new Error('Task status is invalid.');
+                }
+                task.checklist.forEach((item) => {
+                    if (!hasExactKeys(item, ['text', 'done'])) {
+                        throw new Error('Invalid checklist item structure.');
+                    }
+                    if (typeof item.text !== 'string' || !item.text.trim()) {
+                        throw new Error('Checklist item text must be non-empty.');
+                    }
+                    if (typeof item.done !== 'boolean') {
+                        throw new Error('Checklist item done must be boolean.');
+                    }
+                });
+                task.tags.forEach((tag) => {
+                    if (typeof tag !== 'string' || !tag.trim()) {
+                        throw new Error('Task tag must be non-empty string.');
+                    }
+                });
+            });
+        }
+
+        function applyBoardData(data) {
+            validateBoardData(data);
+            columns = normalizeColumns(data.board.columns);
+            tasks = data.board.tasks.map(task => normalizeTask(task));
+            boardCreatedAt = data.meta.createdAt;
+            boardExtensions = data.extensions;
+            boardTitle = data.board.settings.title.trim();
+            boardSortMode = data.board.settings.sortMode;
+            showArchivedOnly = data.board.settings.showArchivedOnly;
+            applyBoardTitle();
+            applyViewControls();
+        }
+
+        function renameBoard() {
+            const nextTitle = prompt('Board title:', boardTitle);
+            if (!nextTitle) return;
+            const trimmed = nextTitle.trim();
+            if (!trimmed || trimmed === boardTitle) return;
+            boardTitle = trimmed;
+            applyBoardTitle();
+            onBoardChanged();
+        }
+
+        async function writeBoardToFileHandle(fileHandle) {
+            const writable = await fileHandle.createWritable();
+            const payload = JSON.stringify(serializeBoardData(), null, 2);
+            await writable.write(payload);
+            await writable.close();
+        }
+
+        async function flushSaveQueue() {
+            if (isSaving || !currentFileHandle) return;
+
+            isSaving = true;
+            setSaveStatus('Saving...', 'saving');
+            try {
+                do {
+                    saveQueued = false;
+                    await writeBoardToFileHandle(currentFileHandle);
+                    setDirty(false);
+                } while (saveQueued);
+                setSaveStatus('Saved', 'saved');
+            } catch (error) {
+                console.error(error);
+                setDirty(true);
+                setSaveStatus('Error', 'error');
+                alert(`Save failed: ${error.message}`);
+            } finally {
+                isSaving = false;
+            }
+        }
+
+        function queueAutoSave() {
+            if (!currentFileHandle) return;
+            saveQueued = true;
+            flushSaveQueue();
+        }
+
+        function confirmDiscardChanges(actionLabel) {
+            if (!isDirty) return true;
+            return confirm(`You have unsaved changes. Continue with ${actionLabel}?`);
+        }
+
+        async function saveBoardAs() {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: currentFileName || 'kanban-board.json',
+                    types: [{ description: 'Kanban Board JSON', accept: { 'application/json': ['.json'] } }]
+                });
+                currentFileHandle = handle;
+                currentFileName = handle.name || 'kanban-board.json';
+                updateDocumentTitle();
+                saveQueued = true;
+                await flushSaveQueue();
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    alert(`Save As failed: ${error.message}`);
+                }
+            }
+        }
+
+        async function saveBoard() {
+            if (!currentFileHandle) {
+                await saveBoardAs();
+                return;
+            }
+            saveQueued = true;
+            await flushSaveQueue();
+        }
+
+        async function openBoardFile() {
+            if (!confirmDiscardChanges('Open')) return;
+            try {
+                const [handle] = await window.showOpenFilePicker({
+                    multiple: false,
+                    types: [{ description: 'Kanban Board JSON', accept: { 'application/json': ['.json'] } }]
+                });
+                const file = await handle.getFile();
+                const parsed = JSON.parse(await file.text());
+                applyBoardData(parsed);
+                currentFileHandle = handle;
+                currentFileName = file.name || '';
+                suppressChangeTracking = true;
+                renderBoard();
+                renderTasks();
+                persistLocalState();
+                suppressChangeTracking = false;
+                setDirty(false);
+                setSaveStatus('Saved', 'saved');
+            } catch (error) {
+                suppressChangeTracking = false;
+                if (error.name !== 'AbortError') {
+                    alert(`Open failed: ${error.message}`);
+                }
+            }
+        }
+
+        function newBoard() {
+            if (!confirmDiscardChanges('New Board')) return;
+            suppressChangeTracking = true;
+            loadTemplateBoard();
+            currentFileHandle = null;
+            currentFileName = '';
+            applyBoardTitle();
+            applyViewControls();
+            renderBoard();
+            renderTasks();
+            persistLocalState();
+            suppressChangeTracking = false;
+            setDirty(false);
+            setSaveStatus('Saved', 'saved');
+        }
+
+        function slugifyColumnName(name) {
+            return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        }
+
+        function normalizeColumns(inputColumns) {
+            const usedStatuses = new Set();
+            const normalized = [];
+
+            (Array.isArray(inputColumns) ? inputColumns : []).forEach(col => {
+                const title = (col && col.title ? String(col.title) : '').trim();
+                if (!title) return;
+
+                let baseStatus = slugifyColumnName(col && col.status ? String(col.status) : '') || slugifyColumnName(title) || 'column';
+                let status = baseStatus;
+                let suffix = 1;
+                while (usedStatuses.has(status)) {
+                    status = `${baseStatus}-${suffix}`;
+                    suffix++;
+                }
+
+                usedStatuses.add(status);
+                normalized.push({ status, title });
+            });
+
+            return normalized;
+        }
+
+        function normalizeChecklist(checklist) {
+            if (!Array.isArray(checklist)) return [];
+
+            return checklist
+                .map(item => {
+                    if (!item || typeof item.text !== 'string') return null;
+                    const text = item.text.trim();
+                    if (!text) return null;
+                    return { text, done: Boolean(item.done) };
+                })
+                .filter(Boolean);
+        }
+
+        function parseChecklistInput(value) {
+            return value
+                .split('\n')
+                .map(line => line.trim())
+                .filter(Boolean)
+                .map(line => {
+                    const checked = /^\[\s*x\s*\]\s*/i.test(line);
+                    const hasPrefix = /^\[\s*(x)?\s*\]\s*/i.test(line);
+                    const text = line.replace(/^\[\s*(x)?\s*\]\s*/i, '').trim();
+                    return { text: hasPrefix ? text : line, done: checked };
+                })
+                .filter(item => item.text);
+        }
+
+        function checklistToInput(checklist) {
+            return normalizeChecklist(checklist)
+                .map(item => `${item.done ? '[x]' : '[ ]'} ${item.text}`)
+                .join('\n');
+        }
+
+        function init() {
+            columns = normalizeColumns(columns);
+            if (columns.length === 0) {
+                loadTemplateBoard();
+            }
+
+            if (tasks.length === 0) {
+                loadTemplateBoard();
+            }
+
+            const availableStatuses = new Set(columns.map(col => col.status));
+            const fallbackStatus = columns[0].status;
+            tasks = tasks.map(task => {
+                if (!availableStatuses.has(task.status)) {
+                    task.status = fallbackStatus;
+                }
+                return normalizeTask(task);
+            });
+
+            suppressChangeTracking = true;
+            persistLocalState();
+            suppressChangeTracking = false;
+            setDirty(false);
+            renderBoard();
+            renderTasks();
+            applyBoardTitle();
+            applyViewControls();
+            setSaveStatus('Saved', 'saved');
+        }
+
+        function saveTasks() {
+            onBoardChanged();
+        }
+
+        function saveColumns() {
+            onBoardChanged();
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = columns.map(col => `
+                <div class="column" data-status="${escapeHtml(col.status)}">
+                    <div class="column-header" draggable="true" ondragstart="columnDragStart(event, '${escapeHtml(col.status)}')" ondragover="columnDragOver(event)" ondrop="columnDrop(event, '${escapeHtml(col.status)}')">
+                        <div class="column-header-main">
+                            <span class="column-title">${escapeHtml(col.title)}</span>
+                            <span class="column-count" id="${escapeHtml(col.status)}Count">0</span>
+                        </div>
+                        <div class="column-header-actions">
+                            <button class="column-rename-btn" onclick="renameColumn('${escapeHtml(col.status)}')" title="Rename column">✎</button>
+                            <button class="column-delete-btn" onclick="deleteColumn('${escapeHtml(col.status)}')" title="Delete column">×</button>
+                        </div>
+                    </div>
+                    <div class="column-body" id="${escapeHtml(col.status)}Column" ondrop="drop(event, '${escapeHtml(col.status)}')" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></div>
+                </div>
+            `).join('');
+        }
+
+        function renderTasks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const priorityFilter = document.getElementById('priorityFilter').value;
+
+            const columnNodes = Object.fromEntries(
+                columns.map(col => [col.status, document.getElementById(col.status + 'Column')])
+            );
+
+            const counts = Object.fromEntries(columns.map(col => [col.status, 0]));
+
+            Object.values(columnNodes).forEach(col => {
+                if (col) {
+                    col.innerHTML = '';
+                }
+            });
+
+            if (!showArchivedOnly) {
+                columns.forEach(col => {
+                    const node = columnNodes[col.status];
+                    if (!node) return;
+                    node.innerHTML = `<div class="add-task-card" onclick="openModal(null, '${escapeHtml(col.status)}')">+ Add Task</div>`;
+                });
+            }
+
+            const filtered = tasks.filter(task => {
+                if (showArchivedOnly && !task.archived) return false;
+                if (!showArchivedOnly && task.archived) return false;
+                const tagsText = normalizeTags(task.tags).join(' ').toLowerCase();
+                if (searchTerm && !task.title.toLowerCase().includes(searchTerm) && !tagsText.includes(searchTerm)) return false;
+                if (priorityFilter && task.priority !== priorityFilter) return false;
+                return true;
+            });
+
+            columns.forEach(col => {
+                const node = columnNodes[col.status];
+                if (!node) return;
+
+                let statusTasks = filtered.filter(task => task.status === col.status);
+                if (boardSortMode === 'dueDate') {
+                    statusTasks = statusTasks
+                        .map((task, index) => ({ task, index }))
+                        .sort((a, b) => {
+                            const aDue = normalizeDueDate(a.task.dueDate);
+                            const bDue = normalizeDueDate(b.task.dueDate);
+                            if (aDue && bDue) {
+                                if (aDue < bDue) return -1;
+                                if (aDue > bDue) return 1;
+                                return a.index - b.index;
+                            }
+                            if (aDue && !bDue) return -1;
+                            if (!aDue && bDue) return 1;
+                            return a.index - b.index;
+                        })
+                        .map(entry => entry.task);
+                }
+
+                statusTasks.forEach(task => {
+                    counts[task.status]++;
+                    const card = createTaskCard(task, searchTerm);
+                    node.appendChild(card);
+                });
+            });
+
+            Object.keys(counts).forEach(status => {
+                const countNode = document.getElementById(status + 'Count');
+                if (countNode) {
+                    countNode.textContent = counts[status];
+                }
+            });
+
+            Object.values(columnNodes).forEach(col => {
+                if (!col) return;
+                const status = col.id.replace('Column', '');
+                if (counts[status] === 0) {
+                    col.innerHTML += '<div class="empty-state"><span class="empty-state-text">No tasks</span></div>';
+                }
+            });
+
+            if (selectedTaskId && !tasks.find(task => task.id === selectedTaskId)) {
+                selectedTaskId = null;
+            }
+        }
+
+        function createTaskCard(task, searchTerm = '') {
+            const div = document.createElement('div');
+            div.className = 'task-card';
+            if (selectedTaskId === task.id) {
+                div.classList.add('selected');
+            }
+            div.draggable = true;
+            div.dataset.id = task.id;
+            div.ondragstart = (e) => drag(e);
+            div.onclick = () => {
+                selectedTaskId = task.id;
+                openTaskDetails(task.id);
+            };
+
+            const highlightedTitle = highlightSearchMatch(task.title, searchTerm);
+            const visibleTags = normalizeTags(task.tags).slice(0, 2);
+            const highlightedTagsHtml = visibleTags.map(tag => `<span class="task-tag">#${highlightSearchMatch(tag, searchTerm)}</span>`).join('');
+            const archiveButtonLabel = task.archived ? '↺' : '×';
+            const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
+
+            div.innerHTML = `
+                <div class="task-header">
+                    <span class="task-title">${highlightedTitle}</span>
+                    <div class="task-actions">
+                        <button class="task-action-btn" onclick="event.stopPropagation(); editTask(${task.id})" title="Edit">✎</button>
+                        <button class="task-action-btn" onclick="event.stopPropagation(); toggleArchiveTask(${task.id})" title="${archiveButtonTitle}">${archiveButtonLabel}</button>
+                    </div>
+                </div>
+                <div class="task-meta">
+                    ${isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : ''}
+                    <span class="task-tag">
+                        <span class="priority-dot priority-${task.priority}"></span>
+                        ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                    </span>
+                    ${task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : ''}
+                    ${highlightedTagsHtml}
+                    ${task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(item => item.done).length}/${task.checklist.length} done</span>` : ''}
+                </div>
+            `;
+
+            return div;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function escapeRegExp(text) {
+            return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function highlightSearchMatch(text, searchTerm) {
+            const safeText = escapeHtml(text || '');
+            const term = (searchTerm || '').trim();
+            if (!term) return safeText;
+
+            const regex = new RegExp(`(${escapeRegExp(term)})`, 'ig');
+            return safeText.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+
+        function openModal(taskId = null, preferredStatus = null) {
+            document.getElementById('taskModal').classList.add('active');
+            document.getElementById('taskForm').reset();
+            document.getElementById('taskId').value = '';
+            document.getElementById('modalTitle').textContent = 'New Task';
+            document.getElementById('taskDueDate').value = '';
+            document.getElementById('taskTags').value = '';
+            pendingNewTaskStatus = preferredStatus && columns.some(col => col.status === preferredStatus)
+                ? preferredStatus
+                : columns[0].status;
+
+            if (taskId) {
+                const task = tasks.find(t => t.id === taskId);
+                if (task) {
+                    document.getElementById('taskId').value = task.id;
+                    document.getElementById('taskName').value = task.title;
+                    document.getElementById('taskDescription').value = task.description || '';
+                    document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
+                    document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
+                    document.getElementById('taskTags').value = tagsToInput(task.tags);
+                    document.getElementById('taskPriority').value = task.priority;
+                    document.getElementById('modalTitle').textContent = 'Edit Task';
+                    pendingNewTaskStatus = null;
+                }
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('taskModal').classList.remove('active');
+            pendingNewTaskStatus = null;
+        }
+
+        function openTaskDetails(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+            selectedTaskId = id;
+
+            const statusTitle = (columns.find(col => col.status === task.status) || {}).title || task.status;
+            document.getElementById('detailTitle').textContent = task.title || '-';
+            document.getElementById('detailDescription').textContent = task.description || '-';
+            document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
+            document.getElementById('detailStatus').textContent = statusTitle || '-';
+            document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
+            document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
+            document.getElementById('detailDueDate').textContent = normalizeDueDate(task.dueDate) || '-';
+            document.getElementById('detailTags').textContent = normalizeTags(task.tags).length ? normalizeTags(task.tags).map(tag => `#${tag}`).join(', ') : '-';
+            renderDetailChecklist(task);
+            document.getElementById('taskDetailModal').classList.add('active');
+            renderTasks();
+        }
+
+        function renderDetailChecklist(task) {
+            const list = document.getElementById('detailChecklist');
+            const checklist = normalizeChecklist(task.checklist);
+
+            if (checklist.length === 0) {
+                list.innerHTML = '<li class="detail-value">-</li>';
+                return;
+            }
+
+            list.innerHTML = checklist.map((item, index) => `
+                <li class="detail-checklist-item ${item.done ? 'done' : ''}">
+                    <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleChecklistItem(${task.id}, ${index}, this.checked)">
+                    <span class="detail-checklist-text">${escapeHtml(item.text)}</span>
+                </li>
+            `).join('');
+        }
+
+        function toggleChecklistItem(taskId, itemIndex, checked) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            if (!Array.isArray(task.checklist) || !task.checklist[itemIndex]) return;
+
+            task.checklist[itemIndex].done = checked;
+            touchTask(task);
+            saveTasks();
+            renderTasks();
+            openTaskDetails(taskId);
+        }
+
+        function closeDetailModal() {
+            document.getElementById('taskDetailModal').classList.remove('active');
+        }
+
+        function saveTask() {
+            const id = document.getElementById('taskId').value;
+            const title = document.getElementById('taskName').value.trim();
+            const description = document.getElementById('taskDescription').value.trim();
+            const checklist = parseChecklistInput(document.getElementById('taskChecklist').value);
+            const dueDate = normalizeDueDate(document.getElementById('taskDueDate').value);
+            const tags = parseTagsInput(document.getElementById('taskTags').value);
+            const priority = document.getElementById('taskPriority').value;
+
+            if (!title) return;
+
+            if (id) {
+                const task = tasks.find(t => t.id === parseInt(id));
+                if (task) {
+                    task.title = title;
+                    task.description = description;
+                    task.checklist = checklist;
+                    task.dueDate = dueDate;
+                    task.tags = tags;
+                    task.priority = priority;
+                    touchTask(task);
+                    selectedTaskId = task.id;
+                }
+            } else {
+                const now = nowIso();
+                const newTask = {
+                    id: Date.now(),
+                    title,
+                    description,
+                    checklist,
+                    archived: false,
+                    createdAt: now,
+                    updatedAt: now,
+                    dueDate,
+                    tags,
+                    priority,
+                    status: pendingNewTaskStatus || columns[0].status
+                };
+                tasks.push(newTask);
+                selectedTaskId = newTask.id;
+            }
+
+            saveTasks();
+            renderTasks();
+            closeModal();
+            pendingNewTaskStatus = null;
+        }
+
+        function editTask(id) {
+            selectedTaskId = id;
+            openModal(id);
+        }
+
+        function toggleArchiveTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (!task) return;
+
+            const wasArchived = task.archived;
+            task.archived = !task.archived;
+            touchTask(task);
+            saveTasks();
+            renderTasks();
+
+            if (!wasArchived && task.archived) {
+                showUndo('Task archived', () => {
+                    const target = tasks.find(t => t.id === id);
+                    if (!target) return;
+                    target.archived = false;
+                    touchTask(target);
+                    saveTasks();
+                    renderTasks();
+                });
+            }
+        }
+
+        function clearAllTasks() {
+            if (confirm('Clear all tasks?')) {
+                tasks = [];
+                selectedTaskId = null;
+                saveTasks();
+                renderTasks();
+            }
+        }
+
+        function addColumn() {
+            if (columns.length >= MAX_COLUMNS) {
+                alert(`Maximum of ${MAX_COLUMNS} columns allowed.`);
+                return;
+            }
+
+            const name = prompt('Column name:');
+            if (!name || !name.trim()) return;
+
+            let baseStatus = slugifyColumnName(name);
+            if (!baseStatus) {
+                baseStatus = 'column';
+            }
+
+            let status = baseStatus;
+            let suffix = 1;
+            const existing = new Set(columns.map(col => col.status));
+            while (existing.has(status)) {
+                status = `${baseStatus}-${suffix}`;
+                suffix++;
+            }
+
+            columns.push({ status, title: name.trim() });
+            saveColumns();
+            renderBoard();
+            renderTasks();
+        }
+
+        function renameColumn(status) {
+            const column = columns.find(col => col.status === status);
+            if (!column) return;
+
+            const nextTitle = prompt('Column name:', column.title);
+            if (!nextTitle) return;
+            const trimmed = nextTitle.trim();
+            if (!trimmed || trimmed === column.title) return;
+
+            column.title = trimmed;
+            saveColumns();
+            renderBoard();
+            renderTasks();
+        }
+
+        function columnDragStart(ev, status) {
+            draggedColumnStatus = status;
+            ev.dataTransfer.setData('text/plain', status);
+            ev.dataTransfer.effectAllowed = 'move';
+        }
+
+        function columnDragOver(ev) {
+            ev.preventDefault();
+        }
+
+        function columnDrop(ev, targetStatus) {
+            ev.preventDefault();
+            const sourceStatus = draggedColumnStatus || ev.dataTransfer.getData('text/plain');
+            draggedColumnStatus = null;
+            if (!sourceStatus || sourceStatus === targetStatus) return;
+
+            const sourceIndex = columns.findIndex(col => col.status === sourceStatus);
+            const targetIndex = columns.findIndex(col => col.status === targetStatus);
+            if (sourceIndex < 0 || targetIndex < 0) return;
+
+            const [moved] = columns.splice(sourceIndex, 1);
+            columns.splice(targetIndex, 0, moved);
+            saveColumns();
+            renderBoard();
+            renderTasks();
+        }
+
+        function deleteColumn(status) {
+            if (columns.length === 1) {
+                alert('At least one column is required.');
+                return;
+            }
+
+            const column = columns.find(col => col.status === status);
+            if (!column) return;
+
+            const fallback = columns.find(col => col.status !== status);
+            if (!fallback) return;
+
+            const affectedTasks = tasks.filter(task => task.status === status).length;
+            const message = affectedTasks > 0
+                ? `Delete "${column.title}" and move ${affectedTasks} task(s) to "${fallback.title}"?`
+                : `Delete "${column.title}"?`;
+
+            if (!confirm(message)) return;
+
+            tasks.forEach(task => {
+                if (task.status === status) {
+                    task.status = fallback.status;
+                }
+            });
+
+            columns = columns.filter(col => col.status !== status);
+            saveTasks();
+            saveColumns();
+            renderBoard();
+            renderTasks();
+        }
+
+        function filterTasks() {
+            renderTasks();
+        }
+
+        function drag(ev) {
+            ev.dataTransfer.setData('text', ev.target.dataset.id);
+            ev.target.classList.add('dragging');
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function dragEnter(ev) {
+            ev.preventDefault();
+            if (ev.target.classList.contains('column-body')) {
+                ev.target.classList.add('drag-over');
+            }
+        }
+
+        function dragLeave(ev) {
+            if (ev.target.classList.contains('column-body')) {
+                ev.target.classList.remove('drag-over');
+            }
+        }
+
+        function drop(ev, status) {
+            ev.preventDefault();
+            const id = parseInt(ev.dataTransfer.getData('text'));
+            const task = tasks.find(t => t.id === id);
+            
+            if (task) {
+                const previousStatus = task.status;
+                task.status = status;
+                selectedTaskId = task.id;
+                touchTask(task);
+                saveTasks();
+                renderTasks();
+                if (previousStatus !== status) {
+                    showUndo('Task moved', () => {
+                        const target = tasks.find(t => t.id === id);
+                        if (!target) return;
+                        target.status = previousStatus;
+                        touchTask(target);
+                        saveTasks();
+                        renderTasks();
+                    });
+                }
+            }
+
+            document.querySelectorAll('.column-body').forEach(col => {
+                col.classList.remove('drag-over');
+            });
+            document.querySelectorAll('.task-card').forEach(card => {
+                card.classList.remove('dragging');
+            });
+        }
+
+        document.getElementById('taskModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('taskModal')) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('taskDetailModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('taskDetailModal')) {
+                closeDetailModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+            const modalOpen = document.getElementById('taskModal').classList.contains('active') || document.getElementById('taskDetailModal').classList.contains('active');
+
+            if (!isTyping && !modalOpen && e.key === '/') {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+                return;
+            }
+
+            if (!isTyping && !modalOpen && (e.key === 'n' || e.key === 'N')) {
+                e.preventDefault();
+                openModal();
+                return;
+            }
+
+            if (!isTyping && !modalOpen && (e.key === 'e' || e.key === 'E')) {
+                if (selectedTaskId) {
+                    e.preventDefault();
+                    editTask(selectedTaskId);
+                }
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                closeModal();
+                closeDetailModal();
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>

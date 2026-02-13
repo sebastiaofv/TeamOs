@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "schemaVersion": 2,
+    "appId": "household-task-board",
+    "createdAt": "2026-02-13T11:55:51.098Z",
+    "updatedAt": "2026-02-13T11:56:49.258Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "inprogress",
+        "title": "In Progress"
+      },
+      {
+        "status": "jj",
+        "title": "jj"
+      }
+    ],
+    "tasks": [
+      {
+        "id": 1770982231807,
+        "title": "x",
+        "description": "cxv",
+        "checklist": [],
+        "dueDate": "",
+        "tags": [],
+        "priority": "medium",
+        "status": "inprogress"
+      }
+    ],
+    "settings": {
+      "title": "markathon"
+    }
+  },
+  "extensions": {}
+}
