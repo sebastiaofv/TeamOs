@@ -13,7 +13,7 @@
       "sort": "priority"
     },
     "boardFiles": [
-      "markathon.board.json"
+      "boards/markathon.board.json"
     ]
   }
 }

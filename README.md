@@ -37,7 +37,7 @@ The app validates both extension and JSON structure on open/upload.
 ## Portfolio view
 
 - Aggregate tasks across multiple loaded board files.
-- Filters, sorting, and summary KPIs (overdue, due this week, top priorities).
+- Filters and sorting.
 - Quick switch from portfolio rows/chips to a specific loaded board.
 - Portfolio config actions:
   - `Open Portfolio`
@@ -52,8 +52,8 @@ The app validates both extension and JSON structure on open/upload.
 
 ## Example files
 
-- `markathon.board.json` (example board)
-- `example.portfolio.json` (example portfolio config)
+- `boards/markathon.board.json` (example board)
+- `portfolios/example.portfolio.json` (example portfolio config)
 
 ## Run
 
