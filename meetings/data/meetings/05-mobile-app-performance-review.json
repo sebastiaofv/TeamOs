@@ -1,0 +1,109 @@
+{
+  "id": 5,
+  "title": "Mobile App Performance Review",
+  "date": "2026-01-20",
+  "duration": "45 min",
+  "attendeeCount": "6 participants",
+  "attendees": [
+    {
+      "name": "Carlos Mendez",
+      "role": "Mobile Lead"
+    },
+    {
+      "name": "Emma Liu",
+      "role": "iOS Engineer"
+    },
+    {
+      "name": "James O'Brien",
+      "role": "Android Engineer"
+    },
+    {
+      "name": "Jen Park",
+      "role": "Product Manager"
+    },
+    {
+      "name": "Alex Rivera",
+      "role": "Backend Engineer"
+    },
+    {
+      "name": "Rachel Zhao",
+      "role": "Senior Architect"
+    }
+  ],
+  "summary": "iOS cold start time improved 40% after recent optimization. Android still has memory leak in image caching. Push notification delivery at 94%, targeting 99%.",
+  "agenda": [
+    {
+      "item": "iOS performance metrics",
+      "status": "discussed"
+    },
+    {
+      "item": "Android memory leak investigation",
+      "status": "discussed"
+    },
+    {
+      "item": "Push notification delivery rates",
+      "status": "discussed"
+    },
+    {
+      "item": "Cold start optimization strategy",
+      "status": "discussed"
+    }
+  ],
+  "decisions": [
+    "iOS optimization approach approved for Android implementation",
+    "Memory leak fix must be deployed before next release",
+    "Push notification permission UX to be redesigned",
+    "Target: 99% delivery rate by end of Q1"
+  ],
+  "transcription": "[15:00] <span class=\"speaker\">Carlos Mendez</span>: Mobile performance review. iOS first.\n\n[15:02] <span class=\"speaker\">Emma Liu</span>: Cold start down to 1.2 seconds from 2.0. Main improvement was deferring SDK initialization.\n\n[15:06] <span class=\"speaker\">Carlos Mendez</span>: That's significant. Any regressions?\n\n[15:08] <span class=\"speaker\">Emma Liu</span>: None detected. Crash rate stable at 0.3%.\n\n[15:10] <span class=\"speaker\">Carlos Mendez</span>: Android status?\n\n[15:12] <span class=\"speaker\">James O'Brien</span>: Memory leak confirmed in image cache. Working on fix. Cold start still at 2.8 seconds.\n\n[15:16] <span class=\"speaker\">Carlos Mendez</span>: Timeline for the memory fix?\n\n[15:18] <span class=\"speaker\">James O'Brien</span>: PR up this week. It's in the image loading library we forked.\n\n[15:22] <span class=\"speaker\">Carlos Mendez</span>: Push notifications?\n\n[15:24] <span class=\"speaker\">Emma Liu</span>: 94% delivery. Main issue is iOS provisional auth. Users declining.\n\n[15:28] <span class=\"speaker\">Carlos Mendez</span>: Let's discuss permission strategy separately.",
+  "actions": [
+    {
+      "text": "Submit image cache memory leak fix",
+      "assignee": "J. O'Brien",
+      "due": "2026-01-24",
+      "priority": "high",
+      "completed": true
+    },
+    {
+      "text": "Audit SDK initialization on Android",
+      "assignee": "J. O'Brien",
+      "due": "2026-02-03",
+      "priority": "medium",
+      "completed": false
+    },
+    {
+      "text": "Propose notification permission UX changes",
+      "assignee": "E. Liu",
+      "due": "2026-01-27",
+      "priority": "medium",
+      "completed": false
+    }
+  ],
+  "risks": [
+    {
+      "description": "Android memory leak may affect app store ratings",
+      "level": "high"
+    },
+    {
+      "description": "Push notification opt-in rates declining",
+      "level": "medium"
+    }
+  ],
+  "attachments": [
+    {
+      "name": "iOS_Performance_Metrics.pdf",
+      "type": "PDF",
+      "url": "#"
+    },
+    {
+      "name": "Android_Memory_Analysis.zip",
+      "type": "ZIP",
+      "url": "#"
+    }
+  ],
+  "nextMeeting": {
+    "title": "Mobile Sprint Review",
+    "date": "2026-02-06",
+    "time": "15:00"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "id": 1,
+  "title": "Q1 Engineering Planning",
+  "date": "2026-01-28",
+  "duration": "45 min",
+  "attendeeCount": "8 participants",
+  "attendees": [
+    {
+      "name": "Sarah Chen",
+      "role": "VP Engineering"
+    },
+    {
+      "name": "Mike Torres",
+      "role": "Infrastructure Lead"
+    },
+    {
+      "name": "Jen Park",
+      "role": "Product Manager"
+    },
+    {
+      "name": "David Kim",
+      "role": "CTO"
+    },
+    {
+      "name": "Lisa Wang",
+      "role": "Engineering Manager"
+    },
+    {
+      "name": "Alex Rivera",
+      "role": "Senior Engineer"
+    },
+    {
+      "name": "Nina Patel",
+      "role": "Security Lead"
+    },
+    {
+      "name": "Tom Bradley",
+      "role": "DevOps Engineer"
+    }
+  ],
+  "summary": "Reviewed Q1 objectives across all engineering teams. Infrastructure team to focus on reliability improvements, product team on new feature delivery. Budget approved for additional AWS resources.",
+  "agenda": [
+    {
+      "item": "Infrastructure roadmap review",
+      "status": "discussed"
+    },
+    {
+      "item": "Product priorities alignment",
+      "status": "discussed"
+    },
+    {
+      "item": "Budget approval for Q1",
+      "status": "discussed"
+    },
+    {
+      "item": "Hiring plan review",
+      "status": "pending"
+    }
+  ],
+  "decisions": [
+    "Database optimization project approved with 6-week timeline",
+    "AWS budget increased by 40% for Q1",
+    "New checkout flow prioritized over mobile improvements",
+    "Weekly sync meetings to be scheduled for cross-team alignment"
+  ],
+  "transcription": "[09:00] <span class=\"speaker\">Sarah Chen</span>: Good morning everyone. Let's dive into Q1 planning. First item - infrastructure roadmap.\n\n[09:02] <span class=\"speaker\">Mike Torres</span>: We've identified three critical areas: database optimization, CDN migration, and monitoring improvements. The database work is blocking other initiatives.\n\n[09:08] <span class=\"speaker\">Sarah Chen</span>: Timeline for database optimization?\n\n[09:09] <span class=\"speaker\">Mike Torres</span>: Six weeks. We've already done the initial assessment.\n\n[09:11] <span class=\"speaker\">Jen Park</span>: From the product side, we're aligned. New checkout flow is priority one, but we need the database work done first.\n\n[09:15] <span class=\"speaker\">Sarah Chen</span>: Budget discussion. We need approval for additional AWS spend.\n\n[09:17] <span class=\"speaker\">David Kim</span>: Approved up to 40% increase. Just keep me posted on actuals vs forecast.\n\n[09:20] <span class=\"speaker\">Sarah Chen</span>: Great. Let's move to action items.",
+  "actions": [
+    {
+      "text": "Finalize database optimization proposal",
+      "assignee": "M. Torres",
+      "due": "2026-01-30",
+      "priority": "high",
+      "completed": false
+    },
+    {
+      "text": "Submit AWS resource request",
+      "assignee": "S. Chen",
+      "due": "2026-01-29",
+      "priority": "high",
+      "completed": true
+    },
+    {
+      "text": "Update roadmap document",
+      "assignee": "J. Park",
+      "due": "2026-02-03",
+      "priority": "medium",
+      "completed": false
+    }
+  ],
+  "risks": [
+    {
+      "description": "Database optimization may exceed 6-week estimate",
+      "level": "medium"
+    },
+    {
+      "description": "AWS cost increase not approved by finance yet",
+      "level": "low"
+    }
+  ],
+  "attachments": [
+    {
+      "name": "Q1_Roadmap.pdf",
+      "type": "PDF",
+      "url": "#"
+    },
+    {
+      "name": "Infrastructure_Assessment.xlsx",
+      "type": "Excel",
+      "url": "#"
+    },
+    {
+      "name": "Budget_Proposal_Q1.docx",
+      "type": "Word",
+      "url": "#"
+    }
+  ],
+  "nextMeeting": {
+    "title": "Weekly Engineering Sync",
+    "date": "2026-02-04",
+    "time": "09:00"
+  }
+}

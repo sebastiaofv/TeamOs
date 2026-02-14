@@ -1,0 +1,105 @@
+{
+  "id": 6,
+  "title": "Vendor Evaluation - Monitoring Tools",
+  "date": "2026-01-15",
+  "duration": "60 min",
+  "attendeeCount": "5 participants",
+  "attendees": [
+    {
+      "name": "Sarah Chen",
+      "role": "VP Engineering"
+    },
+    {
+      "name": "Mike Torres",
+      "role": "Infrastructure Lead"
+    },
+    {
+      "name": "Lisa Wang",
+      "role": "Engineering Manager"
+    },
+    {
+      "name": "David Kim",
+      "role": "CTO"
+    },
+    {
+      "name": "Nina Patel",
+      "role": "Security Lead"
+    }
+  ],
+  "summary": "Evaluated DataDog, New Relic, and Grafana Cloud. DataDog leads on features but is 40% more expensive. Grafana Cloud good value but requires more setup. Decision needed by month end.",
+  "agenda": [
+    {
+      "item": "Feature comparison",
+      "status": "discussed"
+    },
+    {
+      "item": "Pricing analysis",
+      "status": "discussed"
+    },
+    {
+      "item": "Migration effort estimation",
+      "status": "discussed"
+    },
+    {
+      "item": "Trial setup and evaluation criteria",
+      "status": "discussed"
+    }
+  ],
+  "decisions": [
+    "DataDog trial to run parallel for 2 weeks",
+    "Decision required by Jan 31",
+    "Must include security review in evaluation",
+    "Budget ceiling: $20K/month"
+  ],
+  "transcription": "[13:00] <span class=\"speaker\">Sarah Chen</span>: Monitoring vendor evaluation. We've looked at three options.\n\n[13:03] <span class=\"speaker\">Mike Torres</span>: DataDog has the best out-of-box experience. APM, logs, metrics all integrated. But it's expensive.\n\n[13:08] <span class=\"speaker\">Lisa Wang</span>: How expensive?\n\n[13:10] <span class=\"speaker\">Mike Torres</span>: 40% more than New Relic at our scale. Roughly 18K/month vs 13K.\n\n[13:14] <span class=\"speaker\">Sarah Chen</span>: Grafana Cloud?\n\n[13:16] <span class=\"speaker\">Mike Torres</span>: 8K/month, but we'd need to run some components ourselves. More operational overhead.\n\n[13:20] <span class=\"speaker\">Lisa Wang</span>: What's the migration effort?\n\n[13:22] <span class=\"speaker\">Mike Torres</span>: DataDog: 2 weeks. Others: 4-6 weeks.\n\n[13:25] <span class=\"speaker\">Sarah Chen</span>: Let's get a trial going with DataDog. Run it parallel for two weeks.\n\n[13:28] <span class=\"speaker\">Mike Torres</span>: Already set up. Started yesterday.\n\n[13:30] <span class=\"speaker\">Sarah Chen</span>: Decision meeting next Friday.",
+  "actions": [
+    {
+      "text": "Complete DataDog trial evaluation",
+      "assignee": "M. Torres",
+      "due": "2026-01-29",
+      "priority": "high",
+      "completed": false
+    },
+    {
+      "text": "Document pricing comparison analysis",
+      "assignee": "M. Torres",
+      "due": "2026-01-27",
+      "priority": "medium",
+      "completed": true
+    },
+    {
+      "text": "Schedule final decision meeting",
+      "assignee": "S. Chen",
+      "due": "2026-01-22",
+      "priority": "medium",
+      "completed": true
+    }
+  ],
+  "risks": [
+    {
+      "description": "DataDog cost may exceed budget if usage grows",
+      "level": "medium"
+    },
+    {
+      "description": "Migration disruption during busy Q1 period",
+      "level": "medium"
+    }
+  ],
+  "attachments": [
+    {
+      "name": "Vendor_Comparison.xlsx",
+      "type": "Excel",
+      "url": "#"
+    },
+    {
+      "name": "DataDog_Trial_Results.pdf",
+      "type": "PDF",
+      "url": "#"
+    }
+  ],
+  "nextMeeting": {
+    "title": "Monitoring Tool Decision",
+    "date": "2026-01-31",
+    "time": "13:00"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": 4,
+  "title": "Security Audit Prep",
+  "date": "2026-01-22",
+  "duration": "30 min",
+  "attendeeCount": "4 participants",
+  "attendees": [
+    {
+      "name": "David Kim",
+      "role": "CTO"
+    },
+    {
+      "name": "Nina Patel",
+      "role": "Security Lead"
+    },
+    {
+      "name": "Sarah Chen",
+      "role": "VP Engineering"
+    },
+    {
+      "name": "Mike Torres",
+      "role": "Infrastructure Lead"
+    }
+  ],
+  "summary": "SOC2 audit scheduled for Feb 15. Need to complete access reviews, update documentation, and prepare evidence package. Penetration testing results look good.",
+  "agenda": [
+    {
+      "item": "Pen test results review",
+      "status": "discussed"
+    },
+    {
+      "item": "Access review status",
+      "status": "discussed"
+    },
+    {
+      "item": "Documentation gaps",
+      "status": "discussed"
+    },
+    {
+      "item": "Evidence package preparation",
+      "status": "discussed"
+    }
+  ],
+  "decisions": [
+    "SOC2 Type II audit scheduled for Feb 15-19",
+    "All medium+ findings from pen test must be resolved before audit",
+    "Engineering documentation target: 80% coverage by Feb 1",
+    "Evidence collection to be automated where possible"
+  ],
+  "transcription": "[11:00] <span class=\"speaker\">David Kim</span>: SOC2 audit in three weeks. Let's review readiness.\n\n[11:02] <span class=\"speaker\">Nina Patel</span>: Pen test results came back. Two mediums, no highs. Both remediated.\n\n[11:05] <span class=\"speaker\">David Kim</span>: Excellent. Access reviews?\n\n[11:07] <span class=\"speaker\">Sarah Chen</span>: 85% complete. Engineering is done. Waiting on sales and marketing.\n\n[11:10] <span class=\"speaker\">David Kim</span>: Chase them today. Documentation status?\n\n[11:12] <span class=\"speaker\">Nina Patel</span>: Policies are current. Runbooks need work. Targeting 80% coverage.\n\n[11:16] <span class=\"speaker\">David Kim</span>: Evidence package?\n\n[11:18] <span class=\"speaker\">Nina Patel</span>: On track. Automating most of the log collection.\n\n[11:22] <span class=\"speaker\">David Kim</span>: Good. Let's reconvene next week.",
+  "actions": [
+    {
+      "text": "Complete access reviews for sales/marketing",
+      "assignee": "S. Chen",
+      "due": "2026-01-24",
+      "priority": "high",
+      "completed": true
+    },
+    {
+      "text": "Finalize runbook documentation",
+      "assignee": "N. Patel",
+      "due": "2026-02-01",
+      "priority": "high",
+      "completed": false
+    },
+    {
+      "text": "Prepare evidence package",
+      "assignee": "N. Patel",
+      "due": "2026-02-10",
+      "priority": "high",
+      "completed": false
+    }
+  ],
+  "risks": [
+    {
+      "description": "Sales team may delay access review completion",
+      "level": "medium"
+    },
+    {
+      "description": "Documentation gaps may be flagged by auditors",
+      "level": "low"
+    }
+  ],
+  "attachments": [
+    {
+      "name": "SOC2_Checklist.xlsx",
+      "type": "Excel",
+      "url": "#"
+    },
+    {
+      "name": "Pen_Test_Report_2026.pdf",
+      "type": "PDF",
+      "url": "#"
+    }
+  ],
+  "nextMeeting": {
+    "title": "Security Readiness Check",
+    "date": "2026-02-05",
+    "time": "11:00"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "id": 2,
+  "title": "API Design Review - Payments",
+  "date": "2026-01-27",
+  "duration": "60 min",
+  "attendeeCount": "5 participants",
+  "attendees": [
+    {
+      "name": "Alex Rivera",
+      "role": "Lead API Engineer"
+    },
+    {
+      "name": "Rachel Zhao",
+      "role": "Senior Architect"
+    },
+    {
+      "name": "Tom Bradley",
+      "role": "Security Engineer"
+    },
+    {
+      "name": "Carlos Mendez",
+      "role": "Engineering Manager"
+    },
+    {
+      "name": "Jen Park",
+      "role": "Product Manager"
+    }
+  ],
+  "summary": "Reviewed v2 payment API design. Webhook structure needs rework. Decided on idempotency key approach for retries. OAuth2 scope updates approved.",
+  "agenda": [
+    {
+      "item": "API endpoint structure review",
+      "status": "discussed"
+    },
+    {
+      "item": "Webhook payload standardization",
+      "status": "discussed"
+    },
+    {
+      "item": "Idempotency strategy",
+      "status": "discussed"
+    },
+    {
+      "item": "Security review",
+      "status": "discussed"
+    }
+  ],
+  "decisions": [
+    "Webhook payloads to follow events API pattern (type, timestamp, data)",
+    "Idempotency-Key header with 24-hour TTL",
+    "New OAuth2 scopes: payment:read and payment:write",
+    "Rate limiting: 1000 req/min per API key"
+  ],
+  "transcription": "[14:00] <span class=\"speaker\">Alex Rivera</span>: Walking through the new payment API design. Key changes: unified endpoint, better error codes, idempotency support.\n\n[14:05] <span class=\"speaker\">Rachel Zhao</span>: The webhook payload structure is inconsistent with our other APIs. We should standardize.\n\n[14:08] <span class=\"speaker\">Alex Rivera</span>: Agreed. What's the pattern we're standardizing on?\n\n[14:10] <span class=\"speaker\">Rachel Zhao</span>: The events API pattern we established last quarter. Event type, timestamp, data payload.\n\n[14:13] <span class=\"speaker\">Tom Bradley</span>: On idempotency - we're using request headers, correct?\n\n[14:15] <span class=\"speaker\">Alex Rivera</span>: Yes, Idempotency-Key header. UUID v4 recommended.\n\n[14:18] <span class=\"speaker\">Tom Bradley</span>: TTL on those keys?\n\n[14:20] <span class=\"speaker\">Alex Rivera</span>: 24 hours for now. We can adjust based on usage.\n\n[14:25] <span class=\"speaker\">Rachel Zhao</span>: OAuth scopes need updating too. We need payment:read and payment:write.\n\n[14:28] <span class=\"speaker\">Alex Rivera</span>: I'll add those to the spec.",
+  "actions": [
+    {
+      "text": "Update webhook payload structure",
+      "assignee": "A. Rivera",
+      "due": "2026-01-29",
+      "priority": "high",
+      "completed": false
+    },
+    {
+      "text": "Document idempotency key usage",
+      "assignee": "A. Rivera",
+      "due": "2026-01-31",
+      "priority": "medium",
+      "completed": false
+    },
+    {
+      "text": "Update OAuth2 scopes",
+      "assignee": "T. Bradley",
+      "due": "2026-02-01",
+      "priority": "high",
+      "completed": false
+    }
+  ],
+  "risks": [
+    {
+      "description": "Breaking change may affect existing integrations",
+      "level": "high"
+    }
+  ],
+  "attachments": [
+    {
+      "name": "API_Spec_v2.yaml",
+      "type": "YAML",
+      "url": "#"
+    },
+    {
+      "name": "Webhook_Examples.json",
+      "type": "JSON",
+      "url": "#"
+    }
+  ],
+  "nextMeeting": {
+    "title": "API Implementation Kickoff",
+    "date": "2026-02-03",
+    "time": "14:00"
+  }
+}

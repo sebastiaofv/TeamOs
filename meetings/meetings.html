@@ -485,7 +485,7 @@
             <input type="text" id="searchInput" placeholder="Search meetings, summaries, transcriptions, decisions...">
         </div>
         <div class="stats">
-            <span id="statsCount">8 meetings</span>
+            <span id="statsCount">Loading meetings...</span>
             <button class="btn" onclick="exportMeetings()">Export</button>
         </div>
     </header>
@@ -509,513 +509,83 @@
     </main>
 
     <script>
-        const meetings = [
-            {
-                id: 1,
-                title: "Q1 Engineering Planning",
-                date: "2026-01-28",
-                duration: "45 min",
-                attendeeCount: "8 participants",
-                attendees: [
-                    { name: "Sarah Chen", role: "VP Engineering" },
-                    { name: "Mike Torres", role: "Infrastructure Lead" },
-                    { name: "Jen Park", role: "Product Manager" },
-                    { name: "David Kim", role: "CTO" },
-                    { name: "Lisa Wang", role: "Engineering Manager" },
-                    { name: "Alex Rivera", role: "Senior Engineer" },
-                    { name: "Nina Patel", role: "Security Lead" },
-                    { name: "Tom Bradley", role: "DevOps Engineer" }
-                ],
-                summary: "Reviewed Q1 objectives across all engineering teams. Infrastructure team to focus on reliability improvements, product team on new feature delivery. Budget approved for additional AWS resources.",
-                agenda: [
-                    { item: "Infrastructure roadmap review", status: "discussed" },
-                    { item: "Product priorities alignment", status: "discussed" },
-                    { item: "Budget approval for Q1", status: "discussed" },
-                    { item: "Hiring plan review", status: "pending" }
-                ],
-                decisions: [
-                    "Database optimization project approved with 6-week timeline",
-                    "AWS budget increased by 40% for Q1",
-                    "New checkout flow prioritized over mobile improvements",
-                    "Weekly sync meetings to be scheduled for cross-team alignment"
-                ],
-                transcription: `[09:00] <span class="speaker">Sarah Chen</span>: Good morning everyone. Let's dive into Q1 planning. First item - infrastructure roadmap.
-
-[09:02] <span class="speaker">Mike Torres</span>: We've identified three critical areas: database optimization, CDN migration, and monitoring improvements. The database work is blocking other initiatives.
-
-[09:08] <span class="speaker">Sarah Chen</span>: Timeline for database optimization?
-
-[09:09] <span class="speaker">Mike Torres</span>: Six weeks. We've already done the initial assessment.
-
-[09:11] <span class="speaker">Jen Park</span>: From the product side, we're aligned. New checkout flow is priority one, but we need the database work done first.
-
-[09:15] <span class="speaker">Sarah Chen</span>: Budget discussion. We need approval for additional AWS spend.
-
-[09:17] <span class="speaker">David Kim</span>: Approved up to 40% increase. Just keep me posted on actuals vs forecast.
-
-[09:20] <span class="speaker">Sarah Chen</span>: Great. Let's move to action items.`,
-                actions: [
-                    { text: "Finalize database optimization proposal", assignee: "M. Torres", due: "2026-01-30", priority: "high", completed: false },
-                    { text: "Submit AWS resource request", assignee: "S. Chen", due: "2026-01-29", priority: "high", completed: true },
-                    { text: "Update roadmap document", assignee: "J. Park", due: "2026-02-03", priority: "medium", completed: false }
-                ],
-                risks: [
-                    { description: "Database optimization may exceed 6-week estimate", level: "medium" },
-                    { description: "AWS cost increase not approved by finance yet", level: "low" }
-                ],
-                attachments: [
-                    { name: "Q1_Roadmap.pdf", type: "PDF", url: "#" },
-                    { name: "Infrastructure_Assessment.xlsx", type: "Excel", url: "#" },
-                    { name: "Budget_Proposal_Q1.docx", type: "Word", url: "#" }
-                ],
-                nextMeeting: { title: "Weekly Engineering Sync", date: "2026-02-04", time: "09:00" }
-            },
-            {
-                id: 2,
-                title: "API Design Review - Payments",
-                date: "2026-01-27",
-                duration: "60 min",
-                attendeeCount: "5 participants",
-                attendees: [
-                    { name: "Alex Rivera", role: "Lead API Engineer" },
-                    { name: "Rachel Zhao", role: "Senior Architect" },
-                    { name: "Tom Bradley", role: "Security Engineer" },
-                    { name: "Carlos Mendez", role: "Engineering Manager" },
-                    { name: "Jen Park", role: "Product Manager" }
-                ],
-                summary: "Reviewed v2 payment API design. Webhook structure needs rework. Decided on idempotency key approach for retries. OAuth2 scope updates approved.",
-                agenda: [
-                    { item: "API endpoint structure review", status: "discussed" },
-                    { item: "Webhook payload standardization", status: "discussed" },
-                    { item: "Idempotency strategy", status: "discussed" },
-                    { item: "Security review", status: "discussed" }
-                ],
-                decisions: [
-                    "Webhook payloads to follow events API pattern (type, timestamp, data)",
-                    "Idempotency-Key header with 24-hour TTL",
-                    "New OAuth2 scopes: payment:read and payment:write",
-                    "Rate limiting: 1000 req/min per API key"
-                ],
-                transcription: `[14:00] <span class="speaker">Alex Rivera</span>: Walking through the new payment API design. Key changes: unified endpoint, better error codes, idempotency support.
-
-[14:05] <span class="speaker">Rachel Zhao</span>: The webhook payload structure is inconsistent with our other APIs. We should standardize.
-
-[14:08] <span class="speaker">Alex Rivera</span>: Agreed. What's the pattern we're standardizing on?
-
-[14:10] <span class="speaker">Rachel Zhao</span>: The events API pattern we established last quarter. Event type, timestamp, data payload.
-
-[14:13] <span class="speaker">Tom Bradley</span>: On idempotency - we're using request headers, correct?
-
-[14:15] <span class="speaker">Alex Rivera</span>: Yes, Idempotency-Key header. UUID v4 recommended.
-
-[14:18] <span class="speaker">Tom Bradley</span>: TTL on those keys?
-
-[14:20] <span class="speaker">Alex Rivera</span>: 24 hours for now. We can adjust based on usage.
-
-[14:25] <span class="speaker">Rachel Zhao</span>: OAuth scopes need updating too. We need payment:read and payment:write.
-
-[14:28] <span class="speaker">Alex Rivera</span>: I'll add those to the spec.`,
-                actions: [
-                    { text: "Update webhook payload structure", assignee: "A. Rivera", due: "2026-01-29", priority: "high", completed: false },
-                    { text: "Document idempotency key usage", assignee: "A. Rivera", due: "2026-01-31", priority: "medium", completed: false },
-                    { text: "Update OAuth2 scopes", assignee: "T. Bradley", due: "2026-02-01", priority: "high", completed: false }
-                ],
-                risks: [
-                    { description: "Breaking change may affect existing integrations", level: "high" }
-                ],
-                attachments: [
-                    { name: "API_Spec_v2.yaml", type: "YAML", url: "#" },
-                    { name: "Webhook_Examples.json", type: "JSON", url: "#" }
-                ],
-                nextMeeting: { title: "API Implementation Kickoff", date: "2026-02-03", time: "14:00" }
-            },
-            {
-                id: 3,
-                title: "Incident Review - Database Outage",
-                date: "2026-01-24",
-                duration: "90 min",
-                attendeeCount: "12 participants",
-                attendees: [
-                    { name: "Lisa Wang", role: "Incident Commander" },
-                    { name: "Mike Torres", role: "Infrastructure Lead" },
-                    { name: "Sarah Chen", role: "VP Engineering" },
-                    { name: "Jen Park", role: "Product Manager" },
-                    { name: "David Kim", role: "CTO" },
-                    { name: "Nina Patel", role: "Security Lead" },
-                    { name: "Alex Rivera", role: "Senior Engineer" },
-                    { name: "Carlos Mendez", role: "Engineering Manager" },
-                    { name: "Emma Liu", role: "SRE" },
-                    { name: "James O'Brien", role: "Database Admin" },
-                    { name: "Rachel Zhao", role: "Senior Architect" },
-                    { name: "Tom Bradley", role: "DevOps Engineer" }
-                ],
-                summary: "Root cause: connection pool exhaustion during traffic spike. Mitigation: increased pool size, added circuit breaker, improved alerting. No data loss. Estimated downtime: 23 minutes.",
-                agenda: [
-                    { item: "Timeline review", status: "discussed" },
-                    { item: "Root cause analysis", status: "discussed" },
-                    { item: "Impact assessment", status: "discussed" },
-                    { item: "Remediation actions", status: "discussed" }
-                ],
-                decisions: [
-                    "Implement circuit breaker pattern on all partner integrations",
-                    "Increase database connection pool from 100 to 200",
-                    "Add proactive alerting for connection pool usage >70%",
-                    "Review all third-party integration rate limits by Feb 10"
-                ],
-                transcription: `[10:00] <span class="speaker">Lisa Wang</span>: Incident review for database outage on Jan 22. Lisa Wang facilitating. Mike, can you walk us through the timeline?
-
-[10:02] <span class="speaker">Mike Torres</span>: 14:32 - alerts fired for high connection count. 14:35 - database became unresponsive. 14:38 - failover initiated automatically. 14:55 - service restored.
-
-[10:05] <span class="speaker">Lisa Wang</span>: Root cause?
-
-[10:07] <span class="speaker">Mike Torres</span>: Connection pool exhaustion. We had a traffic spike from a partner integration that wasn't rate limited. Each request was holding connections too long.
-
-[10:12] <span class="speaker">Sarah Chen</span>: Why didn't autoscaling catch it?
-
-[10:14] <span class="speaker">Mike Torres</span>: Database connections don't scale horizontally. We'd already hit the max.
-
-[10:17] <span class="speaker">Jen Park</span>: Was any data lost?
-
-[10:18] <span class="speaker">Mike Torres</span>: No. Failover was clean. We verified data consistency post-incident.
-
-[10:22] <span class="speaker">Lisa Wang</span>: Action items to prevent recurrence?`,
-                actions: [
-                    { text: "Implement circuit breaker on partner API", assignee: "M. Torres", due: "2026-01-31", priority: "high", completed: true },
-                    { text: "Add connection pool monitoring", assignee: "M. Torres", due: "2026-02-07", priority: "high", completed: false },
-                    { text: "Document failover procedures", assignee: "L. Wang", due: "2026-02-03", priority: "medium", completed: false },
-                    { text: "Review all partner integration rate limits", assignee: "J. Park", due: "2026-02-10", priority: "high", completed: false }
-                ],
-                risks: [
-                    { description: "Partner may not implement proper rate limiting", level: "high" },
-                    { description: "Similar issues with other integrations not yet identified", level: "medium" }
-                ],
-                attachments: [
-                    { name: "Incident_Timeline.pdf", type: "PDF", url: "#" },
-                    { name: "Database_Logs_2026-01-22.zip", type: "ZIP", url: "#" },
-                    { name: "Postmortem_Template.docx", type: "Word", url: "#" }
-                ],
-                nextMeeting: { title: "Follow-up: Circuit Breaker Implementation", date: "2026-01-31", time: "10:00" }
-            },
-            {
-                id: 4,
-                title: "Security Audit Prep",
-                date: "2026-01-22",
-                duration: "30 min",
-                attendeeCount: "4 participants",
-                attendees: [
-                    { name: "David Kim", role: "CTO" },
-                    { name: "Nina Patel", role: "Security Lead" },
-                    { name: "Sarah Chen", role: "VP Engineering" },
-                    { name: "Mike Torres", role: "Infrastructure Lead" }
-                ],
-                summary: "SOC2 audit scheduled for Feb 15. Need to complete access reviews, update documentation, and prepare evidence package. Penetration testing results look good.",
-                agenda: [
-                    { item: "Pen test results review", status: "discussed" },
-                    { item: "Access review status", status: "discussed" },
-                    { item: "Documentation gaps", status: "discussed" },
-                    { item: "Evidence package preparation", status: "discussed" }
-                ],
-                decisions: [
-                    "SOC2 Type II audit scheduled for Feb 15-19",
-                    "All medium+ findings from pen test must be resolved before audit",
-                    "Engineering documentation target: 80% coverage by Feb 1",
-                    "Evidence collection to be automated where possible"
-                ],
-                transcription: `[11:00] <span class="speaker">David Kim</span>: SOC2 audit in three weeks. Let's review readiness.
-
-[11:02] <span class="speaker">Nina Patel</span>: Pen test results came back. Two mediums, no highs. Both remediated.
-
-[11:05] <span class="speaker">David Kim</span>: Excellent. Access reviews?
-
-[11:07] <span class="speaker">Sarah Chen</span>: 85% complete. Engineering is done. Waiting on sales and marketing.
-
-[11:10] <span class="speaker">David Kim</span>: Chase them today. Documentation status?
-
-[11:12] <span class="speaker">Nina Patel</span>: Policies are current. Runbooks need work. Targeting 80% coverage.
-
-[11:16] <span class="speaker">David Kim</span>: Evidence package?
-
-[11:18] <span class="speaker">Nina Patel</span>: On track. Automating most of the log collection.
-
-[11:22] <span class="speaker">David Kim</span>: Good. Let's reconvene next week.`,
-                actions: [
-                    { text: "Complete access reviews for sales/marketing", assignee: "S. Chen", due: "2026-01-24", priority: "high", completed: true },
-                    { text: "Finalize runbook documentation", assignee: "N. Patel", due: "2026-02-01", priority: "high", completed: false },
-                    { text: "Prepare evidence package", assignee: "N. Patel", due: "2026-02-10", priority: "high", completed: false }
-                ],
-                risks: [
-                    { description: "Sales team may delay access review completion", level: "medium" },
-                    { description: "Documentation gaps may be flagged by auditors", level: "low" }
-                ],
-                attachments: [
-                    { name: "SOC2_Checklist.xlsx", type: "Excel", url: "#" },
-                    { name: "Pen_Test_Report_2026.pdf", type: "PDF", url: "#" }
-                ],
-                nextMeeting: { title: "Security Readiness Check", date: "2026-02-05", time: "11:00" }
-            },
-            {
-                id: 5,
-                title: "Mobile App Performance Review",
-                date: "2026-01-20",
-                duration: "45 min",
-                attendeeCount: "6 participants",
-                attendees: [
-                    { name: "Carlos Mendez", role: "Mobile Lead" },
-                    { name: "Emma Liu", role: "iOS Engineer" },
-                    { name: "James O'Brien", role: "Android Engineer" },
-                    { name: "Jen Park", role: "Product Manager" },
-                    { name: "Alex Rivera", role: "Backend Engineer" },
-                    { name: "Rachel Zhao", role: "Senior Architect" }
-                ],
-                summary: "iOS cold start time improved 40% after recent optimization. Android still has memory leak in image caching. Push notification delivery at 94%, targeting 99%.",
-                agenda: [
-                    { item: "iOS performance metrics", status: "discussed" },
-                    { item: "Android memory leak investigation", status: "discussed" },
-                    { item: "Push notification delivery rates", status: "discussed" },
-                    { item: "Cold start optimization strategy", status: "discussed" }
-                ],
-                decisions: [
-                    "iOS optimization approach approved for Android implementation",
-                    "Memory leak fix must be deployed before next release",
-                    "Push notification permission UX to be redesigned",
-                    "Target: 99% delivery rate by end of Q1"
-                ],
-                transcription: `[15:00] <span class="speaker">Carlos Mendez</span>: Mobile performance review. iOS first.
-
-[15:02] <span class="speaker">Emma Liu</span>: Cold start down to 1.2 seconds from 2.0. Main improvement was deferring SDK initialization.
-
-[15:06] <span class="speaker">Carlos Mendez</span>: That's significant. Any regressions?
-
-[15:08] <span class="speaker">Emma Liu</span>: None detected. Crash rate stable at 0.3%.
-
-[15:10] <span class="speaker">Carlos Mendez</span>: Android status?
-
-[15:12] <span class="speaker">James O'Brien</span>: Memory leak confirmed in image cache. Working on fix. Cold start still at 2.8 seconds.
-
-[15:16] <span class="speaker">Carlos Mendez</span>: Timeline for the memory fix?
-
-[15:18] <span class="speaker">James O'Brien</span>: PR up this week. It's in the image loading library we forked.
-
-[15:22] <span class="speaker">Carlos Mendez</span>: Push notifications?
-
-[15:24] <span class="speaker">Emma Liu</span>: 94% delivery. Main issue is iOS provisional auth. Users declining.
-
-[15:28] <span class="speaker">Carlos Mendez</span>: Let's discuss permission strategy separately.`,
-                actions: [
-                    { text: "Submit image cache memory leak fix", assignee: "J. O'Brien", due: "2026-01-24", priority: "high", completed: true },
-                    { text: "Audit SDK initialization on Android", assignee: "J. O'Brien", due: "2026-02-03", priority: "medium", completed: false },
-                    { text: "Propose notification permission UX changes", assignee: "E. Liu", due: "2026-01-27", priority: "medium", completed: false }
-                ],
-                risks: [
-                    { description: "Android memory leak may affect app store ratings", level: "high" },
-                    { description: "Push notification opt-in rates declining", level: "medium" }
-                ],
-                attachments: [
-                    { name: "iOS_Performance_Metrics.pdf", type: "PDF", url: "#" },
-                    { name: "Android_Memory_Analysis.zip", type: "ZIP", url: "#" }
-                ],
-                nextMeeting: { title: "Mobile Sprint Review", date: "2026-02-06", time: "15:00" }
-            },
-            {
-                id: 6,
-                title: "Vendor Evaluation - Monitoring Tools",
-                date: "2026-01-15",
-                duration: "60 min",
-                attendeeCount: "5 participants",
-                attendees: [
-                    { name: "Sarah Chen", role: "VP Engineering" },
-                    { name: "Mike Torres", role: "Infrastructure Lead" },
-                    { name: "Lisa Wang", role: "Engineering Manager" },
-                    { name: "David Kim", role: "CTO" },
-                    { name: "Nina Patel", role: "Security Lead" }
-                ],
-                summary: "Evaluated DataDog, New Relic, and Grafana Cloud. DataDog leads on features but is 40% more expensive. Grafana Cloud good value but requires more setup. Decision needed by month end.",
-                agenda: [
-                    { item: "Feature comparison", status: "discussed" },
-                    { item: "Pricing analysis", status: "discussed" },
-                    { item: "Migration effort estimation", status: "discussed" },
-                    { item: "Trial setup and evaluation criteria", status: "discussed" }
-                ],
-                decisions: [
-                    "DataDog trial to run parallel for 2 weeks",
-                    "Decision required by Jan 31",
-                    "Must include security review in evaluation",
-                    "Budget ceiling: $20K/month"
-                ],
-                transcription: `[13:00] <span class="speaker">Sarah Chen</span>: Monitoring vendor evaluation. We've looked at three options.
-
-[13:03] <span class="speaker">Mike Torres</span>: DataDog has the best out-of-box experience. APM, logs, metrics all integrated. But it's expensive.
-
-[13:08] <span class="speaker">Lisa Wang</span>: How expensive?
-
-[13:10] <span class="speaker">Mike Torres</span>: 40% more than New Relic at our scale. Roughly 18K/month vs 13K.
-
-[13:14] <span class="speaker">Sarah Chen</span>: Grafana Cloud?
-
-[13:16] <span class="speaker">Mike Torres</span>: 8K/month, but we'd need to run some components ourselves. More operational overhead.
-
-[13:20] <span class="speaker">Lisa Wang</span>: What's the migration effort?
-
-[13:22] <span class="speaker">Mike Torres</span>: DataDog: 2 weeks. Others: 4-6 weeks.
-
-[13:25] <span class="speaker">Sarah Chen</span>: Let's get a trial going with DataDog. Run it parallel for two weeks.
-
-[13:28] <span class="speaker">Mike Torres</span>: Already set up. Started yesterday.
-
-[13:30] <span class="speaker">Sarah Chen</span>: Decision meeting next Friday.`,
-                actions: [
-                    { text: "Complete DataDog trial evaluation", assignee: "M. Torres", due: "2026-01-29", priority: "high", completed: false },
-                    { text: "Document pricing comparison analysis", assignee: "M. Torres", due: "2026-01-27", priority: "medium", completed: true },
-                    { text: "Schedule final decision meeting", assignee: "S. Chen", due: "2026-01-22", priority: "medium", completed: true }
-                ],
-                risks: [
-                    { description: "DataDog cost may exceed budget if usage grows", level: "medium" },
-                    { description: "Migration disruption during busy Q1 period", level: "medium" }
-                ],
-                attachments: [
-                    { name: "Vendor_Comparison.xlsx", type: "Excel", url: "#" },
-                    { name: "DataDog_Trial_Results.pdf", type: "PDF", url: "#" }
-                ],
-                nextMeeting: { title: "Monitoring Tool Decision", date: "2026-01-31", time: "13:00" }
-            },
-            {
-                id: 7,
-                title: "Frontend Architecture - Component Library",
-                date: "2026-01-13",
-                duration: "75 min",
-                attendeeCount: "7 participants",
-                attendees: [
-                    { name: "Rachel Zhao", role: "Senior Architect" },
-                    { name: "Tom Bradley", role: "Frontend Lead" },
-                    { name: "Emma Liu", role: "UI Engineer" },
-                    { name: "Alex Rivera", role: "Senior Engineer" },
-                    { name: "James O'Brien", role: "Full Stack Engineer" },
-                    { name: "Carlos Mendez", role: "Engineering Manager" },
-                    { name: "Jen Park", role: "Product Manager" }
-                ],
-                summary: "Decided to build internal component library instead of adopting third-party solution. Established design tokens, accessibility standards, and documentation requirements.",
-                agenda: [
-                    { item: "Build vs buy analysis", status: "discussed" },
-                    { item: "Component scope definition", status: "discussed" },
-                    { item: "Design token strategy", status: "discussed" },
-                    { item: "Accessibility requirements", status: "discussed" }
-                ],
-                decisions: [
-                    "Build internal component library - avoid third-party dependencies",
-                    "WCAG 2.1 AA compliance mandatory for all components",
-                    "Storybook for documentation and visual testing",
-                    "Design tokens managed in Figma, synced to code",
-                    "Target: 30 core components by end of Q2"
-                ],
-                transcription: `[16:00] <span class="speaker">Rachel Zhao</span>: Frontend architecture discussion. Main topic: component library strategy.
-
-[16:03] <span class="speaker">Tom Bradley</span>: We've outgrown our current approach. Too much inconsistency across teams.
-
-[16:07] <span class="speaker">Rachel Zhao</span>: Options are: adopt Material-UI or similar, or build our own.
-
-[16:10] <span class="speaker">Alex Rivera</span>: MUI is bloated. We only use 30% of it. Bundle size is hurting performance.
-
-[16:15] <span class="speaker">Emma Liu</span>: And styling overrides are painful. Every customization fights the framework.
-
-[16:19] <span class="speaker">Jen Park</span>: From product side, we need more flexibility than off-the-shelf solutions provide.
-
-[16:22] <span class="speaker">Rachel Zhao</span>: Sounds like consensus for building our own. Scope?
-
-[16:25] <span class="speaker">Tom Bradley</span>: Start with 15 core components. Button, input, modal, table, etc.
-
-[16:30] <span class="speaker">Rachel Zhao</span>: Accessibility requirements?
-
-[16:32] <span class="speaker">Emma Liu</span>: WCAG 2.1 AA minimum. We have users with disabilities, it's non-negotiable.`,
-                actions: [
-                    { text: "Set up component library repo and CI/CD", assignee: "T. Bradley", due: "2026-01-20", priority: "high", completed: true },
-                    { text: "Define design token structure", assignee: "E. Liu", due: "2026-01-25", priority: "high", completed: false },
-                    { text: "Create accessibility testing checklist", assignee: "E. Liu", due: "2026-01-27", priority: "medium", completed: false },
-                    { text: "Build first 5 components", assignee: "T. Bradley", due: "2026-02-10", priority: "high", completed: false },
-                    { text: "Document Storybook setup", assignee: "A. Rivera", due: "2026-02-03", priority: "medium", completed: false }
-                ],
-                risks: [
-                    { description: "Internal library may lack features teams need", level: "medium" },
-                    { description: "Maintenance burden on frontend team", level: "low" }
-                ],
-                attachments: [
-                    { name: "Component_Library_RFC.md", type: "Markdown", url: "#" },
-                    { name: "Design_Tokens_Draft.json", type: "JSON", url: "#" },
-                    { name: "Accessibility_Checklist.pdf", type: "PDF", url: "#" }
-                ],
-                nextMeeting: { title: "Component Library Sprint Review", date: "2026-02-10", time: "16:00" }
-            },
-            {
-                id: 8,
-                title: "Customer Success - Q4 Retrospective",
-                date: "2026-01-10",
-                duration: "50 min",
-                attendeeCount: "9 participants",
-                attendees: [
-                    { name: "Sarah Chen", role: "VP Engineering" },
-                    { name: "Jen Park", role: "Product Manager" },
-                    { name: "David Kim", role: "CTO" },
-                    { name: "Lisa Wang", role: "Engineering Manager" },
-                    { name: "Carlos Mendez", role: "Engineering Manager" },
-                    { name: "Nina Patel", role: "Security Lead" },
-                    { name: "Mike Torres", role: "Infrastructure Lead" },
-                    { name: "Rachel Zhao", role: "Senior Architect" },
-                    { name: "Emma Liu", role: "Support Engineer" }
-                ],
-                summary: "Reviewed top customer issues from Q4. Major themes: onboarding friction, API documentation gaps, and slow support response times. NPS improved from 42 to 51.",
-                agenda: [
-                    { item: "Q4 metrics review", status: "discussed" },
-                    { item: "Top customer issues analysis", status: "discussed" },
-                    { item: "Support process improvements", status: "discussed" },
-                    { item: "Q1 priorities based on feedback", status: "discussed" }
-                ],
-                decisions: [
-                    "NPS target for Q1: 60+",
-                    "API documentation complete rewrite approved",
-                    "Support SLA: <4 hours for P1, <24 hours for P2",
-                    "Onboarding checklist to be built for all new customers",
-                    "Monthly customer feedback sessions to continue"
-                ],
-                transcription: `[14:00] <span class="speaker">Sarah Chen</span>: Q4 retrospective on customer success. Emma, let's start with the numbers.
-
-[14:03] <span class="speaker">Emma Liu</span>: NPS up from 42 to 51. Support tickets down 15%. But onboarding complaints up 30%.
-
-[14:08] <span class="speaker">David Kim</span>: What's driving the onboarding issues?
-
-[14:10] <span class="speaker">Emma Liu</span>: API documentation is the main blocker. Customers can't find what they need.
-
-[14:14] <span class="speaker">Alex Rivera</span>: I reviewed the docs last week. They're outdated and poorly organized.
-
-[14:18] <span class="speaker">Jen Park</span>: We need a complete rewrite. Not just updates.
-
-[14:21] <span class="speaker">Sarah Chen</span>: Agreed. Timeline?
-
-[14:23] <span class="speaker">Jen Park</span>: 4 weeks for initial overhaul. But we need a dedicated technical writer.
-
-[14:27] <span class="speaker">David Kim</span>: Approved. Post the role this week.
-
-[14:30] <span class="speaker">Emma Liu</span>: Support response times also need work. We're averaging 6 hours for P1.
-
-[14:34] <span class="speaker">Sarah Chen</span>: Target should be 4 hours. What's the bottleneck?
-
-[14:37] <span class="speaker">Emma Liu</span>: On-call engineer availability. We need better escalation procedures.`,
-                actions: [
-                    { text: "Post technical writer job opening", assignee: "S. Chen", due: "2026-01-13", priority: "high", completed: true },
-                    { text: "Audit current API documentation gaps", assignee: "A. Rivera", due: "2026-01-17", priority: "high", completed: true },
-                    { text: "Redesign support escalation procedures", assignee: "E. Liu", due: "2026-01-24", priority: "medium", completed: false },
-                    { text: "Create customer onboarding checklist", assignee: "J. Park", due: "2026-02-03", priority: "medium", completed: false }
-                ],
-                risks: [
-                    { description: "Technical writer hiring may take longer than expected", level: "medium" },
-                    { description: "API doc rewrite may delay other Q1 commitments", level: "medium" }
-                ],
-                attachments: [
-                    { name: "Q4_Customer_Metrics.pdf", type: "PDF", url: "#" },
-                    { name: "Support_Ticket_Analysis.xlsx", type: "Excel", url: "#" },
-                    { name: "NPS_Survey_Results.pdf", type: "PDF", url: "#" }
-                ],
-                nextMeeting: { title: "Customer Success Check-in", date: "2026-02-07", time: "14:00" }
-            }
+        const DEFAULT_MEETING_FILES = [
+            'data/meetings/01-q1-engineering-planning.json',
+            'data/meetings/02-api-design-review-payments.json',
+            'data/meetings/03-incident-review-database-outage.json',
+            'data/meetings/04-security-audit-prep.json',
+            'data/meetings/05-mobile-app-performance-review.json',
+            'data/meetings/06-vendor-evaluation-monitoring-tools.json',
+            'data/meetings/07-frontend-architecture-component-library.json',
+            'data/meetings/08-customer-success-q4-retrospective.json'
         ];
+        let meetings = [];
+
+        async function loadMeetings(files = DEFAULT_MEETING_FILES) {
+            const loaded = [];
+            for (const file of files) {
+                const response = await fetch(file, { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`Unable to load meeting from "${file}" (HTTP ${response.status})`);
+                }
+
+                const data = await response.json();
+                if (Array.isArray(data) || typeof data !== 'object' || data === null) {
+                    throw new Error(`Meeting JSON must be a single object in "${file}".`);
+                }
+
+                loaded.push(data);
+            }
+
+            meetings = loaded;
+        }
+
+        function renderFileModeLoader(message = '') {
+            stats.textContent = '0 meetings';
+            container.innerHTML = `
+                <div class="no-results">
+                    ${message || 'This page is running in local file mode (file://), so the browser blocks JSON fetch requests.'}<br><br>
+                    Select one or more meeting JSON files to load.<br>
+                    <input id="jsonFileInput" type="file" accept=".json,application/json" multiple style="margin-top: 10px;">
+                    <div style="margin-top: 10px; font-size: 12px; color: #7f8c8d;">
+                        Tip: you can also run a local server and open this page over http://.
+                    </div>
+                </div>
+            `;
+
+            const input = document.getElementById('jsonFileInput');
+            if (input) {
+                input.addEventListener('change', handleJsonFileSelection);
+            }
+        }
+
+        async function handleJsonFileSelection(event) {
+            const files = Array.from((event.target.files || [])).filter(file => file.name.toLowerCase().endsWith('.json'));
+            if (files.length === 0) return;
+
+            try {
+                const loaded = [];
+                for (const file of files) {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+                    if (Array.isArray(data) || typeof data !== 'object' || data === null) {
+                        throw new Error(`Meeting JSON must be a single object in "${file.name}".`);
+                    }
+                    loaded.push(data);
+                }
+
+                meetings = loaded;
+                loadCompletedStates();
+                applyFilters();
+            } catch (error) {
+                renderFileModeLoader(`Failed to load selected files: ${error.message}`);
+            }
+        }
+
+        function renderLoadError(message) {
+            container.innerHTML = `<div class="no-results">Failed to load meetings: ${message}</div>`;
+            stats.textContent = '0 meetings';
+        }
 
         let pendingOnly = false;
 
@@ -1331,8 +901,23 @@
         searchInput.addEventListener('input', applyFilters);
 
         // Initialize
-        loadCompletedStates();
-        applyFilters();
+        async function initialize() {
+            if (window.location.protocol === 'file:') {
+                renderFileModeLoader();
+                return;
+            }
+
+            try {
+                await loadMeetings();
+                loadCompletedStates();
+                applyFilters();
+            } catch (error) {
+                console.error(error);
+                renderLoadError(error.message);
+            }
+        }
+
+        initialize();
     </script>
 </body>
 </html>
