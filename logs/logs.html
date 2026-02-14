@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Audit + Logs Monitor</title>
+  <style>
+    :root{
+      --bg:#fafafa;
+      --fg:#1a1a1a;
+      --fg-secondary:#666666;
+      --border:#cccccc;
+      --border-light:#e5e5e5;
+      --accent:#2563eb;
+      --success:#16a34a;
+      --warning:#ca8a04;
+      --danger:#dc2626;
+      --card-bg:#ffffff;
+      --highlight:#fef08a;
+
+      --fs-title:14px;
+      --fs-body:13px;
+      --fs-small:12px;
+      --fs-label:11px;
+      --fs-micro:10px;
+
+      --sp-1:4px;
+      --sp-2:8px;
+      --sp-3:12px;
+      --sp-4:16px;
+      --sp-6:24px;
+    }
+
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html,body{height:100%;}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      font-size:var(--fs-body);
+      line-height:1.5;
+    }
+
+    .container{
+      max-width:1200px;
+      margin:0 auto;
+      padding:var(--sp-6);
+    }
+
+    header.appbar{
+      position:sticky;
+      top:0;
+      z-index:100;
+      background:var(--bg);
+      border-bottom:1px solid var(--border);
+    }
+    .appbar-inner{
+      max-width:1200px;
+      margin:0 auto;
+      padding:var(--sp-3) var(--sp-6);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:var(--sp-4);
+    }
+    .brand{
+      display:flex;
+      align-items:baseline;
+      gap:var(--sp-2);
+      white-space:nowrap;
+    }
+    .brand .title{
+      font-size:var(--fs-title);
+      font-weight:700;
+      letter-spacing:0.2px;
+    }
+    .brand .meta{
+      font-size:var(--fs-small);
+      color:var(--fg-secondary);
+    }
+
+    .controls{
+      display:flex;
+      align-items:center;
+      gap:var(--sp-2);
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    input[type="text"], select{
+      padding:6px 12px;
+      border:1px solid var(--border);
+      background:var(--card-bg);
+      font-size:var(--fs-small);
+      outline:none;
+      min-height:30px;
+    }
+    input[type="text"]{width:min(420px, 60vw);}
+    input[type="text"]:focus, select:focus{border-color:var(--accent);}
+
+    button{
+      padding:6px 12px;
+      border:1px solid var(--border);
+      background:var(--card-bg);
+      font-size:var(--fs-small);
+      cursor:pointer;
+    }
+    button:hover{background:var(--bg);}
+    button.is-active{
+      background:var(--fg);
+      color:#fff;
+      border-color:var(--fg);
+    }
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:var(--sp-6);
+      margin-top:var(--sp-6);
+    }
+    @media (max-width:768px){
+      .grid-2{grid-template-columns:1fr;}
+      .appbar-inner{padding:var(--sp-3) var(--sp-4);}
+      .container{padding:var(--sp-4);}
+      input[type="text"]{width:100%;}
+    }
+
+    .card{
+      background:var(--card-bg);
+      border:1px solid var(--border);
+      margin-bottom:var(--sp-4);
+    }
+    .card-pad{padding:20px;} /* exception for optical balance */
+    .label{
+      font-size:var(--fs-label);
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+      color:var(--fg-secondary);
+      margin-bottom:var(--sp-2);
+    }
+
+    .row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:var(--sp-2);
+      padding:var(--sp-2) 0;
+      border-bottom:1px solid var(--border-light);
+    }
+    .row:last-child{border-bottom:none;}
+    .row-main{
+      display:flex;
+      flex-direction:column;
+      gap:var(--sp-1);
+      min-width:0;
+    }
+    .row-title{
+      font-size:var(--fs-title);
+      font-weight:600;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width:100%;
+    }
+    .row-meta{
+      display:flex;
+      gap:var(--sp-2);
+      flex-wrap:wrap;
+      font-size:var(--fs-small);
+      color:var(--fg-secondary);
+    }
+
+    .badge{
+      display:inline-block;
+      padding:2px 8px;
+      font-size:var(--fs-micro);
+      text-transform:uppercase;
+      font-weight:600;
+      border:1px solid var(--border);
+      background:var(--card-bg);
+      color:var(--fg);
+      line-height:1.2;
+      white-space:nowrap;
+    }
+    .badge.link{
+      border-color:var(--accent);
+      color:var(--accent);
+      cursor:pointer;
+    }
+    .badge.success{border-color:var(--success); color:var(--success);}
+    .badge.warning{border-color:var(--warning); color:var(--warning);}
+    .badge.danger{border-color:var(--danger); color:var(--danger);}
+
+    .kv{
+      display:grid;
+      grid-template-columns:140px 1fr;
+      gap:var(--sp-2);
+      padding:var(--sp-2) 0;
+      border-bottom:1px solid var(--border-light);
+    }
+    .kv:last-child{border-bottom:none;}
+    .k{color:var(--fg-secondary); font-size:var(--fs-small);}
+    .v{min-width:0; word-break:break-word;}
+
+    .split{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:var(--sp-6);
+    }
+    @media (max-width:768px){ .split{grid-template-columns:1fr;} }
+
+    .expand-head{
+      padding:var(--sp-3) 20px;
+      border-bottom:1px solid var(--border-light);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:var(--sp-2);
+      cursor:pointer;
+      user-select:none;
+    }
+    .expand-head:hover{background:var(--bg);}
+    .expand-title{
+      font-size:var(--fs-title);
+      font-weight:600;
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .chev{
+      font-size:var(--fs-small);
+      color:var(--fg-secondary);
+      white-space:nowrap;
+    }
+    .expand-body{display:none;}
+    .card.is-open .expand-body{display:block;}
+
+    .mono-ish{
+      font-size:var(--fs-small);
+      line-height:1.7;
+      color:var(--fg);
+    }
+
+    .muted{color:var(--fg-secondary);}
+    .linklike{
+      color:var(--accent);
+      cursor:pointer;
+      text-decoration:none;
+    }
+    .linklike:hover{text-decoration:underline;}
+
+    .hr{border-top:1px solid var(--border-light);}
+    .empty{
+      padding:var(--sp-6);
+      text-align:center;
+      color:var(--fg-secondary);
+    }
+
+    mark{
+      background:var(--highlight);
+      padding:0 2px;
+    }
+
+    .pillbar{
+      display:flex;
+      gap:var(--sp-2);
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .progress{
+      height:3px;
+      background:var(--border-light);
+      width:100%;
+    }
+    .progress > div{
+      height:3px;
+      background:var(--success);
+      width:0%;
+    }
+
+    .sticky-subbar{
+      position:sticky;
+      top:54px;
+      z-index:90;
+      background:var(--bg);
+      border-bottom:1px solid var(--border-light);
+    }
+    .subbar-inner{
+      max-width:1200px;
+      margin:0 auto;
+      padding:var(--sp-2) var(--sp-6);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:var(--sp-4);
+      flex-wrap:wrap;
+    }
+    @media (max-width:768px){
+      .subbar-inner{padding:var(--sp-2) var(--sp-4);}
+    }
+
+    .tiny{
+      font-size:var(--fs-small);
+      color:var(--fg-secondary);
+    }
+  </style>
+</head>
+
+<body>
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="brand">
+        <div class="title">Monitor</div>
+        <div class="meta">Logs + Audits unified by Request ID</div>
+      </div>
+
+      <div class="controls">
+        <input id="q" type="text" placeholder="Search request ID, user, message, table, column…" />
+        <select id="scope">
+          <option value="all">All events</option>
+          <option value="logs">Logs only</option>
+          <option value="audits">Audits only</option>
+          <option value="errors">Errors only</option>
+        </select>
+        <select id="range">
+          <option value="24h">Last 24h</option>
+          <option value="7d">Last 7d</option>
+          <option value="30d">Last 30d</option>
+          <option value="all">All time</option>
+        </select>
+        <button id="clear">Clear</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="sticky-subbar">
+    <div class="subbar-inner">
+      <div class="pillbar" id="summaryPills"></div>
+      <div class="tiny" id="statusLine">Loading…</div>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="grid-2">
+      <section>
+        <div class="card">
+          <div class="card-pad">
+            <div class="label">Traces</div>
+            <div class="muted" style="margin-bottom: var(--sp-2);">
+              Each trace is a Request ID with its logs and audits. Click a trace to inspect its unified timeline.
+            </div>
+            <div id="traceList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="card" id="detailCard">
+          <div class="card-pad">
+            <div class="label">Trace detail</div>
+            <div id="detailEmpty" class="empty">Select a Request ID to view the unified timeline.</div>
+            <div id="detail"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+<script>
+(function(){
+  const els = {
+    q: document.getElementById("q"),
+    scope: document.getElementById("scope"),
+    range: document.getElementById("range"),
+    clear: document.getElementById("clear"),
+    traceList: document.getElementById("traceList"),
+    detail: document.getElementById("detail"),
+    detailEmpty: document.getElementById("detailEmpty"),
+    summaryPills: document.getElementById("summaryPills"),
+    statusLine: document.getElementById("statusLine"),
+    detailCard: document.getElementById("detailCard"),
+  };
+
+  const LS_KEY = "monitor_state_v1";
+  const state = loadState();
+
+  let db = { logs: [], audits: [] };
+  let selectedRequestId = state.selectedRequestId || null;
+
+  // ---------- Dummy API ----------
+  function fakeApiFetch(){
+    els.statusLine.textContent = "Loading…";
+    return new Promise((resolve) => {
+      setTimeout(() => resolve(makeDummyData()), 180);
+    });
+  }
+
+  function makeDummyData(){
+    // Timeline is unified by requestId. Each event has a timestamp.
+    // Keep density high and realistic: request fan-out, mixed logs + audits, errors, payloads.
+    const now = new Date();
+    const iso = (d) => d.toISOString();
+
+    const t = (minsAgo) => {
+      const d = new Date(now.getTime() - minsAgo*60*1000);
+      return iso(d);
+    };
+
+    const logs = [
+      // R-1001: successful order creation
+      { id: 101, requestId: "R-1001", ts: t(18), eventType: "request.start", level: "info", user: "m.torres", message: "POST /api/orders", info: { route: "/api/orders", ip: "203.0.113.7" } },
+      { id: 102, requestId: "R-1001", ts: t(18), eventType: "validation", level: "info", user: "m.torres", message: "Validated payload", info: { schema: "OrderCreate", fields: 9 } },
+      { id: 103, requestId: "R-1001", ts: t(17), eventType: "domain", level: "info", user: "m.torres", message: "Computed pricing", info: { currency: "EUR", subtotal: 84.00, tax: 19.32, total: 103.32 } },
+      { id: 104, requestId: "R-1001", ts: t(16), eventType: "request.end", level: "info", user: "m.torres", message: "201 Created", info: { status: 201, ms: 422 } },
+
+      // R-1002: login + token refresh
+      { id: 201, requestId: "R-1002", ts: t(92), eventType: "request.start", level: "info", user: "a.silva", message: "POST /api/auth/login", info: { route: "/api/auth/login", ip: "198.51.100.19" } },
+      { id: 202, requestId: "R-1002", ts: t(91), eventType: "auth", level: "info", user: "a.silva", message: "Password verified", info: { provider: "local" } },
+      { id: 203, requestId: "R-1002", ts: t(91), eventType: "auth", level: "info", user: "a.silva", message: "Issued tokens", info: { accessTtlSec: 900, refreshTtlSec: 2592000 } },
+      { id: 204, requestId: "R-1002", ts: t(90), eventType: "request.end", level: "info", user: "a.silva", message: "200 OK", info: { status: 200, ms: 187 } },
+
+      // R-1003: error path
+      { id: 301, requestId: "R-1003", ts: t(260), eventType: "request.start", level: "info", user: "svc.checkout", message: "POST /api/checkout/confirm", info: { route: "/api/checkout/confirm", ip: "10.0.2.14" } },
+      { id: 302, requestId: "R-1003", ts: t(259), eventType: "dependency", level: "warning", user: "svc.checkout", message: "Inventory service slow", info: { service: "inventory", p95ms: 2100 } },
+      { id: 303, requestId: "R-1003", ts: t(258), eventType: "exception", level: "error", user: "svc.checkout", message: "Timeout contacting inventory", info: { error: "TimeoutError", timeoutMs: 2000, correlation: "INV-77d1" } },
+      { id: 304, requestId: "R-1003", ts: t(258), eventType: "request.end", level: "error", user: "svc.checkout", message: "504 Gateway Timeout", info: { status: 504, ms: 2107 } },
+
+      // R-1004: admin update
+      { id: 401, requestId: "R-1004", ts: t(980), eventType: "request.start", level: "info", user: "admin", message: "PATCH /api/users/812", info: { route: "/api/users/812", ip: "203.0.113.44" } },
+      { id: 402, requestId: "R-1004", ts: t(979), eventType: "audit.intent", level: "info", user: "admin", message: "Updating user flags", info: { targetUserId: 812 } },
+      { id: 403, requestId: "R-1004", ts: t(978), eventType: "request.end", level: "info", user: "admin", message: "200 OK", info: { status: 200, ms: 96 } },
+    ];
+
+    const audits = [
+      // R-1001
+      { id: 9001, requestId: "R-1001", ts: t(17), table: "orders", changeType: "insert", data: {
+        id: { before: null, after: 55491 },
+        user_id: { before: null, after: 42 },
+        status: { before: null, after: "created" },
+        total: { before: null, after: 103.32 }
+      }},
+      { id: 9002, requestId: "R-1001", ts: t(16), table: "order_items", changeType: "insert", data: {
+        order_id: { before: null, after: 55491 },
+        sku: { before: null, after: "SKU-AX19" },
+        qty: { before: null, after: 2 }
+      }},
+      { id: 9003, requestId: "R-1001", ts: t(16), table: "order_items", changeType: "insert", data: {
+        order_id: { before: null, after: 55491 },
+        sku: { before: null, after: "SKU-NB44" },
+        qty: { before: null, after: 1 }
+      }},
+
+      // R-1002
+      { id: 9101, requestId: "R-1002", ts: t(91), table: "sessions", changeType: "insert", data: {
+        user_id: { before: null, after: 128 },
+        session_id: { before: null, after: "S-4f9c" },
+        created_at: { before: null, after: t(91) }
+      }},
+
+      // R-1003 (partial write then rollback-ish pattern in logs; audits show a failed update attempt style)
+      { id: 9201, requestId: "R-1003", ts: t(259), table: "checkouts", changeType: "update", data: {
+        status: { before: "pending", after: "confirming" },
+        updated_at: { before: t(261), after: t(259) }
+      }},
+      { id: 9202, requestId: "R-1003", ts: t(258), table: "checkouts", changeType: "update", data: {
+        status: { before: "confirming", after: "failed" },
+        failure_reason: { before: null, after: "inventory_timeout" }
+      }},
+
+      // R-1004
+      { id: 9301, requestId: "R-1004", ts: t(979), table: "users", changeType: "update", data: {
+        flags: { before: ["beta"], after: ["beta","priority_support"] },
+        updated_by: { before: "system", after: "admin" }
+      }},
+      { id: 9302, requestId: "R-1004", ts: t(979), table: "user_notes", changeType: "insert", data: {
+        user_id: { before: null, after: 812 },
+        note: { before: null, after: "Enabled priority support." }
+      }},
+    ];
+
+    return { logs, audits };
+  }
+
+  // ---------- Helpers ----------
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      return raw ? JSON.parse(raw) : {};
+    }catch(_){ return {}; }
+  }
+  function saveState(){
+    const toSave = {
+      q: els.q.value,
+      scope: els.scope.value,
+      range: els.range.value,
+      selectedRequestId,
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(toSave));
+  }
+
+  function parseTs(s){ return new Date(s).getTime(); }
+
+  function withinRange(tsIso, range){
+    if(range === "all") return true;
+    const now = Date.now();
+    const ms = parseTs(tsIso);
+    const delta = now - ms;
+    if(range === "24h") return delta <= 24*60*60*1000;
+    if(range === "7d") return delta <= 7*24*60*60*1000;
+    if(range === "30d") return delta <= 30*24*60*60*1000;
+    return true;
+  }
+
+  function severityBadge(level){
+    if(level === "error") return `<span class="badge danger">error</span>`;
+    if(level === "warning") return `<span class="badge warning">warning</span>`;
+    return `<span class="badge">info</span>`;
+  }
+
+  function changeBadge(changeType){
+    const t = String(changeType || "").toLowerCase();
+    if(t === "delete") return `<span class="badge danger">delete</span>`;
+    if(t === "update") return `<span class="badge warning">update</span>`;
+    if(t === "insert") return `<span class="badge success">insert</span>`;
+    return `<span class="badge">${escapeHtml(changeType)}</span>`;
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function fmtTs(iso){
+    // Compact ISO-like (no locale ambiguity), still readable
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function highlight(text, query){
+    const s = String(text ?? "");
+    const q = (query || "").trim();
+    if(!q) return escapeHtml(s);
+
+    // Split into tokens for fast highlight; keep simple for small datasets.
+    const tokens = q.split(/\s+/).filter(Boolean).slice(0, 8);
+    if(tokens.length === 0) return escapeHtml(s);
+
+    // Build a case-insensitive regex that matches any token.
+    const re = new RegExp("(" + tokens.map(t => escapeRegExp(t)).join("|") + ")", "ig");
+    return escapeHtml(s).replace(re, (m) => `<mark>${escapeHtml(m)}</mark>`);
+  }
+
+  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+  function eventSearchBlob(e){
+    // Unified searchable string across logs/audits
+    if(e.kind === "log"){
+      return [
+        e.requestId, e.user, e.eventType, e.level, e.message,
+        JSON.stringify(e.info || {})
+      ].join(" ").toLowerCase();
+    }
+    return [
+      e.requestId, e.table, e.changeType,
+      JSON.stringify(e.data || {})
+    ].join(" ").toLowerCase();
+  }
+
+  // ---------- Build unified model ----------
+  function buildTraces(){
+    const traces = new Map(); // requestId -> { requestId, logs[], audits[], minTs, maxTs }
+    for(const l of db.logs){
+      const rid = l.requestId;
+      if(!traces.has(rid)) traces.set(rid, { requestId: rid, logs: [], audits: [], minTs: l.ts, maxTs: l.ts });
+      const t = traces.get(rid);
+      t.logs.push(l);
+      if(parseTs(l.ts) < parseTs(t.minTs)) t.minTs = l.ts;
+      if(parseTs(l.ts) > parseTs(t.maxTs)) t.maxTs = l.ts;
+    }
+    for(const a of db.audits){
+      const rid = a.requestId;
+      if(!traces.has(rid)) traces.set(rid, { requestId: rid, logs: [], audits: [], minTs: a.ts, maxTs: a.ts });
+      const t = traces.get(rid);
+      t.audits.push(a);
+      if(parseTs(a.ts) < parseTs(t.minTs)) t.minTs = a.ts;
+      if(parseTs(a.ts) > parseTs(t.maxTs)) t.maxTs = a.ts;
+    }
+
+    // sort internals
+    for(const t of traces.values()){
+      t.logs.sort((x,y) => parseTs(x.ts) - parseTs(y.ts));
+      t.audits.sort((x,y) => parseTs(x.ts) - parseTs(y.ts));
+    }
+
+    // sort traces by most recent activity desc
+    return Array.from(traces.values()).sort((x,y) => parseTs(y.maxTs) - parseTs(x.maxTs));
+  }
+
+  function currentFilters(){
+    const q = (els.q.value || "").trim().toLowerCase();
+    const scope = els.scope.value;
+    const range = els.range.value;
+    return { q, scope, range };
+  }
+
+  function traceMatches(trace, f){
+    // Time range filter: trace matches if any event within range.
+    const inRange = (ts) => withinRange(ts, f.range);
+
+    const hasInRangeLog = trace.logs.some(l => inRange(l.ts));
+    const hasInRangeAudit = trace.audits.some(a => inRange(a.ts));
+    if(!hasInRangeLog && !hasInRangeAudit) return false;
+
+    // Scope filter
+    if(f.scope === "logs" && trace.logs.length === 0) return false;
+    if(f.scope === "audits" && trace.audits.length === 0) return false;
+    if(f.scope === "errors"){
+      const anyError = trace.logs.some(l => l.level === "error" && inRange(l.ts));
+      if(!anyError) return false;
+    }
+
+    if(!f.q) return true;
+
+    // Query filter: requestId OR any matching event content within scope.
+    if(trace.requestId.toLowerCase().includes(f.q)) return true;
+
+    const qTokens = f.q.split(/\s+/).filter(Boolean);
+    const tokenMatch = (blob) => qTokens.every(tok => blob.includes(tok));
+
+    if(f.scope !== "audits"){
+      for(const l of trace.logs){
+        if(!inRange(l.ts)) continue;
+        if(tokenMatch(eventSearchBlob({kind:"log", ...l}))) return true;
+      }
+    }
+    if(f.scope !== "logs"){
+      for(const a of trace.audits){
+        if(!inRange(a.ts)) continue;
+        if(tokenMatch(eventSearchBlob({kind:"audit", ...a}))) return true;
+      }
+    }
+    return false;
+  }
+
+  // ---------- Render ----------
+  function render(){
+    const traces = buildTraces();
+    const f = currentFilters();
+
+    const filtered = traces.filter(t => traceMatches(t, f));
+    renderSummary(traces, filtered, f);
+    renderTraceList(filtered, f);
+    renderDetail(selectedRequestId, traces, f);
+
+    saveState();
+  }
+
+  function renderSummary(allTraces, filteredTraces, f){
+    const inRange = (ts) => withinRange(ts, f.range);
+    const allLogs = db.logs.filter(l => inRange(l.ts));
+    const allAudits = db.audits.filter(a => inRange(a.ts));
+    const allErrors = allLogs.filter(l => l.level === "error");
+
+    const visibleLogs = [];
+    const visibleAudits = [];
+    const visibleErrors = [];
+    for(const t of filteredTraces){
+      for(const l of t.logs){ if(inRange(l.ts)) visibleLogs.push(l); }
+      for(const a of t.audits){ if(inRange(a.ts)) visibleAudits.push(a); }
+      for(const l of t.logs){ if(inRange(l.ts) && l.level === "error") visibleErrors.push(l); }
+    }
+
+    const pills = [
+      { label: "Traces", value: `${filteredTraces.length}/${allTraces.length}` },
+      { label: "Logs", value: `${visibleLogs.length}/${allLogs.length}` },
+      { label: "Audits", value: `${visibleAudits.length}/${allAudits.length}` },
+      { label: "Errors", value: `${visibleErrors.length}/${allErrors.length}`, kind: visibleErrors.length ? "danger" : "" },
+      { label: "Range", value: f.range.toUpperCase(), kind: "" },
+      { label: "Scope", value: f.scope.toUpperCase(), kind: "" },
+    ];
+
+    els.summaryPills.innerHTML = pills.map(p => {
+      const cls = ["badge"];
+      if(p.kind === "danger") cls.push("danger");
+      return `<span class="${cls.join(" ")}"><span class="muted" style="color:inherit;">${escapeHtml(p.label)}:</span> ${escapeHtml(p.value)}</span>`;
+    }).join("");
+
+    const qTxt = (els.q.value || "").trim();
+    const qPart = qTxt ? ` • Filter: "${qTxt}"` : "";
+    els.statusLine.textContent = `Showing ${filteredTraces.length} trace(s)${qPart}`;
+  }
+
+  function renderTraceList(traces, f){
+    if(traces.length === 0){
+      els.traceList.innerHTML = `<div class="empty">No matching traces.</div>`;
+      return;
+    }
+
+    const qTxt = (els.q.value || "").trim();
+    els.traceList.innerHTML = traces.map(t => {
+      const inRange = (ts) => withinRange(ts, f.range);
+      const logsInRange = t.logs.filter(l => inRange(l.ts));
+      const auditsInRange = t.audits.filter(a => inRange(a.ts));
+      const errorsInRange = logsInRange.filter(l => l.level === "error");
+      const warnsInRange = logsInRange.filter(l => l.level === "warning");
+
+      const severity =
+        errorsInRange.length ? `<span class="badge danger">error ${errorsInRange.length}</span>` :
+        warnsInRange.length ? `<span class="badge warning">warn ${warnsInRange.length}</span>` :
+        `<span class="badge">ok</span>`;
+
+      const primaryUser = (t.logs.find(x => x.user)?.user) || (t.audits.length ? "system" : "—");
+      const rangeTxt = `${fmtTs(t.minTs)} → ${fmtTs(t.maxTs)}`;
+      const isSel = (t.requestId === selectedRequestId);
+
+      return `
+        <div class="row">
+          <div class="row-main">
+            <div class="row-title">
+              <span class="linklike" data-pick="${escapeHtml(t.requestId)}">${highlight(t.requestId, qTxt)}</span>
+              <span class="muted">•</span>
+              <span class="muted">${highlight(primaryUser, qTxt)}</span>
+            </div>
+            <div class="row-meta">
+              <span>${severity}</span>
+              <span class="badge">${logsInRange.length} logs</span>
+              <span class="badge">${auditsInRange.length} audits</span>
+              <span class="muted">${highlight(rangeTxt, qTxt)}</span>
+            </div>
+          </div>
+          <div>
+            <button class="${isSel ? "is-active" : ""}" data-pick="${escapeHtml(t.requestId)}">
+              Inspect
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Attach click handlers (event delegation)
+    els.traceList.querySelectorAll("[data-pick]").forEach(el => {
+      el.addEventListener("click", () => {
+        selectedRequestId = el.getAttribute("data-pick");
+        render();
+      });
+    });
+  }
+
+  function renderDetail(requestId, traces, f){
+    if(!requestId){
+      els.detailEmpty.style.display = "block";
+      els.detail.innerHTML = "";
+      return;
+    }
+
+    const trace = traces.find(t => t.requestId === requestId);
+    if(!trace){
+      els.detailEmpty.style.display = "block";
+      els.detail.innerHTML = `<div class="empty">Selected trace is not available under current filters.</div>`;
+      return;
+    }
+
+    els.detailEmpty.style.display = "none";
+
+    const inRange = (ts) => withinRange(ts, f.range);
+
+    const unified = [];
+    for(const l of trace.logs){
+      if(!inRange(l.ts)) continue;
+      unified.push({ kind:"log", ...l });
+    }
+    for(const a of trace.audits){
+      if(!inRange(a.ts)) continue;
+      unified.push({ kind:"audit", ...a });
+    }
+    unified.sort((x,y) => parseTs(x.ts) - parseTs(y.ts));
+
+    const qTxt = (els.q.value || "").trim();
+
+    // Header block
+    const errorCount = trace.logs.filter(l => inRange(l.ts) && l.level === "error").length;
+    const warnCount  = trace.logs.filter(l => inRange(l.ts) && l.level === "warning").length;
+
+    const health =
+      errorCount ? `<span class="badge danger">error ${errorCount}</span>` :
+      warnCount ? `<span class="badge warning">warn ${warnCount}</span>` :
+      `<span class="badge">ok</span>`;
+
+    const head = `
+      <div class="card" style="border-left:none;border-right:none;border-top:none;">
+        <div class="card-pad">
+          <div class="split">
+            <div>
+              <div class="label">Request</div>
+              <div class="row-title">${highlight(requestId, qTxt)}</div>
+              <div class="row-meta" style="margin-top: var(--sp-2);">
+                ${health}
+                <span class="badge">${unified.length} events</span>
+                <span class="badge">${trace.logs.filter(l => inRange(l.ts)).length} logs</span>
+                <span class="badge">${trace.audits.filter(a => inRange(a.ts)).length} audits</span>
+              </div>
+            </div>
+            <div>
+              <div class="label">Time window</div>
+              <div class="kv">
+                <div class="k">First</div><div class="v">${highlight(fmtTs(trace.minTs), qTxt)}</div>
+                <div class="k">Last</div><div class="v">${highlight(fmtTs(trace.maxTs), qTxt)}</div>
+                <div class="k">Scope</div><div class="v">${escapeHtml(f.scope.toUpperCase())}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="progress"><div style="width:${Math.min(100, unified.length * 8)}%"></div></div>
+      </div>
+    `;
+
+    // Timeline blocks
+    const blocks = unified
+      .filter(e => {
+        if(f.scope === "errors") return e.kind === "log" && e.level === "error";
+        if(f.scope === "logs") return e.kind === "log";
+        if(f.scope === "audits") return e.kind === "audit";
+        return true;
+      })
+      .filter(e => {
+        if(!f.q) return true;
+        const tokens = f.q.split(/\s+/).filter(Boolean);
+        const blob = eventSearchBlob(e);
+        return tokens.every(tok => blob.includes(tok));
+      })
+      .map((e, idx) => renderEventCard(e, idx, qTxt))
+      .join("");
+
+    const empty = (!blocks) ? `<div class="empty">No events match the current filters for this Request ID.</div>` : "";
+
+    els.detail.innerHTML = head + `
+      <div class="card">
+        <div class="card-pad">
+          <div class="label">Unified timeline</div>
+          <div class="muted" style="margin-bottom: var(--sp-2);">
+            Events are ordered by timestamp. Expand a row to see payload details.
+          </div>
+          <div id="timeline">
+            ${empty || blocks}
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Expand/collapse wiring
+    els.detail.querySelectorAll(".expand-head").forEach(headEl => {
+      headEl.addEventListener("click", () => {
+        const card = headEl.closest(".card");
+        card.classList.toggle("is-open");
+        const chev = headEl.querySelector(".chev");
+        chev.textContent = card.classList.contains("is-open") ? "▲" : "▼";
+      });
+    });
+  }
+
+  function renderEventCard(e, idx, qTxt){
+    if(e.kind === "log"){
+      const lvl = severityBadge(e.level);
+      const user = e.user ? highlight(e.user, qTxt) : "—";
+      const title = `${highlight(e.eventType, qTxt)} • ${lvl}`;
+      const msg = highlight(e.message, qTxt);
+
+      const infoPairs = Object.entries(e.info || {});
+      const infoHtml = infoPairs.length
+        ? infoPairs.map(([k,v]) => `
+            <div class="kv">
+              <div class="k">${highlight(k, qTxt)}</div>
+              <div class="v">${highlight(typeof v === "string" ? v : JSON.stringify(v), qTxt)}</div>
+            </div>
+          `).join("")
+        : `<div class="empty" style="padding: var(--sp-4);">No additional info.</div>`;
+
+      return `
+        <div class="card ${idx < 2 ? "is-open" : ""}">
+          <div class="expand-head">
+            <div class="expand-title">
+              <span class="badge">log</span>
+              <span class="muted">•</span>
+              <span>${title}</span>
+              <span class="muted">•</span>
+              <span class="muted">${highlight(fmtTs(e.ts), qTxt)}</span>
+              <span class="muted">•</span>
+              <span class="muted">${user}</span>
+            </div>
+            <div class="chev">${idx < 2 ? "▲" : "▼"}</div>
+          </div>
+          <div class="expand-body">
+            <div class="card-pad">
+              <div class="label">Message</div>
+              <div class="mono-ish">${msg}</div>
+
+              <div class="hr" style="margin: var(--sp-4) 0;"></div>
+
+              <div class="label">Additional info</div>
+              ${infoHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // audit
+    const title = `${highlight(e.table, qTxt)} • ${changeBadge(e.changeType)}`;
+    const changed = Object.keys(e.data || {});
+    const changedCount = changed.length;
+
+    const detail = changedCount
+      ? changed.map(col => {
+          const item = e.data[col];
+          const before = (item && Object.prototype.hasOwnProperty.call(item,"before")) ? item.before : undefined;
+          const after  = (item && Object.prototype.hasOwnProperty.call(item,"after")) ? item.after : undefined;
+
+          const b = before === null ? "null" : (before === undefined ? "—" : (typeof before === "string" ? before : JSON.stringify(before)));
+          const a = after  === null ? "null" : (after  === undefined ? "—" : (typeof after  === "string" ? after  : JSON.stringify(after)));
+
+          return `
+            <div class="kv">
+              <div class="k">${highlight(col, qTxt)}</div>
+              <div class="v">
+                <div><span class="muted">before:</span> ${highlight(b, qTxt)}</div>
+                <div><span class="muted">after:</span> ${highlight(a, qTxt)}</div>
+              </div>
+            </div>
+          `;
+        }).join("")
+      : `<div class="empty" style="padding: var(--sp-4);">No column-level diff provided.</div>`;
+
+    return `
+      <div class="card">
+        <div class="expand-head">
+          <div class="expand-title">
+            <span class="badge">audit</span>
+            <span class="muted">•</span>
+            <span>${title}</span>
+            <span class="muted">•</span>
+            <span class="muted">${highlight(fmtTs(e.ts), qTxt)}</span>
+            <span class="muted">•</span>
+            <span class="badge">${changedCount} fields</span>
+          </div>
+          <div class="chev">▼</div>
+        </div>
+        <div class="expand-body">
+          <div class="card-pad">
+            <div class="label">Changed columns</div>
+            ${detail}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---------- Events ----------
+  function attachGlobalHandlers(){
+    els.q.addEventListener("input", render);
+    els.scope.addEventListener("change", render);
+    els.range.addEventListener("change", render);
+    els.clear.addEventListener("click", () => {
+      els.q.value = "";
+      els.scope.value = "all";
+      els.range.value = "24h";
+      selectedRequestId = null;
+      render();
+    });
+
+    // Restore persisted controls
+    if(typeof state.q === "string") els.q.value = state.q;
+    if(typeof state.scope === "string") els.scope.value = state.scope;
+    if(typeof state.range === "string") els.range.value = state.range;
+  }
+
+  // ---------- Init ----------
+  attachGlobalHandlers();
+  fakeApiFetch()
+    .then((data) => {
+      db = data;
+      els.statusLine.textContent = "Ready";
+      // If a selected requestId is out of current range/scope, keep it; render will handle empty detail.
+      render();
+    })
+    .catch(() => {
+      els.statusLine.textContent = "Failed to load data";
+      els.traceList.innerHTML = `<div class="empty">Failed to load.</div>`;
+    });
+
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Notes | Engineering</title>
+    <style>
+        :root {
+            --bg: #fafafa;
+            --fg: #1a1a1a;
+            --fg-secondary: #666;
+            --border: #ccc;
+            --border-light: #e5e5e5;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+            --card-bg: #fff;
+            --highlight: #fef08a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            line-height: 1.5;
+            font-size: 13px;
+        }
+        
+        header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .logo {
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .search-container {
+            flex: 0 1 500px;
+            position: relative;
+        }
+        
+        #searchInput {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        
+        #searchInput:focus {
+            border-color: var(--accent);
+        }
+        
+        #searchInput::placeholder {
+            color: var(--fg-secondary);
+        }
+        
+        .stats {
+            font-size: 12px;
+            color: var(--fg-secondary);
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .filter-select {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            background: var(--card-bg);
+            cursor: pointer;
+        }
+        
+        .btn {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .btn:hover {
+            background: var(--bg);
+        }
+        
+        .btn.active {
+            background: var(--fg);
+            color: var(--card-bg);
+            border-color: var(--fg);
+        }
+        
+        .meeting-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+        
+        .meeting-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        
+        .meeting-header:hover {
+            background: #f8f8f8;
+        }
+        
+        .meeting-title-section h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .meeting-meta {
+            font-size: 12px;
+            color: var(--fg-secondary);
+        }
+        
+        .meeting-meta span {
+            margin-right: 1rem;
+        }
+        
+        .expand-icon {
+            font-size: 12px;
+            color: var(--fg-secondary);
+            transition: transform 0.2s;
+        }
+        
+        .meeting-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        .meeting-body {
+            display: none;
+            padding: 1.25rem;
+        }
+        
+        .meeting-card.expanded .meeting-body {
+            display: block;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--fg-secondary);
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .summary-text {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--fg);
+        }
+        
+        .transcription-box {
+            background: #f5f5f5;
+            border: 1px solid var(--border-light);
+            padding: 1rem;
+            font-size: 12px;
+            line-height: 1.7;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .speaker {
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .timestamp {
+            color: var(--fg-secondary);
+            font-size: 11px;
+        }
+        
+        .attendee-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.5rem;
+        }
+        
+        .attendee {
+            font-size: 12px;
+            padding: 0.375rem;
+            background: var(--bg);
+            border: 1px solid var(--border-light);
+        }
+        
+        .attendee-name {
+            font-weight: 600;
+        }
+        
+        .attendee-role {
+            font-size: 11px;
+            color: var(--fg-secondary);
+        }
+        
+        .agenda-list, .decision-list, .risk-list, .attachment-list {
+            list-style: none;
+        }
+        
+        .agenda-item, .decision-item, .risk-item, .attachment-item {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 13px;
+        }
+        
+        .agenda-item:last-child, .decision-item:last-child, .risk-item:last-child, .attachment-item:last-child {
+            border-bottom: none;
+        }
+        
+        .agenda-status {
+            font-size: 10px;
+            padding: 0.125rem 0.375rem;
+            margin-left: 0.5rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .agenda-status.discussed {
+            background: #dcfce7;
+            color: var(--success);
+        }
+        
+        .agenda-status.pending {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+        
+        .agenda-status.cancelled {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+        
+        .decision-item {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .decision-marker {
+            color: var(--accent);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .risk-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .risk-level {
+            font-size: 10px;
+            padding: 0.125rem 0.375rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            flex-shrink: 0;
+            margin-left: 0.5rem;
+        }
+        
+        .risk-high {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+        
+        .risk-medium {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+        
+        .risk-low {
+            background: #dbeafe;
+            color: var(--accent);
+        }
+        
+        .attachment-item a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        
+        .attachment-item a:hover {
+            text-decoration: underline;
+        }
+        
+        .attachment-type {
+            font-size: 10px;
+            color: var(--fg-secondary);
+            margin-left: 0.5rem;
+            text-transform: uppercase;
+        }
+        
+        .next-meeting {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            padding: 0.75rem;
+            font-size: 12px;
+        }
+        
+        .next-meeting-label {
+            font-weight: 600;
+            color: var(--success);
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+        
+        .action-list {
+            list-style: none;
+        }
+        
+        .action-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .action-item:last-child {
+            border-bottom: none;
+        }
+        
+        .action-checkbox {
+            margin-right: 0.75rem;
+            margin-top: 0.125rem;
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+        
+        .action-text {
+            flex: 1;
+            font-size: 13px;
+        }
+        
+        .action-item.completed .action-text {
+            text-decoration: line-through;
+            color: var(--fg-secondary);
+        }
+        
+        .action-assignee {
+            font-size: 11px;
+            color: var(--accent);
+            background: #eff6ff;
+            padding: 0.125rem 0.5rem;
+            margin-left: 0.5rem;
+            white-space: nowrap;
+        }
+        
+        .action-due {
+            font-size: 11px;
+            color: var(--fg-secondary);
+            margin-left: 0.5rem;
+            white-space: nowrap;
+        }
+        
+        .action-due.overdue {
+            color: var(--danger);
+            font-weight: 600;
+        }
+        
+        .action-priority {
+            font-size: 10px;
+            padding: 0.125rem 0.375rem;
+            margin-left: 0.5rem;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .priority-high {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+        
+        .priority-medium {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+        
+        .priority-low {
+            background: #dbeafe;
+            color: var(--accent);
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: var(--fg-secondary);
+            font-size: 14px;
+        }
+        
+        .highlight {
+            background: var(--highlight);
+            padding: 0 2px;
+        }
+        
+        .progress-bar {
+            height: 3px;
+            background: var(--border-light);
+            margin-top: 0.25rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Meeting Notes</div>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search meetings, summaries, transcriptions, decisions...">
+        </div>
+        <div class="stats">
+            <span id="statsCount">8 meetings</span>
+            <button class="btn" onclick="exportMeetings()">Export</button>
+        </div>
+    </header>
+    
+    <main>
+        <div class="controls">
+            <div class="filter-group">
+                <select class="filter-select" id="sortSelect" onchange="applyFilters()">
+                    <option value="date-desc">Date: Newest First</option>
+                    <option value="date-asc">Date: Oldest First</option>
+                    <option value="title-asc">Title: A-Z</option>
+                    <option value="actions">Most Action Items</option>
+                </select>
+                <button class="btn" id="pendingBtn" onclick="togglePendingFilter()">Pending Only</button>
+                <button class="btn" onclick="expandAll()">Expand All</button>
+                <button class="btn" onclick="collapseAll()">Collapse All</button>
+            </div>
+        </div>
+        
+        <div id="meetingsContainer"></div>
+    </main>
+
+    <script>
+        const meetings = [
+            {
+                id: 1,
+                title: "Q1 Engineering Planning",
+                date: "2026-01-28",
+                duration: "45 min",
+                attendeeCount: "8 participants",
+                attendees: [
+                    { name: "Sarah Chen", role: "VP Engineering" },
+                    { name: "Mike Torres", role: "Infrastructure Lead" },
+                    { name: "Jen Park", role: "Product Manager" },
+                    { name: "David Kim", role: "CTO" },
+                    { name: "Lisa Wang", role: "Engineering Manager" },
+                    { name: "Alex Rivera", role: "Senior Engineer" },
+                    { name: "Nina Patel", role: "Security Lead" },
+                    { name: "Tom Bradley", role: "DevOps Engineer" }
+                ],
+                summary: "Reviewed Q1 objectives across all engineering teams. Infrastructure team to focus on reliability improvements, product team on new feature delivery. Budget approved for additional AWS resources.",
+                agenda: [
+                    { item: "Infrastructure roadmap review", status: "discussed" },
+                    { item: "Product priorities alignment", status: "discussed" },
+                    { item: "Budget approval for Q1", status: "discussed" },
+                    { item: "Hiring plan review", status: "pending" }
+                ],
+                decisions: [
+                    "Database optimization project approved with 6-week timeline",
+                    "AWS budget increased by 40% for Q1",
+                    "New checkout flow prioritized over mobile improvements",
+                    "Weekly sync meetings to be scheduled for cross-team alignment"
+                ],
+                transcription: `[09:00] <span class="speaker">Sarah Chen</span>: Good morning everyone. Let's dive into Q1 planning. First item - infrastructure roadmap.
+
+[09:02] <span class="speaker">Mike Torres</span>: We've identified three critical areas: database optimization, CDN migration, and monitoring improvements. The database work is blocking other initiatives.
+
+[09:08] <span class="speaker">Sarah Chen</span>: Timeline for database optimization?
+
+[09:09] <span class="speaker">Mike Torres</span>: Six weeks. We've already done the initial assessment.
+
+[09:11] <span class="speaker">Jen Park</span>: From the product side, we're aligned. New checkout flow is priority one, but we need the database work done first.
+
+[09:15] <span class="speaker">Sarah Chen</span>: Budget discussion. We need approval for additional AWS spend.
+
+[09:17] <span class="speaker">David Kim</span>: Approved up to 40% increase. Just keep me posted on actuals vs forecast.
+
+[09:20] <span class="speaker">Sarah Chen</span>: Great. Let's move to action items.`,
+                actions: [
+                    { text: "Finalize database optimization proposal", assignee: "M. Torres", due: "2026-01-30", priority: "high", completed: false },
+                    { text: "Submit AWS resource request", assignee: "S. Chen", due: "2026-01-29", priority: "high", completed: true },
+                    { text: "Update roadmap document", assignee: "J. Park", due: "2026-02-03", priority: "medium", completed: false }
+                ],
+                risks: [
+                    { description: "Database optimization may exceed 6-week estimate", level: "medium" },
+                    { description: "AWS cost increase not approved by finance yet", level: "low" }
+                ],
+                attachments: [
+                    { name: "Q1_Roadmap.pdf", type: "PDF", url: "#" },
+                    { name: "Infrastructure_Assessment.xlsx", type: "Excel", url: "#" },
+                    { name: "Budget_Proposal_Q1.docx", type: "Word", url: "#" }
+                ],
+                nextMeeting: { title: "Weekly Engineering Sync", date: "2026-02-04", time: "09:00" }
+            },
+            {
+                id: 2,
+                title: "API Design Review - Payments",
+                date: "2026-01-27",
+                duration: "60 min",
+                attendeeCount: "5 participants",
+                attendees: [
+                    { name: "Alex Rivera", role: "Lead API Engineer" },
+                    { name: "Rachel Zhao", role: "Senior Architect" },
+                    { name: "Tom Bradley", role: "Security Engineer" },
+                    { name: "Carlos Mendez", role: "Engineering Manager" },
+                    { name: "Jen Park", role: "Product Manager" }
+                ],
+                summary: "Reviewed v2 payment API design. Webhook structure needs rework. Decided on idempotency key approach for retries. OAuth2 scope updates approved.",
+                agenda: [
+                    { item: "API endpoint structure review", status: "discussed" },
+                    { item: "Webhook payload standardization", status: "discussed" },
+                    { item: "Idempotency strategy", status: "discussed" },
+                    { item: "Security review", status: "discussed" }
+                ],
+                decisions: [
+                    "Webhook payloads to follow events API pattern (type, timestamp, data)",
+                    "Idempotency-Key header with 24-hour TTL",
+                    "New OAuth2 scopes: payment:read and payment:write",
+                    "Rate limiting: 1000 req/min per API key"
+                ],
+                transcription: `[14:00] <span class="speaker">Alex Rivera</span>: Walking through the new payment API design. Key changes: unified endpoint, better error codes, idempotency support.
+
+[14:05] <span class="speaker">Rachel Zhao</span>: The webhook payload structure is inconsistent with our other APIs. We should standardize.
+
+[14:08] <span class="speaker">Alex Rivera</span>: Agreed. What's the pattern we're standardizing on?
+
+[14:10] <span class="speaker">Rachel Zhao</span>: The events API pattern we established last quarter. Event type, timestamp, data payload.
+
+[14:13] <span class="speaker">Tom Bradley</span>: On idempotency - we're using request headers, correct?
+
+[14:15] <span class="speaker">Alex Rivera</span>: Yes, Idempotency-Key header. UUID v4 recommended.
+
+[14:18] <span class="speaker">Tom Bradley</span>: TTL on those keys?
+
+[14:20] <span class="speaker">Alex Rivera</span>: 24 hours for now. We can adjust based on usage.
+
+[14:25] <span class="speaker">Rachel Zhao</span>: OAuth scopes need updating too. We need payment:read and payment:write.
+
+[14:28] <span class="speaker">Alex Rivera</span>: I'll add those to the spec.`,
+                actions: [
+                    { text: "Update webhook payload structure", assignee: "A. Rivera", due: "2026-01-29", priority: "high", completed: false },
+                    { text: "Document idempotency key usage", assignee: "A. Rivera", due: "2026-01-31", priority: "medium", completed: false },
+                    { text: "Update OAuth2 scopes", assignee: "T. Bradley", due: "2026-02-01", priority: "high", completed: false }
+                ],
+                risks: [
+                    { description: "Breaking change may affect existing integrations", level: "high" }
+                ],
+                attachments: [
+                    { name: "API_Spec_v2.yaml", type: "YAML", url: "#" },
+                    { name: "Webhook_Examples.json", type: "JSON", url: "#" }
+                ],
+                nextMeeting: { title: "API Implementation Kickoff", date: "2026-02-03", time: "14:00" }
+            },
+            {
+                id: 3,
+                title: "Incident Review - Database Outage",
+                date: "2026-01-24",
+                duration: "90 min",
+                attendeeCount: "12 participants",
+                attendees: [
+                    { name: "Lisa Wang", role: "Incident Commander" },
+                    { name: "Mike Torres", role: "Infrastructure Lead" },
+                    { name: "Sarah Chen", role: "VP Engineering" },
+                    { name: "Jen Park", role: "Product Manager" },
+                    { name: "David Kim", role: "CTO" },
+                    { name: "Nina Patel", role: "Security Lead" },
+                    { name: "Alex Rivera", role: "Senior Engineer" },
+                    { name: "Carlos Mendez", role: "Engineering Manager" },
+                    { name: "Emma Liu", role: "SRE" },
+                    { name: "James O'Brien", role: "Database Admin" },
+                    { name: "Rachel Zhao", role: "Senior Architect" },
+                    { name: "Tom Bradley", role: "DevOps Engineer" }
+                ],
+                summary: "Root cause: connection pool exhaustion during traffic spike. Mitigation: increased pool size, added circuit breaker, improved alerting. No data loss. Estimated downtime: 23 minutes.",
+                agenda: [
+                    { item: "Timeline review", status: "discussed" },
+                    { item: "Root cause analysis", status: "discussed" },
+                    { item: "Impact assessment", status: "discussed" },
+                    { item: "Remediation actions", status: "discussed" }
+                ],
+                decisions: [
+                    "Implement circuit breaker pattern on all partner integrations",
+                    "Increase database connection pool from 100 to 200",
+                    "Add proactive alerting for connection pool usage >70%",
+                    "Review all third-party integration rate limits by Feb 10"
+                ],
+                transcription: `[10:00] <span class="speaker">Lisa Wang</span>: Incident review for database outage on Jan 22. Lisa Wang facilitating. Mike, can you walk us through the timeline?
+
+[10:02] <span class="speaker">Mike Torres</span>: 14:32 - alerts fired for high connection count. 14:35 - database became unresponsive. 14:38 - failover initiated automatically. 14:55 - service restored.
+
+[10:05] <span class="speaker">Lisa Wang</span>: Root cause?
+
+[10:07] <span class="speaker">Mike Torres</span>: Connection pool exhaustion. We had a traffic spike from a partner integration that wasn't rate limited. Each request was holding connections too long.
+
+[10:12] <span class="speaker">Sarah Chen</span>: Why didn't autoscaling catch it?
+
+[10:14] <span class="speaker">Mike Torres</span>: Database connections don't scale horizontally. We'd already hit the max.
+
+[10:17] <span class="speaker">Jen Park</span>: Was any data lost?
+
+[10:18] <span class="speaker">Mike Torres</span>: No. Failover was clean. We verified data consistency post-incident.
+
+[10:22] <span class="speaker">Lisa Wang</span>: Action items to prevent recurrence?`,
+                actions: [
+                    { text: "Implement circuit breaker on partner API", assignee: "M. Torres", due: "2026-01-31", priority: "high", completed: true },
+                    { text: "Add connection pool monitoring", assignee: "M. Torres", due: "2026-02-07", priority: "high", completed: false },
+                    { text: "Document failover procedures", assignee: "L. Wang", due: "2026-02-03", priority: "medium", completed: false },
+                    { text: "Review all partner integration rate limits", assignee: "J. Park", due: "2026-02-10", priority: "high", completed: false }
+                ],
+                risks: [
+                    { description: "Partner may not implement proper rate limiting", level: "high" },
+                    { description: "Similar issues with other integrations not yet identified", level: "medium" }
+                ],
+                attachments: [
+                    { name: "Incident_Timeline.pdf", type: "PDF", url: "#" },
+                    { name: "Database_Logs_2026-01-22.zip", type: "ZIP", url: "#" },
+                    { name: "Postmortem_Template.docx", type: "Word", url: "#" }
+                ],
+                nextMeeting: { title: "Follow-up: Circuit Breaker Implementation", date: "2026-01-31", time: "10:00" }
+            },
+            {
+                id: 4,
+                title: "Security Audit Prep",
+                date: "2026-01-22",
+                duration: "30 min",
+                attendeeCount: "4 participants",
+                attendees: [
+                    { name: "David Kim", role: "CTO" },
+                    { name: "Nina Patel", role: "Security Lead" },
+                    { name: "Sarah Chen", role: "VP Engineering" },
+                    { name: "Mike Torres", role: "Infrastructure Lead" }
+                ],
+                summary: "SOC2 audit scheduled for Feb 15. Need to complete access reviews, update documentation, and prepare evidence package. Penetration testing results look good.",
+                agenda: [
+                    { item: "Pen test results review", status: "discussed" },
+                    { item: "Access review status", status: "discussed" },
+                    { item: "Documentation gaps", status: "discussed" },
+                    { item: "Evidence package preparation", status: "discussed" }
+                ],
+                decisions: [
+                    "SOC2 Type II audit scheduled for Feb 15-19",
+                    "All medium+ findings from pen test must be resolved before audit",
+                    "Engineering documentation target: 80% coverage by Feb 1",
+                    "Evidence collection to be automated where possible"
+                ],
+                transcription: `[11:00] <span class="speaker">David Kim</span>: SOC2 audit in three weeks. Let's review readiness.
+
+[11:02] <span class="speaker">Nina Patel</span>: Pen test results came back. Two mediums, no highs. Both remediated.
+
+[11:05] <span class="speaker">David Kim</span>: Excellent. Access reviews?
+
+[11:07] <span class="speaker">Sarah Chen</span>: 85% complete. Engineering is done. Waiting on sales and marketing.
+
+[11:10] <span class="speaker">David Kim</span>: Chase them today. Documentation status?
+
+[11:12] <span class="speaker">Nina Patel</span>: Policies are current. Runbooks need work. Targeting 80% coverage.
+
+[11:16] <span class="speaker">David Kim</span>: Evidence package?
+
+[11:18] <span class="speaker">Nina Patel</span>: On track. Automating most of the log collection.
+
+[11:22] <span class="speaker">David Kim</span>: Good. Let's reconvene next week.`,
+                actions: [
+                    { text: "Complete access reviews for sales/marketing", assignee: "S. Chen", due: "2026-01-24", priority: "high", completed: true },
+                    { text: "Finalize runbook documentation", assignee: "N. Patel", due: "2026-02-01", priority: "high", completed: false },
+                    { text: "Prepare evidence package", assignee: "N. Patel", due: "2026-02-10", priority: "high", completed: false }
+                ],
+                risks: [
+                    { description: "Sales team may delay access review completion", level: "medium" },
+                    { description: "Documentation gaps may be flagged by auditors", level: "low" }
+                ],
+                attachments: [
+                    { name: "SOC2_Checklist.xlsx", type: "Excel", url: "#" },
+                    { name: "Pen_Test_Report_2026.pdf", type: "PDF", url: "#" }
+                ],
+                nextMeeting: { title: "Security Readiness Check", date: "2026-02-05", time: "11:00" }
+            },
+            {
+                id: 5,
+                title: "Mobile App Performance Review",
+                date: "2026-01-20",
+                duration: "45 min",
+                attendeeCount: "6 participants",
+                attendees: [
+                    { name: "Carlos Mendez", role: "Mobile Lead" },
+                    { name: "Emma Liu", role: "iOS Engineer" },
+                    { name: "James O'Brien", role: "Android Engineer" },
+                    { name: "Jen Park", role: "Product Manager" },
+                    { name: "Alex Rivera", role: "Backend Engineer" },
+                    { name: "Rachel Zhao", role: "Senior Architect" }
+                ],
+                summary: "iOS cold start time improved 40% after recent optimization. Android still has memory leak in image caching. Push notification delivery at 94%, targeting 99%.",
+                agenda: [
+                    { item: "iOS performance metrics", status: "discussed" },
+                    { item: "Android memory leak investigation", status: "discussed" },
+                    { item: "Push notification delivery rates", status: "discussed" },
+                    { item: "Cold start optimization strategy", status: "discussed" }
+                ],
+                decisions: [
+                    "iOS optimization approach approved for Android implementation",
+                    "Memory leak fix must be deployed before next release",
+                    "Push notification permission UX to be redesigned",
+                    "Target: 99% delivery rate by end of Q1"
+                ],
+                transcription: `[15:00] <span class="speaker">Carlos Mendez</span>: Mobile performance review. iOS first.
+
+[15:02] <span class="speaker">Emma Liu</span>: Cold start down to 1.2 seconds from 2.0. Main improvement was deferring SDK initialization.
+
+[15:06] <span class="speaker">Carlos Mendez</span>: That's significant. Any regressions?
+
+[15:08] <span class="speaker">Emma Liu</span>: None detected. Crash rate stable at 0.3%.
+
+[15:10] <span class="speaker">Carlos Mendez</span>: Android status?
+
+[15:12] <span class="speaker">James O'Brien</span>: Memory leak confirmed in image cache. Working on fix. Cold start still at 2.8 seconds.
+
+[15:16] <span class="speaker">Carlos Mendez</span>: Timeline for the memory fix?
+
+[15:18] <span class="speaker">James O'Brien</span>: PR up this week. It's in the image loading library we forked.
+
+[15:22] <span class="speaker">Carlos Mendez</span>: Push notifications?
+
+[15:24] <span class="speaker">Emma Liu</span>: 94% delivery. Main issue is iOS provisional auth. Users declining.
+
+[15:28] <span class="speaker">Carlos Mendez</span>: Let's discuss permission strategy separately.`,
+                actions: [
+                    { text: "Submit image cache memory leak fix", assignee: "J. O'Brien", due: "2026-01-24", priority: "high", completed: true },
+                    { text: "Audit SDK initialization on Android", assignee: "J. O'Brien", due: "2026-02-03", priority: "medium", completed: false },
+                    { text: "Propose notification permission UX changes", assignee: "E. Liu", due: "2026-01-27", priority: "medium", completed: false }
+                ],
+                risks: [
+                    { description: "Android memory leak may affect app store ratings", level: "high" },
+                    { description: "Push notification opt-in rates declining", level: "medium" }
+                ],
+                attachments: [
+                    { name: "iOS_Performance_Metrics.pdf", type: "PDF", url: "#" },
+                    { name: "Android_Memory_Analysis.zip", type: "ZIP", url: "#" }
+                ],
+                nextMeeting: { title: "Mobile Sprint Review", date: "2026-02-06", time: "15:00" }
+            },
+            {
+                id: 6,
+                title: "Vendor Evaluation - Monitoring Tools",
+                date: "2026-01-15",
+                duration: "60 min",
+                attendeeCount: "5 participants",
+                attendees: [
+                    { name: "Sarah Chen", role: "VP Engineering" },
+                    { name: "Mike Torres", role: "Infrastructure Lead" },
+                    { name: "Lisa Wang", role: "Engineering Manager" },
+                    { name: "David Kim", role: "CTO" },
+                    { name: "Nina Patel", role: "Security Lead" }
+                ],
+                summary: "Evaluated DataDog, New Relic, and Grafana Cloud. DataDog leads on features but is 40% more expensive. Grafana Cloud good value but requires more setup. Decision needed by month end.",
+                agenda: [
+                    { item: "Feature comparison", status: "discussed" },
+                    { item: "Pricing analysis", status: "discussed" },
+                    { item: "Migration effort estimation", status: "discussed" },
+                    { item: "Trial setup and evaluation criteria", status: "discussed" }
+                ],
+                decisions: [
+                    "DataDog trial to run parallel for 2 weeks",
+                    "Decision required by Jan 31",
+                    "Must include security review in evaluation",
+                    "Budget ceiling: $20K/month"
+                ],
+                transcription: `[13:00] <span class="speaker">Sarah Chen</span>: Monitoring vendor evaluation. We've looked at three options.
+
+[13:03] <span class="speaker">Mike Torres</span>: DataDog has the best out-of-box experience. APM, logs, metrics all integrated. But it's expensive.
+
+[13:08] <span class="speaker">Lisa Wang</span>: How expensive?
+
+[13:10] <span class="speaker">Mike Torres</span>: 40% more than New Relic at our scale. Roughly 18K/month vs 13K.
+
+[13:14] <span class="speaker">Sarah Chen</span>: Grafana Cloud?
+
+[13:16] <span class="speaker">Mike Torres</span>: 8K/month, but we'd need to run some components ourselves. More operational overhead.
+
+[13:20] <span class="speaker">Lisa Wang</span>: What's the migration effort?
+
+[13:22] <span class="speaker">Mike Torres</span>: DataDog: 2 weeks. Others: 4-6 weeks.
+
+[13:25] <span class="speaker">Sarah Chen</span>: Let's get a trial going with DataDog. Run it parallel for two weeks.
+
+[13:28] <span class="speaker">Mike Torres</span>: Already set up. Started yesterday.
+
+[13:30] <span class="speaker">Sarah Chen</span>: Decision meeting next Friday.`,
+                actions: [
+                    { text: "Complete DataDog trial evaluation", assignee: "M. Torres", due: "2026-01-29", priority: "high", completed: false },
+                    { text: "Document pricing comparison analysis", assignee: "M. Torres", due: "2026-01-27", priority: "medium", completed: true },
+                    { text: "Schedule final decision meeting", assignee: "S. Chen", due: "2026-01-22", priority: "medium", completed: true }
+                ],
+                risks: [
+                    { description: "DataDog cost may exceed budget if usage grows", level: "medium" },
+                    { description: "Migration disruption during busy Q1 period", level: "medium" }
+                ],
+                attachments: [
+                    { name: "Vendor_Comparison.xlsx", type: "Excel", url: "#" },
+                    { name: "DataDog_Trial_Results.pdf", type: "PDF", url: "#" }
+                ],
+                nextMeeting: { title: "Monitoring Tool Decision", date: "2026-01-31", time: "13:00" }
+            },
+            {
+                id: 7,
+                title: "Frontend Architecture - Component Library",
+                date: "2026-01-13",
+                duration: "75 min",
+                attendeeCount: "7 participants",
+                attendees: [
+                    { name: "Rachel Zhao", role: "Senior Architect" },
+                    { name: "Tom Bradley", role: "Frontend Lead" },
+                    { name: "Emma Liu", role: "UI Engineer" },
+                    { name: "Alex Rivera", role: "Senior Engineer" },
+                    { name: "James O'Brien", role: "Full Stack Engineer" },
+                    { name: "Carlos Mendez", role: "Engineering Manager" },
+                    { name: "Jen Park", role: "Product Manager" }
+                ],
+                summary: "Decided to build internal component library instead of adopting third-party solution. Established design tokens, accessibility standards, and documentation requirements.",
+                agenda: [
+                    { item: "Build vs buy analysis", status: "discussed" },
+                    { item: "Component scope definition", status: "discussed" },
+                    { item: "Design token strategy", status: "discussed" },
+                    { item: "Accessibility requirements", status: "discussed" }
+                ],
+                decisions: [
+                    "Build internal component library - avoid third-party dependencies",
+                    "WCAG 2.1 AA compliance mandatory for all components",
+                    "Storybook for documentation and visual testing",
+                    "Design tokens managed in Figma, synced to code",
+                    "Target: 30 core components by end of Q2"
+                ],
+                transcription: `[16:00] <span class="speaker">Rachel Zhao</span>: Frontend architecture discussion. Main topic: component library strategy.
+
+[16:03] <span class="speaker">Tom Bradley</span>: We've outgrown our current approach. Too much inconsistency across teams.
+
+[16:07] <span class="speaker">Rachel Zhao</span>: Options are: adopt Material-UI or similar, or build our own.
+
+[16:10] <span class="speaker">Alex Rivera</span>: MUI is bloated. We only use 30% of it. Bundle size is hurting performance.
+
+[16:15] <span class="speaker">Emma Liu</span>: And styling overrides are painful. Every customization fights the framework.
+
+[16:19] <span class="speaker">Jen Park</span>: From product side, we need more flexibility than off-the-shelf solutions provide.
+
+[16:22] <span class="speaker">Rachel Zhao</span>: Sounds like consensus for building our own. Scope?
+
+[16:25] <span class="speaker">Tom Bradley</span>: Start with 15 core components. Button, input, modal, table, etc.
+
+[16:30] <span class="speaker">Rachel Zhao</span>: Accessibility requirements?
+
+[16:32] <span class="speaker">Emma Liu</span>: WCAG 2.1 AA minimum. We have users with disabilities, it's non-negotiable.`,
+                actions: [
+                    { text: "Set up component library repo and CI/CD", assignee: "T. Bradley", due: "2026-01-20", priority: "high", completed: true },
+                    { text: "Define design token structure", assignee: "E. Liu", due: "2026-01-25", priority: "high", completed: false },
+                    { text: "Create accessibility testing checklist", assignee: "E. Liu", due: "2026-01-27", priority: "medium", completed: false },
+                    { text: "Build first 5 components", assignee: "T. Bradley", due: "2026-02-10", priority: "high", completed: false },
+                    { text: "Document Storybook setup", assignee: "A. Rivera", due: "2026-02-03", priority: "medium", completed: false }
+                ],
+                risks: [
+                    { description: "Internal library may lack features teams need", level: "medium" },
+                    { description: "Maintenance burden on frontend team", level: "low" }
+                ],
+                attachments: [
+                    { name: "Component_Library_RFC.md", type: "Markdown", url: "#" },
+                    { name: "Design_Tokens_Draft.json", type: "JSON", url: "#" },
+                    { name: "Accessibility_Checklist.pdf", type: "PDF", url: "#" }
+                ],
+                nextMeeting: { title: "Component Library Sprint Review", date: "2026-02-10", time: "16:00" }
+            },
+            {
+                id: 8,
+                title: "Customer Success - Q4 Retrospective",
+                date: "2026-01-10",
+                duration: "50 min",
+                attendeeCount: "9 participants",
+                attendees: [
+                    { name: "Sarah Chen", role: "VP Engineering" },
+                    { name: "Jen Park", role: "Product Manager" },
+                    { name: "David Kim", role: "CTO" },
+                    { name: "Lisa Wang", role: "Engineering Manager" },
+                    { name: "Carlos Mendez", role: "Engineering Manager" },
+                    { name: "Nina Patel", role: "Security Lead" },
+                    { name: "Mike Torres", role: "Infrastructure Lead" },
+                    { name: "Rachel Zhao", role: "Senior Architect" },
+                    { name: "Emma Liu", role: "Support Engineer" }
+                ],
+                summary: "Reviewed top customer issues from Q4. Major themes: onboarding friction, API documentation gaps, and slow support response times. NPS improved from 42 to 51.",
+                agenda: [
+                    { item: "Q4 metrics review", status: "discussed" },
+                    { item: "Top customer issues analysis", status: "discussed" },
+                    { item: "Support process improvements", status: "discussed" },
+                    { item: "Q1 priorities based on feedback", status: "discussed" }
+                ],
+                decisions: [
+                    "NPS target for Q1: 60+",
+                    "API documentation complete rewrite approved",
+                    "Support SLA: <4 hours for P1, <24 hours for P2",
+                    "Onboarding checklist to be built for all new customers",
+                    "Monthly customer feedback sessions to continue"
+                ],
+                transcription: `[14:00] <span class="speaker">Sarah Chen</span>: Q4 retrospective on customer success. Emma, let's start with the numbers.
+
+[14:03] <span class="speaker">Emma Liu</span>: NPS up from 42 to 51. Support tickets down 15%. But onboarding complaints up 30%.
+
+[14:08] <span class="speaker">David Kim</span>: What's driving the onboarding issues?
+
+[14:10] <span class="speaker">Emma Liu</span>: API documentation is the main blocker. Customers can't find what they need.
+
+[14:14] <span class="speaker">Alex Rivera</span>: I reviewed the docs last week. They're outdated and poorly organized.
+
+[14:18] <span class="speaker">Jen Park</span>: We need a complete rewrite. Not just updates.
+
+[14:21] <span class="speaker">Sarah Chen</span>: Agreed. Timeline?
+
+[14:23] <span class="speaker">Jen Park</span>: 4 weeks for initial overhaul. But we need a dedicated technical writer.
+
+[14:27] <span class="speaker">David Kim</span>: Approved. Post the role this week.
+
+[14:30] <span class="speaker">Emma Liu</span>: Support response times also need work. We're averaging 6 hours for P1.
+
+[14:34] <span class="speaker">Sarah Chen</span>: Target should be 4 hours. What's the bottleneck?
+
+[14:37] <span class="speaker">Emma Liu</span>: On-call engineer availability. We need better escalation procedures.`,
+                actions: [
+                    { text: "Post technical writer job opening", assignee: "S. Chen", due: "2026-01-13", priority: "high", completed: true },
+                    { text: "Audit current API documentation gaps", assignee: "A. Rivera", due: "2026-01-17", priority: "high", completed: true },
+                    { text: "Redesign support escalation procedures", assignee: "E. Liu", due: "2026-01-24", priority: "medium", completed: false },
+                    { text: "Create customer onboarding checklist", assignee: "J. Park", due: "2026-02-03", priority: "medium", completed: false }
+                ],
+                risks: [
+                    { description: "Technical writer hiring may take longer than expected", level: "medium" },
+                    { description: "API doc rewrite may delay other Q1 commitments", level: "medium" }
+                ],
+                attachments: [
+                    { name: "Q4_Customer_Metrics.pdf", type: "PDF", url: "#" },
+                    { name: "Support_Ticket_Analysis.xlsx", type: "Excel", url: "#" },
+                    { name: "NPS_Survey_Results.pdf", type: "PDF", url: "#" }
+                ],
+                nextMeeting: { title: "Customer Success Check-in", date: "2026-02-07", time: "14:00" }
+            }
+        ];
+
+        let pendingOnly = false;
+
+        const container = document.getElementById('meetingsContainer');
+        const searchInput = document.getElementById('searchInput');
+        const stats = document.getElementById('statsCount');
+
+        // Load completed states from localStorage
+        function loadCompletedStates() {
+            const saved = localStorage.getItem('meetingNotesCompleted');
+            if (saved) {
+                const states = JSON.parse(saved);
+                meetings.forEach(meeting => {
+                    meeting.actions.forEach(action => {
+                        const key = `${meeting.id}-${action.text}`;
+                        if (states[key] !== undefined) {
+                            action.completed = states[key];
+                        }
+                    });
+                });
+            }
+        }
+
+        // Save completed states to localStorage
+        function saveCompletedStates() {
+            const states = {};
+            meetings.forEach(meeting => {
+                meeting.actions.forEach(action => {
+                    const key = `${meeting.id}-${action.text}`;
+                    states[key] = action.completed;
+                });
+            });
+            localStorage.setItem('meetingNotesCompleted', JSON.stringify(states));
+        }
+
+        function togglePendingFilter() {
+            pendingOnly = !pendingOnly;
+            document.getElementById('pendingBtn').classList.toggle('active', pendingOnly);
+            applyFilters();
+        }
+
+        function sortMeetings(meetingsToSort) {
+            const sortType = document.getElementById('sortSelect').value;
+            const sorted = [...meetingsToSort];
+            
+            switch(sortType) {
+                case 'date-asc':
+                    sorted.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    break;
+                case 'date-desc':
+                    sorted.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    break;
+                case 'title-asc':
+                    sorted.sort((a, b) => a.title.localeCompare(b.title));
+                    break;
+                case 'actions':
+                    sorted.sort((a, b) => b.actions.length - a.actions.length);
+                    break;
+            }
+            return sorted;
+        }
+
+        function applyFilters() {
+            let filtered = meetings;
+            
+            if (pendingOnly) {
+                filtered = filtered.filter(m => m.actions.some(a => !a.completed));
+            }
+            
+            const searchTerm = searchInput.value.toLowerCase();
+            if (searchTerm) {
+                filtered = filtered.filter(meeting => 
+                    meeting.title.toLowerCase().includes(searchTerm) ||
+                    meeting.summary.toLowerCase().includes(searchTerm) ||
+                    meeting.transcription.toLowerCase().includes(searchTerm) ||
+                    meeting.decisions.some(d => d.toLowerCase().includes(searchTerm)) ||
+                    meeting.actions.some(action => 
+                        action.text.toLowerCase().includes(searchTerm) ||
+                        action.assignee.toLowerCase().includes(searchTerm)
+                    ) ||
+                    meeting.attendees.some(a => 
+                        a.name.toLowerCase().includes(searchTerm) ||
+                        a.role.toLowerCase().includes(searchTerm)
+                    )
+                );
+            }
+            
+            filtered = sortMeetings(filtered);
+            renderMeetings(filtered, searchTerm);
+        }
+
+        function renderMeetings(meetingsToRender, searchTerm = '') {
+            if (meetingsToRender.length === 0) {
+                container.innerHTML = '<div class="no-results">No meetings found matching your search.</div>';
+                stats.textContent = '0 meetings';
+                return;
+            }
+
+            container.innerHTML = meetingsToRender.map(meeting => {
+                const completedActions = meeting.actions.filter(a => a.completed).length;
+                const progress = meeting.actions.length > 0 ? (completedActions / meeting.actions.length) * 100 : 0;
+                
+                return `
+                <div class="meeting-card" data-id="${meeting.id}">
+                    <div class="meeting-header" onclick="toggleMeeting(${meeting.id})">
+                        <div class="meeting-title-section">
+                            <h2>${highlightText(meeting.title, searchTerm)}</h2>
+                            <div class="meeting-meta">
+                                <span>${formatDate(meeting.date)}</span>
+                                <span>${meeting.duration}</span>
+                                <span>${meeting.attendeeCount}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${progress}%"></div>
+                            </div>
+                        </div>
+                        <span class="expand-icon">▼</span>
+                    </div>
+                    <div class="meeting-body">
+                        <div class="two-column">
+                            <div class="section">
+                                <div class="section-label">Attendees</div>
+                                <div class="attendee-list">
+                                    ${meeting.attendees.map(a => `
+                                        <div class="attendee">
+                                            <div class="attendee-name">${highlightText(a.name, searchTerm)}</div>
+                                            <div class="attendee-role">${a.role}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="section">
+                                <div class="section-label">Agenda</div>
+                                <ul class="agenda-list">
+                                    ${meeting.agenda.map(item => `
+                                        <li class="agenda-item">
+                                            ${highlightText(item.item, searchTerm)}
+                                            <span class="agenda-status ${item.status}">${item.status}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-label">Summary</div>
+                            <div class="summary-text">${highlightText(meeting.summary, searchTerm)}</div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-label">Key Decisions</div>
+                            <ul class="decision-list">
+                                ${meeting.decisions.map(d => `
+                                    <li class="decision-item">
+                                        <span class="decision-marker">►</span>
+                                        <span>${highlightText(d, searchTerm)}</span>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-label">Transcription</div>
+                            <div class="transcription-box">${highlightText(meeting.transcription, searchTerm)}</div>
+                        </div>
+                        
+                        <div class="two-column">
+                            <div class="section">
+                                <div class="section-label">Action Items (${completedActions}/${meeting.actions.length})</div>
+                                <ul class="action-list">
+                                    ${meeting.actions.map(action => `
+                                        <li class="action-item ${action.completed ? 'completed' : ''}">
+                                            <input type="checkbox" class="action-checkbox" 
+                                                   ${action.completed ? 'checked' : ''} 
+                                                   onchange="toggleAction(${meeting.id}, '${action.text}')">
+                                            <span class="action-text">${highlightText(action.text, searchTerm)}</span>
+                                            <span class="action-assignee">${action.assignee}</span>
+                                            <span class="action-due ${isOverdue(action.due) && !action.completed ? 'overdue' : ''}">${formatDate(action.due)}</span>
+                                            <span class="action-priority priority-${action.priority}">${action.priority}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                            
+                            <div class="section">
+                                <div class="section-label">Risks & Issues</div>
+                                <ul class="risk-list">
+                                    ${meeting.risks.map(risk => `
+                                        <li class="risk-item">
+                                            <span>${highlightText(risk.description, searchTerm)}</span>
+                                            <span class="risk-level risk-${risk.level}">${risk.level}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="two-column">
+                            <div class="section">
+                                <div class="section-label">Attachments</div>
+                                <ul class="attachment-list">
+                                    ${meeting.attachments.map(att => `
+                                        <li class="attachment-item">
+                                            <a href="${att.url}" onclick="event.preventDefault(); alert('Opening: ${att.name}')">${att.name}</a>
+                                            <span class="attachment-type">${att.type}</span>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+                            
+                            <div class="section">
+                                <div class="section-label">Next Meeting</div>
+                                <div class="next-meeting">
+                                    <div class="next-meeting-label">Scheduled</div>
+                                    <strong>${meeting.nextMeeting.title}</strong><br>
+                                    ${formatDate(meeting.nextMeeting.date)} at ${meeting.nextMeeting.time}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+
+            stats.textContent = `${meetingsToRender.length} meeting${meetingsToRender.length !== 1 ? 's' : ''}`;
+        }
+
+        function highlightText(text, searchTerm) {
+            if (!searchTerm) return text;
+            const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function isOverdue(dateStr) {
+            return new Date(dateStr) < new Date();
+        }
+
+        function toggleMeeting(id) {
+            const card = document.querySelector(`[data-id="${id}"]`);
+            card.classList.toggle('expanded');
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.meeting-card').forEach(card => card.classList.add('expanded'));
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.meeting-card').forEach(card => card.classList.remove('expanded'));
+        }
+
+        function toggleAction(meetingId, actionText) {
+            const meeting = meetings.find(m => m.id === meetingId);
+            const action = meeting.actions.find(a => a.text === actionText);
+            if (action) {
+                action.completed = !action.completed;
+                saveCompletedStates();
+                applyFilters();
+                // Re-expand the card
+                setTimeout(() => {
+                    document.querySelector(`[data-id="${meetingId}"]`).classList.add('expanded');
+                }, 0);
+            }
+        }
+
+        function exportMeetings() {
+            let exportText = "MEETING NOTES EXPORT\n";
+            exportText += "=" .repeat(50) + "\n\n";
+            
+            meetings.forEach(meeting => {
+                exportText += `## ${meeting.title}\n`;
+                exportText += `Date: ${meeting.date} | Duration: ${meeting.duration}\n`;
+                exportText += `Attendees: ${meeting.attendees.map(a => `${a.name} (${a.role})`).join(', ')}\n\n`;
+                
+                exportText += "### Summary\n";
+                exportText += `${meeting.summary}\n\n`;
+                
+                exportText += "### Decisions\n";
+                meeting.decisions.forEach(d => exportText += `- ${d}\n`);
+                exportText += "\n";
+                
+                exportText += "### Action Items\n";
+                meeting.actions.forEach(a => {
+                    const status = a.completed ? '[x]' : '[ ]';
+                    exportText += `${status} ${a.text} (${a.assignee}, due: ${a.due}, ${a.priority})\n`;
+                });
+                exportText += "\n";
+                
+                exportText += "### Risks\n";
+                meeting.risks.forEach(r => exportText += `- [${r.level.toUpperCase()}] ${r.description}\n`);
+                exportText += "\n";
+                
+                exportText += "---\n\n";
+            });
+            
+            const blob = new Blob([exportText], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `meeting-notes-${new Date().toISOString().split('T')[0]}.md`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        searchInput.addEventListener('input', applyFilters);
+
+        // Initialize
+        loadCompletedStates();
+        applyFilters();
+    </script>
+</body>
+</html>
