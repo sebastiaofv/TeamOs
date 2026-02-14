@@ -696,7 +696,7 @@
                             <div class="meeting-meta">
                                 <span>${formatDate(meeting.date)}</span>
                                 <span>${meeting.duration}</span>
-                                <span>${meeting.attendeeCount}</span>
+                                <span>${meeting.attendees.length} participant${meeting.attendees.length !== 1 ? 's' : ''}</span>
                             </div>
                             <div class="progress-bar">
                                 <div class="progress-fill" style="width: ${progress}%"></div>
