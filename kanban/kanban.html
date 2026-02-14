@@ -44,6 +44,13 @@
             align-items: center;
         }
 
+        .app-title {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
         .header h1 {
             font-size: 16px;
             font-weight: 600;
@@ -113,11 +120,40 @@
             display: flex;
             gap: 16px;
             align-items: center;
+            justify-content: space-between;
+        }
+
+        .board-toolbar-left,
+        .board-toolbar-right {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .board-toolbar-left {
+            flex: 1;
+            min-width: 0;
         }
 
         .search-box {
             flex: 1;
             max-width: 300px;
+        }
+
+        .board-title-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .board-title-inline h1 {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin: 0;
         }
 
         .search-box input {
@@ -208,6 +244,18 @@
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
+        }
+
+        .portfolio-toolbar-left,
+        .portfolio-toolbar-right {
+            display: inline-flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .portfolio-toolbar-left {
+            flex: 1;
         }
 
         .portfolio-chips {
@@ -709,40 +757,45 @@
 </head>
 <body>
     <div class="header">
-        <div class="header-title-group">
-        <h1 id="boardTitle">Example Task Board</h1>
-            <button class="title-rename-btn" onclick="renameBoard()" title="Rename board">✎</button>
-        </div>
+        <div class="app-title">kanban</div>
         <div class="header-actions">
             <button class="btn" id="portfolioToggleBtn" onclick="togglePortfolioView()">Portfolio</button>
+            <span class="save-status" id="saveStatus">Saved</span>
+        </div>
+    </div>
+
+    <div class="toolbar" id="boardToolbar">
+        <div class="board-toolbar-left">
+            <div class="board-title-inline">
+                <h1 id="boardTitle">Example Task Board</h1>
+                <button class="title-rename-btn" onclick="renameBoard()" title="Rename board">✎</button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search tasks..." oninput="filterTasks()">
+            </div>
+            <div class="filter-group">
+                <button class="btn" id="archivedToggleBtn" onclick="toggleArchivedView()">Archived: Off</button>
+            </div>
+            <div class="filter-group">
+                <button class="btn" id="sortToggleBtn" onclick="toggleSortMode()">Sort: Manual</button>
+            </div>
+            <div class="filter-group">
+                <label>Priority:</label>
+                <select id="priorityFilter" onchange="filterTasks()">
+                    <option value="">All</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </div>
+        </div>
+        <div class="board-toolbar-right">
             <button class="btn" onclick="newBoard()">New Board</button>
             <button class="btn" onclick="openBoardFile()">Open</button>
             <button class="btn" onclick="saveBoard()">Save</button>
             <button class="btn" onclick="saveBoardAs()">Save As</button>
             <button class="btn btn-primary" onclick="addColumn()">+ Add Column</button>
             <button class="btn" onclick="clearAllTasks()">Clear All</button>
-            <span class="save-status" id="saveStatus">Saved</span>
-        </div>
-    </div>
-
-    <div class="toolbar" id="boardToolbar">
-        <div class="search-box">
-            <input type="text" id="searchInput" placeholder="Search tasks..." oninput="filterTasks()">
-        </div>
-        <div class="filter-group">
-            <button class="btn" id="archivedToggleBtn" onclick="toggleArchivedView()">Archived: Off</button>
-        </div>
-        <div class="filter-group">
-            <button class="btn" id="sortToggleBtn" onclick="toggleSortMode()">Sort: Manual</button>
-        </div>
-        <div class="filter-group">
-            <label>Priority:</label>
-            <select id="priorityFilter" onchange="filterTasks()">
-                <option value="">All</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-            </select>
         </div>
     </div>
 
@@ -752,27 +805,31 @@
     <div class="portfolio hidden" id="portfolioView">
         <div class="portfolio-main">
             <div class="portfolio-toolbar">
-                <button class="btn" onclick="openPortfolioBoards()">Open Boards</button>
-                <button class="btn" onclick="openPortfolioConfigFile()">Open Portfolio</button>
-                <button class="btn" onclick="savePortfolioConfig()">Save Portfolio</button>
-                <button class="btn" onclick="savePortfolioConfigAs()">Save Portfolio As</button>
-                <input type="text" id="portfolioSearchInput" placeholder="Search tasks..." oninput="renderPortfolio()">
-                <select id="portfolioPriorityFilter" onchange="renderPortfolio()">
-                    <option value="">Priority: All</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                </select>
-                <select id="portfolioArchiveFilter" onchange="renderPortfolio()">
-                    <option value="active">Active Only</option>
-                    <option value="all">Active + Archived</option>
-                    <option value="archived">Archived Only</option>
-                </select>
-                <select id="portfolioSortSelect" onchange="renderPortfolio()">
-                    <option value="priority">Sort: Priority</option>
-                    <option value="dueDate">Sort: Due Date</option>
-                    <option value="updatedAt">Sort: Updated</option>
-                </select>
+                <div class="portfolio-toolbar-left">
+                    <input type="text" id="portfolioSearchInput" placeholder="Search tasks..." oninput="renderPortfolio()">
+                    <select id="portfolioPriorityFilter" onchange="renderPortfolio()">
+                        <option value="">Priority: All</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <select id="portfolioArchiveFilter" onchange="renderPortfolio()">
+                        <option value="active">Active Only</option>
+                        <option value="all">Active + Archived</option>
+                        <option value="archived">Archived Only</option>
+                    </select>
+                    <select id="portfolioSortSelect" onchange="renderPortfolio()">
+                        <option value="priority">Sort: Priority</option>
+                        <option value="dueDate">Sort: Due Date</option>
+                        <option value="updatedAt">Sort: Updated</option>
+                    </select>
+                </div>
+                <div class="portfolio-toolbar-right">
+                    <button class="btn" onclick="openPortfolioBoards()">Open Boards</button>
+                    <button class="btn" onclick="openPortfolioConfigFile()">Open Portfolio</button>
+                    <button class="btn" onclick="savePortfolioConfig()">Save Portfolio</button>
+                    <button class="btn" onclick="savePortfolioConfigAs()">Save Portfolio As</button>
+                </div>
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
             <div class="portfolio-table-wrap">
