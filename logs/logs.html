@@ -12,6 +12,12 @@
       --border:#cccccc;
       --border-light:#e5e5e5;
       --accent:#2563eb;
+      --log:#1d4ed8;
+      --log-soft:#eff6ff;
+      --log-border:#93c5fd;
+      --audit:#334155;
+      --audit-soft:#f1f5f9;
+      --audit-border:#cbd5e1;
       --success:#16a34a;
       --warning:#ca8a04;
       --danger:#dc2626;
@@ -42,7 +48,7 @@
     }
 
     .container{
-      max-width:1200px;
+      max-width:80%;
       margin:0 auto;
       padding:var(--sp-6);
     }
@@ -114,12 +120,11 @@
 
     .grid-2{
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
       gap:var(--sp-6);
       margin-top:var(--sp-6);
     }
     @media (max-width:768px){
-      .grid-2{grid-template-columns:1fr;}
       .appbar-inner{padding:var(--sp-3) var(--sp-4);}
       .container{padding:var(--sp-4);}
       input[type="text"]{width:100%;}
@@ -191,6 +196,16 @@
     .badge.success{border-color:var(--success); color:var(--success);}
     .badge.warning{border-color:var(--warning); color:var(--warning);}
     .badge.danger{border-color:var(--danger); color:var(--danger);}
+    .badge.kind-log{
+      border-color:var(--log-border);
+      background:var(--log-soft);
+      color:var(--log);
+    }
+    .badge.kind-audit{
+      border-color:var(--audit-border);
+      background:var(--audit-soft);
+      color:var(--audit);
+    }
 
     .kv{
       display:grid;
@@ -289,7 +304,7 @@
       border-bottom:1px solid var(--border-light);
     }
     .subbar-inner{
-      max-width:1200px;
+      max-width:80%;
       margin:0 auto;
       padding:var(--sp-2) var(--sp-6);
       display:flex;
@@ -680,8 +695,8 @@
 
     const pills = [
       { label: "Traces", value: `${filteredTraces.length}/${allTraces.length}` },
-      { label: "Logs", value: `${visibleLogs.length}/${allLogs.length}` },
-      { label: "Audits", value: `${visibleAudits.length}/${allAudits.length}` },
+      { label: "Logs", value: `${visibleLogs.length}/${allLogs.length}`, kind: "log" },
+      { label: "Audits", value: `${visibleAudits.length}/${allAudits.length}`, kind: "audit" },
       { label: "Errors", value: `${visibleErrors.length}/${allErrors.length}`, kind: visibleErrors.length ? "danger" : "" },
       { label: "Range", value: f.range.toUpperCase(), kind: "" },
       { label: "Scope", value: f.scope.toUpperCase(), kind: "" },
@@ -690,6 +705,8 @@
     els.summaryPills.innerHTML = pills.map(p => {
       const cls = ["badge"];
       if(p.kind === "danger") cls.push("danger");
+      if(p.kind === "log") cls.push("kind-log");
+      if(p.kind === "audit") cls.push("kind-audit");
       return `<span class="${cls.join(" ")}"><span class="muted" style="color:inherit;">${escapeHtml(p.label)}:</span> ${escapeHtml(p.value)}</span>`;
     }).join("");
 
@@ -731,8 +748,8 @@
             </div>
             <div class="row-meta">
               <span>${severity}</span>
-              <span class="badge">${logsInRange.length} logs</span>
-              <span class="badge">${auditsInRange.length} audits</span>
+              <span class="badge kind-log">${logsInRange.length} logs</span>
+              <span class="badge kind-audit">${auditsInRange.length} audits</span>
               <span class="muted">${highlight(rangeTxt, qTxt)}</span>
             </div>
           </div>
@@ -804,8 +821,8 @@
               <div class="row-meta" style="margin-top: var(--sp-2);">
                 ${health}
                 <span class="badge">${unified.length} events</span>
-                <span class="badge">${trace.logs.filter(l => inRange(l.ts)).length} logs</span>
-                <span class="badge">${trace.audits.filter(a => inRange(a.ts)).length} audits</span>
+                <span class="badge kind-log">${trace.logs.filter(l => inRange(l.ts)).length} logs</span>
+                <span class="badge kind-audit">${trace.audits.filter(a => inRange(a.ts)).length} audits</span>
               </div>
             </div>
             <div>
@@ -884,10 +901,10 @@
         : `<div class="empty" style="padding: var(--sp-4);">No additional info.</div>`;
 
       return `
-        <div class="card ${idx < 2 ? "is-open" : ""}">
+        <div class="card">
           <div class="expand-head">
             <div class="expand-title">
-              <span class="badge">log</span>
+              <span class="badge kind-log">log</span>
               <span class="muted">•</span>
               <span>${title}</span>
               <span class="muted">•</span>
@@ -895,7 +912,7 @@
               <span class="muted">•</span>
               <span class="muted">${user}</span>
             </div>
-            <div class="chev">${idx < 2 ? "▲" : "▼"}</div>
+            <div class="chev">▼</div>
           </div>
           <div class="expand-body">
             <div class="card-pad">
@@ -942,7 +959,7 @@
       <div class="card">
         <div class="expand-head">
           <div class="expand-title">
-            <span class="badge">audit</span>
+            <span class="badge kind-audit">audit</span>
             <span class="muted">•</span>
             <span>${title}</span>
             <span class="muted">•</span>
