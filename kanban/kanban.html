@@ -210,30 +210,27 @@
             display: none !important;
         }
 
-        .board {
-            display: flex;
-            gap: 1px;
+        .view {
             background: var(--border-light);
-            height: calc(100vh - 100px);
-            overflow-x: auto;
-            overflow-y: hidden;
-        }
-
-        .portfolio {
-            background: var(--border-light);
-            height: calc(100vh - 100px);
-        }
-
-        body.portfolio-mode .portfolio {
             height: calc(100vh - 50px);
         }
 
-        .portfolio-main {
+        .view-main {
             background: var(--bg-primary);
             display: flex;
             flex-direction: column;
             min-width: 0;
             height: 100%;
+        }
+
+        .board {
+            display: flex;
+            gap: 1px;
+            background: var(--border-light);
+            flex: 1;
+            min-height: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
         }
 
         .portfolio-toolbar {
@@ -815,7 +812,7 @@
 </head>
 <body>
     <div class="header">
-        <div class="app-title">kanban</div>
+        <div class="app-title">teamos → kanban</div>
         <div class="header-actions">
             <button class="btn" id="portfolioToggleBtn" onclick="togglePortfolioView()">Portfolio</button>
             <button class="btn" onclick="openShortcutsModal()">Shortcuts</button>
@@ -823,48 +820,55 @@
         </div>
     </div>
 
-    <div class="toolbar" id="boardToolbar">
-        <div class="board-toolbar-left">
-            <div class="board-title-inline">
-                <h1 id="boardTitle">Example Task Board</h1>
-                <button class="title-rename-btn" onclick="renameBoard()" title="Rename board">✎</button>
+    <div class="view" id="boardView">
+        <div class="view-main">
+            <div class="toolbar" id="boardToolbar">
+                <div class="board-toolbar-left">
+                    <div class="board-title-inline">
+                        <h1 id="boardTitle">Example Task Board</h1>
+                        <button class="title-rename-btn" onclick="renameBoard()" title="Rename board">✎</button>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search tasks..." oninput="filterTasks()">
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn" id="archivedToggleBtn" onclick="toggleArchivedView()">Archived: Off</button>
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn" id="sortToggleBtn" onclick="toggleSortMode()">Sort: Manual</button>
+                    </div>
+                    <div class="filter-group">
+                        <label>Priority:</label>
+                        <select id="priorityFilter" onchange="filterTasks()">
+                            <option value="">All</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="board-toolbar-right">
+                    <button class="btn" onclick="newBoard()">New Board</button>
+                    <button class="btn" onclick="openBoardFile()">Open</button>
+                    <button class="btn" onclick="saveBoard()">Save</button>
+                    <button class="btn" onclick="saveBoardAs()">Save As</button>
+                    <button class="btn btn-primary" onclick="addColumn()">+ Add Column</button>
+                    <button class="btn" onclick="clearAllTasks()">Clear All</button>
+                </div>
             </div>
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Search tasks..." oninput="filterTasks()">
+            <div class="board" id="board">
             </div>
-            <div class="filter-group">
-                <button class="btn" id="archivedToggleBtn" onclick="toggleArchivedView()">Archived: Off</button>
-            </div>
-            <div class="filter-group">
-                <button class="btn" id="sortToggleBtn" onclick="toggleSortMode()">Sort: Manual</button>
-            </div>
-            <div class="filter-group">
-                <label>Priority:</label>
-                <select id="priorityFilter" onchange="filterTasks()">
-                    <option value="">All</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                </select>
-            </div>
-        </div>
-        <div class="board-toolbar-right">
-            <button class="btn" onclick="newBoard()">New Board</button>
-            <button class="btn" onclick="openBoardFile()">Open</button>
-            <button class="btn" onclick="saveBoard()">Save</button>
-            <button class="btn" onclick="saveBoardAs()">Save As</button>
-            <button class="btn btn-primary" onclick="addColumn()">+ Add Column</button>
-            <button class="btn" onclick="clearAllTasks()">Clear All</button>
         </div>
     </div>
 
-    <div class="board" id="board">
-    </div>
-
-    <div class="portfolio hidden" id="portfolioView">
-        <div class="portfolio-main">
+    <div class="view hidden" id="portfolioView">
+        <div class="view-main">
             <div class="portfolio-toolbar">
                 <div class="portfolio-toolbar-left">
+                    <div class="board-title-inline">
+                        <h1 id="portfolioTitle">Example Portfolio</h1>
+                        <button class="title-rename-btn" onclick="renamePortfolio()" title="Rename portfolio">✎</button>
+                    </div>
                     <input type="text" id="portfolioSearchInput" placeholder="Search tasks..." oninput="renderPortfolio()">
                     <select id="portfolioPriorityFilter" onchange="renderPortfolio()">
                         <option value="">Priority: All</option>
@@ -1073,13 +1077,16 @@
             { status: 'done', title: 'Done' }
         ];
         let columns = JSON.parse(localStorage.getItem('householdColumns')) || defaultColumns;
-        const BOARD_SCHEMA_VERSION = 3;
+        const BOARD_SCHEMA_VERSION = 4;
+        const BOARD_LEGACY_SCHEMA_VERSION = 3;
         const BOARD_APP_ID = 'household-task-board';
-        const PORTFOLIO_SCHEMA_VERSION = 1;
+        const PORTFOLIO_SCHEMA_VERSION = 3;
+        const PORTFOLIO_LEGACY_SCHEMA_VERSIONS = [1, 2];
         const PORTFOLIO_APP_ID = 'household-task-board-portfolio';
         const BOARD_FILE_EXTENSION = '.board.json';
         const PORTFOLIO_FILE_EXTENSION = '.portfolio.json';
         const DEFAULT_BOARD_TITLE = 'Example Task Board';
+        const DEFAULT_PORTFOLIO_TITLE = 'Example Portfolio';
         const MAX_COLUMNS = 5;
         let boardCreatedAt = new Date().toISOString();
         let boardExtensions = {};
@@ -1100,6 +1107,7 @@
         let appMode = 'board';
         let portfolioBoards = [];
         let portfolioTasks = [];
+        let portfolioTitle = localStorage.getItem('householdPortfolioTitle') || DEFAULT_PORTFOLIO_TITLE;
         let selectedPortfolioBoardId = '';
         let currentPortfolioConfigHandle = null;
 
@@ -1202,6 +1210,12 @@
             updateDocumentTitle();
         }
 
+        function applyPortfolioTitle() {
+            const node = document.getElementById('portfolioTitle');
+            if (!node) return;
+            node.textContent = portfolioTitle;
+        }
+
         function setDirty(nextDirty) {
             isDirty = nextDirty;
             updateDocumentTitle();
@@ -1248,9 +1262,7 @@
         function setAppMode(mode) {
             appMode = mode;
             const isPortfolio = mode === 'portfolio';
-            document.body.classList.toggle('portfolio-mode', isPortfolio);
-            document.getElementById('boardToolbar').classList.toggle('hidden', isPortfolio);
-            document.getElementById('board').classList.toggle('hidden', isPortfolio);
+            document.getElementById('boardView').classList.toggle('hidden', isPortfolio);
             document.getElementById('portfolioView').classList.toggle('hidden', !isPortfolio);
             const btn = document.getElementById('portfolioToggleBtn');
             if (btn) {
@@ -1441,8 +1453,10 @@
             if (!hasExactKeys(data.meta, ['schemaVersion', 'appId', 'updatedAt'])) {
                 throw new Error('Invalid portfolio meta structure.');
             }
-            if (data.meta.schemaVersion !== PORTFOLIO_SCHEMA_VERSION) {
-                throw new Error(`Unsupported portfolio schemaVersion. Expected ${PORTFOLIO_SCHEMA_VERSION}.`);
+            const schemaVersion = data.meta.schemaVersion;
+            const supportedPortfolioVersions = [...PORTFOLIO_LEGACY_SCHEMA_VERSIONS, PORTFOLIO_SCHEMA_VERSION];
+            if (!supportedPortfolioVersions.includes(schemaVersion)) {
+                throw new Error(`Unsupported portfolio schemaVersion. Expected one of ${supportedPortfolioVersions.join(', ')}.`);
             }
             if (data.meta.appId !== PORTFOLIO_APP_ID) {
                 throw new Error('Invalid portfolio appId.');
@@ -1450,26 +1464,62 @@
             if (!normalizeTimestamp(data.meta.updatedAt)) {
                 throw new Error('Invalid portfolio updatedAt.');
             }
-            if (!hasExactKeys(data.portfolio, ['selectedBoardId', 'filters', 'boardFiles'])) {
-                throw new Error('Invalid portfolio structure.');
+
+            if (schemaVersion === PORTFOLIO_SCHEMA_VERSION) {
+                if (!hasExactKeys(data.portfolio, ['settings', 'selectedBoardId', 'boardFiles'])) {
+                    throw new Error('Invalid portfolio structure.');
+                }
+                if (!hasExactKeys(data.portfolio.settings, ['title'])) {
+                    throw new Error('Invalid portfolio.settings structure.');
+                }
+                if (typeof data.portfolio.settings.title !== 'string' || !data.portfolio.settings.title.trim()) {
+                    throw new Error('Invalid portfolio.settings.title.');
+                }
+            } else if (schemaVersion === 2) {
+                if (!hasExactKeys(data.portfolio, ['settings', 'selectedBoardId', 'filters', 'boardFiles'])) {
+                    throw new Error('Invalid portfolio structure.');
+                }
+                if (!hasExactKeys(data.portfolio.settings, ['title'])) {
+                    throw new Error('Invalid portfolio.settings structure.');
+                }
+                if (typeof data.portfolio.settings.title !== 'string' || !data.portfolio.settings.title.trim()) {
+                    throw new Error('Invalid portfolio.settings.title.');
+                }
+            } else {
+                const portfolioKeys = Object.keys(data.portfolio || {}).sort();
+                const requiredKeys = ['selectedBoardId', 'filters', 'boardFiles'].sort();
+                const titledKeys = ['title', 'selectedBoardId', 'filters', 'boardFiles'].sort();
+                const hasValidPortfolioKeys = (
+                    portfolioKeys.length === requiredKeys.length && portfolioKeys.every((key, index) => key === requiredKeys[index])
+                ) || (
+                    portfolioKeys.length === titledKeys.length && portfolioKeys.every((key, index) => key === titledKeys[index])
+                );
+                if (!hasValidPortfolioKeys) {
+                    throw new Error('Invalid portfolio structure.');
+                }
+                if ('title' in data.portfolio && (typeof data.portfolio.title !== 'string' || !data.portfolio.title.trim())) {
+                    throw new Error('Invalid portfolio.title.');
+                }
             }
             if (typeof data.portfolio.selectedBoardId !== 'string') {
                 throw new Error('Invalid portfolio.selectedBoardId.');
             }
-            if (!hasExactKeys(data.portfolio.filters, ['search', 'priority', 'archive', 'sort'])) {
-                throw new Error('Invalid portfolio filters structure.');
-            }
-            if (typeof data.portfolio.filters.search !== 'string') {
-                throw new Error('Invalid portfolio filter: search.');
-            }
-            if (!['', 'high', 'medium', 'low'].includes(data.portfolio.filters.priority)) {
-                throw new Error('Invalid portfolio filter: priority.');
-            }
-            if (!['active', 'all', 'archived'].includes(data.portfolio.filters.archive)) {
-                throw new Error('Invalid portfolio filter: archive.');
-            }
-            if (!['priority', 'dueDate', 'updatedAt'].includes(data.portfolio.filters.sort)) {
-                throw new Error('Invalid portfolio filter: sort.');
+            if (schemaVersion !== PORTFOLIO_SCHEMA_VERSION) {
+                if (!hasExactKeys(data.portfolio.filters, ['search', 'priority', 'archive', 'sort'])) {
+                    throw new Error('Invalid portfolio filters structure.');
+                }
+                if (typeof data.portfolio.filters.search !== 'string') {
+                    throw new Error('Invalid portfolio filter: search.');
+                }
+                if (!['', 'high', 'medium', 'low'].includes(data.portfolio.filters.priority)) {
+                    throw new Error('Invalid portfolio filter: priority.');
+                }
+                if (!['active', 'all', 'archived'].includes(data.portfolio.filters.archive)) {
+                    throw new Error('Invalid portfolio filter: archive.');
+                }
+                if (!['priority', 'dueDate', 'updatedAt'].includes(data.portfolio.filters.sort)) {
+                    throw new Error('Invalid portfolio filter: sort.');
+                }
             }
             if (!Array.isArray(data.portfolio.boardFiles)) {
                 throw new Error('Invalid portfolio boardFiles.');
@@ -1490,13 +1540,10 @@
                     updatedAt: nowIso()
                 },
                 portfolio: {
-                    selectedBoardId: selectedPortfolioBoardId,
-                    filters: {
-                        search: document.getElementById('portfolioSearchInput')?.value || '',
-                        priority: document.getElementById('portfolioPriorityFilter')?.value || '',
-                        archive: document.getElementById('portfolioArchiveFilter')?.value || 'active',
-                        sort: document.getElementById('portfolioSortSelect')?.value || 'priority'
+                    settings: {
+                        title: portfolioTitle
                     },
+                    selectedBoardId: selectedPortfolioBoardId,
                     boardFiles: portfolioBoards.map(board => board.fileName)
                 }
             };
@@ -1549,16 +1596,14 @@
                 const parsed = JSON.parse(await file.text());
                 validatePortfolioConfigData(parsed);
                 currentPortfolioConfigHandle = handle;
-
-                const filters = parsed.portfolio.filters;
-                const pSearch = document.getElementById('portfolioSearchInput');
-                const pPriority = document.getElementById('portfolioPriorityFilter');
-                const pArchive = document.getElementById('portfolioArchiveFilter');
-                const pSort = document.getElementById('portfolioSortSelect');
-                if (pSearch) pSearch.value = filters.search;
-                if (pPriority) pPriority.value = filters.priority;
-                if (pArchive) pArchive.value = filters.archive;
-                if (pSort) pSort.value = filters.sort;
+                const settingsTitle = (typeof parsed.portfolio.settings?.title === 'string')
+                    ? parsed.portfolio.settings.title.trim()
+                    : '';
+                const legacyTitle = (typeof parsed.portfolio.title === 'string')
+                    ? parsed.portfolio.title.trim()
+                    : '';
+                portfolioTitle = settingsTitle || legacyTitle || DEFAULT_PORTFOLIO_TITLE;
+                applyPortfolioTitle();
 
                 selectedPortfolioBoardId = parsed.portfolio.selectedBoardId || '';
                 setAppMode('portfolio');
@@ -1642,6 +1687,7 @@
             localStorage.setItem('householdBoardTitle', boardTitle);
             localStorage.setItem('householdBoardSortMode', boardSortMode);
             localStorage.setItem('householdShowArchivedOnly', String(showArchivedOnly));
+            localStorage.setItem('householdPortfolioTitle', portfolioTitle);
         }
 
         function onBoardChanged() {
@@ -1724,9 +1770,7 @@
                     columns: columns.map(col => ({ status: col.status, title: col.title })),
                     tasks: tasks.map(task => normalizeTask(task)),
                     settings: {
-                        title: boardTitle,
-                        sortMode: boardSortMode,
-                        showArchivedOnly
+                        title: boardTitle
                     }
                 },
                 extensions: boardExtensions
@@ -1740,8 +1784,9 @@
             if (!hasExactKeys(data.meta, ['schemaVersion', 'appId', 'createdAt', 'updatedAt'])) {
                 throw new Error('Invalid meta structure.');
             }
-            if (data.meta.schemaVersion !== BOARD_SCHEMA_VERSION) {
-                throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
+            const schemaVersion = data.meta.schemaVersion;
+            if (![BOARD_LEGACY_SCHEMA_VERSION, BOARD_SCHEMA_VERSION].includes(schemaVersion)) {
+                throw new Error(`Unsupported schemaVersion. Expected ${BOARD_LEGACY_SCHEMA_VERSION} or ${BOARD_SCHEMA_VERSION}.`);
             }
             if (data.meta.appId !== BOARD_APP_ID) {
                 throw new Error('Invalid appId.');
@@ -1764,17 +1809,26 @@
             if (!Array.isArray(data.board.tasks)) {
                 throw new Error('Board tasks must be an array.');
             }
-            if (!hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly'])) {
-                throw new Error('Invalid board.settings structure.');
-            }
-            if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
-                throw new Error('Invalid board.settings.title.');
-            }
-            if (!['manual', 'dueDate'].includes(data.board.settings.sortMode)) {
-                throw new Error('Invalid board.settings.sortMode.');
-            }
-            if (typeof data.board.settings.showArchivedOnly !== 'boolean') {
-                throw new Error('Invalid board.settings.showArchivedOnly.');
+            if (schemaVersion === BOARD_SCHEMA_VERSION) {
+                if (!hasExactKeys(data.board.settings, ['title'])) {
+                    throw new Error('Invalid board.settings structure.');
+                }
+                if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
+                    throw new Error('Invalid board.settings.title.');
+                }
+            } else {
+                if (!hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly'])) {
+                    throw new Error('Invalid board.settings structure.');
+                }
+                if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
+                    throw new Error('Invalid board.settings.title.');
+                }
+                if (!['manual', 'dueDate'].includes(data.board.settings.sortMode)) {
+                    throw new Error('Invalid board.settings.sortMode.');
+                }
+                if (typeof data.board.settings.showArchivedOnly !== 'boolean') {
+                    throw new Error('Invalid board.settings.showArchivedOnly.');
+                }
             }
             if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) {
                 throw new Error('Invalid extensions structure.');
@@ -1860,8 +1914,6 @@
             boardCreatedAt = data.meta.createdAt;
             boardExtensions = data.extensions;
             boardTitle = data.board.settings.title.trim();
-            boardSortMode = data.board.settings.sortMode;
-            showArchivedOnly = data.board.settings.showArchivedOnly;
             applyBoardTitle();
             applyViewControls();
         }
@@ -1874,6 +1926,16 @@
             boardTitle = trimmed;
             applyBoardTitle();
             onBoardChanged();
+        }
+
+        function renamePortfolio() {
+            const nextTitle = prompt('Portfolio title:', portfolioTitle);
+            if (!nextTitle) return;
+            const trimmed = nextTitle.trim();
+            if (!trimmed || trimmed === portfolioTitle) return;
+            portfolioTitle = trimmed;
+            applyPortfolioTitle();
+            localStorage.setItem('householdPortfolioTitle', portfolioTitle);
         }
 
         async function writeBoardToFileHandle(fileHandle) {
@@ -2076,6 +2138,7 @@
             renderBoard();
             renderTasks();
             applyBoardTitle();
+            applyPortfolioTitle();
             applyViewControls();
             setSaveStatus('Saved', 'saved');
             setAppMode('board');

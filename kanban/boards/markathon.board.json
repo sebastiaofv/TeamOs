@@ -1,9 +1,9 @@
 {
   "meta": {
-    "schemaVersion": 3,
+    "schemaVersion": 4,
     "appId": "household-task-board",
     "createdAt": "2026-02-13T00:00:00.000Z",
-    "updatedAt": "2026-02-13T12:51:21.599Z"
+    "updatedAt": "2026-02-14T13:13:53.163Z"
   },
   "board": {
     "columns": [
@@ -53,14 +53,14 @@
         ],
         "archived": false,
         "createdAt": "2026-02-13T00:00:00.000Z",
-        "updatedAt": "2026-02-13T12:51:21.599Z",
+        "updatedAt": "2026-02-14T13:13:53.160Z",
         "dueDate": "",
         "tags": [
           "markathon",
           "analysis"
         ],
         "priority": "high",
-        "status": "nextup"
+        "status": "concluid"
       },
       {
         "id": 3,
@@ -80,9 +80,7 @@
       }
     ],
     "settings": {
-      "title": "Markathon Board",
-      "sortMode": "manual",
-      "showArchivedOnly": false
+      "title": "Markathon Board"
     }
   },
   "extensions": {}
