@@ -46,9 +46,12 @@ The app validates both extension and JSON structure on open/upload.
 
 ## Keyboard shortcuts
 
+- Use the `Shortcuts` button in the header to view the in-app shortcut reference modal.
 - `/` focus search
 - `N` new task modal (board mode)
 - `E` edit selected task (board mode)
+- `Ctrl+S` / `Cmd+S` save current document (board or portfolio)
+- `Ctrl+Shift+C` / `Cmd+Shift+C` save as current document (board or portfolio)
 
 ## Example files
 

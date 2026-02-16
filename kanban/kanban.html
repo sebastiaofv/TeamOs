@@ -617,6 +617,12 @@
             color: var(--text-secondary);
         }
 
+        .form-group label.required::after {
+            content: " *";
+            color: var(--priority-high);
+            font-weight: 700;
+        }
+
         .form-group input,
         .form-group select,
         .form-group textarea {
@@ -651,6 +657,58 @@
             display: flex;
             justify-content: flex-end;
             gap: 8px;
+        }
+
+        #shortcutsModal .modal-content {
+            max-width: 560px;
+        }
+
+        .shortcuts-list {
+            display: grid;
+            gap: 6px;
+        }
+
+        .shortcut-row {
+            display: grid;
+            grid-template-columns: minmax(150px, 190px) 1fr;
+            gap: 12px;
+            align-items: start;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .shortcut-row:last-child {
+            border-bottom: none;
+        }
+
+        .shortcut-keys {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .shortcut-keys kbd {
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 11px;
+            font-weight: 600;
+            line-height: 1;
+            padding: 3px 6px;
+            min-width: 22px;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        .shortcut-plus {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .shortcut-desc {
+            color: var(--text-secondary);
+            font-size: 12px;
         }
 
         .undo-toast {
@@ -760,6 +818,7 @@
         <div class="app-title">kanban</div>
         <div class="header-actions">
             <button class="btn" id="portfolioToggleBtn" onclick="togglePortfolioView()">Portfolio</button>
+            <button class="btn" onclick="openShortcutsModal()">Shortcuts</button>
             <span class="save-status" id="saveStatus">Saved</span>
         </div>
     </div>
@@ -857,13 +916,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <span class="modal-title" id="modalTitle">New Task</span>
-                <button class="modal-close" onclick="closeModal()">×</button>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="taskForm">
                     <input type="hidden" id="taskId">
                     <div class="form-group">
-                        <label>Task Name</label>
+                        <label class="required">Task Name</label>
                         <input type="text" id="taskName" required>
                     </div>
                     <div class="form-group">
@@ -905,7 +964,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <span class="modal-title">Task Details</span>
-                <button class="modal-close" onclick="closeDetailModal()">×</button>
+                <button class="modal-close" onclick="closeDetailModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="detail-list">
@@ -949,6 +1008,54 @@
             </div>
             <div class="modal-footer">
                 <button class="btn" onclick="closeDetailModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="shortcutsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Keyboard Shortcuts</span>
+                <button class="modal-close" onclick="closeShortcutsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="shortcuts-list">
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys"><kbd>/</kbd></div>
+                        <div class="shortcut-desc">Focus search input (board or portfolio mode)</div>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys"><kbd>N</kbd></div>
+                        <div class="shortcut-desc">Open new task modal (board mode)</div>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys"><kbd>E</kbd></div>
+                        <div class="shortcut-desc">Edit selected task (board mode)</div>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">
+                            <kbd>Ctrl</kbd><span class="shortcut-plus">+</span><kbd>S</kbd>
+                            <span class="shortcut-plus">/</span>
+                            <kbd>Cmd</kbd><span class="shortcut-plus">+</span><kbd>S</kbd>
+                        </div>
+                        <div class="shortcut-desc">Save current document (board or portfolio)</div>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">
+                            <kbd>Ctrl</kbd><span class="shortcut-plus">+</span><kbd>Shift</kbd><span class="shortcut-plus">+</span><kbd>C</kbd>
+                            <span class="shortcut-plus">/</span>
+                            <kbd>Cmd</kbd><span class="shortcut-plus">+</span><kbd>Shift</kbd><span class="shortcut-plus">+</span><kbd>C</kbd>
+                        </div>
+                        <div class="shortcut-desc">Save As current document (board or portfolio)</div>
+                    </div>
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys"><kbd>Esc</kbd></div>
+                        <div class="shortcut-desc">Close open modal</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeShortcutsModal()">Close</button>
             </div>
         </div>
     </div>
@@ -2172,6 +2279,14 @@
                     pendingNewTaskStatus = null;
                 }
             }
+
+            const taskNameInput = document.getElementById('taskName');
+            requestAnimationFrame(() => {
+                taskNameInput.focus();
+                if (!taskId) {
+                    taskNameInput.select();
+                }
+            });
         }
 
         function closeModal() {
@@ -2229,6 +2344,14 @@
 
         function closeDetailModal() {
             document.getElementById('taskDetailModal').classList.remove('active');
+        }
+
+        function openShortcutsModal() {
+            document.getElementById('shortcutsModal').classList.add('active');
+        }
+
+        function closeShortcutsModal() {
+            document.getElementById('shortcutsModal').classList.remove('active');
         }
 
         function saveTask() {
@@ -2488,10 +2611,38 @@
             }
         });
 
+        document.getElementById('shortcutsModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('shortcutsModal')) {
+                closeShortcutsModal();
+            }
+        });
+
         document.addEventListener('keydown', (e) => {
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
             const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
-            const modalOpen = document.getElementById('taskModal').classList.contains('active') || document.getElementById('taskDetailModal').classList.contains('active');
+            const modalOpen = document.getElementById('taskModal').classList.contains('active')
+                || document.getElementById('taskDetailModal').classList.contains('active')
+                || document.getElementById('shortcutsModal').classList.contains('active');
+
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'c') {
+                e.preventDefault();
+                if (appMode === 'portfolio') {
+                    savePortfolioConfigAs();
+                } else {
+                    saveBoardAs();
+                }
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                if (appMode === 'portfolio') {
+                    savePortfolioConfig();
+                } else {
+                    saveBoard();
+                }
+                return;
+            }
 
             if (!isTyping && !modalOpen && e.key === '/') {
                 e.preventDefault();
@@ -2520,6 +2671,7 @@
             if (e.key === 'Escape') {
                 closeModal();
                 closeDetailModal();
+                closeShortcutsModal();
             }
         });
 
