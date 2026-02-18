@@ -1,0 +1,12 @@
+{
+  "files": [
+    "01-q1-engineering-planning.json",
+    "02-api-design-review-payments.json",
+    "03-incident-review-database-outage.json",
+    "04-security-audit-prep.json",
+    "05-mobile-app-performance-review.json",
+    "06-vendor-evaluation-monitoring-tools.json",
+    "07-frontend-architecture-component-library.json",
+    "08-customer-success-q4-retrospective.json"
+  ]
+}

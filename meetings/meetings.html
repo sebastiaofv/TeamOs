@@ -519,7 +519,35 @@
             'data/meetings/07-frontend-architecture-component-library.json',
             'data/meetings/08-customer-success-q4-retrospective.json'
         ];
+        const INDEX_FILE = 'data/meetings/index.json';
         let meetings = [];
+
+        function normalizeMeetingFilePath(fileEntry) {
+            const raw = String(fileEntry || '').trim();
+            if (!raw) return null;
+            if (raw.startsWith('data/meetings/')) return raw;
+            if (!raw.endsWith('.json')) return null;
+            return `data/meetings/${raw.replace(/^\.?\/*/, '')}`;
+        }
+
+        async function resolveMeetingFiles() {
+            try {
+                const response = await fetch(INDEX_FILE, { cache: 'no-store' });
+                if (!response.ok) return DEFAULT_MEETING_FILES;
+
+                const data = await response.json();
+                const entries = Array.isArray(data) ? data : (Array.isArray(data?.files) ? data.files : []);
+                if (!Array.isArray(entries) || entries.length === 0) return DEFAULT_MEETING_FILES;
+
+                const normalized = entries
+                    .map(normalizeMeetingFilePath)
+                    .filter(Boolean);
+
+                return normalized.length > 0 ? normalized : DEFAULT_MEETING_FILES;
+            } catch {
+                return DEFAULT_MEETING_FILES;
+            }
+        }
 
         async function loadMeetings(files = DEFAULT_MEETING_FILES) {
             const loaded = [];
@@ -908,7 +936,8 @@
             }
 
             try {
-                await loadMeetings();
+                const files = await resolveMeetingFiles();
+                await loadMeetings(files);
                 loadCompletedStates();
                 applyFilters();
             } catch (error) {
