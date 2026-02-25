@@ -1005,7 +1005,12 @@
                         <input type="text" id="searchInput" placeholder="Search tasks..." oninput="filterTasks()">
                     </div>
                     <div class="filter-group">
-                        <button class="btn" id="archivedToggleBtn" onclick="toggleArchivedView()">Archived: Off</button>
+                        <label>Archive:</label>
+                        <select id="boardArchiveFilter" onchange="onBoardArchiveFilterChange()">
+                            <option value="active">Active Only</option>
+                            <option value="all">Active + Archived</option>
+                            <option value="archived">Archived Only</option>
+                        </select>
                     </div>
                     <div class="filter-group">
                         <label>Sort:</label>
@@ -1058,6 +1063,23 @@
                         <input type="text" id="portfolioSearchInput" placeholder="Search tasks..." oninput="renderPortfolio()">
                     </div>
                     <div class="filter-group">
+                        <label>Archive:</label>
+                        <select id="portfolioArchiveFilter" onchange="renderPortfolio()">
+                            <option value="active">Active Only</option>
+                            <option value="all">Active + Archived</option>
+                            <option value="archived">Archived Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Sort:</label>
+                        <select id="portfolioSortSelect" onchange="renderPortfolio()">
+                            <option value="priority">Priority</option>
+                            <option value="effort">Effort</option>
+                            <option value="dueDate">Due Date</option>
+                            <option value="updatedAt">Updated</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <label>Priority:</label>
                         <select id="portfolioPriorityFilter" onchange="renderPortfolio()">
                             <option value="">All</option>
@@ -1077,23 +1099,6 @@
                             <option value="XL">XL</option>
                         </select>
                     </div>
-                    <div class="filter-group">
-                        <label>Archive:</label>
-                        <select id="portfolioArchiveFilter" onchange="renderPortfolio()">
-                            <option value="active">Active Only</option>
-                            <option value="all">Active + Archived</option>
-                            <option value="archived">Archived Only</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Sort:</label>
-                        <select id="portfolioSortSelect" onchange="renderPortfolio()">
-                            <option value="priority">Priority</option>
-                            <option value="effort">Effort</option>
-                            <option value="dueDate">Due Date</option>
-                            <option value="updatedAt">Updated</option>
-                        </select>
-                    </div>
                 </div>
                 <div class="portfolio-toolbar-right">
                     <button class="btn" onclick="openPortfolioBoards()">Open Boards</button>
@@ -1104,8 +1109,8 @@
                 <table class="portfolio-table">
                     <thead>
                         <tr>
-                            <th>Task</th>
                             <th>Board</th>
+                            <th>Task</th>
                             <th>Column</th>
                             <th>Priority</th>
                             <th>Effort</th>
@@ -1334,11 +1339,12 @@
         const BOARD_EXTENSIONS_STORAGE_KEY = 'householdBoardExtensions';
         const TIMELINE_VERSION = 1;
         const TIMELINE_EVENT_CAP = 2000;
+        const BOARD_ARCHIVE_FILTER_VALUES = ['active', 'all', 'archived'];
         let boardCreatedAt = new Date().toISOString();
         let boardExtensions = {};
         let boardTitle = DEFAULT_BOARD_TITLE;
         let boardSortMode = 'manual';
-        let showArchivedOnly = false;
+        let boardArchiveFilter = 'active';
         let currentFileHandle = null;
         let currentFileName = '';
         let isDirty = false;
@@ -1398,7 +1404,9 @@
             if (boardSearch) params.set('q', boardSearch);
             if (boardPriority) params.set('p', boardPriority);
             if (boardEffort) params.set('e', boardEffort);
-            if (showArchivedOnly) params.set('archived', '1');
+            if (boardArchiveFilter !== 'active') {
+                params.set('archived', boardArchiveFilter === 'archived' ? '1' : boardArchiveFilter);
+            }
             if (boardSortMode === 'dueDate') params.set('sort', 'due');
             if (boardSortMode === 'effort') params.set('sort', 'effort');
 
@@ -1423,7 +1431,7 @@
             const view = readQueryParam('view', 'board');
             const boardSearch = readQueryParam('q', '');
             const boardPriority = readQueryParam('p', '');
-            const archived = readQueryParam('archived', '') === '1';
+            const archived = readQueryParam('archived', '');
             const sortParam = readQueryParam('sort', '');
             const sort = sortParam === 'due' ? 'dueDate' : (sortParam === 'effort' ? 'effort' : 'manual');
             const boardEffort = readQueryParam('e', '');
@@ -1445,7 +1453,7 @@
             if (effortFilter && ['', ...EFFORT_BUCKETS].includes(boardEffort)) {
                 effortFilter.value = boardEffort;
             }
-            showArchivedOnly = archived;
+            boardArchiveFilter = normalizeBoardArchiveFilter(archived);
             boardSortMode = sort;
             applyViewControls();
 
@@ -1532,7 +1540,8 @@
                 settings: {
                     title: boardTitle,
                     sortMode: boardSortMode,
-                    showArchivedOnly
+                    showArchivedOnly: boardArchiveFilter === 'archived',
+                    archiveFilter: boardArchiveFilter
                 }
             };
         }
@@ -1620,7 +1629,9 @@
             tasks = (state.tasks || []).map(task => normalizeTask(task));
             boardTitle = settings.title || DEFAULT_BOARD_TITLE;
             boardSortMode = ['manual', 'dueDate', 'effort'].includes(settings.sortMode) ? settings.sortMode : 'manual';
-            showArchivedOnly = typeof settings.showArchivedOnly === 'boolean' ? settings.showArchivedOnly : false;
+            boardArchiveFilter = normalizeBoardArchiveFilter(
+                Object.prototype.hasOwnProperty.call(settings, 'archiveFilter') ? settings.archiveFilter : settings.showArchivedOnly
+            );
             applyBoardTitle();
             applyViewControls();
             renderBoard();
@@ -1713,8 +1724,9 @@
                     }
                     break;
                 case 'archived_filter_toggled':
-                    if (typeof data.to === 'boolean') {
-                        state.settings.showArchivedOnly = data.to;
+                    if ('to' in data) {
+                        state.settings.archiveFilter = normalizeBoardArchiveFilter(data.to);
+                        state.settings.showArchivedOnly = state.settings.archiveFilter === 'archived';
                     }
                     break;
                 default:
@@ -1734,7 +1746,8 @@
                 state.settings = {
                     title: boardTitle,
                     sortMode: boardSortMode,
-                    showArchivedOnly
+                    showArchivedOnly: boardArchiveFilter === 'archived',
+                    archiveFilter: boardArchiveFilter
                 };
             }
             const lastIndex = Math.min(targetIndex, timeline.events.length - 1);
@@ -1903,7 +1916,7 @@
                 case 'sort_mode_changed':
                     return `Sort mode: ${data.from || ''} -> ${data.to || ''}`;
                 case 'archived_filter_toggled':
-                    return `Archived view: ${data.from ? 'On' : 'Off'} -> ${data.to ? 'On' : 'Off'}`;
+                    return `Archive filter: ${formatArchiveFilterLabel(data.from)} -> ${formatArchiveFilterLabel(data.to)}`;
                 default:
                     return event.type;
             }
@@ -2004,8 +2017,8 @@
                     ];
                 case 'archived_filter_toggled':
                     return [
-                        { label: 'From', value: data.from ? 'On' : 'Off' },
-                        { label: 'To', value: data.to ? 'On' : 'Off' }
+                        { label: 'From', value: formatArchiveFilterLabel(data.from) },
+                        { label: 'To', value: formatArchiveFilterLabel(data.to) }
                     ];
                 default:
                     return [];
@@ -2050,10 +2063,10 @@
         }
 
         function applyViewControls() {
-            const archivedBtn = document.getElementById('archivedToggleBtn');
+            const archiveSelect = document.getElementById('boardArchiveFilter');
             const sortSelect = document.getElementById('boardSortSelect');
-            if (archivedBtn) {
-                archivedBtn.textContent = showArchivedOnly ? 'Archived: On' : 'Archived: Off';
+            if (archiveSelect) {
+                archiveSelect.value = normalizeBoardArchiveFilter(boardArchiveFilter);
             }
             if (sortSelect && ['manual', 'dueDate', 'effort'].includes(boardSortMode)) {
                 sortSelect.value = boardSortMode;
@@ -2345,8 +2358,8 @@
             } else {
                 body.innerHTML = rows.map(item => `
                     <tr>
-                        <td>${escapeHtml(item.task.title)}</td>
                         <td>${escapeHtml(item.boardTitle || item.boardFileName)}</td>
+                        <td>${escapeHtml(item.task.title)}</td>
                         <td>${escapeHtml(item.columnTitle)}</td>
                         <td>${escapeHtml(item.task.priority)}</td>
                         <td>${escapeHtml(item.task.effort)}</td>
@@ -2362,10 +2375,27 @@
         }
 
         function toggleArchivedView() {
-            const from = showArchivedOnly;
-            showArchivedOnly = !showArchivedOnly;
+            const from = boardArchiveFilter;
+            boardArchiveFilter = boardArchiveFilter === 'archived' ? 'active' : 'archived';
             applyViewControls();
-            recordTimelineEvent('archived_filter_toggled', { from, to: showArchivedOnly });
+            recordTimelineEvent('archived_filter_toggled', { from, to: boardArchiveFilter });
+            saveColumns();
+            renderTasks();
+            updateUrlState();
+        }
+
+        function onBoardArchiveFilterChange() {
+            const select = document.getElementById('boardArchiveFilter');
+            if (!select) return;
+            const next = normalizeBoardArchiveFilter(select.value);
+            if (next === boardArchiveFilter) {
+                applyViewControls();
+                return;
+            }
+            const from = boardArchiveFilter;
+            boardArchiveFilter = next;
+            applyViewControls();
+            recordTimelineEvent('archived_filter_toggled', { from, to: boardArchiveFilter });
             saveColumns();
             renderTasks();
             updateUrlState();
@@ -2436,7 +2466,7 @@
             boardExtensions = {};
             boardTitle = DEFAULT_BOARD_TITLE;
             boardSortMode = 'manual';
-            showArchivedOnly = false;
+            boardArchiveFilter = 'active';
         }
 
         function persistLocalState() {
@@ -2500,6 +2530,19 @@
             return normalizeTags(value.split(','));
         }
 
+        function normalizeBoardArchiveFilter(value) {
+            if (value === true || value === '1' || value === 'archived') return 'archived';
+            if (value === 'all') return 'all';
+            return 'active';
+        }
+
+        function formatArchiveFilterLabel(value) {
+            const mode = normalizeBoardArchiveFilter(value);
+            if (mode === 'archived') return 'Archived Only';
+            if (mode === 'all') return 'Active + Archived';
+            return 'Active Only';
+        }
+
         function tagsToInput(tags) {
             return normalizeTags(tags).join(', ');
         }
@@ -2527,7 +2570,8 @@
                     settings: {
                         title: boardTitle,
                         sortMode: boardSortMode,
-                        showArchivedOnly
+                        showArchivedOnly: boardArchiveFilter === 'archived',
+                        archiveFilter: boardArchiveFilter
                     }
                 },
                 extensions: boardExtensions
@@ -2603,18 +2647,22 @@
             }
             const settingsHasTitleOnly = hasExactKeys(data.board.settings, ['title']);
             const settingsHasFull = hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly']);
-            if (!settingsHasTitleOnly && !settingsHasFull) {
+            const settingsHasFullWithArchiveFilter = hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly', 'archiveFilter']);
+            if (!settingsHasTitleOnly && !settingsHasFull && !settingsHasFullWithArchiveFilter) {
                 throw new Error('Invalid board.settings structure.');
             }
             if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
                 throw new Error('Invalid board.settings.title.');
             }
-            if (settingsHasFull) {
+            if (settingsHasFull || settingsHasFullWithArchiveFilter) {
                 if (!['manual', 'dueDate', 'effort'].includes(data.board.settings.sortMode)) {
                     throw new Error('Invalid board.settings.sortMode.');
                 }
                 if (typeof data.board.settings.showArchivedOnly !== 'boolean') {
                     throw new Error('Invalid board.settings.showArchivedOnly.');
+                }
+                if ('archiveFilter' in data.board.settings && !BOARD_ARCHIVE_FILTER_VALUES.includes(data.board.settings.archiveFilter)) {
+                    throw new Error('Invalid board.settings.archiveFilter.');
                 }
             }
             if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) {
@@ -2710,7 +2758,9 @@
             ensureTimeline();
             boardTitle = settings.title.trim();
             boardSortMode = ['manual', 'dueDate', 'effort'].includes(settings.sortMode) ? settings.sortMode : 'manual';
-            showArchivedOnly = typeof settings.showArchivedOnly === 'boolean' ? settings.showArchivedOnly : false;
+            boardArchiveFilter = normalizeBoardArchiveFilter(
+                Object.prototype.hasOwnProperty.call(settings, 'archiveFilter') ? settings.archiveFilter : settings.showArchivedOnly
+            );
             applyBoardTitle();
             applyViewControls();
         }
@@ -2983,7 +3033,7 @@
                 }
             });
 
-            if (!showArchivedOnly) {
+            if (boardArchiveFilter !== 'archived') {
                 columns.forEach(col => {
                     const node = columnNodes[col.status];
                     if (!node) return;
@@ -2992,8 +3042,8 @@
             }
 
             const filtered = tasks.filter(task => {
-                if (showArchivedOnly && !task.archived) return false;
-                if (!showArchivedOnly && task.archived) return false;
+                if (boardArchiveFilter === 'active' && task.archived) return false;
+                if (boardArchiveFilter === 'archived' && !task.archived) return false;
                 const tagsText = normalizeTags(task.tags).join(' ').toLowerCase();
                 if (searchTerm && !task.title.toLowerCase().includes(searchTerm) && !tagsText.includes(searchTerm)) return false;
                 if (priorityFilter && task.priority !== priorityFilter) return false;
