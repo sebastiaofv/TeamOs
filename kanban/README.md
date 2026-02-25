@@ -13,6 +13,7 @@ A minimalist single-file Kanban app built with plain HTML, CSS, and JavaScript (
   - due date
   - tags
   - activity timestamps (created/updated)
+- Timeline modal to review changes over time.
 - Archive/restore tasks and toggle archived view.
 - Sort tasks manually or by due date.
 - Undo toast for key actions (archive, move).
@@ -26,11 +27,12 @@ A minimalist single-file Kanban app built with plain HTML, CSS, and JavaScript (
   - Save / Save As board
   - New board from template
 - Strict board schema validation (versioned JSON format).
+- Timeline history stored in `extensions.timeline` within board JSON.
 
 ## File extensions (required)
 
-- Board files: `*.board.json`
-- Portfolio config files: `*.portfolio.json`
+- Board files: `*.board.json` (includes `extensions.timeline` history)
+- Portfolio config files: `*.portfolio.json` (legacy example; open/save removed)
 
 The app validates both extension and JSON structure on open/upload.
 
@@ -39,10 +41,6 @@ The app validates both extension and JSON structure on open/upload.
 - Aggregate tasks across multiple loaded board files.
 - Filters and sorting.
 - Quick switch from portfolio rows/chips to a specific loaded board.
-- Portfolio config actions:
-  - `Open Portfolio`
-  - `Save Portfolio`
-  - `Save Portfolio As`
 
 ## Keyboard shortcuts
 

@@ -25,6 +25,11 @@
             --priority-high: #cc3300;
             --priority-medium: #cc9900;
             --priority-low: #009900;
+            --effort-xs: #009900;
+            --effort-s: #4caf50;
+            --effort-m: #cc9900;
+            --effort-l: #e67300;
+            --effort-xl: #cc3300;
         }
 
         body {
@@ -213,6 +218,7 @@
         .view {
             background: var(--border-light);
             height: calc(100vh - 50px);
+            position: relative;
         }
 
         .view-main {
@@ -221,6 +227,31 @@
             flex-direction: column;
             min-width: 0;
             height: 100%;
+        }
+
+        .file-drop-overlay {
+            position: absolute;
+            inset: 12px;
+            border: 2px dashed var(--accent);
+            border-radius: 8px;
+            background: rgba(0, 102, 204, 0.08);
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease;
+            z-index: 30;
+        }
+
+        .file-drop-active .file-drop-overlay {
+            opacity: 1;
         }
 
         .board {
@@ -296,8 +327,11 @@
         .portfolio-toolbar select {
             border: 1px solid var(--border);
             background: var(--bg-card);
-            padding: 6px 8px;
             font-size: 12px;
+        }
+
+        .portfolio-toolbar input {
+            padding: 6px 12px;
         }
 
         .portfolio-table-wrap {
@@ -515,6 +549,20 @@
             gap: 4px;
         }
 
+        .effort-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            opacity: 0.85;
+        }
+
+        .effort-dot.effort-xs { background: var(--effort-xs); }
+        .effort-dot.effort-s { background: var(--effort-s); }
+        .effort-dot.effort-m { background: var(--effort-m); }
+        .effort-dot.effort-l { background: var(--effort-l); }
+        .effort-dot.effort-xl { background: var(--effort-xl); }
+
         .due-dot {
             width: 6px;
             height: 6px;
@@ -660,6 +708,10 @@
             max-width: 560px;
         }
 
+        #timelineModal .modal-content {
+            max-width: 760px;
+        }
+
         .shortcuts-list {
             display: grid;
             gap: 6px;
@@ -706,6 +758,126 @@
         .shortcut-desc {
             color: var(--text-secondary);
             font-size: 12px;
+        }
+
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .timeline-controls-left {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .timeline-index {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .timeline-range {
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .timeline-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .timeline-events,
+        .timeline-details {
+            border: 1px solid var(--border-light);
+            background: var(--bg-card);
+        }
+
+        .timeline-events {
+            max-height: 280px;
+            overflow: auto;
+        }
+
+        .timeline-event {
+            width: 100%;
+            text-align: left;
+            padding: 8px 10px;
+            border: none;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-card);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .timeline-event:hover {
+            background: var(--bg-secondary);
+        }
+
+        .timeline-event.active {
+            background: #e8f4fc;
+            border-left: 3px solid var(--accent);
+        }
+
+        .timeline-event-title {
+            font-size: 12px;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .timeline-event-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .timeline-details {
+            padding: 10px 12px;
+            min-height: 140px;
+        }
+
+        .timeline-details-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 6px;
+        }
+
+        .timeline-details-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .timeline-detail-row {
+            display: grid;
+            grid-template-columns: 90px 1fr;
+            gap: 8px;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .timeline-detail-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--text-secondary);
+        }
+
+        .timeline-empty {
+            padding: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
 
         .undo-toast {
@@ -815,6 +987,7 @@
         <div class="app-title">teamos → kanban</div>
         <div class="header-actions">
             <button class="btn" id="portfolioToggleBtn" onclick="togglePortfolioView()">Portfolio</button>
+            <button class="btn" onclick="openTimelineModal()">Timeline</button>
             <button class="btn" onclick="openShortcutsModal()">Shortcuts</button>
             <span class="save-status" id="saveStatus">Saved</span>
         </div>
@@ -835,7 +1008,12 @@
                         <button class="btn" id="archivedToggleBtn" onclick="toggleArchivedView()">Archived: Off</button>
                     </div>
                     <div class="filter-group">
-                        <button class="btn" id="sortToggleBtn" onclick="toggleSortMode()">Sort: Manual</button>
+                        <label>Sort:</label>
+                        <select id="boardSortSelect" onchange="onBoardSortChange()">
+                            <option value="manual">Manual</option>
+                            <option value="dueDate">Due Date</option>
+                            <option value="effort">Effort</option>
+                        </select>
                     </div>
                     <div class="filter-group">
                         <label>Priority:</label>
@@ -846,6 +1024,17 @@
                             <option value="low">Low</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label>Effort:</label>
+                        <select id="effortFilter" onchange="filterTasks()">
+                            <option value="">All</option>
+                            <option value="XS">XS</option>
+                            <option value="S">S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="board-toolbar-right">
                     <button class="btn" onclick="newBoard()">New Board</button>
@@ -853,45 +1042,61 @@
                     <button class="btn" onclick="saveBoard()">Save</button>
                     <button class="btn" onclick="saveBoardAs()">Save As</button>
                     <button class="btn btn-primary" onclick="addColumn()">+ Add Column</button>
-                    <button class="btn" onclick="clearAllTasks()">Clear All</button>
                 </div>
             </div>
             <div class="board" id="board">
             </div>
         </div>
+        <div class="file-drop-overlay" id="boardDropOverlay" aria-hidden="true">Drop board file to open</div>
     </div>
 
     <div class="view hidden" id="portfolioView">
         <div class="view-main">
             <div class="portfolio-toolbar">
                 <div class="portfolio-toolbar-left">
-                    <div class="board-title-inline">
-                        <h1 id="portfolioTitle">Example Portfolio</h1>
-                        <button class="title-rename-btn" onclick="renamePortfolio()" title="Rename portfolio">✎</button>
+                    <div class="search-box">
+                        <input type="text" id="portfolioSearchInput" placeholder="Search tasks..." oninput="renderPortfolio()">
                     </div>
-                    <input type="text" id="portfolioSearchInput" placeholder="Search tasks..." oninput="renderPortfolio()">
-                    <select id="portfolioPriorityFilter" onchange="renderPortfolio()">
-                        <option value="">Priority: All</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                    <select id="portfolioArchiveFilter" onchange="renderPortfolio()">
-                        <option value="active">Active Only</option>
-                        <option value="all">Active + Archived</option>
-                        <option value="archived">Archived Only</option>
-                    </select>
-                    <select id="portfolioSortSelect" onchange="renderPortfolio()">
-                        <option value="priority">Sort: Priority</option>
-                        <option value="dueDate">Sort: Due Date</option>
-                        <option value="updatedAt">Sort: Updated</option>
-                    </select>
+                    <div class="filter-group">
+                        <label>Priority:</label>
+                        <select id="portfolioPriorityFilter" onchange="renderPortfolio()">
+                            <option value="">All</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Effort:</label>
+                        <select id="portfolioEffortFilter" onchange="renderPortfolio()">
+                            <option value="">All</option>
+                            <option value="XS">XS</option>
+                            <option value="S">S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Archive:</label>
+                        <select id="portfolioArchiveFilter" onchange="renderPortfolio()">
+                            <option value="active">Active Only</option>
+                            <option value="all">Active + Archived</option>
+                            <option value="archived">Archived Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Sort:</label>
+                        <select id="portfolioSortSelect" onchange="renderPortfolio()">
+                            <option value="priority">Priority</option>
+                            <option value="effort">Effort</option>
+                            <option value="dueDate">Due Date</option>
+                            <option value="updatedAt">Updated</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="portfolio-toolbar-right">
                     <button class="btn" onclick="openPortfolioBoards()">Open Boards</button>
-                    <button class="btn" onclick="openPortfolioConfigFile()">Open Portfolio</button>
-                    <button class="btn" onclick="savePortfolioConfig()">Save Portfolio</button>
-                    <button class="btn" onclick="savePortfolioConfigAs()">Save Portfolio As</button>
                 </div>
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
@@ -903,17 +1108,19 @@
                             <th>Board</th>
                             <th>Column</th>
                             <th>Priority</th>
+                            <th>Effort</th>
                             <th>Due</th>
                             <th>Updated</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="portfolioTableBody">
-                        <tr><td colspan="7">Open board JSON files to see portfolio tasks.</td></tr>
+                        <tr><td colspan="8">Open board JSON files to see portfolio tasks.</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
+        <div class="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">Drop board files to load portfolio</div>
     </div>
 
     <div class="modal" id="taskModal">
@@ -955,6 +1162,16 @@
                             <option value="low">Low</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>Effort</label>
+                        <select id="taskEffort">
+                            <option value="XS">XS</option>
+                            <option value="S" selected>S</option>
+                            <option value="M">M</option>
+                            <option value="L">L</option>
+                            <option value="XL">XL</option>
+                        </select>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -983,6 +1200,10 @@
                     <div class="detail-item">
                         <span class="detail-label">Priority</span>
                         <span class="detail-value" id="detailPriority">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Effort</span>
+                        <span class="detail-value" id="detailEffort">-</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Status</span>
@@ -1042,7 +1263,7 @@
                             <span class="shortcut-plus">/</span>
                             <kbd>Cmd</kbd><span class="shortcut-plus">+</span><kbd>S</kbd>
                         </div>
-                        <div class="shortcut-desc">Save current document (board or portfolio)</div>
+                        <div class="shortcut-desc">Save current board</div>
                     </div>
                     <div class="shortcut-row">
                         <div class="shortcut-keys">
@@ -1050,7 +1271,7 @@
                             <span class="shortcut-plus">/</span>
                             <kbd>Cmd</kbd><span class="shortcut-plus">+</span><kbd>Shift</kbd><span class="shortcut-plus">+</span><kbd>C</kbd>
                         </div>
-                        <div class="shortcut-desc">Save As current document (board or portfolio)</div>
+                        <div class="shortcut-desc">Save As current board</div>
                     </div>
                     <div class="shortcut-row">
                         <div class="shortcut-keys"><kbd>Esc</kbd></div>
@@ -1064,35 +1285,60 @@
         </div>
     </div>
 
+    <div class="modal" id="timelineModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Timeline</span>
+                <button class="modal-close" onclick="closeTimelineModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="timeline-controls">
+                    <div class="timeline-controls-left">
+                        <button class="btn" id="timelineExitBtn" onclick="exitTimelinePreview()">Exit preview</button>
+                        <span class="timeline-index" id="timelineIndexLabel">Event 0 of 0</span>
+                    </div>
+                </div>
+                <input class="timeline-range" type="range" id="timelineRange" min="0" max="0" value="0" oninput="onTimelineScrub(this.value)">
+                <div class="timeline-layout">
+                    <div class="timeline-events" id="timelineEvents"></div>
+                    <div class="timeline-details" id="timelineDetails"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeTimelineModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="undo-toast" id="undoToast">
         <span class="undo-toast-text" id="undoToastText"></span>
         <button class="btn" onclick="performUndo()">Undo</button>
     </div>
 
     <script>
-        let tasks = JSON.parse(localStorage.getItem('householdTasks')) || [];
+        let tasks = [];
         const defaultColumns = [
             { status: 'todo', title: 'To Do' },
             { status: 'inprogress', title: 'In Progress' },
             { status: 'done', title: 'Done' }
         ];
-        let columns = JSON.parse(localStorage.getItem('householdColumns')) || defaultColumns;
+        let columns = defaultColumns;
         const BOARD_SCHEMA_VERSION = 4;
         const BOARD_LEGACY_SCHEMA_VERSION = 3;
         const BOARD_APP_ID = 'household-task-board';
-        const PORTFOLIO_SCHEMA_VERSION = 3;
-        const PORTFOLIO_LEGACY_SCHEMA_VERSIONS = [1, 2];
-        const PORTFOLIO_APP_ID = 'household-task-board-portfolio';
         const BOARD_FILE_EXTENSION = '.board.json';
-        const PORTFOLIO_FILE_EXTENSION = '.portfolio.json';
         const DEFAULT_BOARD_TITLE = 'Example Task Board';
-        const DEFAULT_PORTFOLIO_TITLE = 'Example Portfolio';
+        const EFFORT_BUCKETS = ['XS', 'S', 'M', 'L', 'XL'];
+        const DEFAULT_EFFORT = 'S';
         const MAX_COLUMNS = 5;
+        const BOARD_EXTENSIONS_STORAGE_KEY = 'householdBoardExtensions';
+        const TIMELINE_VERSION = 1;
+        const TIMELINE_EVENT_CAP = 2000;
         let boardCreatedAt = new Date().toISOString();
         let boardExtensions = {};
-        let boardTitle = localStorage.getItem('householdBoardTitle') || DEFAULT_BOARD_TITLE;
-        let boardSortMode = localStorage.getItem('householdBoardSortMode') || 'manual';
-        let showArchivedOnly = localStorage.getItem('householdShowArchivedOnly') === 'true';
+        let boardTitle = DEFAULT_BOARD_TITLE;
+        let boardSortMode = 'manual';
+        let showArchivedOnly = false;
         let currentFileHandle = null;
         let currentFileName = '';
         let isDirty = false;
@@ -1107,9 +1353,11 @@
         let appMode = 'board';
         let portfolioBoards = [];
         let portfolioTasks = [];
-        let portfolioTitle = localStorage.getItem('householdPortfolioTitle') || DEFAULT_PORTFOLIO_TITLE;
         let selectedPortfolioBoardId = '';
-        let currentPortfolioConfigHandle = null;
+        let suppressTimeline = false;
+        let timelinePreviewActive = false;
+        let timelinePreviewState = null;
+        let selectedTimelineIndex = 0;
 
         function readQueryParam(key, fallback = '') {
             const params = new URLSearchParams(window.location.search);
@@ -1126,23 +1374,42 @@
             }
         }
 
+        function isFileDrag(ev) {
+            if (!ev.dataTransfer) return false;
+            return Array.from(ev.dataTransfer.types || []).includes('Files');
+        }
+
+        function setFileDropActive(active) {
+            const view = appMode === 'portfolio'
+                ? document.getElementById('portfolioView')
+                : document.getElementById('boardView');
+            if (view) {
+                view.classList.toggle('file-drop-active', active);
+            }
+        }
+
         function updateUrlState() {
             const params = new URLSearchParams();
             params.set('view', appMode);
 
             const boardSearch = document.getElementById('searchInput')?.value || '';
             const boardPriority = document.getElementById('priorityFilter')?.value || '';
+            const boardEffort = document.getElementById('effortFilter')?.value || '';
             if (boardSearch) params.set('q', boardSearch);
             if (boardPriority) params.set('p', boardPriority);
+            if (boardEffort) params.set('e', boardEffort);
             if (showArchivedOnly) params.set('archived', '1');
             if (boardSortMode === 'dueDate') params.set('sort', 'due');
+            if (boardSortMode === 'effort') params.set('sort', 'effort');
 
             const portfolioSearch = document.getElementById('portfolioSearchInput')?.value || '';
             const portfolioPriority = document.getElementById('portfolioPriorityFilter')?.value || '';
+            const portfolioEffort = document.getElementById('portfolioEffortFilter')?.value || '';
             const portfolioArchive = document.getElementById('portfolioArchiveFilter')?.value || 'active';
             const portfolioSort = document.getElementById('portfolioSortSelect')?.value || 'priority';
             if (portfolioSearch) params.set('pq', portfolioSearch);
             if (portfolioPriority) params.set('pp', portfolioPriority);
+            if (portfolioEffort) params.set('pe', portfolioEffort);
             if (portfolioArchive !== 'active') params.set('pa', portfolioArchive);
             if (portfolioSort !== 'priority') params.set('ps', portfolioSort);
             if (selectedPortfolioBoardId) params.set('pb', selectedPortfolioBoardId);
@@ -1157,19 +1424,26 @@
             const boardSearch = readQueryParam('q', '');
             const boardPriority = readQueryParam('p', '');
             const archived = readQueryParam('archived', '') === '1';
-            const sort = readQueryParam('sort', '') === 'due' ? 'dueDate' : 'manual';
+            const sortParam = readQueryParam('sort', '');
+            const sort = sortParam === 'due' ? 'dueDate' : (sortParam === 'effort' ? 'effort' : 'manual');
+            const boardEffort = readQueryParam('e', '');
 
             const portfolioSearch = readQueryParam('pq', '');
             const portfolioPriority = readQueryParam('pp', '');
+            const portfolioEffort = readQueryParam('pe', '');
             const portfolioArchive = readQueryParam('pa', 'active');
             const portfolioSort = readQueryParam('ps', 'priority');
             const portfolioBoard = readQueryParam('pb', '');
 
             const searchInput = document.getElementById('searchInput');
             const priorityFilter = document.getElementById('priorityFilter');
+            const effortFilter = document.getElementById('effortFilter');
             if (searchInput) searchInput.value = boardSearch;
             if (priorityFilter && ['', 'high', 'medium', 'low'].includes(boardPriority)) {
                 priorityFilter.value = boardPriority;
+            }
+            if (effortFilter && ['', ...EFFORT_BUCKETS].includes(boardEffort)) {
+                effortFilter.value = boardEffort;
             }
             showArchivedOnly = archived;
             boardSortMode = sort;
@@ -1177,16 +1451,20 @@
 
             const pSearch = document.getElementById('portfolioSearchInput');
             const pPriority = document.getElementById('portfolioPriorityFilter');
+            const pEffort = document.getElementById('portfolioEffortFilter');
             const pArchive = document.getElementById('portfolioArchiveFilter');
             const pSort = document.getElementById('portfolioSortSelect');
             if (pSearch) pSearch.value = portfolioSearch;
             if (pPriority && ['', 'high', 'medium', 'low'].includes(portfolioPriority)) {
                 pPriority.value = portfolioPriority;
             }
+            if (pEffort && ['', ...EFFORT_BUCKETS].includes(portfolioEffort)) {
+                pEffort.value = portfolioEffort;
+            }
             if (pArchive && ['active', 'all', 'archived'].includes(portfolioArchive)) {
                 pArchive.value = portfolioArchive;
             }
-            if (pSort && ['priority', 'dueDate', 'updatedAt'].includes(portfolioSort)) {
+            if (pSort && ['priority', 'effort', 'dueDate', 'updatedAt'].includes(portfolioSort)) {
                 pSort.value = portfolioSort;
             }
             selectedPortfolioBoardId = portfolioBoard;
@@ -1210,12 +1488,6 @@
             updateDocumentTitle();
         }
 
-        function applyPortfolioTitle() {
-            const node = document.getElementById('portfolioTitle');
-            if (!node) return;
-            node.textContent = portfolioTitle;
-        }
-
         function setDirty(nextDirty) {
             isDirty = nextDirty;
             updateDocumentTitle();
@@ -1233,6 +1505,7 @@
                 dueDate: '',
                 tags: [],
                 priority: task.priority,
+                effort: normalizeEffort(task.effort),
                 status: task.status
             }));
         }
@@ -1248,14 +1521,542 @@
             node.className = `save-status ${state}`;
         }
 
+        function deepClone(value) {
+            return JSON.parse(JSON.stringify(value));
+        }
+
+        function snapshotBoardState() {
+            return {
+                columns: deepClone(columns.map(col => ({ status: col.status, title: col.title }))),
+                tasks: deepClone(tasks.map(task => normalizeTask(task))),
+                settings: {
+                    title: boardTitle,
+                    sortMode: boardSortMode,
+                    showArchivedOnly
+                }
+            };
+        }
+
+        function createTimelineState() {
+            return {
+                version: TIMELINE_VERSION,
+                enabled: true,
+                nextId: 1,
+                events: []
+            };
+        }
+
+        function ensureTimeline() {
+            if (!boardExtensions || typeof boardExtensions !== 'object' || Array.isArray(boardExtensions)) {
+                boardExtensions = {};
+            }
+            if (!boardExtensions.timeline || typeof boardExtensions.timeline !== 'object' || Array.isArray(boardExtensions.timeline)) {
+                boardExtensions.timeline = createTimelineState();
+            }
+            if (boardExtensions.timeline.version !== TIMELINE_VERSION) {
+                boardExtensions.timeline = createTimelineState();
+            }
+
+            const timeline = boardExtensions.timeline;
+            if (!Array.isArray(timeline.events)) {
+                timeline.events = [];
+            }
+            if (typeof timeline.nextId !== 'number' || !Number.isFinite(timeline.nextId) || timeline.nextId < 1) {
+                timeline.nextId = 1;
+            }
+            if (timeline.events.length === 0) {
+                timeline.events.push({
+                    id: timeline.nextId++,
+                    ts: nowIso(),
+                    type: 'init',
+                    data: { board: snapshotBoardState() }
+                });
+            } else if (timeline.events[0].type !== 'init') {
+                timeline.events.unshift({
+                    id: timeline.nextId++,
+                    ts: nowIso(),
+                    type: 'init',
+                    data: { board: snapshotBoardState() }
+                });
+            }
+            return timeline;
+        }
+
+        function recordTimelineEvent(type, data) {
+            if (suppressTimeline || timelinePreviewActive) return;
+            const timeline = ensureTimeline();
+            if (!timeline.enabled) return;
+            timeline.events.push({
+                id: timeline.nextId++,
+                ts: nowIso(),
+                type,
+                data: data || {}
+            });
+
+            if (timeline.events.length > TIMELINE_EVENT_CAP) {
+                trimTimelineEvents(timeline);
+            }
+        }
+
+        function trimTimelineEvents(timeline) {
+            if (timeline.events.length <= TIMELINE_EVENT_CAP) return;
+            const cutIndex = timeline.events.length - (TIMELINE_EVENT_CAP - 1);
+            const snapshotIndex = Math.max(0, cutIndex - 1);
+            const snapshotState = rebuildBoardStateFromTimeline(snapshotIndex);
+            const initEvent = {
+                id: timeline.nextId++,
+                ts: nowIso(),
+                type: 'init',
+                data: { board: snapshotState }
+            };
+            timeline.events = [initEvent, ...timeline.events.slice(cutIndex)];
+        }
+
+        function applyTimelineState(state) {
+            suppressChangeTracking = true;
+            suppressTimeline = true;
+            const settings = state.settings || {};
+            columns = normalizeColumns(state.columns || []);
+            tasks = (state.tasks || []).map(task => normalizeTask(task));
+            boardTitle = settings.title || DEFAULT_BOARD_TITLE;
+            boardSortMode = ['manual', 'dueDate', 'effort'].includes(settings.sortMode) ? settings.sortMode : 'manual';
+            showArchivedOnly = typeof settings.showArchivedOnly === 'boolean' ? settings.showArchivedOnly : false;
+            applyBoardTitle();
+            applyViewControls();
+            renderBoard();
+            renderTasks();
+            suppressTimeline = false;
+            suppressChangeTracking = false;
+        }
+
+        function applyTimelineEvent(state, event) {
+            const data = event.data || {};
+            switch (event.type) {
+                case 'task_created':
+                    if (data.task) {
+                        state.tasks.push(deepClone(data.task));
+                    }
+                    break;
+                case 'task_updated': {
+                    const idx = state.tasks.findIndex(task => task.id === data.taskId);
+                    if (idx >= 0 && data.after) {
+                        state.tasks[idx] = deepClone(data.after);
+                    }
+                    break;
+                }
+                case 'task_moved': {
+                    const task = state.tasks.find(t => t.id === data.taskId);
+                    if (task && data.toStatus) {
+                        task.status = data.toStatus;
+                    }
+                    break;
+                }
+                case 'task_archived': {
+                    const task = state.tasks.find(t => t.id === data.taskId);
+                    if (task) task.archived = true;
+                    break;
+                }
+                case 'task_restored': {
+                    const task = state.tasks.find(t => t.id === data.taskId);
+                    if (task) task.archived = false;
+                    break;
+                }
+                case 'tasks_cleared':
+                    state.tasks = [];
+                    break;
+                case 'column_added': {
+                    if (data.column) {
+                        const index = typeof data.index === 'number' ? data.index : state.columns.length;
+                        state.columns.splice(Math.max(0, Math.min(index, state.columns.length)), 0, deepClone(data.column));
+                    }
+                    break;
+                }
+                case 'column_renamed': {
+                    const column = state.columns.find(col => col.status === data.status);
+                    if (column && data.toTitle) {
+                        column.title = data.toTitle;
+                    }
+                    break;
+                }
+                case 'column_reordered': {
+                    const fromIndex = data.fromIndex;
+                    const toIndex = data.toIndex;
+                    if (Number.isFinite(fromIndex) && Number.isFinite(toIndex)) {
+                        const [moved] = state.columns.splice(fromIndex, 1);
+                        if (moved) {
+                            state.columns.splice(Math.max(0, Math.min(toIndex, state.columns.length)), 0, moved);
+                        }
+                    }
+                    break;
+                }
+                case 'column_deleted': {
+                    const fallbackStatus = data.fallbackStatus;
+                    state.columns = state.columns.filter(col => col.status !== data.status);
+                    const fallback = state.columns.find(col => col.status === fallbackStatus) || state.columns[0];
+                    if (fallback) {
+                        state.tasks.forEach(task => {
+                            if (task.status === data.status) {
+                                task.status = fallback.status;
+                            }
+                        });
+                    }
+                    break;
+                }
+                case 'board_title_changed':
+                    if (data.toTitle) {
+                        state.settings.title = data.toTitle;
+                    }
+                    break;
+                case 'sort_mode_changed':
+                    if (data.to) {
+                        state.settings.sortMode = data.to;
+                    }
+                    break;
+                case 'archived_filter_toggled':
+                    if (typeof data.to === 'boolean') {
+                        state.settings.showArchivedOnly = data.to;
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function rebuildBoardStateFromTimeline(targetIndex) {
+            const timeline = ensureTimeline();
+            if (!timeline.events.length) {
+                return snapshotBoardState();
+            }
+            const initEvent = timeline.events[0];
+            const initBoard = initEvent.data && initEvent.data.board ? initEvent.data.board : snapshotBoardState();
+            const state = deepClone(initBoard);
+            if (!state.settings) {
+                state.settings = {
+                    title: boardTitle,
+                    sortMode: boardSortMode,
+                    showArchivedOnly
+                };
+            }
+            const lastIndex = Math.min(targetIndex, timeline.events.length - 1);
+            for (let i = 1; i <= lastIndex; i++) {
+                applyTimelineEvent(state, timeline.events[i]);
+            }
+            return state;
+        }
+
+        function enterTimelinePreview(index) {
+            const timeline = ensureTimeline();
+            if (!timeline.events.length) return;
+            if (!timelinePreviewActive) {
+                timelinePreviewState = {
+                    board: snapshotBoardState(),
+                    selectedTaskId
+                };
+                timelinePreviewActive = true;
+            }
+            const state = rebuildBoardStateFromTimeline(index);
+            selectedTaskId = null;
+            applyTimelineState(state);
+            updateTimelinePreviewControls();
+        }
+
+        function exitTimelinePreview() {
+            if (!timelinePreviewActive || !timelinePreviewState) {
+                updateTimelinePreviewControls();
+                return;
+            }
+            selectedTaskId = timelinePreviewState.selectedTaskId || null;
+            applyTimelineState(timelinePreviewState.board);
+            timelinePreviewActive = false;
+            timelinePreviewState = null;
+            updateTimelinePreviewControls();
+        }
+
+        function openTimelineModal() {
+            const timeline = ensureTimeline();
+            selectedTimelineIndex = Math.max(0, timeline.events.length - 1);
+            exitTimelinePreview();
+            renderTimelineModal();
+            document.getElementById('timelineModal').classList.add('active');
+        }
+
+        function closeTimelineModal() {
+            document.getElementById('timelineModal').classList.remove('active');
+            exitTimelinePreview();
+        }
+
+        function onTimelineScrub(value) {
+            const timeline = ensureTimeline();
+            const index = Number.parseInt(value, 10);
+            if (!Number.isFinite(index)) return;
+            selectedTimelineIndex = Math.max(0, Math.min(index, timeline.events.length - 1));
+            renderTimelineSelection();
+            if (selectedTimelineIndex >= timeline.events.length - 1) {
+                exitTimelinePreview();
+            } else {
+                enterTimelinePreview(selectedTimelineIndex);
+            }
+        }
+
+        function selectTimelineEvent(index) {
+            const timeline = ensureTimeline();
+            selectedTimelineIndex = Math.max(0, Math.min(index, timeline.events.length - 1));
+            const range = document.getElementById('timelineRange');
+            if (range) {
+                range.value = selectedTimelineIndex;
+            }
+            renderTimelineSelection();
+            if (selectedTimelineIndex >= timeline.events.length - 1) {
+                exitTimelinePreview();
+            } else {
+                enterTimelinePreview(selectedTimelineIndex);
+            }
+        }
+
+        function updateTimelinePreviewControls() {
+            const exitBtn = document.getElementById('timelineExitBtn');
+            if (exitBtn) {
+                exitBtn.disabled = !timelinePreviewActive;
+            }
+        }
+
+        function renderTimelineModal() {
+            const timeline = ensureTimeline();
+            const range = document.getElementById('timelineRange');
+            const events = timeline.events;
+            if (range) {
+                range.min = 0;
+                range.max = Math.max(0, events.length - 1);
+                range.value = Math.min(selectedTimelineIndex, events.length - 1);
+            }
+            renderTimelineSelection();
+            updateTimelinePreviewControls();
+        }
+
+        function renderTimelineSelection() {
+            const timeline = ensureTimeline();
+            const events = timeline.events;
+            const list = document.getElementById('timelineEvents');
+            const details = document.getElementById('timelineDetails');
+            const label = document.getElementById('timelineIndexLabel');
+
+            if (!events.length) {
+                if (list) list.innerHTML = '<div class="timeline-empty">No history available.</div>';
+                if (details) details.innerHTML = '<div class="timeline-empty">No event selected.</div>';
+                if (label) label.textContent = 'Event 0 of 0';
+                return;
+            }
+
+            const maxIndex = events.length - 1;
+            selectedTimelineIndex = Math.max(0, Math.min(selectedTimelineIndex, maxIndex));
+            const isLive = selectedTimelineIndex === maxIndex;
+            if (label) {
+                label.textContent = `Event ${selectedTimelineIndex + 1} of ${events.length}${isLive ? ' (Live)' : ' (Preview)'}`;
+            }
+
+            if (list) {
+                list.innerHTML = events.map((event, index) => {
+                    const activeClass = index === selectedTimelineIndex ? 'active' : '';
+                    const title = timelineEventLabel(event);
+                    const time = formatDateTime(event.ts);
+                    return `
+                        <button class="timeline-event ${activeClass}" onclick="selectTimelineEvent(${index})">
+                            <div class="timeline-event-title">${escapeHtml(title)}</div>
+                            <div class="timeline-event-time">${escapeHtml(time)}</div>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            if (details) {
+                details.innerHTML = renderTimelineDetails(events[selectedTimelineIndex]);
+            }
+        }
+
+        function timelineEventLabel(event) {
+            const data = event.data || {};
+            switch (event.type) {
+                case 'init':
+                    return 'Board initialized';
+                case 'task_created':
+                    return `Task created: ${data.taskTitle || data.task?.title || 'Untitled'}`;
+                case 'task_updated':
+                    return `Task updated: ${data.taskTitle || data.after?.title || 'Untitled'}`;
+                case 'task_moved':
+                    return `Task moved: ${data.taskTitle || 'Task'}`;
+                case 'task_archived':
+                    return `Task archived: ${data.taskTitle || 'Task'}`;
+                case 'task_restored':
+                    return `Task restored: ${data.taskTitle || 'Task'}`;
+                case 'tasks_cleared':
+                    return 'All tasks cleared';
+                case 'column_added':
+                    return `Column added: ${data.column?.title || 'Column'}`;
+                case 'column_renamed':
+                    return `Column renamed: ${data.fromTitle || 'Column'} -> ${data.toTitle || ''}`;
+                case 'column_reordered':
+                    return 'Column reordered';
+                case 'column_deleted':
+                    return `Column deleted: ${data.columnTitle || 'Column'}`;
+                case 'board_title_changed':
+                    return `Board renamed: ${data.fromTitle || ''} -> ${data.toTitle || ''}`;
+                case 'sort_mode_changed':
+                    return `Sort mode: ${data.from || ''} -> ${data.to || ''}`;
+                case 'archived_filter_toggled':
+                    return `Archived view: ${data.from ? 'On' : 'Off'} -> ${data.to ? 'On' : 'Off'}`;
+                default:
+                    return event.type;
+            }
+        }
+
+        function renderTimelineDetails(event) {
+            if (!event) {
+                return '<div class="timeline-empty">No event selected.</div>';
+            }
+            const time = formatDateTime(event.ts);
+            const rows = timelineDetailRows(event).map(row => `
+                <div class="timeline-detail-row">
+                    <div class="timeline-detail-label">${escapeHtml(row.label)}</div>
+                    <div>${escapeHtml(row.value)}</div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="timeline-details-title">${escapeHtml(timelineEventLabel(event))}</div>
+                <div class="timeline-details-meta">When: ${escapeHtml(time)}</div>
+                ${rows || '<div class="timeline-empty">No additional details.</div>'}
+            `;
+        }
+
+        function timelineDetailRows(event) {
+            const data = event.data || {};
+            switch (event.type) {
+                case 'init': {
+                    const board = data.board || {};
+                    return [
+                        { label: 'Title', value: board.settings?.title || '-' },
+                        { label: 'Columns', value: String(board.columns?.length || 0) },
+                        { label: 'Tasks', value: String(board.tasks?.length || 0) }
+                    ];
+                }
+                case 'task_created': {
+                    const task = data.task || {};
+                    return [
+                        { label: 'Task', value: data.taskTitle || task.title || 'Untitled' },
+                        { label: 'Status', value: task.status || '-' },
+                        { label: 'Priority', value: task.priority || '-' },
+                        { label: 'Effort', value: task.effort || '-' },
+                        { label: 'Due', value: task.dueDate || '-' }
+                    ];
+                }
+                case 'task_updated': {
+                    const changes = describeTaskChanges(data.before, data.after).join(', ');
+                    return [
+                        { label: 'Task', value: data.taskTitle || data.after?.title || 'Untitled' },
+                        { label: 'Changes', value: changes }
+                    ];
+                }
+                case 'task_moved':
+                    return [
+                        { label: 'Task', value: data.taskTitle || 'Task' },
+                        { label: 'From', value: data.fromStatus || '-' },
+                        { label: 'To', value: data.toStatus || '-' }
+                    ];
+                case 'task_archived':
+                case 'task_restored':
+                    return [
+                        { label: 'Task', value: data.taskTitle || 'Task' }
+                    ];
+                case 'tasks_cleared':
+                    return [
+                        { label: 'Count', value: String(data.count || 0) }
+                    ];
+                case 'column_added':
+                    return [
+                        { label: 'Column', value: data.column?.title || 'Column' },
+                        { label: 'Position', value: Number.isFinite(data.index) ? String(data.index + 1) : '-' }
+                    ];
+                case 'column_renamed':
+                    return [
+                        { label: 'From', value: data.fromTitle || '-' },
+                        { label: 'To', value: data.toTitle || '-' }
+                    ];
+                case 'column_reordered':
+                    return [
+                        { label: 'From', value: Number.isFinite(data.fromIndex) ? String(data.fromIndex + 1) : '-' },
+                        { label: 'To', value: Number.isFinite(data.toIndex) ? String(data.toIndex + 1) : '-' }
+                    ];
+                case 'column_deleted':
+                    return [
+                        { label: 'Column', value: data.columnTitle || data.status || '-' },
+                        { label: 'Fallback', value: data.fallbackTitle || data.fallbackStatus || '-' },
+                        { label: 'Moved', value: String(data.movedTaskCount || 0) }
+                    ];
+                case 'board_title_changed':
+                    return [
+                        { label: 'From', value: data.fromTitle || '-' },
+                        { label: 'To', value: data.toTitle || '-' }
+                    ];
+                case 'sort_mode_changed':
+                    return [
+                        { label: 'From', value: data.from || '-' },
+                        { label: 'To', value: data.to || '-' }
+                    ];
+                case 'archived_filter_toggled':
+                    return [
+                        { label: 'From', value: data.from ? 'On' : 'Off' },
+                        { label: 'To', value: data.to ? 'On' : 'Off' }
+                    ];
+                default:
+                    return [];
+            }
+        }
+
+        function describeTaskChanges(before, after) {
+            if (!before || !after) return ['Updated'];
+            const changes = [];
+            if (before.title !== after.title) {
+                changes.push(`Title: "${before.title}" -> "${after.title}"`);
+            }
+            if (before.description !== after.description) {
+                changes.push('Description');
+            }
+            if (before.dueDate !== after.dueDate) {
+                changes.push(`Due: ${before.dueDate || '-'} -> ${after.dueDate || '-'}`);
+            }
+            if (before.priority !== after.priority) {
+                changes.push(`Priority: ${before.priority} -> ${after.priority}`);
+            }
+            if (before.effort !== after.effort) {
+                changes.push(`Effort: ${before.effort} -> ${after.effort}`);
+            }
+            if (before.status !== after.status) {
+                changes.push(`Status: ${before.status} -> ${after.status}`);
+            }
+            if (String(before.archived) !== String(after.archived)) {
+                changes.push(`Archived: ${before.archived ? 'yes' : 'no'} -> ${after.archived ? 'yes' : 'no'}`);
+            }
+            const beforeTags = normalizeTags(before.tags || []);
+            const afterTags = normalizeTags(after.tags || []);
+            if (JSON.stringify(beforeTags) !== JSON.stringify(afterTags)) {
+                changes.push(`Tags: ${beforeTags.join(', ') || '-'} -> ${afterTags.join(', ') || '-'}`);
+            }
+            const beforeChecklist = JSON.stringify(normalizeChecklist(before.checklist || []));
+            const afterChecklist = JSON.stringify(normalizeChecklist(after.checklist || []));
+            if (beforeChecklist !== afterChecklist) {
+                changes.push('Checklist');
+            }
+            return changes.length ? changes : ['No field changes'];
+        }
+
         function applyViewControls() {
             const archivedBtn = document.getElementById('archivedToggleBtn');
-            const sortBtn = document.getElementById('sortToggleBtn');
+            const sortSelect = document.getElementById('boardSortSelect');
             if (archivedBtn) {
                 archivedBtn.textContent = showArchivedOnly ? 'Archived: On' : 'Archived: Off';
             }
-            if (sortBtn) {
-                sortBtn.textContent = boardSortMode === 'dueDate' ? 'Sort: Due Date' : 'Sort: Manual';
+            if (sortSelect && ['manual', 'dueDate', 'effort'].includes(boardSortMode)) {
+                sortSelect.value = boardSortMode;
             }
         }
 
@@ -1281,7 +2082,18 @@
         function priorityRank(priority) {
             if (priority === 'high') return 0;
             if (priority === 'medium') return 1;
-            return 2;
+            if (priority === 'low') return 2;
+            return 3;
+        }
+
+        function effortRank(effort) {
+            const normalized = normalizeEffort(effort);
+            return EFFORT_BUCKETS.indexOf(normalized);
+        }
+
+        function normalizeEffort(value) {
+            const normalized = String(value || '').trim().toUpperCase();
+            return EFFORT_BUCKETS.includes(normalized) ? normalized : DEFAULT_EFFORT;
         }
 
         function buildPortfolioTasks() {
@@ -1391,12 +2203,110 @@
             }
         }
 
+        async function openBoardFromFile(file) {
+            if (!confirmDiscardChanges('Open')) return;
+            try {
+                assertRequiredExtension(file.name, BOARD_FILE_EXTENSION, 'Board file');
+                const parsed = JSON.parse(await file.text());
+                applyBoardData(parsed);
+                currentFileHandle = null;
+                currentFileName = file.name || '';
+                suppressChangeTracking = true;
+                renderBoard();
+                renderTasks();
+                persistLocalState();
+                suppressChangeTracking = false;
+                setDirty(false);
+                setSaveStatus('Saved', 'saved');
+                setAppMode('board');
+            } catch (error) {
+                suppressChangeTracking = false;
+                alert(`Open failed: ${error.message}`);
+            }
+        }
+
+        async function openPortfolioFromFiles(files) {
+            try {
+                const list = Array.from(files || []);
+                const boardFiles = list.filter(file => hasRequiredExtension(file.name, BOARD_FILE_EXTENSION));
+                if (boardFiles.length === 0) {
+                    alert(`No ${BOARD_FILE_EXTENSION} files found.`);
+                    return;
+                }
+
+                const loaded = [];
+                for (const file of boardFiles) {
+                    const parsed = JSON.parse(await file.text());
+                    validateBoardData(parsed);
+                    const boardId = `b${Date.now()}${loaded.length}`;
+                    loaded.push({
+                        id: boardId,
+                        handle: null,
+                        fileName: file.name,
+                        title: parsed.board.settings.title,
+                        data: parsed
+                    });
+                }
+
+                portfolioBoards = loaded;
+                selectedPortfolioBoardId = '';
+                buildPortfolioTasks();
+                setAppMode('portfolio');
+                renderPortfolio();
+            } catch (error) {
+                alert(`Portfolio open failed: ${error.message}`);
+            }
+        }
+
+        function setupFileDrop() {
+            let fileDragDepth = 0;
+
+            window.addEventListener('dragenter', (ev) => {
+                if (!isFileDrag(ev)) return;
+                fileDragDepth += 1;
+                setFileDropActive(true);
+            });
+
+            window.addEventListener('dragover', (ev) => {
+                if (!isFileDrag(ev)) return;
+                ev.preventDefault();
+                setFileDropActive(true);
+            });
+
+            window.addEventListener('dragleave', (ev) => {
+                if (!isFileDrag(ev)) return;
+                fileDragDepth = Math.max(0, fileDragDepth - 1);
+                if (fileDragDepth === 0) {
+                    setFileDropActive(false);
+                }
+            });
+
+            window.addEventListener('drop', (ev) => {
+                if (!isFileDrag(ev)) return;
+                ev.preventDefault();
+                fileDragDepth = 0;
+                setFileDropActive(false);
+                const files = ev.dataTransfer ? ev.dataTransfer.files : null;
+                if (!files || files.length === 0) return;
+
+                if (appMode === 'portfolio') {
+                    openPortfolioFromFiles(files);
+                } else {
+                    if (files.length > 1) {
+                        alert('Multiple files dropped. Opening the first one.');
+                    }
+                    openBoardFromFile(files[0]);
+                }
+            });
+        }
+
         function renderPortfolio() {
             const body = document.getElementById('portfolioTableBody');
             if (!body) return;
 
             const search = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
             const priorityFilter = document.getElementById('portfolioPriorityFilter')?.value || '';
+            const effortFilter = document.getElementById('portfolioEffortFilter')?.value || '';
             const archiveFilter = document.getElementById('portfolioArchiveFilter')?.value || 'active';
             const sortBy = document.getElementById('portfolioSortSelect')?.value || 'priority';
 
@@ -1406,6 +2316,7 @@
                 if (archiveFilter === 'active' && task.archived) return false;
                 if (archiveFilter === 'archived' && !task.archived) return false;
                 if (priorityFilter && task.priority !== priorityFilter) return false;
+                if (effortFilter && task.effort !== effortFilter) return false;
                 const tags = normalizeTags(task.tags).join(' ').toLowerCase();
                 if (search && !task.title.toLowerCase().includes(search) && !tags.includes(search)) return false;
                 return true;
@@ -1418,6 +2329,9 @@
                     if (aDue && bDue) return aDue.localeCompare(bDue);
                     if (aDue && !bDue) return -1;
                     if (!aDue && bDue) return 1;
+                } else if (sortBy === 'effort') {
+                    const er = effortRank(a.task.effort) - effortRank(b.task.effort);
+                    if (er !== 0) return er;
                 } else if (sortBy === 'updatedAt') {
                     return b.task.updatedAt.localeCompare(a.task.updatedAt);
                 }
@@ -1427,7 +2341,7 @@
             });
 
             if (rows.length === 0) {
-                body.innerHTML = '<tr><td colspan="7">No matching tasks.</td></tr>';
+                body.innerHTML = '<tr><td colspan="8">No matching tasks.</td></tr>';
             } else {
                 body.innerHTML = rows.map(item => `
                     <tr>
@@ -1435,6 +2349,7 @@
                         <td>${escapeHtml(item.boardTitle || item.boardFileName)}</td>
                         <td>${escapeHtml(item.columnTitle)}</td>
                         <td>${escapeHtml(item.task.priority)}</td>
+                        <td>${escapeHtml(item.task.effort)}</td>
                         <td>${escapeHtml(item.task.dueDate || '-')}</td>
                         <td>${escapeHtml(formatDateTime(item.task.updatedAt))}</td>
                         <td><button class="btn" onclick="openLoadedBoard('${item.boardId}')">Open Board</button></td>
@@ -1446,186 +2361,29 @@
             updateUrlState();
         }
 
-        function validatePortfolioConfigData(data) {
-            if (!hasExactKeys(data, ['meta', 'portfolio'])) {
-                throw new Error('Invalid portfolio config root structure.');
-            }
-            if (!hasExactKeys(data.meta, ['schemaVersion', 'appId', 'updatedAt'])) {
-                throw new Error('Invalid portfolio meta structure.');
-            }
-            const schemaVersion = data.meta.schemaVersion;
-            const supportedPortfolioVersions = [...PORTFOLIO_LEGACY_SCHEMA_VERSIONS, PORTFOLIO_SCHEMA_VERSION];
-            if (!supportedPortfolioVersions.includes(schemaVersion)) {
-                throw new Error(`Unsupported portfolio schemaVersion. Expected one of ${supportedPortfolioVersions.join(', ')}.`);
-            }
-            if (data.meta.appId !== PORTFOLIO_APP_ID) {
-                throw new Error('Invalid portfolio appId.');
-            }
-            if (!normalizeTimestamp(data.meta.updatedAt)) {
-                throw new Error('Invalid portfolio updatedAt.');
-            }
-
-            if (schemaVersion === PORTFOLIO_SCHEMA_VERSION) {
-                if (!hasExactKeys(data.portfolio, ['settings', 'selectedBoardId', 'boardFiles'])) {
-                    throw new Error('Invalid portfolio structure.');
-                }
-                if (!hasExactKeys(data.portfolio.settings, ['title'])) {
-                    throw new Error('Invalid portfolio.settings structure.');
-                }
-                if (typeof data.portfolio.settings.title !== 'string' || !data.portfolio.settings.title.trim()) {
-                    throw new Error('Invalid portfolio.settings.title.');
-                }
-            } else if (schemaVersion === 2) {
-                if (!hasExactKeys(data.portfolio, ['settings', 'selectedBoardId', 'filters', 'boardFiles'])) {
-                    throw new Error('Invalid portfolio structure.');
-                }
-                if (!hasExactKeys(data.portfolio.settings, ['title'])) {
-                    throw new Error('Invalid portfolio.settings structure.');
-                }
-                if (typeof data.portfolio.settings.title !== 'string' || !data.portfolio.settings.title.trim()) {
-                    throw new Error('Invalid portfolio.settings.title.');
-                }
-            } else {
-                const portfolioKeys = Object.keys(data.portfolio || {}).sort();
-                const requiredKeys = ['selectedBoardId', 'filters', 'boardFiles'].sort();
-                const titledKeys = ['title', 'selectedBoardId', 'filters', 'boardFiles'].sort();
-                const hasValidPortfolioKeys = (
-                    portfolioKeys.length === requiredKeys.length && portfolioKeys.every((key, index) => key === requiredKeys[index])
-                ) || (
-                    portfolioKeys.length === titledKeys.length && portfolioKeys.every((key, index) => key === titledKeys[index])
-                );
-                if (!hasValidPortfolioKeys) {
-                    throw new Error('Invalid portfolio structure.');
-                }
-                if ('title' in data.portfolio && (typeof data.portfolio.title !== 'string' || !data.portfolio.title.trim())) {
-                    throw new Error('Invalid portfolio.title.');
-                }
-            }
-            if (typeof data.portfolio.selectedBoardId !== 'string') {
-                throw new Error('Invalid portfolio.selectedBoardId.');
-            }
-            if (schemaVersion !== PORTFOLIO_SCHEMA_VERSION) {
-                if (!hasExactKeys(data.portfolio.filters, ['search', 'priority', 'archive', 'sort'])) {
-                    throw new Error('Invalid portfolio filters structure.');
-                }
-                if (typeof data.portfolio.filters.search !== 'string') {
-                    throw new Error('Invalid portfolio filter: search.');
-                }
-                if (!['', 'high', 'medium', 'low'].includes(data.portfolio.filters.priority)) {
-                    throw new Error('Invalid portfolio filter: priority.');
-                }
-                if (!['active', 'all', 'archived'].includes(data.portfolio.filters.archive)) {
-                    throw new Error('Invalid portfolio filter: archive.');
-                }
-                if (!['priority', 'dueDate', 'updatedAt'].includes(data.portfolio.filters.sort)) {
-                    throw new Error('Invalid portfolio filter: sort.');
-                }
-            }
-            if (!Array.isArray(data.portfolio.boardFiles)) {
-                throw new Error('Invalid portfolio boardFiles.');
-            }
-            data.portfolio.boardFiles.forEach(fileName => {
-                if (typeof fileName !== 'string' || !fileName.trim()) {
-                    throw new Error('Invalid board file entry.');
-                }
-                assertRequiredExtension(fileName, BOARD_FILE_EXTENSION, 'Board file');
-            });
-        }
-
-        function serializePortfolioConfigData() {
-            return {
-                meta: {
-                    schemaVersion: PORTFOLIO_SCHEMA_VERSION,
-                    appId: PORTFOLIO_APP_ID,
-                    updatedAt: nowIso()
-                },
-                portfolio: {
-                    settings: {
-                        title: portfolioTitle
-                    },
-                    selectedBoardId: selectedPortfolioBoardId,
-                    boardFiles: portfolioBoards.map(board => board.fileName)
-                }
-            };
-        }
-
-        async function writePortfolioConfigToHandle(handle) {
-            const payload = JSON.stringify(serializePortfolioConfigData(), null, 2);
-            const writable = await handle.createWritable();
-            await writable.write(payload);
-            await writable.close();
-        }
-
-        async function savePortfolioConfigAs() {
-            try {
-                const handle = await window.showSaveFilePicker({
-                    suggestedName: 'portfolio.portfolio.json',
-                    types: [{ description: 'Portfolio JSON', accept: { 'application/json': [PORTFOLIO_FILE_EXTENSION] } }]
-                });
-                assertRequiredExtension(handle.name, PORTFOLIO_FILE_EXTENSION, 'Portfolio file');
-                currentPortfolioConfigHandle = handle;
-                await writePortfolioConfigToHandle(handle);
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    alert(`Save Portfolio As failed: ${error.message}`);
-                }
-            }
-        }
-
-        async function savePortfolioConfig() {
-            if (!currentPortfolioConfigHandle) {
-                await savePortfolioConfigAs();
-                return;
-            }
-            try {
-                assertRequiredExtension(currentPortfolioConfigHandle.name, PORTFOLIO_FILE_EXTENSION, 'Portfolio file');
-                await writePortfolioConfigToHandle(currentPortfolioConfigHandle);
-            } catch (error) {
-                alert(`Save Portfolio failed: ${error.message}`);
-            }
-        }
-
-        async function openPortfolioConfigFile() {
-            try {
-                const [handle] = await window.showOpenFilePicker({
-                    multiple: false,
-                    types: [{ description: 'Portfolio JSON', accept: { 'application/json': [PORTFOLIO_FILE_EXTENSION] } }]
-                });
-                const file = await handle.getFile();
-                assertRequiredExtension(file.name, PORTFOLIO_FILE_EXTENSION, 'Portfolio file');
-                const parsed = JSON.parse(await file.text());
-                validatePortfolioConfigData(parsed);
-                currentPortfolioConfigHandle = handle;
-                const settingsTitle = (typeof parsed.portfolio.settings?.title === 'string')
-                    ? parsed.portfolio.settings.title.trim()
-                    : '';
-                const legacyTitle = (typeof parsed.portfolio.title === 'string')
-                    ? parsed.portfolio.title.trim()
-                    : '';
-                portfolioTitle = settingsTitle || legacyTitle || DEFAULT_PORTFOLIO_TITLE;
-                applyPortfolioTitle();
-
-                selectedPortfolioBoardId = parsed.portfolio.selectedBoardId || '';
-                setAppMode('portfolio');
-                renderPortfolio();
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    alert(`Open Portfolio failed: ${error.message}`);
-                }
-            }
-        }
-
         function toggleArchivedView() {
+            const from = showArchivedOnly;
             showArchivedOnly = !showArchivedOnly;
             applyViewControls();
+            recordTimelineEvent('archived_filter_toggled', { from, to: showArchivedOnly });
             saveColumns();
             renderTasks();
             updateUrlState();
         }
 
-        function toggleSortMode() {
-            boardSortMode = boardSortMode === 'dueDate' ? 'manual' : 'dueDate';
+        function onBoardSortChange() {
+            const select = document.getElementById('boardSortSelect');
+            if (!select) return;
+            const next = select.value;
+            if (!['manual', 'dueDate', 'effort'].includes(next)) {
+                applyViewControls();
+                return;
+            }
+            const from = boardSortMode;
+            if (from === next) return;
+            boardSortMode = next;
             applyViewControls();
+            recordTimelineEvent('sort_mode_changed', { from, to: boardSortMode });
             saveColumns();
             renderTasks();
             updateUrlState();
@@ -1682,12 +2440,7 @@
         }
 
         function persistLocalState() {
-            localStorage.setItem('householdTasks', JSON.stringify(tasks));
-            localStorage.setItem('householdColumns', JSON.stringify(columns));
-            localStorage.setItem('householdBoardTitle', boardTitle);
-            localStorage.setItem('householdBoardSortMode', boardSortMode);
-            localStorage.setItem('householdShowArchivedOnly', String(showArchivedOnly));
-            localStorage.setItem('householdPortfolioTitle', portfolioTitle);
+            return;
         }
 
         function onBoardChanged() {
@@ -1719,6 +2472,7 @@
                 dueDate: normalizeDueDate(task.dueDate),
                 tags: normalizeTags(task.tags),
                 priority: task.priority,
+                effort: normalizeEffort(task.effort),
                 status: task.status
             };
         }
@@ -1758,6 +2512,7 @@
         }
 
         function serializeBoardData() {
+            ensureTimeline();
             const now = new Date().toISOString();
             return {
                 meta: {
@@ -1770,11 +2525,48 @@
                     columns: columns.map(col => ({ status: col.status, title: col.title })),
                     tasks: tasks.map(task => normalizeTask(task)),
                     settings: {
-                        title: boardTitle
+                        title: boardTitle,
+                        sortMode: boardSortMode,
+                        showArchivedOnly
                     }
                 },
                 extensions: boardExtensions
             };
+        }
+
+        function validateTimelineExtensions(extensions) {
+            if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions)) return;
+            if (!extensions.timeline) return;
+            const timeline = extensions.timeline;
+            if (!timeline || typeof timeline !== 'object' || Array.isArray(timeline)) {
+                throw new Error('Invalid timeline structure.');
+            }
+            if (typeof timeline.version !== 'number') {
+                throw new Error('Invalid timeline.version.');
+            }
+            if (!Array.isArray(timeline.events)) {
+                throw new Error('Invalid timeline.events.');
+            }
+            if (typeof timeline.nextId !== 'number') {
+                throw new Error('Invalid timeline.nextId.');
+            }
+            timeline.events.forEach((event) => {
+                if (!event || typeof event !== 'object' || Array.isArray(event)) {
+                    throw new Error('Invalid timeline event.');
+                }
+                if (typeof event.id !== 'number' || !Number.isFinite(event.id)) {
+                    throw new Error('Invalid timeline event id.');
+                }
+                if (typeof event.ts !== 'string' || Number.isNaN(Date.parse(event.ts))) {
+                    throw new Error('Invalid timeline event ts.');
+                }
+                if (typeof event.type !== 'string' || !event.type.trim()) {
+                    throw new Error('Invalid timeline event type.');
+                }
+                if (!('data' in event)) {
+                    throw new Error('Invalid timeline event data.');
+                }
+            });
         }
 
         function validateBoardData(data) {
@@ -1809,21 +2601,16 @@
             if (!Array.isArray(data.board.tasks)) {
                 throw new Error('Board tasks must be an array.');
             }
-            if (schemaVersion === BOARD_SCHEMA_VERSION) {
-                if (!hasExactKeys(data.board.settings, ['title'])) {
-                    throw new Error('Invalid board.settings structure.');
-                }
-                if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
-                    throw new Error('Invalid board.settings.title.');
-                }
-            } else {
-                if (!hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly'])) {
-                    throw new Error('Invalid board.settings structure.');
-                }
-                if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
-                    throw new Error('Invalid board.settings.title.');
-                }
-                if (!['manual', 'dueDate'].includes(data.board.settings.sortMode)) {
+            const settingsHasTitleOnly = hasExactKeys(data.board.settings, ['title']);
+            const settingsHasFull = hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly']);
+            if (!settingsHasTitleOnly && !settingsHasFull) {
+                throw new Error('Invalid board.settings structure.');
+            }
+            if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
+                throw new Error('Invalid board.settings.title.');
+            }
+            if (settingsHasFull) {
+                if (!['manual', 'dueDate', 'effort'].includes(data.board.settings.sortMode)) {
                     throw new Error('Invalid board.settings.sortMode.');
                 }
                 if (typeof data.board.settings.showArchivedOnly !== 'boolean') {
@@ -1833,6 +2620,7 @@
             if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) {
                 throw new Error('Invalid extensions structure.');
             }
+            validateTimelineExtensions(data.extensions);
 
             const statuses = new Set();
             data.board.columns.forEach((col) => {
@@ -1852,7 +2640,9 @@
             });
 
             data.board.tasks.forEach((task) => {
-                if (!hasExactKeys(task, ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'tags', 'priority', 'status'])) {
+                const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'tags', 'priority', 'status'];
+                const extendedKeys = [...baseKeys, 'effort'];
+                if (!hasExactKeys(task, baseKeys) && !hasExactKeys(task, extendedKeys)) {
                     throw new Error('Invalid task structure.');
                 }
                 if (typeof task.id !== 'number' || !Number.isFinite(task.id)) {
@@ -1885,6 +2675,9 @@
                 if (!['high', 'medium', 'low'].includes(task.priority)) {
                     throw new Error('Task priority is invalid.');
                 }
+                if ('effort' in task && !EFFORT_BUCKETS.includes(String(task.effort).toUpperCase())) {
+                    throw new Error('Task effort is invalid.');
+                }
                 if (typeof task.status !== 'string' || !statuses.has(task.status)) {
                     throw new Error('Task status is invalid.');
                 }
@@ -1909,11 +2702,15 @@
 
         function applyBoardData(data) {
             validateBoardData(data);
+            const settings = data.board.settings || {};
             columns = normalizeColumns(data.board.columns);
             tasks = data.board.tasks.map(task => normalizeTask(task));
             boardCreatedAt = data.meta.createdAt;
             boardExtensions = data.extensions;
-            boardTitle = data.board.settings.title.trim();
+            ensureTimeline();
+            boardTitle = settings.title.trim();
+            boardSortMode = ['manual', 'dueDate', 'effort'].includes(settings.sortMode) ? settings.sortMode : 'manual';
+            showArchivedOnly = typeof settings.showArchivedOnly === 'boolean' ? settings.showArchivedOnly : false;
             applyBoardTitle();
             applyViewControls();
         }
@@ -1923,19 +2720,14 @@
             if (!nextTitle) return;
             const trimmed = nextTitle.trim();
             if (!trimmed || trimmed === boardTitle) return;
+            const fromTitle = boardTitle;
             boardTitle = trimmed;
             applyBoardTitle();
+            recordTimelineEvent('board_title_changed', {
+                fromTitle,
+                toTitle: trimmed
+            });
             onBoardChanged();
-        }
-
-        function renamePortfolio() {
-            const nextTitle = prompt('Portfolio title:', portfolioTitle);
-            if (!nextTitle) return;
-            const trimmed = nextTitle.trim();
-            if (!trimmed || trimmed === portfolioTitle) return;
-            portfolioTitle = trimmed;
-            applyPortfolioTitle();
-            localStorage.setItem('householdPortfolioTitle', portfolioTitle);
         }
 
         async function writeBoardToFileHandle(fileHandle) {
@@ -2039,6 +2831,7 @@
             if (!confirmDiscardChanges('New Board')) return;
             suppressChangeTracking = true;
             loadTemplateBoard();
+            ensureTimeline();
             currentFileHandle = null;
             currentFileName = '';
             applyBoardTitle();
@@ -2131,6 +2924,7 @@
                 return normalizeTask(task);
             });
 
+            ensureTimeline();
             suppressChangeTracking = true;
             persistLocalState();
             suppressChangeTracking = false;
@@ -2138,10 +2932,10 @@
             renderBoard();
             renderTasks();
             applyBoardTitle();
-            applyPortfolioTitle();
             applyViewControls();
             setSaveStatus('Saved', 'saved');
             setAppMode('board');
+            setupFileDrop();
             applyUrlState();
         }
 
@@ -2175,6 +2969,7 @@
         function renderTasks() {
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const priorityFilter = document.getElementById('priorityFilter').value;
+            const effortFilter = document.getElementById('effortFilter').value;
 
             const columnNodes = Object.fromEntries(
                 columns.map(col => [col.status, document.getElementById(col.status + 'Column')])
@@ -2202,6 +2997,7 @@
                 const tagsText = normalizeTags(task.tags).join(' ').toLowerCase();
                 if (searchTerm && !task.title.toLowerCase().includes(searchTerm) && !tagsText.includes(searchTerm)) return false;
                 if (priorityFilter && task.priority !== priorityFilter) return false;
+                if (effortFilter && task.effort !== effortFilter) return false;
                 return true;
             });
 
@@ -2223,6 +3019,15 @@
                             }
                             if (aDue && !bDue) return -1;
                             if (!aDue && bDue) return 1;
+                            return a.index - b.index;
+                        })
+                        .map(entry => entry.task);
+                } else if (boardSortMode === 'effort') {
+                    statusTasks = statusTasks
+                        .map((task, index) => ({ task, index }))
+                        .sort((a, b) => {
+                            const er = effortRank(a.task.effort) - effortRank(b.task.effort);
+                            if (er !== 0) return er;
                             return a.index - b.index;
                         })
                         .map(entry => entry.task);
@@ -2272,6 +3077,7 @@
             const highlightedTitle = highlightSearchMatch(task.title, searchTerm);
             const visibleTags = normalizeTags(task.tags).slice(0, 2);
             const highlightedTagsHtml = visibleTags.map(tag => `<span class="task-tag">#${highlightSearchMatch(tag, searchTerm)}</span>`).join('');
+            const effort = normalizeEffort(task.effort);
             const archiveButtonLabel = task.archived ? '↺' : '×';
             const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
 
@@ -2288,6 +3094,10 @@
                     <span class="task-tag">
                         <span class="priority-dot priority-${task.priority}"></span>
                         ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                    </span>
+                    <span class="task-tag" title="Effort">
+                        <span class="effort-dot effort-${effort.toLowerCase()}"></span>
+                        ${escapeHtml(effort)}
                     </span>
                     ${task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : ''}
                     ${highlightedTagsHtml}
@@ -2338,6 +3148,7 @@
                     document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
                     document.getElementById('taskTags').value = tagsToInput(task.tags);
                     document.getElementById('taskPriority').value = task.priority;
+                    document.getElementById('taskEffort').value = normalizeEffort(task.effort);
                     document.getElementById('modalTitle').textContent = 'Edit Task';
                     pendingNewTaskStatus = null;
                 }
@@ -2366,6 +3177,7 @@
             document.getElementById('detailTitle').textContent = task.title || '-';
             document.getElementById('detailDescription').textContent = task.description || '-';
             document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
+            document.getElementById('detailEffort').textContent = task.effort || '-';
             document.getElementById('detailStatus').textContent = statusTitle || '-';
             document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
             document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
@@ -2425,20 +3237,29 @@
             const dueDate = normalizeDueDate(document.getElementById('taskDueDate').value);
             const tags = parseTagsInput(document.getElementById('taskTags').value);
             const priority = document.getElementById('taskPriority').value;
+            const effort = normalizeEffort(document.getElementById('taskEffort').value);
 
             if (!title) return;
 
             if (id) {
                 const task = tasks.find(t => t.id === parseInt(id));
                 if (task) {
+                    const before = deepClone(task);
                     task.title = title;
                     task.description = description;
                     task.checklist = checklist;
                     task.dueDate = dueDate;
                     task.tags = tags;
                     task.priority = priority;
+                    task.effort = effort;
                     touchTask(task);
                     selectedTaskId = task.id;
+                    recordTimelineEvent('task_updated', {
+                        taskId: task.id,
+                        taskTitle: task.title,
+                        before,
+                        after: deepClone(task)
+                    });
                 }
             } else {
                 const now = nowIso();
@@ -2453,10 +3274,16 @@
                     dueDate,
                     tags,
                     priority,
+                    effort,
                     status: pendingNewTaskStatus || columns[0].status
                 };
                 tasks.push(newTask);
                 selectedTaskId = newTask.id;
+                recordTimelineEvent('task_created', {
+                    taskId: newTask.id,
+                    taskTitle: newTask.title,
+                    task: deepClone(newTask)
+                });
             }
 
             saveTasks();
@@ -2477,6 +3304,10 @@
             const wasArchived = task.archived;
             task.archived = !task.archived;
             touchTask(task);
+            recordTimelineEvent(task.archived ? 'task_archived' : 'task_restored', {
+                taskId: task.id,
+                taskTitle: task.title
+            });
             saveTasks();
             renderTasks();
 
@@ -2486,18 +3317,13 @@
                     if (!target) return;
                     target.archived = false;
                     touchTask(target);
+                    recordTimelineEvent('task_restored', {
+                        taskId: target.id,
+                        taskTitle: target.title
+                    });
                     saveTasks();
                     renderTasks();
                 });
-            }
-        }
-
-        function clearAllTasks() {
-            if (confirm('Clear all tasks?')) {
-                tasks = [];
-                selectedTaskId = null;
-                saveTasks();
-                renderTasks();
             }
         }
 
@@ -2523,7 +3349,12 @@
                 suffix++;
             }
 
-            columns.push({ status, title: name.trim() });
+            const column = { status, title: name.trim() };
+            columns.push(column);
+            recordTimelineEvent('column_added', {
+                column: deepClone(column),
+                index: columns.length - 1
+            });
             saveColumns();
             renderBoard();
             renderTasks();
@@ -2538,7 +3369,13 @@
             const trimmed = nextTitle.trim();
             if (!trimmed || trimmed === column.title) return;
 
+            const fromTitle = column.title;
             column.title = trimmed;
+            recordTimelineEvent('column_renamed', {
+                status,
+                fromTitle,
+                toTitle: trimmed
+            });
             saveColumns();
             renderBoard();
             renderTasks();
@@ -2566,6 +3403,10 @@
 
             const [moved] = columns.splice(sourceIndex, 1);
             columns.splice(targetIndex, 0, moved);
+            recordTimelineEvent('column_reordered', {
+                fromIndex: sourceIndex,
+                toIndex: targetIndex
+            });
             saveColumns();
             renderBoard();
             renderTasks();
@@ -2597,6 +3438,13 @@
             });
 
             columns = columns.filter(col => col.status !== status);
+            recordTimelineEvent('column_deleted', {
+                status,
+                columnTitle: column.title,
+                fallbackStatus: fallback.status,
+                fallbackTitle: fallback.title,
+                movedTaskCount: affectedTasks
+            });
             saveTasks();
             saveColumns();
             renderBoard();
@@ -2640,14 +3488,30 @@
                 task.status = status;
                 selectedTaskId = task.id;
                 touchTask(task);
+                const moved = previousStatus !== status;
+                if (moved) {
+                    recordTimelineEvent('task_moved', {
+                        taskId: task.id,
+                        taskTitle: task.title,
+                        fromStatus: previousStatus,
+                        toStatus: status
+                    });
+                }
                 saveTasks();
                 renderTasks();
-                if (previousStatus !== status) {
+                if (moved) {
                     showUndo('Task moved', () => {
                         const target = tasks.find(t => t.id === id);
                         if (!target) return;
+                        const fromStatus = target.status;
                         target.status = previousStatus;
                         touchTask(target);
+                        recordTimelineEvent('task_moved', {
+                            taskId: target.id,
+                            taskTitle: target.title,
+                            fromStatus,
+                            toStatus: previousStatus
+                        });
                         saveTasks();
                         renderTasks();
                     });
@@ -2680,30 +3544,32 @@
             }
         });
 
+        document.getElementById('timelineModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('timelineModal')) {
+                closeTimelineModal();
+            }
+        });
+
         document.addEventListener('keydown', (e) => {
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
             const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+            const timelineModalOpen = document.getElementById('timelineModal').classList.contains('active');
             const modalOpen = document.getElementById('taskModal').classList.contains('active')
                 || document.getElementById('taskDetailModal').classList.contains('active')
-                || document.getElementById('shortcutsModal').classList.contains('active');
+                || document.getElementById('shortcutsModal').classList.contains('active')
+                || document.getElementById('timelineModal').classList.contains('active');
 
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'c') {
+                if (timelineModalOpen) return;
                 e.preventDefault();
-                if (appMode === 'portfolio') {
-                    savePortfolioConfigAs();
-                } else {
-                    saveBoardAs();
-                }
+                saveBoardAs();
                 return;
             }
 
             if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 's') {
+                if (timelineModalOpen) return;
                 e.preventDefault();
-                if (appMode === 'portfolio') {
-                    savePortfolioConfig();
-                } else {
-                    saveBoard();
-                }
+                saveBoard();
                 return;
             }
 
@@ -2735,6 +3601,7 @@
                 closeModal();
                 closeDetailModal();
                 closeShortcutsModal();
+                closeTimelineModal();
             }
         });
 
