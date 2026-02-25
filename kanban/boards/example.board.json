@@ -34,10 +34,6 @@
         "createdAt": "2026-02-13T00:00:00.000Z",
         "updatedAt": "2026-02-13T00:00:00.000Z",
         "dueDate": "",
-        "tags": [
-          "markathon",
-          "documentation"
-        ],
         "priority": "high",
         "effort": "S",
         "status": "backlog"
@@ -56,10 +52,6 @@
         "createdAt": "2026-02-13T00:00:00.000Z",
         "updatedAt": "2026-02-14T13:13:53.160Z",
         "dueDate": "",
-        "tags": [
-          "markathon",
-          "analysis"
-        ],
         "priority": "high",
         "effort": "S",
         "status": "concluid"
@@ -73,10 +65,6 @@
         "createdAt": "2026-02-13T00:00:00.000Z",
         "updatedAt": "2026-02-13T00:00:00.000Z",
         "dueDate": "",
-        "tags": [
-          "markathon",
-          "presentation"
-        ],
         "priority": "medium",
         "effort": "S",
         "status": "backlog"
@@ -129,10 +117,6 @@
                   "createdAt": "2026-02-13T00:00:00.000Z",
                   "updatedAt": "2026-02-13T00:00:00.000Z",
                   "dueDate": "",
-                  "tags": [
-                    "markathon",
-                    "documentation"
-                  ],
                   "priority": "high",
                   "effort": "S",
                   "status": "backlog"
@@ -151,10 +135,6 @@
                   "createdAt": "2026-02-13T00:00:00.000Z",
                   "updatedAt": "2026-02-14T13:13:53.160Z",
                   "dueDate": "",
-                  "tags": [
-                    "markathon",
-                    "analysis"
-                  ],
                   "priority": "high",
                   "effort": "S",
                   "status": "concluid"
@@ -168,10 +148,6 @@
                   "createdAt": "2026-02-13T00:00:00.000Z",
                   "updatedAt": "2026-02-13T00:00:00.000Z",
                   "dueDate": "",
-                  "tags": [
-                    "markathon",
-                    "presentation"
-                  ],
                   "priority": "medium",
                   "effort": "S",
                   "status": "backlog"

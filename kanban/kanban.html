@@ -578,6 +578,14 @@
             gap: 4px;
         }
 
+        .task-tag-score {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #dde2e6;
+            border-radius: 4px;
+            padding: 1px 6px;
+        }
+
         .effort-dot {
             width: 6px;
             height: 6px;
@@ -1159,6 +1167,12 @@
                                     <span class="portfolio-sort-indicator"></span>
                                 </button>
                             </th>
+                            <th id="portfolioSortHeader-score" aria-sort="none">
+                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('score')">
+                                    <span>Score</span>
+                                    <span class="portfolio-sort-indicator"></span>
+                                </button>
+                            </th>
                             <th id="portfolioSortHeader-dueDate" aria-sort="none">
                                 <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('dueDate')">
                                     <span>Due</span>
@@ -1175,7 +1189,7 @@
                         </tr>
                     </thead>
                     <tbody id="portfolioTableBody">
-                        <tr><td colspan="8">Open board JSON files to see portfolio tasks.</td></tr>
+                        <tr><td colspan="9">Open board JSON files to see portfolio tasks.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -1204,33 +1218,29 @@
                         <label>Todo List (one item per line, optional)</label>
                         <textarea id="taskChecklist" placeholder="[ ] Buy detergent&#10;[x] Start dishwasher"></textarea>
                     </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <input type="date" id="taskDueDate">
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Due Date</label>
-                            <input type="date" id="taskDueDate">
+                            <label>Priority</label>
+                            <select id="taskPriority">
+                                <option value="high">High</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="low">Low</option>
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>Tags (comma separated)</label>
-                            <input type="text" id="taskTags" placeholder="home, deep-clean">
+                            <label>Effort</label>
+                            <select id="taskEffort">
+                                <option value="XS">XS</option>
+                                <option value="S" selected>S</option>
+                                <option value="M">M</option>
+                                <option value="L">L</option>
+                                <option value="XL">XL</option>
+                            </select>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Priority</label>
-                        <select id="taskPriority">
-                            <option value="high">High</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="low">Low</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Effort</label>
-                        <select id="taskEffort">
-                            <option value="XS">XS</option>
-                            <option value="S" selected>S</option>
-                            <option value="M">M</option>
-                            <option value="L">L</option>
-                            <option value="XL">XL</option>
-                        </select>
                     </div>
                 </form>
             </div>
@@ -1280,10 +1290,6 @@
                     <div class="detail-item">
                         <span class="detail-label">Due</span>
                         <span class="detail-value" id="detailDueDate">-</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Tags</span>
-                        <span class="detail-value" id="detailTags">-</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Todo List</span>
@@ -1563,7 +1569,6 @@
                 createdAt: nowIso(),
                 updatedAt: nowIso(),
                 dueDate: '',
-                tags: [],
                 priority: task.priority,
                 effort: normalizeEffort(task.effort),
                 status: task.status
@@ -2101,11 +2106,6 @@
             if (String(before.archived) !== String(after.archived)) {
                 changes.push(`Archived: ${before.archived ? 'yes' : 'no'} -> ${after.archived ? 'yes' : 'no'}`);
             }
-            const beforeTags = normalizeTags(before.tags || []);
-            const afterTags = normalizeTags(after.tags || []);
-            if (JSON.stringify(beforeTags) !== JSON.stringify(afterTags)) {
-                changes.push(`Tags: ${beforeTags.join(', ') || '-'} -> ${afterTags.join(', ') || '-'}`);
-            }
             const beforeChecklist = JSON.stringify(normalizeChecklist(before.checklist || []));
             const afterChecklist = JSON.stringify(normalizeChecklist(after.checklist || []));
             if (beforeChecklist !== afterChecklist) {
@@ -2154,6 +2154,33 @@
         function effortRank(effort) {
             const normalized = normalizeEffort(effort);
             return EFFORT_BUCKETS.indexOf(normalized);
+        }
+
+        function priorityScoreValue(priority) {
+            if (priority === 'high') return 3;
+            if (priority === 'medium') return 2;
+            if (priority === 'low') return 1;
+            return 0;
+        }
+
+        function effortScoreValue(effort) {
+            const normalized = normalizeEffort(effort);
+            if (normalized === 'XS') return 1;
+            if (normalized === 'S') return 2;
+            if (normalized === 'M') return 3;
+            if (normalized === 'L') return 5;
+            if (normalized === 'XL') return 8;
+            return 0;
+        }
+
+        function taskScore(task) {
+            const denominator = effortScoreValue(task?.effort);
+            if (!denominator) return 0;
+            return priorityScoreValue(task?.priority) / denominator;
+        }
+
+        function formatTaskScore(task) {
+            return taskScore(task).toFixed(2);
         }
 
         function normalizeEffort(value) {
@@ -2383,8 +2410,7 @@
                 if (archiveFilter === 'archived' && !task.archived) return false;
                 if (priorityFilter && task.priority !== priorityFilter) return false;
                 if (effortFilter && task.effort !== effortFilter) return false;
-                const tags = normalizeTags(task.tags).join(' ').toLowerCase();
-                if (search && !task.title.toLowerCase().includes(search) && !tags.includes(search)) return false;
+                if (search && !task.title.toLowerCase().includes(search)) return false;
                 return true;
             });
 
@@ -2393,7 +2419,7 @@
             renderPortfolioSortHeaders();
 
             if (rows.length === 0) {
-                body.innerHTML = '<tr><td colspan="8">No matching tasks.</td></tr>';
+                body.innerHTML = '<tr><td colspan="9">No matching tasks.</td></tr>';
             } else {
                 body.innerHTML = rows.map(item => `
                     <tr>
@@ -2402,6 +2428,7 @@
                         <td>${escapeHtml(item.columnTitle)}</td>
                         <td>${escapeHtml(item.task.priority)}</td>
                         <td>${escapeHtml(item.task.effort)}</td>
+                        <td>${formatTaskScore(item.task)}</td>
                         <td>${escapeHtml(item.task.dueDate || '-')}</td>
                         <td>${escapeHtml(formatDateTime(item.task.updatedAt))}</td>
                         <td><button class="btn" onclick="openLoadedBoard('${item.boardId}')">Open Board</button></td>
@@ -2414,7 +2441,7 @@
         }
 
         function normalizePortfolioSortKey(value) {
-            return ['board', 'task', 'column', 'priority', 'effort', 'dueDate', 'updatedAt'].includes(value)
+            return ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'].includes(value)
                 ? value
                 : 'priority';
         }
@@ -2435,7 +2462,7 @@
         }
 
         function renderPortfolioSortHeaders() {
-            const keys = ['board', 'task', 'column', 'priority', 'effort', 'dueDate', 'updatedAt'];
+            const keys = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
             keys.forEach((key) => {
                 const th = document.getElementById(`portfolioSortHeader-${key}`);
                 if (!th) return;
@@ -2467,6 +2494,8 @@
                 base = priorityRank(a.task.priority) - priorityRank(b.task.priority);
             } else if (key === 'effort') {
                 base = effortRank(a.task.effort) - effortRank(b.task.effort);
+            } else if (key === 'score') {
+                base = taskScore(a.task) - taskScore(b.task);
             } else if (key === 'dueDate') {
                 base = comparePortfolioDueDateAsc(a, b);
             } else if (key === 'updatedAt') {
@@ -2628,7 +2657,6 @@
                 createdAt: normalizeTimestamp(task.createdAt) || nowIso(),
                 updatedAt: normalizeTimestamp(task.updatedAt) || nowIso(),
                 dueDate: normalizeDueDate(task.dueDate),
-                tags: normalizeTags(task.tags),
                 priority: task.priority,
                 effort: normalizeEffort(task.effort),
                 status: task.status
@@ -2646,18 +2674,6 @@
             return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
         }
 
-        function normalizeTags(tags) {
-            if (!Array.isArray(tags)) return [];
-            return tags
-                .map(tag => String(tag).trim())
-                .filter(Boolean)
-                .slice(0, 8);
-        }
-
-        function parseTagsInput(value) {
-            return normalizeTags(value.split(','));
-        }
-
         function normalizeBoardArchiveFilter(value) {
             if (value === true || value === '1' || value === 'archived') return 'archived';
             if (value === 'all') return 'all';
@@ -2669,10 +2685,6 @@
             if (mode === 'archived') return 'Archived Only';
             if (mode === 'all') return 'Active + Archived';
             return 'Active Only';
-        }
-
-        function tagsToInput(tags) {
-            return normalizeTags(tags).join(', ');
         }
 
         function isTaskOverdue(task) {
@@ -2816,9 +2828,16 @@
             });
 
             data.board.tasks.forEach((task) => {
-                const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'tags', 'priority', 'status'];
+                const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
+                const legacyBaseKeys = [...baseKeys, 'tags'];
                 const extendedKeys = [...baseKeys, 'effort'];
-                if (!hasExactKeys(task, baseKeys) && !hasExactKeys(task, extendedKeys)) {
+                const legacyExtendedKeys = [...legacyBaseKeys, 'effort'];
+                if (
+                    !hasExactKeys(task, baseKeys) &&
+                    !hasExactKeys(task, extendedKeys) &&
+                    !hasExactKeys(task, legacyBaseKeys) &&
+                    !hasExactKeys(task, legacyExtendedKeys)
+                ) {
                     throw new Error('Invalid task structure.');
                 }
                 if (typeof task.id !== 'number' || !Number.isFinite(task.id)) {
@@ -2845,9 +2864,6 @@
                 if (typeof task.dueDate !== 'string' || (task.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))) {
                     throw new Error('Task dueDate must be YYYY-MM-DD or empty.');
                 }
-                if (!Array.isArray(task.tags)) {
-                    throw new Error('Task tags must be an array.');
-                }
                 if (!['high', 'medium', 'low'].includes(task.priority)) {
                     throw new Error('Task priority is invalid.');
                 }
@@ -2868,11 +2884,16 @@
                         throw new Error('Checklist item done must be boolean.');
                     }
                 });
-                task.tags.forEach((tag) => {
-                    if (typeof tag !== 'string' || !tag.trim()) {
-                        throw new Error('Task tag must be non-empty string.');
+                if (Object.prototype.hasOwnProperty.call(task, 'tags')) {
+                    if (!Array.isArray(task.tags)) {
+                        throw new Error('Task tags must be an array.');
                     }
-                });
+                    task.tags.forEach((tag) => {
+                        if (typeof tag !== 'string' || !tag.trim()) {
+                            throw new Error('Task tag must be non-empty string.');
+                        }
+                    });
+                }
             });
         }
 
@@ -3172,8 +3193,7 @@
             const filtered = tasks.filter(task => {
                 if (boardArchiveFilter === 'active' && task.archived) return false;
                 if (boardArchiveFilter === 'archived' && !task.archived) return false;
-                const tagsText = normalizeTags(task.tags).join(' ').toLowerCase();
-                if (searchTerm && !task.title.toLowerCase().includes(searchTerm) && !tagsText.includes(searchTerm)) return false;
+                if (searchTerm && !task.title.toLowerCase().includes(searchTerm)) return false;
                 if (priorityFilter && task.priority !== priorityFilter) return false;
                 if (effortFilter && task.effort !== effortFilter) return false;
                 return true;
@@ -3253,9 +3273,8 @@
             };
 
             const highlightedTitle = highlightSearchMatch(task.title, searchTerm);
-            const visibleTags = normalizeTags(task.tags).slice(0, 2);
-            const highlightedTagsHtml = visibleTags.map(tag => `<span class="task-tag">#${highlightSearchMatch(tag, searchTerm)}</span>`).join('');
             const effort = normalizeEffort(task.effort);
+            const score = formatTaskScore(task);
             const archiveButtonLabel = task.archived ? '↺' : '×';
             const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
 
@@ -3277,8 +3296,8 @@
                         <span class="effort-dot effort-${effort.toLowerCase()}"></span>
                         ${escapeHtml(effort)}
                     </span>
+                    <span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>
                     ${task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : ''}
-                    ${highlightedTagsHtml}
                     ${task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(item => item.done).length}/${task.checklist.length} done</span>` : ''}
                 </div>
             `;
@@ -3311,7 +3330,6 @@
             document.getElementById('taskId').value = '';
             document.getElementById('modalTitle').textContent = 'New Task';
             document.getElementById('taskDueDate').value = '';
-            document.getElementById('taskTags').value = '';
             pendingNewTaskStatus = preferredStatus && columns.some(col => col.status === preferredStatus)
                 ? preferredStatus
                 : columns[0].status;
@@ -3324,7 +3342,6 @@
                     document.getElementById('taskDescription').value = task.description || '';
                     document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
                     document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
-                    document.getElementById('taskTags').value = tagsToInput(task.tags);
                     document.getElementById('taskPriority').value = task.priority;
                     document.getElementById('taskEffort').value = normalizeEffort(task.effort);
                     document.getElementById('modalTitle').textContent = 'Edit Task';
@@ -3360,7 +3377,6 @@
             document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
             document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
             document.getElementById('detailDueDate').textContent = normalizeDueDate(task.dueDate) || '-';
-            document.getElementById('detailTags').textContent = normalizeTags(task.tags).length ? normalizeTags(task.tags).map(tag => `#${tag}`).join(', ') : '-';
             renderDetailChecklist(task);
             document.getElementById('taskDetailModal').classList.add('active');
             renderTasks();
@@ -3413,7 +3429,6 @@
             const description = document.getElementById('taskDescription').value.trim();
             const checklist = parseChecklistInput(document.getElementById('taskChecklist').value);
             const dueDate = normalizeDueDate(document.getElementById('taskDueDate').value);
-            const tags = parseTagsInput(document.getElementById('taskTags').value);
             const priority = document.getElementById('taskPriority').value;
             const effort = normalizeEffort(document.getElementById('taskEffort').value);
 
@@ -3427,7 +3442,6 @@
                     task.description = description;
                     task.checklist = checklist;
                     task.dueDate = dueDate;
-                    task.tags = tags;
                     task.priority = priority;
                     task.effort = effort;
                     touchTask(task);
@@ -3450,7 +3464,6 @@
                     createdAt: now,
                     updatedAt: now,
                     dueDate,
-                    tags,
                     priority,
                     effort,
                     status: pendingNewTaskStatus || columns[0].status

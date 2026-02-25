@@ -22,3 +22,9 @@ pnpm-debug.log*
 Thumbs.db
 *.tmp
 *.temp
+
+# Kanban (Playwright / Node)
+kanban/node_modules/
+kanban/test-results/
+kanban/playwright-report/
+kanban/blob-report/

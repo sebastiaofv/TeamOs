@@ -11,17 +11,16 @@ A minimalist single-file Kanban app built with plain HTML, CSS, and JavaScript (
   - description
   - checklist/subtasks
   - due date
-  - tags
   - activity timestamps (created/updated)
 - Timeline modal to review changes over time.
 - Archive/restore tasks and toggle archived view.
-- Sort tasks manually or by due date.
+- Sort tasks manually, by due date, or by effort.
 - Undo toast for key actions (archive, move).
-- Search with yellow text highlighting (titles and tags).
+- Search with yellow text highlighting (titles).
 
 ## Data and persistence
 
-- Local persistence via `localStorage`.
+- In-memory state during the current session (no `localStorage` persistence).
 - File System Access API integration (Chromium):
   - Open board
   - Save / Save As board
@@ -39,7 +38,7 @@ The app validates both extension and JSON structure on open/upload.
 ## Portfolio view
 
 - Aggregate tasks across multiple loaded board files.
-- Filters and sorting.
+- Filters and sorting (including score = priority / effort).
 - Quick switch from portfolio rows/chips to a specific loaded board.
 
 ## Keyboard shortcuts
@@ -53,9 +52,38 @@ The app validates both extension and JSON structure on open/upload.
 
 ## Example files
 
-- `boards/markathon.board.json` (example board)
-- `portfolios/example.portfolio.json` (example portfolio config)
+- `boards/example.board.json` (example board)
 
 ## Run
 
 Open `kanban.html` directly in a modern Chromium browser.
+
+## Testing
+
+Automated tests use Playwright and start a temporary local HTTP server automatically.
+
+### Prerequisites
+
+- Node.js 18+ (recommended)
+- Python 3 (used for the local static server in Playwright config)
+
+### Install
+
+```bash
+npm install
+npx playwright install
+```
+
+### Run tests
+
+```bash
+npm test
+```
+
+Optional modes:
+
+```bash
+npm run test:headed
+npm run test:ui
+npm run test:debug
+```
