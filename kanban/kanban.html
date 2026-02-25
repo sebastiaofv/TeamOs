@@ -364,6 +364,35 @@
             z-index: 1;
         }
 
+        .portfolio-sort-btn {
+            appearance: none;
+            background: none;
+            border: 0;
+            color: inherit;
+            cursor: pointer;
+            font: inherit;
+            letter-spacing: inherit;
+            padding: 0;
+            text-transform: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .portfolio-sort-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .portfolio-sort-btn.active {
+            color: var(--text-primary);
+        }
+
+        .portfolio-sort-indicator {
+            min-width: 10px;
+            display: inline-block;
+            text-align: center;
+        }
+
 
         .column {
             background: var(--bg-primary);
@@ -1071,15 +1100,6 @@
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label>Sort:</label>
-                        <select id="portfolioSortSelect" onchange="renderPortfolio()">
-                            <option value="priority">Priority</option>
-                            <option value="effort">Effort</option>
-                            <option value="dueDate">Due Date</option>
-                            <option value="updatedAt">Updated</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
                         <label>Priority:</label>
                         <select id="portfolioPriorityFilter" onchange="renderPortfolio()">
                             <option value="">All</option>
@@ -1109,13 +1129,48 @@
                 <table class="portfolio-table">
                     <thead>
                         <tr>
-                            <th>Board</th>
-                            <th>Task</th>
-                            <th>Column</th>
-                            <th>Priority</th>
-                            <th>Effort</th>
-                            <th>Due</th>
-                            <th>Updated</th>
+                            <th id="portfolioSortHeader-board" aria-sort="none">
+                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('board')">
+                                    <span>Board</span>
+                                    <span class="portfolio-sort-indicator"></span>
+                                </button>
+                            </th>
+                            <th id="portfolioSortHeader-task" aria-sort="none">
+                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('task')">
+                                    <span>Task</span>
+                                    <span class="portfolio-sort-indicator"></span>
+                                </button>
+                            </th>
+                            <th id="portfolioSortHeader-column" aria-sort="none">
+                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('column')">
+                                    <span>Column</span>
+                                    <span class="portfolio-sort-indicator"></span>
+                                </button>
+                            </th>
+                            <th id="portfolioSortHeader-priority" aria-sort="none">
+                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('priority')">
+                                    <span>Priority</span>
+                                    <span class="portfolio-sort-indicator"></span>
+                                </button>
+                            </th>
+                            <th id="portfolioSortHeader-effort" aria-sort="none">
+                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('effort')">
+                                    <span>Effort</span>
+                                    <span class="portfolio-sort-indicator"></span>
+                                </button>
+                            </th>
+                            <th id="portfolioSortHeader-dueDate" aria-sort="none">
+                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('dueDate')">
+                                    <span>Due</span>
+                                    <span class="portfolio-sort-indicator"></span>
+                                </button>
+                            </th>
+                            <th id="portfolioSortHeader-updatedAt" aria-sort="none">
+                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('updatedAt')">
+                                    <span>Updated</span>
+                                    <span class="portfolio-sort-indicator"></span>
+                                </button>
+                            </th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -1265,16 +1320,12 @@
                     <div class="shortcut-row">
                         <div class="shortcut-keys">
                             <kbd>Ctrl</kbd><span class="shortcut-plus">+</span><kbd>S</kbd>
-                            <span class="shortcut-plus">/</span>
-                            <kbd>Cmd</kbd><span class="shortcut-plus">+</span><kbd>S</kbd>
                         </div>
                         <div class="shortcut-desc">Save current board</div>
                     </div>
                     <div class="shortcut-row">
                         <div class="shortcut-keys">
                             <kbd>Ctrl</kbd><span class="shortcut-plus">+</span><kbd>Shift</kbd><span class="shortcut-plus">+</span><kbd>C</kbd>
-                            <span class="shortcut-plus">/</span>
-                            <kbd>Cmd</kbd><span class="shortcut-plus">+</span><kbd>Shift</kbd><span class="shortcut-plus">+</span><kbd>C</kbd>
                         </div>
                         <div class="shortcut-desc">Save As current board</div>
                     </div>
@@ -1360,6 +1411,8 @@
         let portfolioBoards = [];
         let portfolioTasks = [];
         let selectedPortfolioBoardId = '';
+        let portfolioSortKey = 'priority';
+        let portfolioSortDir = 'asc';
         let suppressTimeline = false;
         let timelinePreviewActive = false;
         let timelinePreviewState = null;
@@ -1414,12 +1467,12 @@
             const portfolioPriority = document.getElementById('portfolioPriorityFilter')?.value || '';
             const portfolioEffort = document.getElementById('portfolioEffortFilter')?.value || '';
             const portfolioArchive = document.getElementById('portfolioArchiveFilter')?.value || 'active';
-            const portfolioSort = document.getElementById('portfolioSortSelect')?.value || 'priority';
             if (portfolioSearch) params.set('pq', portfolioSearch);
             if (portfolioPriority) params.set('pp', portfolioPriority);
             if (portfolioEffort) params.set('pe', portfolioEffort);
             if (portfolioArchive !== 'active') params.set('pa', portfolioArchive);
-            if (portfolioSort !== 'priority') params.set('ps', portfolioSort);
+            if (portfolioSortKey !== 'priority') params.set('ps', portfolioSortKey);
+            if (portfolioSortDir === 'desc') params.set('pd', portfolioSortDir);
             if (selectedPortfolioBoardId) params.set('pb', selectedPortfolioBoardId);
 
             const query = params.toString();
@@ -1441,6 +1494,7 @@
             const portfolioEffort = readQueryParam('pe', '');
             const portfolioArchive = readQueryParam('pa', 'active');
             const portfolioSort = readQueryParam('ps', 'priority');
+            const portfolioSortDirParam = readQueryParam('pd', 'asc');
             const portfolioBoard = readQueryParam('pb', '');
 
             const searchInput = document.getElementById('searchInput');
@@ -1461,7 +1515,6 @@
             const pPriority = document.getElementById('portfolioPriorityFilter');
             const pEffort = document.getElementById('portfolioEffortFilter');
             const pArchive = document.getElementById('portfolioArchiveFilter');
-            const pSort = document.getElementById('portfolioSortSelect');
             if (pSearch) pSearch.value = portfolioSearch;
             if (pPriority && ['', 'high', 'medium', 'low'].includes(portfolioPriority)) {
                 pPriority.value = portfolioPriority;
@@ -1472,9 +1525,8 @@
             if (pArchive && ['active', 'all', 'archived'].includes(portfolioArchive)) {
                 pArchive.value = portfolioArchive;
             }
-            if (pSort && ['priority', 'effort', 'dueDate', 'updatedAt'].includes(portfolioSort)) {
-                pSort.value = portfolioSort;
-            }
+            portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
+            portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
             selectedPortfolioBoardId = portfolioBoard;
 
             setAppMode(view === 'portfolio' ? 'portfolio' : 'board');
@@ -2321,7 +2373,8 @@
             const priorityFilter = document.getElementById('portfolioPriorityFilter')?.value || '';
             const effortFilter = document.getElementById('portfolioEffortFilter')?.value || '';
             const archiveFilter = document.getElementById('portfolioArchiveFilter')?.value || 'active';
-            const sortBy = document.getElementById('portfolioSortSelect')?.value || 'priority';
+            const sortBy = normalizePortfolioSortKey(portfolioSortKey);
+            const sortDir = normalizePortfolioSortDir(portfolioSortDir);
 
             let rows = portfolioTasks.filter(item => {
                 const task = item.task;
@@ -2335,23 +2388,9 @@
                 return true;
             });
 
-            rows = rows.sort((a, b) => {
-                if (sortBy === 'dueDate') {
-                    const aDue = normalizeDueDate(a.task.dueDate);
-                    const bDue = normalizeDueDate(b.task.dueDate);
-                    if (aDue && bDue) return aDue.localeCompare(bDue);
-                    if (aDue && !bDue) return -1;
-                    if (!aDue && bDue) return 1;
-                } else if (sortBy === 'effort') {
-                    const er = effortRank(a.task.effort) - effortRank(b.task.effort);
-                    if (er !== 0) return er;
-                } else if (sortBy === 'updatedAt') {
-                    return b.task.updatedAt.localeCompare(a.task.updatedAt);
-                }
-                const pr = priorityRank(a.task.priority) - priorityRank(b.task.priority);
-                if (pr !== 0) return pr;
-                return a.task.updatedAt.localeCompare(b.task.updatedAt) * -1;
-            });
+            rows = rows.sort((a, b) => comparePortfolioRows(a, b, sortBy, sortDir));
+
+            renderPortfolioSortHeaders();
 
             if (rows.length === 0) {
                 body.innerHTML = '<tr><td colspan="8">No matching tasks.</td></tr>';
@@ -2372,6 +2411,95 @@
 
             renderPortfolioBoardChips();
             updateUrlState();
+        }
+
+        function normalizePortfolioSortKey(value) {
+            return ['board', 'task', 'column', 'priority', 'effort', 'dueDate', 'updatedAt'].includes(value)
+                ? value
+                : 'priority';
+        }
+
+        function normalizePortfolioSortDir(value) {
+            return value === 'desc' ? 'desc' : 'asc';
+        }
+
+        function setPortfolioSort(sortKey) {
+            const nextKey = normalizePortfolioSortKey(sortKey);
+            if (portfolioSortKey === nextKey) {
+                portfolioSortDir = portfolioSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                portfolioSortKey = nextKey;
+                portfolioSortDir = 'asc';
+            }
+            renderPortfolio();
+        }
+
+        function renderPortfolioSortHeaders() {
+            const keys = ['board', 'task', 'column', 'priority', 'effort', 'dueDate', 'updatedAt'];
+            keys.forEach((key) => {
+                const th = document.getElementById(`portfolioSortHeader-${key}`);
+                if (!th) return;
+                const btn = th.querySelector('.portfolio-sort-btn');
+                const indicator = th.querySelector('.portfolio-sort-indicator');
+                const active = normalizePortfolioSortKey(portfolioSortKey) === key;
+                const dir = normalizePortfolioSortDir(portfolioSortDir);
+                th.setAttribute('aria-sort', active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none');
+                if (btn) btn.classList.toggle('active', active);
+                if (indicator) indicator.textContent = active ? (dir === 'asc' ? '↑' : '↓') : '';
+            });
+        }
+
+        function comparePortfolioRows(a, b, sortBy, sortDir) {
+            const key = normalizePortfolioSortKey(sortBy);
+            const dir = normalizePortfolioSortDir(sortDir);
+
+            let base = 0;
+            if (key === 'board') {
+                base = compareText(
+                    a.boardTitle || a.boardFileName || '',
+                    b.boardTitle || b.boardFileName || ''
+                );
+            } else if (key === 'task') {
+                base = compareText(a.task.title || '', b.task.title || '');
+            } else if (key === 'column') {
+                base = compareText(a.columnTitle || '', b.columnTitle || '');
+            } else if (key === 'priority') {
+                base = priorityRank(a.task.priority) - priorityRank(b.task.priority);
+            } else if (key === 'effort') {
+                base = effortRank(a.task.effort) - effortRank(b.task.effort);
+            } else if (key === 'dueDate') {
+                base = comparePortfolioDueDateAsc(a, b);
+            } else if (key === 'updatedAt') {
+                base = (a.task.updatedAt || '').localeCompare(b.task.updatedAt || '');
+            }
+
+            if (base === 0) {
+                base = priorityRank(a.task.priority) - priorityRank(b.task.priority);
+            }
+            if (base === 0) {
+                base = (a.task.updatedAt || '').localeCompare(b.task.updatedAt || '') * -1;
+            }
+            if (base === 0) {
+                base = compareText(a.task.title || '', b.task.title || '');
+            }
+            if (base === 0) {
+                base = (a.task.id || 0) - (b.task.id || 0);
+            }
+
+            return dir === 'desc' ? base * -1 : base;
+        }
+
+        function comparePortfolioDueDateAsc(a, b) {
+            const aDue = normalizeDueDate(a.task.dueDate);
+            const bDue = normalizeDueDate(b.task.dueDate);
+            if (aDue && bDue) return aDue.localeCompare(bDue);
+            if (aDue && !bDue) return -1;
+            if (!aDue && bDue) return 1;
+            return 0;
+        }
+
+        function compareText(a, b) {
+            return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
         }
 
         function toggleArchivedView() {
