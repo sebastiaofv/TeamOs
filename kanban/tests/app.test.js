@@ -1,94 +1,58 @@
 const { test, expect } = require('@playwright/test');
 
+function buildBoardPayload({ title, tasks = [] }) {
+  return {
+    meta: {
+      schemaVersion: 4,
+      appId: 'household-task-board',
+      createdAt: '2026-02-26T00:00:00.000Z',
+      updatedAt: '2026-02-26T00:00:00.000Z'
+    },
+    board: {
+      columns: [
+        { status: 'backlog', title: 'backlog' },
+        { status: 'to-do', title: 'to-do' },
+        { status: 'doing', title: 'in progress' },
+        { status: 'done', title: 'done' }
+      ],
+      tasks: tasks.map((task, index) => ({
+        id: task.id ?? index + 1,
+        title: task.title,
+        description: task.description || '',
+        checklist: task.checklist || [],
+        archived: Boolean(task.archived),
+        createdAt: task.createdAt || '2026-02-26T00:00:00.000Z',
+        updatedAt: task.updatedAt || '2026-02-26T00:00:00.000Z',
+        dueDate: task.dueDate || '',
+        priority: Object.prototype.hasOwnProperty.call(task, 'priority') ? task.priority : null,
+        effort: Object.prototype.hasOwnProperty.call(task, 'effort') ? task.effort : null,
+        status: task.status || 'backlog'
+      })),
+      settings: {
+        title,
+        sortMode: 'manual',
+        showArchivedOnly: false,
+        archiveFilter: 'active'
+      }
+    },
+    extensions: {}
+  };
+}
+
 async function gotoApp(page) {
   await page.goto('/kanban.html');
-  await expect(page.locator('#boardView')).toBeVisible();
-  await expect(page.locator('.column').first()).toBeVisible();
+  await expect(page.locator('#portfolioView')).toBeVisible();
+  await expect(page.locator('#boardView')).toBeHidden();
 }
 
-async function openNewTaskModal(page, columnIndex = 0) {
-  await page.locator('.add-task-card').nth(columnIndex).click();
-  await expect(page.locator('#taskModal')).toBeVisible();
-}
-
-async function createTask(page, { title, priority, effort, dueDate = '', checklist = '', columnIndex = 0 }) {
-  await openNewTaskModal(page, columnIndex);
-  await expect(page.locator('#taskName')).toBeFocused();
-  await page.locator('#taskName').fill(title);
-  if (checklist) {
-    await page.locator('#taskChecklist').fill(checklist);
-  }
-  if (dueDate) {
-    await page.locator('#taskDueDate').fill(dueDate);
-  }
-  await page.locator('#taskPriority').selectOption(priority);
-  await page.locator('#taskEffort').selectOption(effort);
-  await page.locator('#taskModal .btn-primary').click();
-  await expect(page.locator('#taskModal')).toBeHidden();
-}
-
-function taskCard(page, title) {
-  return page.locator('.task-card').filter({ hasText: title }).first();
-}
-
-async function taskTitlesInColumn(page, status = 'backlog') {
-  const titles = await page.locator(`#${status}Column .task-card .task-title`).allTextContents();
-  return titles.map((text) => text.trim());
-}
-
-async function seedPortfolioRows(page, rows) {
-  const boards = Array.from(
-    new Map(
-      rows.map((row) => [
-        row.boardId,
-        {
-          id: row.boardId,
-          title: row.boardTitle,
-          fileName: row.boardFileName || `${row.boardId}.board.json`,
-          handle: null
-        }
-      ])
-    ).values()
-  );
-
-  await page.evaluate(({ boards, rows }) => {
-    portfolioBoards = boards;
-    portfolioTasks = rows.map((row, index) => ({
-      boardIndex: 0,
-      taskIndex: index,
-      boardId: row.boardId,
-      boardTitle: row.boardTitle,
-      boardFileName: row.boardFileName,
-      columnTitle: row.columnTitle,
-      task: {
-        id: row.task.id,
-        title: row.task.title,
-        description: '',
-        checklist: [],
-        archived: Boolean(row.task.archived),
-        createdAt: row.task.createdAt || '2026-02-25T00:00:00.000Z',
-        updatedAt: row.task.updatedAt || '2026-02-25T00:00:00.000Z',
-        dueDate: row.task.dueDate || '',
-        priority: row.task.priority,
-        effort: row.task.effort,
-        status: row.task.status || 'backlog'
-      }
-    }));
-    selectedPortfolioBoardId = '';
-    portfolioSortKey = 'priority';
-    portfolioSortDir = 'asc';
-    setAppMode('portfolio');
-    renderPortfolio();
-  }, { boards, rows });
-}
-
-async function seedPortfolioBoards(page, boards, { displayMode = 'board' } = {}) {
-  await page.evaluate(({ boards, displayMode }) => {
+async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey = 'priority', sortDir = 'asc' } = {}) {
+  await page.evaluate(({ boards, selectedBoardId, sortKey, sortDir }) => {
     window.__portfolioTestWrites = [];
 
-    portfolioBoards = boards.map((board, index) => {
+    portfolioBoards = boards.map((board) => {
       const handle = board.hasHandle
         ? {
+            name: board.fileName || `${board.id}.board.json`,
             async createWritable() {
               return {
                 async write(text) {
@@ -119,8 +83,8 @@ async function seedPortfolioBoards(page, boards, { displayMode = 'board' } = {})
               { status: 'doing', title: 'in progress' },
               { status: 'done', title: 'done' }
             ],
-            tasks: (board.tasks || []).map((task) => ({
-              id: task.id,
+            tasks: (board.tasks || []).map((task, index) => ({
+              id: task.id ?? index + 1,
               title: task.title,
               description: task.description || '',
               checklist: task.checklist || [],
@@ -144,520 +108,410 @@ async function seedPortfolioBoards(page, boards, { displayMode = 'board' } = {})
       };
     });
 
-    selectedPortfolioBoardId = '';
-    portfolioSortKey = 'priority';
-    portfolioSortDir = 'asc';
-    portfolioDisplayMode = displayMode === 'board' ? 'board' : 'table';
+    selectedPortfolioBoardId = selectedBoardId || '';
+    portfolioSortKey = sortKey;
+    portfolioSortDir = sortDir;
+    portfolioDisplayMode = 'board';
     buildPortfolioTasks();
     setAppMode('portfolio');
     renderPortfolio();
-  }, { boards, displayMode });
+  }, { boards, selectedBoardId, sortKey, sortDir });
 }
 
-function portfolioBoardCard(page, title) {
+async function mockNewProjectFlow(page, { promptValue = 'New Project', fileName = 'new-project.board.json' } = {}) {
+  await page.evaluate(({ promptValue, fileName }) => {
+    window.__newProjectWrites = [];
+    window.prompt = () => promptValue;
+    window.showSaveFilePicker = async () => ({
+      name: fileName,
+      async createWritable() {
+        return {
+          async write(text) {
+            window.__newProjectWrites.push(String(text));
+          },
+          async close() {}
+        };
+      }
+    });
+  }, { promptValue, fileName });
+}
+
+async function mockImportProjectsPicker(page, payloads) {
+  await page.evaluate((payloads) => {
+    window.showOpenFilePicker = async () => payloads.map((entry) => ({
+      name: entry.fileName,
+      async getFile() {
+        return {
+          name: entry.fileName,
+          async text() {
+            return JSON.stringify(entry.payload);
+          }
+        };
+      }
+    }));
+  }, payloads);
+}
+
+function portfolioCard(page, title) {
   return page.locator('.portfolio-task-card').filter({ hasText: title }).first();
 }
 
-async function portfolioTaskColumnTexts(page) {
-  const texts = await page.locator('#portfolioTableBody tr td:nth-child(2)').allTextContents();
-  return texts.map((text) => text.trim());
+async function portfolioTitlesInColumn(page, status = 'backlog') {
+  const titles = await page.locator(`#portfolio-${status}-column .portfolio-task-card .task-title`).allTextContents();
+  return titles.map((t) => t.trim());
 }
 
-test.describe('kanban app', () => {
+test.describe('portfolio-only app', () => {
   test.beforeEach(async ({ page }) => {
     await gotoApp(page);
   });
 
-  test('loads core board UI', async ({ page }) => {
-    await expect(page.locator('.header')).toBeVisible();
-    await expect(page.locator('#searchInput')).toBeVisible();
-    await expect(page.locator('#portfolioToggleBtn')).toBeVisible();
-    await expect(page.locator('#saveStatus')).toHaveText('Saved');
-    await expect(page.locator('.add-task-card').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Timeline' })).toHaveCount(0);
-    await expect(page.locator('#timelineModal')).toHaveCount(0);
-  });
-
-  test('task modal reflects current model and creates card with score badge', async ({ page }) => {
-    await openNewTaskModal(page);
-
-    await expect(page.locator('#taskName')).toBeVisible();
-    await expect(page.locator('#taskDueDate')).toBeVisible();
-    await expect(page.locator('#taskPriority')).toBeVisible();
-    await expect(page.locator('#taskEffort')).toBeVisible();
-    await expect(page.locator('#taskTags')).toHaveCount(0);
-    await expect(page.locator('#taskPriority')).toHaveValue('');
-    await expect(page.locator('#taskEffort')).toHaveValue('');
-
-    await page.locator('#taskName').fill('Playwright score test');
-    await page.locator('#taskPriority').selectOption('high');
-    await page.locator('#taskEffort').selectOption('M');
-    await page.locator('#taskModal .btn-primary').click();
-
-    const card = taskCard(page, 'Playwright score test');
-    await expect(card).toBeVisible();
-    await expect(card.locator('.task-tag-score')).toHaveText('Score 1.00');
-    await expect(card).not.toContainText('#');
-  });
-
-  test('editing effort updates the score badge value', async ({ page }) => {
-    const title = 'Score update test';
-    await createTask(page, { title, priority: 'high', effort: 'M' });
-
-    const card = taskCard(page, title);
-    await expect(card.locator('.task-tag-score')).toHaveText('Score 1.00');
-
-    await card.locator('button[title="Edit"]').click();
-    await expect(page.locator('#taskModal')).toBeVisible();
-    await page.locator('#taskEffort').selectOption('XL');
-    await page.locator('#taskModal .btn-primary').click();
-
-    await expect(card.locator('.task-tag-score')).toHaveText('Score 0.38');
-  });
-
-  test('portfolio view exposes score column', async ({ page }) => {
-    await page.locator('#portfolioToggleBtn').click();
-
+  test('loads portfolio-only minimalist UI', async ({ page }) => {
     await expect(page.locator('#portfolioView')).toBeVisible();
     await expect(page.locator('#boardView')).toBeHidden();
-    await expect(page.locator('#portfolioSortHeader-score')).toBeVisible();
-    await expect(page.locator('#portfolioTableBody tr')).toHaveCount(0);
+    await expect(page.locator('#portfolioToggleBtn')).toHaveCount(0);
+    await expect(page.locator('#newProjectBtn')).toBeVisible();
+    await expect(page.locator('#importProjectsBtn')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Help' })).toBeVisible();
+    await expect(page.locator('#portfolioDisplayMode-table')).toHaveCount(0);
+    await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
   });
 
-  test('serialized board data omits tags keys and timeline extension', async ({ page }) => {
-    await createTask(page, { title: 'Serialize no tags', priority: 'medium', effort: 'S' });
+  test('new project flow creates and selects a project', async ({ page }) => {
+    await mockNewProjectFlow(page, { promptValue: 'Project Alpha', fileName: 'project-alpha.board.json' });
 
-    const serializedChecks = await page.evaluate(() => {
-      const data = serializeBoardData();
+    await page.locator('#newProjectBtn').click();
 
-      function walk(value) {
-        if (!value || typeof value !== 'object') return false;
-        if (Array.isArray(value)) {
-          return value.some(walk);
-        }
-        if (Object.prototype.hasOwnProperty.call(value, 'tags')) {
-          return true;
-        }
-        return Object.values(value).some(walk);
-      }
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Project Alpha');
+    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toBeVisible();
 
-      return {
-        hasTagsKey: walk(data),
-        hasExtensionsObject: Boolean(data.extensions && typeof data.extensions === 'object' && !Array.isArray(data.extensions)),
-        hasTimelineExtension: Boolean(data.extensions && Object.prototype.hasOwnProperty.call(data.extensions, 'timeline'))
-      };
-    });
+    const result = await page.evaluate(() => ({
+      projectCount: portfolioBoards.length,
+      selectedProjectId: selectedPortfolioBoardId,
+      selectedProjectTitle: portfolioBoards.find((p) => p.id === selectedPortfolioBoardId)?.title,
+      writes: window.__newProjectWrites || []
+    }));
 
-    expect(serializedChecks.hasTagsKey).toBe(false);
-    expect(serializedChecks.hasExtensionsObject).toBe(true);
-    expect(serializedChecks.hasTimelineExtension).toBe(false);
+    expect(result.projectCount).toBe(1);
+    expect(result.selectedProjectTitle).toBe('Project Alpha');
+    expect(result.writes.length).toBe(1);
+
+    const saved = JSON.parse(result.writes[0]);
+    expect(saved.board.settings.title).toBe('Project Alpha');
+    expect(saved.board.tasks).toEqual([]);
   });
 
-  test('legacy board with timeline extension loads and timeline is dropped on serialize', async ({ page }) => {
-    const result = await page.evaluate(() => {
-      const legacy = {
-        meta: {
-          schemaVersion: 4,
-          appId: 'household-task-board',
-          createdAt: '2026-02-26T00:00:00.000Z',
-          updatedAt: '2026-02-26T00:00:00.000Z'
-        },
-        board: {
-          columns: [
-            { status: 'backlog', title: 'backlog' },
-            { status: 'to-do', title: 'to-do' },
-            { status: 'doing', title: 'in progress' },
-            { status: 'done', title: 'done' }
-          ],
-          tasks: [
-            {
-              id: 101,
-              title: 'Legacy timeline task',
-              description: '',
-              checklist: [],
-              archived: false,
-              createdAt: '2026-02-26T00:00:00.000Z',
-              updatedAt: '2026-02-26T00:00:00.000Z',
-              dueDate: '',
-              priority: null,
-              effort: null,
-              status: 'backlog'
-            }
-          ],
-          settings: {
-            title: 'Legacy Board',
-            sortMode: 'manual',
-            showArchivedOnly: false,
-            archiveFilter: 'active'
-          }
-        },
-        extensions: {
-          timeline: {
-            version: 1,
-            nextId: 2,
-            events: [
-              { id: 1, ts: '2026-02-26T00:00:00.000Z', type: 'init', data: {} }
-            ]
-          }
-        }
-      };
+  test('help button opens and closes help modal', async ({ page }) => {
+    await page.getByRole('button', { name: 'Help' }).click();
+    await expect(page.locator('#helpModal')).toBeVisible();
+    await expect(page.locator('#helpModal')).toContainText('Drag cards between columns');
 
-      applyBoardData(legacy);
-      renderBoard();
-      renderTasks();
-      const serialized = serializeBoardData();
-      return {
-        boardTitle,
-        taskCount: tasks.length,
-        hasTimelineExtension: Boolean(
-          serialized.extensions && Object.prototype.hasOwnProperty.call(serialized.extensions, 'timeline')
-        )
-      };
-    });
-
-    expect(result.boardTitle).toBe('Legacy Board');
-    expect(result.taskCount).toBe(1);
-    expect(result.hasTimelineExtension).toBe(false);
-    await expect(taskCard(page, 'Legacy timeline task')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#helpModal')).toBeHidden();
   });
 
-  test('board search filters by title only and highlights matches', async ({ page }) => {
-    const title = 'Alpha Laundry Task';
-    await createTask(page, { title, priority: 'medium', effort: 'S' });
+  test('keyboard shortcut opens shortcuts modal', async ({ page }) => {
+    await page.keyboard.press('Shift+/');
+    await expect(page.locator('#shortcutsModal')).toBeVisible();
+    await expect(page.locator('#shortcutsModal')).toContainText('Import projects');
+    await expect(page.locator('#shortcutsModal')).toContainText('Open keyboard shortcuts');
 
-    await page.evaluate((taskTitle) => {
-      const task = tasks.find((t) => t.title === taskTitle);
-      if (task) {
-        task.tags = ['legacy-hidden-tag'];
-      }
-      renderTasks();
-    }, title);
-
-    await page.locator('#searchInput').fill('Alpha');
-    await expect(taskCard(page, title)).toBeVisible();
-    await expect(taskCard(page, title).locator('.search-highlight')).toContainText('Alpha');
-
-    await page.locator('#searchInput').fill('legacy-hidden-tag');
-    await expect(taskCard(page, title)).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#shortcutsModal')).toBeHidden();
   });
 
-  test('board priority and effort filters combine correctly', async ({ page }) => {
-    await createTask(page, { title: 'High L task', priority: 'high', effort: 'L' });
-    await createTask(page, { title: 'High XS task', priority: 'high', effort: 'XS' });
-    await createTask(page, { title: 'Low L task', priority: 'low', effort: 'L' });
+  test('keyboard shortcuts can open help and import projects', async ({ page }) => {
+    await page.keyboard.press('h');
+    await expect(page.locator('#helpModal')).toBeVisible();
+    await page.keyboard.press('Escape');
 
-    await page.locator('#priorityFilter').selectOption('high');
-    await page.locator('#effortFilter').selectOption('L');
-
-    await expect(taskCard(page, 'High L task')).toBeVisible();
-    await expect(taskCard(page, 'High XS task')).toHaveCount(0);
-    await expect(taskCard(page, 'Low L task')).toHaveCount(0);
-    await expect(page.locator('.task-card')).toHaveCount(1);
-  });
-
-  test('board sort by effort orders tasks from XS to XL', async ({ page }) => {
-    await createTask(page, { title: 'Effort XL', priority: 'medium', effort: 'XL' });
-    await createTask(page, { title: 'Effort XS', priority: 'medium', effort: 'XS' });
-    await createTask(page, { title: 'Effort M', priority: 'medium', effort: 'M' });
-
-    await page.locator('#boardSortSelect').selectOption('effort');
-
-    await expect
-      .poll(async () => (await taskTitlesInColumn(page, 'backlog')).slice(0, 3))
-      .toEqual(['Effort XS', 'Effort M', 'Effort XL']);
-  });
-
-  test('board sort by score orders tasks by priority/effort', async ({ page }) => {
-    await createTask(page, { title: 'Score low', priority: 'low', effort: 'XL' });   // 0.125
-    await createTask(page, { title: 'Score mid', priority: 'medium', effort: 'M' }); // 0.667
-    await createTask(page, { title: 'Score high', priority: 'high', effort: 'S' });  // 1.5
-
-    await page.locator('#boardSortSelect').selectOption('score');
-
-    await expect
-      .poll(async () => (await taskTitlesInColumn(page, 'backlog')).slice(0, 3))
-      .toEqual(['Score low', 'Score mid', 'Score high']);
-  });
-
-  test('task details modal shows checklist and no tags row, and checklist toggle persists', async ({ page }) => {
-    const title = 'Checklist detail test';
-    await createTask(page, {
-      title,
-      priority: 'high',
-      effort: 'S',
-      dueDate: '2026-03-01',
-      checklist: '[ ] First item\n[x] Second item'
-    });
-
-    await taskCard(page, title).click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
-    await expect(page.locator('#taskDetailModal .detail-label').filter({ hasText: 'Tags' })).toHaveCount(0);
-    await expect(page.locator('#detailDueDate')).toHaveText('2026-03-01');
-    await expect(page.locator('#detailChecklist .detail-checklist-item')).toHaveCount(2);
-    await expect(page.locator('#detailChecklist .detail-checklist-item.done')).toHaveCount(1);
-
-    await page.locator('#detailChecklist .detail-checklist-item input[type="checkbox"]').first().check();
-    await expect(page.locator('#detailChecklist .detail-checklist-item.done')).toHaveCount(2);
-
-    const checklistState = await page.evaluate((taskTitle) => {
-      const task = tasks.find((t) => t.title === taskTitle);
-      return task ? task.checklist.map((item) => ({ text: item.text, done: item.done })) : null;
-    }, title);
-
-    expect(checklistState).toEqual([
-      { text: 'First item', done: true },
-      { text: 'Second item', done: true }
-    ]);
-  });
-
-  test('archive filter can show archived tasks and restore them', async ({ page }) => {
-    const title = 'Archive restore test';
-    await createTask(page, { title, priority: 'medium', effort: 'S' });
-
-    await taskCard(page, title).locator('button[title="Archive"]').click();
-    await expect(taskCard(page, title)).toHaveCount(0);
-    await expect(page.locator('#undoToast')).toBeVisible();
-
-    await page.locator('#boardArchiveFilter').selectOption('archived');
-    await expect(taskCard(page, title)).toBeVisible();
-
-    await taskCard(page, title).locator('button[title="Restore"]').click();
-    await page.locator('#boardArchiveFilter').selectOption('active');
-    await expect(taskCard(page, title)).toBeVisible();
-  });
-
-  test('undo restores archived task', async ({ page }) => {
-    const title = 'Undo archive test';
-    await createTask(page, { title, priority: 'low', effort: 'M' });
-
-    await taskCard(page, title).locator('button[title="Archive"]').click();
-    await expect(taskCard(page, title)).toHaveCount(0);
-    await expect(page.locator('#undoToast')).toBeVisible();
-    await expect(page.locator('#undoToastText')).toHaveText('Task archived');
-
-    await page.locator('#undoToast .btn').click();
-    await expect(page.locator('#undoToast')).toBeHidden();
-    await expect(taskCard(page, title)).toBeVisible();
-  });
-
-  test('portfolio score sort toggles order and aria-sort', async ({ page }) => {
-    await seedPortfolioRows(page, [
+    await mockImportProjectsPicker(page, [
       {
-        boardId: 'b1',
-        boardTitle: 'Board A',
-        boardFileName: 'a.board.json',
-        columnTitle: 'To Do',
-        task: { id: 1, title: 'Low XL', priority: 'low', effort: 'XL', updatedAt: '2026-02-25T10:00:00.000Z' }
-      },
-      {
-        boardId: 'b1',
-        boardTitle: 'Board A',
-        boardFileName: 'a.board.json',
-        columnTitle: 'To Do',
-        task: { id: 2, title: 'High S', priority: 'high', effort: 'S', updatedAt: '2026-02-25T10:01:00.000Z' }
-      },
-      {
-        boardId: 'b2',
-        boardTitle: 'Board B',
-        boardFileName: 'b.board.json',
-        columnTitle: 'Done',
-        task: { id: 3, title: 'High XS', priority: 'high', effort: 'XS', updatedAt: '2026-02-25T10:02:00.000Z' }
+        fileName: 'imported.board.json',
+        payload: buildBoardPayload({
+          title: 'Imported Via Shortcut',
+          tasks: [{ id: 1, title: 'Shortcut import task', status: 'backlog' }]
+        })
       }
     ]);
 
-    await page.locator('#portfolioSortHeader-score button').click();
-    await expect(page.locator('#portfolioSortHeader-score')).toHaveAttribute('aria-sort', 'ascending');
-    await expect.poll(async () => (await portfolioTaskColumnTexts(page))[0]).toBe('Low XL');
-
-    await page.locator('#portfolioSortHeader-score button').click();
-    await expect(page.locator('#portfolioSortHeader-score')).toHaveAttribute('aria-sort', 'descending');
-    await expect.poll(async () => (await portfolioTaskColumnTexts(page))[0]).toBe('High XS');
+    await page.keyboard.press('i');
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('Imported Via Shortcut');
+    await expect(portfolioCard(page, 'Shortcut import task')).toBeVisible();
   });
 
-  test('portfolio filters and search reduce rows and update URL params', async ({ page }) => {
-    await seedPortfolioRows(page, [
+  test('import projects appends to current portfolio and projects can be removed from session', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ title: 'Task 1', status: 'backlog' }] }
+    ]);
+
+    await mockImportProjectsPicker(page, [
       {
-        boardId: 'b1',
-        boardTitle: 'Board A',
-        boardFileName: 'a.board.json',
-        columnTitle: 'To Do',
-        task: { id: 1, title: 'Alpha item', priority: 'high', effort: 'S', updatedAt: '2026-02-25T10:00:00.000Z' }
+        fileName: 'project-two.board.json',
+        payload: buildBoardPayload({
+          title: 'Project Two',
+          tasks: [{ id: 2, title: 'Task 2', status: 'doing', priority: 'high', effort: 'S' }]
+        })
+      }
+    ]);
+
+    await page.locator('#importProjectsBtn').click();
+
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('Project One');
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('Project Two');
+    await expect(portfolioCard(page, 'Task 1')).toBeVisible();
+    await expect(portfolioCard(page, 'Task 2')).toBeVisible();
+
+    await page.locator('.portfolio-chip').filter({ hasText: 'Project Two' }).getByRole('button', { name: 'Remove project' }).click();
+
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('Project One');
+    await expect(page.locator('#portfolioBoardsChips')).not.toContainText('Project Two');
+    await expect(portfolioCard(page, 'Task 2')).toHaveCount(0);
+
+    const count = await page.evaluate(() => portfolioBoards.length);
+    expect(count).toBe(1);
+  });
+
+  test('selected mutable project can create tasks directly from portfolio columns and auto-saves', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Portfolio-created task');
+    await page.locator('#taskPriority').selectOption('high');
+    await page.locator('#taskEffort').selectOption('S');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await expect(portfolioCard(page, 'Portfolio-created task')).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      taskTitles: portfolioBoards[0].data.board.tasks.map((t) => t.title),
+      writes: (window.__portfolioTestWrites || []).map((w) => ({ boardId: w.boardId, text: w.text }))
+    }));
+
+    expect(result.taskTitles).toContain('Portfolio-created task');
+    expect(result.writes.length).toBeGreaterThan(0);
+    expect(result.writes.at(-1).text).toContain('Portfolio-created task');
+  });
+
+  test('all-projects view hides add-task cards and read-only selected project also hides them', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'm1', title: 'Mutable A', hasHandle: true, tasks: [] },
+      { id: 'm2', title: 'Mutable B', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: '' });
+
+    await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
+
+    await seedPortfolioBoards(page, [
+      { id: 'ro1', title: 'Read Only', hasHandle: false, tasks: [{ title: 'RO Task', status: 'backlog' }] }
+    ], { selectedBoardId: 'ro1' });
+
+    await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Read Only (Read-only)');
+    await expect(portfolioCard(page, 'RO Task').locator('button[title=\"Read-only (no file handle)\"]')).toHaveCount(2);
+  });
+
+  test('portfolio filters and URL params persist in portfolio-only mode', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'a',
+        title: 'Alpha Project',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Alpha low', status: 'backlog', priority: 'low', effort: 'L' },
+          { id: 2, title: 'Beta target', status: 'backlog', priority: 'high', effort: 'L' }
+        ]
       },
       {
-        boardId: 'b1',
-        boardTitle: 'Board A',
-        boardFileName: 'a.board.json',
-        columnTitle: 'To Do',
-        task: { id: 2, title: 'Beta item', priority: 'high', effort: 'L', updatedAt: '2026-02-25T10:01:00.000Z' }
-      },
-      {
-        boardId: 'b2',
-        boardTitle: 'Board B',
-        boardFileName: 'b.board.json',
-        columnTitle: 'Done',
-        task: { id: 3, title: 'Gamma item', priority: 'low', effort: 'S', updatedAt: '2026-02-25T10:02:00.000Z' }
+        id: 'b',
+        title: 'Bravo Project',
+        hasHandle: true,
+        tasks: [
+          { id: 3, title: 'Gamma', status: 'doing', priority: 'high', effort: 'S' }
+        ]
       }
     ]);
 
     await page.locator('#portfolioPriorityFilter').selectOption('high');
     await page.locator('#portfolioEffortFilter').selectOption('L');
     await page.locator('#portfolioSearchInput').fill('beta');
-    await page.locator('#portfolioSortHeader-score button').click();
+    await page.evaluate(() => setPortfolioSort('score'));
 
-    await expect(page.locator('#portfolioTableBody tr')).toHaveCount(1);
-    await expect(page.locator('#portfolioTableBody')).toContainText('Beta item');
+    await expect(page.locator('.portfolio-task-card')).toHaveCount(1);
+    await expect(portfolioCard(page, 'Beta target')).toBeVisible();
 
     const url = new URL(page.url());
-    expect(url.searchParams.get('view')).toBe('portfolio');
     expect(url.searchParams.get('pp')).toBe('high');
     expect(url.searchParams.get('pe')).toBe('L');
     expect(url.searchParams.get('pq')).toBe('beta');
     expect(url.searchParams.get('ps')).toBe('score');
+    expect(url.searchParams.get('view')).toBeNull();
   });
 
-  test('portfolio board cards can be clicked, edited and auto-save to source handle', async ({ page }) => {
+  test('keyboard shortcuts focus sort, reset filters, and cycle project chips', async ({ page }) => {
     await seedPortfolioBoards(page, [
-      {
-        id: 'p1',
-        title: 'Project One',
-        fileName: 'project-one.board.json',
-        hasHandle: true,
-        tasks: [
-          {
-            id: 11,
-            title: 'Portfolio editable task',
-            description: 'Original description',
-            priority: 'high',
-            effort: 'S',
-            status: 'backlog'
-          }
-        ]
-      }
-    ]);
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ title: 'One task', status: 'backlog' }] },
+      { id: 'p2', title: 'Project Two', hasHandle: true, tasks: [{ title: 'Two task', status: 'doing' }] }
+    ], { selectedBoardId: '' });
 
-    await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
-    await expect(page.locator('#portfolio-backlog-column .portfolio-task-card')).toHaveCount(1);
+    await page.locator('#portfolioSearchInput').fill('one');
+    await page.locator('#portfolioPriorityFilter').selectOption('high');
+    await page.evaluate(() => setPortfolioSort('score'));
+    await page.locator('body').click();
 
-    const card = portfolioBoardCard(page, 'Portfolio editable task');
-    await card.click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
-    await expect(page.locator('#detailTitle')).toHaveText('Portfolio editable task');
-    await expect(page.locator('#detailDescription')).toHaveText('Original description');
-    await page.locator('#taskDetailModal .btn').filter({ hasText: 'Close' }).click();
-
-    await card.locator('button[title="Edit"]').click();
-    await expect(page.locator('#taskModal')).toBeVisible();
-    await page.locator('#taskName').fill('Portfolio edited title');
-    await page.locator('#taskDescription').fill('Updated from portfolio board');
-    await page.locator('#taskModal .btn-primary').click();
-    await expect(page.locator('#taskModal')).toBeHidden();
-
-    await expect(portfolioBoardCard(page, 'Portfolio edited title')).toBeVisible();
-
-    const result = await page.evaluate(() => {
-      const sourceTask = portfolioBoards[0].data.board.tasks.find((t) => t.id === 11);
-      return {
-        title: sourceTask?.title,
-        description: sourceTask?.description,
-        writes: (window.__portfolioTestWrites || []).map((w) => ({ boardId: w.boardId, hasTimeline: w.text.includes('"timeline"'), text: w.text }))
-      };
-    });
-
-    expect(result.title).toBe('Portfolio edited title');
-    expect(result.description).toBe('Updated from portfolio board');
-    expect(result.writes.length).toBeGreaterThan(0);
-    expect(result.writes.at(-1).boardId).toBe('p1');
-    expect(result.writes.at(-1).hasTimeline).toBe(false);
-    expect(result.writes.at(-1).text).toContain('Portfolio edited title');
-  });
-
-  test('portfolio board cards are not draggable', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      {
-        id: 'drag1',
-        title: 'Drag Project',
-        fileName: 'drag.board.json',
-        hasHandle: true,
-        tasks: [
-          { id: 21, title: 'Move me', priority: 'medium', effort: 'M', status: 'backlog' }
-        ]
-      }
-    ]);
-
-    const card = page.locator('#portfolio-backlog-column .portfolio-task-card').first();
-    await expect(card).toBeVisible();
-    await expect(card).toHaveJSProperty('draggable', false);
-  });
-
-  test('portfolio board cards without file handles are read-only but clickable', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      {
-        id: 'ro1',
-        title: 'Read Only Project',
-        fileName: 'readonly.board.json',
-        hasHandle: false,
-        tasks: [
-          { id: 31, title: 'Read only task', description: 'Visible but not editable', status: 'backlog' }
-        ]
-      }
-    ]);
-
-    const card = portfolioBoardCard(page, 'Read only task');
-    await expect(card).toBeVisible();
-    await expect(card).toContainText('Read-only');
-    await expect(card.locator('button[title="Read-only (no file handle)"]')).toHaveCount(2);
-    await expect(card).toHaveJSProperty('draggable', false);
-
-    await card.click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
-    await expect(page.locator('#detailTitle')).toHaveText('Read only task');
-  });
-
-  test('board controls persist in URL and restore on reload', async ({ page }) => {
-    await page.locator('#searchInput').fill('alpha');
-    await page.locator('#priorityFilter').selectOption('high');
-    await page.locator('#effortFilter').selectOption('S');
-    await page.locator('#boardSortSelect').selectOption('effort');
-    await page.locator('#boardArchiveFilter').selectOption('all');
-
-    let url = new URL(page.url());
-    expect(url.searchParams.get('q')).toBe('alpha');
-    expect(url.searchParams.get('p')).toBe('high');
-    expect(url.searchParams.get('e')).toBe('S');
-    expect(url.searchParams.get('sort')).toBe('effort');
-    expect(url.searchParams.get('archived')).toBe('all');
-
-    await page.reload();
-    await expect(page.locator('#boardView')).toBeVisible();
-    await expect(page.locator('#searchInput')).toHaveValue('alpha');
-    await expect(page.locator('#priorityFilter')).toHaveValue('high');
-    await expect(page.locator('#effortFilter')).toHaveValue('S');
-    await expect(page.locator('#boardSortSelect')).toHaveValue('effort');
-    await expect(page.locator('#boardArchiveFilter')).toHaveValue('all');
-
-    url = new URL(page.url());
-    expect(url.searchParams.get('q')).toBe('alpha');
-  });
-
-  test('keyboard shortcuts focus search, open new task, and reopen selected task for edit', async ({ page }) => {
-    await page.keyboard.press('/');
-    await expect(page.locator('#searchInput')).toBeFocused();
+    await page.keyboard.press('s');
+    await expect(page.locator('#portfolioSortSelect')).toBeFocused();
 
     await page.locator('body').click();
-    await page.keyboard.press('n');
-    await expect(page.locator('#taskModal')).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(page.locator('#taskModal')).toBeHidden();
+    await page.keyboard.press('r');
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('');
+    await expect(page.locator('#portfolioArchiveFilter')).toHaveValue('active');
+    await expect(page.locator('#portfolioPriorityFilter')).toHaveValue('');
+    await expect(page.locator('#portfolioEffortFilter')).toHaveValue('');
+    await expect(page.locator('#portfolioSortSelect')).toHaveValue('priority');
 
-    const title = 'Shortcut edit test';
-    await createTask(page, { title, priority: 'medium', effort: 'S' });
-    await taskCard(page, title).click();
+    await page.keyboard.press('BracketRight');
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Project One');
+    await page.keyboard.press('BracketRight');
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Project Two');
+    await page.keyboard.press('BracketLeft');
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Project One');
+  });
+
+  test('portfolio score sort orders cards in board columns', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 's1',
+        title: 'Sort Project',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Low XL', status: 'backlog', priority: 'low', effort: 'XL' },
+          { id: 2, title: 'High S', status: 'backlog', priority: 'high', effort: 'S' },
+          { id: 3, title: 'Med M', status: 'backlog', priority: 'medium', effort: 'M' }
+        ]
+      }
+    ]);
+
+    await page.evaluate(() => setPortfolioSort('score'));
+    await expect.poll(async () => (await portfolioTitlesInColumn(page, 'backlog')).slice(0, 3)).toEqual([
+      'Low XL',
+      'Med M',
+      'High S'
+    ]);
+
+    await page.evaluate(() => setPortfolioSort('score'));
+    await expect.poll(async () => (await portfolioTitlesInColumn(page, 'backlog')).slice(0, 3)).toEqual([
+      'High S',
+      'Med M',
+      'Low XL'
+    ]);
+  });
+
+  test('card keyboard shortcuts support selection, move, open details, and edit/save', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'k1',
+        title: 'Keyboard Project',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog', priority: 'low', effort: 'L' },
+          { id: 2, title: 'Task B', status: 'backlog', priority: 'high', effort: 'S' }
+        ]
+      }
+    ], { selectedBoardId: 'k1', sortKey: 'task' });
+
+    await page.keyboard.press('j');
+    await expect(page.locator('.portfolio-task-card.selected')).toHaveCount(1);
+
+    const selectedBefore = page.locator('.portfolio-task-card.selected');
+    await expect(selectedBefore).toContainText('Task A');
+
+    await page.keyboard.press('3');
+    await expect(page.locator('#portfolio-doing-column .portfolio-task-card.selected')).toContainText('Task A');
+
+    await page.keyboard.press('Enter');
     await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Task A');
     await page.keyboard.press('Escape');
     await expect(page.locator('#taskDetailModal')).toBeHidden();
 
     await page.keyboard.press('e');
     await expect(page.locator('#taskModal')).toBeVisible();
-    await expect(page.locator('#modalTitle')).toHaveText('Edit Task');
+    await page.locator('#taskName').fill('Task A Edited');
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter');
+    await expect(page.locator('#taskModal')).toBeHidden();
+    await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Task A Edited' })).toBeVisible();
+  });
+
+  test('dragging a task across portfolio columns updates status and auto-saves', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'd1',
+        title: 'Drag Project',
+        hasHandle: true,
+        tasks: [
+          { id: 11, title: 'Move me', status: 'backlog', priority: 'medium', effort: 'M' }
+        ]
+      }
+    ], { selectedBoardId: 'd1' });
+
+    const card = page.locator('#portfolio-backlog-column .portfolio-task-card').filter({ hasText: 'Move me' }).first();
+    const targetColumn = page.locator('#portfolio-doing-column');
+
+    await expect(card).toBeVisible();
+    await expect(card).toHaveJSProperty('draggable', true);
+
+    await card.dragTo(targetColumn);
+
+    await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Move me' })).toBeVisible();
+    await expect(page.locator('#portfolio-backlog-column .portfolio-task-card').filter({ hasText: 'Move me' })).toHaveCount(0);
+
+    const result = await page.evaluate(() => ({
+      status: portfolioBoards[0].data.board.tasks.find((t) => t.id === 11)?.status,
+      writes: window.__portfolioTestWrites || []
+    }));
+
+    expect(result.status).toBe('doing');
+    expect(result.writes.length).toBeGreaterThan(0);
+    expect(result.writes.at(-1).text).toContain('"status": "doing"');
+  });
+
+  test('dragging works in all-projects view for mutable cards', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'a1',
+        title: 'Alpha',
+        hasHandle: true,
+        tasks: [{ id: 21, title: 'Drag in all view', status: 'backlog', priority: 'low', effort: 'M' }]
+      },
+      {
+        id: 'b1',
+        title: 'Bravo',
+        hasHandle: true,
+        tasks: [{ id: 22, title: 'Other task', status: 'done', priority: 'medium', effort: 'S' }]
+      }
+    ], { selectedBoardId: '' });
+
+    const card = page.locator('#portfolio-backlog-column .portfolio-task-card').filter({ hasText: 'Drag in all view' }).first();
+    const targetColumn = page.locator('#portfolio-doing-column');
+
+    await expect(card).toBeVisible();
+    await expect(card).toHaveJSProperty('draggable', true);
+
+    await card.dragTo(targetColumn);
+
+    await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Drag in all view' })).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      alphaStatus: portfolioBoards.find((p) => p.id === 'a1')?.data.board.tasks.find((t) => t.id === 21)?.status,
+      writes: window.__portfolioTestWrites || []
+    }));
+
+    expect(result.alphaStatus).toBe('doing');
+    expect(result.writes.some((w) => w.boardId === 'a1')).toBe(true);
   });
 });

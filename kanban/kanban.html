@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Example Task Board</title>
+    <title>Team OS | Kanban</title>
     <style>
         * {
             margin: 0;
@@ -293,11 +293,15 @@
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            align-items: center;
+            min-height: 44px;
         }
 
         .portfolio-chip {
             border: 1px solid var(--border);
-            background: var(--bg-card);
+            background: var(--chip-bg, var(--bg-card));
+            border-color: var(--chip-border, var(--border));
+            color: var(--chip-text, var(--text-secondary));
             padding: 4px 8px;
             display: inline-flex;
             gap: 6px;
@@ -312,7 +316,7 @@
         .chip-link {
             border: none;
             background: transparent;
-            color: var(--text-secondary);
+            color: inherit;
             font-size: 11px;
             cursor: pointer;
             padding: 0;
@@ -321,6 +325,18 @@
         .chip-link:hover {
             color: var(--text-primary);
             text-decoration: underline;
+        }
+
+        .chip-link-danger {
+            color: var(--priority-high);
+        }
+
+        .chip-link-danger:hover {
+            color: var(--priority-high);
+        }
+
+        .chip-readonly-label {
+            font-style: italic;
         }
 
         .portfolio-toolbar input,
@@ -405,6 +421,7 @@
             padding: 12px;
             display: flex;
             flex-direction: column;
+            flex: 1;
             gap: 10px;
             overflow-y: auto;
             min-height: 0;
@@ -446,16 +463,6 @@
             font-size: 11px;
             line-height: 1.2;
             max-width: 100%;
-        }
-
-        .portfolio-project-badge::before {
-            content: '';
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: currentColor;
-            opacity: 0.7;
-            flex: 0 0 auto;
         }
 
         .portfolio-table {
@@ -868,12 +875,34 @@
         }
 
         #shortcutsModal .modal-content {
-            max-width: 560px;
+            width: min(94vw, 860px);
+            max-width: 860px;
+        }
+
+        #shortcutsModal .modal-body {
+            max-height: min(72vh, 640px);
+            overflow: auto;
+        }
+
+        #helpModal .modal-content {
+            max-width: 700px;
         }
 
         .shortcuts-list {
             display: grid;
             gap: 6px;
+        }
+
+        .shortcut-section-title {
+            margin-top: 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .shortcut-section-title:first-child {
+            margin-top: 0;
         }
 
         .shortcut-row {
@@ -917,6 +946,119 @@
         .shortcut-desc {
             color: var(--text-secondary);
             font-size: 12px;
+        }
+
+        .shortcut-sections-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+
+        .shortcut-section-card {
+            border: 1px solid var(--border-light);
+            background: var(--bg-card);
+            padding: 10px 12px;
+        }
+
+        .shortcut-section-card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .shortcut-section-card .shortcuts-list {
+            gap: 0;
+        }
+
+        .shortcut-section-card .shortcut-row {
+            grid-template-columns: minmax(110px, 150px) 1fr;
+            gap: 10px;
+            padding: 5px 0;
+        }
+
+        @media (max-width: 760px) {
+            .shortcut-sections-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .shortcut-section-card .shortcut-row {
+                grid-template-columns: minmax(96px, 130px) 1fr;
+            }
+        }
+
+        .help-manual {
+            display: grid;
+            gap: 14px;
+        }
+
+        .help-intro {
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            padding: 12px 14px;
+        }
+
+        .help-intro-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .help-intro-text {
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .help-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .help-card {
+            border: 1px solid var(--border-light);
+            background: var(--bg-card);
+            padding: 12px;
+            display: grid;
+            gap: 8px;
+            align-content: start;
+        }
+
+        .help-card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .help-card p,
+        .help-card li {
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+
+        .help-card ul {
+            margin: 0;
+            padding-left: 16px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .help-note {
+            border-top: 1px solid var(--border-light);
+            padding-top: 10px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 700px) {
+            .help-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .undo-toast {
@@ -1023,15 +1165,14 @@
 </head>
 <body>
     <div class="header">
-        <div class="app-title">teamos → kanban</div>
+        <div class="app-title">Team OS | Kanban</div>
         <div class="header-actions">
-            <button class="btn" id="portfolioToggleBtn" onclick="togglePortfolioView()">Portfolio</button>
             <button class="btn" onclick="openShortcutsModal()">Shortcuts</button>
-            <span class="save-status" id="saveStatus">Saved</span>
+            <button class="btn" onclick="openHelpModal()">Help</button>
         </div>
     </div>
 
-    <div class="view" id="boardView">
+    <div class="view hidden" id="boardView" aria-hidden="true">
         <div class="view-main">
             <div class="toolbar" id="boardToolbar">
                 <div class="board-toolbar-left">
@@ -1093,7 +1234,7 @@
         <div class="file-drop-overlay" id="boardDropOverlay" aria-hidden="true">Drop board file to open</div>
     </div>
 
-    <div class="view hidden" id="portfolioView">
+    <div class="view" id="portfolioView">
         <div class="view-main">
             <div class="portfolio-toolbar">
                 <div class="portfolio-toolbar-left">
@@ -1106,6 +1247,15 @@
                             <option value="active">Active Only</option>
                             <option value="all">Active + Archived</option>
                             <option value="archived">Archived Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Sort:</label>
+                        <select id="portfolioSortSelect" onchange="onPortfolioSortSelectChange()">
+                            <option value="name">Name</option>
+                            <option value="priority" selected>Priority</option>
+                            <option value="effort">Effort</option>
+                            <option value="score">Score</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1130,15 +1280,12 @@
                     </div>
                 </div>
                 <div class="portfolio-toolbar-right">
-                    <div class="portfolio-view-toggle" role="group" aria-label="Portfolio view mode">
-                        <button type="button" class="btn" id="portfolioDisplayMode-table" onclick="setPortfolioDisplayMode('table')">Table</button>
-                        <button type="button" class="btn" id="portfolioDisplayMode-board" onclick="setPortfolioDisplayMode('board')">Board</button>
-                    </div>
-                    <button class="btn" onclick="openPortfolioBoards()">Open Boards</button>
+                    <button class="btn btn-primary" id="newProjectBtn" onclick="newProject()">+ New Project</button>
+                    <button class="btn" id="importProjectsBtn" onclick="importProjects()">Import Projects</button>
                 </div>
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
-            <div class="portfolio-table-wrap" id="portfolioTableWrap">
+            <div class="portfolio-table-wrap hidden" id="portfolioTableWrap" aria-hidden="true">
                 <table class="portfolio-table">
                     <thead>
                         <tr>
@@ -1196,12 +1343,12 @@
                     </tbody>
                 </table>
             </div>
-            <div class="portfolio-board-wrap hidden" id="portfolioBoardWrap">
+            <div class="portfolio-board-wrap" id="portfolioBoardWrap">
                 <div class="portfolio-empty-banner hidden" id="portfolioBoardEmptyBanner"></div>
                 <div class="portfolio-board-grid" id="portfolioBoard"></div>
             </div>
         </div>
-        <div class="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">Drop board files to load portfolio</div>
+        <div class="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">Drop project files to import</div>
     </div>
 
     <div class="modal" id="taskModal">
@@ -1319,39 +1466,75 @@
                 <button class="modal-close" onclick="closeShortcutsModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="shortcuts-list">
-                    <div class="shortcut-row">
-                        <div class="shortcut-keys"><kbd>/</kbd></div>
-                        <div class="shortcut-desc">Focus search input (board or portfolio mode)</div>
-                    </div>
-                    <div class="shortcut-row">
-                        <div class="shortcut-keys"><kbd>N</kbd></div>
-                        <div class="shortcut-desc">Open new task modal (board mode)</div>
-                    </div>
-                    <div class="shortcut-row">
-                        <div class="shortcut-keys"><kbd>E</kbd></div>
-                        <div class="shortcut-desc">Edit selected task (board mode)</div>
-                    </div>
-                    <div class="shortcut-row">
-                        <div class="shortcut-keys">
-                            <kbd>Ctrl</kbd><span class="shortcut-plus">+</span><kbd>S</kbd>
+                <div class="shortcuts-list" id="shortcutsList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeShortcutsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Help</span>
+                <button class="modal-close" onclick="closeHelpModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-manual">
+                    <div class="help-intro">
+                        <div class="help-intro-title">What This App Is</div>
+                        <div class="help-intro-text">
+                            A portfolio view for multiple project boards. You can import projects, focus one project, and manage tasks directly from the same screen.
                         </div>
-                        <div class="shortcut-desc">Save current board</div>
                     </div>
-                    <div class="shortcut-row">
-                        <div class="shortcut-keys">
-                            <kbd>Ctrl</kbd><span class="shortcut-plus">+</span><kbd>Shift</kbd><span class="shortcut-plus">+</span><kbd>C</kbd>
-                        </div>
-                        <div class="shortcut-desc">Save As current board</div>
+
+                    <div class="help-grid">
+                        <section class="help-card" aria-labelledby="help-getting-started">
+                            <h3 class="help-card-title" id="help-getting-started">Getting Started</h3>
+                            <ul>
+                                <li>Use <strong>New Project</strong> to create a project file and add it to the portfolio.</li>
+                                <li>Use <strong>Import Projects</strong> to load one or more existing <code>.board.json</code> files.</li>
+                                <li>You can also drag project files into the app to import them.</li>
+                            </ul>
+                        </section>
+
+                        <section class="help-card" aria-labelledby="help-navigation">
+                            <h3 class="help-card-title" id="help-navigation">Navigation & Filters</h3>
+                            <ul>
+                                <li>Use the project chips to switch between <strong>All</strong> projects and a single project.</li>
+                                <li>Search filters by task name.</li>
+                                <li>Archive, Sort, Priority, and Effort controls update the visible cards.</li>
+                            </ul>
+                        </section>
+
+                        <section class="help-card" aria-labelledby="help-task-actions">
+                            <h3 class="help-card-title" id="help-task-actions">Working With Tasks</h3>
+                            <ul>
+                                <li>Click a card to open task details.</li>
+                                <li>Use the card actions to edit or archive a task.</li>
+                                <li>When a writable project is selected, each column shows <strong>+ Add Task</strong>.</li>
+                                <li>Drag cards between columns to change status. Moves auto-save for writable projects.</li>
+                            </ul>
+                        </section>
+
+                        <section class="help-card" aria-labelledby="help-readonly">
+                            <h3 class="help-card-title" id="help-readonly">Read-Only Projects</h3>
+                            <ul>
+                                <li>Projects imported without a file handle are marked <em>(Read-only)</em> in the chip.</li>
+                                <li>You can still open and inspect tasks.</li>
+                                <li>Edit/archive actions are disabled until the project is opened with a writable file handle.</li>
+                            </ul>
+                        </section>
                     </div>
-                    <div class="shortcut-row">
-                        <div class="shortcut-keys"><kbd>Esc</kbd></div>
-                        <div class="shortcut-desc">Close open modal</div>
+
+                    <div class="help-note">
+                        Quick shortcuts: <kbd>?</kbd> opens this shortcut list, <kbd>/</kbd> focuses search, <kbd>I</kbd> imports projects, and <kbd>Esc</kbd> closes modals.
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn" onclick="closeShortcutsModal()">Close</button>
+                <button class="btn" onclick="closeHelpModal()">Close</button>
             </div>
         </div>
     </div>
@@ -1394,15 +1577,26 @@
         let draggedColumnStatus = null;
         let undoAction = null;
         let undoTimer = null;
-        let appMode = 'board';
+        let appMode = 'portfolio';
         let portfolioBoards = [];
         let portfolioTasks = [];
         let selectedPortfolioBoardId = '';
         let portfolioSortKey = 'priority';
         let portfolioSortDir = 'asc';
-        let portfolioDisplayMode = 'table';
+        let portfolioDisplayMode = 'board';
         let portfolioEditContext = null;
+        let portfolioCreateContext = null;
         let portfolioDetailContext = null;
+        let portfolioDragContext = null;
+        let selectedPortfolioCardRef = null;
+        let ShortcutRegistry = [];
+        let suppressPortfolioCardClickUntil = 0;
+        const Refs = {};
+        let State = null;
+        let Domain = null;
+        let Services = null;
+        let UI = null;
+        let Controllers = null;
 
         function readQueryParam(key, fallback = '') {
             const params = new URLSearchParams(window.location.search);
@@ -1425,9 +1619,7 @@
         }
 
         function setFileDropActive(active) {
-            const view = appMode === 'portfolio'
-                ? document.getElementById('portfolioView')
-                : document.getElementById('boardView');
+            const view = document.getElementById('portfolioView');
             if (view) {
                 view.classList.toggle('file-drop-active', active);
             }
@@ -1435,20 +1627,6 @@
 
         function updateUrlState() {
             const params = new URLSearchParams();
-            params.set('view', appMode);
-
-            const boardSearch = document.getElementById('searchInput')?.value || '';
-            const boardPriority = document.getElementById('priorityFilter')?.value || '';
-            const boardEffort = document.getElementById('effortFilter')?.value || '';
-            if (boardSearch) params.set('q', boardSearch);
-            if (boardPriority) params.set('p', boardPriority);
-            if (boardEffort) params.set('e', boardEffort);
-            if (boardArchiveFilter !== 'active') {
-                params.set('archived', boardArchiveFilter === 'archived' ? '1' : boardArchiveFilter);
-            }
-            if (boardSortMode === 'dueDate') params.set('sort', 'due');
-            if (boardSortMode === 'effort') params.set('sort', 'effort');
-            if (boardSortMode === 'score') params.set('sort', 'score');
 
             const portfolioSearch = document.getElementById('portfolioSearchInput')?.value || '';
             const portfolioPriority = document.getElementById('portfolioPriorityFilter')?.value || '';
@@ -1461,24 +1639,12 @@
             if (portfolioSortKey !== 'priority') params.set('ps', portfolioSortKey);
             if (portfolioSortDir === 'desc') params.set('pd', portfolioSortDir);
             if (selectedPortfolioBoardId) params.set('pb', selectedPortfolioBoardId);
-            if (portfolioDisplayMode !== 'table') params.set('pv', portfolioDisplayMode);
-
             const query = params.toString();
             const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
             window.history.replaceState(null, '', nextUrl);
         }
 
         function applyUrlState() {
-            const view = readQueryParam('view', 'board');
-            const boardSearch = readQueryParam('q', '');
-            const boardPriority = readQueryParam('p', '');
-            const archived = readQueryParam('archived', '');
-            const sortParam = readQueryParam('sort', '');
-            const sort = sortParam === 'due'
-                ? 'dueDate'
-                : (sortParam === 'effort' ? 'effort' : (sortParam === 'score' ? 'score' : 'manual'));
-            const boardEffort = readQueryParam('e', '');
-
             const portfolioSearch = readQueryParam('pq', '');
             const portfolioPriority = readQueryParam('pp', '');
             const portfolioEffort = readQueryParam('pe', '');
@@ -1486,21 +1652,6 @@
             const portfolioSort = readQueryParam('ps', 'priority');
             const portfolioSortDirParam = readQueryParam('pd', 'asc');
             const portfolioBoard = readQueryParam('pb', '');
-            const portfolioViewMode = readQueryParam('pv', 'table');
-
-            const searchInput = document.getElementById('searchInput');
-            const priorityFilter = document.getElementById('priorityFilter');
-            const effortFilter = document.getElementById('effortFilter');
-            if (searchInput) searchInput.value = boardSearch;
-            if (priorityFilter && ['', 'high', 'medium', 'low'].includes(boardPriority)) {
-                priorityFilter.value = boardPriority;
-            }
-            if (effortFilter && ['', ...EFFORT_BUCKETS].includes(boardEffort)) {
-                effortFilter.value = boardEffort;
-            }
-            boardArchiveFilter = normalizeBoardArchiveFilter(archived);
-            boardSortMode = sort;
-            applyViewControls();
 
             const pSearch = document.getElementById('portfolioSearchInput');
             const pPriority = document.getElementById('portfolioPriorityFilter');
@@ -1519,20 +1670,15 @@
             portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
             portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
             selectedPortfolioBoardId = portfolioBoard;
-            portfolioDisplayMode = normalizePortfolioDisplayMode(portfolioViewMode);
+            portfolioDisplayMode = 'board';
 
-            setAppMode(view === 'portfolio' ? 'portfolio' : 'board');
-            if (view !== 'portfolio') {
-                renderTasks();
-            }
+            setAppMode('portfolio');
         }
 
         const sampleTasks = [];
 
         function updateDocumentTitle() {
-            const filePart = currentFileName ? ` - ${currentFileName}` : '';
-            const dirtyPart = isDirty ? '* ' : '';
-            document.title = `${dirtyPart}${boardTitle}${filePart}`;
+            document.title = 'Team OS | Kanban';
         }
 
         function applyBoardTitle() {
@@ -1601,22 +1747,17 @@
         }
 
         function setAppMode(mode) {
-            appMode = mode;
-            const isPortfolio = mode === 'portfolio';
-            document.getElementById('boardView').classList.toggle('hidden', isPortfolio);
-            document.getElementById('portfolioView').classList.toggle('hidden', !isPortfolio);
-            const btn = document.getElementById('portfolioToggleBtn');
-            if (btn) {
-                btn.textContent = isPortfolio ? 'Board' : 'Portfolio';
-            }
-            if (isPortfolio) {
-                renderPortfolio();
-            }
+            appMode = 'portfolio';
+            const boardView = document.getElementById('boardView');
+            const portfolioView = document.getElementById('portfolioView');
+            if (boardView) boardView.classList.add('hidden');
+            if (portfolioView) portfolioView.classList.remove('hidden');
+            renderPortfolio();
             updateUrlState();
         }
 
         function togglePortfolioView() {
-            setAppMode(appMode === 'board' ? 'portfolio' : 'board');
+            setAppMode('portfolio');
         }
 
         function normalizePortfolioDisplayMode(value) {
@@ -1624,14 +1765,8 @@
         }
 
         function setPortfolioDisplayMode(mode) {
-            const next = normalizePortfolioDisplayMode(mode);
-            if (portfolioDisplayMode === next) return;
-            portfolioDisplayMode = next;
-            if (appMode === 'portfolio') {
-                renderPortfolio();
-            } else {
-                updateUrlState();
-            }
+            portfolioDisplayMode = 'board';
+            renderPortfolio();
         }
 
         function renderPortfolioDisplayControls() {
@@ -1796,32 +1931,99 @@
             });
         }
 
+        function nextPortfolioProjectId() {
+            return `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function createEmptyProjectData(title) {
+            const now = nowIso();
+            const projectTitle = (title || '').trim() || 'Untitled Project';
+            return {
+                meta: {
+                    schemaVersion: BOARD_SCHEMA_VERSION,
+                    appId: BOARD_APP_ID,
+                    createdAt: now,
+                    updatedAt: now
+                },
+                board: {
+                    columns: normalizeColumns(defaultColumns).map(col => ({ status: col.status, title: col.title })),
+                    tasks: [],
+                    settings: {
+                        title: projectTitle,
+                        sortMode: 'manual',
+                        showArchivedOnly: false,
+                        archiveFilter: 'active'
+                    }
+                },
+                extensions: {}
+            };
+        }
+
+        function createPortfolioRecord({ handle = null, fileName = '', data }) {
+            const payload = serializeBoardDataFromObject(data);
+            return {
+                id: nextPortfolioProjectId(),
+                handle,
+                fileName,
+                title: payload.board.settings.title,
+                data: payload
+            };
+        }
+
+        function closePortfolioContextsForProject(boardId) {
+            if (!boardId) return;
+            if (portfolioDetailContext && portfolioDetailContext.boardId === boardId) {
+                closeDetailModal();
+            }
+            if (
+                (portfolioEditContext && portfolioEditContext.boardId === boardId) ||
+                (portfolioCreateContext && portfolioCreateContext.boardId === boardId)
+            ) {
+                closeModal();
+            }
+        }
+
+        function appendPortfolioRecords(records, options = {}) {
+            const list = Array.isArray(records) ? records.filter(Boolean) : [];
+            if (list.length === 0) return;
+            portfolioBoards = [...portfolioBoards, ...list];
+            if (typeof options.selectBoardId === 'string') {
+                selectedPortfolioBoardId = options.selectBoardId;
+            }
+            if (selectedPortfolioBoardId && !portfolioBoards.some(board => board.id === selectedPortfolioBoardId)) {
+                selectedPortfolioBoardId = '';
+            }
+            buildPortfolioTasks();
+            setAppMode('portfolio');
+        }
+
         function renderPortfolioBoardChips() {
             const chips = document.getElementById('portfolioBoardsChips');
             if (!chips) return;
 
             if (portfolioBoards.length === 0) {
-                chips.innerHTML = '<span class="empty-state-text">No boards loaded</span>';
+                chips.innerHTML = '<span class="empty-state-text">No projects loaded</span>';
                 return;
             }
 
             const allActiveClass = selectedPortfolioBoardId ? '' : 'active';
-            const allCount = portfolioTasks.length;
             const allChip = `
                 <span class="portfolio-chip ${allActiveClass}">
                     <button class="chip-link" onclick="selectPortfolioBoard('')">All</button>
-                    <span>${allCount}</span>
                 </span>
             `;
 
             const boardChips = portfolioBoards.map(board => {
-                const count = portfolioTasks.filter(item => item.boardId === board.id).length;
                 const activeClass = selectedPortfolioBoardId === board.id ? 'active' : '';
+                const color = portfolioProjectColor(board.id);
+                const chipStyle = `--chip-bg:${color.bg};--chip-border:${color.border};--chip-text:${color.text};`;
                 return `
-                    <span class="portfolio-chip ${activeClass}">
-                        <button class="chip-link" onclick="selectPortfolioBoard('${board.id}')">${escapeHtml(board.title || board.fileName)}</button>
-                        <span>${count}</span>
-                        <button class="chip-link" onclick="openLoadedBoard('${board.id}')">Open</button>
+                    <span class="portfolio-chip ${activeClass}" style="${chipStyle}">
+                        <button class="chip-link" onclick="selectPortfolioBoard('${board.id}')">
+                            ${escapeHtml(board.title || board.fileName)}
+                            ${board.handle ? '' : '<span class="chip-readonly-label"> (Read-only)</span>'}
+                        </button>
+                        <button class="chip-link chip-link-danger" aria-label="Remove project" title="Remove project" onclick="removeProjectFromPortfolio('${board.id}')">Remove</button>
                     </span>
                 `;
             }).join('');
@@ -1835,57 +2037,103 @@
             updateUrlState();
         }
 
-        function openLoadedBoard(boardId) {
-            const target = portfolioBoards.find(board => board.id === boardId);
-            if (!target) return;
-            if (!confirmDiscardChanges('Open')) return;
-
-            applyBoardData(target.data);
-            currentFileHandle = target.handle;
-            currentFileName = target.fileName || '';
-            suppressChangeTracking = true;
-            renderBoard();
-            renderTasks();
-            persistLocalState();
-            suppressChangeTracking = false;
-            setDirty(false);
-            setSaveStatus('Saved', 'saved');
-            setAppMode('board');
+        function removeProjectFromPortfolio(boardId) {
+            const index = portfolioBoards.findIndex(board => board.id === boardId);
+            if (index < 0) return;
+            closePortfolioContextsForProject(boardId);
+            if (selectedPortfolioCardRef && selectedPortfolioCardRef.boardId === boardId) {
+                selectedPortfolioCardRef = null;
+            }
+            portfolioBoards.splice(index, 1);
+            if (selectedPortfolioBoardId === boardId) {
+                selectedPortfolioBoardId = '';
+            }
+            buildPortfolioTasks();
+            renderPortfolio();
         }
 
-        async function openPortfolioBoards() {
+        function openLoadedBoard(boardId) {
+            selectPortfolioBoard(boardId);
+        }
+
+        async function newProject() {
+            try {
+                const requestedName = prompt('Project name:', 'New Project');
+                if (requestedName === null) return;
+                const title = requestedName.trim();
+                if (!title) return;
+
+                const suggestedStem = slugifyColumnName(title) || 'project';
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: `${suggestedStem}${BOARD_FILE_EXTENSION}`,
+                    types: [{ description: 'Project JSON', accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
+                });
+                assertRequiredExtension(handle.name, BOARD_FILE_EXTENSION, 'Project file');
+
+                const data = createEmptyProjectData(title);
+                setSaveStatus('Saving...', 'saving');
+                await writeJsonToFileHandle(handle, data);
+                const record = createPortfolioRecord({
+                    handle,
+                    fileName: handle.name || `${suggestedStem}${BOARD_FILE_EXTENSION}`,
+                    data
+                });
+                appendPortfolioRecords([record], { selectBoardId: record.id });
+                setSaveStatus('Saved', 'saved');
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    setSaveStatus('Error', 'error');
+                    alert(`New project failed: ${error.message}`);
+                }
+            }
+        }
+
+        async function importProjects() {
             try {
                 const handles = await window.showOpenFilePicker({
                     multiple: true,
-                    types: [{ description: 'Kanban Board JSON', accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
+                    types: [{ description: 'Project JSON', accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
                 });
 
+                setSaveStatus('Opening...', 'saving');
                 const loaded = [];
+                const errors = [];
                 for (const handle of handles) {
-                    const file = await handle.getFile();
-                    assertRequiredExtension(file.name, BOARD_FILE_EXTENSION, 'Board file');
-                    const parsed = JSON.parse(await file.text());
-                    validateBoardData(parsed);
-                    const boardId = `b${Date.now()}${loaded.length}`;
-                    loaded.push({
-                        id: boardId,
-                        handle,
-                        fileName: file.name,
-                        title: parsed.board.settings.title,
-                        data: parsed
-                    });
+                    try {
+                        const file = await handle.getFile();
+                        assertRequiredExtension(file.name, BOARD_FILE_EXTENSION, 'Project file');
+                        const parsed = JSON.parse(await file.text());
+                        validateBoardData(parsed);
+                        loaded.push(createPortfolioRecord({
+                            handle,
+                            fileName: file.name,
+                            data: parsed
+                        }));
+                    } catch (error) {
+                        errors.push(`${handle.name || 'Unknown file'}: ${error.message}`);
+                    }
                 }
 
-                portfolioBoards = loaded;
-                selectedPortfolioBoardId = '';
-                buildPortfolioTasks();
-                setAppMode('portfolio');
-                renderPortfolio();
+                appendPortfolioRecords(loaded);
+                if (loaded.length > 0) {
+                    setSaveStatus('Saved', 'saved');
+                } else if (errors.length > 0) {
+                    setSaveStatus('Error', 'error');
+                }
+
+                if (errors.length > 0) {
+                    alert(`Some projects were not imported:\n${errors.join('\n')}`);
+                }
             } catch (error) {
                 if (error.name !== 'AbortError') {
-                    alert(`Portfolio open failed: ${error.message}`);
+                    setSaveStatus('Error', 'error');
+                    alert(`Import failed: ${error.message}`);
                 }
             }
+        }
+
+        async function openPortfolioBoards() {
+            await importProjects();
         }
 
         async function openBoardFromFile(file) {
@@ -1919,27 +2167,35 @@
                     return;
                 }
 
+                setSaveStatus('Opening...', 'saving');
                 const loaded = [];
+                const errors = [];
                 for (const file of boardFiles) {
-                    const parsed = JSON.parse(await file.text());
-                    validateBoardData(parsed);
-                    const boardId = `b${Date.now()}${loaded.length}`;
-                    loaded.push({
-                        id: boardId,
-                        handle: null,
-                        fileName: file.name,
-                        title: parsed.board.settings.title,
-                        data: parsed
-                    });
+                    try {
+                        const parsed = JSON.parse(await file.text());
+                        validateBoardData(parsed);
+                        loaded.push(createPortfolioRecord({
+                            handle: null,
+                            fileName: file.name,
+                            data: parsed
+                        }));
+                    } catch (error) {
+                        errors.push(`${file.name}: ${error.message}`);
+                    }
                 }
 
-                portfolioBoards = loaded;
-                selectedPortfolioBoardId = '';
-                buildPortfolioTasks();
-                setAppMode('portfolio');
-                renderPortfolio();
+                appendPortfolioRecords(loaded);
+                if (loaded.length > 0) {
+                    setSaveStatus('Saved', 'saved');
+                } else if (errors.length > 0) {
+                    setSaveStatus('Error', 'error');
+                }
+                if (errors.length > 0) {
+                    alert(`Some projects were not imported:\n${errors.join('\n')}`);
+                }
             } catch (error) {
-                alert(`Portfolio open failed: ${error.message}`);
+                setSaveStatus('Error', 'error');
+                alert(`Import failed: ${error.message}`);
             }
         }
 
@@ -1974,14 +2230,7 @@
                 const files = ev.dataTransfer ? ev.dataTransfer.files : null;
                 if (!files || files.length === 0) return;
 
-                if (appMode === 'portfolio') {
-                    openPortfolioFromFiles(files);
-                } else {
-                    if (files.length > 1) {
-                        alert('Multiple files dropped. Opening the first one.');
-                    }
-                    openBoardFromFile(files[0]);
-                }
+                openPortfolioFromFiles(files);
             });
         }
 
@@ -2031,17 +2280,43 @@
             const task = item.task;
             const div = document.createElement('div');
             div.className = 'task-card portfolio-task-card';
+            if (isSelectedPortfolioCard(item.boardId, task.id)) {
+                div.classList.add('selected');
+            }
             const canMutate = Boolean(item.canMutate);
-            div.draggable = false;
+            const canDrag = canMutate;
+            div.draggable = canDrag;
             div.dataset.boardId = item.boardId;
             div.dataset.taskId = String(item.taskId ?? task.id);
-            div.onclick = () => openPortfolioTaskDetails(item.boardId, task.id);
+            div.dataset.status = normalizeTaskStatus(task.status);
+            div.onclick = () => {
+                if (Date.now() < suppressPortfolioCardClickUntil) return;
+                setSelectedPortfolioCard(item.boardId, task.id);
+                openPortfolioTaskDetails(item.boardId, task.id);
+            };
+            if (canDrag) {
+                div.addEventListener('dragstart', (ev) => {
+                    if (Controllers && Controllers.DragDrop) {
+                        Controllers.DragDrop.onTaskDragStart(ev, {
+                            boardId: item.boardId,
+                            taskId: task.id,
+                            status: normalizeTaskStatus(task.status)
+                        });
+                    }
+                });
+                div.addEventListener('dragend', (ev) => {
+                    if (Controllers && Controllers.DragDrop) {
+                        Controllers.DragDrop.onTaskDragEnd(ev);
+                    }
+                });
+            }
 
             const priority = normalizePriority(task.priority);
             const effort = normalizeEffort(task.effort);
             const score = formatTaskScore(task);
             const highlightedTitle = highlightSearchMatch(task.title || '', searchTerm);
-            const projectLabel = item.boardTitle || item.boardFileName || 'Board';
+            const projectLabel = item.boardTitle || item.boardFileName || 'Project';
+            const showProjectBadge = !selectedPortfolioBoardId;
             const color = portfolioProjectColor(item.boardId);
             const badgeStyle = `background:${color.bg};border-color:${color.border};color:${color.text};`;
             const archiveButtonLabel = task.archived ? '↺' : '×';
@@ -2057,8 +2332,7 @@
                     </div>
                 </div>
                 <div class="task-meta">
-                    <span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>
-                    ${canMutate ? '' : '<span class="task-tag" title="Read-only (no file handle)">Read-only</span>'}
+                    ${showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : ''}
                     ${isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : ''}
                     ${priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : ''}
                     ${effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : ''}
@@ -2076,11 +2350,7 @@
             if (!body) return;
 
             if (rows.length === 0) {
-                if (portfolioBoards.length === 0) {
-                    body.innerHTML = '';
-                    return;
-                }
-                body.innerHTML = '<tr><td colspan="8">No matching tasks.</td></tr>';
+                body.innerHTML = '';
                 return;
             }
 
@@ -2105,6 +2375,7 @@
             if (!boardWrap || !boardGrid || !banner) return;
 
             const searchTerm = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
+            const canAddTasks = Boolean(selectedPortfolioBoardId) && isPortfolioBoardMutable(selectedPortfolioBoardId);
             const buckets = Object.fromEntries(defaultColumns.map(col => [col.status, []]));
             rows.forEach((item) => {
                 const status = normalizeTaskStatus(item.task.status);
@@ -2113,14 +2384,11 @@
             });
 
             const hasBoards = portfolioBoards.length > 0;
-            banner.classList.toggle('hidden', hasBoards && rows.length > 0);
             if (!hasBoards) {
                 banner.classList.add('hidden');
                 banner.textContent = '';
-            } else if (rows.length === 0) {
-                banner.classList.remove('hidden');
-                banner.textContent = 'No matching tasks.';
             } else {
+                banner.classList.add('hidden');
                 banner.textContent = '';
             }
 
@@ -2140,9 +2408,32 @@
             defaultColumns.forEach((col) => {
                 const node = document.getElementById(`portfolio-${col.status}-column`);
                 if (!node) return;
+                node.dataset.status = col.status;
+                node.addEventListener('dragover', (ev) => {
+                    if (Controllers && Controllers.DragDrop) {
+                        Controllers.DragDrop.onColumnDragOver(ev, col.status);
+                    }
+                });
+                node.addEventListener('dragleave', (ev) => {
+                    if (Controllers && Controllers.DragDrop) {
+                        Controllers.DragDrop.onColumnDragLeave(ev);
+                    }
+                });
+                node.addEventListener('drop', (ev) => {
+                    if (Controllers && Controllers.DragDrop) {
+                        Controllers.DragDrop.onColumnDrop(ev, col.status);
+                    }
+                });
                 const items = buckets[col.status] || [];
+                if (canAddTasks) {
+                    const addTaskCard = document.createElement('div');
+                    addTaskCard.className = 'add-task-card';
+                    addTaskCard.textContent = '+ Add Task';
+                    addTaskCard.onclick = () => openPortfolioCreateTaskModal(selectedPortfolioBoardId, col.status);
+                    node.appendChild(addTaskCard);
+                }
                 if (items.length === 0) {
-                    node.innerHTML = '<div class="empty-state"><span class="empty-state-text">No tasks</span></div>';
+                    node.insertAdjacentHTML('beforeend', '<div class="empty-state"><span class="empty-state-text">No tasks</span></div>');
                     return;
                 }
                 items.forEach((item) => node.appendChild(createPortfolioTaskCard(item, searchTerm)));
@@ -2155,19 +2446,13 @@
             if (!tableWrap || !boardWrap) return;
 
             const rows = getFilteredSortedPortfolioRows();
-            const mode = normalizePortfolioDisplayMode(portfolioDisplayMode);
-
-            tableWrap.classList.toggle('hidden', mode !== 'table');
-            boardWrap.classList.toggle('hidden', mode !== 'board');
-
-            renderPortfolioDisplayControls();
+            syncSelectedPortfolioCardWithVisibleRows(rows);
+            portfolioDisplayMode = 'board';
+            tableWrap.classList.add('hidden');
+            boardWrap.classList.remove('hidden');
+            applyPortfolioSortSelect();
             renderPortfolioSortHeaders();
-
-            if (mode === 'board') {
-                renderPortfolioBoardView(rows);
-            } else {
-                renderPortfolioTableView(rows);
-            }
+            renderPortfolioBoardView(rows);
 
             renderPortfolioBoardChips();
             updateUrlState();
@@ -2178,7 +2463,7 @@
         }
 
         function notifyPortfolioReadOnly() {
-            alert('This portfolio task is read-only because the board was loaded without a file handle.');
+            alert('This project is read-only because it was loaded without a file handle.');
         }
 
         async function runPortfolioTaskMutation(boardId, taskId, mutator) {
@@ -2208,10 +2493,13 @@
             }
 
             try {
+                setSaveStatus('Saving...', 'saving');
                 await savePortfolioBoardRecord(source.boardRecord);
+                setSaveStatus('Saved', 'saved');
             } catch (error) {
                 console.error(error);
-                alert(`Auto-save failed for ${source.boardRecord.title || source.boardRecord.fileName || 'board'}: ${error.message}`);
+                setSaveStatus('Error', 'error');
+                alert(`Auto-save failed for ${source.boardRecord.title || source.boardRecord.fileName || 'project'}: ${error.message}`);
             }
 
             return true;
@@ -2220,6 +2508,7 @@
         function openPortfolioTaskDetails(boardId, taskId) {
             const source = findPortfolioTaskSource(boardId, taskId);
             if (!source) return;
+            setSelectedPortfolioCard(boardId, taskId);
             const task = normalizeTask(source.task);
             const statusMap = Object.fromEntries((source.boardRecord.data.board.columns || []).map(col => [col.status, col.title]));
             const statusTitle = statusMap[task.status] || task.status;
@@ -2248,8 +2537,10 @@
                 return;
             }
 
+            setSelectedPortfolioCard(boardId, taskId);
             const task = normalizeTask(source.task);
             portfolioEditContext = { boardId, taskId };
+            portfolioCreateContext = null;
             portfolioDetailContext = null;
 
             document.getElementById('taskModal').classList.add('active');
@@ -2263,6 +2554,40 @@
             document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
             document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
             pendingNewTaskStatus = null;
+
+            const taskNameInput = document.getElementById('taskName');
+            requestAnimationFrame(() => {
+                taskNameInput.focus();
+                taskNameInput.select();
+            });
+        }
+
+        function openPortfolioCreateTaskModal(boardId, preferredStatus) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord) return;
+            if (!canUsePortfolioTaskMutations(boardId)) {
+                notifyPortfolioReadOnly();
+                return;
+            }
+
+            const allowedStatuses = new Set((boardRecord.data.board.columns || []).map(col => normalizeTaskStatus(col.status)));
+            const fallbackStatus = normalizeTaskStatus((boardRecord.data.board.columns || [defaultColumns[0]])[0]?.status);
+            const status = allowedStatuses.has(normalizeTaskStatus(preferredStatus))
+                ? normalizeTaskStatus(preferredStatus)
+                : fallbackStatus;
+
+            portfolioCreateContext = { boardId, status };
+            portfolioEditContext = null;
+            portfolioDetailContext = null;
+            pendingNewTaskStatus = null;
+
+            document.getElementById('taskModal').classList.add('active');
+            document.getElementById('taskForm').reset();
+            document.getElementById('taskId').value = '';
+            document.getElementById('modalTitle').textContent = 'New Task';
+            document.getElementById('taskDueDate').value = '';
+            document.getElementById('taskPriority').value = '';
+            document.getElementById('taskEffort').value = '';
 
             const taskNameInput = document.getElementById('taskName');
             requestAnimationFrame(() => {
@@ -2301,6 +2626,28 @@
 
         function normalizePortfolioSortDir(value) {
             return value === 'desc' ? 'desc' : 'asc';
+        }
+
+        function portfolioSortSelectValueFromKey(sortKey) {
+            const key = normalizePortfolioSortKey(sortKey);
+            if (key === 'task') return 'name';
+            if (['priority', 'effort', 'score'].includes(key)) return key;
+            return 'priority';
+        }
+
+        function applyPortfolioSortSelect() {
+            const select = document.getElementById('portfolioSortSelect');
+            if (!select) return;
+            select.value = portfolioSortSelectValueFromKey(portfolioSortKey);
+        }
+
+        function onPortfolioSortSelectChange() {
+            const select = document.getElementById('portfolioSortSelect');
+            if (!select) return;
+            const nextKey = select.value === 'name' ? 'task' : normalizePortfolioSortKey(select.value);
+            portfolioSortKey = nextKey;
+            portfolioSortDir = 'asc';
+            renderPortfolio();
         }
 
         function setPortfolioSort(sortKey) {
@@ -2912,6 +3259,11 @@
         }
 
         function init() {
+            if (typeof cacheRefs === 'function') {
+                cacheRefs();
+            }
+            buildShortcutRegistry();
+            renderShortcutsModalContent();
             columns = normalizeColumns(columns);
             if (columns.length === 0) {
                 loadTemplateBoard();
@@ -3141,6 +3493,7 @@
 
         function openModal(taskId = null, preferredStatus = null) {
             portfolioEditContext = null;
+            portfolioCreateContext = null;
             document.getElementById('taskModal').classList.add('active');
             document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
@@ -3178,6 +3531,7 @@
             document.getElementById('taskModal').classList.remove('active');
             pendingNewTaskStatus = null;
             portfolioEditContext = null;
+            portfolioCreateContext = null;
         }
 
         function openTaskDetails(id) {
@@ -3249,11 +3603,20 @@
         }
 
         function openShortcutsModal() {
+            renderShortcutsModalContent();
             document.getElementById('shortcutsModal').classList.add('active');
         }
 
         function closeShortcutsModal() {
             document.getElementById('shortcutsModal').classList.remove('active');
+        }
+
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.add('active');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.remove('active');
         }
 
         async function saveTask() {
@@ -3266,6 +3629,56 @@
             const effort = normalizeEffort(document.getElementById('taskEffort').value);
 
             if (!title) return;
+
+            if (portfolioCreateContext && portfolioCreateContext.boardId) {
+                const { boardId } = portfolioCreateContext;
+                const boardRecord = getPortfolioBoardRecord(boardId);
+                if (!boardRecord) return;
+                if (!canUsePortfolioTaskMutations(boardId)) {
+                    notifyPortfolioReadOnly();
+                    return;
+                }
+
+                const now = nowIso();
+                const existingIds = (boardRecord.data.board.tasks || [])
+                    .map(task => Number(task?.id))
+                    .filter(Number.isFinite);
+                const nextId = existingIds.length > 0
+                    ? Math.max(...existingIds) + 1
+                    : Date.now();
+                const validStatuses = new Set((boardRecord.data.board.columns || []).map(col => normalizeTaskStatus(col.status)));
+                const fallbackStatus = normalizeTaskStatus((boardRecord.data.board.columns || [defaultColumns[0]])[0]?.status);
+                const status = validStatuses.has(normalizeTaskStatus(portfolioCreateContext.status))
+                    ? normalizeTaskStatus(portfolioCreateContext.status)
+                    : fallbackStatus;
+
+                boardRecord.data.board.tasks.push({
+                    id: nextId,
+                    title,
+                    description,
+                    checklist,
+                    archived: false,
+                    createdAt: now,
+                    updatedAt: now,
+                    dueDate,
+                    priority,
+                    effort,
+                    status
+                });
+
+                selectedPortfolioBoardId = boardId;
+                buildPortfolioTasks();
+                renderPortfolio();
+                closeModal();
+
+                try {
+                    await savePortfolioBoardRecord(boardRecord);
+                } catch (error) {
+                    console.error(error);
+                    alert(`Auto-save failed for ${boardRecord.title || boardRecord.fileName || 'project'}: ${error.message}`);
+                }
+                return;
+            }
 
             if (portfolioEditContext && portfolioEditContext.boardId && portfolioEditContext.taskId) {
                 const { boardId, taskId } = portfolioEditContext;
@@ -3377,6 +3790,733 @@
             updateUrlState();
         }
 
+        function isSelectedPortfolioCard(boardId, taskId) {
+            if (!selectedPortfolioCardRef) return false;
+            return selectedPortfolioCardRef.boardId === boardId && Number(selectedPortfolioCardRef.taskId) === Number(taskId);
+        }
+
+        function setSelectedPortfolioCard(boardId, taskId) {
+            if (!boardId || taskId === null || taskId === undefined) {
+                selectedPortfolioCardRef = null;
+                return;
+            }
+            selectedPortfolioCardRef = { boardId, taskId: Number(taskId) };
+        }
+
+        function syncSelectedPortfolioCardWithVisibleRows(rows) {
+            if (!selectedPortfolioCardRef) return;
+            const visible = Array.isArray(rows) ? rows : [];
+            const exists = visible.some(
+                (row) => row.boardId === selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(selectedPortfolioCardRef.taskId)
+            );
+            if (!exists) {
+                selectedPortfolioCardRef = null;
+            }
+        }
+
+        function cssEscapeValue(value) {
+            const raw = String(value ?? '');
+            if (window.CSS && typeof window.CSS.escape === 'function') {
+                return window.CSS.escape(raw);
+            }
+            return raw.replace(/["\\]/g, '\\$&');
+        }
+
+        function scrollSelectedPortfolioCardIntoView() {
+            if (!selectedPortfolioCardRef) return;
+            const selector = `.portfolio-task-card[data-board-id="${cssEscapeValue(selectedPortfolioCardRef.boardId)}"][data-task-id="${cssEscapeValue(selectedPortfolioCardRef.taskId)}"]`;
+            const node = document.querySelector(selector);
+            if (node && typeof node.scrollIntoView === 'function') {
+                node.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+            }
+        }
+
+        function getVisiblePortfolioRowsForShortcuts() {
+            return getFilteredSortedPortfolioRows();
+        }
+
+        function selectAdjacentPortfolioCard(step) {
+            const rows = getVisiblePortfolioRowsForShortcuts();
+            if (rows.length === 0) {
+                selectedPortfolioCardRef = null;
+                renderPortfolio();
+                return;
+            }
+
+            const currentIndex = selectedPortfolioCardRef
+                ? rows.findIndex((row) => row.boardId === selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(selectedPortfolioCardRef.taskId))
+                : -1;
+            let nextIndex;
+            if (currentIndex < 0) {
+                nextIndex = step > 0 ? 0 : rows.length - 1;
+            } else {
+                nextIndex = Math.min(rows.length - 1, Math.max(0, currentIndex + step));
+            }
+            const row = rows[nextIndex];
+            if (!row) return;
+            setSelectedPortfolioCard(row.boardId, row.taskId);
+            renderPortfolio();
+            requestAnimationFrame(() => scrollSelectedPortfolioCardIntoView());
+        }
+
+        function getSelectedPortfolioRow() {
+            if (!selectedPortfolioCardRef) return null;
+            return getVisiblePortfolioRowsForShortcuts().find(
+                (row) => row.boardId === selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(selectedPortfolioCardRef.taskId)
+            ) || null;
+        }
+
+        function openSelectedPortfolioCardDetails() {
+            const row = getSelectedPortfolioRow();
+            if (!row) return;
+            openPortfolioTaskDetails(row.boardId, row.taskId);
+        }
+
+        function editSelectedPortfolioCard() {
+            const row = getSelectedPortfolioRow();
+            if (!row || !row.canMutate) return;
+            editPortfolioTask(row.boardId, row.taskId);
+        }
+
+        async function toggleArchiveSelectedPortfolioCard() {
+            const row = getSelectedPortfolioRow();
+            if (!row || !row.canMutate) return;
+            await togglePortfolioArchiveTask(row.boardId, row.taskId);
+        }
+
+        async function moveSelectedPortfolioCardToShortcutStatus(targetStatus) {
+            const row = getSelectedPortfolioRow();
+            if (!row || !row.canMutate || !Controllers || !Controllers.Tasks) return;
+            await Controllers.Tasks.moveTaskToStatus(row.boardId, row.taskId, targetStatus);
+        }
+
+        function focusPortfolioSearch() {
+            const node = document.getElementById('portfolioSearchInput');
+            if (node) node.focus();
+        }
+
+        function focusPortfolioSortControl() {
+            const node = document.getElementById('portfolioSortSelect');
+            if (node) node.focus();
+        }
+
+        function resetPortfolioViewFiltersAndSort() {
+            const search = document.getElementById('portfolioSearchInput');
+            const archive = document.getElementById('portfolioArchiveFilter');
+            const priority = document.getElementById('portfolioPriorityFilter');
+            const effort = document.getElementById('portfolioEffortFilter');
+            if (search) search.value = '';
+            if (archive) archive.value = 'active';
+            if (priority) priority.value = '';
+            if (effort) effort.value = '';
+            portfolioSortKey = 'priority';
+            portfolioSortDir = 'asc';
+            renderPortfolio();
+        }
+
+        function cyclePortfolioProjectChip(step) {
+            const ids = [''].concat(portfolioBoards.map((board) => board.id));
+            if (ids.length === 0) return;
+            let idx = ids.indexOf(selectedPortfolioBoardId || '');
+            if (idx < 0) idx = 0;
+            const next = (idx + step + ids.length) % ids.length;
+            selectPortfolioBoard(ids[next]);
+        }
+
+        function getShortcutModalContext() {
+            const taskModalOpen = document.getElementById('taskModal').classList.contains('active');
+            const detailModalOpen = document.getElementById('taskDetailModal').classList.contains('active');
+            const shortcutsModalOpen = document.getElementById('shortcutsModal').classList.contains('active');
+            const helpModalOpen = document.getElementById('helpModal').classList.contains('active');
+            const activeTag = document.activeElement ? document.activeElement.tagName : '';
+            const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+
+            let modal = null;
+            if (taskModalOpen) modal = 'taskModal';
+            else if (detailModalOpen) modal = 'detailModal';
+            else if (shortcutsModalOpen) modal = 'shortcutsModal';
+            else if (helpModalOpen) modal = 'helpModal';
+
+            return {
+                modal,
+                isTyping,
+                noModal: !modal
+            };
+        }
+
+        function renderShortcutKeys(tokens) {
+            return (tokens || [])
+                .map((token) => `<kbd>${escapeHtml(token)}</kbd>`)
+                .join('<span class="shortcut-plus">+</span>');
+        }
+
+        function buildShortcutRegistry() {
+            ShortcutRegistry = [
+                {
+                    id: 'focus-search',
+                    section: 'Global',
+                    keys: ['/'],
+                    description: 'Focus project search',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && e.key === '/',
+                    handler: () => focusPortfolioSearch()
+                },
+                {
+                    id: 'new-project',
+                    section: 'Global',
+                    keys: ['N'],
+                    description: 'Create a new project',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'n' || e.key === 'N'),
+                    handler: () => newProject()
+                },
+                {
+                    id: 'import-projects',
+                    section: 'Global',
+                    keys: ['I'],
+                    description: 'Import projects',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'i' || e.key === 'I'),
+                    handler: () => importProjects()
+                },
+                {
+                    id: 'open-shortcuts',
+                    section: 'Global',
+                    keys: ['?'],
+                    description: 'Open keyboard shortcuts',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === '?' || (e.key === '/' && e.shiftKey)),
+                    handler: () => openShortcutsModal()
+                },
+                {
+                    id: 'open-help',
+                    section: 'Global',
+                    keys: ['H'],
+                    description: 'Open help manual',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'h' || e.key === 'H'),
+                    handler: () => openHelpModal()
+                },
+                {
+                    id: 'reset-filters',
+                    section: 'Global',
+                    keys: ['R'],
+                    description: 'Reset filters and sort',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'r' || e.key === 'R'),
+                    handler: () => resetPortfolioViewFiltersAndSort()
+                },
+                {
+                    id: 'focus-sort',
+                    section: 'Global',
+                    keys: ['S'],
+                    description: 'Focus sort control',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 's' || e.key === 'S'),
+                    handler: () => focusPortfolioSortControl()
+                },
+                {
+                    id: 'project-prev',
+                    section: 'Global',
+                    keys: ['['],
+                    description: 'Select previous project chip',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '[',
+                    handler: () => cyclePortfolioProjectChip(-1)
+                },
+                {
+                    id: 'project-next',
+                    section: 'Global',
+                    keys: [']'],
+                    description: 'Select next project chip',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === ']',
+                    handler: () => cyclePortfolioProjectChip(1)
+                },
+                {
+                    id: 'card-next',
+                    section: 'Cards',
+                    keys: ['J'],
+                    description: 'Select next visible card',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'j' || e.key === 'J'),
+                    handler: () => selectAdjacentPortfolioCard(1)
+                },
+                {
+                    id: 'card-prev',
+                    section: 'Cards',
+                    keys: ['K'],
+                    description: 'Select previous visible card',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'k' || e.key === 'K'),
+                    handler: () => selectAdjacentPortfolioCard(-1)
+                },
+                {
+                    id: 'card-open',
+                    section: 'Cards',
+                    keys: ['Enter'],
+                    description: 'Open selected card details',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === 'Enter',
+                    when: () => Boolean(getSelectedPortfolioRow()),
+                    handler: () => openSelectedPortfolioCardDetails()
+                },
+                {
+                    id: 'card-edit',
+                    section: 'Cards',
+                    keys: ['E'],
+                    description: 'Edit selected card',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'e' || e.key === 'E'),
+                    when: () => {
+                        const row = getSelectedPortfolioRow();
+                        return Boolean(row && row.canMutate);
+                    },
+                    handler: () => editSelectedPortfolioCard()
+                },
+                {
+                    id: 'card-archive',
+                    section: 'Cards',
+                    keys: ['X'],
+                    description: 'Archive/restore selected card',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'x' || e.key === 'X'),
+                    when: () => {
+                        const row = getSelectedPortfolioRow();
+                        return Boolean(row && row.canMutate);
+                    },
+                    handler: () => toggleArchiveSelectedPortfolioCard()
+                },
+                {
+                    id: 'move-backlog',
+                    section: 'Cards',
+                    keys: ['1'],
+                    description: 'Move selected card to Backlog',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '1',
+                    when: () => {
+                        const row = getSelectedPortfolioRow();
+                        return Boolean(row && row.canMutate);
+                    },
+                    handler: () => moveSelectedPortfolioCardToShortcutStatus('backlog')
+                },
+                {
+                    id: 'move-todo',
+                    section: 'Cards',
+                    keys: ['2'],
+                    description: 'Move selected card to To Do',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '2',
+                    when: () => {
+                        const row = getSelectedPortfolioRow();
+                        return Boolean(row && row.canMutate);
+                    },
+                    handler: () => moveSelectedPortfolioCardToShortcutStatus('to-do')
+                },
+                {
+                    id: 'move-doing',
+                    section: 'Cards',
+                    keys: ['3'],
+                    description: 'Move selected card to In Progress',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '3',
+                    when: () => {
+                        const row = getSelectedPortfolioRow();
+                        return Boolean(row && row.canMutate);
+                    },
+                    handler: () => moveSelectedPortfolioCardToShortcutStatus('doing')
+                },
+                {
+                    id: 'move-done',
+                    section: 'Cards',
+                    keys: ['4'],
+                    description: 'Move selected card to Done',
+                    contexts: ['global'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '4',
+                    when: () => {
+                        const row = getSelectedPortfolioRow();
+                        return Boolean(row && row.canMutate);
+                    },
+                    handler: () => moveSelectedPortfolioCardToShortcutStatus('done')
+                },
+                {
+                    id: 'save-task-modal',
+                    section: 'Task Modal',
+                    keys: ['Ctrl', 'Enter'],
+                    description: 'Save task',
+                    contexts: ['taskModal'],
+                    allowWhileTyping: true,
+                    match: (e) => (e.ctrlKey || e.metaKey) && !e.altKey && e.key === 'Enter',
+                    handler: () => saveTask()
+                },
+                {
+                    id: 'detail-edit',
+                    section: 'Task Detail',
+                    keys: ['E'],
+                    description: 'Edit open task',
+                    contexts: ['detailModal'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'e' || e.key === 'E'),
+                    when: () => Boolean(portfolioDetailContext && !portfolioDetailContext.readOnly),
+                    handler: () => {
+                        if (!portfolioDetailContext) return;
+                        editPortfolioTask(portfolioDetailContext.boardId, portfolioDetailContext.taskId);
+                    }
+                },
+                {
+                    id: 'detail-archive',
+                    section: 'Task Detail',
+                    keys: ['X'],
+                    description: 'Archive/restore open task',
+                    contexts: ['detailModal'],
+                    match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'x' || e.key === 'X'),
+                    when: () => Boolean(portfolioDetailContext && !portfolioDetailContext.readOnly),
+                    handler: () => {
+                        if (!portfolioDetailContext) return;
+                        togglePortfolioArchiveTask(portfolioDetailContext.boardId, portfolioDetailContext.taskId);
+                    }
+                },
+                {
+                    id: 'close-modal',
+                    section: 'Modal',
+                    keys: ['Esc'],
+                    description: 'Close open modal',
+                    contexts: ['taskModal', 'detailModal', 'shortcutsModal', 'helpModal'],
+                    allowWhileTyping: true,
+                    match: (e) => e.key === 'Escape',
+                    handler: () => {
+                        closeModal();
+                        closeDetailModal();
+                        closeShortcutsModal();
+                        closeHelpModal();
+                    }
+                }
+            ];
+        }
+
+        function renderShortcutsModalContent() {
+            const container = document.getElementById('shortcutsList');
+            if (!container) return;
+            if (!ShortcutRegistry || ShortcutRegistry.length === 0) {
+                buildShortcutRegistry();
+            }
+
+            const sections = ['Global', 'Cards', 'Task Modal', 'Task Detail', 'Modal'];
+            const rowsBySection = sections
+                .map((section) => ({
+                    section,
+                    rows: ShortcutRegistry.filter((entry) => entry.section === section)
+                }))
+                .filter((group) => group.rows.length > 0);
+
+            const sectionsHtml = rowsBySection.map((group) => {
+                const rows = group.rows.map((entry) => `
+                    <div class="shortcut-row">
+                        <div class="shortcut-keys">${renderShortcutKeys(entry.keys)}</div>
+                        <div class="shortcut-desc">${escapeHtml(entry.description)}</div>
+                    </div>
+                `).join('');
+
+                return `
+                    <section class="shortcut-section-card" aria-label="${escapeHtml(group.section)} shortcuts">
+                        <h3 class="shortcut-section-card-title">${escapeHtml(group.section)}</h3>
+                        <div class="shortcuts-list">${rows}</div>
+                    </section>
+                `;
+            }).join('');
+
+            container.innerHTML = `<div class="shortcut-sections-grid">${sectionsHtml}</div>`;
+        }
+
+        function dispatchShortcutKeydown(e) {
+            if (!ShortcutRegistry || ShortcutRegistry.length === 0) {
+                buildShortcutRegistry();
+            }
+            const context = getShortcutModalContext();
+            const contextName = context.noModal ? 'global' : context.modal;
+
+            for (const entry of ShortcutRegistry) {
+                if (!entry.contexts.includes(contextName)) continue;
+                if (context.isTyping && !entry.allowWhileTyping) continue;
+                if (!entry.match(e, context)) continue;
+                if (typeof entry.when === 'function' && !entry.when(context)) continue;
+                e.preventDefault();
+                entry.handler(e, context);
+                return true;
+            }
+            return false;
+        }
+
+        function cacheRefs() {
+            Refs.portfolioView = document.getElementById('portfolioView');
+            Refs.portfolioBoard = document.getElementById('portfolioBoard');
+            Refs.portfolioSearchInput = document.getElementById('portfolioSearchInput');
+            Refs.portfolioArchiveFilter = document.getElementById('portfolioArchiveFilter');
+            Refs.portfolioPriorityFilter = document.getElementById('portfolioPriorityFilter');
+            Refs.portfolioEffortFilter = document.getElementById('portfolioEffortFilter');
+            Refs.portfolioSortSelect = document.getElementById('portfolioSortSelect');
+            Refs.taskModal = document.getElementById('taskModal');
+            Refs.taskDetailModal = document.getElementById('taskDetailModal');
+            Refs.shortcutsModal = document.getElementById('shortcutsModal');
+            Refs.helpModal = document.getElementById('helpModal');
+            Refs.shortcutsList = document.getElementById('shortcutsList');
+            return Refs;
+        }
+
+        // Single-file modular structure (compatibility layer while refactoring)
+        State = {
+            getSnapshot() {
+                return {
+                    portfolioBoards,
+                    portfolioTasks,
+                    selectedPortfolioBoardId,
+                    portfolioSortKey,
+                    portfolioSortDir,
+                    portfolioDisplayMode,
+                    portfolioEditContext,
+                    portfolioCreateContext,
+                    portfolioDetailContext,
+                    portfolioDragContext
+                };
+            },
+            setSelectedProject(boardId) {
+                selectedPortfolioBoardId = boardId || '';
+            },
+            setPortfolioSort(nextKey, nextDir = 'asc') {
+                portfolioSortKey = normalizePortfolioSortKey(nextKey);
+                portfolioSortDir = normalizePortfolioSortDir(nextDir);
+            },
+            setDragContext(ctx) {
+                portfolioDragContext = ctx || null;
+            }
+        };
+
+        Domain = {
+            Schema: {
+                validateBoardData,
+                serializeBoardDataFromObject,
+                createEmptyProjectData
+            },
+            Task: {
+                normalizeTask,
+                normalizeTaskStatus,
+                normalizeChecklist,
+                parseChecklistInput,
+                checklistToInput,
+                normalizePriority,
+                normalizeEffort,
+                normalizeDueDate,
+                normalizeTimestamp,
+                taskScore,
+                formatTaskScore,
+                priorityRank,
+                effortRank,
+                touchTask
+            },
+            PortfolioSelectors: {
+                getVisibleRows: getFilteredSortedPortfolioRows,
+                compareRows: comparePortfolioRows,
+                compareDueDateAsc: comparePortfolioDueDateAsc
+            }
+        };
+
+        Services = {
+            Dialog: {
+                alert(message) {
+                    window.alert(message);
+                },
+                confirm(message) {
+                    return window.confirm(message);
+                },
+                prompt(message, initialValue = '') {
+                    return window.prompt(message, initialValue);
+                }
+            },
+            Url: {
+                read: applyUrlState,
+                write: updateUrlState
+            },
+            File: {
+                createProject: newProject,
+                importProjects,
+                importDroppedFiles: openPortfolioFromFiles,
+                saveProjectRecord: savePortfolioBoardRecord
+            },
+            Time: {
+                nowIso
+            }
+        };
+
+        UI = {
+            Portfolio: {
+                render: renderPortfolio,
+                renderBoard: renderPortfolioBoardView,
+                renderChips: renderPortfolioBoardChips,
+                createTaskCard: createPortfolioTaskCard
+            },
+            Modals: {
+                openTaskCreate: openPortfolioCreateTaskModal,
+                openTaskEdit: editPortfolioTask,
+                openTaskDetail: openPortfolioTaskDetails,
+                closeTask: closeModal,
+                closeDetail: closeDetailModal,
+                openShortcuts: openShortcutsModal,
+                closeShortcuts: closeShortcutsModal,
+                openHelp: openHelpModal,
+                closeHelp: closeHelpModal
+            },
+            Toast: {
+                showUndo,
+                hideUndo
+            }
+        };
+
+        Controllers = {
+            App: {
+                cacheRefs,
+                render() {
+                    UI.Portfolio.render();
+                }
+            },
+            Portfolio: {
+                selectProject(boardId) {
+                    State.setSelectedProject(boardId);
+                    Controllers.App.render();
+                },
+                removeProject(boardId) {
+                    removeProjectFromPortfolio(boardId);
+                },
+                newProject() {
+                    return newProject();
+                },
+                importProjects() {
+                    return importProjects();
+                }
+            },
+            Tasks: {
+                async moveTaskToStatus(boardId, taskId, targetStatus) {
+                    if (!boardId || !taskId) return false;
+                    if (!isPortfolioBoardMutable(boardId)) return false;
+
+                    const source = findPortfolioTaskSource(boardId, taskId);
+                    if (!source) return false;
+
+                    const normalizedTargetStatus = normalizeTaskStatus(targetStatus);
+                    const validStatuses = new Set(
+                        (source.boardRecord.data.board.columns || defaultColumns).map(col => normalizeTaskStatus(col.status))
+                    );
+                    if (!validStatuses.has(normalizedTargetStatus)) return false;
+                    if (normalizeTaskStatus(source.task.status) === normalizedTargetStatus) return false;
+
+                    const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
+                        if (normalizeTaskStatus(task.status) === normalizedTargetStatus) return false;
+                        task.status = normalizedTargetStatus;
+                        return true;
+                    });
+                    return Boolean(changed);
+                }
+            },
+            DragDrop: {
+                clearColumnHighlights() {
+                    const root = Refs.portfolioBoard || document.getElementById('portfolioBoard');
+                    if (!root) return;
+                    root.querySelectorAll('.portfolio-column-body.drag-over').forEach((node) => {
+                        node.classList.remove('drag-over');
+                    });
+                },
+                readContextFromEvent(ev) {
+                    if (portfolioDragContext && portfolioDragContext.boardId && portfolioDragContext.taskId) {
+                        return portfolioDragContext;
+                    }
+                    const raw = ev?.dataTransfer?.getData?.('application/x-kanban-task') || ev?.dataTransfer?.getData?.('text/plain');
+                    if (!raw) return null;
+                    try {
+                        const parsed = JSON.parse(raw);
+                        if (!parsed || !parsed.boardId || !parsed.taskId) return null;
+                        return parsed;
+                    } catch (_) {
+                        return null;
+                    }
+                },
+                canDragContext(ctx) {
+                    if (!ctx || !ctx.boardId || !ctx.taskId) return false;
+                    return isPortfolioBoardMutable(ctx.boardId);
+                },
+                onTaskDragStart(ev, ctx) {
+                    if (!this.canDragContext(ctx)) {
+                        ev.preventDefault();
+                        return;
+                    }
+                    State.setDragContext({
+                        boardId: ctx.boardId,
+                        taskId: Number(ctx.taskId),
+                        fromStatus: normalizeTaskStatus(ctx.status)
+                    });
+                    const payload = JSON.stringify(portfolioDragContext);
+                    if (ev.dataTransfer) {
+                        ev.dataTransfer.effectAllowed = 'move';
+                        try {
+                            ev.dataTransfer.setData('application/x-kanban-task', payload);
+                        } catch (_) {}
+                        try {
+                            ev.dataTransfer.setData('text/plain', payload);
+                        } catch (_) {}
+                    }
+                    if (ev.currentTarget && ev.currentTarget.classList) {
+                        ev.currentTarget.classList.add('dragging');
+                    }
+                },
+                onTaskDragEnd(ev) {
+                    State.setDragContext(null);
+                    suppressPortfolioCardClickUntil = Date.now() + 120;
+                    if (ev.currentTarget && ev.currentTarget.classList) {
+                        ev.currentTarget.classList.remove('dragging');
+                    }
+                    this.clearColumnHighlights();
+                },
+                onColumnDragOver(ev, targetStatus) {
+                    const ctx = this.readContextFromEvent(ev);
+                    if (!this.canDragContext(ctx)) return;
+                    const nextStatus = normalizeTaskStatus(targetStatus);
+                    if (normalizeTaskStatus(ctx.fromStatus) === nextStatus) return;
+                    ev.preventDefault();
+                    if (ev.dataTransfer) {
+                        ev.dataTransfer.dropEffect = 'move';
+                    }
+                    if (ev.currentTarget && ev.currentTarget.classList) {
+                        ev.currentTarget.classList.add('drag-over');
+                    }
+                },
+                onColumnDragLeave(ev) {
+                    const current = ev.currentTarget;
+                    if (!current || !current.classList) return;
+                    const related = ev.relatedTarget;
+                    if (related && current.contains(related)) return;
+                    current.classList.remove('drag-over');
+                },
+                async onColumnDrop(ev, targetStatus) {
+                    ev.preventDefault();
+                    const current = ev.currentTarget;
+                    if (current && current.classList) {
+                        current.classList.remove('drag-over');
+                    }
+                    const ctx = this.readContextFromEvent(ev);
+                    if (!this.canDragContext(ctx)) {
+                        this.clearColumnHighlights();
+                        return;
+                    }
+
+                    try {
+                        await Controllers.Tasks.moveTaskToStatus(ctx.boardId, Number(ctx.taskId), targetStatus);
+                    } finally {
+                        State.setDragContext(null);
+                        this.clearColumnHighlights();
+                    }
+                }
+            }
+        };
+
+        cacheRefs();
+
         document.getElementById('taskModal').addEventListener('click', (e) => {
             if (e.target === document.getElementById('taskModal')) {
                 closeModal();
@@ -3395,63 +4535,19 @@
             }
         });
 
+        document.getElementById('helpModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('helpModal')) {
+                closeHelpModal();
+            }
+        });
+
         document.addEventListener('keydown', (e) => {
-            const activeTag = document.activeElement ? document.activeElement.tagName : '';
-            const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
-            const modalOpen = document.getElementById('taskModal').classList.contains('active')
-                || document.getElementById('taskDetailModal').classList.contains('active')
-                || document.getElementById('shortcutsModal').classList.contains('active');
-
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'c') {
-                e.preventDefault();
-                saveBoardAs();
-                return;
-            }
-
-            if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 's') {
-                e.preventDefault();
-                saveBoard();
-                return;
-            }
-
-            if (!isTyping && !modalOpen && e.key === '/') {
-                e.preventDefault();
-                if (appMode === 'portfolio') {
-                    document.getElementById('portfolioSearchInput').focus();
-                } else {
-                    document.getElementById('searchInput').focus();
-                }
-                return;
-            }
-
-            if (appMode === 'board' && !isTyping && !modalOpen && (e.key === 'n' || e.key === 'N')) {
-                e.preventDefault();
-                openModal();
-                return;
-            }
-
-            if (appMode === 'board' && !isTyping && !modalOpen && (e.key === 'e' || e.key === 'E')) {
-                if (selectedTaskId) {
-                    e.preventDefault();
-                    editTask(selectedTaskId);
-                }
-                return;
-            }
-
-            if (e.key === 'Escape') {
-                closeModal();
-                closeDetailModal();
-                closeShortcutsModal();
-            }
+            dispatchShortcutKeydown(e);
         });
 
         window.addEventListener('popstate', () => {
             applyUrlState();
-            if (appMode === 'board') {
-                renderTasks();
-            } else {
-                renderPortfolio();
-            }
+            renderPortfolio();
         });
 
         init();

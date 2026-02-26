@@ -3,7 +3,7 @@
     "schemaVersion": 4,
     "appId": "household-task-board",
     "createdAt": "2026-02-13T00:00:00.000Z",
-    "updatedAt": "2026-02-26T19:12:07.910Z"
+    "updatedAt": "2026-02-26T20:28:21.141Z"
   },
   "board": {
     "columns": [
@@ -32,11 +32,11 @@
         "checklist": [],
         "archived": false,
         "createdAt": "2026-02-13T00:00:00.000Z",
-        "updatedAt": "2026-02-26T19:12:07.908Z",
+        "updatedAt": "2026-02-26T20:28:21.136Z",
         "dueDate": "",
         "priority": "high",
         "effort": "S",
-        "status": "backlog"
+        "status": "to-do"
       },
       {
         "id": 2,
@@ -63,7 +63,7 @@
         "checklist": [],
         "archived": false,
         "createdAt": "2026-02-13T00:00:00.000Z",
-        "updatedAt": "2026-02-26T19:09:27.081Z",
+        "updatedAt": "2026-02-26T19:55:54.860Z",
         "dueDate": "",
         "priority": "medium",
         "effort": "S",

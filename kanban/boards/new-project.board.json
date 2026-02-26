@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "schemaVersion": 4,
+    "appId": "household-task-board",
+    "createdAt": "2026-02-26T19:31:44.037Z",
+    "updatedAt": "2026-02-26T19:31:44.037Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "to-do"
+      },
+      {
+        "status": "doing",
+        "title": "in progress"
+      },
+      {
+        "status": "done",
+        "title": "done"
+      }
+    ],
+    "tasks": [],
+    "settings": {
+      "title": "New Project",
+      "sortMode": "manual",
+      "showArchivedOnly": false,
+      "archiveFilter": "active"
+    }
+  },
+  "extensions": {}
+}
