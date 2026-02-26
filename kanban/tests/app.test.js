@@ -298,6 +298,49 @@ test.describe('portfolio-only app', () => {
     expect(result.writes.at(-1).text).toContain('Portfolio-created task');
   });
 
+  test('task attachments save on the task and show in task details', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => editPortfolioTask('p1', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    await page.setInputFiles('#taskAttachmentsInput', {
+      name: 'note.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('hello attachment')
+    });
+
+    await expect(page.locator('#taskAttachmentsList')).toContainText('note.txt');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const saved = await page.evaluate(() => {
+      const writes = window.__portfolioTestWrites || [];
+      const payload = writes.length ? JSON.parse(writes[writes.length - 1].text) : null;
+      const attachments = payload?.board?.tasks?.find((t) => t.id === 1)?.attachments || [];
+      return {
+        writeCount: writes.length,
+        attachmentCount: attachments.length,
+        attachmentName: attachments[0]?.name,
+        attachmentMime: attachments[0]?.mime,
+        legacyAttachmentMapPresent: Boolean(payload?.extensions?.teamOsKanban?.taskAttachments)
+      };
+    });
+
+    expect(saved.writeCount).toBeGreaterThan(0);
+    expect(saved.attachmentCount).toBe(1);
+    expect(saved.attachmentName).toBe('note.txt');
+    expect(saved.attachmentMime).toBe('text/plain');
+    expect(saved.legacyAttachmentMapPresent).toBe(false);
+
+    await portfolioCard(page, 'Task with file').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailAttachments')).toContainText('note.txt');
+    await expect(page.locator('#detailAttachments .detail-attachment-download')).toHaveCount(1);
+  });
+
   test('all-projects view hides add-task cards and read-only selected project also hides them', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'm1', title: 'Mutable A', hasHandle: true, tasks: [] },

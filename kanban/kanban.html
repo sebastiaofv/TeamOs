@@ -654,6 +654,10 @@
             margin-bottom: 8px;
         }
 
+        .task-header:last-child {
+            margin-bottom: 0;
+        }
+
         .task-title {
             font-size: 13px;
             font-weight: 500;
@@ -948,6 +952,131 @@
             border-color: var(--accent);
         }
 
+        .attachment-editor {
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            padding: 8px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .attachment-editor-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .attachment-editor-summary {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .attachment-editor-warnings {
+            display: grid;
+            gap: 4px;
+        }
+
+        .attachment-editor-warning {
+            font-size: 11px;
+            color: #9c5b00;
+            background: #fff6e8;
+            border: 1px solid #f0d4a4;
+            padding: 5px 7px;
+        }
+
+        .attachment-editor-error {
+            font-size: 11px;
+            color: #8d1f1f;
+            background: #fdeeee;
+            border: 1px solid #efc3c3;
+            padding: 5px 7px;
+        }
+
+        .attachment-editor-list {
+            display: grid;
+            gap: 6px;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .attachment-editor-empty {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 4px 2px;
+        }
+
+        .attachment-editor-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 8px;
+            align-items: center;
+            border: 1px solid var(--border-light);
+            background: var(--bg-primary);
+            padding: 6px;
+        }
+
+        .attachment-editor-thumb {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            object-fit: cover;
+            display: block;
+        }
+
+        .attachment-editor-icon {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .attachment-editor-meta {
+            min-width: 0;
+            display: grid;
+            gap: 2px;
+        }
+
+        .attachment-editor-name {
+            font-size: 12px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .attachment-editor-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .attachment-remove-btn {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .attachment-remove-btn:hover {
+            color: var(--priority-high);
+            border-color: var(--priority-high);
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -965,6 +1094,17 @@
         #shortcutsModal .modal-content {
             width: min(94vw, 860px);
             max-width: 860px;
+        }
+
+        #taskModal .modal-content {
+            max-height: min(88vh, 900px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #taskModal .modal-body {
+            overflow-y: auto;
+            min-height: 0;
         }
 
         #shortcutsModal .modal-body {
@@ -1220,6 +1360,73 @@
             color: var(--text-muted);
         }
 
+        .detail-attachments {
+            display: grid;
+            gap: 8px;
+        }
+
+        .detail-attachments-empty {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .detail-attachment-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 8px;
+            align-items: center;
+            border: 1px solid var(--border-light);
+            background: var(--bg-primary);
+            padding: 6px;
+        }
+
+        .detail-attachment-thumb {
+            width: 40px;
+            height: 40px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            object-fit: cover;
+            display: block;
+        }
+
+        .detail-attachment-meta {
+            min-width: 0;
+            display: grid;
+            gap: 2px;
+        }
+
+        .detail-attachment-name {
+            font-size: 12px;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .detail-attachment-sub {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .detail-attachment-download {
+            display: inline-flex;
+            align-items: center;
+            height: 28px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 11px;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .detail-attachment-download:hover {
+            background: var(--bg-secondary);
+            border-color: var(--text-secondary);
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -1468,6 +1675,18 @@
                         <textarea id="taskChecklist" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
                     </div>
                     <div class="form-group">
+                        <label>Attachments</label>
+                        <div class="attachment-editor" id="taskAttachmentsEditor">
+                            <div class="attachment-editor-toolbar">
+                                <button type="button" class="btn" onclick="triggerTaskAttachmentsPicker()">Add Files</button>
+                                <span class="attachment-editor-summary" id="taskAttachmentsSummary">No attachments</span>
+                            </div>
+                            <div class="attachment-editor-warnings" id="taskAttachmentsWarnings"></div>
+                            <div class="attachment-editor-list" id="taskAttachmentsList"></div>
+                            <input type="file" id="taskAttachmentsInput" class="hidden" multiple>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>Due Date</label>
                         <input type="date" id="taskDueDate">
                     </div>
@@ -1545,6 +1764,10 @@
                     <div class="detail-item">
                         <span class="detail-label">Todo List</span>
                         <ul class="detail-checklist" id="detailChecklist"></ul>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Attachments</span>
+                        <div class="detail-attachments" id="detailAttachments"></div>
                     </div>
                 </div>
             </div>
@@ -1656,6 +1879,13 @@
         const EFFORT_BUCKETS = ['XS', 'S', 'M', 'L', 'XL'];
         const MAX_COLUMNS = 5;
         const BOARD_ARCHIVE_FILTER_VALUES = ['active', 'all', 'archived'];
+        const TEAMOS_EXTENSIONS_KEY = 'teamOsKanban';
+        const TASK_ATTACHMENTS_EXTENSIONS_KEY = 'taskAttachments';
+        const ATTACHMENT_MAX_COUNT = 10;
+        const ATTACHMENT_HARD_MAX_BYTES = 10 * 1024 * 1024;
+        const ATTACHMENT_SOFT_WARN_BYTES = 2 * 1024 * 1024;
+        const ATTACHMENT_TASK_SOFT_TOTAL_BYTES = 20 * 1024 * 1024;
+        const ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES = 25 * 1024 * 1024;
         let boardCreatedAt = new Date().toISOString();
         let boardExtensions = {};
         let boardTitle = DEFAULT_BOARD_TITLE;
@@ -1684,6 +1914,8 @@
         let portfolioDetailContext = null;
         let portfolioDragContext = null;
         let selectedPortfolioCardRef = null;
+        let taskModalAttachmentDraft = [];
+        let taskModalAttachmentMessages = [];
         let ShortcutRegistry = [];
         let suppressPortfolioCardClickUntil = 0;
         const Refs = {};
@@ -1964,11 +2196,11 @@
             const settings = board.settings && typeof board.settings === 'object' ? board.settings : {};
 
             const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
-            const normalizedTasks = Array.isArray(board.tasks) ? board.tasks.map(task => normalizeTask(task)) : [];
-            const archiveFilter = normalizeBoardArchiveFilter(
-                Object.prototype.hasOwnProperty.call(settings, 'archiveFilter') ? settings.archiveFilter : settings.showArchivedOnly
-            );
-            const sortMode = ['manual', 'dueDate', 'effort', 'score'].includes(settings.sortMode) ? settings.sortMode : 'manual';
+            const normalizedTasks = Array.isArray(board.tasks)
+                ? board.tasks.map(task => normalizeTask(task, {
+                    fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id)
+                }))
+                : [];
             const title = typeof settings.title === 'string' && settings.title.trim()
                 ? settings.title.trim()
                 : (boardTitle || DEFAULT_BOARD_TITLE);
@@ -1984,13 +2216,10 @@
                     columns: normalizedColumns.map(col => ({ status: col.status, title: col.title })),
                     tasks: normalizedTasks,
                     settings: {
-                        title,
-                        sortMode,
-                        showArchivedOnly: archiveFilter === 'archived',
-                        archiveFilter
+                        title
                     }
                 },
-                extensions: {}
+                extensions: stripLegacyTaskAttachmentsFromExtensions(input.extensions)
             };
         }
 
@@ -2044,10 +2273,7 @@
                     columns: normalizeColumns(defaultColumns).map(col => ({ status: col.status, title: col.title })),
                     tasks: [],
                     settings: {
-                        title: projectTitle,
-                        sortMode: 'manual',
-                        showArchivedOnly: false,
-                        archiveFilter: 'active'
+                        title: projectTitle
                     }
                 },
                 extensions: {}
@@ -2417,6 +2643,16 @@
             const archiveButtonLabel = task.archived ? '↺' : '×';
             const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
             const readOnlyTitle = 'Read-only (no file handle)';
+            const metaParts = [
+                showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : '',
+                isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : '',
+                priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : '',
+                effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : '',
+                score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : '',
+                task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : '',
+                task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(entry => entry.done).length}/${task.checklist.length} done</span>` : ''
+            ].filter(Boolean);
+            const taskMetaHtml = metaParts.length ? `<div class="task-meta">${metaParts.join('')}</div>` : '';
 
             div.innerHTML = `
                 <div class="task-header">
@@ -2426,15 +2662,7 @@
                         <button class="task-action-btn" ${canMutate ? '' : 'disabled'} title="${canMutate ? archiveButtonTitle : readOnlyTitle}" onclick="event.stopPropagation(); togglePortfolioArchiveTask('${item.boardId}', ${task.id})">${archiveButtonLabel}</button>
                     </div>
                 </div>
-                <div class="task-meta">
-                    ${showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : ''}
-                    ${isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : ''}
-                    ${priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : ''}
-                    ${effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : ''}
-                    ${score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : ''}
-                    ${task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : ''}
-                    ${task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(entry => entry.done).length}/${task.checklist.length} done</span>` : ''}
-                </div>
+                ${taskMetaHtml}
             `;
 
             return div;
@@ -2621,6 +2849,7 @@
             document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
             document.getElementById('detailDueDate').textContent = normalizeDueDate(task.dueDate) || '-';
             renderDetailChecklist(task, { readOnly });
+            renderDetailAttachments(getTaskAttachments(source.boardRecord.data, taskId));
             document.getElementById('taskDetailModal').classList.add('active');
         }
 
@@ -2646,6 +2875,7 @@
             document.getElementById('taskDescription').value = task.description || '';
             document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
             loadTaskChecklistEditorFromTextarea();
+            setTaskModalAttachmentDraft(getTaskAttachments(source.boardRecord.data, taskId), { messages: [] });
             document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
             document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
             document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
@@ -2683,6 +2913,7 @@
             document.getElementById('modalTitle').textContent = 'New Task';
             document.getElementById('taskChecklist').value = '';
             loadTaskChecklistEditorFromTextarea();
+            resetTaskModalAttachmentDraft();
             document.getElementById('taskDueDate').value = '';
             document.getElementById('taskPriority').value = '';
             document.getElementById('taskEffort').value = '';
@@ -2957,12 +3188,16 @@
             return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
         }
 
-        function normalizeTask(task) {
+        function normalizeTask(task, options = {}) {
+            const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
             return {
                 id: task.id,
                 title: task.title,
                 description: task.description || '',
                 checklist: normalizeChecklist(task.checklist),
+                attachments: normalizeTaskAttachments(
+                    Array.isArray(task?.attachments) ? task.attachments : fallbackAttachments
+                ),
                 archived: Boolean(task.archived),
                 createdAt: normalizeTimestamp(task.createdAt) || nowIso(),
                 updatedAt: normalizeTimestamp(task.updatedAt) || nowIso(),
@@ -2971,6 +3206,14 @@
                 effort: normalizeEffort(task.effort),
                 status: normalizeTaskStatus(task.status)
             };
+        }
+
+        function normalizeTaskAttachments(value) {
+            if (!Array.isArray(value)) return [];
+            return value
+                .map(normalizeAttachmentRecord)
+                .filter(Boolean)
+                .slice(0, ATTACHMENT_MAX_COUNT);
         }
 
         function normalizeTimestamp(value) {
@@ -3015,15 +3258,14 @@
                 },
                 board: {
                     columns: columns.map(col => ({ status: col.status, title: col.title })),
-                    tasks: tasks.map(task => normalizeTask(task)),
+                    tasks: tasks.map(task => normalizeTask(task, {
+                        fallbackAttachments: getLegacyTaskAttachmentsFromExtensions({ board: { tasks }, extensions: boardExtensions }, task?.id)
+                    })),
                     settings: {
-                        title: boardTitle,
-                        sortMode: boardSortMode,
-                        showArchivedOnly: boardArchiveFilter === 'archived',
-                        archiveFilter: boardArchiveFilter
+                        title: boardTitle
                     }
                 },
-                extensions: (boardExtensions && typeof boardExtensions === 'object' && !Array.isArray(boardExtensions)) ? boardExtensions : {}
+                extensions: stripLegacyTaskAttachmentsFromExtensions(boardExtensions)
             };
         }
 
@@ -3101,15 +3343,17 @@
 
             data.board.tasks.forEach((task) => {
                 const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-                const legacyBaseKeys = [...baseKeys, 'tags'];
-                const extendedKeys = [...baseKeys, 'effort'];
-                const legacyExtendedKeys = [...legacyBaseKeys, 'effort'];
-                if (
-                    !hasExactKeys(task, baseKeys) &&
-                    !hasExactKeys(task, extendedKeys) &&
-                    !hasExactKeys(task, legacyBaseKeys) &&
-                    !hasExactKeys(task, legacyExtendedKeys)
-                ) {
+                const validTaskKeySets = [
+                    baseKeys,
+                    [...baseKeys, 'effort'],
+                    [...baseKeys, 'tags'],
+                    [...baseKeys, 'effort', 'tags'],
+                    [...baseKeys, 'attachments'],
+                    [...baseKeys, 'effort', 'attachments'],
+                    [...baseKeys, 'tags', 'attachments'],
+                    [...baseKeys, 'effort', 'tags', 'attachments']
+                ];
+                if (!validTaskKeySets.some(keys => hasExactKeys(task, keys))) {
                     throw new Error('Invalid task structure.');
                 }
                 if (typeof task.id !== 'number' || !Number.isFinite(task.id)) {
@@ -3156,6 +3400,37 @@
                         throw new Error('Checklist item done must be boolean.');
                     }
                 });
+                if (Object.prototype.hasOwnProperty.call(task, 'attachments')) {
+                    if (!Array.isArray(task.attachments)) {
+                        throw new Error('Task attachments must be an array.');
+                    }
+                    task.attachments.forEach((attachment) => {
+                        if (!hasExactKeys(attachment, ['id', 'name', 'mime', 'sizeBytes', 'kind', 'dataUrl', 'createdAt'])) {
+                            throw new Error('Invalid attachment structure.');
+                        }
+                        if (typeof attachment.id !== 'string' || !attachment.id.trim()) {
+                            throw new Error('Attachment id must be a non-empty string.');
+                        }
+                        if (typeof attachment.name !== 'string' || !attachment.name.trim()) {
+                            throw new Error('Attachment name must be a non-empty string.');
+                        }
+                        if (typeof attachment.mime !== 'string') {
+                            throw new Error('Attachment mime must be a string.');
+                        }
+                        if (typeof attachment.sizeBytes !== 'number' || !Number.isFinite(attachment.sizeBytes) || attachment.sizeBytes < 0) {
+                            throw new Error('Attachment sizeBytes must be a non-negative number.');
+                        }
+                        if (!['image', 'file'].includes(attachment.kind)) {
+                            throw new Error('Attachment kind is invalid.');
+                        }
+                        if (typeof attachment.dataUrl !== 'string' || !attachment.dataUrl.startsWith('data:')) {
+                            throw new Error('Attachment dataUrl must be a data URL string.');
+                        }
+                        if (!normalizeTimestamp(attachment.createdAt)) {
+                            throw new Error('Attachment createdAt must be a valid timestamp.');
+                        }
+                    });
+                }
                 if (Object.prototype.hasOwnProperty.call(task, 'tags')) {
                     if (!Array.isArray(task.tags)) {
                         throw new Error('Task tags must be an array.');
@@ -3173,9 +3448,11 @@
             validateBoardData(data);
             const settings = data.board.settings || {};
             columns = normalizeColumns(data.board.columns);
-            tasks = data.board.tasks.map(task => normalizeTask(task));
+            tasks = data.board.tasks.map(task => normalizeTask(task, {
+                fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(data, task?.id)
+            }));
             boardCreatedAt = data.meta.createdAt;
-            boardExtensions = {};
+            boardExtensions = stripLegacyTaskAttachmentsFromExtensions(data.extensions);
             boardTitle = settings.title.trim();
             boardSortMode = ['manual', 'dueDate', 'effort', 'score'].includes(settings.sortMode) ? settings.sortMode : 'manual';
             boardArchiveFilter = normalizeBoardArchiveFilter(
@@ -3466,6 +3743,514 @@
             updateTaskChecklistEditor(items);
         }
 
+        function attachmentTaskKey(taskId) {
+            return `task:${Number(taskId)}`;
+        }
+
+        function getBoardExtensionsObject(boardData, options = {}) {
+            const create = Boolean(options.create);
+            if (!boardData || typeof boardData !== 'object' || Array.isArray(boardData)) return null;
+            if (!boardData.extensions || typeof boardData.extensions !== 'object' || Array.isArray(boardData.extensions)) {
+                if (!create) return null;
+                boardData.extensions = {};
+            }
+            return boardData.extensions;
+        }
+
+        function getTeamOsExtensionsObject(boardData, options = {}) {
+            const create = Boolean(options.create);
+            const extensions = getBoardExtensionsObject(boardData, { create });
+            if (!extensions) return null;
+            if (!extensions[TEAMOS_EXTENSIONS_KEY] || typeof extensions[TEAMOS_EXTENSIONS_KEY] !== 'object' || Array.isArray(extensions[TEAMOS_EXTENSIONS_KEY])) {
+                if (!create) return null;
+                extensions[TEAMOS_EXTENSIONS_KEY] = {};
+            }
+            return extensions[TEAMOS_EXTENSIONS_KEY];
+        }
+
+        function getTaskAttachmentsMap(boardData, options = {}) {
+            const create = Boolean(options.create);
+            const teamOs = getTeamOsExtensionsObject(boardData, { create });
+            if (!teamOs) return null;
+            if (!teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] || typeof teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] !== 'object' || Array.isArray(teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY])) {
+                if (!create) return null;
+                teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] = {};
+            }
+            return teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
+        }
+
+        function createAttachmentId() {
+            return `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function classifyAttachmentKind(mime, fileName) {
+            const type = String(mime || '').toLowerCase();
+            if (type.startsWith('image/')) return 'image';
+            const name = String(fileName || '').toLowerCase();
+            if (/\.(png|jpe?g|gif|webp|bmp|svg|ico|avif|heic)$/.test(name)) return 'image';
+            return 'file';
+        }
+
+        function estimateAttachmentDataUrlSizeBytes(dataUrl) {
+            if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return 0;
+            const commaIndex = dataUrl.indexOf(',');
+            if (commaIndex < 0) return 0;
+            const header = dataUrl.slice(0, commaIndex);
+            const payload = dataUrl.slice(commaIndex + 1);
+            if (!payload) return 0;
+            if (/;base64/i.test(header)) {
+                const paddingMatch = payload.match(/=*$/);
+                const padding = paddingMatch ? paddingMatch[0].length : 0;
+                return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+            }
+            try {
+                return new Blob([decodeURIComponent(payload)]).size;
+            } catch (_) {
+                return payload.length;
+            }
+        }
+
+        function normalizeAttachmentRecord(raw) {
+            if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+            const dataUrl = typeof raw.dataUrl === 'string' && raw.dataUrl.startsWith('data:') ? raw.dataUrl : '';
+            if (!dataUrl) return null;
+            const name = typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Attachment';
+            const mime = typeof raw.mime === 'string' ? raw.mime.trim() : '';
+            const sizeCandidate = Number(raw.sizeBytes);
+            const sizeBytes = Number.isFinite(sizeCandidate) && sizeCandidate >= 0
+                ? Math.round(sizeCandidate)
+                : estimateAttachmentDataUrlSizeBytes(dataUrl);
+            const kind = raw.kind === 'image' || raw.kind === 'file'
+                ? raw.kind
+                : classifyAttachmentKind(mime, name);
+            return {
+                id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : createAttachmentId(),
+                name,
+                mime,
+                sizeBytes,
+                kind,
+                dataUrl,
+                createdAt: normalizeTimestamp(raw.createdAt) || nowIso()
+            };
+        }
+
+        function findTaskInBoardData(boardData, taskId) {
+            if (taskId === null || taskId === undefined || taskId === '') return null;
+            const taskIdNum = Number(taskId);
+            const taskList = boardData?.board?.tasks;
+            if (!Array.isArray(taskList)) return null;
+            return taskList.find((task) => task && Number(task.id) === taskIdNum) || null;
+        }
+
+        function getLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
+            if (taskId === null || taskId === undefined || taskId === '') return [];
+            const map = getTaskAttachmentsMap(boardData);
+            if (!map) return [];
+            const rawList = map[attachmentTaskKey(taskId)];
+            if (!Array.isArray(rawList)) return [];
+            return rawList.map(normalizeAttachmentRecord).filter(Boolean);
+        }
+
+        function getTaskAttachments(boardData, taskId) {
+            if (taskId === null || taskId === undefined || taskId === '') return [];
+            const task = findTaskInBoardData(boardData, taskId);
+            if (task) {
+                if (Array.isArray(task.attachments)) {
+                    return normalizeTaskAttachments(task.attachments);
+                }
+                return getLegacyTaskAttachmentsFromExtensions(boardData, taskId);
+            }
+            return getLegacyTaskAttachmentsFromExtensions(boardData, taskId);
+        }
+
+        function setTaskAttachments(boardData, taskId, attachments) {
+            if (taskId === null || taskId === undefined || taskId === '') return;
+            const normalized = (Array.isArray(attachments) ? attachments : [])
+                .map(normalizeAttachmentRecord)
+                .filter(Boolean)
+                .slice(0, ATTACHMENT_MAX_COUNT);
+            const task = findTaskInBoardData(boardData, taskId);
+            if (task) {
+                task.attachments = normalized;
+            }
+            removeLegacyTaskAttachmentsFromExtensions(boardData, taskId);
+        }
+
+        function removeTaskAttachments(boardData, taskId) {
+            if (taskId === null || taskId === undefined || taskId === '') return;
+            const task = findTaskInBoardData(boardData, taskId);
+            if (task && Object.prototype.hasOwnProperty.call(task, 'attachments')) {
+                delete task.attachments;
+            }
+            removeLegacyTaskAttachmentsFromExtensions(boardData, taskId);
+        }
+
+        function removeLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
+            if (taskId === null || taskId === undefined || taskId === '') return;
+            const key = attachmentTaskKey(taskId);
+            const map = getTaskAttachmentsMap(boardData);
+            if (!map || !Object.prototype.hasOwnProperty.call(map, key)) return;
+            delete map[key];
+
+            if (Object.keys(map).length > 0) return;
+
+            const teamOs = getTeamOsExtensionsObject(boardData);
+            if (teamOs && Object.prototype.hasOwnProperty.call(teamOs, TASK_ATTACHMENTS_EXTENSIONS_KEY)) {
+                delete teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
+            }
+            const extensions = getBoardExtensionsObject(boardData);
+            if (teamOs && Object.keys(teamOs).length === 0 && extensions && Object.prototype.hasOwnProperty.call(extensions, TEAMOS_EXTENSIONS_KEY)) {
+                delete extensions[TEAMOS_EXTENSIONS_KEY];
+            }
+        }
+
+        function stripLegacyTaskAttachmentsFromExtensions(extensionsValue) {
+            const extensions = (extensionsValue && typeof extensionsValue === 'object' && !Array.isArray(extensionsValue))
+                ? extensionsValue
+                : {};
+            const hasTeamOs = extensions[TEAMOS_EXTENSIONS_KEY] && typeof extensions[TEAMOS_EXTENSIONS_KEY] === 'object' && !Array.isArray(extensions[TEAMOS_EXTENSIONS_KEY]);
+            if (!hasTeamOs) return extensions;
+            const teamOs = extensions[TEAMOS_EXTENSIONS_KEY];
+            if (!Object.prototype.hasOwnProperty.call(teamOs, TASK_ATTACHMENTS_EXTENSIONS_KEY)) {
+                return extensions;
+            }
+
+            const nextExtensions = { ...extensions };
+            const nextTeamOs = { ...teamOs };
+            delete nextTeamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
+            if (Object.keys(nextTeamOs).length === 0) {
+                delete nextExtensions[TEAMOS_EXTENSIONS_KEY];
+            } else {
+                nextExtensions[TEAMOS_EXTENSIONS_KEY] = nextTeamOs;
+            }
+            return nextExtensions;
+        }
+
+        function formatFileSize(bytes) {
+            const value = Number(bytes);
+            if (!Number.isFinite(value) || value <= 0) return '0 B';
+            if (value < 1024) return `${Math.round(value)} B`;
+            if (value < 1024 * 1024) return `${(value / 1024).toFixed(value >= 10 * 1024 ? 0 : 1)} KB`;
+            return `${(value / (1024 * 1024)).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+        }
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(String(reader.result || ''));
+                reader.onerror = () => reject(reader.error || new Error('File read failed.'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function getTaskModalAttachmentsDraft() {
+            return taskModalAttachmentDraft.map(normalizeAttachmentRecord).filter(Boolean);
+        }
+
+        function getTaskModalAttachmentContext() {
+            if (portfolioEditContext && portfolioEditContext.boardId) {
+                const boardRecord = getPortfolioBoardRecord(portfolioEditContext.boardId);
+                return {
+                    boardData: boardRecord ? boardRecord.data : null,
+                    taskId: portfolioEditContext.taskId,
+                    mode: 'portfolio-edit'
+                };
+            }
+            if (portfolioCreateContext && portfolioCreateContext.boardId) {
+                const boardRecord = getPortfolioBoardRecord(portfolioCreateContext.boardId);
+                return {
+                    boardData: boardRecord ? boardRecord.data : null,
+                    taskId: null,
+                    mode: 'portfolio-create'
+                };
+            }
+            const rawId = document.getElementById('taskId')?.value;
+            return {
+                boardData: { board: { tasks }, extensions: boardExtensions },
+                taskId: rawId ? Number(rawId) : null,
+                mode: rawId ? 'legacy-edit' : 'legacy-create'
+            };
+        }
+
+        function calculateBoardAttachmentBytes(boardData, options = {}) {
+            const excludeTaskId = options.excludeTaskId;
+            const excludeTaskNum = excludeTaskId === null || excludeTaskId === undefined || excludeTaskId === ''
+                ? null
+                : Number(excludeTaskId);
+            let total = 0;
+
+            const taskList = boardData?.board?.tasks;
+            if (Array.isArray(taskList)) {
+                taskList.forEach((task) => {
+                    if (!task) return;
+                    if (excludeTaskNum !== null && Number(task.id) === excludeTaskNum) return;
+                    const items = Array.isArray(task.attachments)
+                        ? normalizeTaskAttachments(task.attachments)
+                        : getLegacyTaskAttachmentsFromExtensions(boardData, task.id);
+                    items.forEach((att) => {
+                        total += Math.max(0, Number(att.sizeBytes) || 0);
+                    });
+                });
+                return total;
+            }
+
+            const map = getTaskAttachmentsMap(boardData);
+            if (!map) return 0;
+            Object.entries(map).forEach(([key, list]) => {
+                if (excludeTaskNum !== null && key === attachmentTaskKey(excludeTaskNum)) return;
+                if (!Array.isArray(list)) return;
+                list.forEach((entry) => {
+                    const att = normalizeAttachmentRecord(entry);
+                    if (att) total += Math.max(0, Number(att.sizeBytes) || 0);
+                });
+            });
+            return total;
+        }
+
+        function getTaskModalAttachmentDerivedMessages() {
+            const draft = getTaskModalAttachmentsDraft();
+            const messages = [];
+            const totalBytes = draft.reduce((sum, item) => sum + Math.max(0, Number(item.sizeBytes) || 0), 0);
+
+            draft.forEach((item) => {
+                if ((Number(item.sizeBytes) || 0) > ATTACHMENT_SOFT_WARN_BYTES) {
+                    messages.push({
+                        type: 'warning',
+                        text: `${item.name} is large (${formatFileSize(item.sizeBytes)}). Embedded files can slow saves.`
+                    });
+                }
+            });
+
+            if (totalBytes > ATTACHMENT_TASK_SOFT_TOTAL_BYTES) {
+                messages.push({
+                    type: 'warning',
+                    text: `This task has ${formatFileSize(totalBytes)} of attachments. Saving may feel slower.`
+                });
+            }
+
+            const ctx = getTaskModalAttachmentContext();
+            if (ctx.boardData) {
+                const existingBytes = calculateBoardAttachmentBytes(ctx.boardData, { excludeTaskId: ctx.taskId });
+                const projectEstimate = existingBytes + totalBytes;
+                if (projectEstimate > ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES) {
+                    messages.push({
+                        type: 'warning',
+                        text: `This project is estimated at ${formatFileSize(projectEstimate)} of embedded attachments.`
+                    });
+                }
+            }
+
+            return messages;
+        }
+
+        function setTaskModalAttachmentDraft(attachments, options = {}) {
+            taskModalAttachmentDraft = (Array.isArray(attachments) ? attachments : [])
+                .map(normalizeAttachmentRecord)
+                .filter(Boolean)
+                .slice(0, ATTACHMENT_MAX_COUNT);
+            taskModalAttachmentMessages = Array.isArray(options.messages) ? options.messages.filter(Boolean) : [];
+            renderTaskAttachmentsEditor();
+        }
+
+        function resetTaskModalAttachmentDraft() {
+            setTaskModalAttachmentDraft([], { messages: [] });
+            const input = document.getElementById('taskAttachmentsInput');
+            if (input) {
+                input.value = '';
+            }
+        }
+
+        function renderTaskAttachmentsEditor() {
+            const listEl = document.getElementById('taskAttachmentsList');
+            const summaryEl = document.getElementById('taskAttachmentsSummary');
+            const warningsEl = document.getElementById('taskAttachmentsWarnings');
+            if (!listEl || !summaryEl || !warningsEl) return;
+
+            const items = getTaskModalAttachmentsDraft();
+            const totalBytes = items.reduce((sum, item) => sum + (Number(item.sizeBytes) || 0), 0);
+            summaryEl.textContent = items.length === 0
+                ? 'No attachments'
+                : `${items.length} / ${ATTACHMENT_MAX_COUNT} • ${formatFileSize(totalBytes)}`;
+
+            const derived = getTaskModalAttachmentDerivedMessages();
+            const allMessages = [...taskModalAttachmentMessages, ...derived];
+            warningsEl.innerHTML = '';
+            allMessages.forEach((msg) => {
+                if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) return;
+                const div = document.createElement('div');
+                div.className = msg.type === 'error' ? 'attachment-editor-error' : 'attachment-editor-warning';
+                div.textContent = msg.text;
+                warningsEl.appendChild(div);
+            });
+
+            listEl.innerHTML = '';
+            if (items.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'attachment-editor-empty';
+                empty.textContent = 'No attachments yet.';
+                listEl.appendChild(empty);
+                return;
+            }
+
+            items.forEach((item) => {
+                const row = document.createElement('div');
+                row.className = 'attachment-editor-item';
+
+                if (item.kind === 'image') {
+                    const img = document.createElement('img');
+                    img.className = 'attachment-editor-thumb';
+                    img.alt = '';
+                    img.src = item.dataUrl;
+                    row.appendChild(img);
+                } else {
+                    const icon = document.createElement('span');
+                    icon.className = 'attachment-editor-icon';
+                    icon.textContent = 'FILE';
+                    row.appendChild(icon);
+                }
+
+                const meta = document.createElement('div');
+                meta.className = 'attachment-editor-meta';
+                const name = document.createElement('div');
+                name.className = 'attachment-editor-name';
+                name.textContent = item.name;
+                const sub = document.createElement('div');
+                sub.className = 'attachment-editor-sub';
+                sub.textContent = `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`;
+                meta.appendChild(name);
+                meta.appendChild(sub);
+                row.appendChild(meta);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'attachment-remove-btn';
+                removeBtn.setAttribute('aria-label', `Remove attachment ${item.name}`);
+                removeBtn.title = 'Remove';
+                removeBtn.textContent = '×';
+                removeBtn.onclick = () => removeTaskModalAttachment(item.id);
+                row.appendChild(removeBtn);
+
+                listEl.appendChild(row);
+            });
+        }
+
+        function renderDetailAttachments(attachments) {
+            const container = document.getElementById('detailAttachments');
+            if (!container) return;
+            const items = (Array.isArray(attachments) ? attachments : []).map(normalizeAttachmentRecord).filter(Boolean);
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'detail-attachments-empty';
+                empty.textContent = '-';
+                container.appendChild(empty);
+                return;
+            }
+
+            items.forEach((item) => {
+                const row = document.createElement('div');
+                row.className = 'detail-attachment-item';
+
+                if (item.kind === 'image') {
+                    const img = document.createElement('img');
+                    img.className = 'detail-attachment-thumb';
+                    img.alt = '';
+                    img.src = item.dataUrl;
+                    row.appendChild(img);
+                } else {
+                    const icon = document.createElement('span');
+                    icon.className = 'attachment-editor-icon';
+                    icon.textContent = 'FILE';
+                    row.appendChild(icon);
+                }
+
+                const meta = document.createElement('div');
+                meta.className = 'detail-attachment-meta';
+                const name = document.createElement('div');
+                name.className = 'detail-attachment-name';
+                name.textContent = item.name;
+                const sub = document.createElement('div');
+                sub.className = 'detail-attachment-sub';
+                sub.textContent = `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`;
+                meta.appendChild(name);
+                meta.appendChild(sub);
+                row.appendChild(meta);
+
+                const link = document.createElement('a');
+                link.className = 'detail-attachment-download';
+                link.href = item.dataUrl;
+                link.download = item.name || 'attachment';
+                link.textContent = 'Download';
+                row.appendChild(link);
+
+                container.appendChild(row);
+            });
+        }
+
+        function triggerTaskAttachmentsPicker() {
+            const input = document.getElementById('taskAttachmentsInput');
+            if (!input) return;
+            input.click();
+        }
+
+        function removeTaskModalAttachment(attachmentId) {
+            taskModalAttachmentDraft = getTaskModalAttachmentsDraft().filter(item => item.id !== attachmentId);
+            taskModalAttachmentMessages = [];
+            renderTaskAttachmentsEditor();
+        }
+
+        async function handleTaskAttachmentsInputChange(event) {
+            const input = event?.target;
+            const files = Array.from(input?.files || []);
+            if (input) {
+                input.value = '';
+            }
+            if (files.length === 0) return;
+
+            const next = getTaskModalAttachmentsDraft();
+            const messages = [];
+
+            for (const file of files) {
+                if (next.length >= ATTACHMENT_MAX_COUNT) {
+                    messages.push({
+                        type: 'error',
+                        text: `Attachment limit reached (${ATTACHMENT_MAX_COUNT} per task).`
+                    });
+                    break;
+                }
+
+                const fileSize = Number(file.size) || 0;
+                if (fileSize > ATTACHMENT_HARD_MAX_BYTES) {
+                    messages.push({
+                        type: 'error',
+                        text: `${file.name} exceeds the ${formatFileSize(ATTACHMENT_HARD_MAX_BYTES)} limit.`
+                    });
+                    continue;
+                }
+
+                try {
+                    const dataUrl = await readFileAsDataUrl(file);
+                    next.push({
+                        id: createAttachmentId(),
+                        name: file.name || 'Attachment',
+                        mime: file.type || '',
+                        sizeBytes: fileSize || estimateAttachmentDataUrlSizeBytes(dataUrl),
+                        kind: classifyAttachmentKind(file.type, file.name),
+                        dataUrl,
+                        createdAt: nowIso()
+                    });
+                } catch (error) {
+                    messages.push({
+                        type: 'error',
+                        text: `${file.name}: ${error.message || 'Failed to read file.'}`
+                    });
+                }
+            }
+
+            setTaskModalAttachmentDraft(next, { messages });
+        }
+
         function init() {
             if (typeof cacheRefs === 'function') {
                 cacheRefs();
@@ -3706,6 +4491,7 @@
             document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
             document.getElementById('modalTitle').textContent = 'New Task';
+            resetTaskModalAttachmentDraft();
             document.getElementById('taskDueDate').value = '';
             pendingNewTaskStatus = preferredStatus && columns.some(col => col.status === preferredStatus)
                 ? preferredStatus
@@ -3718,6 +4504,7 @@
                     document.getElementById('taskName').value = task.title;
                     document.getElementById('taskDescription').value = task.description || '';
                     document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
+                    setTaskModalAttachmentDraft(getTaskAttachments({ board: { tasks }, extensions: boardExtensions }, task.id), { messages: [] });
                     document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
                     document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
                     document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
@@ -3743,6 +4530,7 @@
                 checklistTextarea.value = '';
             }
             renderTaskChecklistEditor([]);
+            resetTaskModalAttachmentDraft();
             pendingNewTaskStatus = null;
             portfolioEditContext = null;
             portfolioCreateContext = null;
@@ -3764,6 +4552,7 @@
             document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
             document.getElementById('detailDueDate').textContent = normalizeDueDate(task.dueDate) || '-';
             renderDetailChecklist(task, { readOnly: false });
+            renderDetailAttachments(getTaskAttachments({ board: { tasks }, extensions: boardExtensions }, id));
             document.getElementById('taskDetailModal').classList.add('active');
             renderTasks();
         }
@@ -3839,11 +4628,20 @@
             const description = document.getElementById('taskDescription').value.trim();
             syncTaskChecklistTextareaFromEditor();
             const checklist = parseChecklistInput(document.getElementById('taskChecklist').value);
+            const attachments = getTaskModalAttachmentsDraft();
             const dueDate = normalizeDueDate(document.getElementById('taskDueDate').value);
             const priority = normalizePriority(document.getElementById('taskPriority').value);
             const effort = normalizeEffort(document.getElementById('taskEffort').value);
 
             if (!title) return;
+            if (attachments.length > ATTACHMENT_MAX_COUNT) {
+                alert(`Tasks can have up to ${ATTACHMENT_MAX_COUNT} attachments.`);
+                return;
+            }
+            if (attachments.some(item => (Number(item.sizeBytes) || 0) > ATTACHMENT_HARD_MAX_BYTES)) {
+                alert(`Attachments must be ${formatFileSize(ATTACHMENT_HARD_MAX_BYTES)} or smaller.`);
+                return;
+            }
 
             if (portfolioCreateContext && portfolioCreateContext.boardId) {
                 const { boardId } = portfolioCreateContext;
@@ -3880,6 +4678,7 @@
                     effort,
                     status
                 });
+                setTaskAttachments(boardRecord.data, nextId, attachments);
 
                 selectedPortfolioBoardId = boardId;
                 buildPortfolioTasks();
@@ -3897,10 +4696,13 @@
 
             if (portfolioEditContext && portfolioEditContext.boardId && portfolioEditContext.taskId) {
                 const { boardId, taskId } = portfolioEditContext;
-                const saved = await runPortfolioTaskMutation(boardId, taskId, (task) => {
+                const saved = await runPortfolioTaskMutation(boardId, taskId, (task, boardRecord) => {
                     task.title = title;
                     task.description = description;
                     task.checklist = checklist;
+                    if (boardRecord && boardRecord.data) {
+                        setTaskAttachments(boardRecord.data, taskId, attachments);
+                    }
                     task.dueDate = dueDate;
                     task.priority = priority;
                     task.effort = effort;
@@ -3921,6 +4723,9 @@
                     task.dueDate = dueDate;
                     task.priority = priority;
                     task.effort = effort;
+                    const legacyBoardData = { board: { tasks }, extensions: boardExtensions };
+                    setTaskAttachments(legacyBoardData, task.id, attachments);
+                    boardExtensions = legacyBoardData.extensions || {};
                     touchTask(task);
                     selectedTaskId = task.id;
                 }
@@ -3940,6 +4745,9 @@
                     status: pendingNewTaskStatus || columns[0].status
                 };
                 tasks.push(newTask);
+                const legacyBoardData = { board: { tasks }, extensions: boardExtensions };
+                setTaskAttachments(legacyBoardData, newTask.id, attachments);
+                boardExtensions = legacyBoardData.extensions || {};
                 selectedTaskId = newTask.id;
             }
 
@@ -4760,6 +5568,10 @@
             if (e.key !== 'Enter') return;
             e.preventDefault();
             addTaskChecklistItemFromComposer();
+        });
+
+        document.getElementById('taskAttachmentsInput').addEventListener('change', (e) => {
+            handleTaskAttachmentsInputChange(e);
         });
 
         document.addEventListener('keydown', (e) => {
