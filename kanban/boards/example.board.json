@@ -3,25 +3,25 @@
     "schemaVersion": 4,
     "appId": "household-task-board",
     "createdAt": "2026-02-13T00:00:00.000Z",
-    "updatedAt": "2026-02-25T21:40:49.000Z"
+    "updatedAt": "2026-02-26T19:12:07.910Z"
   },
   "board": {
     "columns": [
       {
         "status": "backlog",
-        "title": "Backlog"
+        "title": "backlog"
       },
       {
-        "status": "nextup",
-        "title": "NextUp"
+        "status": "to-do",
+        "title": "to-do"
       },
       {
-        "status": "inprogress",
-        "title": "In Progress"
+        "status": "doing",
+        "title": "in progress"
       },
       {
-        "status": "concluid",
-        "title": "Concluid"
+        "status": "done",
+        "title": "done"
       }
     ],
     "tasks": [
@@ -32,7 +32,7 @@
         "checklist": [],
         "archived": false,
         "createdAt": "2026-02-13T00:00:00.000Z",
-        "updatedAt": "2026-02-13T00:00:00.000Z",
+        "updatedAt": "2026-02-26T19:12:07.908Z",
         "dueDate": "",
         "priority": "high",
         "effort": "S",
@@ -54,7 +54,7 @@
         "dueDate": "",
         "priority": "high",
         "effort": "S",
-        "status": "concluid"
+        "status": "done"
       },
       {
         "id": 3,
@@ -63,7 +63,7 @@
         "checklist": [],
         "archived": false,
         "createdAt": "2026-02-13T00:00:00.000Z",
-        "updatedAt": "2026-02-13T00:00:00.000Z",
+        "updatedAt": "2026-02-26T19:09:27.081Z",
         "dueDate": "",
         "priority": "medium",
         "effort": "S",
@@ -77,92 +77,5 @@
       "archiveFilter": "active"
     }
   },
-  "extensions": {
-    "timeline": {
-      "version": 1,
-      "enabled": true,
-      "nextId": 2,
-      "events": [
-        {
-          "id": 1,
-          "ts": "2026-02-25T21:40:49.000Z",
-          "type": "init",
-          "data": {
-            "board": {
-              "columns": [
-                {
-                  "status": "backlog",
-                  "title": "Backlog"
-                },
-                {
-                  "status": "nextup",
-                  "title": "NextUp"
-                },
-                {
-                  "status": "inprogress",
-                  "title": "In Progress"
-                },
-                {
-                  "status": "concluid",
-                  "title": "Concluid"
-                }
-              ],
-              "tasks": [
-                {
-                  "id": 1,
-                  "title": "Build feedback document with official bank template",
-                  "description": "Create the feedback document using the bank's official template.",
-                  "checklist": [],
-                  "archived": false,
-                  "createdAt": "2026-02-13T00:00:00.000Z",
-                  "updatedAt": "2026-02-13T00:00:00.000Z",
-                  "dueDate": "",
-                  "priority": "high",
-                  "effort": "S",
-                  "status": "backlog"
-                },
-                {
-                  "id": 2,
-                  "title": "Analyze viability of Markathon strategies",
-                  "description": "Assess strategy feasibility, risks, and expected outcomes.",
-                  "checklist": [
-                    {
-                      "text": "Entender se a estratégia se aplica a outros contextos temporários",
-                      "done": true
-                    }
-                  ],
-                  "archived": false,
-                  "createdAt": "2026-02-13T00:00:00.000Z",
-                  "updatedAt": "2026-02-14T13:13:53.160Z",
-                  "dueDate": "",
-                  "priority": "high",
-                  "effort": "S",
-                  "status": "concluid"
-                },
-                {
-                  "id": 3,
-                  "title": "Prepare Markathon final presentation",
-                  "description": "Create a concise summary of strategy, execution plan, and expected impact.",
-                  "checklist": [],
-                  "archived": false,
-                  "createdAt": "2026-02-13T00:00:00.000Z",
-                  "updatedAt": "2026-02-13T00:00:00.000Z",
-                  "dueDate": "",
-                  "priority": "medium",
-                  "effort": "S",
-                  "status": "backlog"
-                }
-              ],
-              "settings": {
-                "title": "Markathon Board",
-                "sortMode": "manual",
-                "showArchivedOnly": false,
-                "archiveFilter": "active"
-              }
-            }
-          }
-        }
-      ]
-    }
-  }
+  "extensions": {}
 }

@@ -334,10 +334,128 @@
             padding: 6px 12px;
         }
 
+        .portfolio-view-toggle {
+            display: inline-flex;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+        }
+
+        .portfolio-view-toggle .btn {
+            border: 0;
+            border-right: 1px solid var(--border);
+            border-radius: 0;
+        }
+
+        .portfolio-view-toggle .btn:last-child {
+            border-right: 0;
+        }
+
+        .portfolio-view-toggle .btn.active {
+            background: var(--accent);
+            color: white;
+        }
+
         .portfolio-table-wrap {
             overflow: auto;
             flex: 1;
             background: var(--bg-card);
+        }
+
+        .portfolio-board-wrap {
+            flex: 1;
+            min-height: 0;
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .portfolio-board-wrap.hidden {
+            display: none;
+        }
+
+        .portfolio-board-grid {
+            display: flex;
+            gap: 1px;
+            background: var(--border-light);
+            flex: 1;
+            min-height: 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .portfolio-column {
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            min-width: 280px;
+            flex: 1 1 0;
+        }
+
+        .portfolio-column-header {
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .portfolio-column-body {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            min-height: 0;
+        }
+
+        .portfolio-column-body.drag-over {
+            background: rgba(58, 124, 246, 0.06);
+        }
+
+        .portfolio-empty-banner {
+            margin: 12px 16px 0;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .portfolio-task-card {
+            cursor: default;
+        }
+
+        .portfolio-task-card:hover {
+            transform: none;
+        }
+
+        .portfolio-task-card .task-action-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .portfolio-project-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 2px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.2;
+            max-width: 100%;
+        }
+
+        .portfolio-project-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: currentColor;
+            opacity: 0.7;
+            flex: 0 0 auto;
         }
 
         .portfolio-table {
@@ -586,6 +704,14 @@
             padding: 1px 6px;
         }
 
+        .task-tag-age {
+            background: #eef3f8;
+            color: #425466;
+            border: 1px solid #d8e1ea;
+            border-radius: 4px;
+            padding: 1px 6px;
+        }
+
         .effort-dot {
             width: 6px;
             height: 6px;
@@ -745,10 +871,6 @@
             max-width: 560px;
         }
 
-        #timelineModal .modal-content {
-            max-width: 760px;
-        }
-
         .shortcuts-list {
             display: grid;
             gap: 6px;
@@ -795,126 +917,6 @@
         .shortcut-desc {
             color: var(--text-secondary);
             font-size: 12px;
-        }
-
-        .timeline-controls {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-
-        .timeline-controls-left {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .timeline-index {
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .timeline-range {
-            width: 100%;
-            margin-bottom: 12px;
-        }
-
-        .timeline-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .timeline-events,
-        .timeline-details {
-            border: 1px solid var(--border-light);
-            background: var(--bg-card);
-        }
-
-        .timeline-events {
-            max-height: 280px;
-            overflow: auto;
-        }
-
-        .timeline-event {
-            width: 100%;
-            text-align: left;
-            padding: 8px 10px;
-            border: none;
-            border-bottom: 1px solid var(--border-light);
-            background: var(--bg-card);
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .timeline-event:hover {
-            background: var(--bg-secondary);
-        }
-
-        .timeline-event.active {
-            background: #e8f4fc;
-            border-left: 3px solid var(--accent);
-        }
-
-        .timeline-event-title {
-            font-size: 12px;
-            color: var(--text-primary);
-            margin-bottom: 2px;
-        }
-
-        .timeline-event-time {
-            font-size: 10px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-        }
-
-        .timeline-details {
-            padding: 10px 12px;
-            min-height: 140px;
-        }
-
-        .timeline-details-title {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            margin-bottom: 6px;
-        }
-
-        .timeline-details-meta {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-        }
-
-        .timeline-detail-row {
-            display: grid;
-            grid-template-columns: 90px 1fr;
-            gap: 8px;
-            font-size: 12px;
-            margin-bottom: 6px;
-        }
-
-        .timeline-detail-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            color: var(--text-secondary);
-        }
-
-        .timeline-empty {
-            padding: 12px;
-            font-size: 11px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
         }
 
         .undo-toast {
@@ -1024,7 +1026,6 @@
         <div class="app-title">teamos → kanban</div>
         <div class="header-actions">
             <button class="btn" id="portfolioToggleBtn" onclick="togglePortfolioView()">Portfolio</button>
-            <button class="btn" onclick="openTimelineModal()">Timeline</button>
             <button class="btn" onclick="openShortcutsModal()">Shortcuts</button>
             <span class="save-status" id="saveStatus">Saved</span>
         </div>
@@ -1055,6 +1056,7 @@
                             <option value="manual">Manual</option>
                             <option value="dueDate">Due Date</option>
                             <option value="effort">Effort</option>
+                            <option value="score">Score</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1079,11 +1081,10 @@
                     </div>
                 </div>
                 <div class="board-toolbar-right">
-                    <button class="btn" onclick="newBoard()">New Board</button>
+                    <button class="btn btn-primary" onclick="newBoard()">+ New Board</button>
                     <button class="btn" onclick="openBoardFile()">Open</button>
                     <button class="btn" onclick="saveBoard()">Save</button>
                     <button class="btn" onclick="saveBoardAs()">Save As</button>
-                    <button class="btn btn-primary" onclick="addColumn()">+ Add Column</button>
                 </div>
             </div>
             <div class="board" id="board">
@@ -1129,11 +1130,15 @@
                     </div>
                 </div>
                 <div class="portfolio-toolbar-right">
+                    <div class="portfolio-view-toggle" role="group" aria-label="Portfolio view mode">
+                        <button type="button" class="btn" id="portfolioDisplayMode-table" onclick="setPortfolioDisplayMode('table')">Table</button>
+                        <button type="button" class="btn" id="portfolioDisplayMode-board" onclick="setPortfolioDisplayMode('board')">Board</button>
+                    </div>
                     <button class="btn" onclick="openPortfolioBoards()">Open Boards</button>
                 </div>
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
-            <div class="portfolio-table-wrap">
+            <div class="portfolio-table-wrap" id="portfolioTableWrap">
                 <table class="portfolio-table">
                     <thead>
                         <tr>
@@ -1151,7 +1156,7 @@
                             </th>
                             <th id="portfolioSortHeader-column" aria-sort="none">
                                 <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('column')">
-                                    <span>Column</span>
+                                    <span>Status</span>
                                     <span class="portfolio-sort-indicator"></span>
                                 </button>
                             </th>
@@ -1185,13 +1190,15 @@
                                     <span class="portfolio-sort-indicator"></span>
                                 </button>
                             </th>
-                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="portfolioTableBody">
-                        <tr><td colspan="9">Open board JSON files to see portfolio tasks.</td></tr>
                     </tbody>
                 </table>
+            </div>
+            <div class="portfolio-board-wrap hidden" id="portfolioBoardWrap">
+                <div class="portfolio-empty-banner hidden" id="portfolioBoardEmptyBanner"></div>
+                <div class="portfolio-board-grid" id="portfolioBoard"></div>
             </div>
         </div>
         <div class="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">Drop board files to load portfolio</div>
@@ -1226,16 +1233,18 @@
                         <div class="form-group">
                             <label>Priority</label>
                             <select id="taskPriority">
+                                <option value="" selected>None</option>
                                 <option value="high">High</option>
-                                <option value="medium" selected>Medium</option>
+                                <option value="medium">Medium</option>
                                 <option value="low">Low</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Effort</label>
                             <select id="taskEffort">
+                                <option value="" selected>None</option>
                                 <option value="XS">XS</option>
-                                <option value="S" selected>S</option>
+                                <option value="S">S</option>
                                 <option value="M">M</option>
                                 <option value="L">L</option>
                                 <option value="XL">XL</option>
@@ -1347,31 +1356,6 @@
         </div>
     </div>
 
-    <div class="modal" id="timelineModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title">Timeline</span>
-                <button class="modal-close" onclick="closeTimelineModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="timeline-controls">
-                    <div class="timeline-controls-left">
-                        <button class="btn" id="timelineExitBtn" onclick="exitTimelinePreview()">Exit preview</button>
-                        <span class="timeline-index" id="timelineIndexLabel">Event 0 of 0</span>
-                    </div>
-                </div>
-                <input class="timeline-range" type="range" id="timelineRange" min="0" max="0" value="0" oninput="onTimelineScrub(this.value)">
-                <div class="timeline-layout">
-                    <div class="timeline-events" id="timelineEvents"></div>
-                    <div class="timeline-details" id="timelineDetails"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" onclick="closeTimelineModal()">Close</button>
-            </div>
-        </div>
-    </div>
-
     <div class="undo-toast" id="undoToast">
         <span class="undo-toast-text" id="undoToastText"></span>
         <button class="btn" onclick="performUndo()">Undo</button>
@@ -1380,22 +1364,19 @@
     <script>
         let tasks = [];
         const defaultColumns = [
-            { status: 'todo', title: 'To Do' },
-            { status: 'inprogress', title: 'In Progress' },
-            { status: 'done', title: 'Done' }
+            { status: 'backlog', title: 'backlog' },
+            { status: 'to-do', title: 'to-do' },
+            { status: 'doing', title: 'in progress' },
+            { status: 'done', title: 'done' }
         ];
-        let columns = defaultColumns;
+        let columns = defaultColumns.map(col => ({ ...col }));
         const BOARD_SCHEMA_VERSION = 4;
         const BOARD_LEGACY_SCHEMA_VERSION = 3;
         const BOARD_APP_ID = 'household-task-board';
         const BOARD_FILE_EXTENSION = '.board.json';
         const DEFAULT_BOARD_TITLE = 'Example Task Board';
         const EFFORT_BUCKETS = ['XS', 'S', 'M', 'L', 'XL'];
-        const DEFAULT_EFFORT = 'S';
         const MAX_COLUMNS = 5;
-        const BOARD_EXTENSIONS_STORAGE_KEY = 'householdBoardExtensions';
-        const TIMELINE_VERSION = 1;
-        const TIMELINE_EVENT_CAP = 2000;
         const BOARD_ARCHIVE_FILTER_VALUES = ['active', 'all', 'archived'];
         let boardCreatedAt = new Date().toISOString();
         let boardExtensions = {};
@@ -1419,10 +1400,9 @@
         let selectedPortfolioBoardId = '';
         let portfolioSortKey = 'priority';
         let portfolioSortDir = 'asc';
-        let suppressTimeline = false;
-        let timelinePreviewActive = false;
-        let timelinePreviewState = null;
-        let selectedTimelineIndex = 0;
+        let portfolioDisplayMode = 'table';
+        let portfolioEditContext = null;
+        let portfolioDetailContext = null;
 
         function readQueryParam(key, fallback = '') {
             const params = new URLSearchParams(window.location.search);
@@ -1468,6 +1448,7 @@
             }
             if (boardSortMode === 'dueDate') params.set('sort', 'due');
             if (boardSortMode === 'effort') params.set('sort', 'effort');
+            if (boardSortMode === 'score') params.set('sort', 'score');
 
             const portfolioSearch = document.getElementById('portfolioSearchInput')?.value || '';
             const portfolioPriority = document.getElementById('portfolioPriorityFilter')?.value || '';
@@ -1480,6 +1461,7 @@
             if (portfolioSortKey !== 'priority') params.set('ps', portfolioSortKey);
             if (portfolioSortDir === 'desc') params.set('pd', portfolioSortDir);
             if (selectedPortfolioBoardId) params.set('pb', selectedPortfolioBoardId);
+            if (portfolioDisplayMode !== 'table') params.set('pv', portfolioDisplayMode);
 
             const query = params.toString();
             const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
@@ -1492,7 +1474,9 @@
             const boardPriority = readQueryParam('p', '');
             const archived = readQueryParam('archived', '');
             const sortParam = readQueryParam('sort', '');
-            const sort = sortParam === 'due' ? 'dueDate' : (sortParam === 'effort' ? 'effort' : 'manual');
+            const sort = sortParam === 'due'
+                ? 'dueDate'
+                : (sortParam === 'effort' ? 'effort' : (sortParam === 'score' ? 'score' : 'manual'));
             const boardEffort = readQueryParam('e', '');
 
             const portfolioSearch = readQueryParam('pq', '');
@@ -1502,6 +1486,7 @@
             const portfolioSort = readQueryParam('ps', 'priority');
             const portfolioSortDirParam = readQueryParam('pd', 'asc');
             const portfolioBoard = readQueryParam('pb', '');
+            const portfolioViewMode = readQueryParam('pv', 'table');
 
             const searchInput = document.getElementById('searchInput');
             const priorityFilter = document.getElementById('priorityFilter');
@@ -1534,6 +1519,7 @@
             portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
             portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
             selectedPortfolioBoardId = portfolioBoard;
+            portfolioDisplayMode = normalizePortfolioDisplayMode(portfolioViewMode);
 
             setAppMode(view === 'portfolio' ? 'portfolio' : 'board');
             if (view !== 'portfolio') {
@@ -1569,7 +1555,7 @@
                 createdAt: nowIso(),
                 updatedAt: nowIso(),
                 dueDate: '',
-                priority: task.priority,
+                priority: normalizePriority(task.priority),
                 effort: normalizeEffort(task.effort),
                 status: task.status
             }));
@@ -1603,524 +1589,13 @@
             };
         }
 
-        function createTimelineState() {
-            return {
-                version: TIMELINE_VERSION,
-                enabled: true,
-                nextId: 1,
-                events: []
-            };
-        }
-
-        function ensureTimeline() {
-            if (!boardExtensions || typeof boardExtensions !== 'object' || Array.isArray(boardExtensions)) {
-                boardExtensions = {};
-            }
-            if (!boardExtensions.timeline || typeof boardExtensions.timeline !== 'object' || Array.isArray(boardExtensions.timeline)) {
-                boardExtensions.timeline = createTimelineState();
-            }
-            if (boardExtensions.timeline.version !== TIMELINE_VERSION) {
-                boardExtensions.timeline = createTimelineState();
-            }
-
-            const timeline = boardExtensions.timeline;
-            if (!Array.isArray(timeline.events)) {
-                timeline.events = [];
-            }
-            if (typeof timeline.nextId !== 'number' || !Number.isFinite(timeline.nextId) || timeline.nextId < 1) {
-                timeline.nextId = 1;
-            }
-            if (timeline.events.length === 0) {
-                timeline.events.push({
-                    id: timeline.nextId++,
-                    ts: nowIso(),
-                    type: 'init',
-                    data: { board: snapshotBoardState() }
-                });
-            } else if (timeline.events[0].type !== 'init') {
-                timeline.events.unshift({
-                    id: timeline.nextId++,
-                    ts: nowIso(),
-                    type: 'init',
-                    data: { board: snapshotBoardState() }
-                });
-            }
-            return timeline;
-        }
-
-        function recordTimelineEvent(type, data) {
-            if (suppressTimeline || timelinePreviewActive) return;
-            const timeline = ensureTimeline();
-            if (!timeline.enabled) return;
-            timeline.events.push({
-                id: timeline.nextId++,
-                ts: nowIso(),
-                type,
-                data: data || {}
-            });
-
-            if (timeline.events.length > TIMELINE_EVENT_CAP) {
-                trimTimelineEvents(timeline);
-            }
-        }
-
-        function trimTimelineEvents(timeline) {
-            if (timeline.events.length <= TIMELINE_EVENT_CAP) return;
-            const cutIndex = timeline.events.length - (TIMELINE_EVENT_CAP - 1);
-            const snapshotIndex = Math.max(0, cutIndex - 1);
-            const snapshotState = rebuildBoardStateFromTimeline(snapshotIndex);
-            const initEvent = {
-                id: timeline.nextId++,
-                ts: nowIso(),
-                type: 'init',
-                data: { board: snapshotState }
-            };
-            timeline.events = [initEvent, ...timeline.events.slice(cutIndex)];
-        }
-
-        function applyTimelineState(state) {
-            suppressChangeTracking = true;
-            suppressTimeline = true;
-            const settings = state.settings || {};
-            columns = normalizeColumns(state.columns || []);
-            tasks = (state.tasks || []).map(task => normalizeTask(task));
-            boardTitle = settings.title || DEFAULT_BOARD_TITLE;
-            boardSortMode = ['manual', 'dueDate', 'effort'].includes(settings.sortMode) ? settings.sortMode : 'manual';
-            boardArchiveFilter = normalizeBoardArchiveFilter(
-                Object.prototype.hasOwnProperty.call(settings, 'archiveFilter') ? settings.archiveFilter : settings.showArchivedOnly
-            );
-            applyBoardTitle();
-            applyViewControls();
-            renderBoard();
-            renderTasks();
-            suppressTimeline = false;
-            suppressChangeTracking = false;
-        }
-
-        function applyTimelineEvent(state, event) {
-            const data = event.data || {};
-            switch (event.type) {
-                case 'task_created':
-                    if (data.task) {
-                        state.tasks.push(deepClone(data.task));
-                    }
-                    break;
-                case 'task_updated': {
-                    const idx = state.tasks.findIndex(task => task.id === data.taskId);
-                    if (idx >= 0 && data.after) {
-                        state.tasks[idx] = deepClone(data.after);
-                    }
-                    break;
-                }
-                case 'task_moved': {
-                    const task = state.tasks.find(t => t.id === data.taskId);
-                    if (task && data.toStatus) {
-                        task.status = data.toStatus;
-                    }
-                    break;
-                }
-                case 'task_archived': {
-                    const task = state.tasks.find(t => t.id === data.taskId);
-                    if (task) task.archived = true;
-                    break;
-                }
-                case 'task_restored': {
-                    const task = state.tasks.find(t => t.id === data.taskId);
-                    if (task) task.archived = false;
-                    break;
-                }
-                case 'tasks_cleared':
-                    state.tasks = [];
-                    break;
-                case 'column_added': {
-                    if (data.column) {
-                        const index = typeof data.index === 'number' ? data.index : state.columns.length;
-                        state.columns.splice(Math.max(0, Math.min(index, state.columns.length)), 0, deepClone(data.column));
-                    }
-                    break;
-                }
-                case 'column_renamed': {
-                    const column = state.columns.find(col => col.status === data.status);
-                    if (column && data.toTitle) {
-                        column.title = data.toTitle;
-                    }
-                    break;
-                }
-                case 'column_reordered': {
-                    const fromIndex = data.fromIndex;
-                    const toIndex = data.toIndex;
-                    if (Number.isFinite(fromIndex) && Number.isFinite(toIndex)) {
-                        const [moved] = state.columns.splice(fromIndex, 1);
-                        if (moved) {
-                            state.columns.splice(Math.max(0, Math.min(toIndex, state.columns.length)), 0, moved);
-                        }
-                    }
-                    break;
-                }
-                case 'column_deleted': {
-                    const fallbackStatus = data.fallbackStatus;
-                    state.columns = state.columns.filter(col => col.status !== data.status);
-                    const fallback = state.columns.find(col => col.status === fallbackStatus) || state.columns[0];
-                    if (fallback) {
-                        state.tasks.forEach(task => {
-                            if (task.status === data.status) {
-                                task.status = fallback.status;
-                            }
-                        });
-                    }
-                    break;
-                }
-                case 'board_title_changed':
-                    if (data.toTitle) {
-                        state.settings.title = data.toTitle;
-                    }
-                    break;
-                case 'sort_mode_changed':
-                    if (data.to) {
-                        state.settings.sortMode = data.to;
-                    }
-                    break;
-                case 'archived_filter_toggled':
-                    if ('to' in data) {
-                        state.settings.archiveFilter = normalizeBoardArchiveFilter(data.to);
-                        state.settings.showArchivedOnly = state.settings.archiveFilter === 'archived';
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        function rebuildBoardStateFromTimeline(targetIndex) {
-            const timeline = ensureTimeline();
-            if (!timeline.events.length) {
-                return snapshotBoardState();
-            }
-            const initEvent = timeline.events[0];
-            const initBoard = initEvent.data && initEvent.data.board ? initEvent.data.board : snapshotBoardState();
-            const state = deepClone(initBoard);
-            if (!state.settings) {
-                state.settings = {
-                    title: boardTitle,
-                    sortMode: boardSortMode,
-                    showArchivedOnly: boardArchiveFilter === 'archived',
-                    archiveFilter: boardArchiveFilter
-                };
-            }
-            const lastIndex = Math.min(targetIndex, timeline.events.length - 1);
-            for (let i = 1; i <= lastIndex; i++) {
-                applyTimelineEvent(state, timeline.events[i]);
-            }
-            return state;
-        }
-
-        function enterTimelinePreview(index) {
-            const timeline = ensureTimeline();
-            if (!timeline.events.length) return;
-            if (!timelinePreviewActive) {
-                timelinePreviewState = {
-                    board: snapshotBoardState(),
-                    selectedTaskId
-                };
-                timelinePreviewActive = true;
-            }
-            const state = rebuildBoardStateFromTimeline(index);
-            selectedTaskId = null;
-            applyTimelineState(state);
-            updateTimelinePreviewControls();
-        }
-
-        function exitTimelinePreview() {
-            if (!timelinePreviewActive || !timelinePreviewState) {
-                updateTimelinePreviewControls();
-                return;
-            }
-            selectedTaskId = timelinePreviewState.selectedTaskId || null;
-            applyTimelineState(timelinePreviewState.board);
-            timelinePreviewActive = false;
-            timelinePreviewState = null;
-            updateTimelinePreviewControls();
-        }
-
-        function openTimelineModal() {
-            const timeline = ensureTimeline();
-            selectedTimelineIndex = Math.max(0, timeline.events.length - 1);
-            exitTimelinePreview();
-            renderTimelineModal();
-            document.getElementById('timelineModal').classList.add('active');
-        }
-
-        function closeTimelineModal() {
-            document.getElementById('timelineModal').classList.remove('active');
-            exitTimelinePreview();
-        }
-
-        function onTimelineScrub(value) {
-            const timeline = ensureTimeline();
-            const index = Number.parseInt(value, 10);
-            if (!Number.isFinite(index)) return;
-            selectedTimelineIndex = Math.max(0, Math.min(index, timeline.events.length - 1));
-            renderTimelineSelection();
-            if (selectedTimelineIndex >= timeline.events.length - 1) {
-                exitTimelinePreview();
-            } else {
-                enterTimelinePreview(selectedTimelineIndex);
-            }
-        }
-
-        function selectTimelineEvent(index) {
-            const timeline = ensureTimeline();
-            selectedTimelineIndex = Math.max(0, Math.min(index, timeline.events.length - 1));
-            const range = document.getElementById('timelineRange');
-            if (range) {
-                range.value = selectedTimelineIndex;
-            }
-            renderTimelineSelection();
-            if (selectedTimelineIndex >= timeline.events.length - 1) {
-                exitTimelinePreview();
-            } else {
-                enterTimelinePreview(selectedTimelineIndex);
-            }
-        }
-
-        function updateTimelinePreviewControls() {
-            const exitBtn = document.getElementById('timelineExitBtn');
-            if (exitBtn) {
-                exitBtn.disabled = !timelinePreviewActive;
-            }
-        }
-
-        function renderTimelineModal() {
-            const timeline = ensureTimeline();
-            const range = document.getElementById('timelineRange');
-            const events = timeline.events;
-            if (range) {
-                range.min = 0;
-                range.max = Math.max(0, events.length - 1);
-                range.value = Math.min(selectedTimelineIndex, events.length - 1);
-            }
-            renderTimelineSelection();
-            updateTimelinePreviewControls();
-        }
-
-        function renderTimelineSelection() {
-            const timeline = ensureTimeline();
-            const events = timeline.events;
-            const list = document.getElementById('timelineEvents');
-            const details = document.getElementById('timelineDetails');
-            const label = document.getElementById('timelineIndexLabel');
-
-            if (!events.length) {
-                if (list) list.innerHTML = '<div class="timeline-empty">No history available.</div>';
-                if (details) details.innerHTML = '<div class="timeline-empty">No event selected.</div>';
-                if (label) label.textContent = 'Event 0 of 0';
-                return;
-            }
-
-            const maxIndex = events.length - 1;
-            selectedTimelineIndex = Math.max(0, Math.min(selectedTimelineIndex, maxIndex));
-            const isLive = selectedTimelineIndex === maxIndex;
-            if (label) {
-                label.textContent = `Event ${selectedTimelineIndex + 1} of ${events.length}${isLive ? ' (Live)' : ' (Preview)'}`;
-            }
-
-            if (list) {
-                list.innerHTML = events.map((event, index) => {
-                    const activeClass = index === selectedTimelineIndex ? 'active' : '';
-                    const title = timelineEventLabel(event);
-                    const time = formatDateTime(event.ts);
-                    return `
-                        <button class="timeline-event ${activeClass}" onclick="selectTimelineEvent(${index})">
-                            <div class="timeline-event-title">${escapeHtml(title)}</div>
-                            <div class="timeline-event-time">${escapeHtml(time)}</div>
-                        </button>
-                    `;
-                }).join('');
-            }
-
-            if (details) {
-                details.innerHTML = renderTimelineDetails(events[selectedTimelineIndex]);
-            }
-        }
-
-        function timelineEventLabel(event) {
-            const data = event.data || {};
-            switch (event.type) {
-                case 'init':
-                    return 'Board initialized';
-                case 'task_created':
-                    return `Task created: ${data.taskTitle || data.task?.title || 'Untitled'}`;
-                case 'task_updated':
-                    return `Task updated: ${data.taskTitle || data.after?.title || 'Untitled'}`;
-                case 'task_moved':
-                    return `Task moved: ${data.taskTitle || 'Task'}`;
-                case 'task_archived':
-                    return `Task archived: ${data.taskTitle || 'Task'}`;
-                case 'task_restored':
-                    return `Task restored: ${data.taskTitle || 'Task'}`;
-                case 'tasks_cleared':
-                    return 'All tasks cleared';
-                case 'column_added':
-                    return `Column added: ${data.column?.title || 'Column'}`;
-                case 'column_renamed':
-                    return `Column renamed: ${data.fromTitle || 'Column'} -> ${data.toTitle || ''}`;
-                case 'column_reordered':
-                    return 'Column reordered';
-                case 'column_deleted':
-                    return `Column deleted: ${data.columnTitle || 'Column'}`;
-                case 'board_title_changed':
-                    return `Board renamed: ${data.fromTitle || ''} -> ${data.toTitle || ''}`;
-                case 'sort_mode_changed':
-                    return `Sort mode: ${data.from || ''} -> ${data.to || ''}`;
-                case 'archived_filter_toggled':
-                    return `Archive filter: ${formatArchiveFilterLabel(data.from)} -> ${formatArchiveFilterLabel(data.to)}`;
-                default:
-                    return event.type;
-            }
-        }
-
-        function renderTimelineDetails(event) {
-            if (!event) {
-                return '<div class="timeline-empty">No event selected.</div>';
-            }
-            const time = formatDateTime(event.ts);
-            const rows = timelineDetailRows(event).map(row => `
-                <div class="timeline-detail-row">
-                    <div class="timeline-detail-label">${escapeHtml(row.label)}</div>
-                    <div>${escapeHtml(row.value)}</div>
-                </div>
-            `).join('');
-
-            return `
-                <div class="timeline-details-title">${escapeHtml(timelineEventLabel(event))}</div>
-                <div class="timeline-details-meta">When: ${escapeHtml(time)}</div>
-                ${rows || '<div class="timeline-empty">No additional details.</div>'}
-            `;
-        }
-
-        function timelineDetailRows(event) {
-            const data = event.data || {};
-            switch (event.type) {
-                case 'init': {
-                    const board = data.board || {};
-                    return [
-                        { label: 'Title', value: board.settings?.title || '-' },
-                        { label: 'Columns', value: String(board.columns?.length || 0) },
-                        { label: 'Tasks', value: String(board.tasks?.length || 0) }
-                    ];
-                }
-                case 'task_created': {
-                    const task = data.task || {};
-                    return [
-                        { label: 'Task', value: data.taskTitle || task.title || 'Untitled' },
-                        { label: 'Status', value: task.status || '-' },
-                        { label: 'Priority', value: task.priority || '-' },
-                        { label: 'Effort', value: task.effort || '-' },
-                        { label: 'Due', value: task.dueDate || '-' }
-                    ];
-                }
-                case 'task_updated': {
-                    const changes = describeTaskChanges(data.before, data.after).join(', ');
-                    return [
-                        { label: 'Task', value: data.taskTitle || data.after?.title || 'Untitled' },
-                        { label: 'Changes', value: changes }
-                    ];
-                }
-                case 'task_moved':
-                    return [
-                        { label: 'Task', value: data.taskTitle || 'Task' },
-                        { label: 'From', value: data.fromStatus || '-' },
-                        { label: 'To', value: data.toStatus || '-' }
-                    ];
-                case 'task_archived':
-                case 'task_restored':
-                    return [
-                        { label: 'Task', value: data.taskTitle || 'Task' }
-                    ];
-                case 'tasks_cleared':
-                    return [
-                        { label: 'Count', value: String(data.count || 0) }
-                    ];
-                case 'column_added':
-                    return [
-                        { label: 'Column', value: data.column?.title || 'Column' },
-                        { label: 'Position', value: Number.isFinite(data.index) ? String(data.index + 1) : '-' }
-                    ];
-                case 'column_renamed':
-                    return [
-                        { label: 'From', value: data.fromTitle || '-' },
-                        { label: 'To', value: data.toTitle || '-' }
-                    ];
-                case 'column_reordered':
-                    return [
-                        { label: 'From', value: Number.isFinite(data.fromIndex) ? String(data.fromIndex + 1) : '-' },
-                        { label: 'To', value: Number.isFinite(data.toIndex) ? String(data.toIndex + 1) : '-' }
-                    ];
-                case 'column_deleted':
-                    return [
-                        { label: 'Column', value: data.columnTitle || data.status || '-' },
-                        { label: 'Fallback', value: data.fallbackTitle || data.fallbackStatus || '-' },
-                        { label: 'Moved', value: String(data.movedTaskCount || 0) }
-                    ];
-                case 'board_title_changed':
-                    return [
-                        { label: 'From', value: data.fromTitle || '-' },
-                        { label: 'To', value: data.toTitle || '-' }
-                    ];
-                case 'sort_mode_changed':
-                    return [
-                        { label: 'From', value: data.from || '-' },
-                        { label: 'To', value: data.to || '-' }
-                    ];
-                case 'archived_filter_toggled':
-                    return [
-                        { label: 'From', value: formatArchiveFilterLabel(data.from) },
-                        { label: 'To', value: formatArchiveFilterLabel(data.to) }
-                    ];
-                default:
-                    return [];
-            }
-        }
-
-        function describeTaskChanges(before, after) {
-            if (!before || !after) return ['Updated'];
-            const changes = [];
-            if (before.title !== after.title) {
-                changes.push(`Title: "${before.title}" -> "${after.title}"`);
-            }
-            if (before.description !== after.description) {
-                changes.push('Description');
-            }
-            if (before.dueDate !== after.dueDate) {
-                changes.push(`Due: ${before.dueDate || '-'} -> ${after.dueDate || '-'}`);
-            }
-            if (before.priority !== after.priority) {
-                changes.push(`Priority: ${before.priority} -> ${after.priority}`);
-            }
-            if (before.effort !== after.effort) {
-                changes.push(`Effort: ${before.effort} -> ${after.effort}`);
-            }
-            if (before.status !== after.status) {
-                changes.push(`Status: ${before.status} -> ${after.status}`);
-            }
-            if (String(before.archived) !== String(after.archived)) {
-                changes.push(`Archived: ${before.archived ? 'yes' : 'no'} -> ${after.archived ? 'yes' : 'no'}`);
-            }
-            const beforeChecklist = JSON.stringify(normalizeChecklist(before.checklist || []));
-            const afterChecklist = JSON.stringify(normalizeChecklist(after.checklist || []));
-            if (beforeChecklist !== afterChecklist) {
-                changes.push('Checklist');
-            }
-            return changes.length ? changes : ['No field changes'];
-        }
-
         function applyViewControls() {
             const archiveSelect = document.getElementById('boardArchiveFilter');
             const sortSelect = document.getElementById('boardSortSelect');
             if (archiveSelect) {
                 archiveSelect.value = normalizeBoardArchiveFilter(boardArchiveFilter);
             }
-            if (sortSelect && ['manual', 'dueDate', 'effort'].includes(boardSortMode)) {
+            if (sortSelect && ['manual', 'dueDate', 'effort', 'score'].includes(boardSortMode)) {
                 sortSelect.value = boardSortMode;
             }
         }
@@ -2144,6 +1619,31 @@
             setAppMode(appMode === 'board' ? 'portfolio' : 'board');
         }
 
+        function normalizePortfolioDisplayMode(value) {
+            return value === 'board' ? 'board' : 'table';
+        }
+
+        function setPortfolioDisplayMode(mode) {
+            const next = normalizePortfolioDisplayMode(mode);
+            if (portfolioDisplayMode === next) return;
+            portfolioDisplayMode = next;
+            if (appMode === 'portfolio') {
+                renderPortfolio();
+            } else {
+                updateUrlState();
+            }
+        }
+
+        function renderPortfolioDisplayControls() {
+            ['table', 'board'].forEach((mode) => {
+                const btn = document.getElementById(`portfolioDisplayMode-${mode}`);
+                if (!btn) return;
+                const active = normalizePortfolioDisplayMode(portfolioDisplayMode) === mode;
+                btn.classList.toggle('active', active);
+                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+        }
+
         function priorityRank(priority) {
             if (priority === 'high') return 0;
             if (priority === 'medium') return 1;
@@ -2153,6 +1653,7 @@
 
         function effortRank(effort) {
             const normalized = normalizeEffort(effort);
+            if (!normalized) return EFFORT_BUCKETS.length;
             return EFFORT_BUCKETS.indexOf(normalized);
         }
 
@@ -2175,17 +1676,107 @@
 
         function taskScore(task) {
             const denominator = effortScoreValue(task?.effort);
-            if (!denominator) return 0;
-            return priorityScoreValue(task?.priority) / denominator;
+            const numerator = priorityScoreValue(task?.priority);
+            if (!denominator || !numerator) return null;
+            return numerator / denominator;
         }
 
         function formatTaskScore(task) {
-            return taskScore(task).toFixed(2);
+            const score = taskScore(task);
+            return Number.isFinite(score) ? score.toFixed(2) : '-';
         }
 
         function normalizeEffort(value) {
-            const normalized = String(value || '').trim().toUpperCase();
-            return EFFORT_BUCKETS.includes(normalized) ? normalized : DEFAULT_EFFORT;
+            if (value === null || value === undefined) return null;
+            const normalized = String(value).trim().toUpperCase();
+            if (!normalized) return null;
+            return EFFORT_BUCKETS.includes(normalized) ? normalized : null;
+        }
+
+        function normalizePriority(value) {
+            if (value === null || value === undefined) return null;
+            const normalized = String(value).trim().toLowerCase();
+            return ['high', 'medium', 'low'].includes(normalized) ? normalized : null;
+        }
+
+        function getPortfolioBoardRecord(boardId) {
+            return portfolioBoards.find(board => board.id === boardId) || null;
+        }
+
+        function findPortfolioTaskSource(boardId, taskId) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord || !boardRecord.data || !boardRecord.data.board || !Array.isArray(boardRecord.data.board.tasks)) {
+                return null;
+            }
+            const index = boardRecord.data.board.tasks.findIndex(task => task && task.id === taskId);
+            if (index < 0) return null;
+            return {
+                boardRecord,
+                task: boardRecord.data.board.tasks[index],
+                taskIndex: index
+            };
+        }
+
+        function isPortfolioBoardMutable(boardId) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            return Boolean(boardRecord && boardRecord.handle);
+        }
+
+        function isPortfolioTaskMutable(boardId) {
+            return isPortfolioBoardMutable(boardId);
+        }
+
+        function serializeBoardDataFromObject(boardData) {
+            const now = nowIso();
+            const input = boardData && typeof boardData === 'object' ? boardData : {};
+            const meta = input.meta && typeof input.meta === 'object' ? input.meta : {};
+            const board = input.board && typeof input.board === 'object' ? input.board : {};
+            const settings = board.settings && typeof board.settings === 'object' ? board.settings : {};
+
+            const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
+            const normalizedTasks = Array.isArray(board.tasks) ? board.tasks.map(task => normalizeTask(task)) : [];
+            const archiveFilter = normalizeBoardArchiveFilter(
+                Object.prototype.hasOwnProperty.call(settings, 'archiveFilter') ? settings.archiveFilter : settings.showArchivedOnly
+            );
+            const sortMode = ['manual', 'dueDate', 'effort', 'score'].includes(settings.sortMode) ? settings.sortMode : 'manual';
+            const title = typeof settings.title === 'string' && settings.title.trim()
+                ? settings.title.trim()
+                : (boardTitle || DEFAULT_BOARD_TITLE);
+
+            return {
+                meta: {
+                    schemaVersion: BOARD_SCHEMA_VERSION,
+                    appId: BOARD_APP_ID,
+                    createdAt: normalizeTimestamp(meta.createdAt) || now,
+                    updatedAt: now
+                },
+                board: {
+                    columns: normalizedColumns.map(col => ({ status: col.status, title: col.title })),
+                    tasks: normalizedTasks,
+                    settings: {
+                        title,
+                        sortMode,
+                        showArchivedOnly: archiveFilter === 'archived',
+                        archiveFilter
+                    }
+                },
+                extensions: {}
+            };
+        }
+
+        async function writeJsonToFileHandle(fileHandle, data) {
+            const writable = await fileHandle.createWritable();
+            const payload = JSON.stringify(data, null, 2);
+            await writable.write(payload);
+            await writable.close();
+        }
+
+        async function savePortfolioBoardRecord(boardRecord) {
+            if (!boardRecord || !boardRecord.handle) return false;
+            const payload = serializeBoardDataFromObject(boardRecord.data);
+            await writeJsonToFileHandle(boardRecord.handle, payload);
+            boardRecord.data = payload;
+            return true;
         }
 
         function buildPortfolioTasks() {
@@ -2194,10 +1785,12 @@
                 return board.data.board.tasks.map((task, taskIndex) => ({
                     boardIndex,
                     boardId: board.id,
+                    taskId: task.id,
                     taskIndex,
                     boardTitle: board.title,
                     boardFileName: board.fileName,
                     columnTitle: statusMap[task.status] || task.status,
+                    canMutate: Boolean(board.handle),
                     task: normalizeTask(task)
                 }));
             });
@@ -2392,10 +1985,7 @@
             });
         }
 
-        function renderPortfolio() {
-            const body = document.getElementById('portfolioTableBody');
-            if (!body) return;
-
+        function getFilteredSortedPortfolioRows() {
             const search = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
             const priorityFilter = document.getElementById('portfolioPriorityFilter')?.value || '';
             const effortFilter = document.getElementById('portfolioEffortFilter')?.value || '';
@@ -2403,41 +1993,304 @@
             const sortBy = normalizePortfolioSortKey(portfolioSortKey);
             const sortDir = normalizePortfolioSortDir(portfolioSortDir);
 
-            let rows = portfolioTasks.filter(item => {
-                const task = item.task;
-                if (selectedPortfolioBoardId && item.boardId !== selectedPortfolioBoardId) return false;
-                if (archiveFilter === 'active' && task.archived) return false;
-                if (archiveFilter === 'archived' && !task.archived) return false;
-                if (priorityFilter && task.priority !== priorityFilter) return false;
-                if (effortFilter && task.effort !== effortFilter) return false;
-                if (search && !task.title.toLowerCase().includes(search)) return false;
-                return true;
-            });
+            return portfolioTasks
+                .filter(item => {
+                    const task = item.task;
+                    if (selectedPortfolioBoardId && item.boardId !== selectedPortfolioBoardId) return false;
+                    if (archiveFilter === 'active' && task.archived) return false;
+                    if (archiveFilter === 'archived' && !task.archived) return false;
+                    if (priorityFilter && task.priority !== priorityFilter) return false;
+                    if (effortFilter && task.effort !== effortFilter) return false;
+                    if (search && !String(task.title || '').toLowerCase().includes(search)) return false;
+                    return true;
+                })
+                .sort((a, b) => comparePortfolioRows(a, b, sortBy, sortDir));
+        }
 
-            rows = rows.sort((a, b) => comparePortfolioRows(a, b, sortBy, sortDir));
+        function portfolioProjectColor(boardId) {
+            const palette = [
+                { bg: '#E9F2FF', border: '#98B9F0', text: '#234A86' },
+                { bg: '#EAF7EE', border: '#9ACEA6', text: '#295F35' },
+                { bg: '#FFF2E8', border: '#F2B48E', text: '#8B4A23' },
+                { bg: '#FDEEF4', border: '#E6A2BA', text: '#8A3358' },
+                { bg: '#F0EDFF', border: '#B2A8F2', text: '#473C91' },
+                { bg: '#EAF8FA', border: '#8FC9D4', text: '#215C68' },
+                { bg: '#FFF7D9', border: '#E4C46A', text: '#735A11' },
+                { bg: '#F1F2F4', border: '#B9BDC6', text: '#434955' }
+            ];
+            const key = String(boardId || '');
+            let hash = 0;
+            for (let i = 0; i < key.length; i += 1) {
+                hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+            }
+            const index = Math.abs(hash) % palette.length;
+            return palette[index];
+        }
 
-            renderPortfolioSortHeaders();
+        function createPortfolioTaskCard(item, searchTerm = '') {
+            const task = item.task;
+            const div = document.createElement('div');
+            div.className = 'task-card portfolio-task-card';
+            const canMutate = Boolean(item.canMutate);
+            div.draggable = false;
+            div.dataset.boardId = item.boardId;
+            div.dataset.taskId = String(item.taskId ?? task.id);
+            div.onclick = () => openPortfolioTaskDetails(item.boardId, task.id);
+
+            const priority = normalizePriority(task.priority);
+            const effort = normalizeEffort(task.effort);
+            const score = formatTaskScore(task);
+            const highlightedTitle = highlightSearchMatch(task.title || '', searchTerm);
+            const projectLabel = item.boardTitle || item.boardFileName || 'Board';
+            const color = portfolioProjectColor(item.boardId);
+            const badgeStyle = `background:${color.bg};border-color:${color.border};color:${color.text};`;
+            const archiveButtonLabel = task.archived ? '↺' : '×';
+            const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
+            const readOnlyTitle = 'Read-only (no file handle)';
+
+            div.innerHTML = `
+                <div class="task-header">
+                    <span class="task-title">${highlightedTitle}</span>
+                    <div class="task-actions">
+                        <button class="task-action-btn" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Edit' : readOnlyTitle}" onclick="event.stopPropagation(); editPortfolioTask('${item.boardId}', ${task.id})">✎</button>
+                        <button class="task-action-btn" ${canMutate ? '' : 'disabled'} title="${canMutate ? archiveButtonTitle : readOnlyTitle}" onclick="event.stopPropagation(); togglePortfolioArchiveTask('${item.boardId}', ${task.id})">${archiveButtonLabel}</button>
+                    </div>
+                </div>
+                <div class="task-meta">
+                    <span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>
+                    ${canMutate ? '' : '<span class="task-tag" title="Read-only (no file handle)">Read-only</span>'}
+                    ${isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : ''}
+                    ${priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : ''}
+                    ${effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : ''}
+                    ${score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : ''}
+                    ${task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : ''}
+                    ${task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(entry => entry.done).length}/${task.checklist.length} done</span>` : ''}
+                </div>
+            `;
+
+            return div;
+        }
+
+        function renderPortfolioTableView(rows) {
+            const body = document.getElementById('portfolioTableBody');
+            if (!body) return;
 
             if (rows.length === 0) {
-                body.innerHTML = '<tr><td colspan="9">No matching tasks.</td></tr>';
+                if (portfolioBoards.length === 0) {
+                    body.innerHTML = '';
+                    return;
+                }
+                body.innerHTML = '<tr><td colspan="8">No matching tasks.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = rows.map(item => `
+                <tr>
+                    <td>${escapeHtml(item.boardTitle || item.boardFileName)}</td>
+                    <td>${escapeHtml(item.task.title)}</td>
+                    <td>${escapeHtml(item.columnTitle)}</td>
+                    <td>${escapeHtml(item.task.priority || '-')}</td>
+                    <td>${escapeHtml(item.task.effort || '-')}</td>
+                    <td>${formatTaskScore(item.task)}</td>
+                    <td>${escapeHtml(item.task.dueDate || '-')}</td>
+                    <td>${escapeHtml(formatDateTime(item.task.updatedAt))}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderPortfolioBoardView(rows) {
+            const boardWrap = document.getElementById('portfolioBoardWrap');
+            const boardGrid = document.getElementById('portfolioBoard');
+            const banner = document.getElementById('portfolioBoardEmptyBanner');
+            if (!boardWrap || !boardGrid || !banner) return;
+
+            const searchTerm = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
+            const buckets = Object.fromEntries(defaultColumns.map(col => [col.status, []]));
+            rows.forEach((item) => {
+                const status = normalizeTaskStatus(item.task.status);
+                if (!buckets[status]) buckets[status] = [];
+                buckets[status].push(item);
+            });
+
+            const hasBoards = portfolioBoards.length > 0;
+            banner.classList.toggle('hidden', hasBoards && rows.length > 0);
+            if (!hasBoards) {
+                banner.classList.add('hidden');
+                banner.textContent = '';
+            } else if (rows.length === 0) {
+                banner.classList.remove('hidden');
+                banner.textContent = 'No matching tasks.';
             } else {
-                body.innerHTML = rows.map(item => `
-                    <tr>
-                        <td>${escapeHtml(item.boardTitle || item.boardFileName)}</td>
-                        <td>${escapeHtml(item.task.title)}</td>
-                        <td>${escapeHtml(item.columnTitle)}</td>
-                        <td>${escapeHtml(item.task.priority)}</td>
-                        <td>${escapeHtml(item.task.effort)}</td>
-                        <td>${formatTaskScore(item.task)}</td>
-                        <td>${escapeHtml(item.task.dueDate || '-')}</td>
-                        <td>${escapeHtml(formatDateTime(item.task.updatedAt))}</td>
-                        <td><button class="btn" onclick="openLoadedBoard('${item.boardId}')">Open Board</button></td>
-                    </tr>
-                `).join('');
+                banner.textContent = '';
+            }
+
+            boardGrid.innerHTML = defaultColumns.map(col => {
+                const items = buckets[col.status] || [];
+                return `
+                    <div class="portfolio-column" data-status="${escapeHtml(col.status)}">
+                        <div class="portfolio-column-header">
+                            <span class="column-title">${escapeHtml(col.title)}</span>
+                            <span class="column-count">${items.length}</span>
+                        </div>
+                        <div class="portfolio-column-body" id="portfolio-${escapeHtml(col.status)}-column"></div>
+                    </div>
+                `;
+            }).join('');
+
+            defaultColumns.forEach((col) => {
+                const node = document.getElementById(`portfolio-${col.status}-column`);
+                if (!node) return;
+                const items = buckets[col.status] || [];
+                if (items.length === 0) {
+                    node.innerHTML = '<div class="empty-state"><span class="empty-state-text">No tasks</span></div>';
+                    return;
+                }
+                items.forEach((item) => node.appendChild(createPortfolioTaskCard(item, searchTerm)));
+            });
+        }
+
+        function renderPortfolio() {
+            const tableWrap = document.getElementById('portfolioTableWrap');
+            const boardWrap = document.getElementById('portfolioBoardWrap');
+            if (!tableWrap || !boardWrap) return;
+
+            const rows = getFilteredSortedPortfolioRows();
+            const mode = normalizePortfolioDisplayMode(portfolioDisplayMode);
+
+            tableWrap.classList.toggle('hidden', mode !== 'table');
+            boardWrap.classList.toggle('hidden', mode !== 'board');
+
+            renderPortfolioDisplayControls();
+            renderPortfolioSortHeaders();
+
+            if (mode === 'board') {
+                renderPortfolioBoardView(rows);
+            } else {
+                renderPortfolioTableView(rows);
             }
 
             renderPortfolioBoardChips();
             updateUrlState();
+        }
+
+        function canUsePortfolioTaskMutations(boardId) {
+            return isPortfolioTaskMutable(boardId);
+        }
+
+        function notifyPortfolioReadOnly() {
+            alert('This portfolio task is read-only because the board was loaded without a file handle.');
+        }
+
+        async function runPortfolioTaskMutation(boardId, taskId, mutator) {
+            const source = findPortfolioTaskSource(boardId, taskId);
+            if (!source) return false;
+            if (!canUsePortfolioTaskMutations(boardId)) {
+                notifyPortfolioReadOnly();
+                return false;
+            }
+
+            let changed = false;
+            try {
+                changed = mutator(source.task, source.boardRecord) !== false;
+            } catch (error) {
+                alert(`Portfolio task update failed: ${error.message}`);
+                return false;
+            }
+
+            if (!changed) return false;
+            touchTask(source.task);
+
+            buildPortfolioTasks();
+            renderPortfolio();
+
+            if (portfolioDetailContext && portfolioDetailContext.boardId === boardId && portfolioDetailContext.taskId === taskId) {
+                openPortfolioTaskDetails(boardId, taskId);
+            }
+
+            try {
+                await savePortfolioBoardRecord(source.boardRecord);
+            } catch (error) {
+                console.error(error);
+                alert(`Auto-save failed for ${source.boardRecord.title || source.boardRecord.fileName || 'board'}: ${error.message}`);
+            }
+
+            return true;
+        }
+
+        function openPortfolioTaskDetails(boardId, taskId) {
+            const source = findPortfolioTaskSource(boardId, taskId);
+            if (!source) return;
+            const task = normalizeTask(source.task);
+            const statusMap = Object.fromEntries((source.boardRecord.data.board.columns || []).map(col => [col.status, col.title]));
+            const statusTitle = statusMap[task.status] || task.status;
+            const readOnly = !canUsePortfolioTaskMutations(boardId);
+
+            portfolioDetailContext = { boardId, taskId, readOnly };
+            selectedTaskId = null;
+
+            document.getElementById('detailTitle').textContent = task.title || '-';
+            document.getElementById('detailDescription').textContent = task.description || '-';
+            document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
+            document.getElementById('detailEffort').textContent = task.effort || '-';
+            document.getElementById('detailStatus').textContent = statusTitle || '-';
+            document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
+            document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
+            document.getElementById('detailDueDate').textContent = normalizeDueDate(task.dueDate) || '-';
+            renderDetailChecklist(task, { readOnly });
+            document.getElementById('taskDetailModal').classList.add('active');
+        }
+
+        function editPortfolioTask(boardId, taskId) {
+            const source = findPortfolioTaskSource(boardId, taskId);
+            if (!source) return;
+            if (!canUsePortfolioTaskMutations(boardId)) {
+                notifyPortfolioReadOnly();
+                return;
+            }
+
+            const task = normalizeTask(source.task);
+            portfolioEditContext = { boardId, taskId };
+            portfolioDetailContext = null;
+
+            document.getElementById('taskModal').classList.add('active');
+            document.getElementById('taskForm').reset();
+            document.getElementById('taskId').value = '';
+            document.getElementById('modalTitle').textContent = 'Edit Task';
+            document.getElementById('taskName').value = task.title || '';
+            document.getElementById('taskDescription').value = task.description || '';
+            document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
+            document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
+            document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
+            document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
+            pendingNewTaskStatus = null;
+
+            const taskNameInput = document.getElementById('taskName');
+            requestAnimationFrame(() => {
+                taskNameInput.focus();
+                taskNameInput.select();
+            });
+        }
+
+        async function togglePortfolioArchiveTask(boardId, taskId) {
+            const source = findPortfolioTaskSource(boardId, taskId);
+            if (!source) return;
+            const wasArchived = Boolean(source.task.archived);
+
+            const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
+                task.archived = !task.archived;
+                return true;
+            });
+            if (!changed) return;
+
+            if (!wasArchived) {
+                showUndo('Task archived', async () => {
+                    await runPortfolioTaskMutation(boardId, taskId, (task) => {
+                        if (!task.archived) return false;
+                        task.archived = false;
+                        return true;
+                    });
+                });
+            }
         }
 
         function normalizePortfolioSortKey(value) {
@@ -2479,6 +2332,14 @@
         function comparePortfolioRows(a, b, sortBy, sortDir) {
             const key = normalizePortfolioSortKey(sortBy);
             const dir = normalizePortfolioSortDir(sortDir);
+            const statusRank = (value) => {
+                const normalized = normalizeTaskStatus(value);
+                if (normalized === 'backlog') return 0;
+                if (normalized === 'to-do') return 1;
+                if (normalized === 'doing') return 2;
+                if (normalized === 'done') return 3;
+                return 99;
+            };
 
             let base = 0;
             if (key === 'board') {
@@ -2489,13 +2350,23 @@
             } else if (key === 'task') {
                 base = compareText(a.task.title || '', b.task.title || '');
             } else if (key === 'column') {
-                base = compareText(a.columnTitle || '', b.columnTitle || '');
+                base = statusRank(a.task.status) - statusRank(b.task.status);
             } else if (key === 'priority') {
                 base = priorityRank(a.task.priority) - priorityRank(b.task.priority);
             } else if (key === 'effort') {
                 base = effortRank(a.task.effort) - effortRank(b.task.effort);
             } else if (key === 'score') {
-                base = taskScore(a.task) - taskScore(b.task);
+                const aScore = taskScore(a.task);
+                const bScore = taskScore(b.task);
+                if (aScore === null && bScore === null) {
+                    base = 0;
+                } else if (aScore === null) {
+                    base = 1;
+                } else if (bScore === null) {
+                    base = -1;
+                } else {
+                    base = aScore - bScore;
+                }
             } else if (key === 'dueDate') {
                 base = comparePortfolioDueDateAsc(a, b);
             } else if (key === 'updatedAt') {
@@ -2532,10 +2403,8 @@
         }
 
         function toggleArchivedView() {
-            const from = boardArchiveFilter;
             boardArchiveFilter = boardArchiveFilter === 'archived' ? 'active' : 'archived';
             applyViewControls();
-            recordTimelineEvent('archived_filter_toggled', { from, to: boardArchiveFilter });
             saveColumns();
             renderTasks();
             updateUrlState();
@@ -2549,10 +2418,8 @@
                 applyViewControls();
                 return;
             }
-            const from = boardArchiveFilter;
             boardArchiveFilter = next;
             applyViewControls();
-            recordTimelineEvent('archived_filter_toggled', { from, to: boardArchiveFilter });
             saveColumns();
             renderTasks();
             updateUrlState();
@@ -2562,15 +2429,13 @@
             const select = document.getElementById('boardSortSelect');
             if (!select) return;
             const next = select.value;
-            if (!['manual', 'dueDate', 'effort'].includes(next)) {
+            if (!['manual', 'dueDate', 'effort', 'score'].includes(next)) {
                 applyViewControls();
                 return;
             }
-            const from = boardSortMode;
-            if (from === next) return;
+            if (boardSortMode === next) return;
             boardSortMode = next;
             applyViewControls();
-            recordTimelineEvent('sort_mode_changed', { from, to: boardSortMode });
             saveColumns();
             renderTasks();
             updateUrlState();
@@ -2657,9 +2522,9 @@
                 createdAt: normalizeTimestamp(task.createdAt) || nowIso(),
                 updatedAt: normalizeTimestamp(task.updatedAt) || nowIso(),
                 dueDate: normalizeDueDate(task.dueDate),
-                priority: task.priority,
+                priority: normalizePriority(task.priority),
                 effort: normalizeEffort(task.effort),
-                status: task.status
+                status: normalizeTaskStatus(task.status)
             };
         }
 
@@ -2695,7 +2560,6 @@
         }
 
         function serializeBoardData() {
-            ensureTimeline();
             const now = new Date().toISOString();
             return {
                 meta: {
@@ -2714,43 +2578,8 @@
                         archiveFilter: boardArchiveFilter
                     }
                 },
-                extensions: boardExtensions
+                extensions: (boardExtensions && typeof boardExtensions === 'object' && !Array.isArray(boardExtensions)) ? boardExtensions : {}
             };
-        }
-
-        function validateTimelineExtensions(extensions) {
-            if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions)) return;
-            if (!extensions.timeline) return;
-            const timeline = extensions.timeline;
-            if (!timeline || typeof timeline !== 'object' || Array.isArray(timeline)) {
-                throw new Error('Invalid timeline structure.');
-            }
-            if (typeof timeline.version !== 'number') {
-                throw new Error('Invalid timeline.version.');
-            }
-            if (!Array.isArray(timeline.events)) {
-                throw new Error('Invalid timeline.events.');
-            }
-            if (typeof timeline.nextId !== 'number') {
-                throw new Error('Invalid timeline.nextId.');
-            }
-            timeline.events.forEach((event) => {
-                if (!event || typeof event !== 'object' || Array.isArray(event)) {
-                    throw new Error('Invalid timeline event.');
-                }
-                if (typeof event.id !== 'number' || !Number.isFinite(event.id)) {
-                    throw new Error('Invalid timeline event id.');
-                }
-                if (typeof event.ts !== 'string' || Number.isNaN(Date.parse(event.ts))) {
-                    throw new Error('Invalid timeline event ts.');
-                }
-                if (typeof event.type !== 'string' || !event.type.trim()) {
-                    throw new Error('Invalid timeline event type.');
-                }
-                if (!('data' in event)) {
-                    throw new Error('Invalid timeline event data.');
-                }
-            });
         }
 
         function validateBoardData(data) {
@@ -2795,7 +2624,7 @@
                 throw new Error('Invalid board.settings.title.');
             }
             if (settingsHasFull || settingsHasFullWithArchiveFilter) {
-                if (!['manual', 'dueDate', 'effort'].includes(data.board.settings.sortMode)) {
+                if (!['manual', 'dueDate', 'effort', 'score'].includes(data.board.settings.sortMode)) {
                     throw new Error('Invalid board.settings.sortMode.');
                 }
                 if (typeof data.board.settings.showArchivedOnly !== 'boolean') {
@@ -2808,8 +2637,6 @@
             if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) {
                 throw new Error('Invalid extensions structure.');
             }
-            validateTimelineExtensions(data.extensions);
-
             const statuses = new Set();
             data.board.columns.forEach((col) => {
                 if (!hasExactKeys(col, ['status', 'title'])) {
@@ -2864,10 +2691,10 @@
                 if (typeof task.dueDate !== 'string' || (task.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))) {
                     throw new Error('Task dueDate must be YYYY-MM-DD or empty.');
                 }
-                if (!['high', 'medium', 'low'].includes(task.priority)) {
+                if (task.priority !== null && !['high', 'medium', 'low'].includes(task.priority)) {
                     throw new Error('Task priority is invalid.');
                 }
-                if ('effort' in task && !EFFORT_BUCKETS.includes(String(task.effort).toUpperCase())) {
+                if ('effort' in task && task.effort !== null && !EFFORT_BUCKETS.includes(String(task.effort).toUpperCase())) {
                     throw new Error('Task effort is invalid.');
                 }
                 if (typeof task.status !== 'string' || !statuses.has(task.status)) {
@@ -2903,10 +2730,9 @@
             columns = normalizeColumns(data.board.columns);
             tasks = data.board.tasks.map(task => normalizeTask(task));
             boardCreatedAt = data.meta.createdAt;
-            boardExtensions = data.extensions;
-            ensureTimeline();
+            boardExtensions = {};
             boardTitle = settings.title.trim();
-            boardSortMode = ['manual', 'dueDate', 'effort'].includes(settings.sortMode) ? settings.sortMode : 'manual';
+            boardSortMode = ['manual', 'dueDate', 'effort', 'score'].includes(settings.sortMode) ? settings.sortMode : 'manual';
             boardArchiveFilter = normalizeBoardArchiveFilter(
                 Object.prototype.hasOwnProperty.call(settings, 'archiveFilter') ? settings.archiveFilter : settings.showArchivedOnly
             );
@@ -2919,21 +2745,13 @@
             if (!nextTitle) return;
             const trimmed = nextTitle.trim();
             if (!trimmed || trimmed === boardTitle) return;
-            const fromTitle = boardTitle;
             boardTitle = trimmed;
             applyBoardTitle();
-            recordTimelineEvent('board_title_changed', {
-                fromTitle,
-                toTitle: trimmed
-            });
             onBoardChanged();
         }
 
         async function writeBoardToFileHandle(fileHandle) {
-            const writable = await fileHandle.createWritable();
-            const payload = JSON.stringify(serializeBoardData(), null, 2);
-            await writable.write(payload);
-            await writable.close();
+            await writeJsonToFileHandle(fileHandle, serializeBoardData());
         }
 
         async function flushSaveQueue() {
@@ -3030,7 +2848,6 @@
             if (!confirmDiscardChanges('New Board')) return;
             suppressChangeTracking = true;
             loadTemplateBoard();
-            ensureTimeline();
             currentFileHandle = null;
             currentFileName = '';
             applyBoardTitle();
@@ -3049,26 +2866,16 @@
         }
 
         function normalizeColumns(inputColumns) {
-            const usedStatuses = new Set();
-            const normalized = [];
+            return defaultColumns.map(col => ({ ...col }));
+        }
 
-            (Array.isArray(inputColumns) ? inputColumns : []).forEach(col => {
-                const title = (col && col.title ? String(col.title) : '').trim();
-                if (!title) return;
-
-                let baseStatus = slugifyColumnName(col && col.status ? String(col.status) : '') || slugifyColumnName(title) || 'column';
-                let status = baseStatus;
-                let suffix = 1;
-                while (usedStatuses.has(status)) {
-                    status = `${baseStatus}-${suffix}`;
-                    suffix++;
-                }
-
-                usedStatuses.add(status);
-                normalized.push({ status, title });
-            });
-
-            return normalized;
+        function normalizeTaskStatus(status) {
+            const raw = String(status || '').trim().toLowerCase();
+            if (raw === 'backlog') return 'backlog';
+            if (raw === 'to-do' || raw === 'todo' || raw === 'nextup') return 'to-do';
+            if (raw === 'doing' || raw === 'inprogress' || raw === 'in-progress') return 'doing';
+            if (raw === 'done' || raw === 'concluid') return 'done';
+            return defaultColumns[0].status;
         }
 
         function normalizeChecklist(checklist) {
@@ -3117,13 +2924,13 @@
             const availableStatuses = new Set(columns.map(col => col.status));
             const fallbackStatus = columns[0].status;
             tasks = tasks.map(task => {
-                if (!availableStatuses.has(task.status)) {
-                    task.status = fallbackStatus;
+                const normalizedTask = normalizeTask(task);
+                if (!availableStatuses.has(normalizedTask.status)) {
+                    normalizedTask.status = fallbackStatus;
                 }
-                return normalizeTask(task);
+                return normalizedTask;
             });
 
-            ensureTimeline();
             suppressChangeTracking = true;
             persistLocalState();
             suppressChangeTracking = false;
@@ -3149,17 +2956,13 @@
             const board = document.getElementById('board');
             board.innerHTML = columns.map(col => `
                 <div class="column" data-status="${escapeHtml(col.status)}">
-                    <div class="column-header" draggable="true" ondragstart="columnDragStart(event, '${escapeHtml(col.status)}')" ondragover="columnDragOver(event)" ondrop="columnDrop(event, '${escapeHtml(col.status)}')">
+                    <div class="column-header">
                         <div class="column-header-main">
                             <span class="column-title">${escapeHtml(col.title)}</span>
                             <span class="column-count" id="${escapeHtml(col.status)}Count">0</span>
                         </div>
-                        <div class="column-header-actions">
-                            <button class="column-rename-btn" onclick="renameColumn('${escapeHtml(col.status)}')" title="Rename column">✎</button>
-                            <button class="column-delete-btn" onclick="deleteColumn('${escapeHtml(col.status)}')" title="Delete column">×</button>
-                        </div>
                     </div>
-                    <div class="column-body" id="${escapeHtml(col.status)}Column" ondrop="drop(event, '${escapeHtml(col.status)}')" ondragover="allowDrop(event)" ondragenter="dragEnter(event)" ondragleave="dragLeave(event)"></div>
+                    <div class="column-body" id="${escapeHtml(col.status)}Column"></div>
                 </div>
             `).join('');
         }
@@ -3228,6 +3031,19 @@
                             return a.index - b.index;
                         })
                         .map(entry => entry.task);
+                } else if (boardSortMode === 'score') {
+                    statusTasks = statusTasks
+                        .map((task, index) => ({ task, index }))
+                        .sort((a, b) => {
+                            const aScore = taskScore(a.task);
+                            const bScore = taskScore(b.task);
+                            if (aScore === null && bScore === null) return a.index - b.index;
+                            if (aScore === null) return 1;
+                            if (bScore === null) return -1;
+                            if (aScore !== bScore) return aScore - bScore;
+                            return a.index - b.index;
+                        })
+                        .map(entry => entry.task);
                 }
 
                 statusTasks.forEach(task => {
@@ -3263,15 +3079,15 @@
             if (selectedTaskId === task.id) {
                 div.classList.add('selected');
             }
-            div.draggable = true;
+            div.draggable = false;
             div.dataset.id = task.id;
-            div.ondragstart = (e) => drag(e);
             div.onclick = () => {
                 selectedTaskId = task.id;
                 openTaskDetails(task.id);
             };
 
             const highlightedTitle = highlightSearchMatch(task.title, searchTerm);
+            const priority = normalizePriority(task.priority);
             const effort = normalizeEffort(task.effort);
             const score = formatTaskScore(task);
             const archiveButtonLabel = task.archived ? '↺' : '×';
@@ -3287,15 +3103,15 @@
                 </div>
                 <div class="task-meta">
                     ${isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : ''}
-                    <span class="task-tag">
+                    ${priority ? `<span class="task-tag">
                         <span class="priority-dot priority-${task.priority}"></span>
                         ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                    </span>
-                    <span class="task-tag" title="Effort">
+                    </span>` : ''}
+                    ${effort ? `<span class="task-tag" title="Effort">
                         <span class="effort-dot effort-${effort.toLowerCase()}"></span>
                         ${escapeHtml(effort)}
-                    </span>
-                    <span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>
+                    </span>` : ''}
+                    ${score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : ''}
                     ${task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : ''}
                     ${task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(item => item.done).length}/${task.checklist.length} done</span>` : ''}
                 </div>
@@ -3324,6 +3140,7 @@
         }
 
         function openModal(taskId = null, preferredStatus = null) {
+            portfolioEditContext = null;
             document.getElementById('taskModal').classList.add('active');
             document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
@@ -3341,8 +3158,8 @@
                     document.getElementById('taskDescription').value = task.description || '';
                     document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
                     document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
-                    document.getElementById('taskPriority').value = task.priority;
-                    document.getElementById('taskEffort').value = normalizeEffort(task.effort);
+                    document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
+                    document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
                     document.getElementById('modalTitle').textContent = 'Edit Task';
                     pendingNewTaskStatus = null;
                 }
@@ -3360,12 +3177,14 @@
         function closeModal() {
             document.getElementById('taskModal').classList.remove('active');
             pendingNewTaskStatus = null;
+            portfolioEditContext = null;
         }
 
         function openTaskDetails(id) {
             const task = tasks.find(t => t.id === id);
             if (!task) return;
             selectedTaskId = id;
+            portfolioDetailContext = null;
 
             const statusTitle = (columns.find(col => col.status === task.status) || {}).title || task.status;
             document.getElementById('detailTitle').textContent = task.title || '-';
@@ -3376,14 +3195,15 @@
             document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
             document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
             document.getElementById('detailDueDate').textContent = normalizeDueDate(task.dueDate) || '-';
-            renderDetailChecklist(task);
+            renderDetailChecklist(task, { readOnly: false });
             document.getElementById('taskDetailModal').classList.add('active');
             renderTasks();
         }
 
-        function renderDetailChecklist(task) {
+        function renderDetailChecklist(task, options = {}) {
             const list = document.getElementById('detailChecklist');
             const checklist = normalizeChecklist(task.checklist);
+            const readOnly = Boolean(options.readOnly);
 
             if (checklist.length === 0) {
                 list.innerHTML = '<li class="detail-value">-</li>';
@@ -3392,13 +3212,26 @@
 
             list.innerHTML = checklist.map((item, index) => `
                 <li class="detail-checklist-item ${item.done ? 'done' : ''}">
-                    <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleChecklistItem(${task.id}, ${index}, this.checked)">
+                    <input type="checkbox" ${item.done ? 'checked' : ''} ${readOnly ? 'disabled' : ''} onchange="toggleChecklistItem(${task.id}, ${index}, this.checked)">
                     <span class="detail-checklist-text">${escapeHtml(item.text)}</span>
                 </li>
             `).join('');
         }
 
-        function toggleChecklistItem(taskId, itemIndex, checked) {
+        async function toggleChecklistItem(taskId, itemIndex, checked) {
+            if (portfolioDetailContext && portfolioDetailContext.boardId && portfolioDetailContext.taskId) {
+                if (portfolioDetailContext.readOnly) {
+                    notifyPortfolioReadOnly();
+                    return;
+                }
+                await runPortfolioTaskMutation(portfolioDetailContext.boardId, portfolioDetailContext.taskId, (task) => {
+                    if (!Array.isArray(task.checklist) || !task.checklist[itemIndex]) return false;
+                    task.checklist[itemIndex].done = checked;
+                    return true;
+                });
+                return;
+            }
+
             const task = tasks.find(t => t.id === taskId);
             if (!task) return;
             if (!Array.isArray(task.checklist) || !task.checklist[itemIndex]) return;
@@ -3412,6 +3245,7 @@
 
         function closeDetailModal() {
             document.getElementById('taskDetailModal').classList.remove('active');
+            portfolioDetailContext = null;
         }
 
         function openShortcutsModal() {
@@ -3422,21 +3256,37 @@
             document.getElementById('shortcutsModal').classList.remove('active');
         }
 
-        function saveTask() {
+        async function saveTask() {
             const id = document.getElementById('taskId').value;
             const title = document.getElementById('taskName').value.trim();
             const description = document.getElementById('taskDescription').value.trim();
             const checklist = parseChecklistInput(document.getElementById('taskChecklist').value);
             const dueDate = normalizeDueDate(document.getElementById('taskDueDate').value);
-            const priority = document.getElementById('taskPriority').value;
+            const priority = normalizePriority(document.getElementById('taskPriority').value);
             const effort = normalizeEffort(document.getElementById('taskEffort').value);
 
             if (!title) return;
 
+            if (portfolioEditContext && portfolioEditContext.boardId && portfolioEditContext.taskId) {
+                const { boardId, taskId } = portfolioEditContext;
+                const saved = await runPortfolioTaskMutation(boardId, taskId, (task) => {
+                    task.title = title;
+                    task.description = description;
+                    task.checklist = checklist;
+                    task.dueDate = dueDate;
+                    task.priority = priority;
+                    task.effort = effort;
+                    return true;
+                });
+                if (!saved) return;
+                closeModal();
+                pendingNewTaskStatus = null;
+                return;
+            }
+
             if (id) {
                 const task = tasks.find(t => t.id === parseInt(id));
                 if (task) {
-                    const before = deepClone(task);
                     task.title = title;
                     task.description = description;
                     task.checklist = checklist;
@@ -3445,12 +3295,6 @@
                     task.effort = effort;
                     touchTask(task);
                     selectedTaskId = task.id;
-                    recordTimelineEvent('task_updated', {
-                        taskId: task.id,
-                        taskTitle: task.title,
-                        before,
-                        after: deepClone(task)
-                    });
                 }
             } else {
                 const now = nowIso();
@@ -3469,11 +3313,6 @@
                 };
                 tasks.push(newTask);
                 selectedTaskId = newTask.id;
-                recordTimelineEvent('task_created', {
-                    taskId: newTask.id,
-                    taskTitle: newTask.title,
-                    task: deepClone(newTask)
-                });
             }
 
             saveTasks();
@@ -3494,10 +3333,6 @@
             const wasArchived = task.archived;
             task.archived = !task.archived;
             touchTask(task);
-            recordTimelineEvent(task.archived ? 'task_archived' : 'task_restored', {
-                taskId: task.id,
-                taskTitle: task.title
-            });
             saveTasks();
             renderTasks();
 
@@ -3507,10 +3342,6 @@
                     if (!target) return;
                     target.archived = false;
                     touchTask(target);
-                    recordTimelineEvent('task_restored', {
-                        taskId: target.id,
-                        taskTitle: target.title
-                    });
                     saveTasks();
                     renderTasks();
                 });
@@ -3518,63 +3349,15 @@
         }
 
         function addColumn() {
-            if (columns.length >= MAX_COLUMNS) {
-                alert(`Maximum of ${MAX_COLUMNS} columns allowed.`);
-                return;
-            }
-
-            const name = prompt('Column name:');
-            if (!name || !name.trim()) return;
-
-            let baseStatus = slugifyColumnName(name);
-            if (!baseStatus) {
-                baseStatus = 'column';
-            }
-
-            let status = baseStatus;
-            let suffix = 1;
-            const existing = new Set(columns.map(col => col.status));
-            while (existing.has(status)) {
-                status = `${baseStatus}-${suffix}`;
-                suffix++;
-            }
-
-            const column = { status, title: name.trim() };
-            columns.push(column);
-            recordTimelineEvent('column_added', {
-                column: deepClone(column),
-                index: columns.length - 1
-            });
-            saveColumns();
-            renderBoard();
-            renderTasks();
+            return;
         }
 
         function renameColumn(status) {
-            const column = columns.find(col => col.status === status);
-            if (!column) return;
-
-            const nextTitle = prompt('Column name:', column.title);
-            if (!nextTitle) return;
-            const trimmed = nextTitle.trim();
-            if (!trimmed || trimmed === column.title) return;
-
-            const fromTitle = column.title;
-            column.title = trimmed;
-            recordTimelineEvent('column_renamed', {
-                status,
-                fromTitle,
-                toTitle: trimmed
-            });
-            saveColumns();
-            renderBoard();
-            renderTasks();
+            return;
         }
 
         function columnDragStart(ev, status) {
-            draggedColumnStatus = status;
-            ev.dataTransfer.setData('text/plain', status);
-            ev.dataTransfer.effectAllowed = 'move';
+            return;
         }
 
         function columnDragOver(ev) {
@@ -3582,138 +3365,16 @@
         }
 
         function columnDrop(ev, targetStatus) {
-            ev.preventDefault();
-            const sourceStatus = draggedColumnStatus || ev.dataTransfer.getData('text/plain');
-            draggedColumnStatus = null;
-            if (!sourceStatus || sourceStatus === targetStatus) return;
-
-            const sourceIndex = columns.findIndex(col => col.status === sourceStatus);
-            const targetIndex = columns.findIndex(col => col.status === targetStatus);
-            if (sourceIndex < 0 || targetIndex < 0) return;
-
-            const [moved] = columns.splice(sourceIndex, 1);
-            columns.splice(targetIndex, 0, moved);
-            recordTimelineEvent('column_reordered', {
-                fromIndex: sourceIndex,
-                toIndex: targetIndex
-            });
-            saveColumns();
-            renderBoard();
-            renderTasks();
+            return;
         }
 
         function deleteColumn(status) {
-            if (columns.length === 1) {
-                alert('At least one column is required.');
-                return;
-            }
-
-            const column = columns.find(col => col.status === status);
-            if (!column) return;
-
-            const fallback = columns.find(col => col.status !== status);
-            if (!fallback) return;
-
-            const affectedTasks = tasks.filter(task => task.status === status).length;
-            const message = affectedTasks > 0
-                ? `Delete "${column.title}" and move ${affectedTasks} task(s) to "${fallback.title}"?`
-                : `Delete "${column.title}"?`;
-
-            if (!confirm(message)) return;
-
-            tasks.forEach(task => {
-                if (task.status === status) {
-                    task.status = fallback.status;
-                }
-            });
-
-            columns = columns.filter(col => col.status !== status);
-            recordTimelineEvent('column_deleted', {
-                status,
-                columnTitle: column.title,
-                fallbackStatus: fallback.status,
-                fallbackTitle: fallback.title,
-                movedTaskCount: affectedTasks
-            });
-            saveTasks();
-            saveColumns();
-            renderBoard();
-            renderTasks();
+            return;
         }
 
         function filterTasks() {
             renderTasks();
             updateUrlState();
-        }
-
-        function drag(ev) {
-            ev.dataTransfer.setData('text', ev.target.dataset.id);
-            ev.target.classList.add('dragging');
-        }
-
-        function allowDrop(ev) {
-            ev.preventDefault();
-        }
-
-        function dragEnter(ev) {
-            ev.preventDefault();
-            if (ev.target.classList.contains('column-body')) {
-                ev.target.classList.add('drag-over');
-            }
-        }
-
-        function dragLeave(ev) {
-            if (ev.target.classList.contains('column-body')) {
-                ev.target.classList.remove('drag-over');
-            }
-        }
-
-        function drop(ev, status) {
-            ev.preventDefault();
-            const id = parseInt(ev.dataTransfer.getData('text'));
-            const task = tasks.find(t => t.id === id);
-            
-            if (task) {
-                const previousStatus = task.status;
-                task.status = status;
-                selectedTaskId = task.id;
-                touchTask(task);
-                const moved = previousStatus !== status;
-                if (moved) {
-                    recordTimelineEvent('task_moved', {
-                        taskId: task.id,
-                        taskTitle: task.title,
-                        fromStatus: previousStatus,
-                        toStatus: status
-                    });
-                }
-                saveTasks();
-                renderTasks();
-                if (moved) {
-                    showUndo('Task moved', () => {
-                        const target = tasks.find(t => t.id === id);
-                        if (!target) return;
-                        const fromStatus = target.status;
-                        target.status = previousStatus;
-                        touchTask(target);
-                        recordTimelineEvent('task_moved', {
-                            taskId: target.id,
-                            taskTitle: target.title,
-                            fromStatus,
-                            toStatus: previousStatus
-                        });
-                        saveTasks();
-                        renderTasks();
-                    });
-                }
-            }
-
-            document.querySelectorAll('.column-body').forEach(col => {
-                col.classList.remove('drag-over');
-            });
-            document.querySelectorAll('.task-card').forEach(card => {
-                card.classList.remove('dragging');
-            });
         }
 
         document.getElementById('taskModal').addEventListener('click', (e) => {
@@ -3734,30 +3395,20 @@
             }
         });
 
-        document.getElementById('timelineModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('timelineModal')) {
-                closeTimelineModal();
-            }
-        });
-
         document.addEventListener('keydown', (e) => {
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
             const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
-            const timelineModalOpen = document.getElementById('timelineModal').classList.contains('active');
             const modalOpen = document.getElementById('taskModal').classList.contains('active')
                 || document.getElementById('taskDetailModal').classList.contains('active')
-                || document.getElementById('shortcutsModal').classList.contains('active')
-                || document.getElementById('timelineModal').classList.contains('active');
+                || document.getElementById('shortcutsModal').classList.contains('active');
 
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'c') {
-                if (timelineModalOpen) return;
                 e.preventDefault();
                 saveBoardAs();
                 return;
             }
 
             if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 's') {
-                if (timelineModalOpen) return;
                 e.preventDefault();
                 saveBoard();
                 return;
@@ -3791,7 +3442,6 @@
                 closeModal();
                 closeDetailModal();
                 closeShortcutsModal();
-                closeTimelineModal();
             }
         });
 

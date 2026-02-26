@@ -5,16 +5,15 @@ A minimalist single-file Kanban app built with plain HTML, CSS, and JavaScript (
 ## What it does
 
 - Create and manage tasks across columns (drag and drop).
-- Add, rename, reorder, and delete columns (max 5).
+- Fixed workflow columns: `backlog`, `to-do`, `in progress`, `done`.
 - Add tasks inline from each column (`+ Add Task` card opens modal).
 - Task details modal with:
   - description
   - checklist/subtasks
   - due date
   - activity timestamps (created/updated)
-- Timeline modal to review changes over time.
 - Archive/restore tasks and toggle archived view.
-- Sort tasks manually, by due date, or by effort.
+- Sort tasks manually, by due date, by effort, or by score.
 - Undo toast for key actions (archive, move).
 - Search with yellow text highlighting (titles).
 
@@ -26,12 +25,10 @@ A minimalist single-file Kanban app built with plain HTML, CSS, and JavaScript (
   - Save / Save As board
   - New board from template
 - Strict board schema validation (versioned JSON format).
-- Timeline history stored in `extensions.timeline` within board JSON.
 
 ## File extensions (required)
 
-- Board files: `*.board.json` (includes `extensions.timeline` history)
-- Portfolio config files: `*.portfolio.json` (legacy example; open/save removed)
+- Board files: `*.board.json`
 
 The app validates both extension and JSON structure on open/upload.
 

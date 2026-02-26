@@ -13,6 +13,7 @@ async function openNewTaskModal(page, columnIndex = 0) {
 
 async function createTask(page, { title, priority, effort, dueDate = '', checklist = '', columnIndex = 0 }) {
   await openNewTaskModal(page, columnIndex);
+  await expect(page.locator('#taskName')).toBeFocused();
   await page.locator('#taskName').fill(title);
   if (checklist) {
     await page.locator('#taskChecklist').fill(checklist);
@@ -30,7 +31,7 @@ function taskCard(page, title) {
   return page.locator('.task-card').filter({ hasText: title }).first();
 }
 
-async function taskTitlesInColumn(page, status = 'todo') {
+async function taskTitlesInColumn(page, status = 'backlog') {
   const titles = await page.locator(`#${status}Column .task-card .task-title`).allTextContents();
   return titles.map((text) => text.trim());
 }
@@ -70,7 +71,7 @@ async function seedPortfolioRows(page, rows) {
         dueDate: row.task.dueDate || '',
         priority: row.task.priority,
         effort: row.task.effort,
-        status: row.task.status || 'todo'
+        status: row.task.status || 'backlog'
       }
     }));
     selectedPortfolioBoardId = '';
@@ -79,6 +80,82 @@ async function seedPortfolioRows(page, rows) {
     setAppMode('portfolio');
     renderPortfolio();
   }, { boards, rows });
+}
+
+async function seedPortfolioBoards(page, boards, { displayMode = 'board' } = {}) {
+  await page.evaluate(({ boards, displayMode }) => {
+    window.__portfolioTestWrites = [];
+
+    portfolioBoards = boards.map((board, index) => {
+      const handle = board.hasHandle
+        ? {
+            async createWritable() {
+              return {
+                async write(text) {
+                  window.__portfolioTestWrites.push({ boardId: board.id, text: String(text) });
+                },
+                async close() {}
+              };
+            }
+          }
+        : null;
+
+      return {
+        id: board.id,
+        handle,
+        fileName: board.fileName || `${board.id}.board.json`,
+        title: board.title,
+        data: {
+          meta: {
+            schemaVersion: 4,
+            appId: 'household-task-board',
+            createdAt: '2026-02-26T00:00:00.000Z',
+            updatedAt: '2026-02-26T00:00:00.000Z'
+          },
+          board: {
+            columns: [
+              { status: 'backlog', title: 'backlog' },
+              { status: 'to-do', title: 'to-do' },
+              { status: 'doing', title: 'in progress' },
+              { status: 'done', title: 'done' }
+            ],
+            tasks: (board.tasks || []).map((task) => ({
+              id: task.id,
+              title: task.title,
+              description: task.description || '',
+              checklist: task.checklist || [],
+              archived: Boolean(task.archived),
+              createdAt: task.createdAt || '2026-02-26T00:00:00.000Z',
+              updatedAt: task.updatedAt || '2026-02-26T00:00:00.000Z',
+              dueDate: task.dueDate || '',
+              priority: Object.prototype.hasOwnProperty.call(task, 'priority') ? task.priority : null,
+              effort: Object.prototype.hasOwnProperty.call(task, 'effort') ? task.effort : null,
+              status: task.status || 'backlog'
+            })),
+            settings: {
+              title: board.title,
+              sortMode: 'manual',
+              showArchivedOnly: false,
+              archiveFilter: 'active'
+            }
+          },
+          extensions: {}
+        }
+      };
+    });
+
+    selectedPortfolioBoardId = '';
+    portfolioSortKey = 'priority';
+    portfolioSortDir = 'asc';
+    portfolioDisplayMode = displayMode === 'board' ? 'board' : 'table';
+    buildPortfolioTasks();
+    setAppMode('portfolio');
+    renderPortfolio();
+  }, { boards, displayMode });
+}
+
+function portfolioBoardCard(page, title) {
+  return page.locator('.portfolio-task-card').filter({ hasText: title }).first();
 }
 
 async function portfolioTaskColumnTexts(page) {
@@ -97,6 +174,8 @@ test.describe('kanban app', () => {
     await expect(page.locator('#portfolioToggleBtn')).toBeVisible();
     await expect(page.locator('#saveStatus')).toHaveText('Saved');
     await expect(page.locator('.add-task-card').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Timeline' })).toHaveCount(0);
+    await expect(page.locator('#timelineModal')).toHaveCount(0);
   });
 
   test('task modal reflects current model and creates card with score badge', async ({ page }) => {
@@ -107,6 +186,8 @@ test.describe('kanban app', () => {
     await expect(page.locator('#taskPriority')).toBeVisible();
     await expect(page.locator('#taskEffort')).toBeVisible();
     await expect(page.locator('#taskTags')).toHaveCount(0);
+    await expect(page.locator('#taskPriority')).toHaveValue('');
+    await expect(page.locator('#taskEffort')).toHaveValue('');
 
     await page.locator('#taskName').fill('Playwright score test');
     await page.locator('#taskPriority').selectOption('high');
@@ -140,14 +221,13 @@ test.describe('kanban app', () => {
     await expect(page.locator('#portfolioView')).toBeVisible();
     await expect(page.locator('#boardView')).toBeHidden();
     await expect(page.locator('#portfolioSortHeader-score')).toBeVisible();
-    await expect(page.locator('#portfolioTableBody tr')).toHaveCount(1);
-    await expect(page.locator('#portfolioTableBody')).toContainText('tasks.');
+    await expect(page.locator('#portfolioTableBody tr')).toHaveCount(0);
   });
 
-  test('serialized board data omits tags keys', async ({ page }) => {
+  test('serialized board data omits tags keys and timeline extension', async ({ page }) => {
     await createTask(page, { title: 'Serialize no tags', priority: 'medium', effort: 'S' });
 
-    const hasTagsKey = await page.evaluate(() => {
+    const serializedChecks = await page.evaluate(() => {
       const data = serializeBoardData();
 
       function walk(value) {
@@ -161,10 +241,84 @@ test.describe('kanban app', () => {
         return Object.values(value).some(walk);
       }
 
-      return walk(data);
+      return {
+        hasTagsKey: walk(data),
+        hasExtensionsObject: Boolean(data.extensions && typeof data.extensions === 'object' && !Array.isArray(data.extensions)),
+        hasTimelineExtension: Boolean(data.extensions && Object.prototype.hasOwnProperty.call(data.extensions, 'timeline'))
+      };
     });
 
-    expect(hasTagsKey).toBe(false);
+    expect(serializedChecks.hasTagsKey).toBe(false);
+    expect(serializedChecks.hasExtensionsObject).toBe(true);
+    expect(serializedChecks.hasTimelineExtension).toBe(false);
+  });
+
+  test('legacy board with timeline extension loads and timeline is dropped on serialize', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const legacy = {
+        meta: {
+          schemaVersion: 4,
+          appId: 'household-task-board',
+          createdAt: '2026-02-26T00:00:00.000Z',
+          updatedAt: '2026-02-26T00:00:00.000Z'
+        },
+        board: {
+          columns: [
+            { status: 'backlog', title: 'backlog' },
+            { status: 'to-do', title: 'to-do' },
+            { status: 'doing', title: 'in progress' },
+            { status: 'done', title: 'done' }
+          ],
+          tasks: [
+            {
+              id: 101,
+              title: 'Legacy timeline task',
+              description: '',
+              checklist: [],
+              archived: false,
+              createdAt: '2026-02-26T00:00:00.000Z',
+              updatedAt: '2026-02-26T00:00:00.000Z',
+              dueDate: '',
+              priority: null,
+              effort: null,
+              status: 'backlog'
+            }
+          ],
+          settings: {
+            title: 'Legacy Board',
+            sortMode: 'manual',
+            showArchivedOnly: false,
+            archiveFilter: 'active'
+          }
+        },
+        extensions: {
+          timeline: {
+            version: 1,
+            nextId: 2,
+            events: [
+              { id: 1, ts: '2026-02-26T00:00:00.000Z', type: 'init', data: {} }
+            ]
+          }
+        }
+      };
+
+      applyBoardData(legacy);
+      renderBoard();
+      renderTasks();
+      const serialized = serializeBoardData();
+      return {
+        boardTitle,
+        taskCount: tasks.length,
+        hasTimelineExtension: Boolean(
+          serialized.extensions && Object.prototype.hasOwnProperty.call(serialized.extensions, 'timeline')
+        )
+      };
+    });
+
+    expect(result.boardTitle).toBe('Legacy Board');
+    expect(result.taskCount).toBe(1);
+    expect(result.hasTimelineExtension).toBe(false);
+    await expect(taskCard(page, 'Legacy timeline task')).toBeVisible();
   });
 
   test('board search filters by title only and highlights matches', async ({ page }) => {
@@ -209,8 +363,20 @@ test.describe('kanban app', () => {
     await page.locator('#boardSortSelect').selectOption('effort');
 
     await expect
-      .poll(async () => (await taskTitlesInColumn(page, 'todo')).slice(0, 3))
+      .poll(async () => (await taskTitlesInColumn(page, 'backlog')).slice(0, 3))
       .toEqual(['Effort XS', 'Effort M', 'Effort XL']);
+  });
+
+  test('board sort by score orders tasks by priority/effort', async ({ page }) => {
+    await createTask(page, { title: 'Score low', priority: 'low', effort: 'XL' });   // 0.125
+    await createTask(page, { title: 'Score mid', priority: 'medium', effort: 'M' }); // 0.667
+    await createTask(page, { title: 'Score high', priority: 'high', effort: 'S' });  // 1.5
+
+    await page.locator('#boardSortSelect').selectOption('score');
+
+    await expect
+      .poll(async () => (await taskTitlesInColumn(page, 'backlog')).slice(0, 3))
+      .toEqual(['Score low', 'Score mid', 'Score high']);
   });
 
   test('task details modal shows checklist and no tags row, and checklist toggle persists', async ({ page }) => {
@@ -347,6 +513,104 @@ test.describe('kanban app', () => {
     expect(url.searchParams.get('pe')).toBe('L');
     expect(url.searchParams.get('pq')).toBe('beta');
     expect(url.searchParams.get('ps')).toBe('score');
+  });
+
+  test('portfolio board cards can be clicked, edited and auto-save to source handle', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        fileName: 'project-one.board.json',
+        hasHandle: true,
+        tasks: [
+          {
+            id: 11,
+            title: 'Portfolio editable task',
+            description: 'Original description',
+            priority: 'high',
+            effort: 'S',
+            status: 'backlog'
+          }
+        ]
+      }
+    ]);
+
+    await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
+    await expect(page.locator('#portfolio-backlog-column .portfolio-task-card')).toHaveCount(1);
+
+    const card = portfolioBoardCard(page, 'Portfolio editable task');
+    await card.click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Portfolio editable task');
+    await expect(page.locator('#detailDescription')).toHaveText('Original description');
+    await page.locator('#taskDetailModal .btn').filter({ hasText: 'Close' }).click();
+
+    await card.locator('button[title="Edit"]').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Portfolio edited title');
+    await page.locator('#taskDescription').fill('Updated from portfolio board');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await expect(portfolioBoardCard(page, 'Portfolio edited title')).toBeVisible();
+
+    const result = await page.evaluate(() => {
+      const sourceTask = portfolioBoards[0].data.board.tasks.find((t) => t.id === 11);
+      return {
+        title: sourceTask?.title,
+        description: sourceTask?.description,
+        writes: (window.__portfolioTestWrites || []).map((w) => ({ boardId: w.boardId, hasTimeline: w.text.includes('"timeline"'), text: w.text }))
+      };
+    });
+
+    expect(result.title).toBe('Portfolio edited title');
+    expect(result.description).toBe('Updated from portfolio board');
+    expect(result.writes.length).toBeGreaterThan(0);
+    expect(result.writes.at(-1).boardId).toBe('p1');
+    expect(result.writes.at(-1).hasTimeline).toBe(false);
+    expect(result.writes.at(-1).text).toContain('Portfolio edited title');
+  });
+
+  test('portfolio board cards are not draggable', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'drag1',
+        title: 'Drag Project',
+        fileName: 'drag.board.json',
+        hasHandle: true,
+        tasks: [
+          { id: 21, title: 'Move me', priority: 'medium', effort: 'M', status: 'backlog' }
+        ]
+      }
+    ]);
+
+    const card = page.locator('#portfolio-backlog-column .portfolio-task-card').first();
+    await expect(card).toBeVisible();
+    await expect(card).toHaveJSProperty('draggable', false);
+  });
+
+  test('portfolio board cards without file handles are read-only but clickable', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'ro1',
+        title: 'Read Only Project',
+        fileName: 'readonly.board.json',
+        hasHandle: false,
+        tasks: [
+          { id: 31, title: 'Read only task', description: 'Visible but not editable', status: 'backlog' }
+        ]
+      }
+    ]);
+
+    const card = portfolioBoardCard(page, 'Read only task');
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('Read-only');
+    await expect(card.locator('button[title="Read-only (no file handle)"]')).toHaveCount(2);
+    await expect(card).toHaveJSProperty('draggable', false);
+
+    await card.click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Read only task');
   });
 
   test('board controls persist in URL and restore on reload', async ({ page }) => {
