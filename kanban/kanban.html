@@ -5525,26 +5525,41 @@
                 buildShortcutRegistry();
             }
 
-            const sections = ['Global', 'Cards', 'Task Modal', 'Task Detail', 'Modal'];
-            const rowsBySection = sections
-                .map((section) => ({
-                    section,
-                    rows: ShortcutRegistry.filter((entry) => entry.section === section)
-                }))
-                .filter((group) => group.rows.length > 0);
+            const displayGroups = [
+                { title: 'Global', sections: ['Global'] },
+                { title: 'Cards', sections: ['Cards'] },
+                { title: 'Modals', sections: ['Task Modal', 'Task Detail', 'Modal'] }
+            ];
 
-            const sectionsHtml = rowsBySection.map((group) => {
-                const rows = group.rows.map((entry) => `
-                    <div class="shortcut-row">
-                        <div class="shortcut-keys">${renderShortcutKeys(entry.keys)}</div>
-                        <div class="shortcut-desc">${escapeHtml(entry.description)}</div>
-                    </div>
-                `).join('');
+            const sectionsHtml = displayGroups.map((group) => {
+                const subgroups = group.sections
+                    .map((section) => ({
+                        section,
+                        rows: ShortcutRegistry.filter((entry) => entry.section === section)
+                    }))
+                    .filter((subgroup) => subgroup.rows.length > 0);
+
+                if (subgroups.length === 0) return '';
+
+                const rowsHtml = subgroups.map((subgroup, index) => {
+                    const showSubheading = group.sections.length > 1;
+                    const rows = subgroup.rows.map((entry) => `
+                        <div class="shortcut-row">
+                            <div class="shortcut-keys">${renderShortcutKeys(entry.keys)}</div>
+                            <div class="shortcut-desc">${escapeHtml(entry.description)}</div>
+                        </div>
+                    `).join('');
+
+                    return `
+                        ${showSubheading ? `<div class="shortcut-section-title">${escapeHtml(subgroup.section)}</div>` : ''}
+                        <div class="shortcuts-list">${rows}</div>
+                    `;
+                }).join('');
 
                 return `
-                    <section class="shortcut-section-card" aria-label="${escapeHtml(group.section)} shortcuts">
-                        <h3 class="shortcut-section-card-title">${escapeHtml(group.section)}</h3>
-                        <div class="shortcuts-list">${rows}</div>
+                    <section class="shortcut-section-card" aria-label="${escapeHtml(group.title)} shortcuts">
+                        <h3 class="shortcut-section-card-title">${escapeHtml(group.title)}</h3>
+                        ${rowsHtml}
                     </section>
                 `;
             }).join('');
