@@ -1855,6 +1855,7 @@
         const ATTACHMENT_SOFT_WARN_BYTES = 2 * 1024 * 1024;
         const ATTACHMENT_TASK_SOFT_TOTAL_BYTES = 20 * 1024 * 1024;
         const ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES = 25 * 1024 * 1024;
+        const DEBUG_LOGS_ENABLED = false;
         let pendingNewTaskStatus = null;
         let undoAction = null;
         let undoTimer = null;
@@ -1879,6 +1880,18 @@
         let Services = null;
         let UI = null;
         let Controllers = null;
+        const Logger = {
+            debug(...args) {
+                if (!DEBUG_LOGS_ENABLED) return;
+                console.debug('[TeamOS Kanban]', ...args);
+            },
+            warn(...args) {
+                console.warn('[TeamOS Kanban]', ...args);
+            },
+            error(...args) {
+                console.error('[TeamOS Kanban]', ...args);
+            }
+        };
 
         function readQueryParam(key, fallback = '') {
             const params = new URLSearchParams(window.location.search);
@@ -1893,6 +1906,14 @@
             if (!hasRequiredExtension(fileName, extension)) {
                 throw new Error(`${label} must use ${extension} extension.`);
             }
+        }
+
+        function isAbortError(error) {
+            return Boolean(error && error.name === 'AbortError');
+        }
+
+        function formatErrorMessage(error, fallback = 'Unexpected error.') {
+            return error?.message ? String(error.message) : fallback;
         }
 
         function isFileDrag(ev) {
@@ -2201,11 +2222,61 @@
             await writable.close();
         }
 
+        const BoardRepository = {
+            serialize(boardData) {
+                return serializeBoardDataFromObject(boardData);
+            },
+            validate(boardData) {
+                validateBoardData(boardData);
+            },
+            async saveRecord(boardRecord) {
+                if (!boardRecord || !boardRecord.handle) return false;
+                const payload = this.serialize(boardRecord.data);
+                await writeJsonToFileHandle(boardRecord.handle, payload);
+                return true;
+            },
+            async createRecordFromFile({ file, handle = null }) {
+                assertRequiredExtension(file?.name || '', BOARD_FILE_EXTENSION, 'Project file');
+                const parsed = JSON.parse(await file.text());
+                this.validate(parsed);
+                return createPortfolioRecord({
+                    handle,
+                    fileName: file.name,
+                    data: parsed
+                });
+            },
+            async createRecordFromHandle(handle) {
+                const file = await handle.getFile();
+                return this.createRecordFromFile({ file, handle });
+            },
+            async importFromHandles(handles) {
+                const loaded = [];
+                const errors = [];
+                for (const handle of handles) {
+                    try {
+                        loaded.push(await this.createRecordFromHandle(handle));
+                    } catch (error) {
+                        errors.push(`${handle.name || 'Unknown file'}: ${formatErrorMessage(error)}`);
+                    }
+                }
+                return { loaded, errors };
+            },
+            async importFromLooseFiles(files) {
+                const loaded = [];
+                const errors = [];
+                for (const file of files) {
+                    try {
+                        loaded.push(await this.createRecordFromFile({ file, handle: null }));
+                    } catch (error) {
+                        errors.push(`${file.name || 'Unknown file'}: ${formatErrorMessage(error)}`);
+                    }
+                }
+                return { loaded, errors };
+            }
+        };
+
         async function savePortfolioBoardRecord(boardRecord) {
-            if (!boardRecord || !boardRecord.handle) return false;
-            const payload = serializeBoardDataFromObject(boardRecord.data);
-            await writeJsonToFileHandle(boardRecord.handle, payload);
-            return true;
+            return BoardRepository.saveRecord(boardRecord);
         }
 
         async function runQueuedProjectSave(boardRecord) {
@@ -2223,9 +2294,9 @@
                     try {
                         await savePortfolioBoardRecord(boardRecord);
                     } catch (error) {
-                        console.error(error);
+                        Logger.error('Project autosave failed', { boardId: boardRecord.id, error });
                         state.status = 'error';
-                        state.lastErrorMessage = error?.message ? String(error.message) : 'Save failed.';
+                        state.lastErrorMessage = formatErrorMessage(error, 'Save failed.');
                         renderPortfolioBoardChips();
                         return false;
                     }
@@ -2440,7 +2511,7 @@
                 const suggestedStem = slugifyColumnName(title) || 'project';
 
                 const data = createEmptyProjectData(title);
-                await writeJsonToFileHandle(handle, data);
+                await writeJsonToFileHandle(handle, BoardRepository.serialize(data));
                 const record = createPortfolioRecord({
                     handle,
                     fileName: handle.name || `${suggestedStem}${BOARD_FILE_EXTENSION}`,
@@ -2448,8 +2519,9 @@
                 });
                 appendPortfolioRecords([record], { selectBoardId: record.id });
             } catch (error) {
-                if (error.name !== 'AbortError') {
-                    alert(`New project failed: ${error.message}`);
+                if (!isAbortError(error)) {
+                    Logger.error('New project failed', error);
+                    alert(`New project failed: ${formatErrorMessage(error)}`);
                 }
             }
         }
@@ -2461,31 +2533,16 @@
                     types: [{ description: 'Project JSON', accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
                 });
 
-                const loaded = [];
-                const errors = [];
-                for (const handle of handles) {
-                    try {
-                        const file = await handle.getFile();
-                        assertRequiredExtension(file.name, BOARD_FILE_EXTENSION, 'Project file');
-                        const parsed = JSON.parse(await file.text());
-                        validateBoardData(parsed);
-                        loaded.push(createPortfolioRecord({
-                            handle,
-                            fileName: file.name,
-                            data: parsed
-                        }));
-                    } catch (error) {
-                        errors.push(`${handle.name || 'Unknown file'}: ${error.message}`);
-                    }
-                }
+                const { loaded, errors } = await BoardRepository.importFromHandles(handles);
 
                 appendPortfolioRecords(loaded);
                 if (errors.length > 0) {
                     alert(`Some projects were not imported:\n${errors.join('\n')}`);
                 }
             } catch (error) {
-                if (error.name !== 'AbortError') {
-                    alert(`Import failed: ${error.message}`);
+                if (!isAbortError(error)) {
+                    Logger.error('Import from picker failed', error);
+                    alert(`Import failed: ${formatErrorMessage(error)}`);
                 }
             }
         }
@@ -2499,28 +2556,15 @@
                     return;
                 }
 
-                const loaded = [];
-                const errors = [];
-                for (const file of boardFiles) {
-                    try {
-                        const parsed = JSON.parse(await file.text());
-                        validateBoardData(parsed);
-                        loaded.push(createPortfolioRecord({
-                            handle: null,
-                            fileName: file.name,
-                            data: parsed
-                        }));
-                    } catch (error) {
-                        errors.push(`${file.name}: ${error.message}`);
-                    }
-                }
+                const { loaded, errors } = await BoardRepository.importFromLooseFiles(boardFiles);
 
                 appendPortfolioRecords(loaded);
                 if (errors.length > 0) {
                     alert(`Some projects were not imported:\n${errors.join('\n')}`);
                 }
             } catch (error) {
-                alert(`Import failed: ${error.message}`);
+                Logger.error('Import from drop failed', error);
+                alert(`Import failed: ${formatErrorMessage(error)}`);
             }
         }
 
@@ -3437,15 +3481,47 @@
         }
 
         function normalizeColumns(inputColumns) {
-            return defaultColumns.map(col => ({ ...col }));
+            if (!Array.isArray(inputColumns) || inputColumns.length === 0) {
+                return defaultColumns.map(col => ({ ...col }));
+            }
+
+            const defaultsByStatus = Object.fromEntries(defaultColumns.map(col => [col.status, col]));
+            const seen = new Set();
+            const normalized = [];
+            inputColumns.forEach((col) => {
+                if (!col || typeof col !== 'object') return;
+                const status = resolveKnownTaskStatus(col.status);
+                if (!status) return;
+                if (seen.has(status)) return;
+                const rawTitle = typeof col.title === 'string' ? col.title.trim() : '';
+                const fallbackTitle = defaultsByStatus[status]?.title || status;
+                normalized.push({
+                    status,
+                    title: rawTitle || fallbackTitle
+                });
+                seen.add(status);
+            });
+
+            if (normalized.length === 0) {
+                return defaultColumns.map(col => ({ ...col }));
+            }
+
+            return normalized.slice(0, MAX_COLUMNS);
         }
 
-        function normalizeTaskStatus(status) {
+        function resolveKnownTaskStatus(status) {
             const raw = String(status || '').trim().toLowerCase();
+            if (!raw) return null;
             if (raw === 'backlog') return 'backlog';
             if (raw === 'to-do' || raw === 'todo' || raw === 'nextup') return 'to-do';
             if (raw === 'doing' || raw === 'inprogress' || raw === 'in-progress') return 'doing';
             if (raw === 'done' || raw === 'concluid') return 'done';
+            return null;
+        }
+
+        function normalizeTaskStatus(status) {
+            const normalized = resolveKnownTaskStatus(status);
+            if (normalized) return normalized;
             return defaultColumns[0].status;
         }
 
@@ -4208,39 +4284,104 @@
             document.getElementById('helpModal').classList.remove('active');
         }
 
-        async function saveTask() {
-            const title = document.getElementById('taskName').value.trim();
-            const description = document.getElementById('taskDescription').value.trim();
-            const assignee = normalizeAssignee(document.getElementById('taskAssignee').value);
-            const blocked = Boolean(document.getElementById('taskBlocked').checked);
-            const blockerReason = normalizeBlockerReason(document.getElementById('taskBlockerReason').value);
-            syncTaskChecklistTextareaFromEditor();
-            const checklist = parseChecklistInput(document.getElementById('taskChecklist').value);
-            const attachments = getTaskModalAttachmentsDraft();
-            const dueDate = normalizeDueDate(document.getElementById('taskDueDate').value);
-            const priority = normalizePriority(document.getElementById('taskPriority').value);
-            const effort = normalizeEffort(document.getElementById('taskEffort').value);
+        function focusFieldById(fieldId) {
+            if (!fieldId) return;
+            document.getElementById(fieldId)?.focus();
+        }
 
-            if (!title) return;
-            if (title.length > TASK_TITLE_MAX_LENGTH) {
-                alert(`Task title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer.`);
-                document.getElementById('taskName')?.focus();
+        function readTaskDraftFromForm() {
+            syncTaskChecklistTextareaFromEditor();
+            return {
+                title: document.getElementById('taskName').value.trim(),
+                description: document.getElementById('taskDescription').value.trim(),
+                assignee: normalizeAssignee(document.getElementById('taskAssignee').value),
+                blocked: Boolean(document.getElementById('taskBlocked').checked),
+                blockerReason: normalizeBlockerReason(document.getElementById('taskBlockerReason').value),
+                checklist: parseChecklistInput(document.getElementById('taskChecklist').value),
+                attachments: getTaskModalAttachmentsDraft(),
+                dueDate: normalizeDueDate(document.getElementById('taskDueDate').value),
+                priority: normalizePriority(document.getElementById('taskPriority').value),
+                effort: normalizeEffort(document.getElementById('taskEffort').value)
+            };
+        }
+
+        const TaskFormValidator = {
+            validate(draft) {
+                if (!draft.title) {
+                    return { ok: false, silent: true };
+                }
+                if (draft.title.length > TASK_TITLE_MAX_LENGTH) {
+                    return {
+                        ok: false,
+                        message: `Task title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer.`,
+                        focusFieldId: 'taskName'
+                    };
+                }
+                if (draft.blocked && !draft.blockerReason) {
+                    return {
+                        ok: false,
+                        message: 'Blocked tasks require a blocker reason.',
+                        focusFieldId: 'taskBlockerReason',
+                        beforeAlert: syncTaskBlockedReasonVisibility
+                    };
+                }
+                if (draft.attachments.length > ATTACHMENT_MAX_COUNT) {
+                    return {
+                        ok: false,
+                        message: `Tasks can have up to ${ATTACHMENT_MAX_COUNT} attachments.`
+                    };
+                }
+                if (draft.attachments.some(item => (Number(item.sizeBytes) || 0) > ATTACHMENT_HARD_MAX_BYTES)) {
+                    return {
+                        ok: false,
+                        message: `Attachments must be ${formatFileSize(ATTACHMENT_HARD_MAX_BYTES)} or smaller.`
+                    };
+                }
+                return { ok: true };
+            }
+        };
+
+        function buildTaskFieldsFromDraft(draft) {
+            return {
+                title: draft.title,
+                description: draft.description,
+                assignee: draft.assignee,
+                blocked: draft.blocked,
+                blockerReason: draft.blocked ? draft.blockerReason : '',
+                checklist: draft.checklist,
+                dueDate: draft.dueDate,
+                priority: draft.priority,
+                effort: draft.effort
+            };
+        }
+
+        function nextTaskIdForBoard(boardRecord) {
+            const existingIds = (boardRecord?.data?.board?.tasks || [])
+                .map(task => Number(task?.id))
+                .filter(Number.isFinite);
+            return existingIds.length > 0 ? Math.max(...existingIds) + 1 : Date.now();
+        }
+
+        function resolveCreateTaskStatus(boardRecord, preferredStatus) {
+            const validStatuses = new Set((boardRecord?.data?.board?.columns || []).map(col => normalizeTaskStatus(col.status)));
+            const fallbackStatus = normalizeTaskStatus((boardRecord?.data?.board?.columns || [defaultColumns[0]])[0]?.status);
+            const normalizedPreferred = normalizeTaskStatus(preferredStatus);
+            return validStatuses.has(normalizedPreferred) ? normalizedPreferred : fallbackStatus;
+        }
+
+        async function saveTask() {
+            const draft = readTaskDraftFromForm();
+            const validation = TaskFormValidator.validate(draft);
+            if (!validation.ok) {
+                if (validation.silent) return;
+                if (typeof validation.beforeAlert === 'function') {
+                    validation.beforeAlert();
+                }
+                alert(validation.message);
+                focusFieldById(validation.focusFieldId);
                 return;
             }
-            if (blocked && !blockerReason) {
-                syncTaskBlockedReasonVisibility();
-                alert('Blocked tasks require a blocker reason.');
-                document.getElementById('taskBlockerReason')?.focus();
-                return;
-            }
-            if (attachments.length > ATTACHMENT_MAX_COUNT) {
-                alert(`Tasks can have up to ${ATTACHMENT_MAX_COUNT} attachments.`);
-                return;
-            }
-            if (attachments.some(item => (Number(item.sizeBytes) || 0) > ATTACHMENT_HARD_MAX_BYTES)) {
-                alert(`Attachments must be ${formatFileSize(ATTACHMENT_HARD_MAX_BYTES)} or smaller.`);
-                return;
-            }
+            const commonFields = buildTaskFieldsFromDraft(draft);
 
             if (portfolioCreateContext && portfolioCreateContext.boardId) {
                 const { boardId } = portfolioCreateContext;
@@ -4252,36 +4393,19 @@
                 }
 
                 const now = nowIso();
-                const existingIds = (boardRecord.data.board.tasks || [])
-                    .map(task => Number(task?.id))
-                    .filter(Number.isFinite);
-                const nextId = existingIds.length > 0
-                    ? Math.max(...existingIds) + 1
-                    : Date.now();
-                const validStatuses = new Set((boardRecord.data.board.columns || []).map(col => normalizeTaskStatus(col.status)));
-                const fallbackStatus = normalizeTaskStatus((boardRecord.data.board.columns || [defaultColumns[0]])[0]?.status);
-                const status = validStatuses.has(normalizeTaskStatus(portfolioCreateContext.status))
-                    ? normalizeTaskStatus(portfolioCreateContext.status)
-                    : fallbackStatus;
+                const nextId = nextTaskIdForBoard(boardRecord);
+                const status = resolveCreateTaskStatus(boardRecord, portfolioCreateContext.status);
 
                 boardRecord.data.board.tasks.push({
                     id: nextId,
-                    title,
-                    description,
-                    assignee,
-                    blocked,
-                    blockerReason: blocked ? blockerReason : '',
-                    checklist,
+                    ...commonFields,
                     archived: false,
                     createdAt: now,
                     updatedAt: now,
                     statusChangedAt: now,
-                    dueDate,
-                    priority,
-                    effort,
                     status
                 });
-                setTaskAttachments(boardRecord.data, nextId, attachments);
+                setTaskAttachments(boardRecord.data, nextId, draft.attachments);
                 markProjectDirty(boardId);
 
                 selectedPortfolioBoardId = boardId;
@@ -4296,18 +4420,10 @@
             if (portfolioEditContext && portfolioEditContext.boardId && portfolioEditContext.taskId) {
                 const { boardId, taskId } = portfolioEditContext;
                 const saved = await runPortfolioTaskMutation(boardId, taskId, (task, boardRecord) => {
-                    task.title = title;
-                    task.description = description;
-                    task.assignee = assignee;
-                    task.blocked = blocked;
-                    task.blockerReason = blocked ? blockerReason : '';
-                    task.checklist = checklist;
+                    Object.assign(task, commonFields);
                     if (boardRecord && boardRecord.data) {
-                        setTaskAttachments(boardRecord.data, taskId, attachments);
+                        setTaskAttachments(boardRecord.data, taskId, draft.attachments);
                     }
-                    task.dueDate = dueDate;
-                    task.priority = priority;
-                    task.effort = effort;
                     return true;
                 });
                 if (!saved) return;
@@ -4817,15 +4933,21 @@
         State = {
             getSnapshot() {
                 return {
-                    portfolioBoards,
-                    portfolioTasks,
-                    selectedPortfolioBoardId,
-                    portfolioSortKey,
-                    portfolioSortDir,
-                    portfolioEditContext,
-                    portfolioCreateContext,
-                    portfolioDetailContext,
-                    portfolioDragContext
+                    portfolio: {
+                        boards: portfolioBoards,
+                        tasks: portfolioTasks,
+                        selectedBoardId: selectedPortfolioBoardId,
+                        sortKey: portfolioSortKey,
+                        sortDir: portfolioSortDir
+                    },
+                    modal: {
+                        editContext: portfolioEditContext,
+                        createContext: portfolioCreateContext,
+                        detailContext: portfolioDetailContext
+                    },
+                    drag: {
+                        context: portfolioDragContext
+                    }
                 };
             },
             setSelectedProject(boardId) {
@@ -4844,7 +4966,8 @@
             Schema: {
                 validateBoardData,
                 serializeBoardDataFromObject,
-                createEmptyProjectData
+                createEmptyProjectData,
+                normalizeColumns
             },
             Task: {
                 normalizeTask,
@@ -4861,6 +4984,9 @@
                 priorityRank,
                 effortRank,
                 touchTask
+            },
+            Validation: {
+                validateTaskDraft: TaskFormValidator.validate.bind(TaskFormValidator)
             },
             PortfolioSelectors: {
                 getVisibleRows: getFilteredSortedPortfolioRows,
@@ -4889,7 +5015,7 @@
                 createProject: newProject,
                 importProjects,
                 importDroppedFiles: openPortfolioFromFiles,
-                saveProjectRecord: savePortfolioBoardRecord
+                saveProjectRecord: BoardRepository.saveRecord.bind(BoardRepository)
             },
             Time: {
                 nowIso

@@ -26,6 +26,33 @@ A minimalist single-file Kanban app built with plain HTML, CSS, and JavaScript (
   - New board from template
 - Strict board schema validation (versioned JSON format).
 
+## Internal architecture (single-file, layered)
+
+`kanban.html` keeps a single-file delivery model but follows internal layers:
+
+- `Domain`: pure normalization, validation, scoring, and selectors.
+- `BoardRepository`: board parsing/validation/serialization and file I/O orchestration.
+- `UI`: render and modal helpers.
+- `Controllers`: drag/drop and interaction workflows.
+- `State`: compatibility snapshot plus focused state mutators.
+
+This keeps the app minimal while reducing coupling between DOM, business rules, and persistence.
+
+## Task and schema invariants
+
+- Task titles are required and capped at `80` characters.
+- Blocked tasks require `blockerReason`.
+- Attachments are capped per task and validated by hard size limit.
+- `schemaVersion` and `appId` are strictly validated on import.
+- Serialization normalizes tasks/columns/timestamps before save.
+
+## Attachments policy
+
+- Embedded `dataUrl` attachments are supported for compatibility.
+- Soft warnings are shown for large attachment payloads.
+- Hard limits prevent oversized files from being added.
+- Legacy extension-based attachment storage is cleaned during serialization.
+
 ## File extensions (required)
 
 - Board files: `*.board.json`

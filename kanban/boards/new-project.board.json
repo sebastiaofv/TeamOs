@@ -3,7 +3,7 @@
     "schemaVersion": 1,
     "appId": "teamos-kanban",
     "createdAt": "2026-02-26T22:28:36.171Z",
-    "updatedAt": "2026-02-26T22:57:13.114Z"
+    "updatedAt": "2026-02-26T23:08:49.844Z"
   },
   "board": {
     "columns": [
@@ -55,11 +55,11 @@
         ],
         "archived": false,
         "createdAt": "2026-02-26T22:29:24.974Z",
-        "updatedAt": "2026-02-26T22:57:13.110Z",
-        "statusChangedAt": "2026-02-26T22:29:24.974Z",
+        "updatedAt": "2026-02-26T23:08:49.842Z",
+        "statusChangedAt": "2026-02-26T23:08:49.842Z",
         "dueDate": "2025-01-01",
         "priority": "high",
-        "effort": "XS",
+        "effort": "S",
         "status": "backlog"
       }
     ],

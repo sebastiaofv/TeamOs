@@ -238,6 +238,60 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
   });
 
+  test('normalizeColumns keeps valid canonical columns and removes duplicates', async ({ page }) => {
+    const columns = await page.evaluate(() => normalizeColumns([
+      { status: 'Backlog', title: 'Ideas' },
+      { status: 'todo', title: 'Ready' },
+      { status: 'to-do', title: 'Duplicate todo' },
+      { status: 'in-progress', title: 'Working' },
+      { status: 'done', title: '' },
+      { status: 'custom', title: 'Ignored custom' }
+    ]));
+
+    expect(columns).toEqual([
+      { status: 'backlog', title: 'Ideas' },
+      { status: 'to-do', title: 'Ready' },
+      { status: 'doing', title: 'Working' },
+      { status: 'done', title: 'done' }
+    ]);
+  });
+
+  test('normalizeColumns falls back to defaults when no valid columns are provided', async ({ page }) => {
+    const columns = await page.evaluate(() => normalizeColumns([null, {}, { status: '', title: '' }]));
+
+    expect(columns).toEqual([
+      { status: 'backlog', title: 'backlog' },
+      { status: 'to-do', title: 'to-do' },
+      { status: 'doing', title: 'in progress' },
+      { status: 'done', title: 'done' }
+    ]);
+  });
+
+  test('TaskFormValidator enforces blocker reason and attachment hard size', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const blockedWithoutReason = TaskFormValidator.validate({
+        title: 'Blocked task',
+        blocked: true,
+        blockerReason: '',
+        attachments: []
+      });
+      const oversizedAttachment = TaskFormValidator.validate({
+        title: 'Attachment task',
+        blocked: false,
+        blockerReason: '',
+        attachments: [{ sizeBytes: ATTACHMENT_HARD_MAX_BYTES + 1 }]
+      });
+      return { blockedWithoutReason, oversizedAttachment };
+    });
+
+    expect(result.blockedWithoutReason.ok).toBe(false);
+    expect(result.blockedWithoutReason.message).toBe('Blocked tasks require a blocker reason.');
+    expect(result.blockedWithoutReason.focusFieldId).toBe('taskBlockerReason');
+
+    expect(result.oversizedAttachment.ok).toBe(false);
+    expect(result.oversizedAttachment.message).toContain('Attachments must be');
+  });
+
   test('new project flow creates and selects a project', async ({ page }) => {
     await mockNewProjectFlow(page, { promptValue: 'Project Alpha', fileName: 'project-alpha.board.json' });
 
