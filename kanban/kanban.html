@@ -2247,17 +2247,21 @@
 
         async function newProject() {
             try {
-                const requestedName = prompt('Project name:', 'New Project');
-                if (requestedName === null) return;
-                const title = requestedName.trim();
-                if (!title) return;
-
-                const suggestedStem = slugifyColumnName(title) || 'project';
                 const handle = await window.showSaveFilePicker({
-                    suggestedName: `${suggestedStem}${BOARD_FILE_EXTENSION}`,
+                    suggestedName: `new-project${BOARD_FILE_EXTENSION}`,
                     types: [{ description: 'Project JSON', accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
                 });
                 assertRequiredExtension(handle.name, BOARD_FILE_EXTENSION, 'Project file');
+
+                const defaultTitle = String(handle.name || 'New Project')
+                    .replace(new RegExp(`${BOARD_FILE_EXTENSION.replace('.', '\\.')}$`, 'i'), '')
+                    .replace(/[-_]+/g, ' ')
+                    .trim() || 'New Project';
+                const requestedName = prompt('Project name:', defaultTitle);
+                if (requestedName === null) return;
+                const title = requestedName.trim();
+                if (!title) return;
+                const suggestedStem = slugifyColumnName(title) || 'project';
 
                 const data = createEmptyProjectData(title);
                 await writeJsonToFileHandle(handle, data);
@@ -2668,11 +2672,12 @@
                 return;
             }
 
+            closeDetailModal();
+
             setSelectedPortfolioCard(boardId, taskId);
             const task = normalizeTask(source.task);
             portfolioEditContext = { boardId, taskId };
             portfolioCreateContext = null;
-            portfolioDetailContext = null;
             renderTaskAssigneeSuggestions();
 
             document.getElementById('taskModal').classList.add('active');
@@ -2708,6 +2713,8 @@
                 return;
             }
 
+            closeDetailModal();
+
             const allowedStatuses = new Set((boardRecord.data.board.columns || []).map(col => normalizeTaskStatus(col.status)));
             const fallbackStatus = normalizeTaskStatus((boardRecord.data.board.columns || [defaultColumns[0]])[0]?.status);
             const status = allowedStatuses.has(normalizeTaskStatus(preferredStatus))
@@ -2716,7 +2723,6 @@
 
             portfolioCreateContext = { boardId, status };
             portfolioEditContext = null;
-            portfolioDetailContext = null;
             pendingNewTaskStatus = null;
             renderTaskAssigneeSuggestions();
 
