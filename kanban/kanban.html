@@ -860,6 +860,94 @@
             min-height: 80px;
         }
 
+        .checklist-editor {
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            padding: 8px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .checklist-editor-list {
+            display: grid;
+            gap: 6px;
+        }
+
+        .checklist-editor-empty {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 4px 2px;
+        }
+
+        .checklist-editor-row {
+            display: grid;
+            grid-template-columns: 20px 1fr 28px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .checklist-editor-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+        }
+
+        .checklist-editor-row input[type="text"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            font-family: inherit;
+            background: var(--bg-card);
+        }
+
+        .checklist-editor-row input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .checklist-editor-row.done input[type="text"] {
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        .checklist-editor-remove {
+            width: 28px;
+            height: 28px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            line-height: 1;
+            font-size: 14px;
+        }
+
+        .checklist-editor-remove:hover {
+            color: var(--priority-high);
+            border-color: var(--priority-high);
+        }
+
+        .checklist-editor-add {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .checklist-editor-add input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            font-family: inherit;
+            background: var(--bg-card);
+        }
+
+        .checklist-editor-add input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1369,8 +1457,15 @@
                         <textarea id="taskDescription"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Todo List (one item per line, optional)</label>
-                        <textarea id="taskChecklist" placeholder="[ ] Buy detergent&#10;[x] Start dishwasher"></textarea>
+                        <label>Todo List</label>
+                        <div class="checklist-editor" id="taskChecklistEditor">
+                            <div class="checklist-editor-list" id="taskChecklistItems"></div>
+                            <div class="checklist-editor-add">
+                                <input type="text" id="taskChecklistNewItem" placeholder="Add a todo item and press Enter">
+                                <button type="button" class="btn" onclick="addTaskChecklistItemFromComposer()">Add</button>
+                            </div>
+                        </div>
+                        <textarea id="taskChecklist" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
                     </div>
                     <div class="form-group">
                         <label>Due Date</label>
@@ -2550,6 +2645,7 @@
             document.getElementById('taskName').value = task.title || '';
             document.getElementById('taskDescription').value = task.description || '';
             document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
+            loadTaskChecklistEditorFromTextarea();
             document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
             document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
             document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
@@ -2585,6 +2681,8 @@
             document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
             document.getElementById('modalTitle').textContent = 'New Task';
+            document.getElementById('taskChecklist').value = '';
+            loadTaskChecklistEditorFromTextarea();
             document.getElementById('taskDueDate').value = '';
             document.getElementById('taskPriority').value = '';
             document.getElementById('taskEffort').value = '';
@@ -3258,6 +3356,116 @@
                 .join('\n');
         }
 
+        function getTaskChecklistEditorRowsContainer() {
+            return document.getElementById('taskChecklistItems');
+        }
+
+        function getTaskChecklistTextarea() {
+            return document.getElementById('taskChecklist');
+        }
+
+        function readTaskChecklistEditorItems() {
+            const container = getTaskChecklistEditorRowsContainer();
+            if (!container) return [];
+            const rows = Array.from(container.querySelectorAll('.checklist-editor-row'));
+            return rows
+                .map((row) => {
+                    const textInput = row.querySelector('input[type="text"]');
+                    const checkbox = row.querySelector('input[type="checkbox"]');
+                    const text = (textInput?.value || '').trim();
+                    if (!text) return null;
+                    return { text, done: Boolean(checkbox?.checked) };
+                })
+                .filter(Boolean);
+        }
+
+        function syncTaskChecklistTextareaFromEditor() {
+            const textarea = getTaskChecklistTextarea();
+            if (!textarea) return;
+            textarea.value = checklistToInput(readTaskChecklistEditorItems());
+        }
+
+        function renderTaskChecklistEditor(items = []) {
+            const container = getTaskChecklistEditorRowsContainer();
+            if (!container) return;
+            const normalized = normalizeChecklist(items);
+
+            if (normalized.length === 0) {
+                container.innerHTML = '<div class="checklist-editor-empty">No todo items yet.</div>';
+                syncTaskChecklistTextareaFromEditor();
+                return;
+            }
+
+            container.innerHTML = normalized.map((item, index) => `
+                <div class="checklist-editor-row ${item.done ? 'done' : ''}" data-index="${index}">
+                    <input type="checkbox" ${item.done ? 'checked' : ''} aria-label="Mark todo as done" onchange="toggleTaskChecklistEditorItem(${index}, this.checked)">
+                    <input type="text" value="${escapeHtml(item.text)}" aria-label="Todo item text" oninput="updateTaskChecklistEditorItemText(${index}, this.value)">
+                    <button type="button" class="checklist-editor-remove" aria-label="Remove todo item" title="Remove" onclick="removeTaskChecklistEditorItem(${index})">×</button>
+                </div>
+            `).join('');
+
+            syncTaskChecklistTextareaFromEditor();
+        }
+
+        function loadTaskChecklistEditorFromTextarea() {
+            const textarea = getTaskChecklistTextarea();
+            renderTaskChecklistEditor(parseChecklistInput(textarea?.value || ''));
+            const composer = document.getElementById('taskChecklistNewItem');
+            if (composer) {
+                composer.value = '';
+            }
+        }
+
+        function updateTaskChecklistEditor(items) {
+            renderTaskChecklistEditor(items);
+        }
+
+        function addTaskChecklistItem(text = '', done = false, options = {}) {
+            const trimmed = String(text || '').trim();
+            if (!trimmed) return;
+            const items = readTaskChecklistEditorItems();
+            items.push({ text: trimmed, done: Boolean(done) });
+            updateTaskChecklistEditor(items);
+
+            if (options.focusComposer !== false) {
+                const composer = document.getElementById('taskChecklistNewItem');
+                if (composer) {
+                    composer.focus();
+                }
+            }
+        }
+
+        function addTaskChecklistItemFromComposer() {
+            const composer = document.getElementById('taskChecklistNewItem');
+            if (!composer) return;
+            const value = composer.value.trim();
+            if (!value) return;
+            addTaskChecklistItem(value, false);
+            composer.value = '';
+            syncTaskChecklistTextareaFromEditor();
+            composer.focus();
+        }
+
+        function toggleTaskChecklistEditorItem(index, checked) {
+            const items = readTaskChecklistEditorItems();
+            if (!items[index]) return;
+            items[index].done = Boolean(checked);
+            updateTaskChecklistEditor(items);
+        }
+
+        function updateTaskChecklistEditorItemText(index, value) {
+            void index;
+            void value;
+            syncTaskChecklistTextareaFromEditor();
+        }
+
+        function removeTaskChecklistEditorItem(index) {
+            const items = readTaskChecklistEditorItems();
+            if (!items[index]) return;
+            items.splice(index, 1);
+            updateTaskChecklistEditor(items);
+        }
+
         function init() {
             if (typeof cacheRefs === 'function') {
                 cacheRefs();
@@ -3517,6 +3725,7 @@
                     pendingNewTaskStatus = null;
                 }
             }
+            loadTaskChecklistEditorFromTextarea();
 
             const taskNameInput = document.getElementById('taskName');
             requestAnimationFrame(() => {
@@ -3529,6 +3738,11 @@
 
         function closeModal() {
             document.getElementById('taskModal').classList.remove('active');
+            const checklistTextarea = document.getElementById('taskChecklist');
+            if (checklistTextarea) {
+                checklistTextarea.value = '';
+            }
+            renderTaskChecklistEditor([]);
             pendingNewTaskStatus = null;
             portfolioEditContext = null;
             portfolioCreateContext = null;
@@ -3623,6 +3837,7 @@
             const id = document.getElementById('taskId').value;
             const title = document.getElementById('taskName').value.trim();
             const description = document.getElementById('taskDescription').value.trim();
+            syncTaskChecklistTextareaFromEditor();
             const checklist = parseChecklistInput(document.getElementById('taskChecklist').value);
             const dueDate = normalizeDueDate(document.getElementById('taskDueDate').value);
             const priority = normalizePriority(document.getElementById('taskPriority').value);
@@ -4539,6 +4754,12 @@
             if (e.target === document.getElementById('helpModal')) {
                 closeHelpModal();
             }
+        });
+
+        document.getElementById('taskChecklistNewItem').addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            addTaskChecklistItemFromComposer();
         });
 
         document.addEventListener('keydown', (e) => {
