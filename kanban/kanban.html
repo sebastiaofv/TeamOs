@@ -339,6 +339,18 @@
             font-style: italic;
         }
 
+        .chip-save-state {
+            color: var(--text-muted);
+        }
+
+        .chip-save-state.saving {
+            color: var(--accent);
+        }
+
+        .chip-save-state.error {
+            color: var(--priority-high);
+        }
+
         .portfolio-toolbar input,
         .portfolio-toolbar select {
             border: 1px solid var(--border);
@@ -1848,6 +1860,7 @@
         let undoTimer = null;
         let portfolioBoards = [];
         let portfolioTasks = [];
+        let projectSaveStateById = new Map();
         let selectedPortfolioBoardId = '';
         let portfolioSortKey = 'priority';
         let portfolioSortDir = 'asc';
@@ -1964,6 +1977,18 @@
             return new Date().toISOString();
         }
 
+        function formatLocalIsoDate(date) {
+            if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+            const yyyy = String(date.getFullYear());
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+
+        function todayLocalIsoDate() {
+            return formatLocalIsoDate(new Date());
+        }
+
         function priorityRank(priority) {
             if (priority === 'high') return 0;
             if (priority === 'medium') return 1;
@@ -2037,6 +2062,80 @@
             return portfolioBoards.find(board => board.id === boardId) || null;
         }
 
+        function createProjectSaveState() {
+            return {
+                status: 'idle',
+                inFlight: null,
+                queued: false,
+                lastErrorMessage: '',
+                lastSavedAt: '',
+                revision: 0,
+                savedRevision: 0
+            };
+        }
+
+        function getProjectSaveState(boardId, options = {}) {
+            if (!boardId) return null;
+            const createIfMissing = options.create !== false;
+            let state = projectSaveStateById.get(boardId) || null;
+            if (!state && createIfMissing) {
+                state = createProjectSaveState();
+                projectSaveStateById.set(boardId, state);
+            }
+            return state;
+        }
+
+        function syncProjectSaveStates() {
+            const activeIds = new Set();
+            portfolioBoards.forEach((board) => {
+                if (!board || !board.id) return;
+                activeIds.add(board.id);
+                getProjectSaveState(board.id);
+            });
+            Array.from(projectSaveStateById.keys()).forEach((boardId) => {
+                if (!activeIds.has(boardId)) {
+                    projectSaveStateById.delete(boardId);
+                }
+            });
+        }
+
+        function markProjectDirty(boardId) {
+            const state = getProjectSaveState(boardId);
+            if (!state) return null;
+            state.revision += 1;
+            if (state.inFlight) {
+                state.queued = true;
+            } else if (state.status !== 'error') {
+                state.status = 'dirty';
+            }
+            return state;
+        }
+
+        function projectHasUnsavedChanges(boardId) {
+            const state = getProjectSaveState(boardId, { create: false });
+            return Boolean(state && state.revision > state.savedRevision);
+        }
+
+        function getProjectChipSaveUiState(boardId) {
+            const state = getProjectSaveState(boardId, { create: false });
+            if (!state) return { status: 'idle', text: '', title: '', canRetry: false };
+            if (state.status === 'error') {
+                return {
+                    status: 'error',
+                    text: 'Save failed',
+                    title: state.lastErrorMessage || 'Save failed.',
+                    canRetry: true
+                };
+            }
+            if (state.inFlight) {
+                return { status: 'saving', text: 'Saving', title: 'Saving changes…', canRetry: false };
+            }
+            if (projectHasUnsavedChanges(boardId)) {
+                return { status: 'dirty', text: 'Unsaved', title: 'Unsaved changes.', canRetry: false };
+            }
+            return { status: 'idle', text: '', title: '', canRetry: false };
+        }
+
         function findPortfolioTaskSource(boardId, taskId) {
             const boardRecord = getPortfolioBoardRecord(boardId);
             if (!boardRecord || !boardRecord.data || !boardRecord.data.board || !Array.isArray(boardRecord.data.board.tasks)) {
@@ -2106,11 +2205,78 @@
             if (!boardRecord || !boardRecord.handle) return false;
             const payload = serializeBoardDataFromObject(boardRecord.data);
             await writeJsonToFileHandle(boardRecord.handle, payload);
-            boardRecord.data = payload;
+            return true;
+        }
+
+        async function runQueuedProjectSave(boardRecord) {
+            if (!boardRecord || !boardRecord.id || !boardRecord.handle) return false;
+            const state = getProjectSaveState(boardRecord.id);
+            if (!state) return false;
+            if (state.inFlight) return state.inFlight;
+
+            state.inFlight = (async () => {
+                while (projectHasUnsavedChanges(boardRecord.id)) {
+                    const targetRevision = state.revision;
+                    state.status = 'saving';
+                    state.lastErrorMessage = '';
+                    renderPortfolioBoardChips();
+                    try {
+                        await savePortfolioBoardRecord(boardRecord);
+                    } catch (error) {
+                        console.error(error);
+                        state.status = 'error';
+                        state.lastErrorMessage = error?.message ? String(error.message) : 'Save failed.';
+                        renderPortfolioBoardChips();
+                        return false;
+                    }
+
+                    state.savedRevision = Math.max(state.savedRevision, targetRevision);
+                    state.lastSavedAt = nowIso();
+                    state.queued = state.revision > state.savedRevision;
+                }
+
+                state.status = 'idle';
+                state.queued = false;
+                state.lastErrorMessage = '';
+                renderPortfolioBoardChips();
+                return true;
+            })();
+
+            try {
+                return await state.inFlight;
+            } finally {
+                state.inFlight = null;
+                if (state.status !== 'error' && projectHasUnsavedChanges(boardRecord.id)) {
+                    state.status = 'dirty';
+                }
+                renderPortfolioBoardChips();
+            }
+        }
+
+        async function enqueueProjectSave(boardRecord) {
+            if (!boardRecord || !boardRecord.handle) return false;
+            const state = getProjectSaveState(boardRecord.id);
+            if (!state) return false;
+            if (state.inFlight) {
+                state.queued = true;
+                renderPortfolioBoardChips();
+                return state.inFlight;
+            }
+            return runQueuedProjectSave(boardRecord);
+        }
+
+        function retryProjectSave(boardId) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord || !boardRecord.handle) return false;
+            const state = getProjectSaveState(boardId);
+            if (!state) return false;
+            if (!projectHasUnsavedChanges(boardId) && state.status !== 'error') return false;
+            enqueueProjectSave(boardRecord);
             return true;
         }
 
         function buildPortfolioTasks() {
+            syncProjectSaveStates();
             portfolioTasks = portfolioBoards.flatMap((board, boardIndex) => {
                 const statusMap = Object.fromEntries(board.data.board.columns.map(col => [col.status, col.title]));
                 return board.data.board.tasks.map((task, taskIndex) => ({
@@ -2210,12 +2376,21 @@
                 const activeClass = selectedPortfolioBoardId === board.id ? 'active' : '';
                 const color = portfolioProjectColor(board.id);
                 const chipStyle = `--chip-bg:${color.bg};--chip-border:${color.border};--chip-text:${color.text};`;
+                const saveUi = getProjectChipSaveUiState(board.id);
+                const saveStateLabel = saveUi.text
+                    ? `<span class="chip-save-state ${saveUi.status}" title="${escapeHtml(saveUi.title)}"> • ${escapeHtml(saveUi.text)}</span>`
+                    : '';
+                const retryButton = (board.handle && saveUi.canRetry)
+                    ? `<button class="chip-link" title="Retry save" onclick="event.stopPropagation(); retryProjectSave('${board.id}')">Retry</button>`
+                    : '';
                 return `
                     <span class="portfolio-chip ${activeClass}" style="${chipStyle}">
                         <button class="chip-link" onclick="selectPortfolioBoard('${board.id}')">
                             ${escapeHtml(board.title || board.fileName)}
                             ${board.handle ? '' : '<span class="chip-readonly-label"> (Read-only)</span>'}
+                            ${saveStateLabel}
                         </button>
+                        ${retryButton}
                         <button class="chip-link chip-link-danger" aria-label="Remove project" title="Remove project" onclick="removeProjectFromPortfolio('${board.id}')">Remove</button>
                     </span>
                 `;
@@ -2241,6 +2416,7 @@
             if (selectedPortfolioBoardId === boardId) {
                 selectedPortfolioBoardId = '';
             }
+            projectSaveStateById.delete(boardId);
             buildPortfolioTasks();
             renderPortfolio();
         }
@@ -2620,6 +2796,7 @@
 
             if (!changed) return false;
             touchTask(source.task);
+            markProjectDirty(boardId);
 
             buildPortfolioTasks();
             renderPortfolio();
@@ -2628,12 +2805,7 @@
                 openPortfolioTaskDetails(boardId, taskId);
             }
 
-            try {
-                await savePortfolioBoardRecord(source.boardRecord);
-            } catch (error) {
-                console.error(error);
-                alert(`Auto-save failed for ${source.boardRecord.title || source.boardRecord.fileName || 'project'}: ${error.message}`);
-            }
+            await enqueueProjectSave(source.boardRecord);
 
             return true;
         }
@@ -3069,7 +3241,7 @@
         function isTaskOverdue(task) {
             const due = normalizeDueDate(task.dueDate);
             if (!due || task.status === 'done' || task.archived) return false;
-            const today = new Date().toISOString().slice(0, 10);
+            const today = todayLocalIsoDate();
             return due < today;
         }
 
@@ -3730,8 +3902,7 @@
         function setTaskModalAttachmentDraft(attachments, options = {}) {
             taskModalAttachmentDraft = (Array.isArray(attachments) ? attachments : [])
                 .map(normalizeAttachmentRecord)
-                .filter(Boolean)
-                .slice(0, ATTACHMENT_MAX_COUNT);
+                .filter(Boolean);
             taskModalAttachmentMessages = Array.isArray(options.messages) ? options.messages.filter(Boolean) : [];
             renderTaskAttachmentsEditor();
         }
@@ -4111,18 +4282,14 @@
                     status
                 });
                 setTaskAttachments(boardRecord.data, nextId, attachments);
+                markProjectDirty(boardId);
 
                 selectedPortfolioBoardId = boardId;
                 buildPortfolioTasks();
                 renderPortfolio();
                 closeModal();
 
-                try {
-                    await savePortfolioBoardRecord(boardRecord);
-                } catch (error) {
-                    console.error(error);
-                    alert(`Auto-save failed for ${boardRecord.title || boardRecord.fileName || 'project'}: ${error.message}`);
-                }
+                await enqueueProjectSave(boardRecord);
                 return;
             }
 

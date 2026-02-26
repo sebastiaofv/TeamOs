@@ -167,6 +167,60 @@ async function portfolioTitlesInColumn(page, status = 'backlog') {
   return titles.map((t) => t.trim());
 }
 
+async function installControlledPortfolioWriter(page, { boardId, holdWrites = false, failWrites = 0 } = {}) {
+  await page.evaluate(({ boardId, holdWrites, failWrites }) => {
+    window.__portfolioTestWrites = [];
+    window.__portfolioWriteControl = {
+      boardId,
+      holdWrites: Boolean(holdWrites),
+      failRemaining: Math.max(0, Number(failWrites) || 0),
+      attempts: 0,
+      active: 0,
+      maxActive: 0,
+      pendingResolvers: []
+    };
+    window.__releaseNextPortfolioWrite = () => {
+      const next = window.__portfolioWriteControl?.pendingResolvers?.shift();
+      if (typeof next === 'function') {
+        next();
+        return true;
+      }
+      return false;
+    };
+
+    const board = portfolioBoards.find((p) => p.id === boardId);
+    if (!board) throw new Error(`Board not found: ${boardId}`);
+
+    board.handle = {
+      name: board.fileName || `${boardId}.board.json`,
+      async createWritable() {
+        return {
+          async write(text) {
+            const ctl = window.__portfolioWriteControl;
+            ctl.attempts += 1;
+            const attempt = ctl.attempts;
+            ctl.active += 1;
+            ctl.maxActive = Math.max(ctl.maxActive, ctl.active);
+            try {
+              if (ctl.failRemaining > 0) {
+                ctl.failRemaining -= 1;
+                throw new Error(`Simulated save failure #${attempt}`);
+              }
+              if (ctl.holdWrites) {
+                await new Promise((resolve) => ctl.pendingResolvers.push(resolve));
+              }
+              window.__portfolioTestWrites.push({ boardId, text: String(text), attempt });
+            } finally {
+              ctl.active -= 1;
+            }
+          },
+          async close() {}
+        };
+      }
+    };
+  }, { boardId, holdWrites, failWrites });
+}
+
 test.describe('portfolio-only app', () => {
   test.beforeEach(async ({ page }) => {
     await gotoApp(page);
@@ -206,6 +260,22 @@ test.describe('portfolio-only app', () => {
     const saved = JSON.parse(result.writes[0]);
     expect(saved.board.settings.title).toBe('Project Alpha');
     expect(saved.board.tasks).toEqual([]);
+  });
+
+  test('new project flow aborts cleanly if name prompt is canceled after file picker', async ({ page }) => {
+    await mockNewProjectFlow(page, { promptValue: null, fileName: 'canceled.board.json' });
+
+    await page.locator('#newProjectBtn').click();
+
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+
+    const result = await page.evaluate(() => ({
+      projectCount: portfolioBoards.length,
+      writes: window.__newProjectWrites || []
+    }));
+
+    expect(result.projectCount).toBe(0);
+    expect(result.writes).toEqual([]);
   });
 
   test('help button opens and closes help modal', async ({ page }) => {
@@ -277,6 +347,57 @@ test.describe('portfolio-only app', () => {
 
     const count = await page.evaluate(() => portfolioBoards.length);
     expect(count).toBe(1);
+  });
+
+  test('import projects partially succeeds and reports invalid files', async ({ page }) => {
+    await page.evaluate(() => {
+      window.__alerts = [];
+      window.alert = (msg) => { window.__alerts.push(String(msg)); };
+    });
+
+    await mockImportProjectsPicker(page, [
+      {
+        fileName: 'valid.board.json',
+        payload: buildBoardPayload({
+          title: 'Valid Project',
+          tasks: [{ id: 1, title: 'Valid task', status: 'backlog' }]
+        })
+      },
+      {
+        fileName: 'invalid.board.json',
+        payload: {
+          meta: {
+            schemaVersion: 1,
+            appId: 'wrong-app-id',
+            createdAt: '2026-02-26T00:00:00.000Z',
+            updatedAt: '2026-02-26T00:00:00.000Z'
+          },
+          board: {
+            columns: [{ status: 'backlog', title: 'backlog' }],
+            tasks: [],
+            settings: { title: 'Broken', sortMode: 'manual', showArchivedOnly: false, archiveFilter: 'active' }
+          },
+          extensions: {}
+        }
+      }
+    ]);
+
+    await page.locator('#importProjectsBtn').click();
+
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('Valid Project');
+    await expect(portfolioCard(page, 'Valid task')).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      projectCount: portfolioBoards.length,
+      titles: portfolioBoards.map((p) => p.title),
+      alerts: window.__alerts || []
+    }));
+
+    expect(result.projectCount).toBe(1);
+    expect(result.titles).toEqual(['Valid Project']);
+    expect(result.alerts.length).toBe(1);
+    expect(result.alerts[0]).toContain('Some projects were not imported');
+    expect(result.alerts[0]).toContain('invalid.board.json');
   });
 
   test('selected mutable project can create tasks directly from portfolio columns and auto-saves', async ({ page }) => {
@@ -441,6 +562,66 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#detailAttachments .detail-attachment-download')).toHaveCount(1);
   });
 
+  test('attachment validation blocks save for too many attachments and oversized attachments', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => {
+      window.__lastAlert = '';
+      window.alert = (msg) => { window.__lastAlert = String(msg); };
+    });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Attachment limits');
+
+    await page.evaluate(() => {
+      const makeAtt = (id, sizeBytes) => ({
+        id: `att_${id}`,
+        name: `f${id}.txt`,
+        mime: 'text/plain',
+        sizeBytes,
+        kind: 'file',
+        dataUrl: 'data:text/plain;base64,QQ==',
+        createdAt: '2026-02-26T00:00:00.000Z'
+      });
+      setTaskModalAttachmentDraft(Array.from({ length: 11 }, (_, i) => makeAtt(i + 1, 1)), { messages: [] });
+    });
+
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    let result = await page.evaluate(() => ({
+      alert: window.__lastAlert,
+      taskCount: portfolioBoards[0].data.board.tasks.length
+    }));
+    expect(result.alert).toContain('up to 10 attachments');
+    expect(result.taskCount).toBe(0);
+
+    await page.evaluate(() => {
+      window.__lastAlert = '';
+      setTaskModalAttachmentDraft([{
+        id: 'att_big',
+        name: 'big.bin',
+        mime: 'application/octet-stream',
+        sizeBytes: (10 * 1024 * 1024) + 1,
+        kind: 'file',
+        dataUrl: 'data:application/octet-stream;base64,QQ==',
+        createdAt: '2026-02-26T00:00:00.000Z'
+      }], { messages: [] });
+    });
+
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    result = await page.evaluate(() => ({
+      alert: window.__lastAlert,
+      taskCount: portfolioBoards[0].data.board.tasks.length
+    }));
+    expect(result.alert).toContain('10 MB or smaller');
+    expect(result.taskCount).toBe(0);
+  });
+
   test('all-projects view hides add-task cards and read-only selected project also hides them', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'm1', title: 'Mutable A', hasHandle: true, tasks: [] },
@@ -456,6 +637,29 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
     await expect(page.locator('.portfolio-chip.active')).toContainText('Read Only (Read-only)');
     await expect(portfolioCard(page, 'RO Task').locator('button[title=\"Read-only (no file handle)\"]')).toHaveCount(2);
+  });
+
+  test('read-only task detail keyboard shortcuts do not open edit or mutate', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'ro1', title: 'Read Only', hasHandle: false, tasks: [{ id: 1, title: 'RO Task', status: 'backlog' }] }
+    ], { selectedBoardId: 'ro1' });
+
+    await portfolioCard(page, 'RO Task').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+
+    await page.keyboard.press('e');
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await page.keyboard.press('x');
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      archived: portfolioBoards[0].data.board.tasks.find((t) => t.id === 1)?.archived,
+      writes: window.__portfolioTestWrites || []
+    }));
+    expect(result.archived).toBe(false);
+    expect(result.writes).toEqual([]);
   });
 
   test('portfolio filters and URL params persist in portfolio-only mode', async ({ page }) => {
@@ -590,6 +794,55 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Task A Edited' })).toBeVisible();
   });
 
+  test('opening edit from task detail closes the detail modal (no modal stacking)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'm1',
+        title: 'Modal Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Modal Task', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'm1' });
+
+    await portfolioCard(page, 'Modal Task').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+
+    await page.keyboard.press('e');
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(page.locator('#taskDetailModal')).toBeHidden();
+  });
+
+  test('single-key shortcuts do not fire while typing in task modal inputs', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => {
+      window.__shortcutImportCalls = 0;
+      window.showOpenFilePicker = async () => {
+        window.__shortcutImportCalls += 1;
+        return [];
+      };
+    });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    const name = page.locator('#taskName');
+    await name.click();
+    await page.keyboard.type('nix/');
+
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(name).toHaveValue('nix/');
+
+    const result = await page.evaluate(() => ({
+      projectCount: portfolioBoards.length,
+      importCalls: window.__shortcutImportCalls || 0
+    }));
+    expect(result.projectCount).toBe(1);
+    expect(result.importCalls).toBe(0);
+  });
+
   test('dragging a task across portfolio columns updates status and auto-saves', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
@@ -633,6 +886,211 @@ test.describe('portfolio-only app', () => {
     expect(result.writes.length).toBeGreaterThan(0);
     expect(result.writes.at(-1).text).toContain('"status": "doing"');
     expect(result.writes.at(-1).text).toContain('"statusChangedAt"');
+  });
+
+  test('editing a task does not change statusChangedAt', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 's1',
+        title: 'Status Age Project',
+        hasHandle: true,
+        tasks: [
+          {
+            id: 1,
+            title: 'Keep status age',
+            status: 'backlog',
+            statusChangedAt: '2026-02-20T00:00:00.000Z'
+          }
+        ]
+      }
+    ], { selectedBoardId: 's1' });
+
+    await page.evaluate(() => editPortfolioTask('s1', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Keep status age edited');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const result = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((t) => t.id === 1);
+      return {
+        title: task?.title,
+        status: task?.status,
+        statusChangedAt: task?.statusChangedAt
+      };
+    });
+
+    expect(result.title).toBe('Keep status age edited');
+    expect(result.status).toBe('backlog');
+    expect(result.statusChangedAt).toBe('2026-02-20T00:00:00.000Z');
+  });
+
+  test('overdue calculation uses local date instead of UTC ISO date', async ({ page }) => {
+    const result = await page.evaluate(() => {
+      const RealDate = window.Date;
+      function FakeDate(...args) {
+        if (!(this instanceof FakeDate)) {
+          return new RealDate(...args);
+        }
+        if (args.length > 0) {
+          return new RealDate(...args);
+        }
+        this.getTime = () => 1;
+        this.getFullYear = () => 2026;
+        this.getMonth = () => 1; // February (0-based)
+        this.getDate = () => 26;
+        this.toISOString = () => '2026-02-27T00:30:00.000Z';
+      }
+      FakeDate.parse = RealDate.parse;
+      FakeDate.UTC = RealDate.UTC;
+      FakeDate.now = () => RealDate.parse('2026-02-27T00:30:00.000Z');
+      FakeDate.prototype = RealDate.prototype;
+
+      window.Date = FakeDate;
+      try {
+        return {
+          todayLocal: todayLocalIsoDate(),
+          sameDayOverdue: isTaskOverdue({ dueDate: '2026-02-26', status: 'backlog', archived: false }),
+          previousDayOverdue: isTaskOverdue({ dueDate: '2026-02-25', status: 'backlog', archived: false })
+        };
+      } finally {
+        window.Date = RealDate;
+      }
+    });
+
+    expect(result.todayLocal).toBe('2026-02-26');
+    expect(result.sameDayOverdue).toBe(false);
+    expect(result.previousDayOverdue).toBe(true);
+  });
+
+  test('auto-save queue serializes writes per project and persists latest mutation', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'q1',
+        title: 'Queued Save Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Queued task', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'q1' });
+
+    await installControlledPortfolioWriter(page, { boardId: 'q1', holdWrites: true, failWrites: 0 });
+
+    await page.evaluate(() => {
+      runPortfolioTaskMutation('q1', 1, (task) => {
+        task.title = 'Queued task v1';
+        return true;
+      });
+      runPortfolioTaskMutation('q1', 1, (task) => {
+        task.title = 'Queued task v2';
+        return true;
+      });
+    });
+
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Saving');
+
+    let interim = await page.evaluate(() => ({
+      status: getProjectSaveState('q1')?.status,
+      revision: getProjectSaveState('q1')?.revision,
+      savedRevision: getProjectSaveState('q1')?.savedRevision,
+      maxActive: window.__portfolioWriteControl?.maxActive || 0,
+      writes: window.__portfolioTestWrites || []
+    }));
+    expect(interim.status).toBe('saving');
+    expect(interim.revision).toBe(2);
+    expect(interim.savedRevision).toBe(0);
+    expect(interim.maxActive).toBeLessThanOrEqual(1);
+    expect(interim.writes).toHaveLength(0);
+
+    await page.evaluate(() => window.__releaseNextPortfolioWrite());
+    await expect.poll(async () => (await page.evaluate(() => (window.__portfolioTestWrites || []).length))).toBe(1);
+
+    await page.evaluate(() => window.__releaseNextPortfolioWrite());
+    await expect.poll(async () => (await page.evaluate(() => (window.__portfolioTestWrites || []).length))).toBe(2);
+    await expect(page.locator('.portfolio-chip.active')).not.toContainText('Saving');
+
+    const result = await page.evaluate(() => {
+      const ctl = window.__portfolioWriteControl || {};
+      const writes = window.__portfolioTestWrites || [];
+      const state = getProjectSaveState('q1');
+      return {
+        maxActive: ctl.maxActive || 0,
+        writesCount: writes.length,
+        lastPayloadHasLatestTitle: writes[writes.length - 1]?.text.includes('Queued task v2') || false,
+        inMemoryTitle: portfolioBoards.find((b) => b.id === 'q1')?.data?.board?.tasks?.find((t) => t.id === 1)?.title,
+        saveStatus: state?.status,
+        revision: state?.revision,
+        savedRevision: state?.savedRevision
+      };
+    });
+
+    expect(result.maxActive).toBe(1);
+    expect(result.writesCount).toBe(2);
+    expect(result.lastPayloadHasLatestTitle).toBe(true);
+    expect(result.inMemoryTitle).toBe('Queued task v2');
+    expect(result.saveStatus).toBe('idle');
+    expect(result.revision).toBe(result.savedRevision);
+  });
+
+  test('auto-save failure shows retry in chip and retry persists without alert', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'r1',
+        title: 'Retry Save Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Retry task', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'r1' });
+
+    await page.evaluate(() => {
+      window.__alerts = [];
+      window.alert = (msg) => window.__alerts.push(String(msg));
+    });
+    await installControlledPortfolioWriter(page, { boardId: 'r1', holdWrites: false, failWrites: 1 });
+
+    await page.evaluate(() => {
+      runPortfolioTaskMutation('r1', 1, (task) => {
+        task.title = 'Retry task edited';
+        return true;
+      });
+    });
+
+    const activeChip = page.locator('.portfolio-chip.active');
+    await expect(activeChip).toContainText('Save failed');
+    await expect(activeChip.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
+
+    let beforeRetry = await page.evaluate(() => ({
+      alerts: window.__alerts || [],
+      writes: window.__portfolioTestWrites || [],
+      saveState: getProjectSaveState('r1')
+    }));
+    expect(beforeRetry.alerts).toEqual([]);
+    expect(beforeRetry.writes).toHaveLength(0);
+    expect(beforeRetry.saveState.status).toBe('error');
+    expect(beforeRetry.saveState.revision).toBeGreaterThan(beforeRetry.saveState.savedRevision);
+
+    await activeChip.getByRole('button', { name: 'Retry', exact: true }).click();
+
+    await expect.poll(async () => (await page.evaluate(() => (window.__portfolioTestWrites || []).length))).toBe(1);
+    await expect(activeChip).not.toContainText('Save failed');
+
+    const afterRetry = await page.evaluate(() => {
+      const writes = window.__portfolioTestWrites || [];
+      const state = getProjectSaveState('r1');
+      return {
+        writesCount: writes.length,
+        lastPayloadHasEdit: writes[writes.length - 1]?.text.includes('Retry task edited') || false,
+        status: state?.status,
+        revision: state?.revision,
+        savedRevision: state?.savedRevision,
+        alerts: window.__alerts || []
+      };
+    });
+
+    expect(afterRetry.writesCount).toBe(1);
+    expect(afterRetry.lastPayloadHasEdit).toBe(true);
+    expect(afterRetry.status).toBe('idle');
+    expect(afterRetry.revision).toBe(afterRetry.savedRevision);
+    expect(afterRetry.alerts).toEqual([]);
   });
 
   test('dragging works in all-projects view for mutable cards', async ({ page }) => {
