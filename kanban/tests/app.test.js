@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 function buildBoardPayload({ title, tasks = [] }) {
   return {
     meta: {
-      schemaVersion: 4,
+      schemaVersion: 1,
       appId: 'household-task-board',
       createdAt: '2026-02-26T00:00:00.000Z',
       updatedAt: '2026-02-26T00:00:00.000Z'
@@ -75,7 +75,7 @@ async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey
         title: board.title,
         data: {
           meta: {
-            schemaVersion: 4,
+            schemaVersion: 1,
             appId: 'household-task-board',
             createdAt: '2026-02-26T00:00:00.000Z',
             updatedAt: '2026-02-26T00:00:00.000Z'

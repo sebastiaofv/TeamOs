@@ -1948,9 +1948,8 @@
             { status: 'done', title: 'done' }
         ];
         let columns = defaultColumns.map(col => ({ ...col }));
-        const BOARD_SCHEMA_VERSION = 4;
-        const BOARD_LEGACY_SCHEMA_VERSION = 3;
-        const BOARD_APP_ID = 'household-task-board';
+        const BOARD_SCHEMA_VERSION = 1;
+        const BOARD_APP_ID = 'teamos-kanban';
         const BOARD_FILE_EXTENSION = '.board.json';
         const DEFAULT_BOARD_TITLE = 'Example Task Board';
         const TASK_TITLE_MAX_LENGTH = 80;
@@ -3497,8 +3496,8 @@
                 throw new Error('Invalid meta structure.');
             }
             const schemaVersion = data.meta.schemaVersion;
-            if (![BOARD_LEGACY_SCHEMA_VERSION, BOARD_SCHEMA_VERSION].includes(schemaVersion)) {
-                throw new Error(`Unsupported schemaVersion. Expected ${BOARD_LEGACY_SCHEMA_VERSION} or ${BOARD_SCHEMA_VERSION}.`);
+            if (schemaVersion !== BOARD_SCHEMA_VERSION) {
+                throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
             }
             if (data.meta.appId !== BOARD_APP_ID) {
                 throw new Error('Invalid appId.');
