@@ -1502,68 +1502,6 @@
         </div>
     </div>
 
-    <div class="view hidden" id="boardView" aria-hidden="true">
-        <div class="view-main">
-            <div class="toolbar" id="boardToolbar">
-                <div class="board-toolbar-left">
-                    <div class="board-title-inline">
-                        <h1 id="boardTitle">Example Task Board</h1>
-                        <button class="title-rename-btn" onclick="renameBoard()" title="Rename board">✎</button>
-                    </div>
-                    <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="Search tasks..." oninput="filterTasks()">
-                    </div>
-                    <div class="filter-group">
-                        <label>Archive:</label>
-                        <select id="boardArchiveFilter" onchange="onBoardArchiveFilterChange()">
-                            <option value="active">Active Only</option>
-                            <option value="all">Active + Archived</option>
-                            <option value="archived">Archived Only</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Sort:</label>
-                        <select id="boardSortSelect" onchange="onBoardSortChange()">
-                            <option value="manual">Manual</option>
-                            <option value="dueDate">Due Date</option>
-                            <option value="effort">Effort</option>
-                            <option value="score">Score</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Priority:</label>
-                        <select id="priorityFilter" onchange="filterTasks()">
-                            <option value="">All</option>
-                            <option value="high">High</option>
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Effort:</label>
-                        <select id="effortFilter" onchange="filterTasks()">
-                            <option value="">All</option>
-                            <option value="XS">XS</option>
-                            <option value="S">S</option>
-                            <option value="M">M</option>
-                            <option value="L">L</option>
-                            <option value="XL">XL</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="board-toolbar-right">
-                    <button class="btn btn-primary" onclick="newBoard()">+ New Board</button>
-                    <button class="btn" onclick="openBoardFile()">Open</button>
-                    <button class="btn" onclick="saveBoard()">Save</button>
-                    <button class="btn" onclick="saveBoardAs()">Save As</button>
-                </div>
-            </div>
-            <div class="board" id="board">
-            </div>
-        </div>
-        <div class="file-drop-overlay" id="boardDropOverlay" aria-hidden="true">Drop board file to open</div>
-    </div>
-
     <div class="view" id="portfolioView">
         <div class="view-main">
             <div class="portfolio-toolbar">
@@ -1629,64 +1567,6 @@
                 </div>
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
-            <div class="portfolio-table-wrap hidden" id="portfolioTableWrap" aria-hidden="true">
-                <table class="portfolio-table">
-                    <thead>
-                        <tr>
-                            <th id="portfolioSortHeader-board" aria-sort="none">
-                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('board')">
-                                    <span>Board</span>
-                                    <span class="portfolio-sort-indicator"></span>
-                                </button>
-                            </th>
-                            <th id="portfolioSortHeader-task" aria-sort="none">
-                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('task')">
-                                    <span>Task</span>
-                                    <span class="portfolio-sort-indicator"></span>
-                                </button>
-                            </th>
-                            <th id="portfolioSortHeader-column" aria-sort="none">
-                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('column')">
-                                    <span>Status</span>
-                                    <span class="portfolio-sort-indicator"></span>
-                                </button>
-                            </th>
-                            <th id="portfolioSortHeader-priority" aria-sort="none">
-                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('priority')">
-                                    <span>Priority</span>
-                                    <span class="portfolio-sort-indicator"></span>
-                                </button>
-                            </th>
-                            <th id="portfolioSortHeader-effort" aria-sort="none">
-                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('effort')">
-                                    <span>Effort</span>
-                                    <span class="portfolio-sort-indicator"></span>
-                                </button>
-                            </th>
-                            <th id="portfolioSortHeader-score" aria-sort="none">
-                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('score')">
-                                    <span>Score</span>
-                                    <span class="portfolio-sort-indicator"></span>
-                                </button>
-                            </th>
-                            <th id="portfolioSortHeader-dueDate" aria-sort="none">
-                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('dueDate')">
-                                    <span>Due</span>
-                                    <span class="portfolio-sort-indicator"></span>
-                                </button>
-                            </th>
-                            <th id="portfolioSortHeader-updatedAt" aria-sort="none">
-                                <button type="button" class="portfolio-sort-btn" onclick="setPortfolioSort('updatedAt')">
-                                    <span>Updated</span>
-                                    <span class="portfolio-sort-indicator"></span>
-                                </button>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="portfolioTableBody">
-                    </tbody>
-                </table>
-            </div>
             <div class="portfolio-board-wrap" id="portfolioBoardWrap">
                 <div class="portfolio-empty-banner hidden" id="portfolioBoardEmptyBanner"></div>
                 <div class="portfolio-board-grid" id="portfolioBoard"></div>
@@ -1963,29 +1843,14 @@
         const ATTACHMENT_SOFT_WARN_BYTES = 2 * 1024 * 1024;
         const ATTACHMENT_TASK_SOFT_TOTAL_BYTES = 20 * 1024 * 1024;
         const ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES = 25 * 1024 * 1024;
-        let boardCreatedAt = new Date().toISOString();
-        let boardExtensions = {};
-        let boardTitle = DEFAULT_BOARD_TITLE;
-        let boardSortMode = 'manual';
-        let boardArchiveFilter = 'active';
-        let currentFileHandle = null;
-        let currentFileName = '';
-        let isDirty = false;
-        let isSaving = false;
-        let saveQueued = false;
-        let suppressChangeTracking = false;
-        let selectedTaskId = null;
         let pendingNewTaskStatus = null;
-        let draggedColumnStatus = null;
         let undoAction = null;
         let undoTimer = null;
-        let appMode = 'portfolio';
         let portfolioBoards = [];
         let portfolioTasks = [];
         let selectedPortfolioBoardId = '';
         let portfolioSortKey = 'priority';
         let portfolioSortDir = 'asc';
-        let portfolioDisplayMode = 'board';
         let portfolioEditContext = null;
         let portfolioCreateContext = null;
         let portfolioDetailContext = null;
@@ -2088,113 +1953,15 @@
             portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
             portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
             selectedPortfolioBoardId = portfolioBoard;
-            portfolioDisplayMode = 'board';
-
-            setAppMode('portfolio');
+            renderPortfolio();
         }
-
-        const sampleTasks = [];
 
         function updateDocumentTitle() {
             document.title = 'TeamOS → Kanban';
         }
 
-        function applyBoardTitle() {
-            document.getElementById('boardTitle').textContent = boardTitle;
-            updateDocumentTitle();
-        }
-
-        function setDirty(nextDirty) {
-            isDirty = nextDirty;
-            updateDocumentTitle();
-        }
-
-        function cloneTemplateTasks() {
-            return sampleTasks.map(task => ({
-                id: task.id,
-                title: task.title,
-                description: task.description || '',
-                checklist: [],
-                archived: false,
-                createdAt: nowIso(),
-                updatedAt: nowIso(),
-                dueDate: '',
-                priority: normalizePriority(task.priority),
-                effort: normalizeEffort(task.effort),
-                status: task.status
-            }));
-        }
-
         function nowIso() {
             return new Date().toISOString();
-        }
-
-        function setSaveStatus(label, state = 'saved') {
-            const node = document.getElementById('saveStatus');
-            if (!node) return;
-            node.textContent = label;
-            node.className = `save-status ${state}`;
-        }
-
-        function deepClone(value) {
-            return JSON.parse(JSON.stringify(value));
-        }
-
-        function snapshotBoardState() {
-            return {
-                columns: deepClone(columns.map(col => ({ status: col.status, title: col.title }))),
-                tasks: deepClone(tasks.map(task => normalizeTask(task))),
-                settings: {
-                    title: boardTitle,
-                    sortMode: boardSortMode,
-                    showArchivedOnly: boardArchiveFilter === 'archived',
-                    archiveFilter: boardArchiveFilter
-                }
-            };
-        }
-
-        function applyViewControls() {
-            const archiveSelect = document.getElementById('boardArchiveFilter');
-            const sortSelect = document.getElementById('boardSortSelect');
-            if (archiveSelect) {
-                archiveSelect.value = normalizeBoardArchiveFilter(boardArchiveFilter);
-            }
-            if (sortSelect && ['manual', 'dueDate', 'effort', 'score'].includes(boardSortMode)) {
-                sortSelect.value = boardSortMode;
-            }
-        }
-
-        function setAppMode(mode) {
-            appMode = 'portfolio';
-            const boardView = document.getElementById('boardView');
-            const portfolioView = document.getElementById('portfolioView');
-            if (boardView) boardView.classList.add('hidden');
-            if (portfolioView) portfolioView.classList.remove('hidden');
-            renderPortfolio();
-            updateUrlState();
-        }
-
-        function togglePortfolioView() {
-            setAppMode('portfolio');
-        }
-
-        function normalizePortfolioDisplayMode(value) {
-            return value === 'board' ? 'board' : 'table';
-        }
-
-        function setPortfolioDisplayMode(mode) {
-            portfolioDisplayMode = 'board';
-            renderPortfolio();
-        }
-
-        function renderPortfolioDisplayControls() {
-            ['table', 'board'].forEach((mode) => {
-                const btn = document.getElementById(`portfolioDisplayMode-${mode}`);
-                if (!btn) return;
-                const active = normalizePortfolioDisplayMode(portfolioDisplayMode) === mode;
-                btn.classList.toggle('active', active);
-                btn.setAttribute('aria-pressed', active ? 'true' : 'false');
-            });
         }
 
         function priorityRank(priority) {
@@ -2308,7 +2075,7 @@
                 : [];
             const title = typeof settings.title === 'string' && settings.title.trim()
                 ? settings.title.trim()
-                : (boardTitle || DEFAULT_BOARD_TITLE);
+                : DEFAULT_BOARD_TITLE;
 
             return {
                 meta: {
@@ -2420,7 +2187,7 @@
                 selectedPortfolioBoardId = '';
             }
             buildPortfolioTasks();
-            setAppMode('portfolio');
+            renderPortfolio();
         }
 
         function renderPortfolioBoardChips() {
@@ -2478,10 +2245,6 @@
             renderPortfolio();
         }
 
-        function openLoadedBoard(boardId) {
-            selectPortfolioBoard(boardId);
-        }
-
         async function newProject() {
             try {
                 const requestedName = prompt('Project name:', 'New Project');
@@ -2497,7 +2260,6 @@
                 assertRequiredExtension(handle.name, BOARD_FILE_EXTENSION, 'Project file');
 
                 const data = createEmptyProjectData(title);
-                setSaveStatus('Saving...', 'saving');
                 await writeJsonToFileHandle(handle, data);
                 const record = createPortfolioRecord({
                     handle,
@@ -2505,10 +2267,8 @@
                     data
                 });
                 appendPortfolioRecords([record], { selectBoardId: record.id });
-                setSaveStatus('Saved', 'saved');
             } catch (error) {
                 if (error.name !== 'AbortError') {
-                    setSaveStatus('Error', 'error');
                     alert(`New project failed: ${error.message}`);
                 }
             }
@@ -2521,7 +2281,6 @@
                     types: [{ description: 'Project JSON', accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
                 });
 
-                setSaveStatus('Opening...', 'saving');
                 const loaded = [];
                 const errors = [];
                 for (const handle of handles) {
@@ -2541,46 +2300,13 @@
                 }
 
                 appendPortfolioRecords(loaded);
-                if (loaded.length > 0) {
-                    setSaveStatus('Saved', 'saved');
-                } else if (errors.length > 0) {
-                    setSaveStatus('Error', 'error');
-                }
-
                 if (errors.length > 0) {
                     alert(`Some projects were not imported:\n${errors.join('\n')}`);
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
-                    setSaveStatus('Error', 'error');
                     alert(`Import failed: ${error.message}`);
                 }
-            }
-        }
-
-        async function openPortfolioBoards() {
-            await importProjects();
-        }
-
-        async function openBoardFromFile(file) {
-            if (!confirmDiscardChanges('Open')) return;
-            try {
-                assertRequiredExtension(file.name, BOARD_FILE_EXTENSION, 'Board file');
-                const parsed = JSON.parse(await file.text());
-                applyBoardData(parsed);
-                currentFileHandle = null;
-                currentFileName = file.name || '';
-                suppressChangeTracking = true;
-                renderBoard();
-                renderTasks();
-                persistLocalState();
-                suppressChangeTracking = false;
-                setDirty(false);
-                setSaveStatus('Saved', 'saved');
-                setAppMode('board');
-            } catch (error) {
-                suppressChangeTracking = false;
-                alert(`Open failed: ${error.message}`);
             }
         }
 
@@ -2593,7 +2319,6 @@
                     return;
                 }
 
-                setSaveStatus('Opening...', 'saving');
                 const loaded = [];
                 const errors = [];
                 for (const file of boardFiles) {
@@ -2611,16 +2336,10 @@
                 }
 
                 appendPortfolioRecords(loaded);
-                if (loaded.length > 0) {
-                    setSaveStatus('Saved', 'saved');
-                } else if (errors.length > 0) {
-                    setSaveStatus('Error', 'error');
-                }
                 if (errors.length > 0) {
                     alert(`Some projects were not imported:\n${errors.join('\n')}`);
                 }
             } catch (error) {
-                setSaveStatus('Error', 'error');
                 alert(`Import failed: ${error.message}`);
             }
         }
@@ -2783,29 +2502,6 @@
             return div;
         }
 
-        function renderPortfolioTableView(rows) {
-            const body = document.getElementById('portfolioTableBody');
-            if (!body) return;
-
-            if (rows.length === 0) {
-                body.innerHTML = '';
-                return;
-            }
-
-            body.innerHTML = rows.map(item => `
-                <tr>
-                    <td>${escapeHtml(item.boardTitle || item.boardFileName)}</td>
-                    <td>${escapeHtml(item.task.title)}</td>
-                    <td>${escapeHtml(item.columnTitle)}</td>
-                    <td>${escapeHtml(item.task.priority || '-')}</td>
-                    <td>${escapeHtml(item.task.effort || '-')}</td>
-                    <td>${formatTaskScore(item.task)}</td>
-                    <td>${escapeHtml(item.task.dueDate || '-')}</td>
-                    <td>${escapeHtml(formatDateTime(item.task.updatedAt))}</td>
-                </tr>
-            `).join('');
-        }
-
         function renderPortfolioBoardView(rows) {
             const boardWrap = document.getElementById('portfolioBoardWrap');
             const boardGrid = document.getElementById('portfolioBoard');
@@ -2879,19 +2575,15 @@
         }
 
         function renderPortfolio() {
-            const tableWrap = document.getElementById('portfolioTableWrap');
             const boardWrap = document.getElementById('portfolioBoardWrap');
-            if (!tableWrap || !boardWrap) return;
+            if (!boardWrap) return;
 
             renderPortfolioAssigneeFilterOptions();
             renderTaskAssigneeSuggestions();
             const rows = getFilteredSortedPortfolioRows();
             syncSelectedPortfolioCardWithVisibleRows(rows);
-            portfolioDisplayMode = 'board';
-            tableWrap.classList.add('hidden');
             boardWrap.classList.remove('hidden');
             applyPortfolioSortSelect();
-            renderPortfolioSortHeaders();
             renderPortfolioBoardView(rows);
 
             renderPortfolioBoardChips();
@@ -2933,12 +2625,9 @@
             }
 
             try {
-                setSaveStatus('Saving...', 'saving');
                 await savePortfolioBoardRecord(source.boardRecord);
-                setSaveStatus('Saved', 'saved');
             } catch (error) {
                 console.error(error);
-                setSaveStatus('Error', 'error');
                 alert(`Auto-save failed for ${source.boardRecord.title || source.boardRecord.fileName || 'project'}: ${error.message}`);
             }
 
@@ -2955,8 +2644,6 @@
             const readOnly = !canUsePortfolioTaskMutations(boardId);
 
             portfolioDetailContext = { boardId, taskId, readOnly };
-            selectedTaskId = null;
-
             document.getElementById('detailTitle').textContent = task.title || '-';
             document.getElementById('detailDescription').textContent = task.description || '-';
             document.getElementById('detailAssignee').textContent = normalizeAssignee(task.assignee) || '-';
@@ -3108,7 +2795,6 @@
             };
 
             portfolioTasks.forEach(item => addName(item?.task?.assignee));
-            tasks.forEach(task => addName(task?.assignee));
 
             return values.sort((a, b) => a.localeCompare(b));
         }
@@ -3181,21 +2867,6 @@
                 portfolioSortDir = 'asc';
             }
             renderPortfolio();
-        }
-
-        function renderPortfolioSortHeaders() {
-            const keys = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
-            keys.forEach((key) => {
-                const th = document.getElementById(`portfolioSortHeader-${key}`);
-                if (!th) return;
-                const btn = th.querySelector('.portfolio-sort-btn');
-                const indicator = th.querySelector('.portfolio-sort-indicator');
-                const active = normalizePortfolioSortKey(portfolioSortKey) === key;
-                const dir = normalizePortfolioSortDir(portfolioSortDir);
-                th.setAttribute('aria-sort', active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none');
-                if (btn) btn.classList.toggle('active', active);
-                if (indicator) indicator.textContent = active ? (dir === 'asc' ? '↑' : '↓') : '';
-            });
         }
 
         function comparePortfolioRows(a, b, sortBy, sortDir) {
@@ -3271,45 +2942,6 @@
             return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
         }
 
-        function toggleArchivedView() {
-            boardArchiveFilter = boardArchiveFilter === 'archived' ? 'active' : 'archived';
-            applyViewControls();
-            saveColumns();
-            renderTasks();
-            updateUrlState();
-        }
-
-        function onBoardArchiveFilterChange() {
-            const select = document.getElementById('boardArchiveFilter');
-            if (!select) return;
-            const next = normalizeBoardArchiveFilter(select.value);
-            if (next === boardArchiveFilter) {
-                applyViewControls();
-                return;
-            }
-            boardArchiveFilter = next;
-            applyViewControls();
-            saveColumns();
-            renderTasks();
-            updateUrlState();
-        }
-
-        function onBoardSortChange() {
-            const select = document.getElementById('boardSortSelect');
-            if (!select) return;
-            const next = select.value;
-            if (!['manual', 'dueDate', 'effort', 'score'].includes(next)) {
-                applyViewControls();
-                return;
-            }
-            if (boardSortMode === next) return;
-            boardSortMode = next;
-            applyViewControls();
-            saveColumns();
-            renderTasks();
-            updateUrlState();
-        }
-
         function formatDateTime(value) {
             const ts = normalizeTimestamp(value);
             if (!ts) return '-';
@@ -3367,30 +2999,6 @@
             const fn = undoAction;
             hideUndo();
             fn();
-        }
-
-        function loadTemplateBoard() {
-            columns = normalizeColumns(defaultColumns);
-            tasks = cloneTemplateTasks();
-            boardCreatedAt = new Date().toISOString();
-            boardExtensions = {};
-            boardTitle = DEFAULT_BOARD_TITLE;
-            boardSortMode = 'manual';
-            boardArchiveFilter = 'active';
-        }
-
-        function persistLocalState() {
-            return;
-        }
-
-        function onBoardChanged() {
-            if (suppressChangeTracking) return;
-            persistLocalState();
-            setDirty(true);
-            if (!currentFileHandle) {
-                setSaveStatus('Unsaved', 'error');
-            }
-            queueAutoSave();
         }
 
         function hasExactKeys(obj, expectedKeys) {
@@ -3452,40 +3060,11 @@
             return 'active';
         }
 
-        function formatArchiveFilterLabel(value) {
-            const mode = normalizeBoardArchiveFilter(value);
-            if (mode === 'archived') return 'Archived Only';
-            if (mode === 'all') return 'Active + Archived';
-            return 'Active Only';
-        }
-
         function isTaskOverdue(task) {
             const due = normalizeDueDate(task.dueDate);
             if (!due || task.status === 'done' || task.archived) return false;
             const today = new Date().toISOString().slice(0, 10);
             return due < today;
-        }
-
-        function serializeBoardData() {
-            const now = new Date().toISOString();
-            return {
-                meta: {
-                    schemaVersion: BOARD_SCHEMA_VERSION,
-                    appId: BOARD_APP_ID,
-                    createdAt: boardCreatedAt || now,
-                    updatedAt: now
-                },
-                board: {
-                    columns: columns.map(col => ({ status: col.status, title: col.title })),
-                    tasks: tasks.map(task => normalizeTask(task, {
-                        fallbackAttachments: getLegacyTaskAttachmentsFromExtensions({ board: { tasks }, extensions: boardExtensions }, task?.id)
-                    })),
-                    settings: {
-                        title: boardTitle
-                    }
-                },
-                extensions: stripLegacyTaskAttachmentsFromExtensions(boardExtensions)
-            };
         }
 
         function validateBoardData(data) {
@@ -3673,145 +3252,6 @@
                     });
                 }
             });
-        }
-
-        function applyBoardData(data) {
-            validateBoardData(data);
-            const settings = data.board.settings || {};
-            columns = normalizeColumns(data.board.columns);
-            tasks = data.board.tasks.map(task => normalizeTask(task, {
-                fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(data, task?.id)
-            }));
-            boardCreatedAt = data.meta.createdAt;
-            boardExtensions = stripLegacyTaskAttachmentsFromExtensions(data.extensions);
-            boardTitle = settings.title.trim();
-            boardSortMode = ['manual', 'dueDate', 'effort', 'score'].includes(settings.sortMode) ? settings.sortMode : 'manual';
-            boardArchiveFilter = normalizeBoardArchiveFilter(
-                Object.prototype.hasOwnProperty.call(settings, 'archiveFilter') ? settings.archiveFilter : settings.showArchivedOnly
-            );
-            applyBoardTitle();
-            applyViewControls();
-        }
-
-        function renameBoard() {
-            const nextTitle = prompt('Board title:', boardTitle);
-            if (!nextTitle) return;
-            const trimmed = nextTitle.trim();
-            if (!trimmed || trimmed === boardTitle) return;
-            boardTitle = trimmed;
-            applyBoardTitle();
-            onBoardChanged();
-        }
-
-        async function writeBoardToFileHandle(fileHandle) {
-            await writeJsonToFileHandle(fileHandle, serializeBoardData());
-        }
-
-        async function flushSaveQueue() {
-            if (isSaving || !currentFileHandle) return;
-
-            isSaving = true;
-            setSaveStatus('Saving...', 'saving');
-            try {
-                do {
-                    saveQueued = false;
-                    await writeBoardToFileHandle(currentFileHandle);
-                    setDirty(false);
-                } while (saveQueued);
-                setSaveStatus('Saved', 'saved');
-            } catch (error) {
-                console.error(error);
-                setDirty(true);
-                setSaveStatus('Error', 'error');
-                alert(`Save failed: ${error.message}`);
-            } finally {
-                isSaving = false;
-            }
-        }
-
-        function queueAutoSave() {
-            if (!currentFileHandle) return;
-            saveQueued = true;
-            flushSaveQueue();
-        }
-
-        function confirmDiscardChanges(actionLabel) {
-            if (!isDirty) return true;
-            return confirm(`You have unsaved changes. Continue with ${actionLabel}?`);
-        }
-
-        async function saveBoardAs() {
-            try {
-                const handle = await window.showSaveFilePicker({
-                    suggestedName: currentFileName || 'kanban.board.json',
-                    types: [{ description: 'Kanban Board JSON', accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
-                });
-                assertRequiredExtension(handle.name, BOARD_FILE_EXTENSION, 'Board file');
-                currentFileHandle = handle;
-                currentFileName = handle.name || 'kanban.board.json';
-                updateDocumentTitle();
-                saveQueued = true;
-                await flushSaveQueue();
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    alert(`Save As failed: ${error.message}`);
-                }
-            }
-        }
-
-        async function saveBoard() {
-            if (!currentFileHandle) {
-                await saveBoardAs();
-                return;
-            }
-            saveQueued = true;
-            await flushSaveQueue();
-        }
-
-        async function openBoardFile() {
-            if (!confirmDiscardChanges('Open')) return;
-            try {
-                const [handle] = await window.showOpenFilePicker({
-                    multiple: false,
-                    types: [{ description: 'Kanban Board JSON', accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
-                });
-                const file = await handle.getFile();
-                assertRequiredExtension(file.name, BOARD_FILE_EXTENSION, 'Board file');
-                const parsed = JSON.parse(await file.text());
-                applyBoardData(parsed);
-                currentFileHandle = handle;
-                currentFileName = file.name || '';
-                suppressChangeTracking = true;
-                renderBoard();
-                renderTasks();
-                persistLocalState();
-                suppressChangeTracking = false;
-                setDirty(false);
-                setSaveStatus('Saved', 'saved');
-                setAppMode('board');
-            } catch (error) {
-                suppressChangeTracking = false;
-                if (error.name !== 'AbortError') {
-                    alert(`Open failed: ${error.message}`);
-                }
-            }
-        }
-
-        function newBoard() {
-            if (!confirmDiscardChanges('New Board')) return;
-            suppressChangeTracking = true;
-            loadTemplateBoard();
-            currentFileHandle = null;
-            currentFileName = '';
-            applyBoardTitle();
-            applyViewControls();
-            renderBoard();
-            renderTasks();
-            persistLocalState();
-            suppressChangeTracking = false;
-            setDirty(false);
-            setSaveStatus('Saved', 'saved');
-            setAppMode('board');
         }
 
         function slugifyColumnName(name) {
@@ -4128,15 +3568,6 @@
             removeLegacyTaskAttachmentsFromExtensions(boardData, taskId);
         }
 
-        function removeTaskAttachments(boardData, taskId) {
-            if (taskId === null || taskId === undefined || taskId === '') return;
-            const task = findTaskInBoardData(boardData, taskId);
-            if (task && Object.prototype.hasOwnProperty.call(task, 'attachments')) {
-                delete task.attachments;
-            }
-            removeLegacyTaskAttachmentsFromExtensions(boardData, taskId);
-        }
-
         function removeLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
             if (taskId === null || taskId === undefined || taskId === '') return;
             const key = attachmentTaskKey(taskId);
@@ -4216,12 +3647,7 @@
                     mode: 'portfolio-create'
                 };
             }
-            const rawId = document.getElementById('taskId')?.value;
-            return {
-                boardData: { board: { tasks }, extensions: boardExtensions },
-                taskId: rawId ? Number(rawId) : null,
-                mode: rawId ? 'legacy-edit' : 'legacy-create'
-            };
+            return { boardData: null, taskId: null, mode: 'unknown' };
         }
 
         function calculateBoardAttachmentBytes(boardData, options = {}) {
@@ -4509,213 +3935,9 @@
             }
             buildShortcutRegistry();
             renderShortcutsModalContent();
-            columns = normalizeColumns(columns);
-            if (columns.length === 0) {
-                loadTemplateBoard();
-            }
-
-            if (tasks.length === 0) {
-                loadTemplateBoard();
-            }
-
-            const availableStatuses = new Set(columns.map(col => col.status));
-            const fallbackStatus = columns[0].status;
-            tasks = tasks.map(task => {
-                const normalizedTask = normalizeTask(task);
-                if (!availableStatuses.has(normalizedTask.status)) {
-                    normalizedTask.status = fallbackStatus;
-                }
-                return normalizedTask;
-            });
-
-            suppressChangeTracking = true;
-            persistLocalState();
-            suppressChangeTracking = false;
-            setDirty(false);
-            renderBoard();
-            renderTasks();
-            applyBoardTitle();
-            applyViewControls();
-            setSaveStatus('Saved', 'saved');
+            updateDocumentTitle();
             setupFileDrop();
             applyUrlState();
-        }
-
-        function saveTasks() {
-            onBoardChanged();
-        }
-
-        function saveColumns() {
-            onBoardChanged();
-        }
-
-        function renderBoard() {
-            const board = document.getElementById('board');
-            board.innerHTML = columns.map(col => `
-                <div class="column" data-status="${escapeHtml(col.status)}">
-                    <div class="column-header">
-                        <div class="column-header-main">
-                            <span class="column-title">${escapeHtml(col.title)}</span>
-                            <span class="column-count" id="${escapeHtml(col.status)}Count">0</span>
-                        </div>
-                    </div>
-                    <div class="column-body" id="${escapeHtml(col.status)}Column"></div>
-                </div>
-            `).join('');
-        }
-
-        function renderTasks() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const priorityFilter = document.getElementById('priorityFilter').value;
-            const effortFilter = document.getElementById('effortFilter').value;
-
-            const columnNodes = Object.fromEntries(
-                columns.map(col => [col.status, document.getElementById(col.status + 'Column')])
-            );
-
-            const counts = Object.fromEntries(columns.map(col => [col.status, 0]));
-
-            Object.values(columnNodes).forEach(col => {
-                if (col) {
-                    col.innerHTML = '';
-                }
-            });
-
-            if (boardArchiveFilter !== 'archived') {
-                columns.forEach(col => {
-                    const node = columnNodes[col.status];
-                    if (!node) return;
-                    node.innerHTML = `<div class="add-task-card" onclick="openModal(null, '${escapeHtml(col.status)}')">+ Add Task</div>`;
-                });
-            }
-
-            const filtered = tasks.filter(task => {
-                if (boardArchiveFilter === 'active' && task.archived) return false;
-                if (boardArchiveFilter === 'archived' && !task.archived) return false;
-                if (searchTerm && !task.title.toLowerCase().includes(searchTerm)) return false;
-                if (priorityFilter && task.priority !== priorityFilter) return false;
-                if (effortFilter && task.effort !== effortFilter) return false;
-                return true;
-            });
-
-            columns.forEach(col => {
-                const node = columnNodes[col.status];
-                if (!node) return;
-
-                let statusTasks = filtered.filter(task => task.status === col.status);
-                if (boardSortMode === 'dueDate') {
-                    statusTasks = statusTasks
-                        .map((task, index) => ({ task, index }))
-                        .sort((a, b) => {
-                            const aDue = normalizeDueDate(a.task.dueDate);
-                            const bDue = normalizeDueDate(b.task.dueDate);
-                            if (aDue && bDue) {
-                                if (aDue < bDue) return -1;
-                                if (aDue > bDue) return 1;
-                                return a.index - b.index;
-                            }
-                            if (aDue && !bDue) return -1;
-                            if (!aDue && bDue) return 1;
-                            return a.index - b.index;
-                        })
-                        .map(entry => entry.task);
-                } else if (boardSortMode === 'effort') {
-                    statusTasks = statusTasks
-                        .map((task, index) => ({ task, index }))
-                        .sort((a, b) => {
-                            const er = effortRank(a.task.effort) - effortRank(b.task.effort);
-                            if (er !== 0) return er;
-                            return a.index - b.index;
-                        })
-                        .map(entry => entry.task);
-                } else if (boardSortMode === 'score') {
-                    statusTasks = statusTasks
-                        .map((task, index) => ({ task, index }))
-                        .sort((a, b) => {
-                            const aScore = taskScore(a.task);
-                            const bScore = taskScore(b.task);
-                            if (aScore === null && bScore === null) return a.index - b.index;
-                            if (aScore === null) return 1;
-                            if (bScore === null) return -1;
-                            if (aScore !== bScore) return aScore - bScore;
-                            return a.index - b.index;
-                        })
-                        .map(entry => entry.task);
-                }
-
-                statusTasks.forEach(task => {
-                    counts[task.status]++;
-                    const card = createTaskCard(task, searchTerm);
-                    node.appendChild(card);
-                });
-            });
-
-            Object.keys(counts).forEach(status => {
-                const countNode = document.getElementById(status + 'Count');
-                if (countNode) {
-                    countNode.textContent = counts[status];
-                }
-            });
-
-            Object.values(columnNodes).forEach(col => {
-                if (!col) return;
-                const status = col.id.replace('Column', '');
-                if (counts[status] === 0) {
-                    col.innerHTML += '<div class="empty-state"><span class="empty-state-text">No tasks</span></div>';
-                }
-            });
-
-            if (selectedTaskId && !tasks.find(task => task.id === selectedTaskId)) {
-                selectedTaskId = null;
-            }
-        }
-
-        function createTaskCard(task, searchTerm = '') {
-            const div = document.createElement('div');
-            div.className = 'task-card';
-            if (selectedTaskId === task.id) {
-                div.classList.add('selected');
-            }
-            div.draggable = false;
-            div.dataset.id = task.id;
-            div.onclick = () => {
-                selectedTaskId = task.id;
-                openTaskDetails(task.id);
-            };
-
-            const highlightedTitle = highlightSearchMatch(task.title, searchTerm);
-            const priority = normalizePriority(task.priority);
-            const effort = normalizeEffort(task.effort);
-            const score = formatTaskScore(task);
-            const archiveButtonLabel = task.archived ? '↺' : '×';
-            const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
-            const assignee = normalizeAssignee(task.assignee);
-            const statusAge = formatTaskStatusAge(task);
-            const metaParts = [
-                assignee ? `<span class="task-tag task-tag-assignee" title="Assignee">${escapeHtml(assignee)}</span>` : '',
-                task.blocked ? '<span class="task-tag task-tag-blocked" title="Blocked">Blocked</span>' : '',
-                statusAge ? `<span class="task-tag task-tag-age" title="Time in current status">${escapeHtml(statusAge)}</span>` : '',
-                isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : '',
-                priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : '',
-                effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : '',
-                score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : '',
-                task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : '',
-                task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(item => item.done).length}/${task.checklist.length} done</span>` : ''
-            ].filter(Boolean);
-            const taskMetaHtml = metaParts.length ? `<div class="task-meta">${metaParts.join('')}</div>` : '';
-
-            div.innerHTML = `
-                <div class="task-header">
-                    <span class="task-title">${highlightedTitle}</span>
-                    <div class="task-actions">
-                        <button class="task-action-btn" onclick="event.stopPropagation(); editTask(${task.id})" title="Edit">✎</button>
-                        <button class="task-action-btn" onclick="event.stopPropagation(); toggleArchiveTask(${task.id})" title="${archiveButtonTitle}">${archiveButtonLabel}</button>
-                    </div>
-                </div>
-                ${taskMetaHtml}
-            `;
-
-            return div;
         }
 
         function escapeHtml(text) {
@@ -4737,54 +3959,6 @@
             return safeText.replace(regex, '<span class="search-highlight">$1</span>');
         }
 
-        function openModal(taskId = null, preferredStatus = null) {
-            portfolioEditContext = null;
-            portfolioCreateContext = null;
-            renderTaskAssigneeSuggestions();
-            document.getElementById('taskModal').classList.add('active');
-            document.getElementById('taskForm').reset();
-            document.getElementById('taskId').value = '';
-            document.getElementById('modalTitle').textContent = 'New Task';
-            resetTaskModalAttachmentDraft();
-            document.getElementById('taskAssignee').value = '';
-            document.getElementById('taskBlocked').checked = false;
-            document.getElementById('taskBlockerReason').value = '';
-            syncTaskBlockedReasonVisibility();
-            document.getElementById('taskDueDate').value = '';
-            pendingNewTaskStatus = preferredStatus && columns.some(col => col.status === preferredStatus)
-                ? preferredStatus
-                : columns[0].status;
-
-            if (taskId) {
-                const task = tasks.find(t => t.id === taskId);
-                if (task) {
-                    document.getElementById('taskId').value = task.id;
-                    document.getElementById('taskName').value = task.title;
-                    document.getElementById('taskDescription').value = task.description || '';
-                    document.getElementById('taskAssignee').value = normalizeAssignee(task.assignee);
-                    document.getElementById('taskBlocked').checked = Boolean(task.blocked);
-                    document.getElementById('taskBlockerReason').value = normalizeBlockerReason(task.blockerReason);
-                    syncTaskBlockedReasonVisibility();
-                    document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
-                    setTaskModalAttachmentDraft(getTaskAttachments({ board: { tasks }, extensions: boardExtensions }, task.id), { messages: [] });
-                    document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
-                    document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
-                    document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
-                    document.getElementById('modalTitle').textContent = 'Edit Task';
-                    pendingNewTaskStatus = null;
-                }
-            }
-            loadTaskChecklistEditorFromTextarea();
-
-            const taskNameInput = document.getElementById('taskName');
-            requestAnimationFrame(() => {
-                taskNameInput.focus();
-                if (!taskId) {
-                    taskNameInput.select();
-                }
-            });
-        }
-
         function closeModal() {
             document.getElementById('taskModal').classList.remove('active');
             const checklistTextarea = document.getElementById('taskChecklist');
@@ -4800,30 +3974,6 @@
             pendingNewTaskStatus = null;
             portfolioEditContext = null;
             portfolioCreateContext = null;
-        }
-
-        function openTaskDetails(id) {
-            const task = tasks.find(t => t.id === id);
-            if (!task) return;
-            selectedTaskId = id;
-            portfolioDetailContext = null;
-
-            const statusTitle = (columns.find(col => col.status === task.status) || {}).title || task.status;
-            document.getElementById('detailTitle').textContent = task.title || '-';
-            document.getElementById('detailDescription').textContent = task.description || '-';
-            document.getElementById('detailAssignee').textContent = normalizeAssignee(task.assignee) || '-';
-            document.getElementById('detailBlocked').textContent = task.blocked ? 'Yes' : 'No';
-            document.getElementById('detailBlockerReason').textContent = task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-';
-            document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
-            document.getElementById('detailEffort').textContent = task.effort || '-';
-            document.getElementById('detailStatus').textContent = statusTitle || '-';
-            document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
-            document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
-            document.getElementById('detailDueDate').textContent = normalizeDueDate(task.dueDate) || '-';
-            renderDetailChecklist(task, { readOnly: false });
-            renderDetailAttachments(getTaskAttachments({ board: { tasks }, extensions: boardExtensions }, id));
-            document.getElementById('taskDetailModal').classList.add('active');
-            renderTasks();
         }
 
         function renderDetailChecklist(task, options = {}) {
@@ -4857,16 +4007,6 @@
                 });
                 return;
             }
-
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
-            if (!Array.isArray(task.checklist) || !task.checklist[itemIndex]) return;
-
-            task.checklist[itemIndex].done = checked;
-            touchTask(task);
-            saveTasks();
-            renderTasks();
-            openTaskDetails(taskId);
         }
 
         function closeDetailModal() {
@@ -4892,7 +4032,6 @@
         }
 
         async function saveTask() {
-            const id = document.getElementById('taskId').value;
             const title = document.getElementById('taskName').value.trim();
             const description = document.getElementById('taskDescription').value.trim();
             const assignee = normalizeAssignee(document.getElementById('taskAssignee').value);
@@ -5004,110 +4143,8 @@
                 return;
             }
 
-            if (id) {
-                const task = tasks.find(t => t.id === parseInt(id));
-                if (task) {
-                    task.title = title;
-                    task.description = description;
-                    task.assignee = assignee;
-                    task.blocked = blocked;
-                    task.blockerReason = blocked ? blockerReason : '';
-                    task.checklist = checklist;
-                    task.dueDate = dueDate;
-                    task.priority = priority;
-                    task.effort = effort;
-                    const legacyBoardData = { board: { tasks }, extensions: boardExtensions };
-                    setTaskAttachments(legacyBoardData, task.id, attachments);
-                    boardExtensions = legacyBoardData.extensions || {};
-                    touchTask(task);
-                    selectedTaskId = task.id;
-                }
-            } else {
-                const now = nowIso();
-                const newTask = {
-                    id: Date.now(),
-                    title,
-                    description,
-                    assignee,
-                    blocked,
-                    blockerReason: blocked ? blockerReason : '',
-                    checklist,
-                    archived: false,
-                    createdAt: now,
-                    updatedAt: now,
-                    statusChangedAt: now,
-                    dueDate,
-                    priority,
-                    effort,
-                    status: pendingNewTaskStatus || columns[0].status
-                };
-                tasks.push(newTask);
-                const legacyBoardData = { board: { tasks }, extensions: boardExtensions };
-                setTaskAttachments(legacyBoardData, newTask.id, attachments);
-                boardExtensions = legacyBoardData.extensions || {};
-                selectedTaskId = newTask.id;
-            }
-
-            saveTasks();
-            renderTasks();
             closeModal();
             pendingNewTaskStatus = null;
-        }
-
-        function editTask(id) {
-            selectedTaskId = id;
-            openModal(id);
-        }
-
-        function toggleArchiveTask(id) {
-            const task = tasks.find(t => t.id === id);
-            if (!task) return;
-
-            const wasArchived = task.archived;
-            task.archived = !task.archived;
-            touchTask(task);
-            saveTasks();
-            renderTasks();
-
-            if (!wasArchived && task.archived) {
-                showUndo('Task archived', () => {
-                    const target = tasks.find(t => t.id === id);
-                    if (!target) return;
-                    target.archived = false;
-                    touchTask(target);
-                    saveTasks();
-                    renderTasks();
-                });
-            }
-        }
-
-        function addColumn() {
-            return;
-        }
-
-        function renameColumn(status) {
-            return;
-        }
-
-        function columnDragStart(ev, status) {
-            return;
-        }
-
-        function columnDragOver(ev) {
-            ev.preventDefault();
-        }
-
-        function columnDrop(ev, targetStatus) {
-            return;
-        }
-
-        function deleteColumn(status) {
-            return;
-        }
-
-        function filterTasks() {
-            renderTasks();
-            updateUrlState();
         }
 
         function isSelectedPortfolioCard(boardId, taskId) {
@@ -5612,7 +4649,6 @@
                     selectedPortfolioBoardId,
                     portfolioSortKey,
                     portfolioSortDir,
-                    portfolioDisplayMode,
                     portfolioEditContext,
                     portfolioCreateContext,
                     portfolioDetailContext,

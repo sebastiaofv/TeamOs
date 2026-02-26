@@ -4,7 +4,7 @@ function buildBoardPayload({ title, tasks = [] }) {
   return {
     meta: {
       schemaVersion: 1,
-      appId: 'household-task-board',
+      appId: 'teamos-kanban',
       createdAt: '2026-02-26T00:00:00.000Z',
       updatedAt: '2026-02-26T00:00:00.000Z'
     },
@@ -46,7 +46,7 @@ function buildBoardPayload({ title, tasks = [] }) {
 async function gotoApp(page) {
   await page.goto('/kanban.html');
   await expect(page.locator('#portfolioView')).toBeVisible();
-  await expect(page.locator('#boardView')).toBeHidden();
+  await expect(page.locator('#boardView')).toHaveCount(0);
 }
 
 async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey = 'priority', sortDir = 'asc' } = {}) {
@@ -76,7 +76,7 @@ async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey
         data: {
           meta: {
             schemaVersion: 1,
-            appId: 'household-task-board',
+            appId: 'teamos-kanban',
             createdAt: '2026-02-26T00:00:00.000Z',
             updatedAt: '2026-02-26T00:00:00.000Z'
           },
@@ -119,9 +119,7 @@ async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey
     selectedPortfolioBoardId = selectedBoardId || '';
     portfolioSortKey = sortKey;
     portfolioSortDir = sortDir;
-    portfolioDisplayMode = 'board';
     buildPortfolioTasks();
-    setAppMode('portfolio');
     renderPortfolio();
   }, { boards, selectedBoardId, sortKey, sortDir });
 }
@@ -176,7 +174,7 @@ test.describe('portfolio-only app', () => {
 
   test('loads portfolio-only minimalist UI', async ({ page }) => {
     await expect(page.locator('#portfolioView')).toBeVisible();
-    await expect(page.locator('#boardView')).toBeHidden();
+    await expect(page.locator('#boardView')).toHaveCount(0);
     await expect(page.locator('#portfolioToggleBtn')).toHaveCount(0);
     await expect(page.locator('#newProjectBtn')).toBeVisible();
     await expect(page.locator('#importProjectsBtn')).toBeVisible();
