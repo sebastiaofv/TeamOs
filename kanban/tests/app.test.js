@@ -19,10 +19,14 @@ function buildBoardPayload({ title, tasks = [] }) {
         id: task.id ?? index + 1,
         title: task.title,
         description: task.description || '',
+        assignee: task.assignee || '',
+        blocked: Boolean(task.blocked),
+        blockerReason: task.blocked ? (task.blockerReason || '') : '',
         checklist: task.checklist || [],
         archived: Boolean(task.archived),
         createdAt: task.createdAt || '2026-02-26T00:00:00.000Z',
         updatedAt: task.updatedAt || '2026-02-26T00:00:00.000Z',
+        ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {}),
         dueDate: task.dueDate || '',
         priority: Object.prototype.hasOwnProperty.call(task, 'priority') ? task.priority : null,
         effort: Object.prototype.hasOwnProperty.call(task, 'effort') ? task.effort : null,
@@ -87,10 +91,14 @@ async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey
               id: task.id ?? index + 1,
               title: task.title,
               description: task.description || '',
+              assignee: task.assignee || '',
+              blocked: Boolean(task.blocked),
+              blockerReason: task.blocked ? (task.blockerReason || '') : '',
               checklist: task.checklist || [],
               archived: Boolean(task.archived),
               createdAt: task.createdAt || '2026-02-26T00:00:00.000Z',
               updatedAt: task.updatedAt || '2026-02-26T00:00:00.000Z',
+              ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {}),
               dueDate: task.dueDate || '',
               priority: Object.prototype.hasOwnProperty.call(task, 'priority') ? task.priority : null,
               effort: Object.prototype.hasOwnProperty.call(task, 'effort') ? task.effort : null,
@@ -298,6 +306,100 @@ test.describe('portfolio-only app', () => {
     expect(result.writes.at(-1).text).toContain('Portfolio-created task');
   });
 
+  test('blocked tasks require a blocker reason before save', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => {
+      window.__lastAlert = '';
+      window.alert = (msg) => { window.__lastAlert = String(msg); };
+    });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Blocked task');
+    await page.locator('#taskBlocked').check();
+    await page.locator('#taskModal .btn-primary').click();
+
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      alert: window.__lastAlert,
+      taskCount: portfolioBoards[0].data.board.tasks.length
+    }));
+
+    expect(result.alert).toContain('Blocked tasks require a blocker reason');
+    expect(result.taskCount).toBe(0);
+  });
+
+  test('assignee and blocked fields save and render as card badges', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Investigate deploy issue');
+    await page.locator('#taskAssignee').fill('Alex');
+    await page.locator('#taskBlocked').check();
+    await page.locator('#taskBlockerReason').fill('Waiting for staging access');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const card = portfolioCard(page, 'Investigate deploy issue');
+    await expect(card).toContainText('Alex');
+    await expect(card).toContainText('Blocked');
+
+    const result = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((t) => t.title === 'Investigate deploy issue');
+      const writes = window.__portfolioTestWrites || [];
+      const savedPayload = writes.length ? JSON.parse(writes[writes.length - 1].text) : null;
+      const savedTask = savedPayload?.board?.tasks?.find((t) => t.title === 'Investigate deploy issue');
+      return {
+        task: task ? { assignee: task.assignee, blocked: task.blocked, blockerReason: task.blockerReason } : null,
+        savedTask: savedTask ? { assignee: savedTask.assignee, blocked: savedTask.blocked, blockerReason: savedTask.blockerReason } : null
+      };
+    });
+
+    expect(result.task).toEqual({
+      assignee: 'Alex',
+      blocked: true,
+      blockerReason: 'Waiting for staging access'
+    });
+    expect(result.savedTask).toEqual({
+      assignee: 'Alex',
+      blocked: true,
+      blockerReason: 'Waiting for staging access'
+    });
+  });
+
+  test('portfolio assignee and blocked filters work', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Alex blocked', status: 'backlog', assignee: 'Alex', blocked: true, blockerReason: 'Vendor response' },
+          { id: 2, title: 'Alex active', status: 'backlog', assignee: 'Alex', blocked: false },
+          { id: 3, title: 'Sam active', status: 'backlog', assignee: 'Sam', blocked: false }
+        ]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await expect(page.locator('#portfolioAssigneeFilter')).toContainText('Alex');
+    await expect(page.locator('#portfolioAssigneeFilter')).toContainText('Sam');
+
+    await page.locator('#portfolioAssigneeFilter').selectOption('Alex');
+    expect(await portfolioTitlesInColumn(page, 'backlog')).toEqual(['Alex active', 'Alex blocked']);
+
+    await page.locator('#portfolioAssigneeFilter').selectOption('');
+    await page.locator('#portfolioBlockedFilter').selectOption('blocked');
+    expect(await portfolioTitlesInColumn(page, 'backlog')).toEqual(['Alex blocked']);
+
+    await page.locator('#portfolioBlockedFilter').selectOption('unblocked');
+    expect(await portfolioTitlesInColumn(page, 'backlog')).toEqual(['Alex active', 'Sam active']);
+  });
+
   test('task attachments save on the task and show in task details', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }
@@ -497,7 +599,14 @@ test.describe('portfolio-only app', () => {
         title: 'Drag Project',
         hasHandle: true,
         tasks: [
-          { id: 11, title: 'Move me', status: 'backlog', priority: 'medium', effort: 'M' }
+          {
+            id: 11,
+            title: 'Move me',
+            status: 'backlog',
+            priority: 'medium',
+            effort: 'M',
+            statusChangedAt: '2026-02-20T00:00:00.000Z'
+          }
         ]
       }
     ], { selectedBoardId: 'd1' });
@@ -507,6 +616,7 @@ test.describe('portfolio-only app', () => {
 
     await expect(card).toBeVisible();
     await expect(card).toHaveJSProperty('draggable', true);
+    await expect(card.locator('.task-tag-age')).toContainText('Age');
 
     await card.dragTo(targetColumn);
 
@@ -515,12 +625,16 @@ test.describe('portfolio-only app', () => {
 
     const result = await page.evaluate(() => ({
       status: portfolioBoards[0].data.board.tasks.find((t) => t.id === 11)?.status,
+      statusChangedAt: portfolioBoards[0].data.board.tasks.find((t) => t.id === 11)?.statusChangedAt,
       writes: window.__portfolioTestWrites || []
     }));
 
     expect(result.status).toBe('doing');
+    expect(result.statusChangedAt).toBeTruthy();
+    expect(result.statusChangedAt).not.toBe('2026-02-20T00:00:00.000Z');
     expect(result.writes.length).toBeGreaterThan(0);
     expect(result.writes.at(-1).text).toContain('"status": "doing"');
+    expect(result.writes.at(-1).text).toContain('"statusChangedAt"');
   });
 
   test('dragging works in all-projects view for mutable cards', async ({ page }) => {

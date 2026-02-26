@@ -697,6 +697,7 @@
         .task-meta {
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
             font-size: 11px;
             color: var(--text-secondary);
         }
@@ -705,6 +706,22 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
+        }
+
+        .task-tag-assignee {
+            background: #eef3f8;
+            border: 1px solid #d8e1ea;
+            border-radius: 4px;
+            padding: 1px 6px;
+            color: #425466;
+        }
+
+        .task-tag-blocked {
+            background: #fdeeee;
+            border: 1px solid #efc3c3;
+            border-radius: 4px;
+            padding: 1px 6px;
+            color: #8d1f1f;
         }
 
         .task-tag-score {
@@ -862,6 +879,24 @@
         .form-group textarea {
             resize: vertical;
             min-height: 80px;
+        }
+
+        .form-checkbox-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+        }
+
+        .form-checkbox-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            margin: 0;
+        }
+
+        .form-checkbox-row span {
+            font-size: 12px;
+            color: var(--text-primary);
         }
 
         .checklist-editor {
@@ -1545,12 +1580,17 @@
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label>Sort:</label>
-                        <select id="portfolioSortSelect" onchange="onPortfolioSortSelectChange()">
-                            <option value="name">Name</option>
-                            <option value="priority" selected>Priority</option>
-                            <option value="effort">Effort</option>
-                            <option value="score">Score</option>
+                        <label>Blocked:</label>
+                        <select id="portfolioBlockedFilter" onchange="renderPortfolio()">
+                            <option value="all">All</option>
+                            <option value="blocked">Blocked Only</option>
+                            <option value="unblocked">Unblocked Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Assignee:</label>
+                        <select id="portfolioAssigneeFilter" onchange="renderPortfolio()">
+                            <option value="">All</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1571,6 +1611,15 @@
                             <option value="M">M</option>
                             <option value="L">L</option>
                             <option value="XL">XL</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Sort:</label>
+                        <select id="portfolioSortSelect" onchange="onPortfolioSortSelectChange()">
+                            <option value="name">Name</option>
+                            <option value="priority" selected>Priority</option>
+                            <option value="effort">Effort</option>
+                            <option value="score">Score</option>
                         </select>
                     </div>
                 </div>
@@ -1657,11 +1706,27 @@
                     <input type="hidden" id="taskId">
                     <div class="form-group">
                         <label class="required">Task Name</label>
-                        <input type="text" id="taskName" required>
+                        <input type="text" id="taskName" required maxlength="80">
                     </div>
                     <div class="form-group">
                         <label>Description</label>
                         <textarea id="taskDescription"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Assignee</label>
+                        <input type="text" id="taskAssignee" list="taskAssigneeSuggestions" placeholder="Name">
+                        <datalist id="taskAssigneeSuggestions"></datalist>
+                    </div>
+                    <div class="form-group">
+                        <label>Blocked</label>
+                        <div class="form-checkbox-row">
+                            <input type="checkbox" id="taskBlocked" onchange="onTaskBlockedChange()">
+                            <span>Mark task as blocked</span>
+                        </div>
+                    </div>
+                    <div class="form-group hidden" id="taskBlockerReasonWrap">
+                        <label class="required">Blocker Reason</label>
+                        <textarea id="taskBlockerReason" placeholder="What's blocking this task?"></textarea>
                     </div>
                     <div class="form-group">
                         <label>Todo List</label>
@@ -1736,6 +1801,18 @@
                     <div class="detail-item">
                         <span class="detail-label">Description</span>
                         <span class="detail-value" id="detailDescription">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Assignee</span>
+                        <span class="detail-value" id="detailAssignee">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Blocked</span>
+                        <span class="detail-value" id="detailBlocked">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Blocker</span>
+                        <span class="detail-value" id="detailBlockerReason">-</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Priority</span>
@@ -1876,6 +1953,7 @@
         const BOARD_APP_ID = 'household-task-board';
         const BOARD_FILE_EXTENSION = '.board.json';
         const DEFAULT_BOARD_TITLE = 'Example Task Board';
+        const TASK_TITLE_MAX_LENGTH = 80;
         const EFFORT_BUCKETS = ['XS', 'S', 'M', 'L', 'XL'];
         const MAX_COLUMNS = 5;
         const BOARD_ARCHIVE_FILTER_VALUES = ['active', 'all', 'archived'];
@@ -1957,10 +2035,14 @@
 
             const portfolioSearch = document.getElementById('portfolioSearchInput')?.value || '';
             const portfolioPriority = document.getElementById('portfolioPriorityFilter')?.value || '';
+            const portfolioAssignee = document.getElementById('portfolioAssigneeFilter')?.value || '';
+            const portfolioBlocked = normalizePortfolioBlockedFilter(document.getElementById('portfolioBlockedFilter')?.value || 'all');
             const portfolioEffort = document.getElementById('portfolioEffortFilter')?.value || '';
             const portfolioArchive = document.getElementById('portfolioArchiveFilter')?.value || 'active';
             if (portfolioSearch) params.set('pq', portfolioSearch);
             if (portfolioPriority) params.set('pp', portfolioPriority);
+            if (portfolioAssignee) params.set('pu', portfolioAssignee);
+            if (portfolioBlocked !== 'all') params.set('pbk', portfolioBlocked);
             if (portfolioEffort) params.set('pe', portfolioEffort);
             if (portfolioArchive !== 'active') params.set('pa', portfolioArchive);
             if (portfolioSortKey !== 'priority') params.set('ps', portfolioSortKey);
@@ -1974,6 +2056,8 @@
         function applyUrlState() {
             const portfolioSearch = readQueryParam('pq', '');
             const portfolioPriority = readQueryParam('pp', '');
+            const portfolioAssignee = readQueryParam('pu', '');
+            const portfolioBlocked = readQueryParam('pbk', 'all');
             const portfolioEffort = readQueryParam('pe', '');
             const portfolioArchive = readQueryParam('pa', 'active');
             const portfolioSort = readQueryParam('ps', 'priority');
@@ -1982,11 +2066,19 @@
 
             const pSearch = document.getElementById('portfolioSearchInput');
             const pPriority = document.getElementById('portfolioPriorityFilter');
+            const pAssignee = document.getElementById('portfolioAssigneeFilter');
+            const pBlocked = document.getElementById('portfolioBlockedFilter');
             const pEffort = document.getElementById('portfolioEffortFilter');
             const pArchive = document.getElementById('portfolioArchiveFilter');
             if (pSearch) pSearch.value = portfolioSearch;
             if (pPriority && ['', 'high', 'medium', 'low'].includes(portfolioPriority)) {
                 pPriority.value = portfolioPriority;
+            }
+            if (pAssignee) {
+                pAssignee.value = portfolioAssignee;
+            }
+            if (pBlocked) {
+                pBlocked.value = normalizePortfolioBlockedFilter(portfolioBlocked);
             }
             if (pEffort && ['', ...EFFORT_BUCKETS].includes(portfolioEffort)) {
                 pEffort.value = portfolioEffort;
@@ -2159,6 +2251,20 @@
             if (value === null || value === undefined) return null;
             const normalized = String(value).trim().toLowerCase();
             return ['high', 'medium', 'low'].includes(normalized) ? normalized : null;
+        }
+
+        function normalizeAssignee(value) {
+            if (value === null || value === undefined) return '';
+            return String(value).trim();
+        }
+
+        function normalizeTaskBlocked(value) {
+            return value === true;
+        }
+
+        function normalizeBlockerReason(value) {
+            if (value === null || value === undefined) return '';
+            return String(value).trim();
         }
 
         function getPortfolioBoardRecord(boardId) {
@@ -2558,6 +2664,8 @@
         function getFilteredSortedPortfolioRows() {
             const search = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
             const priorityFilter = document.getElementById('portfolioPriorityFilter')?.value || '';
+            const assigneeFilter = normalizeAssignee(document.getElementById('portfolioAssigneeFilter')?.value || '');
+            const blockedFilter = normalizePortfolioBlockedFilter(document.getElementById('portfolioBlockedFilter')?.value || 'all');
             const effortFilter = document.getElementById('portfolioEffortFilter')?.value || '';
             const archiveFilter = document.getElementById('portfolioArchiveFilter')?.value || 'active';
             const sortBy = normalizePortfolioSortKey(portfolioSortKey);
@@ -2570,6 +2678,9 @@
                     if (archiveFilter === 'active' && task.archived) return false;
                     if (archiveFilter === 'archived' && !task.archived) return false;
                     if (priorityFilter && task.priority !== priorityFilter) return false;
+                    if (assigneeFilter && normalizeAssignee(task.assignee) !== assigneeFilter) return false;
+                    if (blockedFilter === 'blocked' && !task.blocked) return false;
+                    if (blockedFilter === 'unblocked' && task.blocked) return false;
                     if (effortFilter && task.effort !== effortFilter) return false;
                     if (search && !String(task.title || '').toLowerCase().includes(search)) return false;
                     return true;
@@ -2643,8 +2754,13 @@
             const archiveButtonLabel = task.archived ? '↺' : '×';
             const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
             const readOnlyTitle = 'Read-only (no file handle)';
+            const assignee = normalizeAssignee(task.assignee);
+            const statusAge = formatTaskStatusAge(task);
             const metaParts = [
                 showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : '',
+                assignee ? `<span class="task-tag task-tag-assignee" title="Assignee">${escapeHtml(assignee)}</span>` : '',
+                task.blocked ? '<span class="task-tag task-tag-blocked" title="Blocked">Blocked</span>' : '',
+                statusAge ? `<span class="task-tag task-tag-age" title="Time in current status">${escapeHtml(statusAge)}</span>` : '',
                 isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : '',
                 priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : '',
                 effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : '',
@@ -2768,6 +2884,8 @@
             const boardWrap = document.getElementById('portfolioBoardWrap');
             if (!tableWrap || !boardWrap) return;
 
+            renderPortfolioAssigneeFilterOptions();
+            renderTaskAssigneeSuggestions();
             const rows = getFilteredSortedPortfolioRows();
             syncSelectedPortfolioCardWithVisibleRows(rows);
             portfolioDisplayMode = 'board';
@@ -2842,6 +2960,9 @@
 
             document.getElementById('detailTitle').textContent = task.title || '-';
             document.getElementById('detailDescription').textContent = task.description || '-';
+            document.getElementById('detailAssignee').textContent = normalizeAssignee(task.assignee) || '-';
+            document.getElementById('detailBlocked').textContent = task.blocked ? 'Yes' : 'No';
+            document.getElementById('detailBlockerReason').textContent = task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-';
             document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
             document.getElementById('detailEffort').textContent = task.effort || '-';
             document.getElementById('detailStatus').textContent = statusTitle || '-';
@@ -2866,6 +2987,7 @@
             portfolioEditContext = { boardId, taskId };
             portfolioCreateContext = null;
             portfolioDetailContext = null;
+            renderTaskAssigneeSuggestions();
 
             document.getElementById('taskModal').classList.add('active');
             document.getElementById('taskForm').reset();
@@ -2873,6 +2995,10 @@
             document.getElementById('modalTitle').textContent = 'Edit Task';
             document.getElementById('taskName').value = task.title || '';
             document.getElementById('taskDescription').value = task.description || '';
+            document.getElementById('taskAssignee').value = normalizeAssignee(task.assignee);
+            document.getElementById('taskBlocked').checked = Boolean(task.blocked);
+            document.getElementById('taskBlockerReason').value = normalizeBlockerReason(task.blockerReason);
+            syncTaskBlockedReasonVisibility();
             document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
             loadTaskChecklistEditorFromTextarea();
             setTaskModalAttachmentDraft(getTaskAttachments(source.boardRecord.data, taskId), { messages: [] });
@@ -2906,11 +3032,16 @@
             portfolioEditContext = null;
             portfolioDetailContext = null;
             pendingNewTaskStatus = null;
+            renderTaskAssigneeSuggestions();
 
             document.getElementById('taskModal').classList.add('active');
             document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
             document.getElementById('modalTitle').textContent = 'New Task';
+            document.getElementById('taskAssignee').value = '';
+            document.getElementById('taskBlocked').checked = false;
+            document.getElementById('taskBlockerReason').value = '';
+            syncTaskBlockedReasonVisibility();
             document.getElementById('taskChecklist').value = '';
             loadTaskChecklistEditorFromTextarea();
             resetTaskModalAttachmentDraft();
@@ -2945,6 +3076,69 @@
                     });
                 });
             }
+        }
+
+        function normalizePortfolioBlockedFilter(value) {
+            return ['all', 'blocked', 'unblocked'].includes(value) ? value : 'all';
+        }
+
+        function getPortfolioAssigneeNames() {
+            const seen = new Set();
+            const values = [];
+            portfolioTasks.forEach((item) => {
+                const name = normalizeAssignee(item?.task?.assignee);
+                if (!name) return;
+                const key = name.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                values.push(name);
+            });
+            return values.sort((a, b) => a.localeCompare(b));
+        }
+
+        function getTaskAssigneeSuggestions() {
+            const seen = new Set();
+            const values = [];
+            const addName = (value) => {
+                const name = normalizeAssignee(value);
+                if (!name) return;
+                const key = name.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                values.push(name);
+            };
+
+            portfolioTasks.forEach(item => addName(item?.task?.assignee));
+            tasks.forEach(task => addName(task?.assignee));
+
+            return values.sort((a, b) => a.localeCompare(b));
+        }
+
+        function renderPortfolioAssigneeFilterOptions() {
+            const select = document.getElementById('portfolioAssigneeFilter');
+            if (!select) return;
+            const previousValue = select.value || '';
+            const options = getPortfolioAssigneeNames();
+            const hasPrevious = previousValue && options.some(name => name === previousValue);
+
+            select.innerHTML = `<option value="">All</option>${
+                options.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')
+            }`;
+
+            if (previousValue) {
+                if (hasPrevious) {
+                    select.value = previousValue;
+                } else {
+                    select.value = '';
+                }
+            }
+        }
+
+        function renderTaskAssigneeSuggestions() {
+            const datalist = document.getElementById('taskAssigneeSuggestions');
+            if (!datalist) return;
+            const options = getTaskAssigneeSuggestions();
+            datalist.innerHTML = options.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
         }
 
         function normalizePortfolioSortKey(value) {
@@ -3123,6 +3317,25 @@
             return new Date(ts).toLocaleString();
         }
 
+        function getTaskStatusAgeBaseTimestamp(task) {
+            if (!task || typeof task !== 'object') return '';
+            return normalizeTimestamp(task.statusChangedAt)
+                || normalizeTimestamp(task.updatedAt)
+                || normalizeTimestamp(task.createdAt)
+                || '';
+        }
+
+        function formatTaskStatusAge(task) {
+            const base = getTaskStatusAgeBaseTimestamp(task);
+            if (!base) return '';
+            const diffMs = Math.max(0, Date.now() - new Date(base).getTime());
+            const hourMs = 60 * 60 * 1000;
+            const dayMs = 24 * hourMs;
+            if (diffMs < hourMs) return 'Age <1h';
+            if (diffMs < dayMs) return `Age ${Math.floor(diffMs / hourMs)}h`;
+            return `Age ${Math.floor(diffMs / dayMs)}d`;
+        }
+
         function touchTask(task) {
             task.updatedAt = nowIso();
         }
@@ -3194,6 +3407,9 @@
                 id: task.id,
                 title: task.title,
                 description: task.description || '',
+                assignee: normalizeAssignee(task.assignee),
+                blocked: normalizeTaskBlocked(task.blocked),
+                blockerReason: normalizeTaskBlocked(task.blocked) ? normalizeBlockerReason(task.blockerReason) : '',
                 checklist: normalizeChecklist(task.checklist),
                 attachments: normalizeTaskAttachments(
                     Array.isArray(task?.attachments) ? task.attachments : fallbackAttachments
@@ -3201,6 +3417,10 @@
                 archived: Boolean(task.archived),
                 createdAt: normalizeTimestamp(task.createdAt) || nowIso(),
                 updatedAt: normalizeTimestamp(task.updatedAt) || nowIso(),
+                statusChangedAt: normalizeTimestamp(task.statusChangedAt)
+                    || normalizeTimestamp(task.updatedAt)
+                    || normalizeTimestamp(task.createdAt)
+                    || nowIso(),
                 dueDate: normalizeDueDate(task.dueDate),
                 priority: normalizePriority(task.priority),
                 effort: normalizeEffort(task.effort),
@@ -3343,17 +3563,11 @@
 
             data.board.tasks.forEach((task) => {
                 const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-                const validTaskKeySets = [
-                    baseKeys,
-                    [...baseKeys, 'effort'],
-                    [...baseKeys, 'tags'],
-                    [...baseKeys, 'effort', 'tags'],
-                    [...baseKeys, 'attachments'],
-                    [...baseKeys, 'effort', 'attachments'],
-                    [...baseKeys, 'tags', 'attachments'],
-                    [...baseKeys, 'effort', 'tags', 'attachments']
-                ];
-                if (!validTaskKeySets.some(keys => hasExactKeys(task, keys))) {
+                const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'blocked', 'blockerReason', 'statusChangedAt']);
+                const taskKeys = Object.keys(task || {});
+                const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
+                const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
+                if (!hasAllRequired || !hasOnlyAllowed) {
                     throw new Error('Invalid task structure.');
                 }
                 if (typeof task.id !== 'number' || !Number.isFinite(task.id)) {
@@ -3361,6 +3575,9 @@
                 }
                 if (typeof task.title !== 'string' || !task.title.trim()) {
                     throw new Error('Task title must be a non-empty string.');
+                }
+                if (task.title.length > TASK_TITLE_MAX_LENGTH) {
+                    throw new Error(`Task title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer.`);
                 }
                 if (typeof task.description !== 'string') {
                     throw new Error('Task description must be a string.');
@@ -3377,6 +3594,9 @@
                 if (!normalizeTimestamp(task.updatedAt)) {
                     throw new Error('Task updatedAt must be a valid timestamp.');
                 }
+                if ('statusChangedAt' in task && !normalizeTimestamp(task.statusChangedAt)) {
+                    throw new Error('Task statusChangedAt must be a valid timestamp.');
+                }
                 if (typeof task.dueDate !== 'string' || (task.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))) {
                     throw new Error('Task dueDate must be YYYY-MM-DD or empty.');
                 }
@@ -3385,6 +3605,18 @@
                 }
                 if ('effort' in task && task.effort !== null && !EFFORT_BUCKETS.includes(String(task.effort).toUpperCase())) {
                     throw new Error('Task effort is invalid.');
+                }
+                if ('assignee' in task && typeof task.assignee !== 'string') {
+                    throw new Error('Task assignee must be a string.');
+                }
+                if ('blocked' in task && typeof task.blocked !== 'boolean') {
+                    throw new Error('Task blocked must be boolean.');
+                }
+                if ('blockerReason' in task && typeof task.blockerReason !== 'string') {
+                    throw new Error('Task blockerReason must be a string.');
+                }
+                if (task.blocked === true && !normalizeBlockerReason(task.blockerReason)) {
+                    throw new Error('Blocked tasks require blockerReason.');
                 }
                 if (typeof task.status !== 'string' || !statuses.has(task.status)) {
                     throw new Error('Task status is invalid.');
@@ -3741,6 +3973,27 @@
             if (!items[index]) return;
             items.splice(index, 1);
             updateTaskChecklistEditor(items);
+        }
+
+        function syncTaskBlockedReasonVisibility() {
+            const checkbox = document.getElementById('taskBlocked');
+            const wrap = document.getElementById('taskBlockerReasonWrap');
+            const input = document.getElementById('taskBlockerReason');
+            if (!checkbox || !wrap || !input) return;
+            const blocked = Boolean(checkbox.checked);
+            wrap.classList.toggle('hidden', !blocked);
+            if (!blocked) {
+                input.value = '';
+            }
+        }
+
+        function onTaskBlockedChange() {
+            syncTaskBlockedReasonVisibility();
+            if (document.getElementById('taskBlocked')?.checked) {
+                requestAnimationFrame(() => {
+                    document.getElementById('taskBlockerReason')?.focus();
+                });
+            }
         }
 
         function attachmentTaskKey(taskId) {
@@ -4437,6 +4690,20 @@
             const score = formatTaskScore(task);
             const archiveButtonLabel = task.archived ? '↺' : '×';
             const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
+            const assignee = normalizeAssignee(task.assignee);
+            const statusAge = formatTaskStatusAge(task);
+            const metaParts = [
+                assignee ? `<span class="task-tag task-tag-assignee" title="Assignee">${escapeHtml(assignee)}</span>` : '',
+                task.blocked ? '<span class="task-tag task-tag-blocked" title="Blocked">Blocked</span>' : '',
+                statusAge ? `<span class="task-tag task-tag-age" title="Time in current status">${escapeHtml(statusAge)}</span>` : '',
+                isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : '',
+                priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : '',
+                effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : '',
+                score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : '',
+                task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : '',
+                task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(item => item.done).length}/${task.checklist.length} done</span>` : ''
+            ].filter(Boolean);
+            const taskMetaHtml = metaParts.length ? `<div class="task-meta">${metaParts.join('')}</div>` : '';
 
             div.innerHTML = `
                 <div class="task-header">
@@ -4446,20 +4713,7 @@
                         <button class="task-action-btn" onclick="event.stopPropagation(); toggleArchiveTask(${task.id})" title="${archiveButtonTitle}">${archiveButtonLabel}</button>
                     </div>
                 </div>
-                <div class="task-meta">
-                    ${isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : ''}
-                    ${priority ? `<span class="task-tag">
-                        <span class="priority-dot priority-${task.priority}"></span>
-                        ${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
-                    </span>` : ''}
-                    ${effort ? `<span class="task-tag" title="Effort">
-                        <span class="effort-dot effort-${effort.toLowerCase()}"></span>
-                        ${escapeHtml(effort)}
-                    </span>` : ''}
-                    ${score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : ''}
-                    ${task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : ''}
-                    ${task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(item => item.done).length}/${task.checklist.length} done</span>` : ''}
-                </div>
+                ${taskMetaHtml}
             `;
 
             return div;
@@ -4487,11 +4741,16 @@
         function openModal(taskId = null, preferredStatus = null) {
             portfolioEditContext = null;
             portfolioCreateContext = null;
+            renderTaskAssigneeSuggestions();
             document.getElementById('taskModal').classList.add('active');
             document.getElementById('taskForm').reset();
             document.getElementById('taskId').value = '';
             document.getElementById('modalTitle').textContent = 'New Task';
             resetTaskModalAttachmentDraft();
+            document.getElementById('taskAssignee').value = '';
+            document.getElementById('taskBlocked').checked = false;
+            document.getElementById('taskBlockerReason').value = '';
+            syncTaskBlockedReasonVisibility();
             document.getElementById('taskDueDate').value = '';
             pendingNewTaskStatus = preferredStatus && columns.some(col => col.status === preferredStatus)
                 ? preferredStatus
@@ -4503,6 +4762,10 @@
                     document.getElementById('taskId').value = task.id;
                     document.getElementById('taskName').value = task.title;
                     document.getElementById('taskDescription').value = task.description || '';
+                    document.getElementById('taskAssignee').value = normalizeAssignee(task.assignee);
+                    document.getElementById('taskBlocked').checked = Boolean(task.blocked);
+                    document.getElementById('taskBlockerReason').value = normalizeBlockerReason(task.blockerReason);
+                    syncTaskBlockedReasonVisibility();
                     document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
                     setTaskModalAttachmentDraft(getTaskAttachments({ board: { tasks }, extensions: boardExtensions }, task.id), { messages: [] });
                     document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
@@ -4531,6 +4794,10 @@
             }
             renderTaskChecklistEditor([]);
             resetTaskModalAttachmentDraft();
+            document.getElementById('taskAssignee').value = '';
+            document.getElementById('taskBlocked').checked = false;
+            document.getElementById('taskBlockerReason').value = '';
+            syncTaskBlockedReasonVisibility();
             pendingNewTaskStatus = null;
             portfolioEditContext = null;
             portfolioCreateContext = null;
@@ -4545,6 +4812,9 @@
             const statusTitle = (columns.find(col => col.status === task.status) || {}).title || task.status;
             document.getElementById('detailTitle').textContent = task.title || '-';
             document.getElementById('detailDescription').textContent = task.description || '-';
+            document.getElementById('detailAssignee').textContent = normalizeAssignee(task.assignee) || '-';
+            document.getElementById('detailBlocked').textContent = task.blocked ? 'Yes' : 'No';
+            document.getElementById('detailBlockerReason').textContent = task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-';
             document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
             document.getElementById('detailEffort').textContent = task.effort || '-';
             document.getElementById('detailStatus').textContent = statusTitle || '-';
@@ -4626,6 +4896,9 @@
             const id = document.getElementById('taskId').value;
             const title = document.getElementById('taskName').value.trim();
             const description = document.getElementById('taskDescription').value.trim();
+            const assignee = normalizeAssignee(document.getElementById('taskAssignee').value);
+            const blocked = Boolean(document.getElementById('taskBlocked').checked);
+            const blockerReason = normalizeBlockerReason(document.getElementById('taskBlockerReason').value);
             syncTaskChecklistTextareaFromEditor();
             const checklist = parseChecklistInput(document.getElementById('taskChecklist').value);
             const attachments = getTaskModalAttachmentsDraft();
@@ -4634,6 +4907,17 @@
             const effort = normalizeEffort(document.getElementById('taskEffort').value);
 
             if (!title) return;
+            if (title.length > TASK_TITLE_MAX_LENGTH) {
+                alert(`Task title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer.`);
+                document.getElementById('taskName')?.focus();
+                return;
+            }
+            if (blocked && !blockerReason) {
+                syncTaskBlockedReasonVisibility();
+                alert('Blocked tasks require a blocker reason.');
+                document.getElementById('taskBlockerReason')?.focus();
+                return;
+            }
             if (attachments.length > ATTACHMENT_MAX_COUNT) {
                 alert(`Tasks can have up to ${ATTACHMENT_MAX_COUNT} attachments.`);
                 return;
@@ -4669,10 +4953,14 @@
                     id: nextId,
                     title,
                     description,
+                    assignee,
+                    blocked,
+                    blockerReason: blocked ? blockerReason : '',
                     checklist,
                     archived: false,
                     createdAt: now,
                     updatedAt: now,
+                    statusChangedAt: now,
                     dueDate,
                     priority,
                     effort,
@@ -4699,6 +4987,9 @@
                 const saved = await runPortfolioTaskMutation(boardId, taskId, (task, boardRecord) => {
                     task.title = title;
                     task.description = description;
+                    task.assignee = assignee;
+                    task.blocked = blocked;
+                    task.blockerReason = blocked ? blockerReason : '';
                     task.checklist = checklist;
                     if (boardRecord && boardRecord.data) {
                         setTaskAttachments(boardRecord.data, taskId, attachments);
@@ -4719,6 +5010,9 @@
                 if (task) {
                     task.title = title;
                     task.description = description;
+                    task.assignee = assignee;
+                    task.blocked = blocked;
+                    task.blockerReason = blocked ? blockerReason : '';
                     task.checklist = checklist;
                     task.dueDate = dueDate;
                     task.priority = priority;
@@ -4735,10 +5029,14 @@
                     id: Date.now(),
                     title,
                     description,
+                    assignee,
+                    blocked,
+                    blockerReason: blocked ? blockerReason : '',
                     checklist,
                     archived: false,
                     createdAt: now,
                     updatedAt: now,
+                    statusChangedAt: now,
                     dueDate,
                     priority,
                     effort,
@@ -4927,10 +5225,14 @@
             const search = document.getElementById('portfolioSearchInput');
             const archive = document.getElementById('portfolioArchiveFilter');
             const priority = document.getElementById('portfolioPriorityFilter');
+            const assignee = document.getElementById('portfolioAssigneeFilter');
+            const blocked = document.getElementById('portfolioBlockedFilter');
             const effort = document.getElementById('portfolioEffortFilter');
             if (search) search.value = '';
             if (archive) archive.value = 'active';
             if (priority) priority.value = '';
+            if (assignee) assignee.value = '';
+            if (blocked) blocked.value = 'all';
             if (effort) effort.value = '';
             portfolioSortKey = 'priority';
             portfolioSortDir = 'asc';
@@ -5275,6 +5577,8 @@
             Refs.portfolioSearchInput = document.getElementById('portfolioSearchInput');
             Refs.portfolioArchiveFilter = document.getElementById('portfolioArchiveFilter');
             Refs.portfolioPriorityFilter = document.getElementById('portfolioPriorityFilter');
+            Refs.portfolioAssigneeFilter = document.getElementById('portfolioAssigneeFilter');
+            Refs.portfolioBlockedFilter = document.getElementById('portfolioBlockedFilter');
             Refs.portfolioEffortFilter = document.getElementById('portfolioEffortFilter');
             Refs.portfolioSortSelect = document.getElementById('portfolioSortSelect');
             Refs.taskModal = document.getElementById('taskModal');
@@ -5433,6 +5737,7 @@
                     const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
                         if (normalizeTaskStatus(task.status) === normalizedTargetStatus) return false;
                         task.status = normalizedTargetStatus;
+                        task.statusChangedAt = nowIso();
                         return true;
                     });
                     return Boolean(changed);
