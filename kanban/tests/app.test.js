@@ -50,17 +50,84 @@ async function gotoApp(page) {
 }
 
 async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey = 'priority', sortDir = 'asc' } = {}) {
-  await page.evaluate(({ boards, selectedBoardId, sortKey, sortDir }) => {
+  await page.evaluate(async ({ boards, selectedBoardId, sortKey, sortDir }) => {
     window.__portfolioTestWrites = [];
+    window.__portfolioDiskByBoardId = {};
 
     portfolioBoards = boards.map((board) => {
+      const boardData = {
+        meta: {
+          schemaVersion: 1,
+          appId: 'teamos-kanban',
+          createdAt: '2026-02-26T00:00:00.000Z',
+          updatedAt: '2026-02-26T00:00:00.000Z'
+        },
+        board: {
+          columns: [
+            { status: 'backlog', title: 'backlog' },
+            { status: 'to-do', title: 'to-do' },
+            { status: 'doing', title: 'in progress' },
+            { status: 'done', title: 'done' }
+          ],
+          tasks: (board.tasks || []).map((task, index) => ({
+            id: task.id ?? index + 1,
+            title: task.title,
+            description: task.description || '',
+            assignee: task.assignee || '',
+            blocked: Boolean(task.blocked),
+            blockerReason: task.blocked ? (task.blockerReason || '') : '',
+            checklist: task.checklist || [],
+            archived: Boolean(task.archived),
+            createdAt: task.createdAt || '2026-02-26T00:00:00.000Z',
+            updatedAt: task.updatedAt || '2026-02-26T00:00:00.000Z',
+            ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {}),
+            dueDate: task.dueDate || '',
+            priority: Object.prototype.hasOwnProperty.call(task, 'priority') ? task.priority : null,
+            effort: Object.prototype.hasOwnProperty.call(task, 'effort') ? task.effort : null,
+            status: task.status || 'backlog'
+          })),
+          settings: {
+            title: board.title,
+            sortMode: 'manual',
+            showArchivedOnly: false,
+            archiveFilter: 'active'
+          }
+        },
+        extensions: {}
+      };
+
+      const diskText = JSON.stringify(boardData, null, 2);
+      window.__portfolioDiskByBoardId[board.id] = {
+        text: diskText,
+        lastModified: Date.now()
+      };
+
       const handle = board.hasHandle
         ? {
             name: board.fileName || `${board.id}.board.json`,
+            async getFile() {
+              const disk = window.__portfolioDiskByBoardId[board.id];
+              const text = String(disk?.text || diskText);
+              const lastModified = Number(disk?.lastModified) || Date.now();
+              return {
+                name: board.fileName || `${board.id}.board.json`,
+                size: new Blob([text]).size,
+                lastModified,
+                async text() {
+                  return text;
+                }
+              };
+            },
             async createWritable() {
               return {
                 async write(text) {
-                  window.__portfolioTestWrites.push({ boardId: board.id, text: String(text) });
+                  const serialized = String(text);
+                  window.__portfolioTestWrites.push({ boardId: board.id, text: serialized });
+                  const disk = window.__portfolioDiskByBoardId[board.id];
+                  if (disk) {
+                    disk.text = serialized;
+                    disk.lastModified = Date.now();
+                  }
                 },
                 async close() {}
               };
@@ -73,46 +140,7 @@ async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey
         handle,
         fileName: board.fileName || `${board.id}.board.json`,
         title: board.title,
-        data: {
-          meta: {
-            schemaVersion: 1,
-            appId: 'teamos-kanban',
-            createdAt: '2026-02-26T00:00:00.000Z',
-            updatedAt: '2026-02-26T00:00:00.000Z'
-          },
-          board: {
-            columns: [
-              { status: 'backlog', title: 'backlog' },
-              { status: 'to-do', title: 'to-do' },
-              { status: 'doing', title: 'in progress' },
-              { status: 'done', title: 'done' }
-            ],
-            tasks: (board.tasks || []).map((task, index) => ({
-              id: task.id ?? index + 1,
-              title: task.title,
-              description: task.description || '',
-              assignee: task.assignee || '',
-              blocked: Boolean(task.blocked),
-              blockerReason: task.blocked ? (task.blockerReason || '') : '',
-              checklist: task.checklist || [],
-              archived: Boolean(task.archived),
-              createdAt: task.createdAt || '2026-02-26T00:00:00.000Z',
-              updatedAt: task.updatedAt || '2026-02-26T00:00:00.000Z',
-              ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {}),
-              dueDate: task.dueDate || '',
-              priority: Object.prototype.hasOwnProperty.call(task, 'priority') ? task.priority : null,
-              effort: Object.prototype.hasOwnProperty.call(task, 'effort') ? task.effort : null,
-              status: task.status || 'backlog'
-            })),
-            settings: {
-              title: board.title,
-              sortMode: 'manual',
-              showArchivedOnly: false,
-              archiveFilter: 'active'
-            }
-          },
-          extensions: {}
-        }
+        data: boardData
       };
     });
 
@@ -121,19 +149,39 @@ async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey
     portfolioSortDir = sortDir;
     buildPortfolioTasks();
     renderPortfolio();
+    await checkProjectFilesNow();
   }, { boards, selectedBoardId, sortKey, sortDir });
 }
 
 async function mockNewProjectFlow(page, { promptValue = 'New Project', fileName = 'new-project.board.json' } = {}) {
   await page.evaluate(({ promptValue, fileName }) => {
     window.__newProjectWrites = [];
+    const disk = {
+      text: '',
+      lastModified: Date.now()
+    };
     window.prompt = () => promptValue;
     window.showSaveFilePicker = async () => ({
       name: fileName,
+      async getFile() {
+        const text = String(disk.text || '');
+        const lastModified = Number(disk.lastModified) || Date.now();
+        return {
+          name: fileName,
+          size: new Blob([text]).size,
+          lastModified,
+          async text() {
+            return text;
+          }
+        };
+      },
       async createWritable() {
         return {
           async write(text) {
-            window.__newProjectWrites.push(String(text));
+            const serialized = String(text);
+            window.__newProjectWrites.push(serialized);
+            disk.text = serialized;
+            disk.lastModified = Date.now();
           },
           async close() {}
         };
@@ -156,6 +204,24 @@ async function mockImportProjectsPicker(page, payloads) {
       }
     }));
   }, payloads);
+}
+
+async function mutateExternalBoardFile(page, { boardId, payload, invalidText = null }) {
+  await page.evaluate(({ boardId, payload, invalidText }) => {
+    if (!window.__portfolioDiskByBoardId || !window.__portfolioDiskByBoardId[boardId]) {
+      throw new Error(`Disk state not found for board: ${boardId}`);
+    }
+    const disk = window.__portfolioDiskByBoardId[boardId];
+    const nextText = typeof invalidText === 'string' ? invalidText : JSON.stringify(payload, null, 2);
+    disk.text = nextText;
+    disk.lastModified = (Number(disk.lastModified) || Date.now()) + 1000;
+  }, { boardId, payload, invalidText });
+}
+
+async function triggerExternalFileCheck(page) {
+  await page.evaluate(async () => {
+    await Services.File.checkExternalChangesNow();
+  });
 }
 
 function portfolioCard(page, title) {
@@ -190,9 +256,31 @@ async function installControlledPortfolioWriter(page, { boardId, holdWrites = fa
 
     const board = portfolioBoards.find((p) => p.id === boardId);
     if (!board) throw new Error(`Board not found: ${boardId}`);
+    if (!window.__portfolioDiskByBoardId) {
+      window.__portfolioDiskByBoardId = {};
+    }
+    if (!window.__portfolioDiskByBoardId[boardId]) {
+      window.__portfolioDiskByBoardId[boardId] = {
+        text: JSON.stringify(board.data, null, 2),
+        lastModified: Date.now()
+      };
+    }
 
     board.handle = {
       name: board.fileName || `${boardId}.board.json`,
+      async getFile() {
+        const disk = window.__portfolioDiskByBoardId[boardId];
+        const text = String(disk?.text || JSON.stringify(board.data, null, 2));
+        const lastModified = Number(disk?.lastModified) || Date.now();
+        return {
+          name: board.fileName || `${boardId}.board.json`,
+          size: new Blob([text]).size,
+          lastModified,
+          async text() {
+            return text;
+          }
+        };
+      },
       async createWritable() {
         return {
           async write(text) {
@@ -209,7 +297,13 @@ async function installControlledPortfolioWriter(page, { boardId, holdWrites = fa
               if (ctl.holdWrites) {
                 await new Promise((resolve) => ctl.pendingResolvers.push(resolve));
               }
-              window.__portfolioTestWrites.push({ boardId, text: String(text), attempt });
+              const serialized = String(text);
+              window.__portfolioTestWrites.push({ boardId, text: serialized, attempt });
+              const disk = window.__portfolioDiskByBoardId[boardId];
+              if (disk) {
+                disk.text = serialized;
+                disk.lastModified = Date.now();
+              }
             } finally {
               ctl.active -= 1;
             }
@@ -1145,6 +1239,203 @@ test.describe('portfolio-only app', () => {
     expect(afterRetry.status).toBe('idle');
     expect(afterRetry.revision).toBe(afterRetry.savedRevision);
     expect(afterRetry.alerts).toEqual([]);
+  });
+
+  test('external disk change reloads board when there are no unsaved local edits', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'e1',
+        title: 'External One',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Original title', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'e1' });
+
+    await mutateExternalBoardFile(page, {
+      boardId: 'e1',
+      payload: buildBoardPayload({
+        title: 'External One',
+        tasks: [{ id: 1, title: 'Changed on disk', status: 'doing' }]
+      })
+    });
+    await triggerExternalFileCheck(page);
+
+    await expect(portfolioCard(page, 'Changed on disk')).toBeVisible();
+    await expect(page.locator('.portfolio-chip.active')).toContainText('External update');
+
+    const result = await page.evaluate(() => ({
+      title: portfolioBoards.find((b) => b.id === 'e1')?.data?.board?.tasks?.find((t) => t.id === 1)?.title,
+      status: portfolioBoards.find((b) => b.id === 'e1')?.data?.board?.tasks?.find((t) => t.id === 1)?.status
+    }));
+    expect(result.title).toBe('Changed on disk');
+    expect(result.status).toBe('doing');
+  });
+
+  test('external change conflict can keep local edits and save them', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'c1',
+        title: 'Conflict Local',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Start title', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'c1' });
+
+    await installControlledPortfolioWriter(page, { boardId: 'c1', holdWrites: false, failWrites: 1 });
+    await page.evaluate(() => {
+      runPortfolioTaskMutation('c1', 1, (task) => {
+        task.title = 'Local unsaved edit';
+        return true;
+      });
+    });
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Save failed');
+
+    await page.evaluate(() => {
+      window.__conflictPrompts = [];
+      window.prompt = (message, initialValue) => {
+        window.__conflictPrompts.push({ message: String(message), initialValue: String(initialValue || '') });
+        return 'local';
+      };
+    });
+
+    await mutateExternalBoardFile(page, {
+      boardId: 'c1',
+      payload: buildBoardPayload({
+        title: 'Conflict Local',
+        tasks: [{ id: 1, title: 'Disk title', status: 'done' }]
+      })
+    });
+    await triggerExternalFileCheck(page);
+
+    const result = await page.evaluate(() => {
+      const board = portfolioBoards.find((b) => b.id === 'c1');
+      const task = board?.data?.board?.tasks?.find((t) => t.id === 1);
+      return {
+        title: task?.title,
+        status: task?.status,
+        promptCount: (window.__conflictPrompts || []).length,
+        writes: (window.__portfolioTestWrites || []).length,
+        saveState: getProjectSaveState('c1')
+      };
+    });
+
+    expect(result.promptCount).toBeGreaterThan(0);
+    expect(result.title).toBe('Local unsaved edit');
+    expect(result.status).toBe('backlog');
+    expect(result.writes).toBe(1);
+    expect(result.saveState.status).toBe('idle');
+    expect(result.saveState.revision).toBe(result.saveState.savedRevision);
+  });
+
+  test('external change conflict can reload from disk and discard unsaved local edits', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'c2',
+        title: 'Conflict Reload',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Original title', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'c2' });
+
+    await installControlledPortfolioWriter(page, { boardId: 'c2', holdWrites: false, failWrites: 1 });
+    await page.evaluate(() => {
+      runPortfolioTaskMutation('c2', 1, (task) => {
+        task.title = 'Local edited title';
+        return true;
+      });
+    });
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Save failed');
+
+    await page.evaluate(() => {
+      window.prompt = () => 'reload';
+    });
+
+    await mutateExternalBoardFile(page, {
+      boardId: 'c2',
+      payload: buildBoardPayload({
+        title: 'Conflict Reload',
+        tasks: [{ id: 1, title: 'Disk wins title', status: 'doing' }]
+      })
+    });
+    await triggerExternalFileCheck(page);
+
+    await expect(portfolioCard(page, 'Disk wins title')).toBeVisible();
+
+    const result = await page.evaluate(() => {
+      const board = portfolioBoards.find((b) => b.id === 'c2');
+      const task = board?.data?.board?.tasks?.find((t) => t.id === 1);
+      const state = getProjectSaveState('c2');
+      return {
+        title: task?.title,
+        status: task?.status,
+        writes: (window.__portfolioTestWrites || []).length,
+        statusFlag: state?.status,
+        revision: state?.revision,
+        savedRevision: state?.savedRevision
+      };
+    });
+
+    expect(result.title).toBe('Disk wins title');
+    expect(result.status).toBe('doing');
+    expect(result.writes).toBe(0);
+    expect(result.statusFlag).toBe('idle');
+    expect(result.revision).toBe(result.savedRevision);
+  });
+
+  test('invalid external file does not replace in-memory board and reports watch error', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'w1',
+        title: 'Watch Errors',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Safe title', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'w1' });
+
+    await mutateExternalBoardFile(page, { boardId: 'w1', payload: null, invalidText: '{ invalid json' });
+    await triggerExternalFileCheck(page);
+
+    await expect(portfolioCard(page, 'Safe title')).toBeVisible();
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Watch error');
+
+    const title = await page.evaluate(() => portfolioBoards.find((b) => b.id === 'w1')?.data?.board?.tasks?.find((t) => t.id === 1)?.title);
+    expect(title).toBe('Safe title');
+  });
+
+  test('external checks cover writable boards that are not selected', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'a1',
+        title: 'Alpha',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Alpha task', status: 'backlog' }]
+      },
+      {
+        id: 'b1',
+        title: 'Bravo',
+        hasHandle: true,
+        tasks: [{ id: 2, title: 'Bravo task', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'a1' });
+
+    await mutateExternalBoardFile(page, {
+      boardId: 'b1',
+      payload: buildBoardPayload({
+        title: 'Bravo',
+        tasks: [{ id: 2, title: 'Bravo updated externally', status: 'done' }]
+      })
+    });
+    await triggerExternalFileCheck(page);
+
+    const result = await page.evaluate(() => ({
+      alphaTitle: portfolioBoards.find((b) => b.id === 'a1')?.data?.board?.tasks?.find((t) => t.id === 1)?.title,
+      bravoTitle: portfolioBoards.find((b) => b.id === 'b1')?.data?.board?.tasks?.find((t) => t.id === 2)?.title,
+      bravoStatus: portfolioBoards.find((b) => b.id === 'b1')?.data?.board?.tasks?.find((t) => t.id === 2)?.status
+    }));
+
+    expect(result.alphaTitle).toBe('Alpha task');
+    expect(result.bravoTitle).toBe('Bravo updated externally');
+    expect(result.bravoStatus).toBe('done');
   });
 
   test('dragging works in all-projects view for mutable cards', async ({ page }) => {

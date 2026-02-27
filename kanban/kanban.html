@@ -351,6 +351,18 @@
             color: var(--priority-high);
         }
 
+        .chip-save-state.warning {
+            color: #8b5e0a;
+        }
+
+        .chip-save-state.conflict {
+            color: #a13f10;
+        }
+
+        .chip-save-state.external {
+            color: var(--accent);
+        }
+
         .portfolio-toolbar input,
         .portfolio-toolbar select {
             border: 1px solid var(--border);
@@ -1855,6 +1867,9 @@
         const ATTACHMENT_SOFT_WARN_BYTES = 2 * 1024 * 1024;
         const ATTACHMENT_TASK_SOFT_TOTAL_BYTES = 20 * 1024 * 1024;
         const ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES = 25 * 1024 * 1024;
+        const PROJECT_FILE_WATCH_INTERVAL_MS = 4000;
+        const PROJECT_FILE_CONFLICT_SUPPRESS_MS = 15000;
+        const PROJECT_FILE_EXTERNAL_BADGE_MS = 5000;
         const DEBUG_LOGS_ENABLED = false;
         let pendingNewTaskStatus = null;
         let undoAction = null;
@@ -1862,6 +1877,7 @@
         let portfolioBoards = [];
         let portfolioTasks = [];
         let projectSaveStateById = new Map();
+        let projectFileStateById = new Map();
         let selectedPortfolioBoardId = '';
         let portfolioSortKey = 'priority';
         let portfolioSortDir = 'asc';
@@ -1874,6 +1890,9 @@
         let taskModalAttachmentMessages = [];
         let ShortcutRegistry = [];
         let suppressPortfolioCardClickUntil = 0;
+        let projectWatchTimerId = null;
+        let projectWatchRunning = false;
+        let projectWatchListenersBound = false;
         const Refs = {};
         let State = null;
         let Domain = null;
@@ -1998,6 +2017,16 @@
             return new Date().toISOString();
         }
 
+        function hashTextContent(text) {
+            const value = String(text ?? '');
+            let hash = 2166136261;
+            for (let i = 0; i < value.length; i += 1) {
+                hash ^= value.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            return `h${(hash >>> 0).toString(16)}`;
+        }
+
         function formatLocalIsoDate(date) {
             if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
             const yyyy = String(date.getFullYear());
@@ -2091,7 +2120,10 @@
                 lastErrorMessage: '',
                 lastSavedAt: '',
                 revision: 0,
-                savedRevision: 0
+                savedRevision: 0,
+                watchStatus: 'idle',
+                watchMessage: '',
+                watchStatusUntil: 0
             };
         }
 
@@ -2106,6 +2138,38 @@
             return state;
         }
 
+        function getProjectFileState(boardId, options = {}) {
+            if (!boardId) return null;
+            const createIfMissing = options.create !== false;
+            let state = projectFileStateById.get(boardId) || null;
+            if (!state && createIfMissing) {
+                state = {
+                    lastModified: 0,
+                    size: 0,
+                    lastTextHash: '',
+                    checking: false,
+                    suppressedUntilMs: 0
+                };
+                projectFileStateById.set(boardId, state);
+            }
+            return state;
+        }
+
+        function setProjectWatchStatus(boardId, status = 'idle', message = '', options = {}) {
+            const state = getProjectSaveState(boardId, { create: false });
+            if (!state) return;
+            state.watchStatus = status || 'idle';
+            state.watchMessage = message || '';
+            state.watchStatusUntil = Number(options.untilMs) > 0 ? Number(options.untilMs) : 0;
+            if (options.render !== false) {
+                renderPortfolioBoardChips();
+            }
+        }
+
+        function clearProjectWatchStatus(boardId, options = {}) {
+            setProjectWatchStatus(boardId, 'idle', '', options);
+        }
+
         function syncProjectSaveStates() {
             const activeIds = new Set();
             portfolioBoards.forEach((board) => {
@@ -2118,6 +2182,11 @@
                     projectSaveStateById.delete(boardId);
                 }
             });
+            Array.from(projectFileStateById.keys()).forEach((boardId) => {
+                if (!activeIds.has(boardId)) {
+                    projectFileStateById.delete(boardId);
+                }
+            });
         }
 
         function markProjectDirty(boardId) {
@@ -2128,6 +2197,11 @@
                 state.queued = true;
             } else if (state.status !== 'error') {
                 state.status = 'dirty';
+            }
+            if (state.watchStatus === 'external' || state.watchStatus === 'conflict') {
+                state.watchStatus = 'idle';
+                state.watchMessage = '';
+                state.watchStatusUntil = 0;
             }
             return state;
         }
@@ -2151,8 +2225,35 @@
             if (state.inFlight) {
                 return { status: 'saving', text: 'Saving', title: 'Saving changes…', canRetry: false };
             }
+            if (state.watchStatus === 'conflict') {
+                return {
+                    status: 'conflict',
+                    text: 'Conflict',
+                    title: state.watchMessage || 'External changes detected while local edits are unsaved.',
+                    canRetry: false
+                };
+            }
             if (projectHasUnsavedChanges(boardId)) {
                 return { status: 'dirty', text: 'Unsaved', title: 'Unsaved changes.', canRetry: false };
+            }
+            if (state.watchStatus === 'watch-error') {
+                return {
+                    status: 'warning',
+                    text: 'Watch error',
+                    title: state.watchMessage || 'Could not read project file for external changes.',
+                    canRetry: false
+                };
+            }
+            if (state.watchStatus === 'external') {
+                if (state.watchStatusUntil && Date.now() > state.watchStatusUntil) {
+                    return { status: 'idle', text: '', title: '', canRetry: false };
+                }
+                return {
+                    status: 'external',
+                    text: 'External update',
+                    title: state.watchMessage || 'Project reloaded from disk.',
+                    canRetry: false
+                };
             }
             return { status: 'idle', text: '', title: '', canRetry: false };
         }
@@ -2229,6 +2330,34 @@
             validate(boardData) {
                 validateBoardData(boardData);
             },
+            async readHandleFileMeta(handle) {
+                if (!handle || typeof handle.getFile !== 'function') {
+                    throw new Error('Project file handle is not readable.');
+                }
+                const file = await handle.getFile();
+                return {
+                    file,
+                    lastModified: Number(file?.lastModified) || 0,
+                    size: Number(file?.size) || 0
+                };
+            },
+            async readFileSnapshot(file) {
+                const text = await file.text();
+                const parsed = JSON.parse(text);
+                this.validate(parsed);
+                return {
+                    parsed,
+                    fileMeta: {
+                        lastModified: Number(file?.lastModified) || 0,
+                        size: Number(file?.size) || 0,
+                        textHash: hashTextContent(text)
+                    }
+                };
+            },
+            async readHandleSnapshot(handle) {
+                const { file } = await this.readHandleFileMeta(handle);
+                return this.readFileSnapshot(file);
+            },
             async saveRecord(boardRecord) {
                 if (!boardRecord || !boardRecord.handle) return false;
                 const payload = this.serialize(boardRecord.data);
@@ -2275,6 +2404,220 @@
             }
         };
 
+        async function refreshProjectFileBaseline(boardRecord, options = {}) {
+            if (!boardRecord || !boardRecord.id || !boardRecord.handle) return null;
+            const boardId = boardRecord.id;
+            const state = getProjectFileState(boardId);
+            if (!state) return null;
+            if (state.checking && options.force !== true) return null;
+            state.checking = true;
+            try {
+                const snapshot = await BoardRepository.readHandleSnapshot(boardRecord.handle);
+                state.lastModified = snapshot.fileMeta.lastModified;
+                state.size = snapshot.fileMeta.size;
+                state.lastTextHash = snapshot.fileMeta.textHash;
+                if (options.resetSuppress !== false) {
+                    state.suppressedUntilMs = 0;
+                }
+                if (options.clearWatchError !== false) {
+                    clearProjectWatchStatus(boardId, { render: false });
+                }
+                return snapshot;
+            } catch (error) {
+                if (options.markError !== false) {
+                    setProjectWatchStatus(
+                        boardId,
+                        'watch-error',
+                        `Could not watch file: ${formatErrorMessage(error, 'Read failed.')}`
+                    );
+                }
+                return null;
+            } finally {
+                state.checking = false;
+            }
+        }
+
+        async function primeProjectFileBaselines(records) {
+            const list = Array.isArray(records) ? records : [];
+            for (const boardRecord of list) {
+                if (!boardRecord || !boardRecord.handle) continue;
+                await refreshProjectFileBaseline(boardRecord, { markError: true, clearWatchError: true });
+            }
+        }
+
+        function applySnapshotToBoardRecord(boardRecord, parsed, options = {}) {
+            if (!boardRecord || !parsed) return false;
+            const boardId = boardRecord.id;
+            closePortfolioContextsForProject(boardId);
+            const payload = serializeBoardDataFromObject(parsed);
+            boardRecord.data = payload;
+            boardRecord.title = payload.board.settings.title;
+            if (options.discardLocalChanges) {
+                const saveState = getProjectSaveState(boardId, { create: false });
+                if (saveState) {
+                    saveState.revision = saveState.savedRevision;
+                    saveState.status = 'idle';
+                    saveState.lastErrorMessage = '';
+                    saveState.queued = false;
+                }
+            }
+            buildPortfolioTasks();
+            renderPortfolio();
+            return true;
+        }
+
+        async function resolveExternalChangeConflict(boardRecord, snapshot, fileState) {
+            const boardId = boardRecord.id;
+            setProjectWatchStatus(
+                boardId,
+                'conflict',
+                'External file updates detected while this project has unsaved local edits.'
+            );
+
+            const answer = window.prompt(
+                'Project file changed on disk while this app has unsaved edits.\n' +
+                'Type "local" to keep local edits and save.\n' +
+                'Type "reload" to reload from disk and discard unsaved edits.',
+                'local'
+            );
+
+            if (answer === null) {
+                fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
+                return false;
+            }
+
+            const choice = String(answer).trim().toLowerCase();
+            if (choice === 'reload' || choice === 'r') {
+                applySnapshotToBoardRecord(boardRecord, snapshot.parsed, { discardLocalChanges: true });
+                setProjectWatchStatus(
+                    boardId,
+                    'external',
+                    'Reloaded from disk after conflict.',
+                    { untilMs: Date.now() + PROJECT_FILE_EXTERNAL_BADGE_MS }
+                );
+                return true;
+            }
+
+            if (choice === 'local' || choice === 'l' || choice === 'keep') {
+                const saved = await enqueueProjectSave(boardRecord);
+                if (!saved) {
+                    fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
+                    setProjectWatchStatus(
+                        boardId,
+                        'conflict',
+                        'Conflict persists because local save failed. Fix save issues and retry.'
+                    );
+                    return false;
+                }
+                await refreshProjectFileBaseline(boardRecord, { markError: true, clearWatchError: true, force: true });
+                clearProjectWatchStatus(boardId);
+                return true;
+            }
+
+            fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
+            setProjectWatchStatus(
+                boardId,
+                'conflict',
+                'Conflict unresolved. Type "local" or "reload" when prompted again.'
+            );
+            return false;
+        }
+
+        async function checkProjectFileForExternalChanges(boardRecord) {
+            if (!boardRecord || !boardRecord.id || !boardRecord.handle) return false;
+            const boardId = boardRecord.id;
+            const saveState = getProjectSaveState(boardId, { create: false });
+            if (saveState?.inFlight) return false;
+            const fileState = getProjectFileState(boardId);
+            if (!fileState || fileState.checking) return false;
+
+            fileState.checking = true;
+            try {
+                const { file, lastModified, size } = await BoardRepository.readHandleFileMeta(boardRecord.handle);
+                const hasBaseline = Boolean(fileState.lastTextHash);
+                const metaUnchanged = hasBaseline && fileState.lastModified === lastModified && fileState.size === size;
+                if (metaUnchanged) {
+                    return false;
+                }
+
+                const snapshot = await BoardRepository.readFileSnapshot(file);
+                const previousHash = fileState.lastTextHash;
+                fileState.lastModified = snapshot.fileMeta.lastModified;
+                fileState.size = snapshot.fileMeta.size;
+                fileState.lastTextHash = snapshot.fileMeta.textHash;
+
+                if (!previousHash) {
+                    clearProjectWatchStatus(boardId, { render: false });
+                    return false;
+                }
+
+                if (previousHash === snapshot.fileMeta.textHash) {
+                    clearProjectWatchStatus(boardId, { render: false });
+                    return false;
+                }
+
+                if (projectHasUnsavedChanges(boardId)) {
+                    if (fileState.suppressedUntilMs > Date.now()) {
+                        setProjectWatchStatus(
+                            boardId,
+                            'conflict',
+                            'External and local changes both exist. Resolve conflict to continue.'
+                        );
+                        return true;
+                    }
+                    return resolveExternalChangeConflict(boardRecord, snapshot, fileState);
+                }
+
+                applySnapshotToBoardRecord(boardRecord, snapshot.parsed);
+                setProjectWatchStatus(
+                    boardId,
+                    'external',
+                    'Project reloaded from disk.',
+                    { untilMs: Date.now() + PROJECT_FILE_EXTERNAL_BADGE_MS }
+                );
+                return true;
+            } catch (error) {
+                setProjectWatchStatus(
+                    boardId,
+                    'watch-error',
+                    `Could not watch file: ${formatErrorMessage(error, 'Read failed.')}`
+                );
+                return false;
+            } finally {
+                fileState.checking = false;
+            }
+        }
+
+        async function checkProjectFilesNow() {
+            if (projectWatchRunning) return false;
+            projectWatchRunning = true;
+            try {
+                const boards = portfolioBoards.filter(board => board && board.handle);
+                for (const board of boards) {
+                    await checkProjectFileForExternalChanges(board);
+                }
+                return true;
+            } finally {
+                projectWatchRunning = false;
+            }
+        }
+
+        function stopProjectFileWatcher() {
+            if (projectWatchTimerId) {
+                clearInterval(projectWatchTimerId);
+                projectWatchTimerId = null;
+            }
+        }
+
+        function startProjectFileWatcher() {
+            stopProjectFileWatcher();
+            projectWatchTimerId = setInterval(() => {
+                if (document.hidden) return;
+                void checkProjectFilesNow();
+            }, PROJECT_FILE_WATCH_INTERVAL_MS);
+            void checkProjectFilesNow();
+        }
+
         async function savePortfolioBoardRecord(boardRecord) {
             return BoardRepository.saveRecord(boardRecord);
         }
@@ -2293,6 +2636,12 @@
                     renderPortfolioBoardChips();
                     try {
                         await savePortfolioBoardRecord(boardRecord);
+                        await refreshProjectFileBaseline(boardRecord, {
+                            markError: false,
+                            clearWatchError: true,
+                            force: true
+                        });
+                        clearProjectWatchStatus(boardRecord.id, { render: false });
                     } catch (error) {
                         Logger.error('Project autosave failed', { boardId: boardRecord.id, error });
                         state.status = 'error';
@@ -2425,6 +2774,7 @@
             }
             buildPortfolioTasks();
             renderPortfolio();
+            primeProjectFileBaselines(list);
         }
 
         function renderPortfolioBoardChips() {
@@ -2488,6 +2838,7 @@
                 selectedPortfolioBoardId = '';
             }
             projectSaveStateById.delete(boardId);
+            projectFileStateById.delete(boardId);
             buildPortfolioTasks();
             renderPortfolio();
         }
@@ -4190,6 +4541,18 @@
             renderShortcutsModalContent();
             updateDocumentTitle();
             setupFileDrop();
+            if (!projectWatchListenersBound) {
+                window.addEventListener('focus', () => {
+                    void checkProjectFilesNow();
+                });
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        void checkProjectFilesNow();
+                    }
+                });
+                projectWatchListenersBound = true;
+            }
+            startProjectFileWatcher();
             applyUrlState();
         }
 
@@ -5015,7 +5378,8 @@
                 createProject: newProject,
                 importProjects,
                 importDroppedFiles: openPortfolioFromFiles,
-                saveProjectRecord: BoardRepository.saveRecord.bind(BoardRepository)
+                saveProjectRecord: BoardRepository.saveRecord.bind(BoardRepository),
+                checkExternalChangesNow: checkProjectFilesNow
             },
             Time: {
                 nowIso
