@@ -1,0 +1,2113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health Dashboard</title>
+  <style>
+    /* ===== CSS RESET ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ===== VARIABLES ===== */
+    :root {
+      --bg: #fafafa;
+      --fg: #1a1a1a;
+      --fg-secondary: #666;
+      --border: #ccc;
+      --border-light: #e5e5e5;
+      --accent: #2563eb;
+      --success: #16a34a;
+      --warning: #ca8a04;
+      --danger: #dc2626;
+      --card-bg: #fff;
+      --highlight: #fef08a;
+    }
+
+    /* ===== BASE STYLES ===== */
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      background: var(--bg);
+      color: var(--fg);
+      padding: 1.5rem;
+    }
+
+    /* ===== CONTAINER ===== */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .header-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .header-meta {
+      font-size: 12px;
+      color: var(--fg-secondary);
+    }
+
+    /* ===== SECTION LABELS ===== */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--fg-secondary);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+
+    .card-header {
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .card-header .meta {
+      font-size: 12px;
+      color: var(--fg-secondary);
+      margin-left: 1rem;
+    }
+
+    .card-header-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .card-body {
+      padding: 1.25rem;
+    }
+
+    .card-form {
+      padding: 1.25rem;
+      border-top: 1px solid var(--border-light);
+      background: var(--bg);
+      display: none;
+    }
+
+    .card-form.expanded {
+      display: block;
+    }
+
+    /* ===== GRID LAYOUTS ===== */
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    .three-column {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .two-column, .three-column {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ===== LISTS ===== */
+    .data-list {
+      list-style: none;
+    }
+
+    .data-list li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .data-list li:last-child {
+      border-bottom: none;
+    }
+
+    .data-list .label {
+      font-weight: 400;
+    }
+
+    .data-list .value {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ===== BADGES ===== */
+    .badge {
+      padding: 0.125rem 0.5rem;
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-warning { background: #fef9c3; color: #854d0e; }
+    .badge-danger { background: #fecaca; color: #991b1b; }
+    .badge-neutral { background: var(--border-light); color: var(--fg-secondary); }
+
+    /* ===== CHARTS (CSS-ONLY) ===== */
+    .chart-container {
+      margin-top: 1rem;
+    }
+
+    .chart-bar {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .chart-bar .label {
+      width: 80px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .chart-bar .bar-wrapper {
+      flex: 1;
+      height: 20px;
+      background: var(--border-light);
+      margin: 0 0.5rem;
+      position: relative;
+    }
+
+    .chart-bar .bar-fill {
+      height: 100%;
+      background: var(--fg);
+    }
+
+    .chart-bar .value {
+      width: 60px;
+      text-align: right;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ===== METRICS GRID ===== */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .metric-box {
+      border: 1px solid var(--border-light);
+      padding: 1rem;
+      text-align: center;
+    }
+
+    .metric-box .value {
+      font-size: 20px;
+      font-weight: 600;
+      display: block;
+    }
+
+    .metric-box .label {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--fg-secondary);
+      margin-top: 0.25rem;
+      display: block;
+    }
+
+    .metric-box .trend {
+      font-size: 10px;
+      margin-top: 0.25rem;
+      display: block;
+    }
+
+
+    /* ===== INPUTS ===== */
+    .input-group {
+      margin-bottom: 1rem;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--fg-secondary);
+      margin-bottom: 0.25rem;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    select {
+      width: 100%;
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      font-size: 13px;
+      font-family: inherit;
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* ===== BUTTONS ===== */
+    button {
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    button:hover {
+      background: var(--bg);
+    }
+
+    button.primary {
+      background: var(--fg);
+      color: var(--card-bg);
+      border-color: var(--fg);
+    }
+
+    button.primary:hover {
+      background: #333;
+    }
+
+    button.small {
+      padding: 0.25rem 0.5rem;
+      font-size: 11px;
+    }
+
+    /* ===== SECTIONS ===== */
+    .section {
+      margin-bottom: 1.5rem;
+    }
+
+    /* ===== STATUS COLORS ===== */
+    .status-optimal { color: var(--success); }
+    .status-warning { color: var(--warning); }
+    .status-danger { color: var(--danger); }
+
+    /* ===== TABLE ===== */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .data-table th {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: var(--fg-secondary);
+      background: var(--bg);
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table .reference {
+      color: var(--fg-secondary);
+      font-size: 11px;
+    }
+
+    /* ===== FORM ACTIONS ===== */
+    .form-actions {
+      margin-top: 1rem;
+      text-align: right;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .form-grid, .form-grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- HEADER -->
+    <div class="header">
+      <div class="header-top">
+        <div class="header-title">Health Dashboard</div>
+        <div class="header-meta">Last updated: Feb 04, 2026</div>
+      </div>
+    </div>
+
+    <!-- BODY COMPOSITION -->
+    <div class="section">
+      <div class="section-label">Body Composition</div>
+      <div class="card">
+        <div class="card-header">
+          <div style="display: flex; align-items: center;">
+            <h3>Weight & Measurements</h3>
+            <span class="meta" id="bodycomp-meta">--</span>
+          </div>
+          <div class="card-header-actions">
+            <button class="small" onclick="toggleForm('bodycomp-form')">Add</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="two-column">
+            <div>
+              <div class="section-label">Current Metrics</div>
+              <ul class="data-list">
+                <li>
+                  <span class="label">Weight</span>
+                  <span class="value" id="weight-val">--</span>
+                </li>
+                <li>
+                  <span class="label">Height</span>
+                  <span class="value" id="height-val">--</span>
+                </li>
+                <li>
+                  <span class="label">BMI</span>
+                  <span class="value">
+                    <span id="bmi-val">--</span>
+                    <span class="badge badge-success" id="bmi-status">--</span>
+                  </span>
+                </li>
+                <li>
+                  <span class="label">Body Fat %</span>
+                  <span class="value">
+                    <span id="bodyfat-val">--</span>
+                    <span class="badge badge-success" id="bodyfat-status">--</span>
+                  </span>
+                </li>
+                <li>
+                  <span class="label">Muscle Mass %</span>
+                  <span class="value" id="muscle-val">--</span>
+                </li>
+                <li>
+                  <span class="label">Visceral Fat</span>
+                  <span class="value">
+                    <span id="visceral-val">--</span>
+                    <span class="badge badge-success" id="visceral-status">--</span>
+                  </span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <div class="section-label">Measurements (cm)</div>
+              <ul class="data-list">
+                <li>
+                  <span class="label">Waist</span>
+                  <span class="value" id="waist-val">--</span>
+                </li>
+                <li>
+                  <span class="label">Hips</span>
+                  <span class="value" id="hips-val">--</span>
+                </li>
+                <li>
+                  <span class="label">Chest</span>
+                  <span class="value" id="chest-val">--</span>
+                </li>
+                <li>
+                  <span class="label">Neck</span>
+                  <span class="value" id="neck-val">--</span>
+                </li>
+                <li>
+                  <span class="label">Biceps</span>
+                  <span class="value" id="biceps-val">--</span>
+                </li>
+                <li>
+                  <span class="label">Thighs</span>
+                  <span class="value" id="thighs-val">--</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="card-form" id="bodycomp-form">
+          <div class="section-label">Add Body Composition Measurement</div>
+          <form onsubmit="addBodyComposition(event)">
+            <div class="form-grid">
+              <div class="input-group">
+                <label>Date</label>
+                <input type="date" name="date" required>
+              </div>
+              <div class="input-group">
+                <label>Weight (kg)</label>
+                <input type="number" name="weight" step="0.1" required>
+              </div>
+              <div class="input-group">
+                <label>Body Fat %</label>
+                <input type="number" name="bodyFat" step="0.1">
+              </div>
+              <div class="input-group">
+                <label>Muscle Mass %</label>
+                <input type="number" name="muscleMass" step="0.1">
+              </div>
+              <div class="input-group">
+                <label>Visceral Fat</label>
+                <input type="number" name="visceralFat">
+              </div>
+              <div class="input-group">
+                <label>Waist (cm)</label>
+                <input type="number" name="waist" step="0.5">
+              </div>
+              <div class="input-group">
+                <label>Hips (cm)</label>
+                <input type="number" name="hips" step="0.5">
+              </div>
+              <div class="input-group">
+                <label>Chest (cm)</label>
+                <input type="number" name="chest" step="0.5">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" onclick="toggleForm('bodycomp-form')">Cancel</button>
+              <button type="submit" class="primary">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARDIOVASCULAR -->
+    <div class="section">
+      <div class="section-label">Cardiovascular</div>
+      <div class="two-column">
+        <div class="card">
+          <div class="card-header">
+            <div style="display: flex; align-items: center;">
+              <h3>Heart Metrics</h3>
+              <span class="meta" id="heart-meta">--</span>
+            </div>
+            <div class="card-header-actions">
+              <button class="small" onclick="toggleForm('heart-form')">Add</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-box">
+                <span class="value" id="resting-hr">--</span>
+                <span class="label">Resting HR</span>
+                <span class="trend status-optimal" id="hr-trend">--</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="max-hr">--</span>
+                <span class="label">Max HR</span>
+                <span class="trend status-neutral" id="maxhr-trend">--</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="hrv">--</span>
+                <span class="label">HRV (ms)</span>
+                <span class="trend status-optimal" id="hrv-trend">--</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="blood-pressure">--</span>
+                <span class="label">Blood Pressure</span>
+                <span class="trend status-optimal" id="bp-status">--</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="vo2max">--</span>
+                <span class="label">VO2 Max</span>
+                <span class="trend status-optimal" id="vo2-trend">--</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="recovery">--</span>
+                <span class="label">Recovery %</span>
+                <span class="trend status-optimal" id="recovery-trend">--</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-form" id="heart-form">
+            <div class="section-label">Add Heart Metrics</div>
+            <form onsubmit="addHeartMetrics(event)">
+              <div class="form-grid">
+                <div class="input-group">
+                  <label>Date</label>
+                  <input type="date" name="date" required>
+                </div>
+                <div class="input-group">
+                  <label>Resting HR</label>
+                  <input type="number" name="restingHR">
+                </div>
+                <div class="input-group">
+                  <label>HRV (ms)</label>
+                  <input type="number" name="hrv">
+                </div>
+                <div class="input-group">
+                  <label>Systolic BP</label>
+                  <input type="number" name="systolic">
+                </div>
+                <div class="input-group">
+                  <label>Diastolic BP</label>
+                  <input type="number" name="diastolic">
+                </div>
+                <div class="input-group">
+                  <label>Recovery %</label>
+                  <input type="number" name="recovery" min="0" max="100">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" onclick="toggleForm('heart-form')">Cancel</button>
+                <button type="submit" class="primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div style="display: flex; align-items: center;">
+              <h3>Exercise Performance</h3>
+              <span class="meta" id="exercise-meta">--</span>
+            </div>
+            <div class="card-header-actions">
+              <button class="small" onclick="toggleForm('exercise-form')">Add</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <ul class="data-list">
+              <li>
+                <span class="label">Active Minutes / Week</span>
+                <span class="value" id="active-min">--</span>
+              </li>
+              <li>
+                <span class="label">Steps / Day (Avg)</span>
+                <span class="value" id="steps">--</span>
+              </li>
+              <li>
+                <span class="label">Zone 2 Minutes / Week</span>
+                <span class="value" id="zone2">--</span>
+              </li>
+              <li>
+                <span class="label">Cardio Minutes / Week</span>
+                <span class="value" id="cardio-min">--</span>
+              </li>
+              <li>
+                <span class="label">Max Power (Watts)</span>
+                <span class="value" id="max-power">--</span>
+              </li>
+              <li>
+                <span class="label">FTP (Watts)</span>
+                <span class="value" id="ftp">--</span>
+              </li>
+            </ul>
+          </div>
+          <div class="card-form" id="exercise-form">
+            <div class="section-label">Add Exercise Metrics</div>
+            <form onsubmit="addExerciseMetrics(event)">
+              <div class="form-grid">
+                <div class="input-group">
+                  <label>Date</label>
+                  <input type="date" name="date" required>
+                </div>
+                <div class="input-group">
+                  <label>Active Minutes</label>
+                  <input type="number" name="activeMinutes">
+                </div>
+                <div class="input-group">
+                  <label>Steps</label>
+                  <input type="number" name="steps">
+                </div>
+                <div class="input-group">
+                  <label>Zone 2 Minutes</label>
+                  <input type="number" name="zone2">
+                </div>
+                <div class="input-group">
+                  <label>Max Power (W)</label>
+                  <input type="number" name="maxPower">
+                </div>
+                <div class="input-group">
+                  <label>FTP (W)</label>
+                  <input type="number" name="ftp">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" onclick="toggleForm('exercise-form')">Cancel</button>
+                <button type="submit" class="primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLEEP & RECOVERY -->
+    <div class="section">
+      <div class="section-label">Sleep & Recovery</div>
+      <div class="card">
+        <div class="card-header">
+          <div style="display: flex; align-items: center;">
+            <h3>Sleep Metrics</h3>
+            <span class="meta" id="sleep-meta">--</span>
+          </div>
+          <div class="card-header-actions">
+            <button class="small" onclick="toggleForm('sleep-form')">Add</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="two-column">
+            <div>
+              <div class="section-label">Last Night</div>
+              <ul class="data-list">
+                <li>
+                  <span class="label">Total Sleep</span>
+                  <span class="value" id="sleep-total">--</span>
+                </li>
+                <li>
+                  <span class="label">Sleep Efficiency</span>
+                  <span class="value">
+                    <span id="sleep-eff">--</span>
+                    <span class="badge badge-success" id="sleep-eff-badge">--</span>
+                  </span>
+                </li>
+                <li>
+                  <span class="label">Deep Sleep</span>
+                  <span class="value" id="deep-sleep">--</span>
+                </li>
+                <li>
+                  <span class="label">REM Sleep</span>
+                  <span class="value" id="rem-sleep">--</span>
+                </li>
+                <li>
+                  <span class="label">Light Sleep</span>
+                  <span class="value" id="light-sleep">--</span>
+                </li>
+                <li>
+                  <span class="label">Awake Time</span>
+                  <span class="value" id="awake-time">--</span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <div class="section-label">Sleep Quality Indicators</div>
+              <ul class="data-list">
+                <li>
+                  <span class="label">Sleep Score</span>
+                  <span class="value">
+                    <span id="sleep-score">--</span>/100
+                    <span class="badge badge-success" id="sleep-score-badge">--</span>
+                  </span>
+                </li>
+                <li>
+                  <span class="label">Sleep Onset (minutes)</span>
+                  <span class="value" id="sleep-onset">--</span>
+                </li>
+                <li>
+                  <span class="label">Sleep Regularity</span>
+                  <span class="value" id="sleep-reg">--</span>
+                </li>
+                <li>
+                  <span class="label">Avg Heart Rate (sleep)</span>
+                  <span class="value" id="sleep-hr">--</span>
+                </li>
+                <li>
+                  <span class="label">Breathing Rate</span>
+                  <span class="value" id="breathing">--</span>
+                </li>
+                <li>
+                  <span class="label">SpO2 Avg</span>
+                  <span class="value" id="spo2">--</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="card-form" id="sleep-form">
+          <div class="section-label">Add Sleep Data</div>
+          <form onsubmit="addSleepData(event)">
+            <div class="form-grid">
+              <div class="input-group">
+                <label>Date</label>
+                <input type="date" name="date" required>
+              </div>
+              <div class="input-group">
+                <label>Total Sleep (hrs)</label>
+                <input type="number" name="total" step="0.1">
+              </div>
+              <div class="input-group">
+                <label>Deep Sleep (hrs)</label>
+                <input type="number" name="deep" step="0.1">
+              </div>
+              <div class="input-group">
+                <label>REM Sleep (hrs)</label>
+                <input type="number" name="rem" step="0.1">
+              </div>
+              <div class="input-group">
+                <label>Sleep Score</label>
+                <input type="number" name="score" min="0" max="100">
+              </div>
+              <div class="input-group">
+                <label>Sleep HR</label>
+                <input type="number" name="sleepHR">
+              </div>
+              <div class="input-group">
+                <label>SpO2 %</label>
+                <input type="number" name="spo2" min="0" max="100">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" onclick="toggleForm('sleep-form')">Cancel</button>
+              <button type="submit" class="primary">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOOD MARKERS -->
+    <div class="section">
+      <div class="section-label">Blood Markers</div>
+      <div class="card">
+        <div class="card-header">
+          <div style="display: flex; align-items: center;">
+            <h3>Complete Blood Panel</h3>
+            <span class="meta" id="blood-meta">--</span>
+          </div>
+          <div class="card-header-actions">
+            <button class="small" onclick="toggleForm('blood-form')">Add</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="two-column">
+            <div>
+              <div class="section-label">Metabolic</div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Marker</th>
+                    <th>Value</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Glucose (fasting)</td>
+                    <td id="glucose">--</td>
+                    <td class="reference">70-100 mg/dL</td>
+                  </tr>
+                  <tr>
+                    <td>HbA1c</td>
+                    <td id="hba1c">--</td>
+                    <td class="reference">&lt;5.7%</td>
+                  </tr>
+                  <tr>
+                    <td>Insulin</td>
+                    <td id="insulin">--</td>
+                    <td class="reference">2.6-24.9 μIU/mL</td>
+                  </tr>
+                  <tr>
+                    <td>HOMA-IR</td>
+                    <td id="homa-ir">--</td>
+                    <td class="reference">&lt;2.0</td>
+                  </tr>
+                  <tr>
+                    <td>Triglycerides</td>
+                    <td id="triglycerides">--</td>
+                    <td class="reference">&lt;150 mg/dL</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div class="section-label">Lipid Panel</div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Marker</th>
+                    <th>Value</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Total Cholesterol</td>
+                    <td id="total-chol">--</td>
+                    <td class="reference">&lt;200 mg/dL</td>
+                  </tr>
+                  <tr>
+                    <td>HDL</td>
+                    <td id="hdl">--</td>
+                    <td class="reference">&gt;40 mg/dL</td>
+                  </tr>
+                  <tr>
+                    <td>LDL</td>
+                    <td id="ldl">--</td>
+                    <td class="reference">&lt;100 mg/dL</td>
+                  </tr>
+                  <tr>
+                    <td>LDL/HDL Ratio</td>
+                    <td id="ldl-hdl-ratio">--</td>
+                    <td class="reference">&lt;3.0</td>
+                  </tr>
+                  <tr>
+                    <td>Non-HDL Chol</td>
+                    <td id="non-hdl">--</td>
+                    <td class="reference">&lt;130 mg/dL</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="two-column" style="margin-top: 1.5rem;">
+            <div>
+              <div class="section-label">Liver & Kidney</div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Marker</th>
+                    <th>Value</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>ALT</td>
+                    <td id="alt">--</td>
+                    <td class="reference">7-56 U/L</td>
+                  </tr>
+                  <tr>
+                    <td>AST</td>
+                    <td id="ast">--</td>
+                    <td class="reference">10-40 U/L</td>
+                  </tr>
+                  <tr>
+                    <td>GGT</td>
+                    <td id="ggt">--</td>
+                    <td class="reference">8-61 U/L</td>
+                  </tr>
+                  <tr>
+                    <td>Creatinine</td>
+                    <td id="creatinine">--</td>
+                    <td class="reference">0.74-1.35 mg/dL</td>
+                  </tr>
+                  <tr>
+                    <td>eGFR</td>
+                    <td id="egfr">--</td>
+                    <td class="reference">&gt;60</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <div class="section-label">Inflammation & Immune</div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Marker</th>
+                    <th>Value</th>
+                    <th>Reference</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>hs-CRP</td>
+                    <td id="hscrp">--</td>
+                    <td class="reference">&lt;1.0 mg/L</td>
+                  </tr>
+                  <tr>
+                    <td>Homocysteine</td>
+                    <td id="homocysteine">--</td>
+                    <td class="reference">&lt;11 μmol/L</td>
+                  </tr>
+                  <tr>
+                    <td>Ferritin</td>
+                    <td id="ferritin">--</td>
+                    <td class="reference">30-400 ng/mL</td>
+                  </tr>
+                  <tr>
+                    <td>WBC</td>
+                    <td id="wbc">--</td>
+                    <td class="reference">4.5-11.0 K/μL</td>
+                  </tr>
+                  <tr>
+                    <td>Vitamin D</td>
+                    <td id="vitd">--</td>
+                    <td class="reference">30-100 ng/mL</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="section-label" style="margin-top: 1.5rem;">Advanced Markers (Biohacking)</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Marker</th>
+                <th>Value</th>
+                <th>Target</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>ApoB</td>
+                <td id="apob">--</td>
+                <td>&lt;80 mg/dL</td>
+                <td class="reference">Particle count of LDL</td>
+              </tr>
+              <tr>
+                <td>Lp(a)</td>
+                <td id="lpa">--</td>
+                <td>&lt;30 mg/dL</td>
+                <td class="reference">Genetic risk marker</td>
+              </tr>
+              <tr>
+                <td>Uric Acid</td>
+                <td id="uric">--</td>
+                <td>3.5-5.5 mg/dL</td>
+                <td class="reference">Metabolic health</td>
+              </tr>
+              <tr>
+                <td>TMAO</td>
+                <td id="tmao">--</td>
+                <td>&lt;6.2 μM</td>
+                <td class="reference">Gut-heart axis</td>
+              </tr>
+              <tr>
+                <td>Omega-3 Index</td>
+                <td id="omega3">--</td>
+                <td>&gt;8%</td>
+                <td class="reference">EPA+DHA in RBC</td>
+              </tr>
+              <tr>
+                <td>Cortisol (AM)</td>
+                <td id="cortisol-am">--</td>
+                <td>6.2-19.4 μg/dL</td>
+                <td class="reference">8am sample</td>
+              </tr>
+              <tr>
+                <td>Testosterone (Total)</td>
+                <td id="testosterone">--</td>
+                <td>300-1000 ng/dL</td>
+                <td class="reference">M - varies by age</td>
+              </tr>
+              <tr>
+                <td>Free Testosterone</td>
+                <td id="free-t">--</td>
+                <td>5-21 ng/dL</td>
+                <td class="reference">Bioavailable</td>
+              </tr>
+              <tr>
+                <td>SHBG</td>
+                <td id="shbg">--</td>
+                <td>10-50 nmol/L</td>
+                <td class="reference">Hormone binding</td>
+              </tr>
+              <tr>
+                <td>Estradiol</td>
+                <td id="estradiol">--</td>
+                <td>10-40 pg/mL</td>
+                <td class="reference">Males</td>
+              </tr>
+              <tr>
+                <td>IGF-1</td>
+                <td id="igf1">--</td>
+                <td>75-275 ng/mL</td>
+                <td class="reference">Growth factor</td>
+              </tr>
+              <tr>
+                <td>GlycoMark</td>
+                <td id="glycomark">--</td>
+                <td>&gt;10 μg/mL</td>
+                <td class="reference">Post-meal glucose</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-form" id="blood-form">
+          <div class="section-label">Add Blood Panel Results</div>
+          <form onsubmit="addBloodMarkers(event)">
+            <div class="form-grid-2">
+              <div>
+                <div class="section-label">Metabolic & Lipids</div>
+                <div class="form-grid">
+                  <div class="input-group">
+                    <label>Date</label>
+                    <input type="date" name="date" required>
+                  </div>
+                  <div class="input-group">
+                    <label>Glucose (mg/dL)</label>
+                    <input type="number" name="glucose">
+                  </div>
+                  <div class="input-group">
+                    <label>HbA1c (%)</label>
+                    <input type="number" name="hba1c" step="0.1">
+                  </div>
+                  <div class="input-group">
+                    <label>Total Cholesterol</label>
+                    <input type="number" name="totalCholesterol">
+                  </div>
+                  <div class="input-group">
+                    <label>HDL</label>
+                    <input type="number" name="hdl">
+                  </div>
+                  <div class="input-group">
+                    <label>LDL</label>
+                    <input type="number" name="ldl">
+                  </div>
+                  <div class="input-group">
+                    <label>Triglycerides</label>
+                    <input type="number" name="triglycerides">
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="section-label">Advanced Markers</div>
+                <div class="form-grid">
+                  <div class="input-group">
+                    <label>ApoB</label>
+                    <input type="number" name="apob">
+                  </div>
+                  <div class="input-group">
+                    <label>Lp(a)</label>
+                    <input type="number" name="lpa">
+                  </div>
+                  <div class="input-group">
+                    <label>hs-CRP</label>
+                    <input type="number" name="hscrp" step="0.1">
+                  </div>
+                  <div class="input-group">
+                    <label>Vitamin D</label>
+                    <input type="number" name="vitD">
+                  </div>
+                  <div class="input-group">
+                    <label>Testosterone</label>
+                    <input type="number" name="testosterone">
+                  </div>
+                  <div class="input-group">
+                    <label>Omega-3 Index</label>
+                    <input type="number" name="omega3Index" step="0.1">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" onclick="toggleForm('blood-form')">Cancel</button>
+              <button type="submit" class="primary">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- BIOHACKING METRICS -->
+    <div class="section">
+      <div class="section-label">Biohacking Metrics</div>
+      <div class="two-column">
+        <div class="card">
+          <div class="card-header">
+            <div style="display: flex; align-items: center;">
+              <h3>Glucose Monitoring</h3>
+              <span class="meta" id="glucose-meta">--</span>
+            </div>
+            <div class="card-header-actions">
+              <button class="small" onclick="toggleForm('cgm-form')">Add</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="metrics-grid">
+              <div class="metric-box">
+                <span class="value" id="cgm-avg">--</span>
+                <span class="label">Avg (mg/dL)</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="cgm-tir">--</span>
+                <span class="label">Time in Range</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="cgm-gmi">--</span>
+                <span class="label">GMI (%)</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="cgm-cv">--</span>
+                <span class="label">Variability</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="cgm-peak">--</span>
+                <span class="label">Peak (mg/dL)</span>
+              </div>
+              <div class="metric-box">
+                <span class="value" id="cgm-low">--</span>
+                <span class="label">Low Events</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-form" id="cgm-form">
+            <div class="section-label">Add CGM Data</div>
+            <form onsubmit="addCGMData(event)">
+              <div class="form-grid">
+                <div class="input-group">
+                  <label>Date</label>
+                  <input type="date" name="date" required>
+                </div>
+                <div class="input-group">
+                  <label>Average (mg/dL)</label>
+                  <input type="number" name="avg">
+                </div>
+                <div class="input-group">
+                  <label>Time in Range %</label>
+                  <input type="number" name="tir" min="0" max="100">
+                </div>
+                <div class="input-group">
+                  <label>GMI</label>
+                  <input type="number" name="gmi" step="0.1">
+                </div>
+                <div class="input-group">
+                  <label>Coefficient of Variation</label>
+                  <input type="number" name="cv" step="0.1">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" onclick="toggleForm('cgm-form')">Cancel</button>
+                <button type="submit" class="primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div style="display: flex; align-items: center;">
+              <h3>Supplements & Protocols</h3>
+              <span class="meta" id="supp-meta">--</span>
+            </div>
+            <div class="card-header-actions">
+              <button class="small" onclick="toggleForm('supp-form')">Add</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <ul class="data-list">
+              <li>
+                <span class="label">Morning Protocol</span>
+                <span class="badge badge-neutral" id="morning-status">--</span>
+              </li>
+              <li>
+                <span class="label">Evening Protocol</span>
+                <span class="badge badge-neutral" id="evening-status">--</span>
+              </li>
+              <li>
+                <span class="label">Omega-3 (mg/day)</span>
+                <span class="value" id="omega3-dose">--</span>
+              </li>
+              <li>
+                <span class="label">Vitamin D3 (IU)</span>
+                <span class="value" id="vitd-dose">--</span>
+              </li>
+              <li>
+                <span class="label">Magnesium (mg)</span>
+                <span class="value" id="mag-dose">--</span>
+              </li>
+              <li>
+                <span class="label">Creatine (g)</span>
+                <span class="value" id="creatine-dose">--</span>
+              </li>
+            </ul>
+          </div>
+          <div class="card-form" id="supp-form">
+            <div class="section-label">Update Supplement Protocol</div>
+            <form onsubmit="addSupplements(event)">
+              <div class="form-grid">
+                <div class="input-group">
+                  <label>Date</label>
+                  <input type="date" name="date" required>
+                </div>
+                <div class="input-group">
+                  <label>Morning Protocol</label>
+                  <select name="morningComplete">
+                    <option value="true">Complete</option>
+                    <option value="false">Pending</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label>Evening Protocol</label>
+                  <select name="eveningComplete">
+                    <option value="true">Complete</option>
+                    <option value="false">Pending</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label>Omega-3 (mg)</label>
+                  <input type="number" name="omega3">
+                </div>
+                <div class="input-group">
+                  <label>Vitamin D3 (IU)</label>
+                  <input type="number" name="vitD3">
+                </div>
+                <div class="input-group">
+                  <label>Magnesium (mg)</label>
+                  <input type="number" name="magnesium">
+                </div>
+                <div class="input-group">
+                  <label>Creatine (g)</label>
+                  <input type="number" name="creatine" step="0.5">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" onclick="toggleForm('supp-form')">Cancel</button>
+                <button type="submit" class="primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NUTRITION & LIFESTYLE -->
+    <div class="section">
+      <div class="section-label">Nutrition & Lifestyle</div>
+      <div class="two-column">
+        <div class="card">
+          <div class="card-header">
+            <div style="display: flex; align-items: center;">
+              <h3>Daily Intake (7-day avg)</h3>
+              <span class="meta" id="nutrition-meta">--</span>
+            </div>
+            <div class="card-header-actions">
+              <button class="small" onclick="toggleForm('nutrition-form')">Add</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <ul class="data-list">
+              <li>
+                <span class="label">Calories</span>
+                <span class="value" id="calories">--</span>
+              </li>
+              <li>
+                <span class="label">Protein (g)</span>
+                <span class="value" id="protein">--</span>
+              </li>
+              <li>
+                <span class="label">Carbs (g)</span>
+                <span class="value" id="carbs">--</span>
+              </li>
+              <li>
+                <span class="label">Fat (g)</span>
+                <span class="value" id="fat">--</span>
+              </li>
+              <li>
+                <span class="label">Fiber (g)</span>
+                <span class="value" id="fiber">--</span>
+              </li>
+              <li>
+                <span class="label">Water (L)</span>
+                <span class="value" id="water">--</span>
+              </li>
+              <li>
+                <span class="label">Alcohol (drinks/week)</span>
+                <span class="value" id="alcohol">--</span>
+              </li>
+              <li>
+                <span class="label">Caffeine (mg)</span>
+                <span class="value" id="caffeine">--</span>
+              </li>
+            </ul>
+          </div>
+          <div class="card-form" id="nutrition-form">
+            <div class="section-label">Add Nutrition Data</div>
+            <form onsubmit="addNutrition(event)">
+              <div class="form-grid">
+                <div class="input-group">
+                  <label>Date</label>
+                  <input type="date" name="date" required>
+                </div>
+                <div class="input-group">
+                  <label>Calories</label>
+                  <input type="number" name="calories">
+                </div>
+                <div class="input-group">
+                  <label>Protein (g)</label>
+                  <input type="number" name="protein">
+                </div>
+                <div class="input-group">
+                  <label>Carbs (g)</label>
+                  <input type="number" name="carbs">
+                </div>
+                <div class="input-group">
+                  <label>Fat (g)</label>
+                  <input type="number" name="fat">
+                </div>
+                <div class="input-group">
+                  <label>Fiber (g)</label>
+                  <input type="number" name="fiber">
+                </div>
+                <div class="input-group">
+                  <label>Water (L)</label>
+                  <input type="number" name="water" step="0.1">
+                </div>
+                <div class="input-group">
+                  <label>Caffeine (mg)</label>
+                  <input type="number" name="caffeine">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" onclick="toggleForm('nutrition-form')">Cancel</button>
+                <button type="submit" class="primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div style="display: flex; align-items: center;">
+              <h3>Lifestyle Factors</h3>
+              <span class="meta" id="lifestyle-meta">--</span>
+            </div>
+            <div class="card-header-actions">
+              <button class="small" onclick="toggleForm('lifestyle-form')">Add</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <ul class="data-list">
+              <li>
+                <span class="label">Fasting Protocol</span>
+                <span class="value" id="fasting">--</span>
+              </li>
+              <li>
+                <span class="label">Sauna (sessions/week)</span>
+                <span class="value" id="sauna">--</span>
+              </li>
+              <li>
+                <span class="label">Cold Exposure (min/week)</span>
+                <span class="value" id="cold-exp">--</span>
+              </li>
+              <li>
+                <span class="label">Meditation (min/day)</span>
+                <span class="value" id="meditation">--</span>
+              </li>
+              <li>
+                <span class="label">Sunlight (min/day)</span>
+                <span class="value" id="sunlight">--</span>
+              </li>
+              <li>
+                <span class="label">Screen time (hrs/day)</span>
+                <span class="value" id="screentime">--</span>
+              </li>
+            </ul>
+          </div>
+          <div class="card-form" id="lifestyle-form">
+            <div class="section-label">Add Lifestyle Data</div>
+            <form onsubmit="addLifestyle(event)">
+              <div class="form-grid">
+                <div class="input-group">
+                  <label>Date</label>
+                  <input type="date" name="date" required>
+                </div>
+                <div class="input-group">
+                  <label>Fasting Protocol</label>
+                  <select name="fastingProtocol">
+                    <option value="None">None</option>
+                    <option value="12:12">12:12</option>
+                    <option value="14:10">14:10</option>
+                    <option value="16:8">16:8</option>
+                    <option value="18:6">18:6</option>
+                    <option value="20:4">20:4</option>
+                    <option value="OMAD">OMAD</option>
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label>Sauna (sessions)</label>
+                  <input type="number" name="sauna">
+                </div>
+                <div class="input-group">
+                  <label>Cold Exposure (min)</label>
+                  <input type="number" name="coldExposure">
+                </div>
+                <div class="input-group">
+                  <label>Meditation (min)</label>
+                  <input type="number" name="meditation">
+                </div>
+                <div class="input-group">
+                  <label>Sunlight (min)</label>
+                  <input type="number" name="sunlight">
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" onclick="toggleForm('lifestyle-form')">Cancel</button>
+                <button type="submit" class="primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== DATA STORE =====
+    const healthData = {
+      bodyComposition: {
+        weight: 75.5,
+        height: 178,
+        bodyFat: 18.5,
+        muscleMass: 42.0,
+        visceralFat: 8,
+        waist: 82,
+        hips: 98,
+        chest: 102,
+        neck: 40,
+        biceps: 35,
+        thighs: 58,
+        weightHistory: [
+          { date: '2026-01-05', weight: 77.0 },
+          { date: '2026-01-12', weight: 76.5 },
+          { date: '2026-01-19', weight: 76.0 },
+          { date: '2026-01-26', weight: 75.8 },
+          { date: '2026-02-02', weight: 75.5 }
+        ]
+      },
+      cardiovascular: {
+        restingHR: 55,
+        maxHR: 185,
+        hrv: 65,
+        bloodPressure: { systolic: 118, diastolic: 76 },
+        vo2max: 52,
+        recovery: 85,
+        activeMinutes: 420,
+        stepsPerDay: 11500,
+        zone2Minutes: 240,
+        cardioMinutes: 180,
+        maxPower: 320,
+        ftp: 280
+      },
+      sleep: {
+        total: 7.5,
+        efficiency: 92,
+        deep: 1.5,
+        rem: 1.8,
+        light: 4.2,
+        awake: 0.5,
+        score: 88,
+        onset: 12,
+        regularity: 85,
+        sleepHR: 52,
+        breathing: 14,
+        spo2: 98
+      },
+      bloodMarkers: {
+        metabolic: {
+          glucose: 85,
+          hba1c: 5.2,
+          insulin: 8.5,
+          homaIR: 1.8,
+          triglycerides: 95
+        },
+        lipid: {
+          totalCholesterol: 180,
+          hdl: 55,
+          ldl: 110,
+          ldlHdlRatio: 2.0,
+          nonHdl: 125
+        },
+        liver: {
+          alt: 25,
+          ast: 22,
+          ggt: 28,
+          creatinine: 0.95,
+          egfr: 95
+        },
+        inflammation: {
+          hscrp: 0.8,
+          homocysteine: 8.5,
+          ferritin: 120,
+          wbc: 6.5,
+          vitD: 45
+        },
+        advanced: {
+          apob: 75,
+          lpa: 18,
+          uricAcid: 4.8,
+          tmao: 4.2,
+          omega3Index: 8.5,
+          cortisolAM: 12,
+          testosterone: 650,
+          freeT: 12,
+          shbg: 35,
+          estradiol: 25,
+          igf1: 180,
+          glycomark: 12
+        }
+      },
+      glucose: {
+        avg: 95,
+        tir: 88,
+        gmi: 5.4,
+        cv: 18,
+        peak: 140,
+        lowEvents: 2
+      },
+      supplements: {
+        morningComplete: true,
+        eveningComplete: true,
+        omega3: 2000,
+        vitD3: 4000,
+        magnesium: 400,
+        creatine: 5
+      },
+      nutrition: {
+        calories: 2200,
+        protein: 140,
+        carbs: 220,
+        fat: 80,
+        fiber: 35,
+        water: 2.5,
+        alcohol: 2,
+        caffeine: 200
+      },
+      lifestyle: {
+        fastingProtocol: '16:8',
+        sauna: 3,
+        coldExposure: 15,
+        meditation: 10,
+        sunlight: 30,
+        screenTime: 6
+      },
+      measurements: [],
+      history: {}
+    };
+
+    // ===== UTILITY FUNCTIONS =====
+    function calculateBMI(weight, height) {
+      return (weight / ((height / 100) ** 2)).toFixed(1);
+    }
+
+    function getBMICategory(bmi) {
+      if (bmi < 18.5) return 'Underweight';
+      if (bmi < 25) return 'Optimal';
+      if (bmi < 30) return 'Overweight';
+      return 'Obese';
+    }
+
+    function getBMIColor(bmi) {
+      if (bmi < 18.5 || bmi >= 25) return 'warning';
+      return 'success';
+    }
+
+    function getBodyFatCategory(gender, bodyFat) {
+      if (bodyFat < 6) return 'Essential';
+      if (bodyFat < 14) return 'Athletic';
+      if (bodyFat < 18) return 'Fitness';
+      if (bodyFat < 25) return 'Average';
+      return 'Obese';
+    }
+
+    function formatBP(systolic, diastolic) {
+      return `${systolic}/${diastolic}`;
+    }
+
+    function getBPStatus(systolic, diastolic) {
+      if (systolic < 120 && diastolic < 80) return 'Optimal';
+      if (systolic < 130 && diastolic < 80) return 'Elevated';
+      return 'Warning';
+    }
+
+    // ===== FORM TOGGLE =====
+    function toggleForm(formId) {
+      const form = document.getElementById(formId);
+      form.classList.toggle('expanded');
+      
+      // Set default date to today
+      const dateInput = form.querySelector('input[type="date"]');
+      if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+      }
+    }
+
+    // ===== SPARKLINES & HISTORY =====
+
+    // ===== ADD FUNCTIONS =====
+    function addBodyComposition(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const data = {
+        date: formData.get('date'),
+        weight: parseFloat(formData.get('weight')),
+        bodyFat: parseFloat(formData.get('bodyFat')) || healthData.bodyComposition.bodyFat,
+        muscleMass: parseFloat(formData.get('muscleMass')) || healthData.bodyComposition.muscleMass,
+        visceralFat: parseInt(formData.get('visceralFat')) || healthData.bodyComposition.visceralFat,
+        waist: parseFloat(formData.get('waist')) || healthData.bodyComposition.waist,
+        hips: parseFloat(formData.get('hips')) || healthData.bodyComposition.hips,
+        chest: parseFloat(formData.get('chest')) || healthData.bodyComposition.chest
+      };
+
+      // Update current values
+      if (data.weight) healthData.bodyComposition.weight = data.weight;
+      if (data.bodyFat) healthData.bodyComposition.bodyFat = data.bodyFat;
+      if (data.muscleMass) healthData.bodyComposition.muscleMass = data.muscleMass;
+      if (data.visceralFat) healthData.bodyComposition.visceralFat = data.visceralFat;
+      if (data.waist) healthData.bodyComposition.waist = data.waist;
+      if (data.hips) healthData.bodyComposition.hips = data.hips;
+      if (data.chest) healthData.bodyComposition.chest = data.chest;
+
+      // Add to history
+      healthData.bodyComposition.weightHistory.push({ date: data.date, weight: data.weight });
+      if (healthData.bodyComposition.weightHistory.length > 30) {
+        healthData.bodyComposition.weightHistory.shift();
+      }
+      
+      // Add to history data structure
+
+      saveAndRender();
+      toggleForm('bodycomp-form');
+      form.reset();
+    }
+
+    function addHeartMetrics(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const restingHR = parseInt(formData.get('restingHR'));
+      const hrv = parseInt(formData.get('hrv'));
+      const systolic = parseInt(formData.get('systolic'));
+      const diastolic = parseInt(formData.get('diastolic'));
+      const recovery = parseInt(formData.get('recovery'));
+
+      if (restingHR) healthData.cardiovascular.restingHR = restingHR;
+      if (hrv) healthData.cardiovascular.hrv = hrv;
+      if (systolic && diastolic) {
+        healthData.cardiovascular.bloodPressure.systolic = systolic;
+        healthData.cardiovascular.bloodPressure.diastolic = diastolic;
+      }
+      if (recovery) healthData.cardiovascular.recovery = recovery;
+
+      saveAndRender();
+      toggleForm('heart-form');
+      form.reset();
+    }
+
+    function addExerciseMetrics(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const activeMinutes = parseInt(formData.get('activeMinutes'));
+      const steps = parseInt(formData.get('steps'));
+      const zone2 = parseInt(formData.get('zone2'));
+      const maxPower = parseInt(formData.get('maxPower'));
+      const ftp = parseInt(formData.get('ftp'));
+
+      if (activeMinutes) healthData.cardiovascular.activeMinutes = activeMinutes;
+      if (steps) healthData.cardiovascular.stepsPerDay = steps;
+      if (zone2) healthData.cardiovascular.zone2Minutes = zone2;
+      if (maxPower) healthData.cardiovascular.maxPower = maxPower;
+      if (ftp) healthData.cardiovascular.ftp = ftp;
+
+      saveAndRender();
+      toggleForm('exercise-form');
+      form.reset();
+    }
+
+    function addSleepData(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const total = parseFloat(formData.get('total'));
+      const deep = parseFloat(formData.get('deep'));
+      const rem = parseFloat(formData.get('rem'));
+      const score = parseInt(formData.get('score'));
+      const sleepHR = parseInt(formData.get('sleepHR'));
+      const spo2 = parseInt(formData.get('spo2'));
+
+      if (total) healthData.sleep.total = total;
+      if (deep) healthData.sleep.deep = deep;
+      if (rem) healthData.sleep.rem = rem;
+      if (score) healthData.sleep.score = score;
+      if (sleepHR) healthData.sleep.sleepHR = sleepHR;
+      if (spo2) healthData.sleep.spo2 = spo2;
+
+      saveAndRender();
+      toggleForm('sleep-form');
+      form.reset();
+    }
+
+    function addBloodMarkers(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const glucose = parseInt(formData.get('glucose'));
+      const hba1c = parseFloat(formData.get('hba1c'));
+      const totalChol = parseInt(formData.get('totalCholesterol'));
+      const hdl = parseInt(formData.get('hdl'));
+      const ldl = parseInt(formData.get('ldl'));
+      const triglycerides = parseInt(formData.get('triglycerides'));
+      const apob = parseInt(formData.get('apob'));
+      const lpa = parseInt(formData.get('lpa'));
+      const hscrp = parseFloat(formData.get('hscrp'));
+      const vitD = parseInt(formData.get('vitD'));
+      const testosterone = parseInt(formData.get('testosterone'));
+      const omega3Index = parseFloat(formData.get('omega3Index'));
+
+      if (glucose) healthData.bloodMarkers.metabolic.glucose = glucose;
+      if (hba1c) healthData.bloodMarkers.metabolic.hba1c = hba1c;
+      if (totalChol) healthData.bloodMarkers.lipid.totalCholesterol = totalChol;
+      if (hdl) healthData.bloodMarkers.lipid.hdl = hdl;
+      if (ldl) healthData.bloodMarkers.lipid.ldl = ldl;
+      if (triglycerides) healthData.bloodMarkers.metabolic.triglycerides = triglycerides;
+      if (apob) healthData.bloodMarkers.advanced.apob = apob;
+      if (lpa) healthData.bloodMarkers.advanced.lpa = lpa;
+      if (hscrp) healthData.bloodMarkers.inflammation.hscrp = hscrp;
+      if (vitD) healthData.bloodMarkers.inflammation.vitD = vitD;
+      if (testosterone) healthData.bloodMarkers.advanced.testosterone = testosterone;
+      if (omega3Index) healthData.bloodMarkers.advanced.omega3Index = omega3Index;
+
+      // Recalculate ratios
+      if (hdl && ldl) {
+        healthData.bloodMarkers.lipid.ldlHdlRatio = (ldl / hdl).toFixed(1);
+      }
+      if (totalChol && hdl) {
+        healthData.bloodMarkers.lipid.nonHdl = totalChol - hdl;
+      }
+
+      saveAndRender();
+      toggleForm('blood-form');
+      form.reset();
+    }
+
+    function addCGMData(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const avg = parseInt(formData.get('avg'));
+      const tir = parseInt(formData.get('tir'));
+      const gmi = parseFloat(formData.get('gmi'));
+      const cv = parseFloat(formData.get('cv'));
+
+      if (avg) healthData.glucose.avg = avg;
+      if (tir) healthData.glucose.tir = tir;
+      if (gmi) healthData.glucose.gmi = gmi;
+      if (cv) healthData.glucose.cv = cv;
+
+      saveAndRender();
+      toggleForm('cgm-form');
+      form.reset();
+    }
+
+    function addSupplements(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      healthData.supplements.morningComplete = formData.get('morningComplete') === 'true';
+      healthData.supplements.eveningComplete = formData.get('eveningComplete') === 'true';
+      
+      const omega3 = parseInt(formData.get('omega3'));
+      const vitD3 = parseInt(formData.get('vitD3'));
+      const magnesium = parseInt(formData.get('magnesium'));
+      const creatine = parseFloat(formData.get('creatine'));
+
+      if (omega3) healthData.supplements.omega3 = omega3;
+      if (vitD3) healthData.supplements.vitD3 = vitD3;
+      if (magnesium) healthData.supplements.magnesium = magnesium;
+      if (creatine) healthData.supplements.creatine = creatine;
+
+      saveAndRender();
+      toggleForm('supp-form');
+      form.reset();
+    }
+
+    function addNutrition(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const calories = parseInt(formData.get('calories'));
+      const protein = parseInt(formData.get('protein'));
+      const carbs = parseInt(formData.get('carbs'));
+      const fat = parseInt(formData.get('fat'));
+      const fiber = parseInt(formData.get('fiber'));
+      const water = parseFloat(formData.get('water'));
+      const caffeine = parseInt(formData.get('caffeine'));
+
+      if (calories) healthData.nutrition.calories = calories;
+      if (protein) healthData.nutrition.protein = protein;
+      if (carbs) healthData.nutrition.carbs = carbs;
+      if (fat) healthData.nutrition.fat = fat;
+      if (fiber) healthData.nutrition.fiber = fiber;
+      if (water) healthData.nutrition.water = water;
+      if (caffeine) healthData.nutrition.caffeine = caffeine;
+
+      saveAndRender();
+      toggleForm('nutrition-form');
+      form.reset();
+    }
+
+    function addLifestyle(event) {
+      event.preventDefault();
+      const form = event.target;
+      const formData = new FormData(form);
+      
+      const fastingProtocol = formData.get('fastingProtocol');
+      const sauna = parseInt(formData.get('sauna'));
+      const coldExposure = parseInt(formData.get('coldExposure'));
+      const meditation = parseInt(formData.get('meditation'));
+      const sunlight = parseInt(formData.get('sunlight'));
+
+      if (fastingProtocol) healthData.lifestyle.fastingProtocol = fastingProtocol;
+      if (sauna !== null) healthData.lifestyle.sauna = sauna;
+      if (coldExposure !== null) healthData.lifestyle.coldExposure = coldExposure;
+      if (meditation !== null) healthData.lifestyle.meditation = meditation;
+      if (sunlight !== null) healthData.lifestyle.sunlight = sunlight;
+
+      saveAndRender();
+      toggleForm('lifestyle-form');
+      form.reset();
+    }
+
+    function saveAndRender() {
+      localStorage.setItem('healthData', JSON.stringify(healthData));
+      renderDashboard();
+    }
+
+    function mergeDeepDefaults(target, source) {
+      if (!source || typeof source !== 'object') return;
+
+      Object.keys(source).forEach((key) => {
+        const sourceValue = source[key];
+        const targetValue = target[key];
+
+        if (Array.isArray(sourceValue)) {
+          target[key] = sourceValue.slice();
+          return;
+        }
+
+        if (sourceValue && typeof sourceValue === 'object') {
+          if (!targetValue || typeof targetValue !== 'object' || Array.isArray(targetValue)) {
+            target[key] = {};
+          }
+          mergeDeepDefaults(target[key], sourceValue);
+          return;
+        }
+
+        if (sourceValue !== undefined && sourceValue !== null) {
+          target[key] = sourceValue;
+        }
+      });
+    }
+
+    // ===== RENDER FUNCTIONS =====
+    function renderDashboard() {
+      const { bodyComposition, cardiovascular, sleep } = healthData;
+      const bmi = calculateBMI(bodyComposition.weight, bodyComposition.height);
+
+      // Body composition
+      document.getElementById('bodycomp-meta').textContent = `Last: Today, BMI: ${bmi}`;
+      document.getElementById('weight-val').textContent = bodyComposition.weight.toFixed(1) + ' kg';
+      document.getElementById('height-val').textContent = bodyComposition.height + ' cm';
+      document.getElementById('bmi-val').textContent = bmi;
+      document.getElementById('bmi-status').textContent = getBMICategory(bmi);
+      document.getElementById('bmi-status').className = `badge badge-${getBMIColor(bmi)}`;
+      document.getElementById('bodyfat-val').textContent = bodyComposition.bodyFat.toFixed(1) + '%';
+      document.getElementById('bodyfat-status').textContent = getBodyFatCategory('male', bodyComposition.bodyFat);
+      document.getElementById('muscle-val').textContent = bodyComposition.muscleMass.toFixed(1) + '%';
+      document.getElementById('visceral-val').textContent = bodyComposition.visceralFat;
+      document.getElementById('visceral-status').textContent = bodyComposition.visceralFat <= 12 ? 'Optimal' : 'Elevated';
+      document.getElementById('visceral-status').className = `badge badge-${bodyComposition.visceralFat <= 12 ? 'success' : 'warning'}`;
+
+      // Measurements
+      document.getElementById('waist-val').textContent = bodyComposition.waist;
+      document.getElementById('hips-val').textContent = bodyComposition.hips;
+      document.getElementById('chest-val').textContent = bodyComposition.chest;
+      document.getElementById('neck-val').textContent = bodyComposition.neck;
+      document.getElementById('biceps-val').textContent = bodyComposition.biceps;
+      document.getElementById('thighs-val').textContent = bodyComposition.thighs;
+
+      // Cardiovascular
+      document.getElementById('heart-meta').textContent = `Avg HR: ${cardiovascular.restingHR}, HRV: ${cardiovascular.hrv}`;
+      document.getElementById('resting-hr').textContent = cardiovascular.restingHR;
+      document.getElementById('max-hr').textContent = cardiovascular.maxHR;
+      document.getElementById('hrv').textContent = cardiovascular.hrv;
+      document.getElementById('blood-pressure').textContent = formatBP(cardiovascular.bloodPressure.systolic, cardiovascular.bloodPressure.diastolic);
+      document.getElementById('bp-status').textContent = getBPStatus(cardiovascular.bloodPressure.systolic, cardiovascular.bloodPressure.diastolic);
+      document.getElementById('bp-status').className = `trend status-${getBPStatus(cardiovascular.bloodPressure.systolic, cardiovascular.bloodPressure.diastolic) === 'Optimal' ? 'optimal' : 'warning'}`;
+      document.getElementById('vo2max').textContent = cardiovascular.vo2max;
+      document.getElementById('vo2-trend').textContent = 'Elite';
+      document.getElementById('recovery').textContent = cardiovascular.recovery + '%';
+      document.getElementById('recovery-trend').textContent = 'Good';
+
+      document.getElementById('exercise-meta').textContent = `${cardiovascular.stepsPerDay} steps/day`;
+      document.getElementById('active-min').textContent = cardiovascular.activeMinutes;
+      document.getElementById('steps').textContent = cardiovascular.stepsPerDay.toLocaleString();
+      document.getElementById('zone2').textContent = cardiovascular.zone2Minutes;
+      document.getElementById('cardio-min').textContent = cardiovascular.cardioMinutes;
+      document.getElementById('max-power').textContent = cardiovascular.maxPower;
+      document.getElementById('ftp').textContent = cardiovascular.ftp;
+
+      // Sleep
+      document.getElementById('sleep-meta').textContent = `Score: ${sleep.score}/100`;
+      document.getElementById('sleep-total').textContent = sleep.total + 'h';
+      document.getElementById('sleep-eff').textContent = sleep.efficiency + '%';
+      document.getElementById('sleep-eff-badge').textContent = sleep.efficiency >= 85 ? 'Optimal' : 'Fair';
+      document.getElementById('deep-sleep').textContent = sleep.deep + 'h';
+      document.getElementById('rem-sleep').textContent = sleep.rem + 'h';
+      document.getElementById('light-sleep').textContent = sleep.light + 'h';
+      document.getElementById('awake-time').textContent = sleep.awake + 'h';
+      document.getElementById('sleep-score').textContent = sleep.score;
+      document.getElementById('sleep-score-badge').textContent = sleep.score >= 85 ? 'Optimal' : 'Fair';
+      document.getElementById('sleep-onset').textContent = sleep.onset;
+      document.getElementById('sleep-reg').textContent = sleep.regularity + '%';
+      document.getElementById('sleep-hr').textContent = sleep.sleepHR + ' bpm';
+      document.getElementById('breathing').textContent = sleep.breathing + '/min';
+      document.getElementById('spo2').textContent = sleep.spo2 + '%';
+
+      // Blood markers
+      document.getElementById('blood-meta').textContent = 'Last draw: Feb 01, 2026';
+      const { metabolic, lipid, liver, inflammation, advanced } = healthData.bloodMarkers;
+      
+      document.getElementById('glucose').textContent = metabolic.glucose;
+      document.getElementById('hba1c').textContent = metabolic.hba1c + '%';
+      document.getElementById('insulin').textContent = metabolic.insulin;
+      document.getElementById('homa-ir').textContent = metabolic.homaIR;
+      document.getElementById('triglycerides').textContent = metabolic.triglycerides;
+      document.getElementById('total-chol').textContent = lipid.totalCholesterol;
+      document.getElementById('hdl').textContent = lipid.hdl;
+      document.getElementById('ldl').textContent = lipid.ldl;
+      document.getElementById('ldl-hdl-ratio').textContent = lipid.ldlHdlRatio.toFixed(1);
+      document.getElementById('non-hdl').textContent = lipid.nonHdl;
+      document.getElementById('alt').textContent = liver.alt;
+      document.getElementById('ast').textContent = liver.ast;
+      document.getElementById('ggt').textContent = liver.ggt;
+      document.getElementById('creatinine').textContent = liver.creatinine;
+      document.getElementById('egfr').textContent = liver.egfr;
+      document.getElementById('hscrp').textContent = inflammation.hscrp;
+      document.getElementById('homocysteine').textContent = inflammation.homocysteine;
+      document.getElementById('ferritin').textContent = inflammation.ferritin;
+      document.getElementById('wbc').textContent = inflammation.wbc;
+      document.getElementById('vitd').textContent = inflammation.vitD;
+      document.getElementById('apob').textContent = advanced.apob;
+      document.getElementById('lpa').textContent = advanced.lpa;
+      document.getElementById('uric').textContent = advanced.uricAcid;
+      document.getElementById('tmao').textContent = advanced.tmao;
+      document.getElementById('omega3').textContent = advanced.omega3Index + '%';
+      document.getElementById('cortisol-am').textContent = advanced.cortisolAM;
+      document.getElementById('testosterone').textContent = advanced.testosterone;
+      document.getElementById('free-t').textContent = advanced.freeT;
+      document.getElementById('shbg').textContent = advanced.shbg;
+      document.getElementById('estradiol').textContent = advanced.estradiol;
+      document.getElementById('igf1').textContent = advanced.igf1;
+      document.getElementById('glycomark').textContent = advanced.glycomark;
+
+      // Glucose monitoring
+      document.getElementById('glucose-meta').textContent = `TIR: ${healthData.glucose.tir}%`;
+      document.getElementById('cgm-avg').textContent = healthData.glucose.avg;
+      document.getElementById('cgm-tir').textContent = healthData.glucose.tir + '%';
+      document.getElementById('cgm-gmi').textContent = healthData.glucose.gmi;
+      document.getElementById('cgm-cv').textContent = healthData.glucose.cv + '%';
+      document.getElementById('cgm-peak').textContent = healthData.glucose.peak;
+      document.getElementById('cgm-low').textContent = healthData.glucose.lowEvents;
+
+      // Supplements
+      document.getElementById('supp-meta').textContent = `${healthData.supplements.omega3}mg Omega-3`;
+      document.getElementById('morning-status').textContent = healthData.supplements.morningComplete ? 'Complete' : 'Pending';
+      document.getElementById('morning-status').className = `badge badge-${healthData.supplements.morningComplete ? 'success' : 'warning'}`;
+      document.getElementById('evening-status').textContent = healthData.supplements.eveningComplete ? 'Complete' : 'Pending';
+      document.getElementById('evening-status').className = `badge badge-${healthData.supplements.eveningComplete ? 'success' : 'warning'}`;
+      document.getElementById('omega3-dose').textContent = healthData.supplements.omega3;
+      document.getElementById('vitd-dose').textContent = healthData.supplements.vitD3;
+      document.getElementById('mag-dose').textContent = healthData.supplements.magnesium;
+      document.getElementById('creatine-dose').textContent = healthData.supplements.creatine;
+
+      // Nutrition
+      document.getElementById('nutrition-meta').textContent = `${healthData.nutrition.calories} kcal`;
+      document.getElementById('calories').textContent = healthData.nutrition.calories;
+      document.getElementById('protein').textContent = healthData.nutrition.protein;
+      document.getElementById('carbs').textContent = healthData.nutrition.carbs;
+      document.getElementById('fat').textContent = healthData.nutrition.fat;
+      document.getElementById('fiber').textContent = healthData.nutrition.fiber;
+      document.getElementById('water').textContent = healthData.nutrition.water;
+      document.getElementById('alcohol').textContent = healthData.nutrition.alcohol;
+      document.getElementById('caffeine').textContent = healthData.nutrition.caffeine;
+
+      // Lifestyle
+      document.getElementById('lifestyle-meta').textContent = healthData.lifestyle.fastingProtocol + ' fasting';
+      document.getElementById('fasting').textContent = healthData.lifestyle.fastingProtocol;
+      document.getElementById('sauna').textContent = healthData.lifestyle.sauna;
+      document.getElementById('cold-exp').textContent = healthData.lifestyle.coldExposure;
+      document.getElementById('meditation').textContent = healthData.lifestyle.meditation;
+      document.getElementById('sunlight').textContent = healthData.lifestyle.sunlight;
+      document.getElementById('screentime').textContent = healthData.lifestyle.screenTime;
+
+    }
+
+    // ===== INITIALIZATION =====
+    document.addEventListener('DOMContentLoaded', function() {
+      const saved = localStorage.getItem('healthData');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          mergeDeepDefaults(healthData, parsed);
+        } catch (e) {
+          console.error('Failed to load saved data');
+        }
+      }
+      
+      renderDashboard();
+    });
+  </script>
+</body>
+</html>
