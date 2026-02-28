@@ -1,37 +1,52 @@
+'use strict';
+
 const { test, expect } = require('@playwright/test');
+
+const FIXED_TIMESTAMP = '2026-02-26T00:00:00.000Z';
+const BOARD_APP_ID = 'teamos-kanban';
+const BOARD_SCHEMA_VERSION = 1;
+const DEFAULT_COLUMNS = [
+  { status: 'backlog', title: 'backlog' },
+  { status: 'to-do', title: 'to-do' },
+  { status: 'doing', title: 'in progress' },
+  { status: 'done', title: 'done' }
+];
+
+function buildDefaultColumns() {
+  return DEFAULT_COLUMNS.map((column) => ({ ...column }));
+}
+
+function buildTaskPayload(task, index) {
+  return {
+    id: task.id ?? index + 1,
+    title: task.title,
+    description: task.description || '',
+    assignee: task.assignee || '',
+    blocked: Boolean(task.blocked),
+    blockerReason: task.blocked ? (task.blockerReason || '') : '',
+    checklist: task.checklist || [],
+    archived: Boolean(task.archived),
+    createdAt: task.createdAt || FIXED_TIMESTAMP,
+    updatedAt: task.updatedAt || FIXED_TIMESTAMP,
+    ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {}),
+    dueDate: task.dueDate || '',
+    priority: Object.hasOwn(task, 'priority') ? task.priority : null,
+    effort: Object.hasOwn(task, 'effort') ? task.effort : null,
+    status: task.status || 'backlog'
+  };
+}
 
 function buildBoardPayload({ title, tasks = [] }) {
   return {
     meta: {
-      schemaVersion: 1,
-      appId: 'teamos-kanban',
-      createdAt: '2026-02-26T00:00:00.000Z',
-      updatedAt: '2026-02-26T00:00:00.000Z'
+      schemaVersion: BOARD_SCHEMA_VERSION,
+      appId: BOARD_APP_ID,
+      createdAt: FIXED_TIMESTAMP,
+      updatedAt: FIXED_TIMESTAMP
     },
     board: {
-      columns: [
-        { status: 'backlog', title: 'backlog' },
-        { status: 'to-do', title: 'to-do' },
-        { status: 'doing', title: 'in progress' },
-        { status: 'done', title: 'done' }
-      ],
-      tasks: tasks.map((task, index) => ({
-        id: task.id ?? index + 1,
-        title: task.title,
-        description: task.description || '',
-        assignee: task.assignee || '',
-        blocked: Boolean(task.blocked),
-        blockerReason: task.blocked ? (task.blockerReason || '') : '',
-        checklist: task.checklist || [],
-        archived: Boolean(task.archived),
-        createdAt: task.createdAt || '2026-02-26T00:00:00.000Z',
-        updatedAt: task.updatedAt || '2026-02-26T00:00:00.000Z',
-        ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {}),
-        dueDate: task.dueDate || '',
-        priority: Object.prototype.hasOwnProperty.call(task, 'priority') ? task.priority : null,
-        effort: Object.prototype.hasOwnProperty.call(task, 'effort') ? task.effort : null,
-        status: task.status || 'backlog'
-      })),
+      columns: buildDefaultColumns(),
+      tasks: tasks.map(buildTaskPayload),
       settings: {
         title,
         sortMode: 'manual',
@@ -49,52 +64,28 @@ async function gotoApp(page) {
   await expect(page.locator('#boardView')).toHaveCount(0);
 }
 
-async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey = 'priority', sortDir = 'asc' } = {}) {
+async function seedPortfolioBoards(
+  page,
+  boards,
+  { selectedBoardId = '', sortKey = 'priority', sortDir = 'asc' } = {}
+) {
+  const seededBoards = boards.map((board) => ({
+    id: board.id,
+    hasHandle: Boolean(board.hasHandle),
+    fileName: board.fileName || '',
+    title: board.title,
+    data: buildBoardPayload({
+      title: board.title,
+      tasks: board.tasks || []
+    })
+  }));
+
   await page.evaluate(async ({ boards, selectedBoardId, sortKey, sortDir }) => {
     window.__portfolioTestWrites = [];
     window.__portfolioDiskByBoardId = {};
 
     portfolioBoards = boards.map((board) => {
-      const boardData = {
-        meta: {
-          schemaVersion: 1,
-          appId: 'teamos-kanban',
-          createdAt: '2026-02-26T00:00:00.000Z',
-          updatedAt: '2026-02-26T00:00:00.000Z'
-        },
-        board: {
-          columns: [
-            { status: 'backlog', title: 'backlog' },
-            { status: 'to-do', title: 'to-do' },
-            { status: 'doing', title: 'in progress' },
-            { status: 'done', title: 'done' }
-          ],
-          tasks: (board.tasks || []).map((task, index) => ({
-            id: task.id ?? index + 1,
-            title: task.title,
-            description: task.description || '',
-            assignee: task.assignee || '',
-            blocked: Boolean(task.blocked),
-            blockerReason: task.blocked ? (task.blockerReason || '') : '',
-            checklist: task.checklist || [],
-            archived: Boolean(task.archived),
-            createdAt: task.createdAt || '2026-02-26T00:00:00.000Z',
-            updatedAt: task.updatedAt || '2026-02-26T00:00:00.000Z',
-            ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {}),
-            dueDate: task.dueDate || '',
-            priority: Object.prototype.hasOwnProperty.call(task, 'priority') ? task.priority : null,
-            effort: Object.prototype.hasOwnProperty.call(task, 'effort') ? task.effort : null,
-            status: task.status || 'backlog'
-          })),
-          settings: {
-            title: board.title,
-            sortMode: 'manual',
-            showArchivedOnly: false,
-            archiveFilter: 'active'
-          }
-        },
-        extensions: {}
-      };
+      const boardData = board.data;
 
       const diskText = JSON.stringify(boardData, null, 2);
       window.__portfolioDiskByBoardId[board.id] = {
@@ -150,7 +141,7 @@ async function seedPortfolioBoards(page, boards, { selectedBoardId = '', sortKey
     buildPortfolioTasks();
     renderPortfolio();
     await checkProjectFilesNow();
-  }, { boards, selectedBoardId, sortKey, sortDir });
+  }, { boards: seededBoards, selectedBoardId, sortKey, sortDir });
 }
 
 async function mockNewProjectFlow(page, { promptValue = 'New Project', fileName = 'new-project.board.json' } = {}) {
