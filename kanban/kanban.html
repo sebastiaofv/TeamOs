@@ -1460,8 +1460,8 @@
         }
 
         #shortcutsModal .modal-content {
-            width: min(94vw, 860px);
-            max-width: 860px;
+            width: min(75vw, 1000px);
+            max-width: 1000px;
         }
 
         #taskModal .modal-content {
@@ -2217,6 +2217,7 @@
         let portfolioDetailContext = null;
         let portfolioDragContext = null;
         let selectedPortfolioCardRef = null;
+        let hoveredPortfolioCardRef = null;
         let taskModalAttachmentDraft = [];
         let taskModalAttachmentMessages = [];
         let portfolioTimelineSelection = { boardId: '', eventIndex: null };
@@ -3552,6 +3553,9 @@
             if (selectedPortfolioCardRef && selectedPortfolioCardRef.boardId === boardId) {
                 selectedPortfolioCardRef = null;
             }
+            if (hoveredPortfolioCardRef && hoveredPortfolioCardRef.boardId === boardId) {
+                hoveredPortfolioCardRef = null;
+            }
             portfolioBoards.splice(index, 1);
             if (selectedPortfolioBoardId === boardId) {
                 selectedPortfolioBoardId = '';
@@ -4032,6 +4036,7 @@
             renderTaskAssigneeSuggestions();
             const rows = getFilteredSortedPortfolioRows();
             syncSelectedPortfolioCardWithVisibleRows(rows);
+            syncHoveredPortfolioCardWithVisibleRows(rows);
             boardWrap.classList.remove('hidden');
             applyPortfolioSortSelect();
             renderPortfolioBoardView(rows);
@@ -4247,6 +4252,9 @@
             }
             if (selectedPortfolioCardRef && selectedPortfolioCardRef.boardId === boardId && Number(selectedPortfolioCardRef.taskId) === Number(taskId)) {
                 selectedPortfolioCardRef = null;
+            }
+            if (hoveredPortfolioCardRef && hoveredPortfolioCardRef.boardId === boardId && Number(hoveredPortfolioCardRef.taskId) === Number(taskId)) {
+                hoveredPortfolioCardRef = null;
             }
 
             buildPortfolioTasks();
@@ -6095,6 +6103,14 @@
             return selectedPortfolioCardRef.boardId === boardId && Number(selectedPortfolioCardRef.taskId) === Number(taskId);
         }
 
+        function setHoveredPortfolioCard(boardId, taskId) {
+            if (!boardId || taskId === null || taskId === undefined) {
+                hoveredPortfolioCardRef = null;
+                return;
+            }
+            hoveredPortfolioCardRef = { boardId, taskId: Number(taskId) };
+        }
+
         function setSelectedPortfolioCard(boardId, taskId) {
             if (!boardId || taskId === null || taskId === undefined) {
                 selectedPortfolioCardRef = null;
@@ -6111,6 +6127,17 @@
             );
             if (!exists) {
                 selectedPortfolioCardRef = null;
+            }
+        }
+
+        function syncHoveredPortfolioCardWithVisibleRows(rows) {
+            if (!hoveredPortfolioCardRef) return;
+            const visible = Array.isArray(rows) ? rows : [];
+            const exists = visible.some(
+                (row) => row.boardId === hoveredPortfolioCardRef.boardId && Number(row.taskId) === Number(hoveredPortfolioCardRef.taskId)
+            );
+            if (!exists) {
+                hoveredPortfolioCardRef = null;
             }
         }
 
@@ -6166,26 +6193,37 @@
             ) || null;
         }
 
+        function getHoveredPortfolioRow() {
+            if (!hoveredPortfolioCardRef) return null;
+            return getVisiblePortfolioRowsForShortcuts().find(
+                (row) => row.boardId === hoveredPortfolioCardRef.boardId && Number(row.taskId) === Number(hoveredPortfolioCardRef.taskId)
+            ) || null;
+        }
+
+        function getShortcutTargetPortfolioRow() {
+            return getHoveredPortfolioRow() || getSelectedPortfolioRow();
+        }
+
         function openSelectedPortfolioCardDetails() {
-            const row = getSelectedPortfolioRow();
+            const row = getShortcutTargetPortfolioRow();
             if (!row || row.historical) return;
             openPortfolioTaskDetails(row.boardId, row.taskId);
         }
 
         function editSelectedPortfolioCard() {
-            const row = getSelectedPortfolioRow();
+            const row = getShortcutTargetPortfolioRow();
             if (!row || !row.canMutate) return;
             editPortfolioTask(row.boardId, row.taskId);
         }
 
         async function toggleArchiveSelectedPortfolioCard() {
-            const row = getSelectedPortfolioRow();
+            const row = getShortcutTargetPortfolioRow();
             if (!row || !row.canMutate) return;
             await togglePortfolioArchiveTask(row.boardId, row.taskId);
         }
 
         async function moveSelectedPortfolioCardToShortcutStatus(targetStatus) {
-            const row = getSelectedPortfolioRow();
+            const row = getShortcutTargetPortfolioRow();
             if (!row || !row.canMutate) return;
             await movePortfolioTaskToStatus(row.boardId, row.taskId, targetStatus);
         }
@@ -6359,11 +6397,11 @@
                     id: 'card-open',
                     section: 'Cards',
                     keys: ['Enter'],
-                    description: 'Open selected card details',
+                    description: 'Open hovered or selected card details',
                     contexts: ['global'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === 'Enter',
                     when: () => {
-                        const row = getSelectedPortfolioRow();
+                        const row = getShortcutTargetPortfolioRow();
                         return Boolean(row && !row.historical);
                     },
                     handler: () => openSelectedPortfolioCardDetails()
@@ -6372,11 +6410,11 @@
                     id: 'card-edit',
                     section: 'Cards',
                     keys: ['E'],
-                    description: 'Edit selected card',
+                    description: 'Edit hovered or selected card',
                     contexts: ['global'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'e' || e.key === 'E'),
                     when: () => {
-                        const row = getSelectedPortfolioRow();
+                        const row = getShortcutTargetPortfolioRow();
                         return Boolean(row && row.canMutate);
                     },
                     handler: () => editSelectedPortfolioCard()
@@ -6385,11 +6423,11 @@
                     id: 'card-archive',
                     section: 'Cards',
                     keys: ['X'],
-                    description: 'Archive/restore selected card',
+                    description: 'Archive/restore hovered or selected card',
                     contexts: ['global'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'x' || e.key === 'X'),
                     when: () => {
-                        const row = getSelectedPortfolioRow();
+                        const row = getShortcutTargetPortfolioRow();
                         return Boolean(row && row.canMutate);
                     },
                     handler: () => toggleArchiveSelectedPortfolioCard()
@@ -6398,11 +6436,11 @@
                     id: 'move-backlog',
                     section: 'Cards',
                     keys: ['1'],
-                    description: 'Move selected card to Backlog',
+                    description: 'Move hovered or selected card to Backlog',
                     contexts: ['global'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '1',
                     when: () => {
-                        const row = getSelectedPortfolioRow();
+                        const row = getShortcutTargetPortfolioRow();
                         return Boolean(row && row.canMutate);
                     },
                     handler: () => moveSelectedPortfolioCardToShortcutStatus('backlog')
@@ -6411,11 +6449,11 @@
                     id: 'move-todo',
                     section: 'Cards',
                     keys: ['2'],
-                    description: 'Move selected card to To Do',
+                    description: 'Move hovered or selected card to To Do',
                     contexts: ['global'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '2',
                     when: () => {
-                        const row = getSelectedPortfolioRow();
+                        const row = getShortcutTargetPortfolioRow();
                         return Boolean(row && row.canMutate);
                     },
                     handler: () => moveSelectedPortfolioCardToShortcutStatus('to-do')
@@ -6424,11 +6462,11 @@
                     id: 'move-doing',
                     section: 'Cards',
                     keys: ['3'],
-                    description: 'Move selected card to In Progress',
+                    description: 'Move hovered or selected card to In Progress',
                     contexts: ['global'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '3',
                     when: () => {
-                        const row = getSelectedPortfolioRow();
+                        const row = getShortcutTargetPortfolioRow();
                         return Boolean(row && row.canMutate);
                     },
                     handler: () => moveSelectedPortfolioCardToShortcutStatus('doing')
@@ -6437,11 +6475,11 @@
                     id: 'move-done',
                     section: 'Cards',
                     keys: ['4'],
-                    description: 'Move selected card to Done',
+                    description: 'Move hovered or selected card to Done',
                     contexts: ['global'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === '4',
                     when: () => {
-                        const row = getSelectedPortfolioRow();
+                        const row = getShortcutTargetPortfolioRow();
                         return Boolean(row && row.canMutate);
                     },
                     handler: () => moveSelectedPortfolioCardToShortcutStatus('done')
@@ -6807,6 +6845,41 @@
             openPortfolioTaskDetails(boardId, taskId);
         }
 
+        function handlePortfolioBoardPointerOver(event) {
+            const taskCard = event.target.closest('.portfolio-task-card');
+            if (!taskCard) return;
+            setHoveredPortfolioCard(taskCard.dataset.boardId || '', Number(taskCard.dataset.taskId));
+        }
+
+        function handlePortfolioBoardPointerOut(event) {
+            const taskCard = event.target.closest('.portfolio-task-card');
+            if (!taskCard) return;
+            const related = event.relatedTarget;
+            if (related instanceof Node && taskCard.contains(related)) {
+                return;
+            }
+            if (
+                hoveredPortfolioCardRef
+                && hoveredPortfolioCardRef.boardId === (taskCard.dataset.boardId || '')
+                && Number(hoveredPortfolioCardRef.taskId) === Number(taskCard.dataset.taskId)
+            ) {
+                hoveredPortfolioCardRef = null;
+            }
+        }
+
+        function handleDocumentClickForSelection(event) {
+            if (!selectedPortfolioCardRef) return;
+            const taskCard = event.target.closest('.portfolio-task-card');
+            if (taskCard && isSelectedPortfolioCard(taskCard.dataset.boardId || '', Number(taskCard.dataset.taskId))) {
+                return;
+            }
+            if (taskCard) {
+                return;
+            }
+            setSelectedPortfolioCard(null, null);
+            renderPortfolio();
+        }
+
         function handleTaskChecklistEditorClick(event) {
             const button = event.target.closest('.checklist-editor-remove[data-index]');
             if (!button) return;
@@ -6910,6 +6983,8 @@
             Refs.portfolioTimelinePanel?.addEventListener('click', handleTimelinePanelClick);
             Refs.portfolioTimelinePanel?.addEventListener('input', handleTimelinePanelInput);
             Refs.portfolioBoard?.addEventListener('click', handlePortfolioBoardClick);
+            Refs.portfolioBoard?.addEventListener('pointerover', handlePortfolioBoardPointerOver);
+            Refs.portfolioBoard?.addEventListener('pointerout', handlePortfolioBoardPointerOut);
             document.getElementById('taskChecklistItems')?.addEventListener('click', handleTaskChecklistEditorClick);
             document.getElementById('taskChecklistItems')?.addEventListener('input', handleTaskChecklistEditorInput);
             document.getElementById('taskChecklistItems')?.addEventListener('change', handleTaskChecklistEditorChange);
@@ -6918,6 +6993,7 @@
             document.getElementById('taskAttachmentsList')?.addEventListener('click', handleTaskAttachmentsEditorClick);
             document.getElementById('detailChecklist')?.addEventListener('change', handleDetailChecklistChange);
             document.addEventListener('keydown', dispatchShortcutKeydown);
+            document.addEventListener('click', handleDocumentClickForSelection);
             window.addEventListener('popstate', () => {
                 applyUrlState();
                 renderPortfolio();

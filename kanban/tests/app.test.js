@@ -1226,6 +1226,59 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Task A Edited' })).toBeVisible();
   });
 
+  test('hovered card shortcuts take priority over the selected card', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'k2',
+        title: 'Hover Priority Project',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog', priority: 'low', effort: 'L' },
+          { id: 2, title: 'Task B', status: 'backlog', priority: 'high', effort: 'S' }
+        ]
+      }
+    ], { selectedBoardId: 'k2', sortKey: 'task' });
+
+    await page.keyboard.press('j');
+    await expect(page.locator('.portfolio-task-card.selected')).toContainText('Task A');
+
+    const hoveredCard = portfolioCard(page, 'Task B');
+    await hoveredCard.hover();
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Task B');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#taskDetailModal')).toBeHidden();
+
+    await hoveredCard.hover();
+    await page.keyboard.press('e');
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(page.locator('#taskName')).toHaveValue('Task B');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#taskModal')).toBeHidden();
+  });
+
+  test('clicking outside cards clears the selected card', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'k3',
+        title: 'Selection Project',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog' },
+          { id: 2, title: 'Task B', status: 'backlog' }
+        ]
+      }
+    ], { selectedBoardId: 'k3' });
+
+    await page.keyboard.press('j');
+    await expect(page.locator('.portfolio-task-card.selected')).toContainText('Task A');
+
+    await page.locator('.header').click();
+    await expect(page.locator('.portfolio-task-card.selected')).toHaveCount(0);
+  });
+
   test('opening edit from task detail closes the detail modal (no modal stacking)', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
