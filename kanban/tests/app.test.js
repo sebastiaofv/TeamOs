@@ -1145,6 +1145,49 @@ test.describe('portfolio-only app', () => {
     expect(url.searchParams.get('view')).toBeNull();
   });
 
+  test('reset filters button clears top filters and restores default sort', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'rf1',
+        title: 'Reset Filters Project',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Alpha low', status: 'backlog', priority: 'low', effort: 'L', assignees: ['Ana'] },
+          { id: 2, title: 'Beta target', status: 'doing', priority: 'high', effort: 'S', assignees: ['Bruno'], blocked: true }
+        ]
+      }
+    ]);
+
+    await page.locator('#portfolioSearchInput').fill('beta');
+    await page.locator('#portfolioArchiveFilter').selectOption('all');
+    await page.locator('#portfolioBlockedFilter').selectOption('blocked');
+    await page.locator('#portfolioAssigneeFilter').selectOption('Bruno');
+    await page.locator('#portfolioPriorityFilter').selectOption('high');
+    await page.locator('#portfolioEffortFilter').selectOption('S');
+    await page.locator('#portfolioSortSelect').selectOption('score');
+
+    await expect(page.locator('.portfolio-task-card')).toHaveCount(1);
+    await page.locator('#resetPortfolioFiltersBtn').click();
+
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('');
+    await expect(page.locator('#portfolioArchiveFilter')).toHaveValue('active');
+    await expect(page.locator('#portfolioBlockedFilter')).toHaveValue('all');
+    await expect(page.locator('#portfolioAssigneeFilter')).toHaveValue('');
+    await expect(page.locator('#portfolioPriorityFilter')).toHaveValue('');
+    await expect(page.locator('#portfolioEffortFilter')).toHaveValue('');
+    await expect(page.locator('#portfolioSortSelect')).toHaveValue('priority');
+    await expect(page.locator('.portfolio-task-card')).toHaveCount(2);
+
+    const url = new URL(page.url());
+    expect(url.searchParams.get('pq')).toBeNull();
+    expect(url.searchParams.get('pa')).toBeNull();
+    expect(url.searchParams.get('pbk')).toBeNull();
+    expect(url.searchParams.get('pu')).toBeNull();
+    expect(url.searchParams.get('pp')).toBeNull();
+    expect(url.searchParams.get('pe')).toBeNull();
+    expect(url.searchParams.get('ps')).toBeNull();
+  });
+
   test('drag and drop import loads project files and clears the overlay state', async ({ page }) => {
     const payload = buildBoardPayload({
       title: 'Dropped Project',
@@ -1604,6 +1647,73 @@ test.describe('portfolio-only app', () => {
     expect(result.lastEventKind).toBe('board.restored');
     expect(result.writes.length).toBeGreaterThan(0);
     expect(result.writes.at(-1).text).toContain('"board.restored"');
+  });
+
+  test('clicking a timeline event preserves the event list scroll position', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'tl4',
+        title: 'Timeline Scroll Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Original title', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'tl4' });
+
+    await page.evaluate(() => {
+      const board = portfolioBoards.find((entry) => entry.id === 'tl4');
+      const task = board?.data?.board?.tasks?.find((entry) => entry.id === 1);
+      if (!board || !task) {
+        throw new Error('Seeded board not found.');
+      }
+
+      ensureBoardTimelineBaseline(board.data);
+      for (let index = 1; index <= 24; index += 1) {
+        const beforeTask = captureTaskTimelineSnapshot(board.data, task.id);
+        task.title = `Phase ${index}`;
+        touchTask(task);
+        recordTaskTimelineEvent(board.data, beforeTask, captureTaskTimelineSnapshot(board.data, task.id));
+      }
+
+      syncPortfolioTimelineSelectionToLatest('tl4', board.data);
+      buildPortfolioTasks();
+      renderPortfolio();
+    });
+
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
+
+    const result = await page.evaluate(() => {
+      const list = document.querySelector('#portfolioTimelinePanel .timeline-event-list');
+      if (!list) {
+        throw new Error('Timeline event list not found.');
+      }
+
+      list.scrollTop = Math.max(0, list.scrollHeight - list.clientHeight - 48);
+      const target = Array.from(list.querySelectorAll('.timeline-event-item')).find((button) => (
+        button.offsetTop >= list.scrollTop
+        && button.offsetTop + button.offsetHeight <= list.scrollTop + list.clientHeight
+        && !button.classList.contains('active')
+      ));
+
+      if (!target) {
+        throw new Error('No visible timeline event item available for click.');
+      }
+
+      const beforeScrollTop = list.scrollTop;
+      const targetIndex = Number(target.dataset.eventIndex);
+      target.click();
+
+      const nextList = document.querySelector('#portfolioTimelinePanel .timeline-event-list');
+      return {
+        beforeScrollTop,
+        afterScrollTop: nextList ? nextList.scrollTop : null,
+        targetIndex,
+        selectedIndex: portfolioTimelineSelection.eventIndex
+      };
+    });
+
+    expect(result.selectedIndex).toBe(result.targetIndex);
+    expect(Math.abs((result.afterScrollTop ?? 0) - result.beforeScrollTop)).toBeLessThanOrEqual(1);
   });
 
   test('overdue calculation uses local date instead of UTC ISO date', async ({ page }) => {

@@ -573,6 +573,9 @@
             padding: 10px;
             display: grid;
             gap: 10px;
+            align-content: start;
+            align-items: start;
+            grid-auto-rows: max-content;
         }
 
         .timeline-event-detail-title {
@@ -584,6 +587,7 @@
         .timeline-diff-list {
             display: grid;
             gap: 10px;
+            align-content: start;
         }
 
         .timeline-diff-item {
@@ -592,6 +596,7 @@
             padding: 8px;
             background: #f5f2eb;
             border: 1px solid #e2ddd1;
+            align-content: start;
         }
 
         .timeline-diff-field {
@@ -606,12 +611,16 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 8px;
+            align-items: start;
         }
 
         .timeline-diff-box {
             display: grid;
             gap: 4px;
             min-width: 0;
+            align-content: start;
+            align-items: start;
+            grid-auto-rows: max-content;
         }
 
         .timeline-diff-label {
@@ -632,6 +641,7 @@
             line-height: 1.45;
             white-space: pre-wrap;
             word-break: break-word;
+            align-self: start;
         }
 
         .timeline-empty {
@@ -1922,8 +1932,9 @@
                     </div>
                 </div>
                 <div class="portfolio-toolbar-right">
-                    <button class="btn btn-primary" id="newProjectBtn">+ New Project</button>
+                    <button class="btn" id="resetPortfolioFiltersBtn">Reset Filters</button>
                     <button class="btn" id="importProjectsBtn">Import Projects</button>
+                    <button class="btn btn-primary" id="newProjectBtn">+ New Project</button>
                 </div>
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
@@ -2248,6 +2259,7 @@
         let taskModalAttachmentMessages = [];
         let portfolioTimelineSelection = { boardId: '', eventIndex: null };
         let portfolioTimelineExpandedByBoardId = {};
+        let portfolioTimelineListScrollTopByBoardId = {};
         let ShortcutRegistry = [];
         let suppressPortfolioCardClickUntil = 0;
         let projectWatchTimerId = null;
@@ -3359,6 +3371,23 @@
             return Boolean(boardId && portfolioTimelineExpandedByBoardId[boardId] === true);
         }
 
+        function cachePortfolioTimelineListScrollPosition(panel = document.getElementById('portfolioTimelinePanel')) {
+            if (!panel) return;
+            const boardId = panel.dataset.boardId || '';
+            const list = panel.querySelector('.timeline-event-list');
+            if (!boardId || !list) return;
+            portfolioTimelineListScrollTopByBoardId[boardId] = list.scrollTop;
+        }
+
+        function restorePortfolioTimelineListScrollPosition(boardId, panel = document.getElementById('portfolioTimelinePanel')) {
+            if (!boardId || !panel) return;
+            const list = panel.querySelector('.timeline-event-list');
+            if (!list) return;
+            const scrollTop = portfolioTimelineListScrollTopByBoardId[boardId];
+            if (!Number.isFinite(scrollTop)) return;
+            list.scrollTop = scrollTop;
+        }
+
         function setPortfolioTimelineExpanded(boardId, expanded) {
             if (!boardId) return;
             portfolioTimelineExpandedByBoardId[boardId] = Boolean(expanded);
@@ -3802,8 +3831,10 @@
             const panel = document.getElementById('portfolioTimelinePanel');
             if (!panel) return;
 
+            cachePortfolioTimelineListScrollPosition(panel);
             const viewState = getSelectedBoardTimelineViewState();
             if (!viewState || !viewState.boardRecord) {
+                panel.dataset.boardId = '';
                 panel.classList.remove('active');
                 panel.innerHTML = '';
                 return;
@@ -3816,6 +3847,7 @@
                 panelClasses.push('collapsed');
             }
             if (!viewState.timeline || viewState.timeline.events.length === 0) {
+                panel.dataset.boardId = viewState.boardRecord.id;
                 panel.className = panelClasses.join(' ');
                 panel.innerHTML = `
                     <div class="timeline-panel-header">
@@ -3847,6 +3879,7 @@
                 </button>
             `).reverse().join('');
 
+            panel.dataset.boardId = viewState.boardRecord.id;
             panel.className = panelClasses.join(' ');
             panel.innerHTML = `
                 <div class="timeline-panel-header">
@@ -3882,6 +3915,7 @@
                     </div>
                 </div>
             `;
+            restorePortfolioTimelineListScrollPosition(viewState.boardRecord.id, panel);
         }
 
         async function restorePortfolioTimelineSelection() {
@@ -7005,6 +7039,7 @@
             document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
             document.getElementById('taskChecklistAddBtn')?.addEventListener('click', addTaskChecklistItemFromComposer);
             document.getElementById('taskAttachmentsAddBtn')?.addEventListener('click', triggerTaskAttachmentsPicker);
+            document.getElementById('resetPortfolioFiltersBtn')?.addEventListener('click', resetPortfolioViewFiltersAndSort);
             document.getElementById('taskBlocked')?.addEventListener('change', onTaskBlockedChange);
             document.getElementById('portfolioSearchInput')?.addEventListener('input', renderPortfolio);
             document.getElementById('portfolioArchiveFilter')?.addEventListener('change', renderPortfolio);
