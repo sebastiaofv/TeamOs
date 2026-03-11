@@ -1413,6 +1413,12 @@
             gap: 2px;
         }
 
+        .attachment-editor-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
         .attachment-editor-name {
             font-size: 12px;
             color: var(--text-primary);
@@ -1438,6 +1444,26 @@
             cursor: pointer;
             font-size: 14px;
             line-height: 1;
+        }
+
+        .attachment-editor-download {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 28px;
+            padding: 0 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .attachment-editor-download:hover {
+            background: var(--bg-secondary);
+            border-color: var(--text-secondary);
         }
 
         .attachment-remove-btn:hover {
@@ -5073,6 +5099,15 @@
             }
         }
 
+        function attachmentDuplicateKey(input) {
+            if (!input || typeof input !== 'object') return '';
+            const name = typeof input.name === 'string' && input.name.trim() ? input.name.trim().toLowerCase() : '';
+            const mime = typeof input.mime === 'string' ? input.mime.trim().toLowerCase() : '';
+            const sizeBytes = Number.isFinite(Number(input.sizeBytes)) ? Math.max(0, Math.round(Number(input.sizeBytes))) : 0;
+            if (!name) return '';
+            return `${name}::${mime}::${sizeBytes}`;
+        }
+
         function normalizeAttachmentRecord(raw) {
             if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
             const dataUrl = typeof raw.dataUrl === 'string' && raw.dataUrl.startsWith('data:') ? raw.dataUrl : '';
@@ -5682,6 +5717,16 @@
                 meta.appendChild(sub);
                 row.appendChild(meta);
 
+                const actions = document.createElement('div');
+                actions.className = 'attachment-editor-actions';
+
+                const downloadLink = document.createElement('a');
+                downloadLink.className = 'attachment-editor-download';
+                downloadLink.href = item.dataUrl;
+                downloadLink.download = item.name || 'attachment';
+                downloadLink.textContent = 'Download';
+                actions.appendChild(downloadLink);
+
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'attachment-remove-btn';
@@ -5689,7 +5734,9 @@
                 removeBtn.title = 'Remove';
                 removeBtn.textContent = '×';
                 removeBtn.dataset.attachmentId = item.id;
-                row.appendChild(removeBtn);
+                actions.appendChild(removeBtn);
+
+                row.appendChild(actions);
 
                 listEl.appendChild(row);
             });
@@ -5771,6 +5818,7 @@
 
             const next = getTaskModalAttachmentsDraft();
             const messages = [];
+            const seenAttachmentKeys = new Set(next.map((item) => attachmentDuplicateKey(item)).filter(Boolean));
 
             for (const file of files) {
                 if (next.length >= ATTACHMENT_MAX_COUNT) {
@@ -5790,9 +5838,22 @@
                     continue;
                 }
 
+                const duplicateKey = attachmentDuplicateKey({
+                    name: file.name || 'Attachment',
+                    mime: file.type || '',
+                    sizeBytes: fileSize
+                });
+                if (duplicateKey && seenAttachmentKeys.has(duplicateKey)) {
+                    messages.push({
+                        type: 'warning',
+                        text: `${file.name} is already attached and was skipped.`
+                    });
+                    continue;
+                }
+
                 try {
                     const dataUrl = await readFileAsDataUrl(file);
-                    next.push({
+                    const nextAttachment = {
                         id: createAttachmentId(),
                         name: file.name || 'Attachment',
                         mime: file.type || '',
@@ -5800,7 +5861,11 @@
                         kind: classifyAttachmentKind(file.type, file.name),
                         dataUrl,
                         createdAt: nowIso()
-                    });
+                    };
+                    next.push(nextAttachment);
+                    if (duplicateKey) {
+                        seenAttachmentKeys.add(duplicateKey);
+                    }
                 } catch (error) {
                     messages.push({
                         type: 'error',

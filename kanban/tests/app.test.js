@@ -864,6 +864,7 @@ test.describe('portfolio-only app', () => {
     });
 
     await expect(page.locator('#taskAttachmentsList')).toContainText('note.txt');
+    await expect(page.locator('#taskAttachmentsList .attachment-editor-download')).toHaveCount(1);
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
@@ -950,6 +951,44 @@ test.describe('portfolio-only app', () => {
     }));
     expect(result.alert).toContain('10 MB or smaller');
     expect(result.taskCount).toBe(0);
+  });
+
+  test('duplicate attachment uploads are skipped in the task modal', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => editPortfolioTask('p1', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    const filePayload = {
+      name: 'note.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('hello attachment')
+    };
+
+    await page.setInputFiles('#taskAttachmentsInput', filePayload);
+    await page.setInputFiles('#taskAttachmentsInput', filePayload);
+
+    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(1);
+    await expect(page.locator('#taskAttachmentsWarnings')).toContainText('already attached');
+
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const result = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((entry) => entry.id === 1);
+      const writes = window.__portfolioTestWrites || [];
+      const savedPayload = writes.length ? JSON.parse(writes[writes.length - 1].text) : null;
+      const savedTask = savedPayload?.board?.tasks?.find((entry) => entry.id === 1);
+      return {
+        taskAttachmentCount: task?.attachments?.length || 0,
+        savedAttachmentCount: savedTask?.attachments?.length || 0
+      };
+    });
+
+    expect(result.taskAttachmentCount).toBe(1);
+    expect(result.savedAttachmentCount).toBe(1);
   });
 
   test('all-projects view hides add-task cards and read-only selected project also hides them', async ({ page }) => {
