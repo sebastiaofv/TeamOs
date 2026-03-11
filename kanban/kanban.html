@@ -1831,8 +1831,8 @@
     <div class="header">
         <div class="app-title">TeamOS → Kanban</div>
         <div class="header-actions">
-            <button class="btn" onclick="openShortcutsModal()">Shortcuts</button>
-            <button class="btn" onclick="openHelpModal()">Help</button>
+            <button class="btn" id="openShortcutsBtn">Shortcuts</button>
+            <button class="btn" id="openHelpBtn">Help</button>
         </div>
     </div>
 
@@ -1841,12 +1841,11 @@
             <div class="portfolio-toolbar">
                 <div class="portfolio-toolbar-left">
                     <div class="search-box">
-                        <input type="text" id="portfolioSearchInput" placeholder="Search tasks..."
-                            oninput="renderPortfolio()">
+                        <input type="text" id="portfolioSearchInput" placeholder="Search tasks...">
                     </div>
                     <div class="filter-group">
                         <label>Archive:</label>
-                        <select id="portfolioArchiveFilter" onchange="renderPortfolio()">
+                        <select id="portfolioArchiveFilter">
                             <option value="active">Active Only</option>
                             <option value="all">Active + Archived</option>
                             <option value="archived">Archived Only</option>
@@ -1854,7 +1853,7 @@
                     </div>
                     <div class="filter-group">
                         <label>Blocked:</label>
-                        <select id="portfolioBlockedFilter" onchange="renderPortfolio()">
+                        <select id="portfolioBlockedFilter">
                             <option value="all">All</option>
                             <option value="blocked">Blocked Only</option>
                             <option value="unblocked">Unblocked Only</option>
@@ -1862,13 +1861,13 @@
                     </div>
                     <div class="filter-group">
                         <label>Assignee:</label>
-                        <select id="portfolioAssigneeFilter" onchange="renderPortfolio()">
+                        <select id="portfolioAssigneeFilter">
                             <option value="">All</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label>Priority:</label>
-                        <select id="portfolioPriorityFilter" onchange="renderPortfolio()">
+                        <select id="portfolioPriorityFilter">
                             <option value="">All</option>
                             <option value="high">High</option>
                             <option value="medium">Medium</option>
@@ -1877,7 +1876,7 @@
                     </div>
                     <div class="filter-group">
                         <label>Effort:</label>
-                        <select id="portfolioEffortFilter" onchange="renderPortfolio()">
+                        <select id="portfolioEffortFilter">
                             <option value="">All</option>
                             <option value="XS">XS</option>
                             <option value="S">S</option>
@@ -1888,7 +1887,7 @@
                     </div>
                     <div class="filter-group">
                         <label>Sort:</label>
-                        <select id="portfolioSortSelect" onchange="onPortfolioSortSelectChange()">
+                        <select id="portfolioSortSelect">
                             <option value="name">Name</option>
                             <option value="priority" selected>Priority</option>
                             <option value="effort">Effort</option>
@@ -1897,8 +1896,8 @@
                     </div>
                 </div>
                 <div class="portfolio-toolbar-right">
-                    <button class="btn btn-primary" id="newProjectBtn" onclick="newProject()">+ New Project</button>
-                    <button class="btn" id="importProjectsBtn" onclick="importProjects()">Import Projects</button>
+                    <button class="btn btn-primary" id="newProjectBtn">+ New Project</button>
+                    <button class="btn" id="importProjectsBtn">Import Projects</button>
                 </div>
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
@@ -1915,7 +1914,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <span class="modal-title" id="modalTitle">New Task</span>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <button class="modal-close" id="taskModalCloseBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="taskForm">
@@ -1934,7 +1933,7 @@
                             <div class="assignee-editor-list" id="taskAssigneeItems"></div>
                             <div class="assignee-editor-add">
                                 <input type="text" id="taskAssigneeNewItem" list="taskAssigneeSuggestions" placeholder="Add an assignee and press Enter">
-                                <button type="button" class="btn" onclick="addTaskAssigneeFromComposer()">Add</button>
+                                <button type="button" class="btn" id="taskAssigneeAddBtn">Add</button>
                             </div>
                         </div>
                         <textarea id="taskAssignee" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
@@ -1943,7 +1942,7 @@
                     <div class="form-group">
                         <label>Blocked</label>
                         <div class="form-checkbox-row">
-                            <input type="checkbox" id="taskBlocked" onchange="onTaskBlockedChange()">
+                            <input type="checkbox" id="taskBlocked">
                             <span>Mark task as blocked</span>
                         </div>
                     </div>
@@ -1958,8 +1957,7 @@
                             <div class="checklist-editor-add">
                                 <input type="text" id="taskChecklistNewItem"
                                     placeholder="Add a todo item and press Enter">
-                                <button type="button" class="btn"
-                                    onclick="addTaskChecklistItemFromComposer()">Add</button>
+                                <button type="button" class="btn" id="taskChecklistAddBtn">Add</button>
                             </div>
                         </div>
                         <textarea id="taskChecklist" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
@@ -1968,7 +1966,7 @@
                         <label>Attachments</label>
                         <div class="attachment-editor" id="taskAttachmentsEditor">
                             <div class="attachment-editor-toolbar">
-                                <button type="button" class="btn" onclick="triggerTaskAttachmentsPicker()">Add
+                                <button type="button" class="btn" id="taskAttachmentsAddBtn">Add
                                     Files</button>
                                 <span class="attachment-editor-summary" id="taskAttachmentsSummary">No
                                     attachments</span>
@@ -2007,8 +2005,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn" onclick="closeModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+                <button class="btn" id="taskModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="taskModalSaveBtn">Save Task</button>
             </div>
         </div>
     </div>
@@ -2017,7 +2015,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <span class="modal-title">Task Details</span>
-                <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+                <button class="modal-close" id="taskDetailModalCloseBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="detail-list">
@@ -2076,7 +2074,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn" onclick="closeDetailModal()">Close</button>
+                <button class="btn" id="taskDetailModalFooterCloseBtn">Close</button>
             </div>
         </div>
     </div>
@@ -2085,13 +2083,13 @@
         <div class="modal-content">
             <div class="modal-header">
                 <span class="modal-title">Keyboard Shortcuts</span>
-                <button class="modal-close" onclick="closeShortcutsModal()">&times;</button>
+                <button class="modal-close" id="shortcutsModalCloseBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="shortcuts-list" id="shortcutsList"></div>
             </div>
             <div class="modal-footer">
-                <button class="btn" onclick="closeShortcutsModal()">Close</button>
+                <button class="btn" id="shortcutsModalFooterCloseBtn">Close</button>
             </div>
         </div>
     </div>
@@ -2100,7 +2098,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <span class="modal-title">Help</span>
-                <button class="modal-close" onclick="closeHelpModal()">&times;</button>
+                <button class="modal-close" id="helpModalCloseBtn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="help-manual">
@@ -2166,25 +2164,23 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn" onclick="closeHelpModal()">Close</button>
+                <button class="btn" id="helpModalFooterCloseBtn">Close</button>
             </div>
         </div>
     </div>
 
     <div class="undo-toast" id="undoToast">
         <span class="undo-toast-text" id="undoToastText"></span>
-        <button class="btn" onclick="performUndo()">Undo</button>
+        <button class="btn" id="undoBtn">Undo</button>
     </div>
 
     <script>
-        let tasks = [];
         const defaultColumns = [
             { status: 'backlog', title: 'backlog' },
             { status: 'to-do', title: 'to-do' },
             { status: 'doing', title: 'in progress' },
             { status: 'done', title: 'done' }
         ];
-        let columns = defaultColumns.map(col => ({ ...col }));
         const BOARD_SCHEMA_VERSION = 1;
         const BOARD_APP_ID = 'teamos-kanban';
         const BOARD_FILE_EXTENSION = '.board.json';
@@ -2231,11 +2227,6 @@
         let projectWatchRunning = false;
         let projectWatchListenersBound = false;
         const Refs = {};
-        let State = null;
-        let Domain = null;
-        let Services = null;
-        let UI = null;
-        let Controllers = null;
         const Logger = {
             debug(...args) {
                 if (!DEBUG_LOGS_ENABLED) return;
@@ -2476,8 +2467,6 @@
             if (!value || typeof value !== 'string') return '';
             const trimmed = value.trim();
             if (!trimmed) return '';
-            const iso = normalizeDueDate(trimmed);
-            if (iso) return iso;
             const match = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
             if (!match) return '';
             const [, day, month, year] = match;
@@ -2535,8 +2524,8 @@
 
             container.innerHTML = normalized.map((name, index) => `
                 <div class="assignee-editor-row" data-index="${index}">
-                    <input type="text" value="${escapeHtml(name)}" list="taskAssigneeSuggestions" aria-label="Assignee name" oninput="updateTaskAssigneeEditorItemText(${index}, this.value)">
-                    <button type="button" class="assignee-editor-remove" aria-label="Remove assignee" title="Remove" onclick="removeTaskAssigneeEditorItem(${index})">×</button>
+                    <input type="text" value="${escapeHtml(name)}" list="taskAssigneeSuggestions" aria-label="Assignee name" data-index="${index}">
+                    <button type="button" class="assignee-editor-remove" aria-label="Remove assignee" title="Remove" data-index="${index}">×</button>
                 </div>
             `).join('');
 
@@ -3516,7 +3505,7 @@
             const allActiveClass = selectedPortfolioBoardId ? '' : 'active';
             const allChip = `
                 <span class="portfolio-chip ${allActiveClass}">
-                    <button class="chip-link" onclick="selectPortfolioBoard('')">All</button>
+                    <button class="chip-link" type="button" data-action="select-board" data-board-id="">All</button>
                 </span>
             `;
 
@@ -3529,17 +3518,17 @@
                     ? `<span class="chip-save-state ${saveUi.status}" title="${escapeHtml(saveUi.title)}"> • ${escapeHtml(saveUi.text)}</span>`
                     : '';
                 const retryButton = (board.handle && saveUi.canRetry)
-                    ? `<button class="chip-link" title="Retry save" onclick="event.stopPropagation(); retryProjectSave('${board.id}')">Retry</button>`
+                    ? `<button class="chip-link" type="button" title="Retry save" data-action="retry-save" data-board-id="${escapeHtml(board.id)}">Retry</button>`
                     : '';
                 return `
                     <span class="portfolio-chip ${activeClass}" style="${chipStyle}">
-                        <button class="chip-link" onclick="selectPortfolioBoard('${board.id}')">
+                        <button class="chip-link" type="button" data-action="select-board" data-board-id="${escapeHtml(board.id)}">
                             ${escapeHtml(board.title || board.fileName)}
                             ${board.handle ? '' : '<span class="chip-readonly-label"> (Read-only)</span>'}
                             ${saveStateLabel}
                         </button>
                         ${retryButton}
-                        <button class="chip-link chip-link-danger" aria-label="Remove project" title="Remove project" onclick="removeProjectFromPortfolio('${board.id}')">Remove</button>
+                        <button class="chip-link chip-link-danger" type="button" aria-label="Remove project" title="Remove project" data-action="remove-board" data-board-id="${escapeHtml(board.id)}">Remove</button>
                     </span>
                 `;
             }).join('');
@@ -3815,13 +3804,13 @@
             const latestIndex = timeline.events.length - 1;
             const latestEvent = timeline.events[latestIndex];
             const subtitleText = `${boardTitle} has ${timeline.events.length} tracked event${timeline.events.length === 1 ? '' : 's'}. Latest event: ${latestEvent?.summary || 'Unknown event'} at ${formatDateTime(latestEvent?.at || '')}.`;
-            const latestButtonHtml = `<button class="btn" type="button" onclick="movePortfolioTimelineToLatest('${viewState.boardRecord.id}')">Latest</button>`;
+            const latestButtonHtml = `<button class="btn" type="button" data-action="timeline-latest" data-board-id="${escapeHtml(viewState.boardRecord.id)}">Latest</button>`;
             const previewBannerClass = viewState.isPreview ? 'timeline-preview-banner active' : 'timeline-preview-banner';
             const restoreButtonHtml = viewState.boardRecord.handle
-                ? '<button class="btn btn-primary" type="button" onclick="restorePortfolioTimelineSelection()">Restore this state</button>'
+                ? '<button class="btn btn-primary" type="button" data-action="timeline-restore">Restore this state</button>'
                 : '';
             const eventItems = timeline.events.map((event, index) => `
-                <button class="timeline-event-item ${index === selectedIndex ? 'active' : ''}" type="button" onclick="setPortfolioTimelineSelection('${viewState.boardRecord.id}', ${index})">
+                <button class="timeline-event-item ${index === selectedIndex ? 'active' : ''}" type="button" data-action="timeline-select-event" data-board-id="${escapeHtml(viewState.boardRecord.id)}" data-event-index="${index}">
                     <span class="timeline-event-kind">${escapeHtml(event.kind)}</span>
                     <span class="timeline-event-summary">${escapeHtml(event.summary)}</span>
                     <span class="timeline-event-time">${escapeHtml(formatDateTime(event.at))}</span>
@@ -3837,7 +3826,7 @@
                     </div>
                     <div class="timeline-panel-actions">
                         <div class="${previewBannerClass}">Historical preview active</div>
-                        <button class="btn timeline-toggle-btn" type="button" onclick="togglePortfolioTimelineExpanded('${viewState.boardRecord.id}')">${isExpanded ? 'Collapse' : 'Expand'}</button>
+                        <button class="btn timeline-toggle-btn" type="button" data-action="timeline-toggle-expanded" data-board-id="${escapeHtml(viewState.boardRecord.id)}">${isExpanded ? 'Collapse' : 'Expand'}</button>
                     </div>
                 </div>
                 <div class="timeline-controls">
@@ -3850,7 +3839,7 @@
                     </div>
                     ` : ''}
                     <div class="timeline-slider-row">
-                        <input class="timeline-slider" type="range" min="0" max="${latestIndex}" step="1" value="${selectedIndex}" oninput="setPortfolioTimelineSelection('${viewState.boardRecord.id}', Number(this.value))">
+                        <input class="timeline-slider" type="range" min="0" max="${latestIndex}" step="1" value="${selectedIndex}" data-action="timeline-slider" data-board-id="${escapeHtml(viewState.boardRecord.id)}">
                         ${latestButtonHtml}
                         ${restoreButtonHtml}
                     </div>
@@ -3913,29 +3902,17 @@
             div.dataset.boardId = item.boardId;
             div.dataset.taskId = String(item.taskId ?? task.id);
             div.dataset.status = normalizeTaskStatus(task.status);
-            div.onclick = () => {
-                if (Date.now() < suppressPortfolioCardClickUntil) return;
-                setSelectedPortfolioCard(item.boardId, task.id);
-                if (item.historical) {
-                    renderPortfolio();
-                    return;
-                }
-                openPortfolioTaskDetails(item.boardId, task.id);
-            };
+            div.dataset.historical = item.historical ? 'true' : 'false';
             if (canDrag) {
                 div.addEventListener('dragstart', (ev) => {
-                    if (Controllers && Controllers.DragDrop) {
-                        Controllers.DragDrop.onTaskDragStart(ev, {
-                            boardId: item.boardId,
-                            taskId: task.id,
-                            status: normalizeTaskStatus(task.status)
-                        });
-                    }
+                    onPortfolioTaskDragStart(ev, {
+                        boardId: item.boardId,
+                        taskId: task.id,
+                        status: normalizeTaskStatus(task.status)
+                    });
                 });
                 div.addEventListener('dragend', (ev) => {
-                    if (Controllers && Controllers.DragDrop) {
-                        Controllers.DragDrop.onTaskDragEnd(ev);
-                    }
+                    onPortfolioTaskDragEnd(ev);
                 });
             }
 
@@ -3972,9 +3949,9 @@
                 <div class="task-header">
                     <span class="task-title">${highlightedTitle}</span>
                     <div class="task-actions">
-                        <button class="task-action-btn" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Edit' : readOnlyTitle}" onclick="event.stopPropagation(); editPortfolioTask('${item.boardId}', ${task.id})">${editButtonLabel}</button>
-                        <button class="task-action-btn" ${canMutate ? '' : 'disabled'} title="${canMutate ? archiveButtonTitle : readOnlyTitle}" onclick="event.stopPropagation(); togglePortfolioArchiveTask('${item.boardId}', ${task.id})">${archiveButtonLabel}</button>
-                        <button class="task-action-btn task-action-danger" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Delete' : readOnlyTitle}" aria-label="${canMutate ? 'Delete' : readOnlyTitle}" onclick="event.stopPropagation(); deletePortfolioTask('${item.boardId}', ${task.id})">${deleteButtonLabel}</button>
+                        <button class="task-action-btn" type="button" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Edit' : readOnlyTitle}" data-action="edit-task">${editButtonLabel}</button>
+                        <button class="task-action-btn" type="button" ${canMutate ? '' : 'disabled'} title="${canMutate ? archiveButtonTitle : readOnlyTitle}" data-action="archive-task">${archiveButtonLabel}</button>
+                        <button class="task-action-btn task-action-danger" type="button" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Delete' : readOnlyTitle}" aria-label="${canMutate ? 'Delete' : readOnlyTitle}" data-action="delete-task">${deleteButtonLabel}</button>
                     </div>
                 </div>
                 ${taskMetaHtml}
@@ -4027,27 +4004,16 @@
                 const node = document.getElementById(`portfolio-${col.status}-column`);
                 if (!node) return;
                 node.dataset.status = col.status;
-                node.addEventListener('dragover', (ev) => {
-                    if (Controllers && Controllers.DragDrop) {
-                        Controllers.DragDrop.onColumnDragOver(ev, col.status);
-                    }
-                });
-                node.addEventListener('dragleave', (ev) => {
-                    if (Controllers && Controllers.DragDrop) {
-                        Controllers.DragDrop.onColumnDragLeave(ev);
-                    }
-                });
-                node.addEventListener('drop', (ev) => {
-                    if (Controllers && Controllers.DragDrop) {
-                        Controllers.DragDrop.onColumnDrop(ev, col.status);
-                    }
-                });
+                node.addEventListener('dragover', (ev) => onPortfolioColumnDragOver(ev, col.status));
+                node.addEventListener('dragleave', onPortfolioColumnDragLeave);
+                node.addEventListener('drop', (ev) => onPortfolioColumnDrop(ev, col.status));
                 const items = buckets[col.status] || [];
                 if (canAddTasks) {
                     const addTaskCard = document.createElement('div');
                     addTaskCard.className = 'add-task-card';
                     addTaskCard.textContent = '+ Add Task';
-                    addTaskCard.onclick = () => openPortfolioCreateTaskModal(selectedPortfolioBoardId, col.status);
+                    addTaskCard.dataset.action = 'add-task';
+                    addTaskCard.dataset.status = col.status;
                     node.appendChild(addTaskCard);
                 }
                 if (items.length === 0) {
@@ -4265,7 +4231,7 @@
             }
 
             const title = String(source.task.title || '').trim() || 'this task';
-            const confirmed = Services.Dialog.confirm(`Delete "${title}" permanently? This cannot be undone.`);
+            const confirmed = window.confirm(`Delete "${title}" permanently? This cannot be undone.`);
             if (!confirmed) return;
 
             const beforeTask = captureTaskTimelineSnapshot(source.boardRecord.data, taskId);
@@ -4598,6 +4564,26 @@
             return due < today;
         }
 
+        // Legacy import compatibility: older boards may still carry
+        // pre-v1 settings shapes or a single assignee field.
+        function hasTitleOnlyBoardSettings(settings) {
+            return hasExactKeys(settings, ['title']);
+        }
+
+        function hasExtendedBoardSettings(settings) {
+            return hasExactKeys(settings, ['title', 'sortMode', 'showArchivedOnly'])
+                || hasExactKeys(settings, ['title', 'sortMode', 'showArchivedOnly', 'archiveFilter']);
+        }
+
+        function isAcceptedBoardSettingsShape(settings) {
+            return hasTitleOnlyBoardSettings(settings) || hasExtendedBoardSettings(settings);
+        }
+
+        function isAcceptedLegacyAssigneeValue(value) {
+            return typeof value === 'string'
+                || (Array.isArray(value) && value.every((name) => typeof name === 'string'));
+        }
+
         function validateBoardData(data) {
             if (!hasExactKeys(data, ['meta', 'board', 'extensions'])) {
                 throw new Error('Invalid file root structure.');
@@ -4630,16 +4616,13 @@
             if (!Array.isArray(data.board.tasks)) {
                 throw new Error('Board tasks must be an array.');
             }
-            const settingsHasTitleOnly = hasExactKeys(data.board.settings, ['title']);
-            const settingsHasFull = hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly']);
-            const settingsHasFullWithArchiveFilter = hasExactKeys(data.board.settings, ['title', 'sortMode', 'showArchivedOnly', 'archiveFilter']);
-            if (!settingsHasTitleOnly && !settingsHasFull && !settingsHasFullWithArchiveFilter) {
+            if (!isAcceptedBoardSettingsShape(data.board.settings)) {
                 throw new Error('Invalid board.settings structure.');
             }
             if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
                 throw new Error('Invalid board.settings.title.');
             }
-            if (settingsHasFull || settingsHasFullWithArchiveFilter) {
+            if (hasExtendedBoardSettings(data.board.settings)) {
                 if (!['manual', 'dueDate', 'effort', 'score'].includes(data.board.settings.sortMode)) {
                     throw new Error('Invalid board.settings.sortMode.');
                 }
@@ -4729,7 +4712,7 @@
                 if ('effort' in task && task.effort !== null && !EFFORT_BUCKETS.includes(String(task.effort).toUpperCase())) {
                     throw new Error('Task effort is invalid.');
                 }
-                if ('assignee' in task && typeof task.assignee !== 'string' && (!Array.isArray(task.assignee) || task.assignee.some((name) => typeof name !== 'string'))) {
+                if ('assignee' in task && !isAcceptedLegacyAssigneeValue(task.assignee)) {
                     throw new Error('Task assignee must be a string or string array.');
                 }
                 if ('assignees' in task && (!Array.isArray(task.assignees) || task.assignees.some((name) => typeof name !== 'string'))) {
@@ -4926,9 +4909,9 @@
 
             container.innerHTML = normalized.map((item, index) => `
                 <div class="checklist-editor-row ${item.done ? 'done' : ''}" data-index="${index}">
-                    <input type="checkbox" ${item.done ? 'checked' : ''} aria-label="Mark todo as done" onchange="toggleTaskChecklistEditorItem(${index}, this.checked)">
-                    <input type="text" value="${escapeHtml(item.text)}" aria-label="Todo item text" oninput="updateTaskChecklistEditorItemText(${index}, this.value)">
-                    <button type="button" class="checklist-editor-remove" aria-label="Remove todo item" title="Remove" onclick="removeTaskChecklistEditorItem(${index})">×</button>
+                    <input type="checkbox" ${item.done ? 'checked' : ''} aria-label="Mark todo as done" data-index="${index}">
+                    <input type="text" value="${escapeHtml(item.text)}" aria-label="Todo item text" data-index="${index}">
+                    <button type="button" class="checklist-editor-remove" aria-label="Remove todo item" title="Remove" data-index="${index}">×</button>
                 </div>
             `).join('');
 
@@ -5114,6 +5097,8 @@
             return taskList.find((task) => task && Number(task.id) === taskIdNum) || null;
         }
 
+        // Legacy import compatibility: older boards stored attachments in
+        // extensions.teamOsKanban.taskAttachments instead of task.attachments.
         function getLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
             if (taskId === null || taskId === undefined || taskId === '') return [];
             const map = getTaskAttachmentsMap(boardData);
@@ -5695,7 +5680,7 @@
                 removeBtn.setAttribute('aria-label', `Remove attachment ${item.name}`);
                 removeBtn.title = 'Remove';
                 removeBtn.textContent = '×';
-                removeBtn.onclick = () => removeTaskModalAttachment(item.id);
+                removeBtn.dataset.attachmentId = item.id;
                 row.appendChild(removeBtn);
 
                 listEl.appendChild(row);
@@ -5892,7 +5877,7 @@
 
             list.innerHTML = checklist.map((item, index) => `
                 <li class="detail-checklist-item ${item.done ? 'done' : ''}">
-                    <input type="checkbox" ${item.done ? 'checked' : ''} ${readOnly ? 'disabled' : ''} onchange="toggleChecklistItem(${task.id}, ${index}, this.checked)">
+                    <input type="checkbox" ${item.done ? 'checked' : ''} ${readOnly ? 'disabled' : ''} data-task-id="${task.id}" data-index="${index}">
                     <span class="detail-checklist-text">${escapeHtml(item.text)}</span>
                 </li>
             `).join('');
@@ -6201,8 +6186,8 @@
 
         async function moveSelectedPortfolioCardToShortcutStatus(targetStatus) {
             const row = getSelectedPortfolioRow();
-            if (!row || !row.canMutate || !Controllers || !Controllers.Tasks) return;
-            await Controllers.Tasks.moveTaskToStatus(row.boardId, row.taskId, targetStatus);
+            if (!row || !row.canMutate) return;
+            await movePortfolioTaskToStatus(row.boardId, row.taskId, targetStatus);
         }
 
         function focusPortfolioSearch() {
@@ -6586,6 +6571,8 @@
         function cacheRefs() {
             Refs.portfolioView = document.getElementById('portfolioView');
             Refs.portfolioBoard = document.getElementById('portfolioBoard');
+            Refs.portfolioBoardsChips = document.getElementById('portfolioBoardsChips');
+            Refs.portfolioTimelinePanel = document.getElementById('portfolioTimelinePanel');
             Refs.portfolioSearchInput = document.getElementById('portfolioSearchInput');
             Refs.portfolioArchiveFilter = document.getElementById('portfolioArchiveFilter');
             Refs.portfolioPriorityFilter = document.getElementById('portfolioPriorityFilter');
@@ -6601,320 +6588,344 @@
             return Refs;
         }
 
-        // Single-file modular structure (compatibility layer while refactoring)
-        State = {
-            getSnapshot() {
-                return {
-                    portfolio: {
-                        boards: portfolioBoards,
-                        tasks: portfolioTasks,
-                        selectedBoardId: selectedPortfolioBoardId,
-                        sortKey: portfolioSortKey,
-                        sortDir: portfolioSortDir
-                    },
-                    modal: {
-                        editContext: portfolioEditContext,
-                        createContext: portfolioCreateContext,
-                        detailContext: portfolioDetailContext
-                    },
-                    drag: {
-                        context: portfolioDragContext
-                    }
-                };
-            },
-            setSelectedProject(boardId) {
-                selectedPortfolioBoardId = boardId || '';
-            },
-            setPortfolioSort(nextKey, nextDir = 'asc') {
-                portfolioSortKey = normalizePortfolioSortKey(nextKey);
-                portfolioSortDir = normalizePortfolioSortDir(nextDir);
-            },
-            setDragContext(ctx) {
-                portfolioDragContext = ctx || null;
+        function setPortfolioDragContext(ctx) {
+            portfolioDragContext = ctx || null;
+        }
+
+        async function movePortfolioTaskToStatus(boardId, taskId, targetStatus) {
+            if (!boardId || !taskId) return false;
+            if (!isPortfolioBoardMutable(boardId)) return false;
+
+            const source = findPortfolioTaskSource(boardId, taskId);
+            if (!source) return false;
+
+            const normalizedTargetStatus = normalizeTaskStatus(targetStatus);
+            const validStatuses = new Set(
+                (source.boardRecord.data.board.columns || defaultColumns).map(col => normalizeTaskStatus(col.status))
+            );
+            if (!validStatuses.has(normalizedTargetStatus)) return false;
+            if (normalizeTaskStatus(source.task.status) === normalizedTargetStatus) return false;
+
+            const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
+                if (normalizeTaskStatus(task.status) === normalizedTargetStatus) return false;
+                task.status = normalizedTargetStatus;
+                return true;
+            });
+            return Boolean(changed);
+        }
+
+        function clearPortfolioColumnDragHighlights() {
+            const root = Refs.portfolioBoard || document.getElementById('portfolioBoard');
+            if (!root) return;
+            root.querySelectorAll('.portfolio-column-body.drag-over').forEach((node) => {
+                node.classList.remove('drag-over');
+            });
+        }
+
+        function readPortfolioDragContextFromEvent(ev) {
+            if (portfolioDragContext && portfolioDragContext.boardId && portfolioDragContext.taskId) {
+                return portfolioDragContext;
             }
-        };
-
-        Domain = {
-            Schema: {
-                validateBoardData,
-                serializeBoardDataFromObject,
-                createEmptyProjectData,
-                normalizeColumns
-            },
-            Task: {
-                normalizeTask,
-                normalizeTaskStatus,
-                normalizeChecklist,
-                parseChecklistInput,
-                checklistToInput,
-                normalizePriority,
-                normalizeEffort,
-                normalizeDueDate,
-                normalizeTimestamp,
-                taskScore,
-                formatTaskScore,
-                priorityRank,
-                effortRank,
-                touchTask
-            },
-            Validation: {
-                validateTaskDraft: TaskFormValidator.validate.bind(TaskFormValidator)
-            },
-            PortfolioSelectors: {
-                getVisibleRows: getFilteredSortedPortfolioRows,
-                compareRows: comparePortfolioRows,
-                compareDueDateAsc: comparePortfolioDueDateAsc
+            const raw = ev?.dataTransfer?.getData?.('application/x-kanban-task') || ev?.dataTransfer?.getData?.('text/plain');
+            if (!raw) return null;
+            try {
+                const parsed = JSON.parse(raw);
+                if (!parsed || !parsed.boardId || !parsed.taskId) return null;
+                return parsed;
+            } catch (_) {
+                return null;
             }
-        };
+        }
 
-        Services = {
-            Dialog: {
-                alert(message) {
-                    window.alert(message);
-                },
-                confirm(message) {
-                    return window.confirm(message);
-                },
-                prompt(message, initialValue = '') {
-                    return window.prompt(message, initialValue);
-                }
-            },
-            Url: {
-                read: applyUrlState,
-                write: updateUrlState
-            },
-            File: {
-                createProject: newProject,
-                importProjects,
-                importDroppedFiles: openPortfolioFromFiles,
-                saveProjectRecord: BoardRepository.saveRecord.bind(BoardRepository),
-                checkExternalChangesNow: checkProjectFilesNow
-            },
-            Time: {
-                nowIso
+        function canDragPortfolioContext(ctx) {
+            if (!ctx || !ctx.boardId || !ctx.taskId) return false;
+            return isPortfolioBoardMutable(ctx.boardId);
+        }
+
+        function onPortfolioTaskDragStart(ev, ctx) {
+            if (!canDragPortfolioContext(ctx)) {
+                ev.preventDefault();
+                return;
             }
-        };
-
-        UI = {
-            Portfolio: {
-                render: renderPortfolio,
-                renderBoard: renderPortfolioBoardView,
-                renderChips: renderPortfolioBoardChips,
-                createTaskCard: createPortfolioTaskCard
-            },
-            Modals: {
-                openTaskCreate: openPortfolioCreateTaskModal,
-                openTaskEdit: editPortfolioTask,
-                openTaskDetail: openPortfolioTaskDetails,
-                closeTask: closeModal,
-                closeDetail: closeDetailModal,
-                openShortcuts: openShortcutsModal,
-                closeShortcuts: closeShortcutsModal,
-                openHelp: openHelpModal,
-                closeHelp: closeHelpModal
-            },
-            Toast: {
-                showUndo,
-                hideUndo
+            setPortfolioDragContext({
+                boardId: ctx.boardId,
+                taskId: Number(ctx.taskId),
+                fromStatus: normalizeTaskStatus(ctx.status)
+            });
+            const payload = JSON.stringify(portfolioDragContext);
+            if (ev.dataTransfer) {
+                ev.dataTransfer.effectAllowed = 'move';
+                try {
+                    ev.dataTransfer.setData('application/x-kanban-task', payload);
+                } catch (_) { }
+                try {
+                    ev.dataTransfer.setData('text/plain', payload);
+                } catch (_) { }
             }
-        };
+            if (ev.currentTarget && ev.currentTarget.classList) {
+                ev.currentTarget.classList.add('dragging');
+            }
+        }
 
-        Controllers = {
-            App: {
-                cacheRefs,
-                render() {
-                    UI.Portfolio.render();
-                }
-            },
-            Portfolio: {
-                selectProject(boardId) {
-                    State.setSelectedProject(boardId);
-                    Controllers.App.render();
-                },
-                removeProject(boardId) {
-                    removeProjectFromPortfolio(boardId);
-                },
-                newProject() {
-                    return newProject();
-                },
-                importProjects() {
-                    return importProjects();
-                }
-            },
-            Tasks: {
-                async moveTaskToStatus(boardId, taskId, targetStatus) {
-                    if (!boardId || !taskId) return false;
-                    if (!isPortfolioBoardMutable(boardId)) return false;
+        function onPortfolioTaskDragEnd(ev) {
+            setPortfolioDragContext(null);
+            suppressPortfolioCardClickUntil = Date.now() + 120;
+            if (ev.currentTarget && ev.currentTarget.classList) {
+                ev.currentTarget.classList.remove('dragging');
+            }
+            clearPortfolioColumnDragHighlights();
+        }
 
-                    const source = findPortfolioTaskSource(boardId, taskId);
-                    if (!source) return false;
+        function onPortfolioColumnDragOver(ev, targetStatus) {
+            const ctx = readPortfolioDragContextFromEvent(ev);
+            if (!canDragPortfolioContext(ctx)) return;
+            const nextStatus = normalizeTaskStatus(targetStatus);
+            if (normalizeTaskStatus(ctx.fromStatus) === nextStatus) return;
+            ev.preventDefault();
+            if (ev.dataTransfer) {
+                ev.dataTransfer.dropEffect = 'move';
+            }
+            if (ev.currentTarget && ev.currentTarget.classList) {
+                ev.currentTarget.classList.add('drag-over');
+            }
+        }
 
-                    const normalizedTargetStatus = normalizeTaskStatus(targetStatus);
-                    const validStatuses = new Set(
-                        (source.boardRecord.data.board.columns || defaultColumns).map(col => normalizeTaskStatus(col.status))
-                    );
-                    if (!validStatuses.has(normalizedTargetStatus)) return false;
-                    if (normalizeTaskStatus(source.task.status) === normalizedTargetStatus) return false;
+        function onPortfolioColumnDragLeave(ev) {
+            const current = ev.currentTarget;
+            if (!current || !current.classList) return;
+            const related = ev.relatedTarget;
+            if (related && current.contains(related)) return;
+            current.classList.remove('drag-over');
+        }
 
-                    const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
-                        if (normalizeTaskStatus(task.status) === normalizedTargetStatus) return false;
-                        task.status = normalizedTargetStatus;
-                        return true;
-                    });
-                    return Boolean(changed);
-                }
-            },
-            DragDrop: {
-                clearColumnHighlights() {
-                    const root = Refs.portfolioBoard || document.getElementById('portfolioBoard');
-                    if (!root) return;
-                    root.querySelectorAll('.portfolio-column-body.drag-over').forEach((node) => {
-                        node.classList.remove('drag-over');
-                    });
-                },
-                readContextFromEvent(ev) {
-                    if (portfolioDragContext && portfolioDragContext.boardId && portfolioDragContext.taskId) {
-                        return portfolioDragContext;
-                    }
-                    const raw = ev?.dataTransfer?.getData?.('application/x-kanban-task') || ev?.dataTransfer?.getData?.('text/plain');
-                    if (!raw) return null;
-                    try {
-                        const parsed = JSON.parse(raw);
-                        if (!parsed || !parsed.boardId || !parsed.taskId) return null;
-                        return parsed;
-                    } catch (_) {
-                        return null;
-                    }
-                },
-                canDragContext(ctx) {
-                    if (!ctx || !ctx.boardId || !ctx.taskId) return false;
-                    return isPortfolioBoardMutable(ctx.boardId);
-                },
-                onTaskDragStart(ev, ctx) {
-                    if (!this.canDragContext(ctx)) {
-                        ev.preventDefault();
+        async function onPortfolioColumnDrop(ev, targetStatus) {
+            ev.preventDefault();
+            const current = ev.currentTarget;
+            if (current && current.classList) {
+                current.classList.remove('drag-over');
+            }
+            const ctx = readPortfolioDragContextFromEvent(ev);
+            if (!canDragPortfolioContext(ctx)) {
+                clearPortfolioColumnDragHighlights();
+                return;
+            }
+
+            try {
+                await movePortfolioTaskToStatus(ctx.boardId, Number(ctx.taskId), targetStatus);
+            } finally {
+                setPortfolioDragContext(null);
+                clearPortfolioColumnDragHighlights();
+            }
+        }
+
+        function handlePortfolioBoardChipsClick(event) {
+            const button = event.target.closest('button[data-action]');
+            if (!button) return;
+            const boardId = button.dataset.boardId || '';
+            const action = button.dataset.action;
+            if (action === 'select-board') {
+                selectPortfolioBoard(boardId);
+                return;
+            }
+            if (action === 'retry-save') {
+                retryProjectSave(boardId);
+                return;
+            }
+            if (action === 'remove-board') {
+                removeProjectFromPortfolio(boardId);
+            }
+        }
+
+        function handleTimelinePanelClick(event) {
+            const button = event.target.closest('[data-action]');
+            if (!button) return;
+            const boardId = button.dataset.boardId || '';
+            const action = button.dataset.action;
+            if (action === 'timeline-latest') {
+                movePortfolioTimelineToLatest(boardId);
+                return;
+            }
+            if (action === 'timeline-restore') {
+                restorePortfolioTimelineSelection();
+                return;
+            }
+            if (action === 'timeline-select-event') {
+                setPortfolioTimelineSelection(boardId, Number(button.dataset.eventIndex));
+                return;
+            }
+            if (action === 'timeline-toggle-expanded') {
+                togglePortfolioTimelineExpanded(boardId);
+            }
+        }
+
+        function handleTimelinePanelInput(event) {
+            const input = event.target.closest('input[data-action="timeline-slider"]');
+            if (!input) return;
+            setPortfolioTimelineSelection(input.dataset.boardId || '', Number(input.value));
+        }
+
+        function handlePortfolioBoardClick(event) {
+            const actionButton = event.target.closest('button[data-action]');
+            if (actionButton) {
+                const taskCard = actionButton.closest('.portfolio-task-card');
+                if (taskCard) {
+                    event.stopPropagation();
+                    const boardId = taskCard.dataset.boardId || '';
+                    const taskId = Number(taskCard.dataset.taskId);
+                    const action = actionButton.dataset.action;
+                    if (action === 'edit-task') {
+                        editPortfolioTask(boardId, taskId);
                         return;
                     }
-                    State.setDragContext({
-                        boardId: ctx.boardId,
-                        taskId: Number(ctx.taskId),
-                        fromStatus: normalizeTaskStatus(ctx.status)
-                    });
-                    const payload = JSON.stringify(portfolioDragContext);
-                    if (ev.dataTransfer) {
-                        ev.dataTransfer.effectAllowed = 'move';
-                        try {
-                            ev.dataTransfer.setData('application/x-kanban-task', payload);
-                        } catch (_) { }
-                        try {
-                            ev.dataTransfer.setData('text/plain', payload);
-                        } catch (_) { }
-                    }
-                    if (ev.currentTarget && ev.currentTarget.classList) {
-                        ev.currentTarget.classList.add('dragging');
-                    }
-                },
-                onTaskDragEnd(ev) {
-                    State.setDragContext(null);
-                    suppressPortfolioCardClickUntil = Date.now() + 120;
-                    if (ev.currentTarget && ev.currentTarget.classList) {
-                        ev.currentTarget.classList.remove('dragging');
-                    }
-                    this.clearColumnHighlights();
-                },
-                onColumnDragOver(ev, targetStatus) {
-                    const ctx = this.readContextFromEvent(ev);
-                    if (!this.canDragContext(ctx)) return;
-                    const nextStatus = normalizeTaskStatus(targetStatus);
-                    if (normalizeTaskStatus(ctx.fromStatus) === nextStatus) return;
-                    ev.preventDefault();
-                    if (ev.dataTransfer) {
-                        ev.dataTransfer.dropEffect = 'move';
-                    }
-                    if (ev.currentTarget && ev.currentTarget.classList) {
-                        ev.currentTarget.classList.add('drag-over');
-                    }
-                },
-                onColumnDragLeave(ev) {
-                    const current = ev.currentTarget;
-                    if (!current || !current.classList) return;
-                    const related = ev.relatedTarget;
-                    if (related && current.contains(related)) return;
-                    current.classList.remove('drag-over');
-                },
-                async onColumnDrop(ev, targetStatus) {
-                    ev.preventDefault();
-                    const current = ev.currentTarget;
-                    if (current && current.classList) {
-                        current.classList.remove('drag-over');
-                    }
-                    const ctx = this.readContextFromEvent(ev);
-                    if (!this.canDragContext(ctx)) {
-                        this.clearColumnHighlights();
+                    if (action === 'archive-task') {
+                        togglePortfolioArchiveTask(boardId, taskId);
                         return;
                     }
-
-                    try {
-                        await Controllers.Tasks.moveTaskToStatus(ctx.boardId, Number(ctx.taskId), targetStatus);
-                    } finally {
-                        State.setDragContext(null);
-                        this.clearColumnHighlights();
+                    if (action === 'delete-task') {
+                        deletePortfolioTask(boardId, taskId);
+                        return;
                     }
                 }
             }
-        };
+
+            const addTaskCard = event.target.closest('.add-task-card[data-action="add-task"]');
+            if (addTaskCard) {
+                openPortfolioCreateTaskModal(selectedPortfolioBoardId, addTaskCard.dataset.status || '');
+                return;
+            }
+
+            const taskCard = event.target.closest('.portfolio-task-card');
+            if (!taskCard) return;
+            if (Date.now() < suppressPortfolioCardClickUntil) return;
+            const boardId = taskCard.dataset.boardId || '';
+            const taskId = Number(taskCard.dataset.taskId);
+            setSelectedPortfolioCard(boardId, taskId);
+            if (taskCard.dataset.historical === 'true') {
+                renderPortfolio();
+                return;
+            }
+            openPortfolioTaskDetails(boardId, taskId);
+        }
+
+        function handleTaskChecklistEditorClick(event) {
+            const button = event.target.closest('.checklist-editor-remove[data-index]');
+            if (!button) return;
+            removeTaskChecklistEditorItem(Number(button.dataset.index));
+        }
+
+        function handleTaskChecklistEditorInput(event) {
+            const textInput = event.target.closest('.checklist-editor-row input[type="text"][data-index]');
+            if (!textInput) return;
+            updateTaskChecklistEditorItemText(Number(textInput.dataset.index), textInput.value);
+        }
+
+        function handleTaskChecklistEditorChange(event) {
+            const checkbox = event.target.closest('.checklist-editor-row input[type="checkbox"][data-index]');
+            if (!checkbox) return;
+            toggleTaskChecklistEditorItem(Number(checkbox.dataset.index), checkbox.checked);
+        }
+
+        function handleTaskAssigneeEditorClick(event) {
+            const button = event.target.closest('.assignee-editor-remove[data-index]');
+            if (!button) return;
+            removeTaskAssigneeEditorItem(Number(button.dataset.index));
+        }
+
+        function handleTaskAssigneeEditorInput(event) {
+            const textInput = event.target.closest('.assignee-editor-row input[type="text"][data-index]');
+            if (!textInput) return;
+            updateTaskAssigneeEditorItemText(Number(textInput.dataset.index), textInput.value);
+        }
+
+        function handleTaskAttachmentsEditorClick(event) {
+            const button = event.target.closest('.attachment-remove-btn[data-attachment-id]');
+            if (!button) return;
+            removeTaskModalAttachment(button.dataset.attachmentId);
+        }
+
+        function handleDetailChecklistChange(event) {
+            const checkbox = event.target.closest('#detailChecklist input[type="checkbox"][data-task-id][data-index]');
+            if (!checkbox) return;
+            toggleChecklistItem(Number(checkbox.dataset.taskId), Number(checkbox.dataset.index), checkbox.checked);
+        }
+
+        function bindStaticUiEvents() {
+            document.getElementById('openShortcutsBtn')?.addEventListener('click', openShortcutsModal);
+            document.getElementById('openHelpBtn')?.addEventListener('click', openHelpModal);
+            document.getElementById('newProjectBtn')?.addEventListener('click', newProject);
+            document.getElementById('importProjectsBtn')?.addEventListener('click', importProjects);
+            document.getElementById('taskModalCloseBtn')?.addEventListener('click', closeModal);
+            document.getElementById('taskModalCancelBtn')?.addEventListener('click', closeModal);
+            document.getElementById('taskModalSaveBtn')?.addEventListener('click', saveTask);
+            document.getElementById('taskDetailModalCloseBtn')?.addEventListener('click', closeDetailModal);
+            document.getElementById('taskDetailModalFooterCloseBtn')?.addEventListener('click', closeDetailModal);
+            document.getElementById('shortcutsModalCloseBtn')?.addEventListener('click', closeShortcutsModal);
+            document.getElementById('shortcutsModalFooterCloseBtn')?.addEventListener('click', closeShortcutsModal);
+            document.getElementById('helpModalCloseBtn')?.addEventListener('click', closeHelpModal);
+            document.getElementById('helpModalFooterCloseBtn')?.addEventListener('click', closeHelpModal);
+            document.getElementById('undoBtn')?.addEventListener('click', performUndo);
+            document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
+            document.getElementById('taskChecklistAddBtn')?.addEventListener('click', addTaskChecklistItemFromComposer);
+            document.getElementById('taskAttachmentsAddBtn')?.addEventListener('click', triggerTaskAttachmentsPicker);
+            document.getElementById('taskBlocked')?.addEventListener('change', onTaskBlockedChange);
+            document.getElementById('portfolioSearchInput')?.addEventListener('input', renderPortfolio);
+            document.getElementById('portfolioArchiveFilter')?.addEventListener('change', renderPortfolio);
+            document.getElementById('portfolioBlockedFilter')?.addEventListener('change', renderPortfolio);
+            document.getElementById('portfolioAssigneeFilter')?.addEventListener('change', renderPortfolio);
+            document.getElementById('portfolioPriorityFilter')?.addEventListener('change', renderPortfolio);
+            document.getElementById('portfolioEffortFilter')?.addEventListener('change', renderPortfolio);
+            document.getElementById('portfolioSortSelect')?.addEventListener('change', onPortfolioSortSelectChange);
+            document.getElementById('taskChecklistNewItem')?.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                addTaskChecklistItemFromComposer();
+            });
+            document.getElementById('taskAssigneeNewItem')?.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                addTaskAssigneeFromComposer();
+            });
+            document.getElementById('taskAttachmentsInput')?.addEventListener('change', handleTaskAttachmentsInputChange);
+            document.getElementById('taskModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('taskModal')) {
+                    closeModal();
+                }
+            });
+            document.getElementById('taskDetailModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('taskDetailModal')) {
+                    closeDetailModal();
+                }
+            });
+            document.getElementById('shortcutsModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('shortcutsModal')) {
+                    closeShortcutsModal();
+                }
+            });
+            document.getElementById('helpModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('helpModal')) {
+                    closeHelpModal();
+                }
+            });
+            Refs.portfolioBoardsChips?.addEventListener('click', handlePortfolioBoardChipsClick);
+            Refs.portfolioTimelinePanel?.addEventListener('click', handleTimelinePanelClick);
+            Refs.portfolioTimelinePanel?.addEventListener('input', handleTimelinePanelInput);
+            Refs.portfolioBoard?.addEventListener('click', handlePortfolioBoardClick);
+            document.getElementById('taskChecklistItems')?.addEventListener('click', handleTaskChecklistEditorClick);
+            document.getElementById('taskChecklistItems')?.addEventListener('input', handleTaskChecklistEditorInput);
+            document.getElementById('taskChecklistItems')?.addEventListener('change', handleTaskChecklistEditorChange);
+            document.getElementById('taskAssigneeItems')?.addEventListener('click', handleTaskAssigneeEditorClick);
+            document.getElementById('taskAssigneeItems')?.addEventListener('input', handleTaskAssigneeEditorInput);
+            document.getElementById('taskAttachmentsList')?.addEventListener('click', handleTaskAttachmentsEditorClick);
+            document.getElementById('detailChecklist')?.addEventListener('change', handleDetailChecklistChange);
+            document.addEventListener('keydown', dispatchShortcutKeydown);
+            window.addEventListener('popstate', () => {
+                applyUrlState();
+                renderPortfolio();
+            });
+        }
 
         cacheRefs();
-
-        document.getElementById('taskModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('taskModal')) {
-                closeModal();
-            }
-        });
-
-        document.getElementById('taskDetailModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('taskDetailModal')) {
-                closeDetailModal();
-            }
-        });
-
-        document.getElementById('shortcutsModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('shortcutsModal')) {
-                closeShortcutsModal();
-            }
-        });
-
-        document.getElementById('helpModal').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('helpModal')) {
-                closeHelpModal();
-            }
-        });
-
-        document.getElementById('taskChecklistNewItem').addEventListener('keydown', (e) => {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            addTaskChecklistItemFromComposer();
-        });
-
-        document.getElementById('taskAssigneeNewItem').addEventListener('keydown', (e) => {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            addTaskAssigneeFromComposer();
-        });
-
-        document.getElementById('taskAttachmentsInput').addEventListener('change', (e) => {
-            handleTaskAttachmentsInputChange(e);
-        });
-
-        document.addEventListener('keydown', (e) => {
-            dispatchShortcutKeydown(e);
-        });
-
-        window.addEventListener('popstate', () => {
-            applyUrlState();
-            renderPortfolio();
-        });
-
+        bindStaticUiEvents();
         init();
     </script>
 </body>

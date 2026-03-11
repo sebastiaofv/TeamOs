@@ -216,7 +216,7 @@ async function mutateExternalBoardFile(page, { boardId, payload, invalidText = n
 
 async function triggerExternalFileCheck(page) {
   await page.evaluate(async () => {
-    await Services.File.checkExternalChangesNow();
+    await checkProjectFilesNow();
   });
 }
 
@@ -319,11 +319,9 @@ test.describe('portfolio-only app', () => {
   test('loads portfolio-only minimalist UI', async ({ page }) => {
     await expect(page.locator('#portfolioView')).toBeVisible();
     await expect(page.locator('#boardView')).toHaveCount(0);
-    await expect(page.locator('#portfolioToggleBtn')).toHaveCount(0);
     await expect(page.locator('#newProjectBtn')).toBeVisible();
     await expect(page.locator('#importProjectsBtn')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Help' })).toBeVisible();
-    await expect(page.locator('#portfolioDisplayMode-table')).toHaveCount(0);
     await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
   });
@@ -699,6 +697,46 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(1);
   });
 
+  test('assignee editor can edit and remove existing assignees before save', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog', assignees: ['Alex', 'Sam'] }
+        ]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => editPortfolioTask('p1', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    const rows = page.locator('#taskAssigneeItems .assignee-editor-row');
+    await expect(rows).toHaveCount(2);
+    await rows.nth(0).locator('input[type="text"]').fill('Jamie');
+    await rows.nth(1).getByRole('button', { name: 'Remove assignee' }).click();
+
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const result = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((entry) => entry.id === 1);
+      const writes = window.__portfolioTestWrites || [];
+      const savedPayload = writes.length ? JSON.parse(writes[writes.length - 1].text) : null;
+      const savedTask = savedPayload?.board?.tasks?.find((entry) => entry.id === 1);
+      return {
+        taskAssignees: task?.assignees || [],
+        savedAssignees: savedTask?.assignees || []
+      };
+    });
+
+    expect(result.taskAssignees).toEqual(['Jamie']);
+    expect(result.savedAssignees).toEqual(['Jamie']);
+    await expect(portfolioCard(page, 'Task A')).toContainText('Jamie');
+    await expect(portfolioCard(page, 'Task A')).not.toContainText('Sam');
+  });
+
   test('due date input uses dd/mm/yyyy in the UI and saves ISO to JSON', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
@@ -730,6 +768,33 @@ test.describe('portfolio-only app', () => {
     await card.click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await expect(page.locator('#detailDueDate')).toHaveText('05/03/2026');
+  });
+
+  test('invalid due date keeps the modal open and focuses the due date field', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => {
+      window.__lastAlert = '';
+      window.alert = (msg) => { window.__lastAlert = String(msg); };
+    });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Bad date task');
+    await page.locator('#taskDueDate').fill('2026-03-05');
+    await page.locator('#taskModal .btn-primary').click();
+
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(page.locator('#taskDueDate')).toBeFocused();
+
+    const result = await page.evaluate(() => ({
+      alert: window.__lastAlert,
+      taskCount: portfolioBoards[0].data.board.tasks.length
+    }));
+
+    expect(result.alert).toContain('Due date must use dd/mm/yyyy');
+    expect(result.taskCount).toBe(0);
   });
 
   test('legacy assignee strings are accepted and serialize as assignee lists', async ({ page }) => {
@@ -956,6 +1021,54 @@ test.describe('portfolio-only app', () => {
     expect(result.writes.at(-1).text).toContain('"tasks": []');
   });
 
+  test('delete cancel leaves the task untouched', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Keep me', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => {
+      window.confirm = () => false;
+    });
+
+    const card = portfolioCard(page, 'Keep me');
+    await card.hover();
+    await card.getByRole('button', { name: 'Delete' }).click();
+
+    await expect(portfolioCard(page, 'Keep me')).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      taskCount: portfolioBoards[0].data.board.tasks.length,
+      writes: window.__portfolioTestWrites || []
+    }));
+
+    expect(result.taskCount).toBe(1);
+    expect(result.writes).toEqual([]);
+  });
+
+  test('archiving a task can be undone from the toast', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Undo me', status: 'backlog', archived: false }] }
+    ], { selectedBoardId: 'p1' });
+
+    const card = portfolioCard(page, 'Undo me');
+    await card.hover();
+    await card.locator('button[title="Archive"]').click();
+
+    await expect(portfolioCard(page, 'Undo me')).toHaveCount(0);
+    await expect(page.locator('#undoToast')).toHaveClass(/active/);
+
+    await page.locator('#undoBtn').click();
+    await expect(portfolioCard(page, 'Undo me')).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      archived: portfolioBoards[0].data.board.tasks.find((task) => task.id === 1)?.archived,
+      writes: window.__portfolioTestWrites || []
+    }));
+
+    expect(result.archived).toBe(false);
+    expect(result.writes.length).toBeGreaterThan(0);
+  });
+
   test('portfolio filters and URL params persist in portfolio-only mode', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
@@ -991,6 +1104,31 @@ test.describe('portfolio-only app', () => {
     expect(url.searchParams.get('pq')).toBe('beta');
     expect(url.searchParams.get('ps')).toBe('score');
     expect(url.searchParams.get('view')).toBeNull();
+  });
+
+  test('drag and drop import loads project files and clears the overlay state', async ({ page }) => {
+    const payload = buildBoardPayload({
+      title: 'Dropped Project',
+      tasks: [{ id: 1, title: 'Dropped task', status: 'backlog' }]
+    });
+
+    await page.evaluate((boardPayload) => {
+      const dt = new DataTransfer();
+      dt.items.add(new File([JSON.stringify(boardPayload)], 'dropped.board.json', { type: 'application/json' }));
+      window.__dropTestDataTransfer = dt;
+      window.dispatchEvent(new DragEvent('dragenter', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    }, payload);
+
+    await expect(page.locator('#portfolioView')).toHaveClass(/file-drop-active/);
+
+    await page.evaluate(() => {
+      const dt = window.__dropTestDataTransfer;
+      window.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    });
+
+    await expect(page.locator('#portfolioView')).not.toHaveClass(/file-drop-active/);
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('Dropped Project');
+    await expect(portfolioCard(page, 'Dropped task')).toBeVisible();
   });
 
   test('keyboard shortcuts focus sort, reset filters, and cycle project chips', async ({ page }) => {
