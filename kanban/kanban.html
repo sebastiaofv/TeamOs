@@ -1215,7 +1215,8 @@
             color: var(--text-primary);
         }
 
-        .checklist-editor {
+        .checklist-editor,
+        .assignee-editor {
             border: 1px solid var(--border);
             background: var(--bg-card);
             padding: 8px;
@@ -1223,12 +1224,14 @@
             gap: 8px;
         }
 
-        .checklist-editor-list {
+        .checklist-editor-list,
+        .assignee-editor-list {
             display: grid;
             gap: 6px;
         }
 
-        .checklist-editor-empty {
+        .checklist-editor-empty,
+        .assignee-editor-empty {
             font-size: 12px;
             color: var(--text-muted);
             padding: 4px 2px;
@@ -1241,13 +1244,21 @@
             align-items: center;
         }
 
+        .assignee-editor-row {
+            display: grid;
+            grid-template-columns: 1fr 28px;
+            gap: 8px;
+            align-items: center;
+        }
+
         .checklist-editor-row input[type="checkbox"] {
             width: 16px;
             height: 16px;
             margin: 0;
         }
 
-        .checklist-editor-row input[type="text"] {
+        .checklist-editor-row input[type="text"],
+        .assignee-editor-row input[type="text"] {
             width: 100%;
             padding: 6px 8px;
             border: 1px solid var(--border);
@@ -1256,7 +1267,8 @@
             background: var(--bg-card);
         }
 
-        .checklist-editor-row input[type="text"]:focus {
+        .checklist-editor-row input[type="text"]:focus,
+        .assignee-editor-row input[type="text"]:focus {
             outline: none;
             border-color: var(--accent);
         }
@@ -1266,7 +1278,8 @@
             text-decoration: line-through;
         }
 
-        .checklist-editor-remove {
+        .checklist-editor-remove,
+        .assignee-editor-remove {
             width: 28px;
             height: 28px;
             border: 1px solid var(--border);
@@ -1277,19 +1290,22 @@
             font-size: 14px;
         }
 
-        .checklist-editor-remove:hover {
+        .checklist-editor-remove:hover,
+        .assignee-editor-remove:hover {
             color: var(--priority-high);
             border-color: var(--priority-high);
         }
 
-        .checklist-editor-add {
+        .checklist-editor-add,
+        .assignee-editor-add {
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 8px;
             align-items: center;
         }
 
-        .checklist-editor-add input {
+        .checklist-editor-add input,
+        .assignee-editor-add input {
             width: 100%;
             padding: 7px 10px;
             border: 1px solid var(--border);
@@ -1298,7 +1314,8 @@
             background: var(--bg-card);
         }
 
-        .checklist-editor-add input:focus {
+        .checklist-editor-add input:focus,
+        .assignee-editor-add input:focus {
             outline: none;
             border-color: var(--accent);
         }
@@ -1912,8 +1929,15 @@
                         <textarea id="taskDescription"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>Assignee</label>
-                        <input type="text" id="taskAssignee" list="taskAssigneeSuggestions" placeholder="Name">
+                        <label>Assignees</label>
+                        <div class="assignee-editor" id="taskAssigneeEditor">
+                            <div class="assignee-editor-list" id="taskAssigneeItems"></div>
+                            <div class="assignee-editor-add">
+                                <input type="text" id="taskAssigneeNewItem" list="taskAssigneeSuggestions" placeholder="Add an assignee and press Enter">
+                                <button type="button" class="btn" onclick="addTaskAssigneeFromComposer()">Add</button>
+                            </div>
+                        </div>
+                        <textarea id="taskAssignee" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
                         <datalist id="taskAssigneeSuggestions"></datalist>
                     </div>
                     <div class="form-group">
@@ -1956,7 +1980,7 @@
                     </div>
                     <div class="form-group">
                         <label>Due Date</label>
-                        <input type="date" id="taskDueDate">
+                        <input type="text" id="taskDueDate" inputmode="numeric" placeholder="dd/mm/yyyy" pattern="\\d{2}/\\d{2}/\\d{4}">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -2006,8 +2030,8 @@
                         <span class="detail-value" id="detailDescription">-</span>
                     </div>
                     <div class="detail-item">
-                        <span class="detail-label">Assignee</span>
-                        <span class="detail-value" id="detailAssignee">-</span>
+                        <span class="detail-label">Assignees</span>
+                        <span class="detail-value" id="detailAssignees">-</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Blocked</span>
@@ -2410,6 +2434,168 @@
         function normalizeAssignee(value) {
             if (value === null || value === undefined) return '';
             return String(value).trim();
+        }
+
+        function normalizeAssignees(value) {
+            const source = Array.isArray(value) ? value : [value];
+            const seen = new Set();
+            const names = [];
+            source.forEach((entry) => {
+                const name = normalizeAssignee(entry);
+                if (!name) return;
+                const key = name.toLowerCase();
+                if (seen.has(key)) return;
+                seen.add(key);
+                names.push(name);
+            });
+            return names;
+        }
+
+        function parseAssigneesInput(value) {
+            if (Array.isArray(value)) return normalizeAssignees(value);
+            if (value === null || value === undefined) return [];
+            return normalizeAssignees(String(value).split(/[,\n]+/));
+        }
+
+        function formatAssignees(value) {
+            return normalizeAssignees(value).join(', ');
+        }
+
+        function assigneesToInput(value) {
+            return normalizeAssignees(value).join('\n');
+        }
+
+        function formatDueDateForUi(value) {
+            const iso = normalizeDueDate(value);
+            if (!iso) return '';
+            const [year, month, day] = iso.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        function parseDueDateInput(value) {
+            if (!value || typeof value !== 'string') return '';
+            const trimmed = value.trim();
+            if (!trimmed) return '';
+            const iso = normalizeDueDate(trimmed);
+            if (iso) return iso;
+            const match = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (!match) return '';
+            const [, day, month, year] = match;
+            const candidate = `${year}-${month}-${day}`;
+            const normalized = normalizeDueDate(candidate);
+            return formatDueDateForUi(normalized) === trimmed ? normalized : '';
+        }
+
+        function taskAssignees(task) {
+            if (Array.isArray(task?.assignees)) return normalizeAssignees(task.assignees);
+            return normalizeAssignees(task?.assignee);
+        }
+
+        function taskHasAssignee(task, assigneeName) {
+            const normalized = normalizeAssignee(assigneeName).toLowerCase();
+            if (!normalized) return false;
+            return taskAssignees(task).some((name) => name.toLowerCase() === normalized);
+        }
+
+        function getTaskAssigneeEditorRowsContainer() {
+            return document.getElementById('taskAssigneeItems');
+        }
+
+        function getTaskAssigneeTextarea() {
+            return document.getElementById('taskAssignee');
+        }
+
+        function readTaskAssigneeEditorItems() {
+            const container = getTaskAssigneeEditorRowsContainer();
+            if (!container) return [];
+            const rows = Array.from(container.querySelectorAll('.assignee-editor-row'));
+            return normalizeAssignees(rows.map((row) => {
+                const textInput = row.querySelector('input[type="text"]');
+                return textInput?.value || '';
+            }));
+        }
+
+        function syncTaskAssigneeTextareaFromEditor() {
+            const textarea = getTaskAssigneeTextarea();
+            if (!textarea) return;
+            textarea.value = assigneesToInput(readTaskAssigneeEditorItems());
+            renderTaskAssigneeSuggestions();
+        }
+
+        function renderTaskAssigneeEditor(items = []) {
+            const container = getTaskAssigneeEditorRowsContainer();
+            if (!container) return;
+            const normalized = normalizeAssignees(items);
+
+            if (normalized.length === 0) {
+                container.innerHTML = '<div class="assignee-editor-empty">No assignees yet.</div>';
+                syncTaskAssigneeTextareaFromEditor();
+                return;
+            }
+
+            container.innerHTML = normalized.map((name, index) => `
+                <div class="assignee-editor-row" data-index="${index}">
+                    <input type="text" value="${escapeHtml(name)}" list="taskAssigneeSuggestions" aria-label="Assignee name" oninput="updateTaskAssigneeEditorItemText(${index}, this.value)">
+                    <button type="button" class="assignee-editor-remove" aria-label="Remove assignee" title="Remove" onclick="removeTaskAssigneeEditorItem(${index})">×</button>
+                </div>
+            `).join('');
+
+            syncTaskAssigneeTextareaFromEditor();
+        }
+
+        function loadTaskAssigneeEditorFromTextarea() {
+            const textarea = getTaskAssigneeTextarea();
+            renderTaskAssigneeEditor(parseAssigneesInput(textarea?.value || ''));
+            const composer = document.getElementById('taskAssigneeNewItem');
+            if (composer) {
+                composer.value = '';
+            }
+        }
+
+        function updateTaskAssigneeEditor(items) {
+            renderTaskAssigneeEditor(items);
+        }
+
+        function addTaskAssignee(name = '', options = {}) {
+            const trimmed = normalizeAssignee(name);
+            if (!trimmed) return;
+            const items = readTaskAssigneeEditorItems();
+            if (items.some((item) => item.toLowerCase() === trimmed.toLowerCase())) {
+                if (options.focusComposer !== false) {
+                    document.getElementById('taskAssigneeNewItem')?.focus();
+                }
+                return;
+            }
+            items.push(trimmed);
+            updateTaskAssigneeEditor(items);
+
+            if (options.focusComposer !== false) {
+                document.getElementById('taskAssigneeNewItem')?.focus();
+            }
+        }
+
+        function addTaskAssigneeFromComposer() {
+            const composer = document.getElementById('taskAssigneeNewItem');
+            if (!composer) return;
+            const value = composer.value.trim();
+            if (!value) return;
+            addTaskAssignee(value);
+            composer.value = '';
+            syncTaskAssigneeTextareaFromEditor();
+            composer.focus();
+        }
+
+        function updateTaskAssigneeEditorItemText(index, value) {
+            void index;
+            void value;
+            syncTaskAssigneeTextareaFromEditor();
+        }
+
+        function removeTaskAssigneeEditorItem(index) {
+            const items = readTaskAssigneeEditorItems();
+            if (!items[index]) return;
+            items.splice(index, 1);
+            updateTaskAssigneeEditor(items);
         }
 
         function normalizeTaskBlocked(value) {
@@ -3525,7 +3711,7 @@
                     if (archiveFilter === 'active' && task.archived) return false;
                     if (archiveFilter === 'archived' && !task.archived) return false;
                     if (priorityFilter && task.priority !== priorityFilter) return false;
-                    if (assigneeFilter && normalizeAssignee(task.assignee) !== assigneeFilter) return false;
+                    if (assigneeFilter && !taskHasAssignee(task, assigneeFilter)) return false;
                     if (blockedFilter === 'blocked' && !task.blocked) return false;
                     if (blockedFilter === 'unblocked' && task.blocked) return false;
                     if (effortFilter && task.effort !== effortFilter) return false;
@@ -3766,18 +3952,18 @@
             const deleteButtonLabel = '&#128465;&#65038;';
             const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
             const readOnlyTitle = item.historical ? 'Historical preview (read-only)' : 'Read-only (no file handle)';
-            const assignee = normalizeAssignee(task.assignee);
+            const assignees = taskAssignees(task);
             const statusAge = formatTaskStatusAge(task);
             const metaParts = [
                 showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : '',
-                assignee ? `<span class="task-tag task-tag-assignee" title="Assignee">${escapeHtml(assignee)}</span>` : '',
+                ...assignees.map((name) => `<span class="task-tag task-tag-assignee" title="Assignee">${escapeHtml(name)}</span>`),
                 task.blocked ? '<span class="task-tag task-tag-blocked" title="Blocked">Blocked</span>' : '',
                 statusAge ? `<span class="task-tag task-tag-age" title="Time in current status">${escapeHtml(statusAge)}</span>` : '',
                 isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : '',
                 priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : '',
                 effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : '',
                 score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : '',
-                task.dueDate ? `<span class="task-tag">${escapeHtml(task.dueDate)}</span>` : '',
+                task.dueDate ? `<span class="task-tag">${escapeHtml(formatDueDateForUi(task.dueDate))}</span>` : '',
                 task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(entry => entry.done).length}/${task.checklist.length} done</span>` : ''
             ].filter(Boolean);
             const taskMetaHtml = metaParts.length ? `<div class="task-meta">${metaParts.join('')}</div>` : '';
@@ -3956,7 +4142,7 @@
             portfolioDetailContext = { boardId, taskId, readOnly };
             document.getElementById('detailTitle').textContent = task.title || '-';
             document.getElementById('detailDescription').textContent = task.description || '-';
-            document.getElementById('detailAssignee').textContent = normalizeAssignee(task.assignee) || '-';
+            document.getElementById('detailAssignees').textContent = formatAssignees(task.assignees) || '-';
             document.getElementById('detailBlocked').textContent = task.blocked ? 'Yes' : 'No';
             document.getElementById('detailBlockerReason').textContent = task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-';
             document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
@@ -3964,7 +4150,7 @@
             document.getElementById('detailStatus').textContent = statusTitle || '-';
             document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
             document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
-            document.getElementById('detailDueDate').textContent = normalizeDueDate(task.dueDate) || '-';
+            document.getElementById('detailDueDate').textContent = formatDueDateForUi(task.dueDate) || '-';
             renderDetailChecklist(task, { readOnly });
             renderDetailAttachments(getTaskAttachments(source.boardRecord.data, taskId));
             document.getElementById('taskDetailModal').classList.add('active');
@@ -3992,23 +4178,20 @@
             document.getElementById('modalTitle').textContent = 'Edit Task';
             document.getElementById('taskName').value = task.title || '';
             document.getElementById('taskDescription').value = task.description || '';
-            document.getElementById('taskAssignee').value = normalizeAssignee(task.assignee);
+            document.getElementById('taskAssignee').value = assigneesToInput(task.assignees);
+            loadTaskAssigneeEditorFromTextarea();
             document.getElementById('taskBlocked').checked = Boolean(task.blocked);
             document.getElementById('taskBlockerReason').value = normalizeBlockerReason(task.blockerReason);
             syncTaskBlockedReasonVisibility();
             document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
             loadTaskChecklistEditorFromTextarea();
             setTaskModalAttachmentDraft(getTaskAttachments(source.boardRecord.data, taskId), { messages: [] });
-            document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate);
+            document.getElementById('taskDueDate').value = formatDueDateForUi(task.dueDate);
             document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
             document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
             pendingNewTaskStatus = null;
 
-            const taskNameInput = document.getElementById('taskName');
-            requestAnimationFrame(() => {
-                taskNameInput.focus();
-                taskNameInput.select();
-            });
+            focusAndSelectTaskNameInput();
         }
 
         function openPortfolioCreateTaskModal(boardId, preferredStatus) {
@@ -4037,6 +4220,7 @@
             document.getElementById('taskId').value = '';
             document.getElementById('modalTitle').textContent = 'New Task';
             document.getElementById('taskAssignee').value = '';
+            loadTaskAssigneeEditorFromTextarea();
             document.getElementById('taskBlocked').checked = false;
             document.getElementById('taskBlockerReason').value = '';
             syncTaskBlockedReasonVisibility();
@@ -4047,11 +4231,7 @@
             document.getElementById('taskPriority').value = '';
             document.getElementById('taskEffort').value = '';
 
-            const taskNameInput = document.getElementById('taskName');
-            requestAnimationFrame(() => {
-                taskNameInput.focus();
-                taskNameInput.select();
-            });
+            focusAndSelectTaskNameInput();
         }
 
         async function togglePortfolioArchiveTask(boardId, taskId) {
@@ -4116,29 +4296,33 @@
             const seen = new Set();
             const values = [];
             portfolioTasks.forEach((item) => {
-                const name = normalizeAssignee(item?.task?.assignee);
-                if (!name) return;
-                const key = name.toLowerCase();
-                if (seen.has(key)) return;
-                seen.add(key);
-                values.push(name);
+                taskAssignees(item?.task).forEach((name) => {
+                    const key = name.toLowerCase();
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    values.push(name);
+                });
             });
             return values.sort((a, b) => a.localeCompare(b));
         }
 
-        function getTaskAssigneeSuggestions() {
+        function getTaskAssigneeSuggestions(excludeNames = []) {
             const seen = new Set();
             const values = [];
+            const excluded = new Set(normalizeAssignees(excludeNames).map((name) => name.toLowerCase()));
             const addName = (value) => {
                 const name = normalizeAssignee(value);
                 if (!name) return;
                 const key = name.toLowerCase();
+                if (excluded.has(key)) return;
                 if (seen.has(key)) return;
                 seen.add(key);
                 values.push(name);
             };
 
-            portfolioTasks.forEach(item => addName(item?.task?.assignee));
+            portfolioTasks.forEach((item) => {
+                taskAssignees(item?.task).forEach(addName);
+            });
 
             return values.sort((a, b) => a.localeCompare(b));
         }
@@ -4165,7 +4349,7 @@
         function renderTaskAssigneeSuggestions() {
             const datalist = document.getElementById('taskAssigneeSuggestions');
             if (!datalist) return;
-            const options = getTaskAssigneeSuggestions();
+            const options = getTaskAssigneeSuggestions(readTaskAssigneeEditorItems());
             datalist.innerHTML = options.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
         }
 
@@ -4358,7 +4542,7 @@
                 id: task.id,
                 title: task.title,
                 description: task.description || '',
-                assignee: normalizeAssignee(task.assignee),
+                assignees: taskAssignees(task),
                 blocked: normalizeTaskBlocked(task.blocked),
                 blockerReason: normalizeTaskBlocked(task.blocked) ? normalizeBlockerReason(task.blockerReason) : '',
                 checklist: normalizeChecklist(task.checklist),
@@ -4502,7 +4686,7 @@
 
             data.board.tasks.forEach((task) => {
                 const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-                const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'blocked', 'blockerReason', 'statusChangedAt']);
+                const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt']);
                 const taskKeys = Object.keys(task || {});
                 const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
                 const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -4545,8 +4729,11 @@
                 if ('effort' in task && task.effort !== null && !EFFORT_BUCKETS.includes(String(task.effort).toUpperCase())) {
                     throw new Error('Task effort is invalid.');
                 }
-                if ('assignee' in task && typeof task.assignee !== 'string') {
-                    throw new Error('Task assignee must be a string.');
+                if ('assignee' in task && typeof task.assignee !== 'string' && (!Array.isArray(task.assignee) || task.assignee.some((name) => typeof name !== 'string'))) {
+                    throw new Error('Task assignee must be a string or string array.');
+                }
+                if ('assignees' in task && (!Array.isArray(task.assignees) || task.assignees.some((name) => typeof name !== 'string'))) {
+                    throw new Error('Task assignees must be a string array.');
                 }
                 if ('blocked' in task && typeof task.blocked !== 'boolean') {
                     throw new Error('Task blocked must be boolean.');
@@ -5225,7 +5412,7 @@
         }
 
         function buildTaskTimelineChanges(beforeTask, afterTask) {
-            const fieldNames = ['title', 'description', 'assignee', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'status'];
+            const fieldNames = ['title', 'description', 'assignees', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'status'];
             const changes = {};
             fieldNames.forEach((field) => {
                 const beforeValue = beforeTask ? beforeTask[field] : undefined;
@@ -5683,6 +5870,8 @@
             renderTaskChecklistEditor([]);
             resetTaskModalAttachmentDraft();
             document.getElementById('taskAssignee').value = '';
+            renderTaskAssigneeEditor([]);
+            document.getElementById('taskAssigneeNewItem').value = '';
             document.getElementById('taskBlocked').checked = false;
             document.getElementById('taskBlockerReason').value = '';
             syncTaskBlockedReasonVisibility();
@@ -5751,17 +5940,26 @@
             document.getElementById(fieldId)?.focus();
         }
 
+        function focusAndSelectTaskNameInput() {
+            const taskNameInput = document.getElementById('taskName');
+            if (!taskNameInput) return;
+            taskNameInput.focus();
+            taskNameInput.select();
+        }
+
         function readTaskDraftFromForm() {
             syncTaskChecklistTextareaFromEditor();
+            syncTaskAssigneeTextareaFromEditor();
             return {
                 title: document.getElementById('taskName').value.trim(),
                 description: document.getElementById('taskDescription').value.trim(),
-                assignee: normalizeAssignee(document.getElementById('taskAssignee').value),
+                assignees: parseAssigneesInput(document.getElementById('taskAssignee').value),
                 blocked: Boolean(document.getElementById('taskBlocked').checked),
                 blockerReason: normalizeBlockerReason(document.getElementById('taskBlockerReason').value),
                 checklist: parseChecklistInput(document.getElementById('taskChecklist').value),
                 attachments: getTaskModalAttachmentsDraft(),
-                dueDate: normalizeDueDate(document.getElementById('taskDueDate').value),
+                rawDueDate: document.getElementById('taskDueDate').value.trim(),
+                dueDate: parseDueDateInput(document.getElementById('taskDueDate').value),
                 priority: normalizePriority(document.getElementById('taskPriority').value),
                 effort: normalizeEffort(document.getElementById('taskEffort').value)
             };
@@ -5787,6 +5985,13 @@
                         beforeAlert: syncTaskBlockedReasonVisibility
                     };
                 }
+                if (draft.rawDueDate && !draft.dueDate) {
+                    return {
+                        ok: false,
+                        message: 'Due date must use dd/mm/yyyy.',
+                        focusFieldId: 'taskDueDate'
+                    };
+                }
                 if (draft.attachments.length > ATTACHMENT_MAX_COUNT) {
                     return {
                         ok: false,
@@ -5807,7 +6012,7 @@
             return {
                 title: draft.title,
                 description: draft.description,
-                assignee: draft.assignee,
+                assignees: draft.assignees,
                 blocked: draft.blocked,
                 blockerReason: draft.blocked ? draft.blockerReason : '',
                 checklist: draft.checklist,
@@ -6689,6 +6894,12 @@
             if (e.key !== 'Enter') return;
             e.preventDefault();
             addTaskChecklistItemFromComposer();
+        });
+
+        document.getElementById('taskAssigneeNewItem').addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            addTaskAssigneeFromComposer();
         });
 
         document.getElementById('taskAttachmentsInput').addEventListener('change', (e) => {

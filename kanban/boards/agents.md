@@ -34,7 +34,7 @@ Os quadros contêm normalmente:
 - `board.columns`: lista de colunas com `{ status, title }`
 - `board.tasks`: lista de tarefas. Campos comuns incluem:
   - Identidade + estado: `id`, `status`, `archived`
-  - Conteúdo: `title`, `description`, `assignee`
+  - Conteúdo: `title`, `description`, `assignees`
   - Bloqueios: `blocked` (boolean), `blockerReason` (string)
   - Execução: `checklist`: array de `{ text, done }`
   - Planeamento: `dueDate`, `priority`, `effort`

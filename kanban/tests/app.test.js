@@ -17,11 +17,16 @@ function buildDefaultColumns() {
 }
 
 function buildTaskPayload(task, index) {
+  const assignees = Array.isArray(task.assignees)
+    ? task.assignees.filter((name) => typeof name === 'string' && name.trim())
+    : (typeof task.assignee === 'string' && task.assignee.trim())
+      ? [task.assignee.trim()]
+      : [];
   return {
     id: task.id ?? index + 1,
     title: task.title,
     description: task.description || '',
-    assignee: task.assignee || '',
+    assignees,
     blocked: Boolean(task.blocked),
     blockerReason: task.blocked ? (task.blockerReason || '') : '',
     checklist: task.checklist || [],
@@ -590,22 +595,28 @@ test.describe('portfolio-only app', () => {
     expect(result.taskCount).toBe(0);
   });
 
-  test('assignee and blocked fields save and render as card badges', async ({ page }) => {
+  test('assignees and blocked fields save and render as card badges', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
+    const assigneeAddButton = page.locator('#taskAssigneeEditor').getByRole('button', { name: 'Add' });
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Investigate deploy issue');
-    await page.locator('#taskAssignee').fill('Alex');
+    await page.locator('#taskAssigneeNewItem').fill('Alex');
+    await assigneeAddButton.click();
+    await page.locator('#taskAssigneeNewItem').fill('Sam');
+    await assigneeAddButton.click();
     await page.locator('#taskBlocked').check();
     await page.locator('#taskBlockerReason').fill('Waiting for staging access');
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
-    const card = portfolioCard(page, 'Investigate deploy issue');
-    await expect(card).toContainText('Alex');
-    await expect(card).toContainText('Blocked');
+    const backlogColumn = page.locator('#portfolio-backlog-column');
+    await expect(backlogColumn).toContainText('Investigate deploy issue');
+    await expect(backlogColumn).toContainText('Alex');
+    await expect(backlogColumn).toContainText('Sam');
+    await expect(backlogColumn).toContainText('Blocked');
 
     const result = await page.evaluate(() => {
       const task = portfolioBoards[0].data.board.tasks.find((t) => t.title === 'Investigate deploy issue');
@@ -613,18 +624,18 @@ test.describe('portfolio-only app', () => {
       const savedPayload = writes.length ? JSON.parse(writes[writes.length - 1].text) : null;
       const savedTask = savedPayload?.board?.tasks?.find((t) => t.title === 'Investigate deploy issue');
       return {
-        task: task ? { assignee: task.assignee, blocked: task.blocked, blockerReason: task.blockerReason } : null,
-        savedTask: savedTask ? { assignee: savedTask.assignee, blocked: savedTask.blocked, blockerReason: savedTask.blockerReason } : null
+        task: task ? { assignees: task.assignees, blocked: task.blocked, blockerReason: task.blockerReason } : null,
+        savedTask: savedTask ? { assignees: savedTask.assignees, blocked: savedTask.blocked, blockerReason: savedTask.blockerReason } : null
       };
     });
 
     expect(result.task).toEqual({
-      assignee: 'Alex',
+      assignees: ['Alex', 'Sam'],
       blocked: true,
       blockerReason: 'Waiting for staging access'
     });
     expect(result.savedTask).toEqual({
-      assignee: 'Alex',
+      assignees: ['Alex', 'Sam'],
       blocked: true,
       blockerReason: 'Waiting for staging access'
     });
@@ -637,9 +648,9 @@ test.describe('portfolio-only app', () => {
         title: 'Project One',
         hasHandle: true,
         tasks: [
-          { id: 1, title: 'Alex blocked', status: 'backlog', assignee: 'Alex', blocked: true, blockerReason: 'Vendor response' },
-          { id: 2, title: 'Alex active', status: 'backlog', assignee: 'Alex', blocked: false },
-          { id: 3, title: 'Sam active', status: 'backlog', assignee: 'Sam', blocked: false }
+          { id: 1, title: 'Alex blocked', status: 'backlog', assignees: ['Alex', 'Sam'], blocked: true, blockerReason: 'Vendor response' },
+          { id: 2, title: 'Alex active', status: 'backlog', assignees: ['Alex'], blocked: false },
+          { id: 3, title: 'Sam active', status: 'backlog', assignees: ['Sam'], blocked: false }
         ]
       }
     ], { selectedBoardId: 'p1' });
@@ -656,6 +667,121 @@ test.describe('portfolio-only app', () => {
 
     await page.locator('#portfolioBlockedFilter').selectOption('unblocked');
     expect(await portfolioTitlesInColumn(page, 'backlog')).toEqual(['Alex active', 'Sam active']);
+  });
+
+  test('assignee editor suggests board assignees and excludes ones already added', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog', assignees: ['Alex'] },
+          { id: 2, title: 'Task B', status: 'backlog', assignees: ['Sam'] }
+        ]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+
+    let options = await page.evaluate(() => Array.from(document.querySelectorAll('#taskAssigneeSuggestions option')).map((option) => option.value));
+    expect(options).toEqual(['Alex', 'Sam']);
+
+    await page.locator('#taskAssigneeNewItem').fill('Alex');
+    await page.locator('#taskAssigneeNewItem').press('Enter');
+    await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(1);
+
+    options = await page.evaluate(() => Array.from(document.querySelectorAll('#taskAssigneeSuggestions option')).map((option) => option.value));
+    expect(options).toEqual(['Sam']);
+
+    await page.locator('#taskAssigneeNewItem').fill('Alex');
+    await page.locator('#taskAssigneeNewItem').press('Enter');
+    await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(1);
+  });
+
+  test('due date input uses dd/mm/yyyy in the UI and saves ISO to JSON', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Date formatting task');
+    await page.locator('#taskDueDate').fill('05/03/2026');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const card = portfolioCard(page, 'Date formatting task');
+    await expect(card).toContainText('05/03/2026');
+
+    const result = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((t) => t.title === 'Date formatting task');
+      const writes = window.__portfolioTestWrites || [];
+      const savedPayload = writes.length ? JSON.parse(writes[writes.length - 1].text) : null;
+      const savedTask = savedPayload?.board?.tasks?.find((t) => t.title === 'Date formatting task');
+      return {
+        taskDueDate: task?.dueDate || '',
+        savedDueDate: savedTask?.dueDate || ''
+      };
+    });
+
+    expect(result.taskDueDate).toBe('2026-03-05');
+    expect(result.savedDueDate).toBe('2026-03-05');
+
+    await card.click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailDueDate')).toHaveText('05/03/2026');
+  });
+
+  test('legacy assignee strings are accepted and serialize as assignee lists', async ({ page }) => {
+    const legacy = {
+      meta: {
+        schemaVersion: 1,
+        appId: BOARD_APP_ID,
+        createdAt: FIXED_TIMESTAMP,
+        updatedAt: FIXED_TIMESTAMP
+      },
+      board: {
+        columns: buildDefaultColumns(),
+        tasks: [{
+          id: 1,
+          title: 'Legacy task',
+          description: '',
+          assignee: 'Alex',
+          blocked: false,
+          blockerReason: '',
+          checklist: [],
+          archived: false,
+          createdAt: FIXED_TIMESTAMP,
+          updatedAt: FIXED_TIMESTAMP,
+          dueDate: '',
+          priority: null,
+          effort: null,
+          status: 'backlog'
+        }],
+        settings: {
+          title: 'Legacy Project',
+          sortMode: 'manual',
+          showArchivedOnly: false,
+          archiveFilter: 'active'
+        }
+      },
+      extensions: {}
+    };
+
+    const result = await page.evaluate((legacyPayload) => {
+      const legacy = legacyPayload;
+      validateBoardData(legacy);
+      const serialized = serializeBoardDataFromObject(legacy);
+      return {
+        schemaVersion: serialized.meta.schemaVersion,
+        task: serialized.board.tasks[0],
+        hasLegacyAssigneeKey: Object.prototype.hasOwnProperty.call(serialized.board.tasks[0], 'assignee')
+      };
+    }, legacy);
+
+    expect(result.schemaVersion).toBe(1);
+    expect(result.task.assignees).toEqual(['Alex']);
+    expect(result.hasLegacyAssigneeKey).toBe(false);
   });
 
   test('task attachments save on the task and show in task details', async ({ page }) => {

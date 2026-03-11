@@ -41,6 +41,7 @@ This keeps the app minimal while reducing coupling between DOM, business rules, 
 ## Task and schema invariants
 
 - Task titles are required and capped at `80` characters.
+- Task assignees are stored as an `assignees` string array on save; legacy single `assignee` strings still import.
 - Blocked tasks require `blockerReason`.
 - Attachments are capped per task and validated by hard size limit.
 - `schemaVersion` and `appId` are strictly validated on import.
