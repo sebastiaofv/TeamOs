@@ -411,6 +411,268 @@
             flex-direction: column;
         }
 
+        .timeline-panel {
+            display: none;
+            gap: 8px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            background: #f4f1ea;
+        }
+
+        .timeline-panel.active {
+            display: grid;
+        }
+
+        .timeline-panel.collapsed .timeline-controls,
+        .timeline-panel.collapsed .timeline-body {
+            display: none;
+        }
+
+        .timeline-panel-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .timeline-panel-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #4f4a40;
+        }
+
+        .timeline-panel-subtitle {
+            margin-top: 2px;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .timeline-panel-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .timeline-preview-banner {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 8px;
+            border: 1px solid #d3c29c;
+            background: #ebe0bf;
+            color: #5c4718;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .timeline-preview-banner.active {
+            display: inline-flex;
+        }
+
+        .timeline-controls {
+            display: grid;
+            gap: 8px;
+        }
+
+        .timeline-slider-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .timeline-slider {
+            width: 100%;
+            accent-color: #b9770e;
+        }
+
+        .timeline-meta {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        .timeline-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 6px;
+            border: 1px solid #d7d1c5;
+            background: #fbfaf7;
+            color: #5d5548;
+        }
+
+        .timeline-body {
+            display: grid;
+            grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+            gap: 8px;
+        }
+
+        .timeline-event-list,
+        .timeline-event-detail {
+            min-height: 120px;
+            max-height: 240px;
+            overflow: auto;
+            border: 1px solid var(--border);
+            background: #fcfbf8;
+        }
+
+        .timeline-event-list {
+            padding: 6px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .timeline-event-item {
+            display: grid;
+            gap: 3px;
+            padding: 8px;
+            border: 1px solid #fcfbf8;
+            cursor: pointer;
+            width: 100%;
+            appearance: none;
+            background: transparent;
+            text-align: left;
+            font: inherit;
+        }
+
+        .timeline-event-item:hover {
+            background: #f2eee6;
+            border-color: #d9d2c6;
+        }
+
+        .timeline-event-item.active {
+            background: #e7e2d8;
+            border-color: #b7b0a4;
+        }
+
+        .timeline-event-kind {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #6c6458;
+        }
+
+        .timeline-event-summary {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .timeline-event-time {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .timeline-event-detail {
+            padding: 10px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .timeline-event-detail-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .timeline-diff-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .timeline-diff-item {
+            display: grid;
+            gap: 6px;
+            padding: 8px;
+            background: #f5f2eb;
+            border: 1px solid #e2ddd1;
+        }
+
+        .timeline-diff-field {
+            font-size: 12px;
+            font-weight: 700;
+            color: #7a5a21;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .timeline-diff-values {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .timeline-diff-box {
+            display: grid;
+            gap: 4px;
+            min-width: 0;
+        }
+
+        .timeline-diff-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .timeline-diff-value {
+            margin: 0;
+            padding: 6px;
+            background: #fff;
+            border: 1px solid #ddd7cb;
+            color: var(--text-primary);
+            font-size: 11px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .timeline-empty {
+            padding: 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .timeline-toggle-btn {
+            min-width: 92px;
+            padding: 5px 8px;
+            border: 1px solid #cfc8bb;
+            background: #fbfaf7;
+            color: #4f4a40;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .timeline-toggle-btn:hover {
+            background: #f1eee7;
+        }
+
+        .timeline-summary-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 900px) {
+            .timeline-body {
+                grid-template-columns: 1fr;
+            }
+
+            .timeline-diff-values,
+            .timeline-slider-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .portfolio-board-wrap.hidden {
             display: none;
         }
@@ -718,6 +980,12 @@
         .task-action-btn:hover {
             background: var(--bg-secondary);
             color: var(--text-primary);
+        }
+
+        .task-action-btn.task-action-danger:hover {
+            background: #FDECEC;
+            border-color: #D93025;
+            color: #B3261E;
         }
 
         .task-meta {
@@ -1618,6 +1886,7 @@
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
             <div class="portfolio-board-wrap" id="portfolioBoardWrap">
+                <div class="timeline-panel" id="portfolioTimelinePanel"></div>
                 <div class="portfolio-empty-banner hidden" id="portfolioBoardEmptyBanner"></div>
                 <div class="portfolio-board-grid" id="portfolioBoard"></div>
             </div>
@@ -1846,7 +2115,7 @@
                             <h3 class="help-card-title" id="help-task-actions">Working With Tasks</h3>
                             <ul>
                                 <li>Click a card to open task details.</li>
-                                <li>Use the card actions to edit or archive a task.</li>
+                                <li>Use the card actions to edit, archive, or delete a task.</li>
                                 <li>When a writable project is selected, each column shows <strong>+ Add Task</strong>.
                                 </li>
                                 <li>Drag cards between columns to change status. Moves auto-save for writable projects.
@@ -1860,7 +2129,7 @@
                                 <li>Projects imported without a file handle are marked <em>(Read-only)</em> in the chip.
                                 </li>
                                 <li>You can still open and inspect tasks.</li>
-                                <li>Edit/archive actions are disabled until the project is opened with a writable file
+                                <li>Edit/archive/delete actions are disabled until the project is opened with a writable file
                                     handle.</li>
                             </ul>
                         </section>
@@ -1902,6 +2171,8 @@
         const BOARD_ARCHIVE_FILTER_VALUES = ['active', 'all', 'archived'];
         const TEAMOS_EXTENSIONS_KEY = 'teamOsKanban';
         const TASK_ATTACHMENTS_EXTENSIONS_KEY = 'taskAttachments';
+        const TIMELINE_EXTENSION_KEY = 'timeline';
+        const TIMELINE_VERSION = 1;
         const ATTACHMENT_MAX_COUNT = 10;
         const ATTACHMENT_HARD_MAX_BYTES = 10 * 1024 * 1024;
         const ATTACHMENT_SOFT_WARN_BYTES = 2 * 1024 * 1024;
@@ -1928,6 +2199,8 @@
         let selectedPortfolioCardRef = null;
         let taskModalAttachmentDraft = [];
         let taskModalAttachmentMessages = [];
+        let portfolioTimelineSelection = { boardId: '', eventIndex: null };
+        let portfolioTimelineExpandedByBoardId = {};
         let ShortcutRegistry = [];
         let suppressPortfolioCardClickUntil = 0;
         let projectWatchTimerId = null;
@@ -2331,7 +2604,8 @@
             const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
             const normalizedTasks = Array.isArray(board.tasks)
                 ? board.tasks.map(task => normalizeTask(task, {
-                    fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id)
+                    fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
+                    includeStatusChangedAt: false
                 }))
                 : [];
             const title = typeof settings.title === 'string' && settings.title.trim()
@@ -2352,7 +2626,7 @@
                         title
                     }
                 },
-                extensions: stripLegacyTaskAttachmentsFromExtensions(input.extensions)
+                extensions: normalizeBoardExtensionsValue(input.extensions)
             };
         }
 
@@ -2789,6 +3063,224 @@
             };
         }
 
+        function getBoardTimelineData(boardData) {
+            const timeline = getTimelineExtensionObject(boardData);
+            return timeline ? normalizeTimelineExtension(timeline) : null;
+        }
+
+        function getTimelineSelectionIndex(boardId, timeline) {
+            if (!boardId || !timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) return null;
+            const maxIndex = timeline.events.length - 1;
+            if (portfolioTimelineSelection.boardId !== boardId || !Number.isInteger(portfolioTimelineSelection.eventIndex)) {
+                return maxIndex;
+            }
+            return Math.max(0, Math.min(maxIndex, portfolioTimelineSelection.eventIndex));
+        }
+
+        function isHistoricalPreviewActiveForBoard(boardId) {
+            if (!boardId) return false;
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord) return false;
+            const timeline = getBoardTimelineData(boardRecord.data);
+            if (!timeline || timeline.events.length === 0) return false;
+            const selectedIndex = getTimelineSelectionIndex(boardId, timeline);
+            return Number.isInteger(selectedIndex) && selectedIndex < timeline.events.length - 1;
+        }
+
+        function clearPortfolioTimelineSelection(options = {}) {
+            portfolioTimelineSelection = { boardId: '', eventIndex: null };
+            if (options.keepModals !== true) {
+                closeDetailModal();
+                closeModal();
+            }
+        }
+
+        function setPortfolioTimelineSelection(boardId, eventIndex) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord) {
+                clearPortfolioTimelineSelection();
+                renderPortfolio();
+                return;
+            }
+            const timeline = getBoardTimelineData(boardRecord.data);
+            if (!timeline || timeline.events.length === 0) {
+                clearPortfolioTimelineSelection();
+                renderPortfolio();
+                return;
+            }
+            const maxIndex = timeline.events.length - 1;
+            const nextIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
+            portfolioTimelineSelection = { boardId, eventIndex: nextIndex };
+            closeDetailModal();
+            closeModal();
+            renderPortfolio();
+        }
+
+        function movePortfolioTimelineToLatest(boardId = selectedPortfolioBoardId) {
+            if (!boardId) {
+                clearPortfolioTimelineSelection();
+                renderPortfolio();
+                return;
+            }
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            const timeline = boardRecord ? getBoardTimelineData(boardRecord.data) : null;
+            if (!timeline || timeline.events.length === 0) {
+                clearPortfolioTimelineSelection();
+                renderPortfolio();
+                return;
+            }
+            portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
+            closeDetailModal();
+            closeModal();
+            renderPortfolio();
+        }
+
+        function syncPortfolioTimelineSelectionToLatest(boardId, boardData = null) {
+            if (!boardId) return;
+            if (selectedPortfolioBoardId !== boardId && portfolioTimelineSelection.boardId !== boardId) {
+                return;
+            }
+
+            const resolvedBoardData = boardData || getPortfolioBoardRecord(boardId)?.data;
+            const timeline = resolvedBoardData ? getBoardTimelineData(resolvedBoardData) : null;
+            if (!timeline || timeline.events.length === 0) {
+                if (portfolioTimelineSelection.boardId === boardId) {
+                    portfolioTimelineSelection = { boardId: '', eventIndex: null };
+                }
+                return;
+            }
+
+            portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
+        }
+
+        function isPortfolioTimelineExpanded(boardId) {
+            return Boolean(boardId && portfolioTimelineExpandedByBoardId[boardId] === true);
+        }
+
+        function setPortfolioTimelineExpanded(boardId, expanded) {
+            if (!boardId) return;
+            portfolioTimelineExpandedByBoardId[boardId] = Boolean(expanded);
+            renderPortfolio();
+        }
+
+        function togglePortfolioTimelineExpanded(boardId = selectedPortfolioBoardId) {
+            if (!boardId) return;
+            setPortfolioTimelineExpanded(boardId, !isPortfolioTimelineExpanded(boardId));
+        }
+
+        function applyTimelineEventToState(state, event) {
+            if (!state || !event) return state;
+            if (event.kind === 'board.restored' && event.snapshot) {
+                return cloneSerializable(event.snapshot);
+            }
+
+            const nextState = cloneSerializable(state);
+            nextState.board = nextState.board || { columns: [], tasks: [], settings: {} };
+            nextState.board.tasks = Array.isArray(nextState.board.tasks) ? nextState.board.tasks : [];
+            nextState.board.columns = Array.isArray(nextState.board.columns) ? nextState.board.columns : [];
+            nextState.board.settings = nextState.board.settings && typeof nextState.board.settings === 'object'
+                ? nextState.board.settings
+                : {};
+
+            if (event.kind === 'task.created' && event.snapshot) {
+                nextState.board.tasks = nextState.board.tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
+                nextState.board.tasks.push(cloneSerializable(event.snapshot));
+                return nextState;
+            }
+            if (event.kind === 'task.deleted') {
+                nextState.board.tasks = nextState.board.tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
+                return nextState;
+            }
+            if (event.kind === 'task.updated' || event.kind === 'task.status.changed' || event.kind === 'task.archived' || event.kind === 'task.restored') {
+                const task = nextState.board.tasks.find((entry) => Number(entry?.id) === Number(event.entityId));
+                if (!task || !event.changes) return nextState;
+                Object.entries(event.changes).forEach(([field, change]) => {
+                    task[field] = cloneSerializable(change.after);
+                });
+                return nextState;
+            }
+            if (event.kind === 'board.settings.updated' && event.changes) {
+                Object.entries(event.changes).forEach(([field, change]) => {
+                    nextState.board.settings[field] = cloneSerializable(change.after);
+                });
+                return nextState;
+            }
+            if (event.kind === 'board.columns.updated') {
+                if (event.changes?.columns) {
+                    nextState.board.columns = cloneSerializable(event.changes.columns.after) || [];
+                } else if (event.snapshot?.board?.columns) {
+                    nextState.board.columns = cloneSerializable(event.snapshot.board.columns) || [];
+                }
+                return nextState;
+            }
+            return nextState;
+        }
+
+        function reconstructBoardStateFromTimeline(boardData, eventIndex) {
+            const timeline = getBoardTimelineData(boardData);
+            if (!timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) {
+                return createBoardStateSnapshot(boardData);
+            }
+            const maxIndex = timeline.events.length - 1;
+            const targetIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
+            let state = timeline.events[0]?.snapshot
+                ? cloneSerializable(timeline.events[0].snapshot)
+                : createBoardStateSnapshot(boardData);
+            for (let index = 1; index <= targetIndex; index += 1) {
+                state = applyTimelineEventToState(state, timeline.events[index]);
+            }
+            return createBoardStateSnapshot(state);
+        }
+
+        function buildPortfolioRowsFromBoardData(boardRecord, boardData, options = {}) {
+            if (!boardRecord || !boardData) return [];
+            const normalizedBoard = createBoardStateSnapshot(boardData);
+            const statusMap = Object.fromEntries((normalizedBoard.board.columns || []).map((col) => [col.status, col.title]));
+            const canMutate = Boolean(boardRecord.handle) && options.canMutate !== false;
+            const historical = Boolean(options.historical);
+            return (normalizedBoard.board.tasks || []).map((task, taskIndex) => ({
+                boardIndex: portfolioBoards.findIndex((board) => board.id === boardRecord.id),
+                boardId: boardRecord.id,
+                taskId: task.id,
+                taskIndex,
+                boardTitle: boardRecord.title,
+                boardFileName: boardRecord.fileName,
+                columnTitle: statusMap[task.status] || task.status,
+                canMutate,
+                historical,
+                task: normalizeTask(task)
+            }));
+        }
+
+        function getSelectedBoardTimelineViewState() {
+            if (!selectedPortfolioBoardId) return null;
+            const boardRecord = getPortfolioBoardRecord(selectedPortfolioBoardId);
+            if (!boardRecord) return null;
+            const timeline = getBoardTimelineData(boardRecord.data);
+            if (!timeline || timeline.events.length === 0) {
+                return {
+                    boardRecord,
+                    timeline: null,
+                    selectedIndex: null,
+                    selectedEvent: null,
+                    isPreview: false,
+                    projectedBoard: null
+                };
+            }
+
+            const selectedIndex = getTimelineSelectionIndex(boardRecord.id, timeline);
+            const selectedEvent = timeline.events[selectedIndex] || null;
+            const projectedBoard = reconstructBoardStateFromTimeline(boardRecord.data, selectedIndex);
+            return {
+                boardRecord,
+                timeline,
+                selectedIndex,
+                selectedEvent,
+                isPreview: selectedIndex < timeline.events.length - 1,
+                projectedBoard
+            };
+        }
+
         function closePortfolioContextsForProject(boardId) {
             if (!boardId) return;
             if (portfolioDetailContext && portfolioDetailContext.boardId === boardId) {
@@ -2870,6 +3362,9 @@
         }
 
         function selectPortfolioBoard(boardId) {
+            if ((boardId || '') !== selectedPortfolioBoardId) {
+                clearPortfolioTimelineSelection();
+            }
             selectedPortfolioBoardId = boardId || '';
             renderPortfolio();
             updateUrlState();
@@ -2885,6 +3380,9 @@
             portfolioBoards.splice(index, 1);
             if (selectedPortfolioBoardId === boardId) {
                 selectedPortfolioBoardId = '';
+            }
+            if (portfolioTimelineSelection.boardId === boardId) {
+                clearPortfolioTimelineSelection();
             }
             projectSaveStateById.delete(boardId);
             projectFileStateById.delete(boardId);
@@ -3012,8 +3510,15 @@
             const archiveFilter = document.getElementById('portfolioArchiveFilter')?.value || 'active';
             const sortBy = normalizePortfolioSortKey(portfolioSortKey);
             const sortDir = normalizePortfolioSortDir(portfolioSortDir);
+            const timelineView = getSelectedBoardTimelineViewState();
+            const sourceRows = (timelineView && timelineView.isPreview && timelineView.projectedBoard)
+                ? buildPortfolioRowsFromBoardData(timelineView.boardRecord, timelineView.projectedBoard, {
+                    canMutate: false,
+                    historical: true
+                })
+                : portfolioTasks;
 
-            return portfolioTasks
+            return sourceRows
                 .filter(item => {
                     const task = item.task;
                     if (selectedPortfolioBoardId && item.boardId !== selectedPortfolioBoardId) return false;
@@ -3050,6 +3555,165 @@
             return palette[index];
         }
 
+        function formatTimelineValue(value) {
+            if (value === undefined) return '(unset)';
+            if (value === null) return 'null';
+            if (typeof value === 'string') return value || '(empty)';
+            if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+            return JSON.stringify(value, null, 2);
+        }
+
+        function renderTimelineEventChanges(event) {
+            const changeEntries = Object.entries(event?.changes || {});
+            if (changeEntries.length === 0) {
+                if (event?.snapshot) {
+                    return '<div class="timeline-empty">This event stores a full snapshot for replay/restoration.</div>';
+                }
+                return '<div class="timeline-empty">No field diff stored for this event.</div>';
+            }
+
+            return `
+                <div class="timeline-diff-list">
+                    ${changeEntries.map(([field, change]) => `
+                        <div class="timeline-diff-item">
+                            <div class="timeline-diff-field">${escapeHtml(field)}</div>
+                            <div class="timeline-diff-values">
+                                <div class="timeline-diff-box">
+                                    <div class="timeline-diff-label">Before</div>
+                                    <pre class="timeline-diff-value">${escapeHtml(formatTimelineValue(change.before))}</pre>
+                                </div>
+                                <div class="timeline-diff-box">
+                                    <div class="timeline-diff-label">After</div>
+                                    <pre class="timeline-diff-value">${escapeHtml(formatTimelineValue(change.after))}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderPortfolioTimelinePanel() {
+            const panel = document.getElementById('portfolioTimelinePanel');
+            if (!panel) return;
+
+            const viewState = getSelectedBoardTimelineViewState();
+            if (!viewState || !viewState.boardRecord) {
+                panel.classList.remove('active');
+                panel.innerHTML = '';
+                return;
+            }
+
+            const boardTitle = viewState.boardRecord.title || viewState.boardRecord.fileName || 'Selected Project';
+            const isExpanded = isPortfolioTimelineExpanded(viewState.boardRecord.id);
+            const panelClasses = ['timeline-panel', 'active'];
+            if (!isExpanded) {
+                panelClasses.push('collapsed');
+            }
+            if (!viewState.timeline || viewState.timeline.events.length === 0) {
+                panel.className = panelClasses.join(' ');
+                panel.innerHTML = `
+                    <div class="timeline-panel-header">
+                        <div>
+                            <div class="timeline-panel-title">Timeline</div>
+                            <div class="timeline-panel-subtitle">${escapeHtml(boardTitle)} does not have tracked events yet. The timeline starts on the first saved change.</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const timeline = viewState.timeline;
+            const selectedIndex = viewState.selectedIndex;
+            const selectedEvent = viewState.selectedEvent;
+            const latestIndex = timeline.events.length - 1;
+            const latestEvent = timeline.events[latestIndex];
+            const subtitleText = `${boardTitle} has ${timeline.events.length} tracked event${timeline.events.length === 1 ? '' : 's'}. Latest event: ${latestEvent?.summary || 'Unknown event'} at ${formatDateTime(latestEvent?.at || '')}.`;
+            const latestButtonHtml = `<button class="btn" type="button" onclick="movePortfolioTimelineToLatest('${viewState.boardRecord.id}')">Latest</button>`;
+            const previewBannerClass = viewState.isPreview ? 'timeline-preview-banner active' : 'timeline-preview-banner';
+            const restoreButtonHtml = viewState.boardRecord.handle
+                ? '<button class="btn btn-primary" type="button" onclick="restorePortfolioTimelineSelection()">Restore this state</button>'
+                : '';
+            const eventItems = timeline.events.map((event, index) => `
+                <button class="timeline-event-item ${index === selectedIndex ? 'active' : ''}" type="button" onclick="setPortfolioTimelineSelection('${viewState.boardRecord.id}', ${index})">
+                    <span class="timeline-event-kind">${escapeHtml(event.kind)}</span>
+                    <span class="timeline-event-summary">${escapeHtml(event.summary)}</span>
+                    <span class="timeline-event-time">${escapeHtml(formatDateTime(event.at))}</span>
+                </button>
+            `).reverse().join('');
+
+            panel.className = panelClasses.join(' ');
+            panel.innerHTML = `
+                <div class="timeline-panel-header">
+                    <div>
+                        <div class="timeline-panel-title">Timeline</div>
+                        <div class="timeline-panel-subtitle">${escapeHtml(subtitleText)}</div>
+                    </div>
+                    <div class="timeline-panel-actions">
+                        <div class="${previewBannerClass}">Historical preview active</div>
+                        <button class="btn timeline-toggle-btn" type="button" onclick="togglePortfolioTimelineExpanded('${viewState.boardRecord.id}')">${isExpanded ? 'Collapse' : 'Expand'}</button>
+                    </div>
+                </div>
+                <div class="timeline-controls">
+                    ${isExpanded ? `
+                    <div class="timeline-summary-row">
+                        <span class="timeline-pill">${escapeHtml(formatDateTime(selectedEvent?.at || ''))}</span>
+                        <span class="timeline-pill">Event ${selectedIndex + 1} / ${timeline.events.length}</span>
+                        <span class="timeline-pill">${escapeHtml(selectedEvent?.kind || '')}</span>
+                        ${viewState.boardRecord.handle ? '' : '<span class="timeline-pill">Read-only project</span>'}
+                    </div>
+                    ` : ''}
+                    <div class="timeline-slider-row">
+                        <input class="timeline-slider" type="range" min="0" max="${latestIndex}" step="1" value="${selectedIndex}" oninput="setPortfolioTimelineSelection('${viewState.boardRecord.id}', Number(this.value))">
+                        ${latestButtonHtml}
+                        ${restoreButtonHtml}
+                    </div>
+                </div>
+                <div class="timeline-body">
+                    <div class="timeline-event-list">${eventItems}</div>
+                    <div class="timeline-event-detail">
+                        <div class="timeline-event-detail-title">${escapeHtml(selectedEvent?.summary || 'Timeline event')}</div>
+                        ${renderTimelineEventChanges(selectedEvent)}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function restorePortfolioTimelineSelection() {
+            const viewState = getSelectedBoardTimelineViewState();
+            if (!viewState || !viewState.boardRecord || !viewState.projectedBoard) return false;
+            if (!viewState.boardRecord.handle) {
+                notifyPortfolioMutationUnavailable(viewState.boardRecord.id);
+                return false;
+            }
+
+            const currentTimeline = getBoardTimelineData(viewState.boardRecord.data);
+            if (!currentTimeline) return false;
+
+            closeDetailModal();
+            closeModal();
+
+            const restoredData = createBoardStateSnapshot(viewState.projectedBoard);
+            const nextTimeline = cloneSerializable(currentTimeline);
+            const extensions = getBoardExtensionsObject(restoredData, { create: true });
+            extensions[TIMELINE_EXTENSION_KEY] = nextTimeline;
+            viewState.boardRecord.data = restoredData;
+            recordBoardRestoreTimelineEvent(viewState.boardRecord.data, viewState.selectedEvent);
+            viewState.boardRecord.title = viewState.boardRecord.data.board.settings.title;
+
+            const refreshedTimeline = getBoardTimelineData(viewState.boardRecord.data);
+            portfolioTimelineSelection = {
+                boardId: viewState.boardRecord.id,
+                eventIndex: Math.max(0, (refreshedTimeline?.events?.length || 1) - 1)
+            };
+
+            markProjectDirty(viewState.boardRecord.id);
+            buildPortfolioTasks();
+            renderPortfolio();
+            await enqueueProjectSave(viewState.boardRecord);
+            return true;
+        }
+
         function createPortfolioTaskCard(item, searchTerm = '') {
             const task = item.task;
             const div = document.createElement('div');
@@ -3057,7 +3721,7 @@
             if (isSelectedPortfolioCard(item.boardId, task.id)) {
                 div.classList.add('selected');
             }
-            const canMutate = Boolean(item.canMutate);
+            const canMutate = Boolean(item.canMutate) && !item.historical;
             const canDrag = canMutate;
             div.draggable = canDrag;
             div.dataset.boardId = item.boardId;
@@ -3066,6 +3730,10 @@
             div.onclick = () => {
                 if (Date.now() < suppressPortfolioCardClickUntil) return;
                 setSelectedPortfolioCard(item.boardId, task.id);
+                if (item.historical) {
+                    renderPortfolio();
+                    return;
+                }
                 openPortfolioTaskDetails(item.boardId, task.id);
             };
             if (canDrag) {
@@ -3093,9 +3761,11 @@
             const showProjectBadge = !selectedPortfolioBoardId;
             const color = portfolioProjectColor(item.boardId);
             const badgeStyle = `background:${color.bg};border-color:${color.border};color:${color.text};`;
-            const archiveButtonLabel = task.archived ? '↺' : '×';
+            const editButtonLabel = '&#9998;';
+            const archiveButtonLabel = task.archived ? '&#8634;' : '&#128452;&#65038;';
+            const deleteButtonLabel = '&#128465;&#65038;';
             const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
-            const readOnlyTitle = 'Read-only (no file handle)';
+            const readOnlyTitle = item.historical ? 'Historical preview (read-only)' : 'Read-only (no file handle)';
             const assignee = normalizeAssignee(task.assignee);
             const statusAge = formatTaskStatusAge(task);
             const metaParts = [
@@ -3116,8 +3786,9 @@
                 <div class="task-header">
                     <span class="task-title">${highlightedTitle}</span>
                     <div class="task-actions">
-                        <button class="task-action-btn" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Edit' : readOnlyTitle}" onclick="event.stopPropagation(); editPortfolioTask('${item.boardId}', ${task.id})">✎</button>
+                        <button class="task-action-btn" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Edit' : readOnlyTitle}" onclick="event.stopPropagation(); editPortfolioTask('${item.boardId}', ${task.id})">${editButtonLabel}</button>
                         <button class="task-action-btn" ${canMutate ? '' : 'disabled'} title="${canMutate ? archiveButtonTitle : readOnlyTitle}" onclick="event.stopPropagation(); togglePortfolioArchiveTask('${item.boardId}', ${task.id})">${archiveButtonLabel}</button>
+                        <button class="task-action-btn task-action-danger" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Delete' : readOnlyTitle}" aria-label="${canMutate ? 'Delete' : readOnlyTitle}" onclick="event.stopPropagation(); deletePortfolioTask('${item.boardId}', ${task.id})">${deleteButtonLabel}</button>
                     </div>
                 </div>
                 ${taskMetaHtml}
@@ -3132,8 +3803,11 @@
             const banner = document.getElementById('portfolioBoardEmptyBanner');
             if (!boardWrap || !boardGrid || !banner) return;
 
+            renderPortfolioTimelinePanel();
             const searchTerm = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
-            const canAddTasks = Boolean(selectedPortfolioBoardId) && isPortfolioBoardMutable(selectedPortfolioBoardId);
+            const canAddTasks = Boolean(selectedPortfolioBoardId)
+                && isPortfolioBoardMutable(selectedPortfolioBoardId)
+                && !isHistoricalPreviewActiveForBoard(selectedPortfolioBoardId);
             const buckets = Object.fromEntries(defaultColumns.map(col => [col.status, []]));
             rows.forEach((item) => {
                 const status = normalizeTaskStatus(item.task.status);
@@ -3215,21 +3889,35 @@
         }
 
         function canUsePortfolioTaskMutations(boardId) {
-            return isPortfolioTaskMutable(boardId);
+            return isPortfolioTaskMutable(boardId) && !isHistoricalPreviewActiveForBoard(boardId);
         }
 
         function notifyPortfolioReadOnly() {
             alert('This project is read-only because it was loaded without a file handle.');
         }
 
+        function notifyTimelinePreviewReadOnly() {
+            alert('Historical preview is read-only. Click Latest to resume editing.');
+        }
+
+        function notifyPortfolioMutationUnavailable(boardId) {
+            if (isHistoricalPreviewActiveForBoard(boardId)) {
+                notifyTimelinePreviewReadOnly();
+                return;
+            }
+            notifyPortfolioReadOnly();
+        }
+
         async function runPortfolioTaskMutation(boardId, taskId, mutator) {
             const source = findPortfolioTaskSource(boardId, taskId);
             if (!source) return false;
             if (!canUsePortfolioTaskMutations(boardId)) {
-                notifyPortfolioReadOnly();
+                notifyPortfolioMutationUnavailable(boardId);
                 return false;
             }
 
+            ensureBoardTimelineBaseline(source.boardRecord.data);
+            const beforeTask = captureTaskTimelineSnapshot(source.boardRecord.data, taskId);
             let changed = false;
             try {
                 changed = mutator(source.task, source.boardRecord) !== false;
@@ -3240,6 +3928,8 @@
 
             if (!changed) return false;
             touchTask(source.task);
+            recordTaskTimelineEvent(source.boardRecord.data, beforeTask, captureTaskTimelineSnapshot(source.boardRecord.data, taskId));
+            syncPortfolioTimelineSelectionToLatest(boardId, source.boardRecord.data);
             markProjectDirty(boardId);
 
             buildPortfolioTasks();
@@ -3284,7 +3974,7 @@
             const source = findPortfolioTaskSource(boardId, taskId);
             if (!source) return;
             if (!canUsePortfolioTaskMutations(boardId)) {
-                notifyPortfolioReadOnly();
+                notifyPortfolioMutationUnavailable(boardId);
                 return;
             }
 
@@ -3325,7 +4015,7 @@
             const boardRecord = getPortfolioBoardRecord(boardId);
             if (!boardRecord) return;
             if (!canUsePortfolioTaskMutations(boardId)) {
-                notifyPortfolioReadOnly();
+                notifyPortfolioMutationUnavailable(boardId);
                 return;
             }
 
@@ -3384,6 +4074,38 @@
                     });
                 });
             }
+        }
+
+        async function deletePortfolioTask(boardId, taskId) {
+            const source = findPortfolioTaskSource(boardId, taskId);
+            if (!source) return;
+            if (!canUsePortfolioTaskMutations(boardId)) {
+                notifyPortfolioMutationUnavailable(boardId);
+                return;
+            }
+
+            const title = String(source.task.title || '').trim() || 'this task';
+            const confirmed = Services.Dialog.confirm(`Delete "${title}" permanently? This cannot be undone.`);
+            if (!confirmed) return;
+
+            const beforeTask = captureTaskTimelineSnapshot(source.boardRecord.data, taskId);
+            ensureBoardTimelineBaseline(source.boardRecord.data);
+            source.boardRecord.data.board.tasks.splice(source.taskIndex, 1);
+            removeLegacyTaskAttachmentsFromExtensions(source.boardRecord.data, taskId);
+            recordTaskTimelineEvent(source.boardRecord.data, beforeTask, null);
+            syncPortfolioTimelineSelectionToLatest(boardId, source.boardRecord.data);
+            markProjectDirty(boardId);
+
+            if (portfolioDetailContext && portfolioDetailContext.boardId === boardId && portfolioDetailContext.taskId === taskId) {
+                closeDetailModal();
+            }
+            if (selectedPortfolioCardRef && selectedPortfolioCardRef.boardId === boardId && Number(selectedPortfolioCardRef.taskId) === Number(taskId)) {
+                selectedPortfolioCardRef = null;
+            }
+
+            buildPortfolioTasks();
+            renderPortfolio();
+            await enqueueProjectSave(source.boardRecord);
         }
 
         function normalizePortfolioBlockedFilter(value) {
@@ -3631,7 +4353,8 @@
 
         function normalizeTask(task, options = {}) {
             const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
-            return {
+            const includeStatusChangedAt = options.includeStatusChangedAt !== false;
+            const normalizedTask = {
                 id: task.id,
                 title: task.title,
                 description: task.description || '',
@@ -3645,15 +4368,18 @@
                 archived: Boolean(task.archived),
                 createdAt: normalizeTimestamp(task.createdAt) || nowIso(),
                 updatedAt: normalizeTimestamp(task.updatedAt) || nowIso(),
-                statusChangedAt: normalizeTimestamp(task.statusChangedAt)
-                    || normalizeTimestamp(task.updatedAt)
-                    || normalizeTimestamp(task.createdAt)
-                    || nowIso(),
                 dueDate: normalizeDueDate(task.dueDate),
                 priority: normalizePriority(task.priority),
                 effort: normalizeEffort(task.effort),
                 status: normalizeTaskStatus(task.status)
             };
+            if (includeStatusChangedAt) {
+                const statusChangedAt = normalizeTimestamp(task.statusChangedAt);
+                if (statusChangedAt) {
+                    normalizedTask.statusChangedAt = statusChangedAt;
+                }
+            }
+            return normalizedTask;
         }
 
         function normalizeTaskAttachments(value) {
@@ -3742,6 +4468,20 @@
             }
             if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) {
                 throw new Error('Invalid extensions structure.');
+            }
+            if (Object.prototype.hasOwnProperty.call(data.extensions, TIMELINE_EXTENSION_KEY)) {
+                const normalizedTimeline = normalizeTimelineExtension(data.extensions[TIMELINE_EXTENSION_KEY]);
+                if (!normalizedTimeline) {
+                    throw new Error('Invalid extensions.timeline structure.');
+                }
+                if (normalizedTimeline.events.length > 0) {
+                    if (normalizedTimeline.events[0].kind !== 'board.baseline') {
+                        throw new Error('Timeline must start with board.baseline.');
+                    }
+                    if (normalizedTimeline.baselineEventId !== normalizedTimeline.events[0].id) {
+                        throw new Error('Timeline baselineEventId is invalid.');
+                    }
+                }
             }
             const statuses = new Set();
             data.board.columns.forEach((col) => {
@@ -4262,6 +5002,317 @@
             return nextExtensions;
         }
 
+        function cloneSerializable(value) {
+            if (value === undefined) return undefined;
+            return JSON.parse(JSON.stringify(value));
+        }
+
+        function areSerializableValuesEqual(a, b) {
+            return JSON.stringify(a) === JSON.stringify(b);
+        }
+
+        function createTimelineEventId() {
+            return `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        }
+
+        function createEmptyTimelineData() {
+            return {
+                version: TIMELINE_VERSION,
+                baselineEventId: '',
+                events: []
+            };
+        }
+
+        function normalizeTimelineChanges(changes) {
+            if (!changes || typeof changes !== 'object' || Array.isArray(changes)) return null;
+            const entries = Object.entries(changes);
+            if (entries.length === 0) return null;
+            const normalized = {};
+            for (const [field, value] of entries) {
+                if (!field || !value || typeof value !== 'object' || Array.isArray(value)) return null;
+                if (!Object.prototype.hasOwnProperty.call(value, 'before') || !Object.prototype.hasOwnProperty.call(value, 'after')) {
+                    return null;
+                }
+                normalized[field] = {
+                    before: cloneSerializable(value.before),
+                    after: cloneSerializable(value.after)
+                };
+            }
+            return normalized;
+        }
+
+        function normalizeTimelineEvent(raw) {
+            if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+            const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : '';
+            const at = normalizeTimestamp(raw.at);
+            const kind = typeof raw.kind === 'string' && raw.kind.trim() ? raw.kind.trim() : '';
+            const entityType = raw.entityType === 'board' ? 'board' : (raw.entityType === 'task' ? 'task' : '');
+            const entityId = typeof raw.entityId === 'string' && raw.entityId.trim() ? raw.entityId.trim() : '';
+            const summary = typeof raw.summary === 'string' && raw.summary.trim() ? raw.summary.trim() : kind;
+            if (!id || !at || !kind || !entityType || !entityId) return null;
+
+            const event = {
+                id,
+                at,
+                kind,
+                entityType,
+                entityId,
+                summary
+            };
+
+            if (Object.prototype.hasOwnProperty.call(raw, 'changes')) {
+                const changes = normalizeTimelineChanges(raw.changes);
+                if (!changes) return null;
+                event.changes = changes;
+            }
+            if (Object.prototype.hasOwnProperty.call(raw, 'snapshot')) {
+                if (!raw.snapshot || typeof raw.snapshot !== 'object' || Array.isArray(raw.snapshot)) return null;
+                event.snapshot = cloneSerializable(raw.snapshot);
+            }
+            if (Object.prototype.hasOwnProperty.call(raw, 'meta')) {
+                if (!raw.meta || typeof raw.meta !== 'object' || Array.isArray(raw.meta)) return null;
+                event.meta = cloneSerializable(raw.meta);
+            }
+            return event;
+        }
+
+        function normalizeTimelineExtension(value) {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+            if (Number(value.version) !== TIMELINE_VERSION) return null;
+            if (!Array.isArray(value.events)) return null;
+            const events = value.events.map(normalizeTimelineEvent);
+            if (events.some((event) => !event)) return null;
+            const baselineEventId = typeof value.baselineEventId === 'string' ? value.baselineEventId.trim() : '';
+            const fallbackBaselineId = events[0]?.id || '';
+            return {
+                version: TIMELINE_VERSION,
+                baselineEventId: baselineEventId || fallbackBaselineId,
+                events
+            };
+        }
+
+        function normalizeBoardExtensionsValue(extensionsValue, options = {}) {
+            const includeTimeline = options.includeTimeline !== false;
+            const base = stripLegacyTaskAttachmentsFromExtensions(extensionsValue);
+            const nextExtensions = (base && typeof base === 'object' && !Array.isArray(base))
+                ? { ...base }
+                : {};
+
+            if (!includeTimeline) {
+                delete nextExtensions[TIMELINE_EXTENSION_KEY];
+                return nextExtensions;
+            }
+
+            if (Object.prototype.hasOwnProperty.call(nextExtensions, TIMELINE_EXTENSION_KEY)) {
+                const normalizedTimeline = normalizeTimelineExtension(nextExtensions[TIMELINE_EXTENSION_KEY]);
+                if (normalizedTimeline) {
+                    nextExtensions[TIMELINE_EXTENSION_KEY] = normalizedTimeline;
+                } else {
+                    delete nextExtensions[TIMELINE_EXTENSION_KEY];
+                }
+            }
+            return nextExtensions;
+        }
+
+        function getTimelineExtensionObject(boardData, options = {}) {
+            const create = Boolean(options.create);
+            const extensions = getBoardExtensionsObject(boardData, { create });
+            if (!extensions) return null;
+            const current = extensions[TIMELINE_EXTENSION_KEY];
+            const normalized = normalizeTimelineExtension(current);
+            if (normalized) {
+                extensions[TIMELINE_EXTENSION_KEY] = normalized;
+                return extensions[TIMELINE_EXTENSION_KEY];
+            }
+            if (!create) return null;
+            extensions[TIMELINE_EXTENSION_KEY] = createEmptyTimelineData();
+            return extensions[TIMELINE_EXTENSION_KEY];
+        }
+
+        function createBoardStateSnapshot(boardData) {
+            const input = boardData && typeof boardData === 'object' ? boardData : {};
+            const meta = input.meta && typeof input.meta === 'object' ? input.meta : {};
+            const board = input.board && typeof input.board === 'object' ? input.board : {};
+            const settings = board.settings && typeof board.settings === 'object' ? board.settings : {};
+            const now = nowIso();
+            const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
+            const normalizedTasks = Array.isArray(board.tasks)
+                ? board.tasks.map((task) => normalizeTask(task, {
+                    fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
+                    includeStatusChangedAt: false
+                }))
+                : [];
+            const title = typeof settings.title === 'string' && settings.title.trim()
+                ? settings.title.trim()
+                : DEFAULT_BOARD_TITLE;
+
+            return {
+                meta: {
+                    schemaVersion: BOARD_SCHEMA_VERSION,
+                    appId: BOARD_APP_ID,
+                    createdAt: normalizeTimestamp(meta.createdAt) || now,
+                    updatedAt: normalizeTimestamp(meta.updatedAt) || normalizeTimestamp(meta.createdAt) || now
+                },
+                board: {
+                    columns: normalizedColumns.map((col) => ({ status: col.status, title: col.title })),
+                    tasks: normalizedTasks,
+                    settings: {
+                        title
+                    }
+                },
+                extensions: normalizeBoardExtensionsValue(input.extensions, { includeTimeline: false })
+            };
+        }
+
+        function captureTaskTimelineSnapshot(boardData, taskId) {
+            const task = findTaskInBoardData(boardData, taskId);
+            if (!task) return null;
+            return normalizeTask(task, {
+                fallbackAttachments: getTaskAttachments(boardData, taskId),
+                includeStatusChangedAt: false
+            });
+        }
+
+        function ensureBoardTimelineBaseline(boardData) {
+            const timeline = getTimelineExtensionObject(boardData, { create: true });
+            if (!timeline) return null;
+            if (Array.isArray(timeline.events) && timeline.events.length > 0) {
+                if (!timeline.baselineEventId) {
+                    timeline.baselineEventId = timeline.events[0].id;
+                }
+                return timeline;
+            }
+
+            const baselineEvent = {
+                id: createTimelineEventId(),
+                at: nowIso(),
+                kind: 'board.baseline',
+                entityType: 'board',
+                entityId: 'board',
+                summary: 'Baseline snapshot created',
+                snapshot: createBoardStateSnapshot(boardData)
+            };
+            timeline.version = TIMELINE_VERSION;
+            timeline.baselineEventId = baselineEvent.id;
+            timeline.events = [baselineEvent];
+            return timeline;
+        }
+
+        function appendTimelineEvent(boardData, eventInput) {
+            const timeline = ensureBoardTimelineBaseline(boardData);
+            if (!timeline || !eventInput) return null;
+            const rawEvent = {
+                id: eventInput.id || createTimelineEventId(),
+                at: eventInput.at || nowIso(),
+                kind: eventInput.kind,
+                entityType: eventInput.entityType,
+                entityId: eventInput.entityId,
+                summary: eventInput.summary
+            };
+            if (Object.prototype.hasOwnProperty.call(eventInput, 'changes')) {
+                rawEvent.changes = eventInput.changes;
+            }
+            if (Object.prototype.hasOwnProperty.call(eventInput, 'snapshot')) {
+                rawEvent.snapshot = eventInput.snapshot;
+            }
+            if (Object.prototype.hasOwnProperty.call(eventInput, 'meta')) {
+                rawEvent.meta = eventInput.meta;
+            }
+            const normalizedEvent = normalizeTimelineEvent(rawEvent);
+            if (!normalizedEvent) return null;
+            timeline.events.push(normalizedEvent);
+            return normalizedEvent;
+        }
+
+        function buildTaskTimelineChanges(beforeTask, afterTask) {
+            const fieldNames = ['title', 'description', 'assignee', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'status'];
+            const changes = {};
+            fieldNames.forEach((field) => {
+                const beforeValue = beforeTask ? beforeTask[field] : undefined;
+                const afterValue = afterTask ? afterTask[field] : undefined;
+                if (areSerializableValuesEqual(beforeValue, afterValue)) return;
+                changes[field] = {
+                    before: cloneSerializable(beforeValue),
+                    after: cloneSerializable(afterValue)
+                };
+            });
+            return Object.keys(changes).length > 0 ? changes : null;
+        }
+
+        function buildTaskTimelineEvent(beforeTask, afterTask) {
+            const taskRef = afterTask || beforeTask;
+            if (!taskRef) return null;
+            const taskTitle = String(taskRef.title || '').trim() || `Task ${taskRef.id}`;
+            if (!beforeTask && afterTask) {
+                return {
+                    kind: 'task.created',
+                    entityType: 'task',
+                    entityId: String(afterTask.id),
+                    summary: `Task created: ${taskTitle}`,
+                    snapshot: cloneSerializable(afterTask)
+                };
+            }
+            if (beforeTask && !afterTask) {
+                return {
+                    kind: 'task.deleted',
+                    entityType: 'task',
+                    entityId: String(beforeTask.id),
+                    summary: `Task deleted: ${taskTitle}`,
+                    snapshot: cloneSerializable(beforeTask)
+                };
+            }
+
+            const changes = buildTaskTimelineChanges(beforeTask, afterTask);
+            if (!changes) return null;
+            const changedFields = Object.keys(changes);
+            if (changedFields.length === 1 && changedFields[0] === 'archived') {
+                const isArchived = Boolean(afterTask?.archived);
+                return {
+                    kind: isArchived ? 'task.archived' : 'task.restored',
+                    entityType: 'task',
+                    entityId: String(taskRef.id),
+                    summary: `${isArchived ? 'Task archived' : 'Task restored'}: ${taskTitle}`,
+                    changes
+                };
+            }
+            if (changedFields.length === 1 && changedFields[0] === 'status') {
+                return {
+                    kind: 'task.status.changed',
+                    entityType: 'task',
+                    entityId: String(taskRef.id),
+                    summary: `Status changed: ${taskTitle}`,
+                    changes
+                };
+            }
+            return {
+                kind: 'task.updated',
+                entityType: 'task',
+                entityId: String(taskRef.id),
+                summary: `Task updated: ${taskTitle}`,
+                changes
+            };
+        }
+
+        function recordTaskTimelineEvent(boardData, beforeTask, afterTask) {
+            const event = buildTaskTimelineEvent(beforeTask, afterTask);
+            if (!event) return null;
+            return appendTimelineEvent(boardData, event);
+        }
+
+        function recordBoardRestoreTimelineEvent(boardData, restoredFromEvent) {
+            return appendTimelineEvent(boardData, {
+                kind: 'board.restored',
+                entityType: 'board',
+                entityId: 'board',
+                summary: 'Board restored from timeline',
+                snapshot: createBoardStateSnapshot(boardData),
+                meta: {
+                    fromEventId: restoredFromEvent?.id || '',
+                    fromTimestamp: restoredFromEvent?.at || ''
+                }
+            });
+        }
+
         function formatFileSize(bytes) {
             const value = Number(bytes);
             if (!Number.isFinite(value) || value <= 0) return '0 B';
@@ -4661,7 +5712,7 @@
         async function toggleChecklistItem(taskId, itemIndex, checked) {
             if (portfolioDetailContext && portfolioDetailContext.boardId && portfolioDetailContext.taskId) {
                 if (portfolioDetailContext.readOnly) {
-                    notifyPortfolioReadOnly();
+                    notifyPortfolioMutationUnavailable(portfolioDetailContext.boardId);
                     return;
                 }
                 await runPortfolioTaskMutation(portfolioDetailContext.boardId, portfolioDetailContext.taskId, (task) => {
@@ -4799,7 +5850,7 @@
                 const boardRecord = getPortfolioBoardRecord(boardId);
                 if (!boardRecord) return;
                 if (!canUsePortfolioTaskMutations(boardId)) {
-                    notifyPortfolioReadOnly();
+                    notifyPortfolioMutationUnavailable(boardId);
                     return;
                 }
 
@@ -4807,16 +5858,18 @@
                 const nextId = nextTaskIdForBoard(boardRecord);
                 const status = resolveCreateTaskStatus(boardRecord, portfolioCreateContext.status);
 
+                ensureBoardTimelineBaseline(boardRecord.data);
                 boardRecord.data.board.tasks.push({
                     id: nextId,
                     ...commonFields,
                     archived: false,
                     createdAt: now,
                     updatedAt: now,
-                    statusChangedAt: now,
                     status
                 });
                 setTaskAttachments(boardRecord.data, nextId, draft.attachments);
+                recordTaskTimelineEvent(boardRecord.data, null, captureTaskTimelineSnapshot(boardRecord.data, nextId));
+                syncPortfolioTimelineSelectionToLatest(boardId, boardRecord.data);
                 markProjectDirty(boardId);
 
                 selectedPortfolioBoardId = boardId;
@@ -4925,7 +5978,7 @@
 
         function openSelectedPortfolioCardDetails() {
             const row = getSelectedPortfolioRow();
-            if (!row) return;
+            if (!row || row.historical) return;
             openPortfolioTaskDetails(row.boardId, row.taskId);
         }
 
@@ -5119,7 +6172,10 @@
                     description: 'Open selected card details',
                     contexts: ['global'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && e.key === 'Enter',
-                    when: () => Boolean(getSelectedPortfolioRow()),
+                    when: () => {
+                        const row = getSelectedPortfolioRow();
+                        return Boolean(row && !row.historical);
+                    },
                     handler: () => openSelectedPortfolioCardDetails()
                 },
                 {
@@ -5498,7 +6554,6 @@
                     const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
                         if (normalizeTaskStatus(task.status) === normalizedTargetStatus) return false;
                         task.status = normalizedTargetStatus;
-                        task.statusChangedAt = nowIso();
                         return true;
                     });
                     return Boolean(changed);

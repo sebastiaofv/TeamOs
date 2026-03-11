@@ -38,7 +38,7 @@ Os quadros contêm normalmente:
   - Bloqueios: `blocked` (boolean), `blockerReason` (string)
   - Execução: `checklist`: array de `{ text, done }`
   - Planeamento: `dueDate`, `priority`, `effort`
-  - Timestamps: `createdAt`, `updatedAt`, `statusChangedAt`
+  - Timestamps: `createdAt`, `updatedAt`
   - `attachments`: array (pode incluir payloads grandes embutidos)
 
 Mapeamento de estados:

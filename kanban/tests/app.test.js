@@ -28,7 +28,6 @@ function buildTaskPayload(task, index) {
     archived: Boolean(task.archived),
     createdAt: task.createdAt || FIXED_TIMESTAMP,
     updatedAt: task.updatedAt || FIXED_TIMESTAMP,
-    ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {}),
     dueDate: task.dueDate || '',
     priority: Object.hasOwn(task, 'priority') ? task.priority : null,
     effort: Object.hasOwn(task, 'effort') ? task.effort : null,
@@ -36,7 +35,7 @@ function buildTaskPayload(task, index) {
   };
 }
 
-function buildBoardPayload({ title, tasks = [] }) {
+function buildBoardPayload({ title, tasks = [], extensions = {} }) {
   return {
     meta: {
       schemaVersion: BOARD_SCHEMA_VERSION,
@@ -54,7 +53,7 @@ function buildBoardPayload({ title, tasks = [] }) {
         archiveFilter: 'active'
       }
     },
-    extensions: {}
+    extensions: JSON.parse(JSON.stringify(extensions))
   };
 }
 
@@ -73,12 +72,13 @@ async function seedPortfolioBoards(
     id: board.id,
     hasHandle: Boolean(board.hasHandle),
     fileName: board.fileName || '',
-    title: board.title,
-    data: buildBoardPayload({
       title: board.title,
-      tasks: board.tasks || []
-    })
-  }));
+      data: buildBoardPayload({
+        title: board.title,
+        tasks: board.tasks || [],
+        extensions: board.extensions || {}
+      })
+    }));
 
   await page.evaluate(async ({ boards, selectedBoardId, sortKey, sortDir }) => {
     window.__portfolioTestWrites = [];
@@ -775,7 +775,7 @@ test.describe('portfolio-only app', () => {
 
     await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
     await expect(page.locator('.portfolio-chip.active')).toContainText('Read Only (Read-only)');
-    await expect(portfolioCard(page, 'RO Task').locator('button[title=\"Read-only (no file handle)\"]')).toHaveCount(2);
+    await expect(portfolioCard(page, 'RO Task').locator('button[title=\"Read-only (no file handle)\"]')).toHaveCount(3);
   });
 
   test('read-only task detail keyboard shortcuts do not open edit or mutate', async ({ page }) => {
@@ -799,6 +799,35 @@ test.describe('portfolio-only app', () => {
     }));
     expect(result.archived).toBe(false);
     expect(result.writes).toEqual([]);
+  });
+
+  test('task card delete removes the task and persists the board', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'd1',
+        title: 'Delete Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Delete me', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'd1' });
+
+    const card = portfolioCard(page, 'Delete me');
+    await card.hover();
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await card.getByRole('button', { name: 'Delete' }).click();
+
+    await expect(portfolioCard(page, 'Delete me')).toHaveCount(0);
+
+    const result = await page.evaluate(() => ({
+      taskCount: portfolioBoards[0].data.board.tasks.length,
+      timelineKinds: portfolioBoards[0].data.extensions.timeline?.events?.map((event) => event.kind) || [],
+      writes: window.__portfolioTestWrites || []
+    }));
+    expect(result.taskCount).toBe(0);
+    expect(result.timelineKinds).toEqual(['board.baseline', 'task.deleted']);
+    expect(result.writes.length).toBeGreaterThan(0);
+    expect(result.writes.at(-1).text).toContain('"tasks": []');
   });
 
   test('portfolio filters and URL params persist in portfolio-only mode', async ({ page }) => {
@@ -994,8 +1023,7 @@ test.describe('portfolio-only app', () => {
             title: 'Move me',
             status: 'backlog',
             priority: 'medium',
-            effort: 'M',
-            statusChangedAt: '2026-02-20T00:00:00.000Z'
+            effort: 'M'
           }
         ]
       }
@@ -1020,14 +1048,13 @@ test.describe('portfolio-only app', () => {
     }));
 
     expect(result.status).toBe('doing');
-    expect(result.statusChangedAt).toBeTruthy();
-    expect(result.statusChangedAt).not.toBe('2026-02-20T00:00:00.000Z');
+    expect(result.statusChangedAt).toBeUndefined();
     expect(result.writes.length).toBeGreaterThan(0);
     expect(result.writes.at(-1).text).toContain('"status": "doing"');
-    expect(result.writes.at(-1).text).toContain('"statusChangedAt"');
+    expect(result.writes.at(-1).text).not.toContain('"statusChangedAt"');
   });
 
-  test('editing a task does not change statusChangedAt', async ({ page }) => {
+  test('editing a task does not add statusChangedAt to saved payloads', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 's1',
@@ -1037,8 +1064,7 @@ test.describe('portfolio-only app', () => {
           {
             id: 1,
             title: 'Keep status age',
-            status: 'backlog',
-            statusChangedAt: '2026-02-20T00:00:00.000Z'
+            status: 'backlog'
           }
         ]
       }
@@ -1055,13 +1081,173 @@ test.describe('portfolio-only app', () => {
       return {
         title: task?.title,
         status: task?.status,
-        statusChangedAt: task?.statusChangedAt
+        statusChangedAt: task?.statusChangedAt,
+        writes: window.__portfolioTestWrites || []
       };
     });
 
     expect(result.title).toBe('Keep status age edited');
     expect(result.status).toBe('backlog');
-    expect(result.statusChangedAt).toBe('2026-02-20T00:00:00.000Z');
+    expect(result.statusChangedAt).toBeUndefined();
+    expect(result.writes.length).toBeGreaterThan(0);
+    expect(result.writes.at(-1).text).not.toContain('"statusChangedAt"');
+  });
+
+  test('task edits create timeline events in extensions.timeline', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'tl1',
+        title: 'Timeline Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Original title', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'tl1' });
+
+    await expect(page.locator('#portfolioTimelinePanel')).toHaveClass(/collapsed/);
+
+    await page.evaluate(() => editPortfolioTask('tl1', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Updated title');
+    await page.locator('#taskDescription').fill('Updated description');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const result = await page.evaluate(() => {
+      const board = portfolioBoards.find((entry) => entry.id === 'tl1');
+      return {
+        timeline: board?.data?.extensions?.timeline || null,
+        writes: window.__portfolioTestWrites || []
+      };
+    });
+
+    expect(result.timeline).toBeTruthy();
+    expect(result.timeline.version).toBe(1);
+    expect(result.timeline.events.map((event) => event.kind)).toEqual(['board.baseline', 'task.updated']);
+    expect(result.timeline.events[1].changes.title.before).toBe('Original title');
+    expect(result.timeline.events[1].changes.title.after).toBe('Updated title');
+    expect(result.timeline.events[1].changes.description.after).toBe('Updated description');
+    expect(result.writes.length).toBeGreaterThan(0);
+    expect(result.writes.at(-1).text).toContain('"timeline"');
+    expect(result.writes.at(-1).text).toContain('"task.updated"');
+  });
+
+  test('task saves keep timeline pinned to latest state', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'tl3',
+        title: 'Timeline Latest Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Original title', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'tl3' });
+
+    await page.evaluate(() => editPortfolioTask('tl3', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Phase 1');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await page.evaluate(() => setPortfolioTimelineSelection('tl3', 1));
+    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toHaveCount(1);
+
+    await page.evaluate(() => editPortfolioTask('tl3', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Phase 2');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toHaveCount(0);
+    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toHaveCount(1);
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Created from latest');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toHaveCount(0);
+    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toHaveCount(1);
+    await expect(portfolioCard(page, 'Created from latest')).toBeVisible();
+
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await expect(page.locator('#portfolioTimelinePanel .timeline-slider-row').getByRole('button', { name: 'Latest' })).toBeVisible();
+    await expect(page.locator('#portfolioTimelinePanel .timeline-slider-row').getByRole('button', { name: 'Restore this state' })).toBeVisible();
+
+    const result = await page.evaluate(() => {
+      const board = portfolioBoards.find((entry) => entry.id === 'tl3');
+      const timeline = board?.data?.extensions?.timeline || null;
+      return {
+        eventCount: timeline?.events?.length || 0,
+        selection: portfolioTimelineSelection,
+        isPreview: isHistoricalPreviewActiveForBoard('tl3')
+      };
+    });
+
+    expect(result.eventCount).toBe(4);
+    expect(result.selection.boardId).toBe('tl3');
+    expect(result.selection.eventIndex).toBe(result.eventCount - 1);
+    expect(result.isPreview).toBe(false);
+  });
+
+  test('timeline slider previews historical state and restore persists it', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'tl2',
+        title: 'Timeline Restore Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Original title', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'tl2' });
+
+    await expect(page.locator('#portfolioTimelinePanel')).toHaveClass(/collapsed/);
+
+    await page.evaluate(() => editPortfolioTask('tl2', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Phase 1');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await page.evaluate(() => editPortfolioTask('tl2', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Phase 2');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
+
+    await page.locator('#portfolioTimelinePanel .timeline-slider').evaluate((node) => {
+      node.value = '0';
+      node.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toContainText('Historical preview');
+    await expect(portfolioCard(page, 'Original title')).toBeVisible();
+    await expect(portfolioCard(page, 'Phase 2')).toHaveCount(0);
+    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toHaveCount(0);
+
+    await page.locator('#portfolioTimelinePanel .btn-primary').click();
+
+    await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toHaveCount(0);
+    await expect(portfolioCard(page, 'Original title')).toBeVisible();
+    await expect(portfolioCard(page, 'Phase 2')).toHaveCount(0);
+
+    const result = await page.evaluate(() => {
+      const board = portfolioBoards.find((entry) => entry.id === 'tl2');
+      const timeline = board?.data?.extensions?.timeline || null;
+      return {
+        taskTitle: board?.data?.board?.tasks?.find((task) => task.id === 1)?.title || '',
+        timelineKinds: timeline?.events?.map((event) => event.kind) || [],
+        lastEventKind: timeline?.events?.at(-1)?.kind || '',
+        writes: window.__portfolioTestWrites || []
+      };
+    });
+
+    expect(result.taskTitle).toBe('Original title');
+    expect(result.timelineKinds).toEqual(['board.baseline', 'task.updated', 'task.updated', 'board.restored']);
+    expect(result.lastEventKind).toBe('board.restored');
+    expect(result.writes.length).toBeGreaterThan(0);
+    expect(result.writes.at(-1).text).toContain('"board.restored"');
   });
 
   test('overdue calculation uses local date instead of UTC ISO date', async ({ page }) => {
