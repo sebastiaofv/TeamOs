@@ -326,6 +326,17 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
   });
 
+  test('app shell does not create a page scrollbar on load', async ({ page }) => {
+    const metrics = await page.evaluate(() => ({
+      viewportHeight: window.innerHeight,
+      docScrollHeight: document.documentElement.scrollHeight,
+      bodyScrollHeight: document.body.scrollHeight
+    }));
+
+    expect(metrics.docScrollHeight).toBe(metrics.viewportHeight);
+    expect(metrics.bodyScrollHeight).toBe(metrics.viewportHeight);
+  });
+
   test('normalizeColumns keeps valid canonical columns and removes duplicates', async ({ page }) => {
     const columns = await page.evaluate(() => normalizeColumns([
       { status: 'Backlog', title: 'Ideas' },
@@ -489,6 +500,31 @@ test.describe('portfolio-only app', () => {
 
     const count = await page.evaluate(() => portfolioBoards.length);
     expect(count).toBe(1);
+  });
+
+  test('imported project chips always receive distinct colors', async ({ page }) => {
+    await mockImportProjectsPicker(page, Array.from({ length: 9 }, (_, index) => ({
+      fileName: `project-${index + 1}.board.json`,
+      payload: buildBoardPayload({
+        title: `Project ${index + 1}`,
+        tasks: [{ id: index + 1, title: `Task ${index + 1}`, status: 'backlog' }]
+      })
+    })));
+
+    await page.locator('#importProjectsBtn').click();
+
+    const projectChipStyles = await page.locator('.portfolio-chip').evaluateAll((nodes) => (
+      nodes
+        .map((node) => {
+          const button = node.querySelector('[data-action="select-board"]');
+          const boardId = button?.getAttribute('data-board-id') || '';
+          return boardId ? (node.getAttribute('style') || '').trim() : null;
+        })
+        .filter(Boolean)
+    ));
+
+    expect(projectChipStyles).toHaveLength(9);
+    expect(new Set(projectChipStyles).size).toBe(projectChipStyles.length);
   });
 
   test('import projects partially succeeds and reports invalid files', async ({ page }) => {
@@ -891,6 +927,53 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await expect(page.locator('#detailAttachments')).toContainText('note.txt');
     await expect(page.locator('#detailAttachments .detail-attachment-download')).toHaveCount(1);
+  });
+
+  test('task detail modal scrolls when content exceeds the viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 560 });
+
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [{
+          id: 1,
+          title: 'Oversized detail task',
+          status: 'backlog',
+          description: Array.from({ length: 18 }, (_, index) => `Detail line ${index + 1}`).join('\n'),
+          checklist: Array.from({ length: 28 }, (_, index) => ({
+            text: `Checklist item ${index + 1}`,
+            done: index % 2 === 0
+          }))
+        }]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await portfolioCard(page, 'Oversized detail task').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+
+    const metrics = await page.evaluate(() => {
+      const content = document.querySelector('#taskDetailModal .modal-content');
+      const body = document.querySelector('#taskDetailModal .modal-body');
+      if (!content || !body) {
+        return null;
+      }
+      const rect = content.getBoundingClientRect();
+      return {
+        bodyScrolls: body.scrollHeight > body.clientHeight,
+        bodyOverflowY: getComputedStyle(body).overflowY,
+        top: rect.top,
+        bottom: rect.bottom,
+        viewportHeight: window.innerHeight
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    expect(metrics.bodyScrolls).toBe(true);
+    expect(['auto', 'scroll']).toContain(metrics.bodyOverflowY);
+    expect(metrics.top).toBeGreaterThanOrEqual(0);
+    expect(metrics.bottom).toBeLessThanOrEqual(metrics.viewportHeight);
   });
 
   test('attachment validation blocks save for too many attachments and oversized attachments', async ({ page }) => {

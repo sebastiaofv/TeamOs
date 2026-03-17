@@ -34,12 +34,21 @@
             --effort-xl: #cc3300;
         }
 
+        html,
+        body {
+            height: 100%;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             font-size: 13px;
             line-height: 1.4;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .header {
@@ -219,7 +228,8 @@
 
         .view {
             background: var(--border-light);
-            height: calc(100vh - 50px);
+            flex: 1;
+            min-height: 0;
             position: relative;
         }
 
@@ -1511,6 +1521,17 @@
             min-height: 0;
         }
 
+        #taskDetailModal .modal-content {
+            max-height: min(88vh, 900px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #taskDetailModal .modal-body {
+            overflow-y: auto;
+            min-height: 0;
+        }
+
         #shortcutsModal .modal-body {
             max-height: min(72vh, 640px);
             overflow: auto;
@@ -2243,6 +2264,7 @@
         let undoAction = null;
         let undoTimer = null;
         let portfolioBoards = [];
+        let nextPortfolioProjectColorSeed = 0;
         let portfolioTasks = [];
         let projectSaveStateById = new Map();
         let projectFileStateById = new Map();
@@ -3223,7 +3245,76 @@
             return true;
         }
 
+        function createPortfolioProjectColor(seed, offset = 0) {
+            const baseSeed = Math.max(0, Number(seed) || 0) + (offset * 997);
+            const hue = (((baseSeed * 137.50776405) % 360) + 360) % 360;
+            const saturation = 62 + (baseSeed % 4) * 5;
+            const bgLightness = 95 - (baseSeed % 3);
+            const borderLightness = 78 - (baseSeed % 4) * 4;
+            const textLightness = 28 - (baseSeed % 2) * 4;
+            const hueValue = hue.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+            return {
+                bg: `hsl(${hueValue} ${saturation}% ${bgLightness}%)`,
+                border: `hsl(${hueValue} ${Math.max(50, saturation - 12)}% ${borderLightness}%)`,
+                text: `hsl(${hueValue} ${Math.min(84, saturation + 8)}% ${textLightness}%)`
+            };
+        }
+
+        function portfolioProjectColorKey(color) {
+            if (!color) return '';
+            return `${color.bg}|${color.border}|${color.text}`;
+        }
+
+        function syncPortfolioProjectColors() {
+            const usedSeeds = new Set();
+            let nextSeed = 0;
+
+            portfolioBoards.forEach((board) => {
+                if (!board) return;
+                const seed = Number.isInteger(board.colorSeed) && board.colorSeed >= 0
+                    ? board.colorSeed
+                    : null;
+                if (seed === null || usedSeeds.has(seed)) {
+                    board.colorSeed = null;
+                    return;
+                }
+                usedSeeds.add(seed);
+                nextSeed = Math.max(nextSeed, seed + 1);
+            });
+
+            portfolioBoards.forEach((board) => {
+                if (!board || Number.isInteger(board.colorSeed)) return;
+                while (usedSeeds.has(nextSeed)) {
+                    nextSeed += 1;
+                }
+                board.colorSeed = nextSeed;
+                usedSeeds.add(nextSeed);
+                nextSeed += 1;
+            });
+
+            nextPortfolioProjectColorSeed = nextSeed;
+
+            const usedColorKeys = new Set();
+            portfolioBoards
+                .filter(Boolean)
+                .slice()
+                .sort((a, b) => a.colorSeed - b.colorSeed)
+                .forEach((board) => {
+                    let offset = 0;
+                    let color = createPortfolioProjectColor(board.colorSeed, offset);
+                    let key = portfolioProjectColorKey(color);
+                    while (usedColorKeys.has(key)) {
+                        offset += 1;
+                        color = createPortfolioProjectColor(board.colorSeed, offset);
+                        key = portfolioProjectColorKey(color);
+                    }
+                    board.projectColor = color;
+                    usedColorKeys.add(key);
+                });
+        }
+
         function buildPortfolioTasks() {
+            syncPortfolioProjectColors();
             syncProjectSaveStates();
             portfolioTasks = portfolioBoards.flatMap((board, boardIndex) => {
                 const statusMap = Object.fromEntries(board.data.board.columns.map(col => [col.status, col.title]));
@@ -3270,6 +3361,7 @@
             const payload = serializeBoardDataFromObject(data);
             return {
                 id: nextPortfolioProjectId(),
+                colorSeed: nextPortfolioProjectColorSeed++,
                 handle,
                 fileName,
                 title: payload.board.settings.title,
@@ -3770,23 +3862,14 @@
         }
 
         function portfolioProjectColor(boardId) {
-            const palette = [
-                { bg: '#E9F2FF', border: '#98B9F0', text: '#234A86' },
-                { bg: '#EAF7EE', border: '#9ACEA6', text: '#295F35' },
-                { bg: '#FFF2E8', border: '#F2B48E', text: '#8B4A23' },
-                { bg: '#FDEEF4', border: '#E6A2BA', text: '#8A3358' },
-                { bg: '#F0EDFF', border: '#B2A8F2', text: '#473C91' },
-                { bg: '#EAF8FA', border: '#8FC9D4', text: '#215C68' },
-                { bg: '#FFF7D9', border: '#E4C46A', text: '#735A11' },
-                { bg: '#F1F2F4', border: '#B9BDC6', text: '#434955' }
-            ];
-            const key = String(boardId || '');
-            let hash = 0;
-            for (let i = 0; i < key.length; i += 1) {
-                hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+            const board = getPortfolioBoardRecord(boardId);
+            if (!board) {
+                return createPortfolioProjectColor(0);
             }
-            const index = Math.abs(hash) % palette.length;
-            return palette[index];
+            if (!board.projectColor) {
+                syncPortfolioProjectColors();
+            }
+            return board.projectColor || createPortfolioProjectColor(board.colorSeed || 0);
         }
 
         function formatTimelineValue(value) {
