@@ -4360,7 +4360,7 @@
                 selectedPortfolioViewMode = 'board';
                 return;
             }
-            if (portfolioBoards.length > 0 && !portfolioBoards.some((board) => board.id === selectedPortfolioBoardId)) {
+            if (!getPortfolioBoardRecord(selectedPortfolioBoardId)) {
                 selectedPortfolioBoardId = '';
                 selectedPortfolioViewMode = 'board';
                 return;

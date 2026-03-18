@@ -361,6 +361,25 @@ test.describe('portfolio-only app', () => {
     await expect(page).toHaveURL(/\/kanban\.html$/);
   });
 
+  test('stale selected board query resets roadmap mode on empty startup portfolio', async ({ page }) => {
+    await page.goto('/kanban.html?pb=ghost&pv=roadmap');
+
+    await expect(page.locator('#portfolioView')).toBeVisible();
+    await expect(page.locator('#portfolioViewModeToggle')).toBeHidden();
+    await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
+    await expect(page).toHaveURL(/\/kanban\.html$/);
+    const state = await page.evaluate(() => ({
+      selectedPortfolioBoardId,
+      selectedPortfolioViewMode,
+      boardCount: portfolioBoards.length
+    }));
+    expect(state).toEqual({
+      selectedPortfolioBoardId: '',
+      selectedPortfolioViewMode: 'board',
+      boardCount: 0
+    });
+  });
+
   test('normalizeColumns keeps valid canonical columns and removes duplicates', async ({ page }) => {
     const columns = await page.evaluate(() => normalizeColumns([
       { status: 'Backlog', title: 'Ideas' },
