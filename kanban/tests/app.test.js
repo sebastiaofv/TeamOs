@@ -1154,7 +1154,7 @@ test.describe('portfolio-only app', () => {
     await page.evaluate(() => {
       window.confirm = () => true;
     });
-    await page.locator('[data-roadmap-kind="milestones"] [data-roadmap-id="m1"] [data-action="delete-roadmap-item"]').click();
+    await page.getByRole('button', { name: 'Delete Alpha' }).click();
 
     const result = await page.evaluate(() => {
       const board = getPortfolioBoardRecord('alpha').data;
@@ -1196,7 +1196,7 @@ test.describe('portfolio-only app', () => {
     }], { selectedBoardId: 'alpha' });
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
-    await page.locator('[data-roadmap-kind="milestones"] [data-roadmap-id="m1"] [data-action="edit-roadmap-item"]').click();
+    await page.getByRole('button', { name: 'Edit Alpha' }).click();
     await page.locator('#roadmapEntityTitle').fill('Alpha Renamed');
     await page.getByRole('button', { name: 'Save Item' }).click();
 
@@ -1214,6 +1214,57 @@ test.describe('portfolio-only app', () => {
       dueDate: '2026-04-15'
     });
     expect(result.task.milestoneId).toBe('m1');
+  });
+
+  test('roadmap timeline replays CRUD changes and cleared refs in historical preview state', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [{ id: 1, title: 'Task A', status: 'to-do', milestoneId: 'm1' }],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'm1', title: 'Alpha', dueDate: '2026-04-15' }],
+          phases: [],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.getByRole('button', { name: 'Add Milestone' }).click();
+    await page.locator('#roadmapEntityTitle').fill('Beta');
+    await page.locator('#roadmapEntityDate').fill('2026-05-01');
+    await page.getByRole('button', { name: 'Save Item' }).click();
+
+    await page.getByRole('button', { name: 'Edit Beta' }).click();
+    await page.locator('#roadmapEntityTitle').fill('Beta Renamed');
+    await page.getByRole('button', { name: 'Save Item' }).click();
+
+    await page.evaluate(() => {
+      window.confirm = () => true;
+    });
+    await page.getByRole('button', { name: 'Delete Alpha' }).click();
+
+    const previewStates = await page.evaluate(() => {
+      const board = getPortfolioBoardRecord('alpha').data;
+      const timeline = board.extensions?.timeline;
+      return {
+        eventKinds: timeline?.events?.map((event) => event.kind) || [],
+        afterCreate: reconstructBoardStateFromTimeline(board, 1),
+        afterEdit: reconstructBoardStateFromTimeline(board, 2),
+        afterDelete: reconstructBoardStateFromTimeline(board, 3)
+      };
+    });
+
+    expect(previewStates.eventKinds).toEqual(['board.baseline', 'roadmap.updated', 'roadmap.updated', 'roadmap.updated']);
+    expect(previewStates.afterCreate.extensions.roadmap.milestones.map((item) => item.title)).toEqual(['Alpha', 'Beta']);
+    expect(previewStates.afterCreate.board.tasks[0].milestoneId).toBe('m1');
+    expect(previewStates.afterEdit.extensions.roadmap.milestones.map((item) => item.title)).toEqual(['Alpha', 'Beta Renamed']);
+    expect(previewStates.afterDelete.extensions.roadmap.milestones.map((item) => item.title)).toEqual(['Beta Renamed']);
+    expect(previewStates.afterDelete.board.tasks[0].milestoneId).toBe('');
   });
 
   test('roadmap view renders milestones phases and sprints with assigned task rows', async ({ page }) => {
@@ -1238,13 +1289,42 @@ test.describe('portfolio-only app', () => {
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await expect(page.locator('#portfolioRoadmapView')).toContainText('Milestones');
+    await expect(page.locator('#portfolioRoadmapView > .portfolio-roadmap-grid')).toHaveCount(1);
     await expect(page.locator('[data-roadmap-axis="shared"]')).toHaveCount(1);
-    await expect(page.locator('[data-roadmap-kind="milestone"]')).toHaveCount(1);
-    await expect(page.locator('[data-roadmap-kind="phase"]')).toHaveCount(1);
-    await expect(page.locator('[data-roadmap-kind="sprint"]')).toHaveCount(1);
+    await expect(page.locator('.roadmap-row[data-roadmap-kind="milestone"]')).toHaveCount(1);
+    await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"]')).toHaveCount(1);
+    await expect(page.locator('.roadmap-row[data-roadmap-kind="sprint"]')).toHaveCount(1);
 
-    await page.locator('[data-roadmap-kind="phase"]').click();
+    await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
     await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
+  });
+
+  test('roadmap rows support keyboard disclosure for task expansion', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [{ id: 1, title: 'Task A', status: 'backlog', phaseId: 'p1' }],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    const disclosure = page.getByRole('button', { name: 'Show tasks for Foundation' });
+    await disclosure.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
+
+    await page.getByRole('button', { name: 'Hide tasks for Foundation' }).focus();
+    await page.keyboard.press('Space');
+    await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toHaveCount(0);
   });
 
   test('historical roadmap task rows open the detail modal with projected read-only data', async ({ page }) => {
@@ -1282,7 +1362,7 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toContainText('Historical preview');
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
-    await page.locator('[data-roadmap-kind="phase"]').click();
+    await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
     await page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card').click();
 
     await expect(page.locator('#taskDetailModal')).toBeVisible();

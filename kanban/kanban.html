@@ -408,11 +408,14 @@
         }
 
         .portfolio-roadmap-view {
+            display: flex;
             flex: 1;
+            flex-direction: column;
             min-height: 0;
             background: var(--bg-card);
-            display: flex;
+            gap: 18px;
             padding: 16px;
+            overflow: auto;
         }
 
         .portfolio-roadmap-shell {
@@ -585,18 +588,16 @@
 
         .roadmap-row-main {
             display: grid;
-            grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
+            grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) auto;
             gap: 14px;
             align-items: center;
             min-height: 28px;
         }
 
         .roadmap-row-labels {
-            position: relative;
             min-width: 0;
             display: grid;
-            gap: 2px;
-            padding-right: 56px;
+            gap: 3px;
         }
 
         .roadmap-row-title {
@@ -620,24 +621,23 @@
         .roadmap-row-usage {
             font-size: 11px;
             color: var(--text-muted);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .roadmap-row-actions {
-            position: absolute;
-            top: 0;
-            right: 0;
             display: flex;
             gap: 4px;
             flex-shrink: 0;
-            opacity: 0;
-            pointer-events: none;
+            opacity: 0.45;
             transition: opacity 120ms ease;
         }
 
         .roadmap-row:hover .roadmap-row-actions,
         .roadmap-row:focus-within .roadmap-row-actions {
             opacity: 1;
-            pointer-events: auto;
         }
 
         .roadmap-action-btn,
@@ -671,15 +671,23 @@
         }
 
         .roadmap-action-btn:hover,
-        .roadmap-section-btn:hover {
+        .roadmap-section-btn:hover,
+        .roadmap-disclosure-btn:hover {
             background: #f3ecdf;
         }
 
-        .roadmap-expand-label {
-            font-size: 10px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
+        .roadmap-disclosure-btn {
+            appearance: none;
+            border: 0;
+            background: transparent;
+            color: #7a5a21;
+            padding: 0;
+            font: inherit;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 2px;
         }
 
         .roadmap-expand-icon {
@@ -740,7 +748,9 @@
         .roadmap-task-list {
             display: grid;
             gap: 8px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             padding: 2px 0 0 min(164px, 18vw);
+            align-items: start;
         }
 
         .roadmap-task-list .portfolio-task-card-select,
@@ -750,6 +760,7 @@
 
         .roadmap-task-list .portfolio-task-card {
             cursor: pointer;
+            height: 100%;
         }
 
         .roadmap-task-empty {
@@ -777,11 +788,6 @@
 
             .roadmap-row-actions {
                 opacity: 1;
-                pointer-events: auto;
-            }
-
-            .roadmap-row-labels {
-                padding-right: 0;
             }
 
             .roadmap-row-track {
@@ -789,6 +795,7 @@
             }
 
             .roadmap-task-list {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
                 padding-left: 0;
             }
         }
@@ -4472,6 +4479,12 @@
                 });
                 return nextState;
             }
+            if (event.kind === 'roadmap.updated') {
+                if (event.snapshot) {
+                    return cloneSerializable(event.snapshot);
+                }
+                return nextState;
+            }
             return nextState;
         }
 
@@ -5196,10 +5209,17 @@
                             <div class="roadmap-row-labels">
                                 <h3 class="roadmap-row-title">${escapeHtml(item.title)}</h3>
                                 <div class="roadmap-row-meta">${escapeHtml(formatRoadmapDateRange(item) || 'No dates')}</div>
-                                <div class="roadmap-row-usage">${taskCountLabel(item)} • ${expanded ? 'Hide tasks' : 'Show tasks'}</div>
-                                <div class="roadmap-row-actions">
-                                    <button class="roadmap-action-btn" type="button" aria-label="Edit ${escapeHtml(item.title)}" title="Edit" data-action="edit-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#9998;</button>
-                                    <button class="roadmap-action-btn" type="button" aria-label="Delete ${escapeHtml(item.title)}" title="Delete" data-action="delete-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#128465;</button>
+                                <div class="roadmap-row-usage">
+                                    <span>${taskCountLabel(item)}</span>
+                                    <button
+                                        class="roadmap-disclosure-btn"
+                                        type="button"
+                                        aria-expanded="${expanded ? 'true' : 'false'}"
+                                        aria-label="${expanded ? 'Hide tasks for' : 'Show tasks for'} ${escapeHtml(item.title)}"
+                                        data-action="toggle-roadmap-row"
+                                        data-roadmap-kind="${config.singular}"
+                                        data-roadmap-id="${escapeHtml(item.id)}"
+                                    >${expanded ? 'Hide tasks' : 'Show tasks'}</button>
                                 </div>
                             </div>
                             <div class="roadmap-row-track">
@@ -5209,6 +5229,10 @@
                                         <div class="roadmap-row-timeline-point" style="left:${placement?.point ?? 50}%"></div>
                                     `
                                     : `<div class="roadmap-row-timeline-bar" style="left:${placement?.left ?? 0}%;width:${placement?.width ?? 0}%"></div>`}
+                            </div>
+                            <div class="roadmap-row-actions">
+                                <button class="roadmap-action-btn" type="button" aria-label="Edit ${escapeHtml(item.title)}" title="Edit" data-action="edit-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#9998;</button>
+                                <button class="roadmap-action-btn" type="button" aria-label="Delete ${escapeHtml(item.title)}" title="Delete" data-action="delete-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#128465;</button>
                             </div>
                         </div>
                         <div class="roadmap-expand-icon">${expanded ? 'Collapse' : 'Expand'}</div>
@@ -5246,25 +5270,23 @@
             const range = getVisibleRoadmapDateRange(roadmap);
             const axisTicks = getRoadmapAxisTicks(range);
             roadmapView.innerHTML = `
-                <div class="portfolio-roadmap-shell">
-                    <div class="portfolio-roadmap-kicker">Roadmap</div>
-                    <h2 class="portfolio-roadmap-title">${escapeHtml(boardTitle)}</h2>
-                    <p class="portfolio-roadmap-copy">Create and manage milestones, phases, and sprints, then assign tasks to them from the task modal.</p>
-                    <div class="portfolio-roadmap-grid">
-                        <div class="portfolio-roadmap-timeline">
-                            <div class="roadmap-axis-shell">
-                                <div class="roadmap-axis-label">Timeline</div>
-                                <div class="roadmap-axis" data-roadmap-axis="shared">
-                                    <div class="roadmap-axis-line"></div>
-                                    <div class="roadmap-axis-ticks">
-                                        ${axisTicks.map((tick) => `<div class="roadmap-axis-tick" style="left:${tick.position}%">${escapeHtml(tick.label)}</div>`).join('')}
-                                    </div>
+                <div class="portfolio-roadmap-kicker">Roadmap</div>
+                <h2 class="portfolio-roadmap-title">${escapeHtml(boardTitle)}</h2>
+                <p class="portfolio-roadmap-copy">Create and manage milestones, phases, and sprints, then assign tasks to them from the task modal.</p>
+                <div class="portfolio-roadmap-grid">
+                    <div class="portfolio-roadmap-timeline">
+                        <div class="roadmap-axis-shell">
+                            <div class="roadmap-axis-label">Timeline</div>
+                            <div class="roadmap-axis" data-roadmap-axis="shared">
+                                <div class="roadmap-axis-line"></div>
+                                <div class="roadmap-axis-ticks">
+                                    ${axisTicks.map((tick) => `<div class="roadmap-axis-tick" style="left:${tick.position}%">${escapeHtml(tick.label)}</div>`).join('')}
                                 </div>
                             </div>
-                            ${renderRoadmapSection(boardData, board?.id || '', 'milestones', roadmap.milestones, range)}
-                            ${renderRoadmapSection(boardData, board?.id || '', 'phases', roadmap.phases, range)}
-                            ${renderRoadmapSection(boardData, board?.id || '', 'sprints', roadmap.sprints, range)}
                         </div>
+                        ${renderRoadmapSection(boardData, board?.id || '', 'milestones', roadmap.milestones, range)}
+                        ${renderRoadmapSection(boardData, board?.id || '', 'phases', roadmap.phases, range)}
+                        ${renderRoadmapSection(boardData, board?.id || '', 'sprints', roadmap.sprints, range)}
                     </div>
                 </div>
             `;
@@ -7540,6 +7562,7 @@
                     entityType: 'board',
                     entityId: 'board',
                     summary: `${config.label} ${index >= 0 ? 'updated' : 'created'}: ${nextItem.title}`,
+                    snapshot: createBoardStateSnapshot(boardData),
                     meta: {
                         roadmapKind: draft.kind,
                         roadmapItemId: nextItem.id,
@@ -7586,6 +7609,7 @@
                     entityType: 'board',
                     entityId: 'board',
                     summary: `${config.label} deleted: ${removed.title}`,
+                    snapshot: createBoardStateSnapshot(boardData),
                     meta: {
                         roadmapKind: kind,
                         roadmapItemId: removed.id,
@@ -8563,6 +8587,11 @@
                 }
                 if (action === 'delete-roadmap-item') {
                     deleteRoadmapEntity(kind, itemId);
+                    return;
+                }
+                if (action === 'toggle-roadmap-row') {
+                    togglePortfolioRoadmapRowExpanded(selectedPortfolioBoardId, `${kind}:${itemId}`);
+                    renderPortfolioRoadmapView();
                     return;
                 }
             }
