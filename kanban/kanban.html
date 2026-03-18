@@ -453,25 +453,18 @@
             line-height: 1.5;
         }
 
-        .portfolio-roadmap-grid {
+        .portfolio-roadmap-timeline {
             width: 100%;
             display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 18px;
+            gap: 10px;
+            padding: 12px 14px 14px;
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.9);
         }
 
         .portfolio-roadmap-header {
             display: grid;
-            gap: 8px;
-        }
-
-        .portfolio-roadmap-timeline {
-            width: 100%;
-            display: grid;
-            gap: 12px;
-            padding: 14px 16px 16px;
-            border: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.9);
+            gap: 6px;
         }
 
         .roadmap-axis-shell {
@@ -492,15 +485,15 @@
         .roadmap-section {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .roadmap-section-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 12px;
-            padding: 4px 0 0;
+            gap: 10px;
+            padding: 2px 0 0;
         }
 
         .roadmap-section-title {
@@ -521,7 +514,7 @@
         .roadmap-list {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
         }
 
         .roadmap-axis {
@@ -575,8 +568,8 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            padding: 6px 0 6px 0;
+            gap: 4px;
+            padding: 4px 0;
             border-bottom: 1px solid #efe8db;
         }
 
@@ -595,20 +588,20 @@
         .roadmap-row-main {
             display: grid;
             grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
-            gap: 14px;
+            gap: 12px;
             align-items: center;
-            min-height: 28px;
+            min-height: 24px;
         }
 
         .roadmap-row-labels {
             min-width: 0;
             display: grid;
-            gap: 3px;
+            gap: 2px;
         }
 
         .roadmap-row-title {
             margin: 0;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-primary);
             white-space: nowrap;
@@ -617,7 +610,7 @@
         }
 
         .roadmap-row-meta {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-secondary);
             white-space: nowrap;
             overflow: hidden;
@@ -625,7 +618,7 @@
         }
 
         .roadmap-row-usage {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
             display: inline-flex;
             align-items: center;
@@ -635,7 +628,7 @@
 
         .roadmap-row-actions {
             position: absolute;
-            top: 8px;
+            top: 6px;
             right: 0;
             display: flex;
             gap: 4px;
@@ -661,19 +654,19 @@
         }
 
         .roadmap-action-btn {
-            width: 22px;
-            height: 22px;
+            width: 20px;
+            height: 20px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
         }
 
         .roadmap-section-btn {
-            padding: 4px 8px;
+            padding: 3px 7px;
             border-radius: 999px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
@@ -692,7 +685,7 @@
             color: #7a5a21;
             padding: 0;
             font: inherit;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             cursor: pointer;
             text-decoration: underline;
@@ -705,7 +698,7 @@
 
         .roadmap-row-track {
             position: relative;
-            height: 18px;
+            height: 16px;
             border-radius: 6px;
             background:
                 linear-gradient(180deg, rgba(251, 249, 244, 0.88), rgba(245, 241, 233, 0.9)),
@@ -729,21 +722,21 @@
 
         .roadmap-row-timeline-stem {
             width: 1px;
-            height: 14px;
+            height: 12px;
             background: rgba(44, 110, 73, 0.35);
         }
 
         .roadmap-row-timeline-bar {
-            height: 8px;
+            height: 7px;
             border-radius: 999px;
             background: linear-gradient(90deg, #7a5a21, #b8843f);
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
         }
 
         .roadmap-row-timeline-point {
-            width: 10px;
-            height: 10px;
-            margin-left: -5px;
+            width: 9px;
+            height: 9px;
+            margin-left: -4px;
             border-radius: 50%;
             background: #2c6e49;
             border: 2px solid rgba(255, 255, 255, 0.9);
@@ -756,9 +749,9 @@
 
         .roadmap-task-list {
             display: grid;
-            gap: 8px;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            padding: 2px 0 0 min(164px, 18vw);
+            gap: 6px;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            padding: 0 0 0 min(164px, 18vw);
             align-items: start;
             grid-auto-flow: row dense;
         }
@@ -772,6 +765,7 @@
             cursor: pointer;
             height: 100%;
             min-width: 0;
+            padding: 9px 10px;
         }
 
         @media (min-width: 1080px) {
@@ -812,7 +806,7 @@
             }
 
             .roadmap-task-list {
-                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
                 padding-left: 0;
             }
         }
@@ -5287,26 +5281,24 @@
             const range = getVisibleRoadmapDateRange(roadmap);
             const axisTicks = getRoadmapAxisTicks(range);
             roadmapView.innerHTML = `
-                <div class="portfolio-roadmap-grid">
+                <div class="portfolio-roadmap-timeline">
                     <div class="portfolio-roadmap-header">
                         <div class="portfolio-roadmap-kicker">Roadmap</div>
                         <h2 class="portfolio-roadmap-title">${escapeHtml(boardTitle)}</h2>
                         <p class="portfolio-roadmap-copy">Create and manage milestones, phases, and sprints, then assign tasks to them from the task modal.</p>
                     </div>
-                    <div class="portfolio-roadmap-timeline">
-                        <div class="roadmap-axis-shell">
-                            <div class="roadmap-axis-label">Timeline</div>
-                            <div class="roadmap-axis" data-roadmap-axis="shared">
-                                <div class="roadmap-axis-line"></div>
-                                <div class="roadmap-axis-ticks">
-                                    ${axisTicks.map((tick) => `<div class="roadmap-axis-tick" style="left:${tick.position}%">${escapeHtml(tick.label)}</div>`).join('')}
-                                </div>
+                    <div class="roadmap-axis-shell">
+                        <div class="roadmap-axis-label">Timeline</div>
+                        <div class="roadmap-axis" data-roadmap-axis="shared">
+                            <div class="roadmap-axis-line"></div>
+                            <div class="roadmap-axis-ticks">
+                                ${axisTicks.map((tick) => `<div class="roadmap-axis-tick" style="left:${tick.position}%">${escapeHtml(tick.label)}</div>`).join('')}
                             </div>
                         </div>
-                        ${renderRoadmapSection(boardData, board?.id || '', 'milestones', roadmap.milestones, range)}
-                        ${renderRoadmapSection(boardData, board?.id || '', 'phases', roadmap.phases, range)}
-                        ${renderRoadmapSection(boardData, board?.id || '', 'sprints', roadmap.sprints, range)}
                     </div>
+                    ${renderRoadmapSection(boardData, board?.id || '', 'milestones', roadmap.milestones, range)}
+                    ${renderRoadmapSection(boardData, board?.id || '', 'phases', roadmap.phases, range)}
+                    ${renderRoadmapSection(boardData, board?.id || '', 'sprints', roadmap.sprints, range)}
                 </div>
             `;
             if (board && boardData) {

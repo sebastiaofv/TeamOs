@@ -1289,7 +1289,7 @@ test.describe('portfolio-only app', () => {
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await expect(page.locator('#portfolioRoadmapView')).toContainText('Milestones');
-    await expect(page.locator('#portfolioRoadmapView > .portfolio-roadmap-grid')).toHaveCount(1);
+    await expect(page.locator('#portfolioRoadmapView > .portfolio-roadmap-timeline')).toHaveCount(1);
     await expect(page.locator('[data-roadmap-axis="shared"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="milestone"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"]')).toHaveCount(1);
