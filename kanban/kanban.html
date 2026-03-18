@@ -8446,10 +8446,6 @@
                 const boardId = taskCard.dataset.boardId || '';
                 const taskId = Number(taskCard.dataset.taskId);
                 setSelectedPortfolioCard(boardId, taskId);
-                if (taskCard.dataset.historical === 'true') {
-                    renderPortfolio();
-                    return;
-                }
                 openPortfolioTaskDetails(boardId, taskId);
                 return;
             }

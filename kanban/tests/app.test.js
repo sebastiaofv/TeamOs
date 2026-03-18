@@ -1246,6 +1246,54 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
   });
 
+  test('historical roadmap task rows open the detail modal in read-only mode', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Task A', status: 'backlog', phaseId: 'p1' }
+      ],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.evaluate(() => editPortfolioTask('alpha', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#taskName').fill('Task A Updated');
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await page.locator('#portfolioTimelinePanel .timeline-slider').evaluate((node) => {
+      node.value = '0';
+      node.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toContainText('Historical preview');
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.locator('[data-roadmap-kind="phase"]').click();
+    await page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card').click();
+
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      readOnly: portfolioDetailContext?.readOnly || false,
+      selectedTaskId: portfolioDetailContext?.taskId || null
+    }));
+
+    expect(result.readOnly).toBe(true);
+    expect(result.selectedTaskId).toBe(1);
+  });
+
   test('roadmap entity modal traps shortcut context and Escape closes it', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
