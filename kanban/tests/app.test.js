@@ -1470,18 +1470,22 @@ test.describe('portfolio-only app', () => {
       const timeline = document.querySelector('.portfolio-roadmap-timeline');
       const header = document.querySelector('.roadmap-section-header');
       const row = document.querySelector('.roadmap-row');
+      const axisLine = document.querySelector('.roadmap-axis-line');
       const actionBtn = document.querySelector('.roadmap-action-btn');
       const sectionBtn = document.querySelector('.roadmap-section-btn');
       const disclosureBtn = document.querySelector('.roadmap-disclosure-btn');
       const track = document.querySelector('.roadmap-row-track');
+      const timelineBar = document.querySelector('.roadmap-row[data-roadmap-kind="phase"] .roadmap-row-timeline-bar');
       const milestonePoint = document.querySelector('.roadmap-row[data-roadmap-kind="milestone"] .roadmap-row-timeline-point');
       if (!(timeline instanceof HTMLElement)
         || !(header instanceof HTMLElement)
         || !(row instanceof HTMLElement)
+        || !(axisLine instanceof HTMLElement)
         || !(actionBtn instanceof HTMLElement)
         || !(sectionBtn instanceof HTMLElement)
         || !(disclosureBtn instanceof HTMLElement)
         || !(track instanceof HTMLElement)
+        || !(timelineBar instanceof HTMLElement)
         || !(milestonePoint instanceof HTMLElement)) {
         return null;
       }
@@ -1499,10 +1503,12 @@ test.describe('portfolio-only app', () => {
         timeline: getComputedStyle(timeline),
         header: getComputedStyle(header),
         row: getComputedStyle(row),
+        axisLine: getComputedStyle(axisLine),
         actionBtn: getComputedStyle(actionBtn),
         sectionBtn: getComputedStyle(sectionBtn),
         disclosureBtn: getComputedStyle(disclosureBtn),
         track: getComputedStyle(track),
+        timelineBar: getComputedStyle(timelineBar),
         milestonePoint: getComputedStyle(milestonePoint)
       };
     });
@@ -1518,7 +1524,10 @@ test.describe('portfolio-only app', () => {
     expect(styles.sectionBtn.backgroundColor).toBe('rgb(255, 255, 255)');
     expect(styles.sectionBtn.borderColor).toBe('rgb(208, 208, 208)');
     expect(styles.disclosureBtn.color).toBe('rgb(102, 102, 102)');
+    expect(styles.axisLine.height).toBe('20px');
+    expect(styles.track.height).toBe('20px');
     expect(styles.track.borderColor).toBe('rgb(224, 224, 224)');
+    expect(styles.timelineBar.height).toBe('10px');
     expect(styles.milestonePoint.backgroundColor).toBe('rgb(0, 102, 204)');
 
     await page.getByRole('button', { name: 'Show tasks for Alpha Release' }).click();
