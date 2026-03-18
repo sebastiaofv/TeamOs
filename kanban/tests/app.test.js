@@ -1063,6 +1063,74 @@ test.describe('portfolio-only app', () => {
     expect(result.lastTimelineSummary).toContain('Milestone deleted');
   });
 
+  test('editing an existing roadmap item preserves its ID', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [{ id: 1, title: 'Task A', status: 'to-do', milestoneId: 'm1' }],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'm1', title: 'Alpha', dueDate: '2026-04-15' }],
+          phases: [],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.locator('[data-roadmap-kind="milestones"] [data-roadmap-id="m1"] [data-action="edit-roadmap-item"]').click();
+    await page.locator('#roadmapEntityTitle').fill('Alpha Renamed');
+    await page.getByRole('button', { name: 'Save Item' }).click();
+
+    const result = await page.evaluate(() => {
+      const board = getPortfolioBoardRecord('alpha').data;
+      return {
+        milestone: structuredClone(getRoadmapExtension(board).milestones[0]),
+        task: structuredClone(board.board.tasks[0])
+      };
+    });
+
+    expect(result.milestone).toEqual({
+      id: 'm1',
+      title: 'Alpha Renamed',
+      dueDate: '2026-04-15'
+    });
+    expect(result.task.milestoneId).toBe('m1');
+  });
+
+  test('roadmap entity modal traps shortcut context and Escape closes it', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.getByRole('button', { name: 'Add Milestone' }).click();
+    await expect(page.locator('#roadmapEntityModal')).toBeVisible();
+
+    await page.keyboard.press('h');
+    await expect(page.locator('#helpModal')).toBeHidden();
+    await expect(page.locator('#roadmapEntityModal')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#roadmapEntityModal')).toBeHidden();
+    await expect(page.locator('#helpModal')).toBeHidden();
+  });
+
   test('task attachments save on the task and show in task details', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }

@@ -6814,7 +6814,7 @@
                 const roadmap = getRoadmapExtensionObject(boardData, { create: true });
                 const items = roadmap[config.itemsKey];
                 const index = draft.itemId ? items.findIndex((item) => item.id === draft.itemId) : -1;
-                const nextId = slugifyRoadmapEntityId(draft.title, items, draft.itemId);
+                const nextId = draft.itemId || slugifyRoadmapEntityId(draft.title, items);
                 const previousItem = index >= 0 ? items[index] : null;
                 const nextItem = config.dateMode === 'single'
                     ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
@@ -6826,14 +6826,6 @@
 
                 if (index >= 0) {
                     items[index] = nextItem;
-                    if (previousItem.id !== nextItem.id) {
-                        const tasks = Array.isArray(boardData.board?.tasks) ? boardData.board.tasks : [];
-                        tasks.forEach((task) => {
-                            if (normalizeRoadmapRef(task[config.taskField]) !== previousItem.id) return;
-                            task[config.taskField] = nextItem.id;
-                            touchTask(task);
-                        });
-                    }
                 } else {
                     items.push(nextItem);
                 }
@@ -7260,6 +7252,7 @@
         function getShortcutModalContext() {
             const taskModalOpen = document.getElementById('taskModal').classList.contains('active');
             const detailModalOpen = document.getElementById('taskDetailModal').classList.contains('active');
+            const roadmapEntityModalOpen = document.getElementById('roadmapEntityModal').classList.contains('active');
             const shortcutsModalOpen = document.getElementById('shortcutsModal').classList.contains('active');
             const helpModalOpen = document.getElementById('helpModal').classList.contains('active');
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
@@ -7268,6 +7261,7 @@
             let modal = null;
             if (taskModalOpen) modal = 'taskModal';
             else if (detailModalOpen) modal = 'detailModal';
+            else if (roadmapEntityModalOpen) modal = 'roadmapEntityModal';
             else if (shortcutsModalOpen) modal = 'shortcutsModal';
             else if (helpModalOpen) modal = 'helpModal';
 
@@ -7517,12 +7511,13 @@
                     section: 'Modal',
                     keys: ['Esc'],
                     description: 'Close open modal',
-                    contexts: ['taskModal', 'detailModal', 'shortcutsModal', 'helpModal'],
+                    contexts: ['taskModal', 'detailModal', 'roadmapEntityModal', 'shortcutsModal', 'helpModal'],
                     allowWhileTyping: true,
                     match: (e) => e.key === 'Escape',
                     handler: () => {
                         closeModal();
                         closeDetailModal();
+                        closeRoadmapEntityModal();
                         closeShortcutsModal();
                         closeHelpModal();
                     }
