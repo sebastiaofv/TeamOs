@@ -430,29 +430,6 @@
             overflow: auto;
         }
 
-        .portfolio-roadmap-kicker {
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--text-muted);
-        }
-
-        .portfolio-roadmap-title {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .portfolio-roadmap-copy {
-            margin: 0;
-            max-width: 56ch;
-            color: var(--text-secondary);
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
         .portfolio-roadmap-timeline {
             width: 100%;
             display: grid;
@@ -460,11 +437,6 @@
             padding: 12px 14px 14px;
             border: 1px solid var(--border);
             background: rgba(255, 255, 255, 0.9);
-        }
-
-        .portfolio-roadmap-header {
-            display: grid;
-            gap: 6px;
         }
 
         .roadmap-axis-shell {
@@ -749,9 +721,16 @@
 
         .roadmap-task-list {
             display: grid;
+            grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+            padding: 0;
+        }
+
+        .roadmap-task-list-track {
+            display: grid;
             gap: 6px;
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            padding: 0 0 0 min(164px, 18vw);
             align-items: start;
             grid-auto-flow: row dense;
         }
@@ -769,7 +748,7 @@
         }
 
         @media (min-width: 1080px) {
-            .roadmap-task-list {
+            .roadmap-task-list-track {
                 grid-template-columns: repeat(5, minmax(0, 1fr));
             }
         }
@@ -806,8 +785,12 @@
             }
 
             .roadmap-task-list {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+
+            .roadmap-task-list-track {
                 grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-                padding-left: 0;
             }
         }
 
@@ -2353,6 +2336,8 @@
         <div class="header-actions">
             <button class="btn" id="openShortcutsBtn">Shortcuts</button>
             <button class="btn" id="openHelpBtn">Help</button>
+            <button class="btn" id="importProjectsBtn">Import Projects</button>
+            <button class="btn btn-primary" id="newProjectBtn">+ New Project</button>
         </div>
     </div>
 
@@ -2421,8 +2406,6 @@
                         <button class="btn" type="button" data-view-mode="roadmap">Roadmap</button>
                     </div>
                     <button class="btn" id="resetPortfolioFiltersBtn">Reset Filters</button>
-                    <button class="btn" id="importProjectsBtn">Import Projects</button>
-                    <button class="btn btn-primary" id="newProjectBtn">+ New Project</button>
                 </div>
             </div>
             <div class="portfolio-chips" id="portfolioBoardsChips"></div>
@@ -5276,17 +5259,11 @@
             const viewState = getSelectedBoardTimelineViewState();
             const board = viewState?.boardRecord || (selectedPortfolioBoardId ? getPortfolioBoardRecord(selectedPortfolioBoardId) : null);
             const boardData = viewState?.isPreview ? (viewState.projectedBoard || board?.data || null) : (board?.data || viewState?.projectedBoard || null);
-            const boardTitle = boardData?.board?.settings?.title || board?.title || 'Selected project';
             const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
             const range = getVisibleRoadmapDateRange(roadmap);
             const axisTicks = getRoadmapAxisTicks(range);
             roadmapView.innerHTML = `
                 <div class="portfolio-roadmap-timeline">
-                    <div class="portfolio-roadmap-header">
-                        <div class="portfolio-roadmap-kicker">Roadmap</div>
-                        <h2 class="portfolio-roadmap-title">${escapeHtml(boardTitle)}</h2>
-                        <p class="portfolio-roadmap-copy">Create and manage milestones, phases, and sprints, then assign tasks to them from the task modal.</p>
-                    </div>
                     <div class="roadmap-axis-shell">
                         <div class="roadmap-axis-label">Timeline</div>
                         <div class="roadmap-axis" data-roadmap-axis="shared">
@@ -5315,10 +5292,20 @@
                 if (!config || !itemId) return;
                 const tasks = getRoadmapTaskFieldTasks(boardData, config.taskField, itemId);
                 if (tasks.length === 0) {
-                    container.innerHTML = '<div class="roadmap-task-empty">No tasks assigned.</div>';
+                    container.innerHTML = `
+                        <div class="roadmap-task-list-gutter" aria-hidden="true"></div>
+                        <div class="roadmap-task-list-track">
+                            <div class="roadmap-task-empty">No tasks assigned.</div>
+                        </div>
+                    `;
                     return;
                 }
-                container.replaceChildren(...tasks.map((task, taskIndex) => createPortfolioTaskCard({
+                const gutter = document.createElement('div');
+                gutter.className = 'roadmap-task-list-gutter';
+                gutter.setAttribute('aria-hidden', 'true');
+                const track = document.createElement('div');
+                track.className = 'roadmap-task-list-track';
+                track.replaceChildren(...tasks.map((task, taskIndex) => createPortfolioTaskCard({
                     boardIndex: portfolioBoards.findIndex((board) => board.id === boardRecord.id),
                     boardId: boardRecord.id,
                     taskId: task.id,
@@ -5329,6 +5316,7 @@
                     historical: Boolean(options.historical),
                     task: normalizeTask(task)
                 })));
+                container.replaceChildren(gutter, track);
             });
         }
 

@@ -322,8 +322,8 @@ test.describe('portfolio-only app', () => {
   test('loads portfolio-only minimalist UI', async ({ page }) => {
     await expect(page.locator('#portfolioView')).toBeVisible();
     await expect(page.locator('#boardView')).toHaveCount(0);
-    await expect(page.locator('#newProjectBtn')).toBeVisible();
-    await expect(page.locator('#importProjectsBtn')).toBeVisible();
+    await expect(page.locator('.header-actions > #importProjectsBtn')).toBeVisible();
+    await expect(page.locator('.header-actions > #newProjectBtn')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Help' })).toBeVisible();
     await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
@@ -1290,6 +1290,7 @@ test.describe('portfolio-only app', () => {
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await expect(page.locator('#portfolioRoadmapView')).toContainText('Milestones');
     await expect(page.locator('#portfolioRoadmapView > .portfolio-roadmap-timeline')).toHaveCount(1);
+    await expect(page.locator('#portfolioRoadmapView .portfolio-roadmap-header')).toHaveCount(0);
     await expect(page.locator('[data-roadmap-axis="shared"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="milestone"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"]')).toHaveCount(1);
@@ -1297,7 +1298,16 @@ test.describe('portfolio-only app', () => {
 
     await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
     await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
-    const taskGridColumns = await page.locator('[data-roadmap-task-list="phase:p1"]').evaluate((node) => {
+    const taskListLayout = await page.locator('[data-roadmap-task-list="phase:p1"]').evaluate((node) => {
+      const styles = getComputedStyle(node);
+      return {
+        columns: styles.gridTemplateColumns.split(' ').filter(Boolean).length,
+        paddingLeft: styles.paddingLeft
+      };
+    });
+    expect(taskListLayout.columns).toBe(2);
+    expect(taskListLayout.paddingLeft).toBe('0px');
+    const taskGridColumns = await page.locator('[data-roadmap-task-list="phase:p1"] .roadmap-task-list-track').evaluate((node) => {
       const columns = getComputedStyle(node).gridTemplateColumns.split(' ').filter(Boolean);
       return columns.length;
     });
