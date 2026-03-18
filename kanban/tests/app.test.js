@@ -984,6 +984,85 @@ test.describe('portfolio-only app', () => {
     });
   });
 
+  test('task modal assigns phase and milestone from roadmap selectors', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [{ id: 1, title: 'Task A', status: 'to-do' }],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'm1', title: 'Alpha', dueDate: '2026-04-15' }],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await portfolioCard(page, 'Task A').locator('[data-action="edit-task"]').click();
+    await page.selectOption('#taskPhase', 'p1');
+    await page.selectOption('#taskMilestone', 'm1');
+    await page.getByRole('button', { name: 'Save Task' }).click();
+
+    const task = await page.evaluate(() => structuredClone(getPortfolioBoardRecord('alpha').data.board.tasks[0]));
+    expect(task.phaseId).toBe('p1');
+    expect(task.milestoneId).toBe('m1');
+  });
+
+  test('roadmap rows can create and delete milestones while clearing task refs', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [{ id: 1, title: 'Task A', status: 'to-do', milestoneId: 'm1' }],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'm1', title: 'Alpha', dueDate: '2026-04-15' }],
+          phases: [],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.getByRole('button', { name: 'Add Milestone' }).click();
+    await page.locator('#roadmapEntityTitle').fill('Beta');
+    await page.locator('#roadmapEntityDate').fill('2026-05-01');
+    await page.getByRole('button', { name: 'Save Item' }).click();
+
+    await expect(page.locator('#portfolioRoadmapView')).toContainText('Beta');
+
+    await page.evaluate(() => {
+      window.confirm = () => true;
+    });
+    await page.locator('[data-roadmap-kind="milestones"] [data-roadmap-id="m1"] [data-action="delete-roadmap-item"]').click();
+
+    const result = await page.evaluate(() => {
+      const board = getPortfolioBoardRecord('alpha').data;
+      const roadmap = structuredClone(getRoadmapExtension(board));
+      const timeline = board.extensions?.timeline;
+      return {
+        task: structuredClone(board.board.tasks[0]),
+        roadmap,
+        lastTimelineKind: timeline?.events?.at(-1)?.kind || '',
+        lastTimelineSummary: timeline?.events?.at(-1)?.summary || ''
+      };
+    });
+
+    expect(result.roadmap.milestones).toEqual([{
+      id: 'beta',
+      title: 'Beta',
+      dueDate: '2026-05-01'
+    }]);
+    expect(result.task.milestoneId).toBe('');
+    expect(result.lastTimelineKind).toBe('roadmap.updated');
+    expect(result.lastTimelineSummary).toContain('Milestone deleted');
+  });
+
   test('task attachments save on the task and show in task details', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }

@@ -421,10 +421,10 @@
             background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(245, 242, 234, 0.92));
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: flex-start;
-            gap: 10px;
+            gap: 18px;
             padding: 24px;
+            overflow: auto;
         }
 
         .portfolio-roadmap-kicker {
@@ -447,6 +447,96 @@
             max-width: 56ch;
             color: var(--text-secondary);
             font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .portfolio-roadmap-grid {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .roadmap-section {
+            border: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            min-height: 220px;
+        }
+
+        .roadmap-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 14px 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .roadmap-section-title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .roadmap-section-subtitle {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .roadmap-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 14px;
+        }
+
+        .roadmap-row {
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .roadmap-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .roadmap-row-title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .roadmap-row-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .roadmap-row-usage {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .roadmap-row-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .roadmap-empty {
+            padding: 20px 14px;
+            color: var(--text-muted);
+            font-size: 12px;
             line-height: 1.5;
         }
 
@@ -1575,6 +1665,16 @@
             min-height: 0;
         }
 
+        .roadmap-entity-date-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .roadmap-entity-date-row.single {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
         #shortcutsModal .modal-body {
             max-height: min(72vh, 640px);
             overflow: auto;
@@ -2108,6 +2208,20 @@
                             </select>
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phase</label>
+                            <select id="taskPhase">
+                                <option value="" selected>None</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Milestone</label>
+                            <select id="taskMilestone">
+                                <option value="" selected>None</option>
+                            </select>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -2170,6 +2284,18 @@
                         <span class="detail-value" id="detailDueDate">-</span>
                     </div>
                     <div class="detail-item">
+                        <span class="detail-label">Phase</span>
+                        <span class="detail-value" id="detailPhase">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Milestone</span>
+                        <span class="detail-value" id="detailMilestone">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Sprint</span>
+                        <span class="detail-value" id="detailSprint">-</span>
+                    </div>
+                    <div class="detail-item">
                         <span class="detail-label">Todo List</span>
                         <ul class="detail-checklist" id="detailChecklist"></ul>
                     </div>
@@ -2181,6 +2307,45 @@
             </div>
             <div class="modal-footer">
                 <button class="btn" id="taskDetailModalFooterCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="roadmapEntityModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title" id="roadmapEntityModalTitle">Roadmap Item</span>
+                <button class="modal-close" id="roadmapEntityModalCloseBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="roadmapEntityForm">
+                    <input type="hidden" id="roadmapEntityKind">
+                    <input type="hidden" id="roadmapEntityId">
+                    <div class="form-group">
+                        <label class="required">Title</label>
+                        <input type="text" id="roadmapEntityTitle" required maxlength="80">
+                    </div>
+                    <div class="roadmap-entity-date-row single" id="roadmapEntitySingleDateRow">
+                        <div class="form-group">
+                            <label class="required" id="roadmapEntityDateLabel">Date</label>
+                            <input type="date" id="roadmapEntityDate">
+                        </div>
+                    </div>
+                    <div class="roadmap-entity-date-row hidden" id="roadmapEntityRangeRow">
+                        <div class="form-group">
+                            <label class="required">Start Date</label>
+                            <input type="date" id="roadmapEntityStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label class="required">End Date</label>
+                            <input type="date" id="roadmapEntityEndDate">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="roadmapEntityModalCancelBtn">Cancel</button>
+                <button class="btn btn-primary" id="roadmapEntityModalSaveBtn">Save Item</button>
             </div>
         </div>
     </div>
@@ -2325,6 +2490,7 @@
         let portfolioEditContext = null;
         let portfolioCreateContext = null;
         let portfolioDetailContext = null;
+        let roadmapEntityContext = null;
         let portfolioDragContext = null;
         let selectedPortfolioCardRef = null;
         let hoveredPortfolioCardRef = null;
@@ -2776,6 +2942,95 @@
                 phases,
                 sprints
             };
+        }
+
+        function createEmptyRoadmapExtension() {
+            return {
+                version: ROADMAP_VERSION,
+                milestones: [],
+                phases: [],
+                sprints: []
+            };
+        }
+
+        function getRoadmapExtensionObject(boardData, options = {}) {
+            const create = Boolean(options.create);
+            const extensions = getBoardExtensionsObject(boardData, { create });
+            if (!extensions) return null;
+            const normalized = normalizeRoadmapExtension(extensions[ROADMAP_EXTENSION_KEY]);
+            if (normalized) {
+                extensions[ROADMAP_EXTENSION_KEY] = normalized;
+                return extensions[ROADMAP_EXTENSION_KEY];
+            }
+            if (!create) return null;
+            extensions[ROADMAP_EXTENSION_KEY] = createEmptyRoadmapExtension();
+            return extensions[ROADMAP_EXTENSION_KEY];
+        }
+
+        function formatRoadmapDateRange(item) {
+            if (!item || typeof item !== 'object') return '';
+            if (item.dueDate) return `Due ${item.dueDate}`;
+            if (item.startDate && item.endDate) return `${item.startDate} to ${item.endDate}`;
+            return '';
+        }
+
+        function buildRoadmapEntityOptionMarkup(items, selectedId) {
+            const normalizedSelected = normalizeRoadmapRef(selectedId);
+            return [
+                '<option value="">None</option>',
+                ...items.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === normalizedSelected ? 'selected' : ''}>${escapeHtml(item.title)}</option>`)
+            ].join('');
+        }
+
+        function slugifyRoadmapEntityId(title, items, currentId = '') {
+            const base = String(title || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '') || 'item';
+            const existingIds = new Set((Array.isArray(items) ? items : []).map((item) => item.id).filter(Boolean));
+            if (currentId) {
+                existingIds.delete(currentId);
+            }
+            let candidate = base;
+            let suffix = 2;
+            while (existingIds.has(candidate)) {
+                candidate = `${base}-${suffix}`;
+                suffix += 1;
+            }
+            return candidate;
+        }
+
+        function getRoadmapEntityConfig(kind) {
+            if (kind === 'milestones') {
+                return {
+                    label: 'Milestone',
+                    singular: 'milestone',
+                    dateMode: 'single',
+                    dateLabel: 'Due Date',
+                    taskField: 'milestoneId',
+                    itemsKey: 'milestones'
+                };
+            }
+            if (kind === 'phases') {
+                return {
+                    label: 'Phase',
+                    singular: 'phase',
+                    dateMode: 'range',
+                    taskField: 'phaseId',
+                    itemsKey: 'phases'
+                };
+            }
+            if (kind === 'sprints') {
+                return {
+                    label: 'Sprint',
+                    singular: 'sprint',
+                    dateMode: 'range',
+                    taskField: 'sprintId',
+                    itemsKey: 'sprints'
+                };
+            }
+            return null;
         }
 
         function clearInvalidRoadmapTaskRefs(normalizedTask, roadmap) {
@@ -4340,17 +4595,63 @@
             });
         }
 
+        function renderRoadmapSection(boardData, kind, items) {
+            const config = getRoadmapEntityConfig(kind);
+            if (!config) return '';
+            const hasItems = Array.isArray(items) && items.length > 0;
+            const taskCountLabel = (item) => {
+                const count = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id).length;
+                return count === 1 ? '1 linked task' : `${count} linked tasks`;
+            };
+            const rowMarkup = hasItems
+                ? items.map((item) => `
+                    <div class="roadmap-row" data-roadmap-id="${escapeHtml(item.id)}">
+                        <div class="roadmap-row-header">
+                            <div>
+                                <h3 class="roadmap-row-title">${escapeHtml(item.title)}</h3>
+                                <div class="roadmap-row-meta">${escapeHtml(formatRoadmapDateRange(item) || 'No dates')}</div>
+                            </div>
+                            <div class="roadmap-row-actions">
+                                <button class="btn" type="button" data-action="edit-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">Edit</button>
+                                <button class="btn" type="button" data-action="delete-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">Delete</button>
+                            </div>
+                        </div>
+                        <div class="roadmap-row-usage">${taskCountLabel(item)}</div>
+                    </div>
+                `).join('')
+                : `<div class="roadmap-empty">No ${config.singular}s yet. Use the add button to create the first ${config.singular}.</div>`;
+
+            return `
+                <section class="roadmap-section" data-roadmap-kind="${kind}">
+                    <div class="roadmap-section-header">
+                        <div>
+                            <h3 class="roadmap-section-title">${config.label}s</h3>
+                            <div class="roadmap-section-subtitle">Manage ${config.singular} dates and task links.</div>
+                        </div>
+                        <button class="btn" type="button" data-action="add-roadmap-item" data-roadmap-kind="${kind}">Add ${config.label}</button>
+                    </div>
+                    <div class="roadmap-list">${rowMarkup}</div>
+                </section>
+            `;
+        }
+
         function renderPortfolioRoadmapView() {
             const roadmapView = document.getElementById('portfolioRoadmapView');
             if (!roadmapView) return;
 
             const board = selectedPortfolioBoardId ? getPortfolioBoardRecord(selectedPortfolioBoardId) : null;
             const boardTitle = board?.title || 'Selected project';
+            const roadmap = getRoadmapExtension(board?.data) || createEmptyRoadmapExtension();
             roadmapView.innerHTML = `
                 <div class="portfolio-roadmap-shell">
                     <div class="portfolio-roadmap-kicker">Roadmap</div>
                     <h2 class="portfolio-roadmap-title">${escapeHtml(boardTitle)}</h2>
-                    <p class="portfolio-roadmap-copy">Create a milestone, phase, or sprint to start planning this project as a roadmap. The shell is intentionally empty for now.</p>
+                    <p class="portfolio-roadmap-copy">Create and manage milestones, phases, and sprints, then assign tasks to them from the task modal.</p>
+                    <div class="portfolio-roadmap-grid">
+                        ${renderRoadmapSection(board?.data, 'milestones', roadmap.milestones)}
+                        ${renderRoadmapSection(board?.data, 'phases', roadmap.phases)}
+                        ${renderRoadmapSection(board?.data, 'sprints', roadmap.sprints)}
+                    </div>
                 </div>
             `;
         }
@@ -4455,6 +4756,68 @@
             return true;
         }
 
+        async function runPortfolioBoardMutation(boardId, mutator) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord) return false;
+            if (!canUsePortfolioTaskMutations(boardId)) {
+                notifyPortfolioMutationUnavailable(boardId);
+                return false;
+            }
+
+            ensureBoardTimelineBaseline(boardRecord.data);
+            let changed = false;
+            try {
+                changed = mutator(boardRecord.data, boardRecord) !== false;
+            } catch (error) {
+                alert(`Portfolio update failed: ${error.message}`);
+                return false;
+            }
+            if (!changed) return false;
+
+            syncPortfolioTimelineSelectionToLatest(boardId, boardRecord.data);
+            markProjectDirty(boardId);
+            buildPortfolioTasks();
+            renderPortfolio();
+
+            if (portfolioDetailContext && portfolioDetailContext.boardId === boardId) {
+                openPortfolioTaskDetails(boardId, portfolioDetailContext.taskId);
+            }
+
+            await enqueueProjectSave(boardRecord);
+            return true;
+        }
+
+        function getRoadmapItemTitle(roadmap, kind, refId) {
+            const config = getRoadmapEntityConfig(kind);
+            const normalizedRef = normalizeRoadmapRef(refId);
+            if (!config || !normalizedRef) return '';
+            const items = Array.isArray(roadmap?.[config.itemsKey]) ? roadmap[config.itemsKey] : [];
+            return items.find((item) => item.id === normalizedRef)?.title || '';
+        }
+
+        function getTaskModalBoardRecord() {
+            if (portfolioEditContext?.boardId) {
+                return getPortfolioBoardRecord(portfolioEditContext.boardId);
+            }
+            if (portfolioCreateContext?.boardId) {
+                return getPortfolioBoardRecord(portfolioCreateContext.boardId);
+            }
+            return null;
+        }
+
+        function populateTaskRoadmapSelectors(task = {}) {
+            const boardRecord = getTaskModalBoardRecord();
+            const roadmap = getRoadmapExtension(boardRecord?.data) || createEmptyRoadmapExtension();
+            const phaseSelect = document.getElementById('taskPhase');
+            const milestoneSelect = document.getElementById('taskMilestone');
+            if (phaseSelect) {
+                phaseSelect.innerHTML = buildRoadmapEntityOptionMarkup(roadmap.phases, task.phaseId);
+            }
+            if (milestoneSelect) {
+                milestoneSelect.innerHTML = buildRoadmapEntityOptionMarkup(roadmap.milestones, task.milestoneId);
+            }
+        }
+
         function openPortfolioTaskDetails(boardId, taskId) {
             const source = findPortfolioTaskSource(boardId, taskId);
             if (!source) return;
@@ -4463,6 +4826,7 @@
             const statusMap = Object.fromEntries((source.boardRecord.data.board.columns || []).map(col => [col.status, col.title]));
             const statusTitle = statusMap[task.status] || task.status;
             const readOnly = !canUsePortfolioTaskMutations(boardId);
+            const roadmap = getRoadmapExtension(source.boardRecord.data);
 
             portfolioDetailContext = { boardId, taskId, readOnly };
             document.getElementById('detailTitle').textContent = task.title || '-';
@@ -4476,6 +4840,9 @@
             document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
             document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
             document.getElementById('detailDueDate').textContent = formatDueDateForUi(task.dueDate) || '-';
+            document.getElementById('detailPhase').textContent = getRoadmapItemTitle(roadmap, 'phases', task.phaseId) || '-';
+            document.getElementById('detailMilestone').textContent = getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-';
+            document.getElementById('detailSprint').textContent = getRoadmapItemTitle(roadmap, 'sprints', task.sprintId) || '-';
             renderDetailChecklist(task, { readOnly });
             renderDetailAttachments(getTaskAttachments(source.boardRecord.data, taskId));
             document.getElementById('taskDetailModal').classList.add('active');
@@ -4514,6 +4881,7 @@
             document.getElementById('taskDueDate').value = formatDueDateForUi(task.dueDate);
             document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
             document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
+            populateTaskRoadmapSelectors(task);
             pendingNewTaskStatus = null;
 
             focusAndSelectTaskNameInput();
@@ -4555,6 +4923,7 @@
             document.getElementById('taskDueDate').value = '';
             document.getElementById('taskPriority').value = '';
             document.getElementById('taskEffort').value = '';
+            populateTaskRoadmapSelectors();
 
             focusAndSelectTaskNameInput();
         }
@@ -6367,6 +6736,169 @@
             portfolioDetailContext = null;
         }
 
+        function closeRoadmapEntityModal() {
+            document.getElementById('roadmapEntityModal').classList.remove('active');
+            document.getElementById('roadmapEntityForm').reset();
+            roadmapEntityContext = null;
+        }
+
+        function openRoadmapEntityModal(kind, itemId = '') {
+            const boardId = selectedPortfolioBoardId;
+            const boardRecord = boardId ? getPortfolioBoardRecord(boardId) : null;
+            if (!boardRecord) return;
+            if (!canUsePortfolioTaskMutations(boardId)) {
+                notifyPortfolioMutationUnavailable(boardId);
+                return;
+            }
+
+            const config = getRoadmapEntityConfig(kind);
+            if (!config) return;
+            const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
+            const items = Array.isArray(roadmap[config.itemsKey]) ? roadmap[config.itemsKey] : [];
+            const item = itemId ? items.find((entry) => entry.id === itemId) : null;
+
+            roadmapEntityContext = {
+                boardId,
+                kind,
+                itemId: item?.id || ''
+            };
+
+            document.getElementById('roadmapEntityForm').reset();
+            document.getElementById('roadmapEntityKind').value = kind;
+            document.getElementById('roadmapEntityId').value = item?.id || '';
+            document.getElementById('roadmapEntityModalTitle').textContent = `${item ? 'Edit' : 'New'} ${config.label}`;
+            document.getElementById('roadmapEntityTitle').value = item?.title || '';
+            document.getElementById('roadmapEntityDateLabel').textContent = config.dateLabel || 'Date';
+            document.getElementById('roadmapEntityDate').value = item?.dueDate || '';
+            document.getElementById('roadmapEntityStartDate').value = item?.startDate || '';
+            document.getElementById('roadmapEntityEndDate').value = item?.endDate || '';
+            document.getElementById('roadmapEntitySingleDateRow').classList.toggle('hidden', config.dateMode !== 'single');
+            document.getElementById('roadmapEntityRangeRow').classList.toggle('hidden', config.dateMode !== 'range');
+            document.getElementById('roadmapEntityModal').classList.add('active');
+            document.getElementById('roadmapEntityTitle').focus();
+        }
+
+        function buildRoadmapEntityDraftFromForm() {
+            return {
+                kind: document.getElementById('roadmapEntityKind').value,
+                itemId: normalizeRoadmapRef(document.getElementById('roadmapEntityId').value),
+                title: document.getElementById('roadmapEntityTitle').value.trim(),
+                dueDate: normalizeRoadmapDate(document.getElementById('roadmapEntityDate').value),
+                startDate: normalizeRoadmapDate(document.getElementById('roadmapEntityStartDate').value),
+                endDate: normalizeRoadmapDate(document.getElementById('roadmapEntityEndDate').value)
+            };
+        }
+
+        async function saveRoadmapEntity() {
+            const draft = buildRoadmapEntityDraftFromForm();
+            const context = roadmapEntityContext;
+            if (!context?.boardId) return;
+            const config = getRoadmapEntityConfig(draft.kind);
+            if (!config) return;
+            if (!draft.title) {
+                document.getElementById('roadmapEntityTitle').focus();
+                return;
+            }
+            if (config.dateMode === 'single' && !draft.dueDate) {
+                alert(`${config.label} requires a valid due date.`);
+                document.getElementById('roadmapEntityDate').focus();
+                return;
+            }
+            if (config.dateMode === 'range' && (!draft.startDate || !draft.endDate)) {
+                alert(`${config.label} requires valid start and end dates.`);
+                document.getElementById('roadmapEntityStartDate').focus();
+                return;
+            }
+
+            const changed = await runPortfolioBoardMutation(context.boardId, (boardData) => {
+                const roadmap = getRoadmapExtensionObject(boardData, { create: true });
+                const items = roadmap[config.itemsKey];
+                const index = draft.itemId ? items.findIndex((item) => item.id === draft.itemId) : -1;
+                const nextId = slugifyRoadmapEntityId(draft.title, items, draft.itemId);
+                const previousItem = index >= 0 ? items[index] : null;
+                const nextItem = config.dateMode === 'single'
+                    ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
+                    : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
+
+                if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) {
+                    return false;
+                }
+
+                if (index >= 0) {
+                    items[index] = nextItem;
+                    if (previousItem.id !== nextItem.id) {
+                        const tasks = Array.isArray(boardData.board?.tasks) ? boardData.board.tasks : [];
+                        tasks.forEach((task) => {
+                            if (normalizeRoadmapRef(task[config.taskField]) !== previousItem.id) return;
+                            task[config.taskField] = nextItem.id;
+                            touchTask(task);
+                        });
+                    }
+                } else {
+                    items.push(nextItem);
+                }
+
+                appendTimelineEvent(boardData, {
+                    kind: 'roadmap.updated',
+                    entityType: 'board',
+                    entityId: 'board',
+                    summary: `${config.label} ${index >= 0 ? 'updated' : 'created'}: ${nextItem.title}`,
+                    meta: {
+                        roadmapKind: draft.kind,
+                        roadmapItemId: nextItem.id,
+                        action: index >= 0 ? 'update' : 'create'
+                    }
+                });
+                return true;
+            });
+
+            if (!changed) return;
+            closeRoadmapEntityModal();
+        }
+
+        async function deleteRoadmapEntity(kind, itemId) {
+            const boardId = selectedPortfolioBoardId;
+            const boardRecord = boardId ? getPortfolioBoardRecord(boardId) : null;
+            const config = getRoadmapEntityConfig(kind);
+            if (!boardRecord || !config) return;
+            if (!canUsePortfolioTaskMutations(boardId)) {
+                notifyPortfolioMutationUnavailable(boardId);
+                return;
+            }
+
+            const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
+            const item = roadmap[config.itemsKey].find((entry) => entry.id === itemId);
+            if (!item) return;
+            const confirmed = window.confirm(`Delete "${item.title}"? Linked task references will be cleared.`);
+            if (!confirmed) return;
+
+            await runPortfolioBoardMutation(boardId, (boardData) => {
+                const mutableRoadmap = getRoadmapExtensionObject(boardData, { create: true });
+                const items = mutableRoadmap[config.itemsKey];
+                const index = items.findIndex((entry) => entry.id === itemId);
+                if (index === -1) return false;
+                const [removed] = items.splice(index, 1);
+                const tasks = Array.isArray(boardData.board?.tasks) ? boardData.board.tasks : [];
+                tasks.forEach((task) => {
+                    if (normalizeRoadmapRef(task[config.taskField]) !== removed.id) return;
+                    task[config.taskField] = '';
+                    touchTask(task);
+                });
+                appendTimelineEvent(boardData, {
+                    kind: 'roadmap.updated',
+                    entityType: 'board',
+                    entityId: 'board',
+                    summary: `${config.label} deleted: ${removed.title}`,
+                    meta: {
+                        roadmapKind: kind,
+                        roadmapItemId: removed.id,
+                        action: 'delete'
+                    }
+                });
+                return true;
+            });
+        }
+
         function openShortcutsModal() {
             renderShortcutsModalContent();
             document.getElementById('shortcutsModal').classList.add('active');
@@ -6410,7 +6942,9 @@
                 rawDueDate: document.getElementById('taskDueDate').value.trim(),
                 dueDate: parseDueDateInput(document.getElementById('taskDueDate').value),
                 priority: normalizePriority(document.getElementById('taskPriority').value),
-                effort: normalizeEffort(document.getElementById('taskEffort').value)
+                effort: normalizeEffort(document.getElementById('taskEffort').value),
+                phaseId: normalizeRoadmapRef(document.getElementById('taskPhase').value),
+                milestoneId: normalizeRoadmapRef(document.getElementById('taskMilestone').value)
             };
         }
 
@@ -6467,7 +7001,9 @@
                 checklist: draft.checklist,
                 dueDate: draft.dueDate,
                 priority: draft.priority,
-                effort: draft.effort
+                effort: draft.effort,
+                phaseId: draft.phaseId,
+                milestoneId: draft.milestoneId
             };
         }
 
@@ -7066,6 +7602,7 @@
             Refs.portfolioView = document.getElementById('portfolioView');
             Refs.portfolioViewModeToggle = document.getElementById('portfolioViewModeToggle');
             Refs.portfolioBoard = document.getElementById('portfolioBoard');
+            Refs.portfolioRoadmapView = document.getElementById('portfolioRoadmapView');
             Refs.portfolioBoardsChips = document.getElementById('portfolioBoardsChips');
             Refs.portfolioTimelinePanel = document.getElementById('portfolioTimelinePanel');
             Refs.portfolioSearchInput = document.getElementById('portfolioSearchInput');
@@ -7302,6 +7839,25 @@
             openPortfolioTaskDetails(boardId, taskId);
         }
 
+        function handlePortfolioRoadmapViewClick(event) {
+            const button = event.target.closest('button[data-action][data-roadmap-kind]');
+            if (!button) return;
+            const kind = button.dataset.roadmapKind || '';
+            const itemId = button.dataset.roadmapId || '';
+            const action = button.dataset.action;
+            if (action === 'add-roadmap-item') {
+                openRoadmapEntityModal(kind);
+                return;
+            }
+            if (action === 'edit-roadmap-item') {
+                openRoadmapEntityModal(kind, itemId);
+                return;
+            }
+            if (action === 'delete-roadmap-item') {
+                deleteRoadmapEntity(kind, itemId);
+            }
+        }
+
         function handlePortfolioBoardPointerOver(event) {
             const taskCard = event.target.closest('.portfolio-task-card');
             if (!taskCard) return;
@@ -7389,6 +7945,9 @@
             document.getElementById('taskModalSaveBtn')?.addEventListener('click', saveTask);
             document.getElementById('taskDetailModalCloseBtn')?.addEventListener('click', closeDetailModal);
             document.getElementById('taskDetailModalFooterCloseBtn')?.addEventListener('click', closeDetailModal);
+            document.getElementById('roadmapEntityModalCloseBtn')?.addEventListener('click', closeRoadmapEntityModal);
+            document.getElementById('roadmapEntityModalCancelBtn')?.addEventListener('click', closeRoadmapEntityModal);
+            document.getElementById('roadmapEntityModalSaveBtn')?.addEventListener('click', saveRoadmapEntity);
             document.getElementById('shortcutsModalCloseBtn')?.addEventListener('click', closeShortcutsModal);
             document.getElementById('shortcutsModalFooterCloseBtn')?.addEventListener('click', closeShortcutsModal);
             document.getElementById('helpModalCloseBtn')?.addEventListener('click', closeHelpModal);
@@ -7427,6 +7986,11 @@
                     closeDetailModal();
                 }
             });
+            document.getElementById('roadmapEntityModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('roadmapEntityModal')) {
+                    closeRoadmapEntityModal();
+                }
+            });
             document.getElementById('shortcutsModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('shortcutsModal')) {
                     closeShortcutsModal();
@@ -7442,6 +8006,7 @@
             Refs.portfolioTimelinePanel?.addEventListener('click', handleTimelinePanelClick);
             Refs.portfolioTimelinePanel?.addEventListener('input', handleTimelinePanelInput);
             Refs.portfolioBoard?.addEventListener('click', handlePortfolioBoardClick);
+            Refs.portfolioRoadmapView?.addEventListener('click', handlePortfolioRoadmapViewClick);
             Refs.portfolioBoard?.addEventListener('pointerover', handlePortfolioBoardPointerOver);
             Refs.portfolioBoard?.addEventListener('pointerout', handlePortfolioBoardPointerOut);
             document.getElementById('taskChecklistItems')?.addEventListener('click', handleTaskChecklistEditorClick);
