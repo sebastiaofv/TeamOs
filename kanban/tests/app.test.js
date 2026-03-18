@@ -1300,6 +1300,23 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('.roadmap-row[data-roadmap-kind="milestone"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="sprint"]')).toHaveCount(1);
+    await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"] .roadmap-row-labels > .roadmap-row-actions')).toHaveCount(1);
+    const sharedGeometry = await page.evaluate(() => {
+      const axis = document.querySelector('.roadmap-axis-shell');
+      const row = document.querySelector('.roadmap-row-main');
+      if (!(axis instanceof HTMLElement) || !(row instanceof HTMLElement)) return null;
+      const axisStyles = getComputedStyle(axis);
+      const rowStyles = getComputedStyle(row);
+      return {
+        axisColumns: axisStyles.gridTemplateColumns,
+        rowColumns: rowStyles.gridTemplateColumns,
+        axisGap: axisStyles.columnGap,
+        rowGap: rowStyles.columnGap
+      };
+    });
+    expect(sharedGeometry).not.toBeNull();
+    expect(sharedGeometry.axisColumns).toBe(sharedGeometry.rowColumns);
+    expect(sharedGeometry.axisGap).toBe(sharedGeometry.rowGap);
 
     await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
     await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
