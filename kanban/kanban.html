@@ -3713,6 +3713,23 @@
             };
         }
 
+        function findPortfolioTaskDetailSource(boardId, taskId, options = {}) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord) return null;
+            const sourceBoardData = options.boardData ? createBoardStateSnapshot(options.boardData) : boardRecord.data;
+            if (!sourceBoardData || !sourceBoardData.board || !Array.isArray(sourceBoardData.board.tasks)) {
+                return null;
+            }
+            const index = sourceBoardData.board.tasks.findIndex(task => task && task.id === taskId);
+            if (index < 0) return null;
+            return {
+                boardRecord,
+                boardData: sourceBoardData,
+                task: sourceBoardData.board.tasks[index],
+                taskIndex: index
+            };
+        }
+
         function isPortfolioBoardMutable(boardId) {
             const boardRecord = getPortfolioBoardRecord(boardId);
             return Boolean(boardRecord && boardRecord.handle);
@@ -5495,15 +5512,15 @@
             }
         }
 
-        function openPortfolioTaskDetails(boardId, taskId) {
-            const source = findPortfolioTaskSource(boardId, taskId);
+        function openPortfolioTaskDetails(boardId, taskId, options = {}) {
+            const source = findPortfolioTaskDetailSource(boardId, taskId, options);
             if (!source) return;
             setSelectedPortfolioCard(boardId, taskId);
             const task = normalizeTask(source.task);
-            const statusMap = Object.fromEntries((source.boardRecord.data.board.columns || []).map(col => [col.status, col.title]));
+            const statusMap = Object.fromEntries((source.boardData.board.columns || []).map(col => [col.status, col.title]));
             const statusTitle = statusMap[task.status] || task.status;
-            const readOnly = !canUsePortfolioTaskMutations(boardId);
-            const roadmap = getRoadmapExtension(source.boardRecord.data);
+            const readOnly = options.readOnly === true || !canUsePortfolioTaskMutations(boardId);
+            const roadmap = getRoadmapExtension(source.boardData);
 
             portfolioDetailContext = { boardId, taskId, readOnly };
             document.getElementById('detailTitle').textContent = task.title || '-';
@@ -5521,7 +5538,7 @@
             document.getElementById('detailMilestone').textContent = getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-';
             document.getElementById('detailSprint').textContent = getRoadmapItemTitle(roadmap, 'sprints', task.sprintId) || '-';
             renderDetailChecklist(task, { readOnly });
-            renderDetailAttachments(getTaskAttachments(source.boardRecord.data, taskId));
+            renderDetailAttachments(getTaskAttachments(source.boardData, taskId));
             document.getElementById('taskDetailModal').classList.add('active');
         }
 
@@ -8555,6 +8572,14 @@
                 const boardId = taskCard.dataset.boardId || '';
                 const taskId = Number(taskCard.dataset.taskId);
                 setSelectedPortfolioCard(boardId, taskId);
+                if (taskCard.dataset.historical === 'true') {
+                    const viewState = getSelectedBoardTimelineViewState();
+                    openPortfolioTaskDetails(boardId, taskId, {
+                        boardData: viewState?.projectedBoard || null,
+                        readOnly: true
+                    });
+                    return;
+                }
                 openPortfolioTaskDetails(boardId, taskId);
                 return;
             }

@@ -1247,7 +1247,7 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
   });
 
-  test('historical roadmap task rows open the detail modal in read-only mode', async ({ page }) => {
+  test('historical roadmap task rows open the detail modal with projected read-only data', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
       id: 'alpha',
@@ -1269,6 +1269,7 @@ test.describe('portfolio-only app', () => {
     await page.evaluate(() => editPortfolioTask('alpha', 1));
     await expect(page.locator('#taskModal')).toBeVisible();
     await page.locator('#taskName').fill('Task A Updated');
+    await page.locator('#taskDescription').fill('Latest description');
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
@@ -1285,14 +1286,18 @@ test.describe('portfolio-only app', () => {
     await page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card').click();
 
     await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Task A');
+    await expect(page.locator('#detailDescription')).toHaveText('-');
 
     const result = await page.evaluate(() => ({
       readOnly: portfolioDetailContext?.readOnly || false,
-      selectedTaskId: portfolioDetailContext?.taskId || null
+      selectedTaskId: portfolioDetailContext?.taskId || null,
+      liveTitle: getPortfolioBoardRecord('alpha')?.data?.board?.tasks?.find((task) => task.id === 1)?.title || ''
     }));
 
     expect(result.readOnly).toBe(true);
     expect(result.selectedTaskId).toBe(1);
+    expect(result.liveTitle).toBe('Task A Updated');
   });
 
   test('roadmap entity modal traps shortcut context and Escape closes it', async ({ page }) => {
