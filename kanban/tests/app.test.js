@@ -1382,6 +1382,40 @@ test.describe('portfolio-only app', () => {
     }
   });
 
+  test('roadmap axis ticks align with matching timeline endpoints', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+
+    const alignment = await page.evaluate(() => {
+      const tick = Array.from(document.querySelectorAll('.roadmap-axis-tick')).find((node) => node.textContent?.trim() === 'Apr 30');
+      const bar = document.querySelector('.roadmap-row[data-roadmap-kind="phase"] .roadmap-row-timeline-bar');
+      if (!(tick instanceof HTMLElement) || !(bar instanceof HTMLElement)) return null;
+      const tickRect = tick.getBoundingClientRect();
+      const barRect = bar.getBoundingClientRect();
+      return {
+        delta: Math.abs((tickRect.left + (tickRect.width / 2)) - barRect.right)
+      };
+    });
+
+    expect(alignment).not.toBeNull();
+    expect(alignment.delta).toBeLessThanOrEqual(1);
+  });
+
   test('roadmap rows support keyboard disclosure for task expansion', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{

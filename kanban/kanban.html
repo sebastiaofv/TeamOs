@@ -3361,6 +3361,13 @@
             return `${month} ${String(date.getUTCDate()).padStart(2, '0')}`;
         }
 
+        function getRoadmapDatePosition(date, range) {
+            if (!(date instanceof Date) || Number.isNaN(date.getTime()) || !range?.start || !range?.end) return 0;
+            const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
+            const offsetDays = Math.max(0, Math.min(totalDays, getRoadmapDayDiff(range.start, date)));
+            return Math.max(0, Math.min(100, (offsetDays / totalDays) * 100));
+        }
+
         function getRoadmapAxisTicks(range) {
             if (!range?.start || !range?.end) return [];
             const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
@@ -3373,7 +3380,7 @@
                 if (ticks.some((tick) => tick.label === label)) continue;
                 ticks.push({
                     label,
-                    position: (offsetDays / totalDays) * 100
+                    position: getRoadmapDatePosition(date, range)
                 });
             }
             return ticks;
@@ -3382,17 +3389,16 @@
         function getRoadmapTimelinePlacement(item, range) {
             const bounds = getRoadmapItemDateBounds(item);
             if (!bounds || !range?.start || !range?.end) return null;
-            const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
-            const startOffset = Math.max(0, Math.min(totalDays, getRoadmapDayDiff(range.start, bounds.start)));
-            const endOffset = Math.max(startOffset, Math.min(totalDays, getRoadmapDayDiff(range.start, bounds.end)));
-            const rawLeft = (startOffset / totalDays) * 100;
-            const rawWidth = Math.max(((endOffset - startOffset + 1) / (totalDays + 1)) * 100, 2.5);
-            const left = Math.max(0, Math.min(100, rawLeft));
-            const width = Math.max(0, Math.min(100 - left, rawWidth));
+            const start = getRoadmapDatePosition(bounds.start, range);
+            const end = getRoadmapDatePosition(bounds.end, range);
+            const minWidth = start === end ? 0 : 2.5;
+            const rawWidth = Math.max(end - start, minWidth);
+            const width = Math.max(0, Math.min(end, 100) - Math.max(0, Math.min(100, end - rawWidth)));
+            const left = Math.max(0, Math.min(100 - width, end - width));
             return {
                 left,
                 width,
-                point: (endOffset / totalDays) * 100
+                point: end
             };
         }
 
