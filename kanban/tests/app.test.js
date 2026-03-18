@@ -1651,6 +1651,100 @@ test.describe('portfolio-only app', () => {
     expect(alignment.delta).toBeLessThanOrEqual(1);
   });
 
+  test('roadmap axis shows a today marker when today is within the visible range', async ({ page }) => {
+    await page.addInitScript(() => {
+      const fixedNow = '2026-04-15T12:00:00.000Z';
+      const RealDate = window.Date;
+      class FakeDate extends RealDate {
+        constructor(...args) {
+          super(...(args.length ? args : [fixedNow]));
+        }
+        static now() {
+          return new RealDate(fixedNow).getTime();
+        }
+      }
+      FakeDate.parse = RealDate.parse;
+      FakeDate.UTC = RealDate.UTC;
+      window.Date = FakeDate;
+    });
+
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+
+    const marker = await page.evaluate(() => {
+      const markerNode = document.querySelector('.roadmap-today-marker');
+      const axisLine = document.querySelector('.roadmap-axis-line');
+      const roadmap = getRoadmapExtension(getPortfolioBoardRecord('alpha')?.data);
+      const range = getVisibleRoadmapDateRange(roadmap);
+      const today = parseRoadmapIsoDate(todayLocalIsoDate());
+      if (!(markerNode instanceof HTMLElement) || !(axisLine instanceof HTMLElement) || !today) return null;
+      const axisRect = axisLine.getBoundingClientRect();
+      const markerRect = markerNode.getBoundingClientRect();
+      return {
+        label: markerNode.textContent?.trim() || '',
+        expectedPosition: getRoadmapDatePosition(today, range),
+        markerPosition: ((markerRect.left + (markerRect.width / 2)) - axisRect.left) / axisRect.width * 100
+      };
+    });
+
+    expect(marker).not.toBeNull();
+    expect(marker.label).toContain('Today');
+    expect(Math.abs(marker.markerPosition - marker.expectedPosition)).toBeLessThanOrEqual(1);
+  });
+
+  test('roadmap axis hides the today marker when today is outside the visible range', async ({ page }) => {
+    await page.addInitScript(() => {
+      const fixedNow = '2026-06-15T12:00:00.000Z';
+      const RealDate = window.Date;
+      class FakeDate extends RealDate {
+        constructor(...args) {
+          super(...(args.length ? args : [fixedNow]));
+        }
+        static now() {
+          return new RealDate(fixedNow).getTime();
+        }
+      }
+      FakeDate.parse = RealDate.parse;
+      FakeDate.UTC = RealDate.UTC;
+      window.Date = FakeDate;
+    });
+
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+
+    await expect(page.locator('.roadmap-today-marker')).toHaveCount(0);
+  });
+
   test('roadmap rows support keyboard disclosure for task expansion', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{

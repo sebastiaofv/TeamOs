@@ -510,6 +510,44 @@
             background-color: var(--bg-card);
         }
 
+        .roadmap-today-marker {
+            position: absolute;
+            top: -1px;
+            bottom: -1px;
+            width: 0;
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .roadmap-today-marker::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            transform: translateX(-50%);
+            background: var(--accent);
+            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+        }
+
+        .roadmap-today-marker-label {
+            position: absolute;
+            top: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.4;
+            white-space: nowrap;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.16);
+        }
+
         .roadmap-axis-ticks {
             position: relative;
             height: 24px;
@@ -3407,6 +3445,28 @@
             return ticks;
         }
 
+        function getRoadmapTodayMarker(range) {
+            if (!range?.start || !range?.end) return null;
+            const todayIso = todayLocalIsoDate();
+            const today = parseRoadmapIsoDate(todayIso);
+            if (!today) return null;
+            if (today < range.start || today > range.end) return null;
+            return {
+                iso: todayIso,
+                position: getRoadmapDatePosition(today, range)
+            };
+        }
+
+        function renderRoadmapTodayMarker(range) {
+            const marker = getRoadmapTodayMarker(range);
+            if (!marker || !Number.isFinite(marker.position)) return '';
+            return `
+                <span class="roadmap-today-marker" aria-label="Today (${escapeHtml(marker.iso)})" style="left:${marker.position}%">
+                    <span class="roadmap-today-marker-label">Today</span>
+                </span>
+            `;
+        }
+
         function getRoadmapTimelinePlacement(item, range) {
             const bounds = getRoadmapItemDateBounds(item);
             if (!bounds || !range?.start || !range?.end) return null;
@@ -5332,7 +5392,7 @@
                     <div class="roadmap-axis-shell">
                         <div class="roadmap-axis-label">Timeline</div>
                         <div class="roadmap-axis" data-roadmap-axis="shared">
-                            <div class="roadmap-axis-line">${renderRoadmapGridGuides(axisTicks)}</div>
+                            <div class="roadmap-axis-line">${renderRoadmapGridGuides(axisTicks)}${renderRoadmapTodayMarker(range)}</div>
                             <div class="roadmap-axis-ticks">
                                 ${axisTicks.map((tick) => `<div class="roadmap-axis-tick" style="left:${tick.position}%">${escapeHtml(tick.label)}</div>`).join('')}
                             </div>
