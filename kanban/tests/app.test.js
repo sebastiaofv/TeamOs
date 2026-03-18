@@ -672,6 +672,37 @@ test.describe('portfolio-only app', () => {
     expect(result.taskCount).toBe(0);
   });
 
+  test('task modal places blocked fields immediately after description', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+
+    const fieldOrder = await page.evaluate(() => (
+      [...document.querySelectorAll('#taskForm > .form-group')]
+        .map((group) => {
+          if (group.querySelector('#taskName')) return 'taskName';
+          if (group.querySelector('#taskDescription')) return 'taskDescription';
+          if (group.querySelector('#taskBlocked')) return 'taskBlocked';
+          if (group.querySelector('#taskBlockerReason')) return 'taskBlockerReason';
+          if (group.querySelector('#taskAssigneeEditor')) return 'taskAssigneeEditor';
+          return null;
+        })
+        .filter(Boolean)
+    ));
+
+    expect(fieldOrder).toEqual(expect.arrayContaining([
+      'taskDescription',
+      'taskBlocked',
+      'taskBlockerReason',
+      'taskAssigneeEditor'
+    ]));
+    expect(fieldOrder.indexOf('taskDescription')).toBeLessThan(fieldOrder.indexOf('taskBlocked'));
+    expect(fieldOrder.indexOf('taskBlocked')).toBeLessThan(fieldOrder.indexOf('taskBlockerReason'));
+    expect(fieldOrder.indexOf('taskBlockerReason')).toBeLessThan(fieldOrder.indexOf('taskAssigneeEditor'));
+  });
+
   test('assignees and blocked fields save and render as card badges', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
@@ -1025,6 +1056,7 @@ test.describe('portfolio-only app', () => {
 
     await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
     await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+    await expect(page.getByRole('button', { name: 'Add to Existing Sprint' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Create Sprint' }).click();
     await page.fill('#roadmapEntityTitle', 'Sprint 12');
     await page.fill('#roadmapEntityStartDate', '2026-04-01');
@@ -1034,6 +1066,44 @@ test.describe('portfolio-only app', () => {
     const board = await page.evaluate(() => structuredClone(getPortfolioBoardRecord('alpha').data));
     expect(board.extensions.roadmap.sprints).toHaveLength(1);
     expect(board.board.tasks.every((task) => task.sprintId === board.extensions.roadmap.sprints[0].id)).toBeTruthy();
+  });
+
+  test('checked board tasks can be added to an existing sprint from the bulk action bar', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Task A', status: 'backlog' },
+        { id: 2, title: 'Task B', status: 'to-do' }
+      ],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [],
+          sprints: [{ id: 's1', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
+    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+
+    await expect(page.getByRole('button', { name: 'Add to Existing Sprint' })).toBeVisible();
+    await page.getByRole('button', { name: 'Add to Existing Sprint' }).click();
+    await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
+    await page.selectOption('#roadmapEntityExistingSprint', 's1');
+    await page.getByRole('button', { name: 'Add to Sprint' }).click();
+
+    const board = await page.evaluate(() => structuredClone(getPortfolioBoardRecord('alpha').data));
+    expect(board.extensions.roadmap.sprints).toHaveLength(1);
+    expect(board.board.tasks.every((task) => task.sprintId === 's1')).toBeTruthy();
+
+    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
+    await expect(portfolioCard(page, 'Task A').locator('input[type="checkbox"]')).not.toBeChecked();
+    await expect(portfolioCard(page, 'Task B').locator('input[type="checkbox"]')).not.toBeChecked();
   });
 
   test('bulk sprint creation clears selection and board changes clear stale bulk selection', async ({ page }) => {
@@ -1336,6 +1406,133 @@ test.describe('portfolio-only app', () => {
     expect(taskGridColumns).toBeGreaterThan(1);
   });
 
+  test('roadmap rows are sorted by date within each section', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [
+            { id: 'm2', title: 'Later Milestone', dueDate: '2026-04-20' },
+            { id: 'm1', title: 'Earlier Milestone', dueDate: '2026-04-10' }
+          ],
+          phases: [
+            { id: 'p2', title: 'Later Phase', startDate: '2026-04-15', endDate: '2026-04-30' },
+            { id: 'p1', title: 'Earlier Phase', startDate: '2026-04-01', endDate: '2026-04-10' }
+          ],
+          sprints: [
+            { id: 's2', title: 'Sprint 2', startDate: '2026-04-15', endDate: '2026-04-21' },
+            { id: 's1', title: 'Sprint 1', startDate: '2026-04-01', endDate: '2026-04-07' }
+          ]
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+
+    const titles = await page.evaluate(() => ({
+      milestones: Array.from(document.querySelectorAll('[data-roadmap-kind="milestones"] .roadmap-row-title')).map((node) => node.textContent?.trim()),
+      phases: Array.from(document.querySelectorAll('[data-roadmap-kind="phases"] .roadmap-row-title')).map((node) => node.textContent?.trim()),
+      sprints: Array.from(document.querySelectorAll('[data-roadmap-kind="sprints"] .roadmap-row-title')).map((node) => node.textContent?.trim())
+    }));
+
+    expect(titles.milestones).toEqual(['Earlier Milestone', 'Later Milestone']);
+    expect(titles.phases).toEqual(['Earlier Phase', 'Later Phase']);
+    expect(titles.sprints).toEqual(['Sprint 1', 'Sprint 2']);
+  });
+
+  test('roadmap view uses shared app surfaces and control styles', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Task A', status: 'backlog', milestoneId: 'm1' }
+      ],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'm1', title: 'Alpha Release', dueDate: '2026-04-15' }],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: [{ id: 's1', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+
+    const styles = await page.evaluate(() => {
+      const timeline = document.querySelector('.portfolio-roadmap-timeline');
+      const header = document.querySelector('.roadmap-section-header');
+      const row = document.querySelector('.roadmap-row');
+      const actionBtn = document.querySelector('.roadmap-action-btn');
+      const sectionBtn = document.querySelector('.roadmap-section-btn');
+      const disclosureBtn = document.querySelector('.roadmap-disclosure-btn');
+      const track = document.querySelector('.roadmap-row-track');
+      const milestonePoint = document.querySelector('.roadmap-row[data-roadmap-kind="milestone"] .roadmap-row-timeline-point');
+      if (!(timeline instanceof HTMLElement)
+        || !(header instanceof HTMLElement)
+        || !(row instanceof HTMLElement)
+        || !(actionBtn instanceof HTMLElement)
+        || !(sectionBtn instanceof HTMLElement)
+        || !(disclosureBtn instanceof HTMLElement)
+        || !(track instanceof HTMLElement)
+        || !(milestonePoint instanceof HTMLElement)) {
+        return null;
+      }
+      const root = getComputedStyle(document.documentElement);
+      return {
+        vars: {
+          bgPrimary: root.getPropertyValue('--bg-primary').trim(),
+          bgSecondary: root.getPropertyValue('--bg-secondary').trim(),
+          bgCard: root.getPropertyValue('--bg-card').trim(),
+          border: root.getPropertyValue('--border').trim(),
+          borderLight: root.getPropertyValue('--border-light').trim(),
+          textSecondary: root.getPropertyValue('--text-secondary').trim(),
+          accent: root.getPropertyValue('--accent').trim()
+        },
+        timeline: getComputedStyle(timeline),
+        header: getComputedStyle(header),
+        row: getComputedStyle(row),
+        actionBtn: getComputedStyle(actionBtn),
+        sectionBtn: getComputedStyle(sectionBtn),
+        disclosureBtn: getComputedStyle(disclosureBtn),
+        track: getComputedStyle(track),
+        milestonePoint: getComputedStyle(milestonePoint)
+      };
+    });
+
+    expect(styles).not.toBeNull();
+    expect(styles.timeline.backgroundColor).toBe('rgb(250, 250, 250)');
+    expect(styles.timeline.borderColor).toBe('rgb(208, 208, 208)');
+    expect(styles.header.backgroundColor).toBe('rgb(240, 240, 240)');
+    expect(styles.header.borderBottomColor).toBe('rgb(208, 208, 208)');
+    expect(styles.row.rowGap).toBe('0px');
+    expect(styles.actionBtn.backgroundColor).toBe('rgb(255, 255, 255)');
+    expect(styles.actionBtn.borderColor).toBe('rgb(208, 208, 208)');
+    expect(styles.sectionBtn.backgroundColor).toBe('rgb(255, 255, 255)');
+    expect(styles.sectionBtn.borderColor).toBe('rgb(208, 208, 208)');
+    expect(styles.disclosureBtn.color).toBe('rgb(102, 102, 102)');
+    expect(styles.track.borderColor).toBe('rgb(224, 224, 224)');
+    expect(styles.milestonePoint.backgroundColor).toBe('rgb(0, 102, 204)');
+
+    await page.getByRole('button', { name: 'Show tasks for Alpha Release' }).click();
+    const taskListSpacing = await page.locator('[data-roadmap-task-list="milestone:m1"]').evaluate((node) => {
+      const styles = getComputedStyle(node);
+      return {
+        marginTop: styles.marginTop,
+        marginBottom: styles.marginBottom
+      };
+    });
+    expect(taskListSpacing.marginTop).toBe('10px');
+    expect(taskListSpacing.marginBottom).toBe('10px');
+  });
+
   test('roadmap timeline bars stay contained within the track at edge dates', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
@@ -1413,6 +1610,44 @@ test.describe('portfolio-only app', () => {
     });
 
     expect(alignment).not.toBeNull();
+    expect(alignment.delta).toBeLessThanOrEqual(1);
+  });
+
+  test('roadmap axis guide lines align with intermediate tick positions', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+
+    const alignment = await page.evaluate(() => {
+      const ticks = Array.from(document.querySelectorAll('.roadmap-axis-tick'));
+      const guides = Array.from(document.querySelectorAll('.roadmap-axis-line .roadmap-grid-guide'));
+      const tick = ticks.find((node) => node.textContent?.trim() === 'Apr 08');
+      const guide = guides[0];
+      if (!(tick instanceof HTMLElement) || !(guide instanceof HTMLElement)) return null;
+      const tickRect = tick.getBoundingClientRect();
+      const guideRect = guide.getBoundingClientRect();
+      return {
+        delta: Math.abs((tickRect.left + (tickRect.width / 2)) - (guideRect.left + (guideRect.width / 2))),
+        guideCount: guides.length
+      };
+    });
+
+    expect(alignment).not.toBeNull();
+    expect(alignment.guideCount).toBeGreaterThan(0);
     expect(alignment.delta).toBeLessThanOrEqual(1);
   });
 
@@ -1495,6 +1730,63 @@ test.describe('portfolio-only app', () => {
     expect(result.readOnly).toBe(true);
     expect(result.selectedTaskId).toBe(1);
     expect(result.liveTitle).toBe('Task A Updated');
+  });
+
+  test('roadmap task cards support hovered edit shortcuts', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Task A', status: 'backlog', phaseId: 'p1' },
+        { id: 2, title: 'Task B', status: 'to-do', phaseId: 'p1' }
+      ],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
+    await page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card').filter({ hasText: 'Task B' }).hover();
+    await page.keyboard.press('e');
+
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(page.locator('#taskName')).toHaveValue('Task B');
+  });
+
+  test('clicking a roadmap task card renders it as selected', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Task A', status: 'backlog', phaseId: 'p1' }
+      ],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: []
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
+    await page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await page.keyboard.press('Escape');
+
+    await expect(page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card.selected')).toHaveCount(1);
   });
 
   test('roadmap entity modal traps shortcut context and Escape closes it', async ({ page }) => {
@@ -1809,6 +2101,57 @@ test.describe('portfolio-only app', () => {
     expect(result.writes).toEqual([]);
   });
 
+  test('archive confirms before archiving a task', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Archive me', status: 'backlog', archived: false }] }
+    ], { selectedBoardId: 'p1' });
+
+    const card = portfolioCard(page, 'Archive me');
+    await card.hover();
+
+    let dialogMessage = '';
+    page.once('dialog', async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.accept();
+    });
+    await card.locator('button[title="Archive"]').click();
+
+    await expect(portfolioCard(page, 'Archive me')).toHaveCount(0);
+
+    const result = await page.evaluate(() => ({
+      archived: portfolioBoards[0].data.board.tasks.find((task) => task.id === 1)?.archived,
+      writes: window.__portfolioTestWrites || []
+    }));
+
+    expect(dialogMessage).toContain('Archive "Archive me"?');
+    expect(result.archived).toBe(true);
+    expect(result.writes.length).toBeGreaterThan(0);
+  });
+
+  test('archive cancel leaves the task untouched', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Keep archive', status: 'backlog', archived: false }] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => {
+      window.confirm = () => false;
+    });
+
+    const card = portfolioCard(page, 'Keep archive');
+    await card.hover();
+    await card.locator('button[title="Archive"]').click();
+
+    await expect(portfolioCard(page, 'Keep archive')).toBeVisible();
+
+    const result = await page.evaluate(() => ({
+      archived: portfolioBoards[0].data.board.tasks.find((task) => task.id === 1)?.archived,
+      writes: window.__portfolioTestWrites || []
+    }));
+
+    expect(result.archived).toBe(false);
+    expect(result.writes).toEqual([]);
+  });
+
   test('archiving a task can be undone from the toast', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Undo me', status: 'backlog', archived: false }] }
@@ -1816,6 +2159,7 @@ test.describe('portfolio-only app', () => {
 
     const card = portfolioCard(page, 'Undo me');
     await card.hover();
+    page.once('dialog', (dialog) => dialog.accept());
     await card.locator('button[title="Archive"]').click();
 
     await expect(portfolioCard(page, 'Undo me')).toHaveCount(0);

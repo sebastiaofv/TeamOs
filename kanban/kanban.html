@@ -412,8 +412,8 @@
             flex: 1;
             flex-direction: column;
             min-height: 0;
-            background: var(--bg-card);
-            gap: 18px;
+            background: var(--bg-primary);
+            gap: 12px;
             padding: 16px;
             overflow: auto;
         }
@@ -421,11 +421,11 @@
         .portfolio-roadmap-shell {
             width: 100%;
             border: 1px dashed var(--border);
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(245, 242, 234, 0.92));
+            background: var(--bg-card);
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            gap: 18px;
+            gap: 12px;
             padding: 24px;
             overflow: auto;
         }
@@ -435,17 +435,18 @@
             --roadmap-track-gap: 12px;
             width: 100%;
             display: grid;
-            gap: 10px;
-            padding: 15px 25px;
+            gap: 0;
+            padding: 0;
             border: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--bg-primary);
         }
 
         .roadmap-axis-shell {
             display: grid;
             grid-template-columns: var(--roadmap-label-column) minmax(0, 1fr);
             gap: var(--roadmap-track-gap);
-            align-items: end;
+            align-items: start;
+            padding: 14px 16px 12px;
         }
 
         .roadmap-axis-label {
@@ -453,13 +454,15 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: var(--text-muted);
+            color: var(--text-secondary);
         }
 
         .roadmap-section {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 0;
+            border-top: 1px solid var(--border);
+            background: var(--bg-primary);
         }
 
         .roadmap-section-header {
@@ -467,7 +470,9 @@
             justify-content: space-between;
             align-items: center;
             gap: 10px;
-            padding: 2px 0 0;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
         }
 
         .roadmap-section-title {
@@ -488,7 +493,7 @@
         .roadmap-list {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 0;
         }
 
         .roadmap-axis {
@@ -501,17 +506,8 @@
         .roadmap-axis-line {
             position: relative;
             height: 18px;
-            border-radius: 6px;
-            border: 1px solid #e7dfd2;
-            background:
-                linear-gradient(180deg, rgba(251, 249, 244, 0.98), rgba(245, 241, 233, 0.96)),
-                repeating-linear-gradient(
-                    90deg,
-                    rgba(122, 90, 33, 0.09) 0,
-                    rgba(122, 90, 33, 0.09) 1px,
-                    transparent 1px,
-                    transparent calc(12.5% - 1px)
-                );
+            border: 1px solid var(--border-light);
+            background-color: var(--bg-card);
         }
 
         .roadmap-axis-ticks {
@@ -535,16 +531,17 @@
             content: '';
             width: 1px;
             height: 8px;
-            background: rgba(122, 90, 33, 0.28);
+            background: var(--border);
         }
 
         .roadmap-row {
             position: relative;
             display: flex;
             flex-direction: column;
-            gap: 4px;
-            padding: 4px 0;
-            border-bottom: 1px solid #efe8db;
+            gap: 0;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-card);
         }
 
         .roadmap-row[data-roadmap-id] {
@@ -552,7 +549,7 @@
         }
 
         .roadmap-row[data-roadmap-id]:hover {
-            background: rgba(246, 241, 232, 0.55);
+            background: rgba(0, 102, 204, 0.04);
         }
 
         .roadmap-row:last-child {
@@ -572,13 +569,13 @@
             min-width: 0;
             display: grid;
             gap: 2px;
-            padding-right: 52px;
+            padding: 12px 52px 12px 0;
         }
 
         .roadmap-row-title {
             margin: 0;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 500;
             color: var(--text-primary);
             white-space: nowrap;
             overflow: hidden;
@@ -586,7 +583,7 @@
         }
 
         .roadmap-row-meta {
-            font-size: 10px;
+            font-size: 11px;
             color: var(--text-secondary);
             white-space: nowrap;
             overflow: hidden;
@@ -594,7 +591,7 @@
         }
 
         .roadmap-row-usage {
-            font-size: 10px;
+            font-size: 11px;
             color: var(--text-muted);
             display: inline-flex;
             align-items: center;
@@ -604,7 +601,7 @@
 
         .roadmap-row-actions {
             position: absolute;
-            top: 0;
+            top: 12px;
             right: 0;
             display: flex;
             gap: 4px;
@@ -621,9 +618,9 @@
         .roadmap-action-btn,
         .roadmap-section-btn {
             appearance: none;
-            border: 1px solid #d8cdb9;
-            background: #fcfaf5;
-            color: #6b5636;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
             font: inherit;
             cursor: pointer;
             line-height: 1;
@@ -632,7 +629,6 @@
         .roadmap-action-btn {
             width: 20px;
             height: 20px;
-            border-radius: 4px;
             font-size: 11px;
             display: inline-flex;
             align-items: center;
@@ -640,32 +636,31 @@
         }
 
         .roadmap-section-btn {
-            padding: 3px 7px;
-            border-radius: 999px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-primary);
         }
 
         .roadmap-action-btn:hover,
         .roadmap-section-btn:hover,
         .roadmap-disclosure-btn:hover {
-            background: #f3ecdf;
+            background: var(--bg-secondary);
+            border-color: var(--text-secondary);
+            color: var(--text-primary);
         }
 
         .roadmap-disclosure-btn {
             appearance: none;
             border: 0;
             background: transparent;
-            color: #7a5a21;
+            color: var(--text-secondary);
             padding: 0;
             font: inherit;
-            font-size: 10px;
-            font-weight: 700;
+            font-size: 11px;
+            font-weight: 500;
             cursor: pointer;
-            text-decoration: underline;
-            text-underline-offset: 2px;
+            text-decoration: none;
         }
 
         .roadmap-expand-icon {
@@ -675,17 +670,18 @@
         .roadmap-row-track {
             position: relative;
             height: 16px;
-            border-radius: 6px;
-            background:
-                linear-gradient(180deg, rgba(251, 249, 244, 0.88), rgba(245, 241, 233, 0.9)),
-                repeating-linear-gradient(
-                    90deg,
-                    rgba(122, 90, 33, 0.06) 0,
-                    rgba(122, 90, 33, 0.06) 1px,
-                    transparent 1px,
-                    transparent calc(12.5% - 1px)
-                );
-            border: 1px solid #ece3d5;
+            border: 1px solid var(--border-light);
+            background-color: var(--bg-card);
+        }
+
+        .roadmap-grid-guide {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: rgba(208, 208, 208, 0.95);
+            transform: translateX(-50%);
+            pointer-events: none;
         }
 
         .roadmap-row-timeline-bar,
@@ -699,13 +695,13 @@
         .roadmap-row-timeline-stem {
             width: 1px;
             height: 12px;
-            background: rgba(44, 110, 73, 0.35);
+            background: var(--accent);
         }
 
         .roadmap-row-timeline-bar {
             height: 7px;
             border-radius: 999px;
-            background: linear-gradient(90deg, #7a5a21, #b8843f);
+            background: linear-gradient(90deg, #5c6f82, #93a4b5);
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
         }
 
@@ -714,13 +710,13 @@
             height: 9px;
             margin-left: -4px;
             border-radius: 50%;
-            background: #2c6e49;
-            border: 2px solid rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 0 1px rgba(44, 110, 73, 0.28);
+            background: var(--accent);
+            border: 2px solid rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 1px rgba(0, 102, 204, 0.18);
         }
 
         .roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-timeline-bar {
-            background: linear-gradient(90deg, #2f6f93, #5aa2c8);
+            background: linear-gradient(90deg, var(--accent-hover), var(--accent));
         }
 
         .roadmap-task-list {
@@ -729,6 +725,7 @@
             gap: var(--roadmap-track-gap);
             align-items: start;
             padding: 0;
+            margin: 10px 0;
         }
 
         .roadmap-task-list-track {
@@ -753,20 +750,20 @@
 
         @media (min-width: 1080px) {
             .roadmap-task-list-track {
-                grid-template-columns: repeat(5, minmax(0, 1fr));
+                grid-template-columns: repeat(4, minmax(0, 1fr));
             }
         }
 
         .roadmap-task-empty {
             padding: 10px 12px;
             border: 1px dashed var(--border);
-            background: #faf7f0;
+            background: var(--bg-card);
             font-size: 12px;
             color: var(--text-muted);
         }
 
         .roadmap-empty {
-            padding: 10px 0 6px;
+            padding: 12px 16px;
             color: var(--text-muted);
             font-size: 11px;
             line-height: 1.5;
@@ -2420,6 +2417,7 @@
                     <div class="portfolio-bulk-actions-summary" id="portfolioBulkActionsSummary">0 tasks selected</div>
                     <div class="portfolio-bulk-actions-buttons">
                         <button class="btn" type="button" id="portfolioBulkClearBtn">Clear</button>
+                        <button class="btn hidden" type="button" id="portfolioBulkAssignSprintBtn">Add to Sprint</button>
                         <button class="btn btn-primary" type="button" id="portfolioBulkCreateSprintBtn">Create Sprint</button>
                     </div>
                 </div>
@@ -2448,6 +2446,17 @@
                         <textarea id="taskDescription"></textarea>
                     </div>
                     <div class="form-group">
+                        <label>Blocked</label>
+                        <div class="form-checkbox-row">
+                            <input type="checkbox" id="taskBlocked">
+                            <span>Mark task as blocked</span>
+                        </div>
+                    </div>
+                    <div class="form-group hidden" id="taskBlockerReasonWrap">
+                        <label class="required">Blocker Reason</label>
+                        <textarea id="taskBlockerReason" placeholder="What's blocking this task?"></textarea>
+                    </div>
+                    <div class="form-group">
                         <label>Assignees</label>
                         <div class="assignee-editor" id="taskAssigneeEditor">
                             <div class="assignee-editor-list" id="taskAssigneeItems"></div>
@@ -2458,17 +2467,6 @@
                         </div>
                         <textarea id="taskAssignee" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
                         <datalist id="taskAssigneeSuggestions"></datalist>
-                    </div>
-                    <div class="form-group">
-                        <label>Blocked</label>
-                        <div class="form-checkbox-row">
-                            <input type="checkbox" id="taskBlocked">
-                            <span>Mark task as blocked</span>
-                        </div>
-                    </div>
-                    <div class="form-group hidden" id="taskBlockerReasonWrap">
-                        <label class="required">Blocker Reason</label>
-                        <textarea id="taskBlockerReason" placeholder="What's blocking this task?"></textarea>
                     </div>
                     <div class="form-group">
                         <label>Todo List</label>
@@ -2635,6 +2633,12 @@
                 <form id="roadmapEntityForm">
                     <input type="hidden" id="roadmapEntityKind">
                     <input type="hidden" id="roadmapEntityId">
+                    <div class="form-group hidden" id="roadmapEntityExistingSprintRow">
+                        <label class="required" for="roadmapEntityExistingSprint">Sprint</label>
+                        <select id="roadmapEntityExistingSprint">
+                            <option value="">Select sprint</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label class="required">Title</label>
                         <input type="text" id="roadmapEntityTitle" required maxlength="80">
@@ -3322,6 +3326,23 @@
             return null;
         }
 
+        function compareRoadmapItemsByDate(a, b) {
+            const aBounds = getRoadmapItemDateBounds(a);
+            const bBounds = getRoadmapItemDateBounds(b);
+            if (aBounds && bBounds) {
+                const startDiff = aBounds.start.getTime() - bBounds.start.getTime();
+                if (startDiff !== 0) return startDiff;
+                const endDiff = aBounds.end.getTime() - bBounds.end.getTime();
+                if (endDiff !== 0) return endDiff;
+            } else if (aBounds) {
+                return -1;
+            } else if (bBounds) {
+                return 1;
+            }
+
+            return String(a?.title || '').localeCompare(String(b?.title || ''));
+        }
+
         function getVisibleRoadmapDateRange(roadmap) {
             const bounds = ['milestones', 'phases', 'sprints']
                 .flatMap((kind) => Array.isArray(roadmap?.[kind]) ? roadmap[kind] : [])
@@ -3426,6 +3447,19 @@
             return [
                 '<option value="">None</option>',
                 ...items.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === normalizedSelected ? 'selected' : ''}>${escapeHtml(item.title)}</option>`)
+            ].join('');
+        }
+
+        function buildRoadmapSprintSelectionOptionMarkup(items, selectedId) {
+            const normalizedSelected = normalizeRoadmapRef(selectedId);
+            return [
+                '<option value="">Select sprint</option>',
+                ...(Array.isArray(items) ? items : []).map((item) => {
+                    const label = formatRoadmapDateRange(item)
+                        ? `${item.title} • ${formatRoadmapDateRange(item)}`
+                        : item.title;
+                    return `<option value="${escapeHtml(item.id)}" ${item.id === normalizedSelected ? 'selected' : ''}>${escapeHtml(label)}</option>`;
+                })
             ].join('');
         }
 
@@ -5096,17 +5130,22 @@
             const actions = document.getElementById('portfolioBulkActions');
             const summary = document.getElementById('portfolioBulkActionsSummary');
             const createButton = document.getElementById('portfolioBulkCreateSprintBtn');
-            if (!actions || !summary || !createButton) return;
+            const assignButton = document.getElementById('portfolioBulkAssignSprintBtn');
+            if (!actions || !summary || !createButton || !assignButton) return;
 
             const canShow = Boolean(selectedPortfolioBoardId)
                 && selectedPortfolioViewMode === 'board'
                 && canUsePortfolioTaskMutations(selectedPortfolioBoardId);
             const selectedCount = canShow ? getSelectedPortfolioBulkTaskIds(selectedPortfolioBoardId).length : 0;
             const showActions = canShow && selectedCount > 0;
+            const roadmap = canShow ? getRoadmapExtension(getPortfolioBoardRecord(selectedPortfolioBoardId)?.data) : null;
+            const hasExistingSprints = Array.isArray(roadmap?.sprints) && roadmap.sprints.length > 0;
 
             actions.classList.toggle('active', showActions);
             summary.textContent = `${selectedCount} ${selectedCount === 1 ? 'task' : 'tasks'} selected`;
             createButton.disabled = selectedCount === 0;
+            assignButton.classList.toggle('hidden', !showActions || !hasExistingSprints);
+            assignButton.disabled = selectedCount === 0 || !hasExistingSprints;
         }
 
         function renderPortfolioBoardView(rows) {
@@ -5194,16 +5233,26 @@
             });
         }
 
-        function renderRoadmapSection(boardData, boardId, kind, items, range) {
+        function renderRoadmapGridGuides(axisTicks) {
+            const ticks = Array.isArray(axisTicks) ? axisTicks : [];
+            return ticks
+                .filter((tick) => Number.isFinite(tick?.position) && tick.position > 0 && tick.position < 100)
+                .map((tick) => `<span class="roadmap-grid-guide" aria-hidden="true" style="left:${tick.position}%"></span>`)
+                .join('');
+        }
+
+        function renderRoadmapSection(boardData, boardId, kind, items, range, axisTicks) {
             const config = getRoadmapEntityConfig(kind);
             if (!config) return '';
-            const hasItems = Array.isArray(items) && items.length > 0;
+            const sortedItems = Array.isArray(items) ? [...items].sort(compareRoadmapItemsByDate) : [];
+            const hasItems = sortedItems.length > 0;
+            const guideMarkup = renderRoadmapGridGuides(axisTicks);
             const taskCountLabel = (item) => {
                 const count = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id).length;
                 return count === 1 ? '1 linked task' : `${count} linked tasks`;
             };
             const rowMarkup = hasItems
-                ? items.map((item) => {
+                ? sortedItems.map((item) => {
                     const placement = getRoadmapTimelinePlacement(item, range);
                     const expandKey = `${config.singular}:${item.id}`;
                     const expanded = isPortfolioRoadmapRowExpanded(boardId, expandKey);
@@ -5236,6 +5285,7 @@
                                 </div>
                             </div>
                             <div class="roadmap-row-track">
+                                ${guideMarkup}
                                 ${config.dateMode === 'single'
                                     ? `
                                         <div class="roadmap-row-timeline-stem" style="left:${placement?.point ?? 50}%"></div>
@@ -5282,15 +5332,15 @@
                     <div class="roadmap-axis-shell">
                         <div class="roadmap-axis-label">Timeline</div>
                         <div class="roadmap-axis" data-roadmap-axis="shared">
-                            <div class="roadmap-axis-line"></div>
+                            <div class="roadmap-axis-line">${renderRoadmapGridGuides(axisTicks)}</div>
                             <div class="roadmap-axis-ticks">
                                 ${axisTicks.map((tick) => `<div class="roadmap-axis-tick" style="left:${tick.position}%">${escapeHtml(tick.label)}</div>`).join('')}
                             </div>
                         </div>
                     </div>
-                    ${renderRoadmapSection(boardData, board?.id || '', 'milestones', roadmap.milestones, range)}
-                    ${renderRoadmapSection(boardData, board?.id || '', 'phases', roadmap.phases, range)}
-                    ${renderRoadmapSection(boardData, board?.id || '', 'sprints', roadmap.sprints, range)}
+                    ${renderRoadmapSection(boardData, board?.id || '', 'milestones', roadmap.milestones, range, axisTicks)}
+                    ${renderRoadmapSection(boardData, board?.id || '', 'phases', roadmap.phases, range, axisTicks)}
+                    ${renderRoadmapSection(boardData, board?.id || '', 'sprints', roadmap.sprints, range, axisTicks)}
                 </div>
             `;
             if (board && boardData) {
@@ -5517,6 +5567,52 @@
             });
         }
 
+        function assignSelectionToExistingSprint(boardId, sprintId) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord) return false;
+            const normalizedSprintId = normalizeRoadmapRef(sprintId);
+            const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
+            if (!normalizedSprintId || selectedTaskIds.length === 0) return false;
+
+            return runPortfolioBoardMutation(boardId, (boardData) => {
+                const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
+                const sprint = Array.isArray(roadmap.sprints)
+                    ? roadmap.sprints.find((entry) => entry.id === normalizedSprintId)
+                    : null;
+                if (!sprint) return false;
+
+                const taskIdSet = new Set(selectedTaskIds.map((taskId) => Number(taskId)));
+                let assignedCount = 0;
+                const timestamp = nowIso();
+
+                boardData.board.tasks.forEach((task) => {
+                    if (!taskIdSet.has(Number(task?.id))) return;
+                    assignedCount += 1;
+                    task.sprintId = sprint.id;
+                    task.updatedAt = timestamp;
+                });
+
+                if (assignedCount === 0) {
+                    return false;
+                }
+
+                appendTimelineEvent(boardData, {
+                    kind: 'roadmap.bulk-assigned',
+                    entityType: 'board',
+                    entityId: 'board',
+                    summary: `Added ${assignedCount} selected ${assignedCount === 1 ? 'task' : 'tasks'} to sprint: ${sprint.title}`,
+                    meta: {
+                        roadmapKind: 'sprints',
+                        roadmapItemId: sprint.id,
+                        action: 'assign-existing',
+                        sprint: cloneSerializable(sprint),
+                        taskIds: [...taskIdSet]
+                    }
+                });
+                return true;
+            });
+        }
+
         function getRoadmapItemTitle(roadmap, kind, refId) {
             const config = getRoadmapEntityConfig(kind);
             const normalizedRef = normalizeRoadmapRef(refId);
@@ -5662,6 +5758,11 @@
             const source = findPortfolioTaskSource(boardId, taskId);
             if (!source) return;
             const wasArchived = Boolean(source.task.archived);
+            if (!wasArchived) {
+                const title = String(source.task.title || '').trim() || 'this task';
+                const confirmed = window.confirm(`Archive "${title}"?`);
+                if (!confirmed) return;
+            }
 
             const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
                 task.archived = !task.archived;
@@ -7497,18 +7598,40 @@
             document.getElementById('roadmapEntityForm').reset();
             document.getElementById('roadmapEntityKind').value = kind;
             document.getElementById('roadmapEntityId').value = item?.id || '';
-            document.getElementById('roadmapEntityModalTitle').textContent = options.mode === 'create-sprint-from-selection'
+            const existingSprintSelect = document.getElementById('roadmapEntityExistingSprint');
+            const existingSprintRow = document.getElementById('roadmapEntityExistingSprintRow');
+            const titleGroup = document.getElementById('roadmapEntityTitle')?.closest('.form-group');
+            const modalTitle = document.getElementById('roadmapEntityModalTitle');
+            const saveButton = document.getElementById('roadmapEntityModalSaveBtn');
+            const assignExistingMode = options.mode === 'assign-sprint-from-selection';
+            modalTitle.textContent = options.mode === 'create-sprint-from-selection'
                 ? 'Create Sprint'
-                : `${item ? 'Edit' : 'New'} ${config.label}`;
+                : assignExistingMode
+                    ? 'Add to Existing Sprint'
+                    : `${item ? 'Edit' : 'New'} ${config.label}`;
+            saveButton.textContent = assignExistingMode ? 'Add to Sprint' : 'Save Item';
             document.getElementById('roadmapEntityTitle').value = item?.title || '';
             document.getElementById('roadmapEntityDateLabel').textContent = config.dateLabel || 'Date';
             document.getElementById('roadmapEntityDate').value = item?.dueDate || '';
             document.getElementById('roadmapEntityStartDate').value = item?.startDate || '';
             document.getElementById('roadmapEntityEndDate').value = item?.endDate || '';
-            document.getElementById('roadmapEntitySingleDateRow').classList.toggle('hidden', config.dateMode !== 'single');
-            document.getElementById('roadmapEntityRangeRow').classList.toggle('hidden', config.dateMode !== 'range');
+            if (existingSprintRow) {
+                existingSprintRow.classList.toggle('hidden', !assignExistingMode);
+            }
+            if (existingSprintSelect) {
+                existingSprintSelect.innerHTML = buildRoadmapSprintSelectionOptionMarkup(roadmap.sprints || [], '');
+            }
+            if (titleGroup) {
+                titleGroup.classList.toggle('hidden', assignExistingMode);
+            }
+            document.getElementById('roadmapEntitySingleDateRow').classList.toggle('hidden', assignExistingMode || config.dateMode !== 'single');
+            document.getElementById('roadmapEntityRangeRow').classList.toggle('hidden', assignExistingMode || config.dateMode !== 'range');
             document.getElementById('roadmapEntityModal').classList.add('active');
-            document.getElementById('roadmapEntityTitle').focus();
+            if (assignExistingMode && existingSprintSelect) {
+                existingSprintSelect.focus();
+            } else {
+                document.getElementById('roadmapEntityTitle').focus();
+            }
         }
 
         function buildRoadmapEntityDraftFromForm() {
@@ -7516,6 +7639,7 @@
                 kind: document.getElementById('roadmapEntityKind').value,
                 itemId: normalizeRoadmapRef(document.getElementById('roadmapEntityId').value),
                 title: document.getElementById('roadmapEntityTitle').value.trim(),
+                existingSprintId: normalizeRoadmapRef(document.getElementById('roadmapEntityExistingSprint').value),
                 dueDate: normalizeRoadmapDate(document.getElementById('roadmapEntityDate').value),
                 startDate: normalizeRoadmapDate(document.getElementById('roadmapEntityStartDate').value),
                 endDate: normalizeRoadmapDate(document.getElementById('roadmapEntityEndDate').value)
@@ -7528,6 +7652,18 @@
             if (!context?.boardId) return;
             const config = getRoadmapEntityConfig(draft.kind);
             if (!config) return;
+            if (context.mode === 'assign-sprint-from-selection') {
+                if (!draft.existingSprintId) {
+                    document.getElementById('roadmapEntityExistingSprint').focus();
+                    return;
+                }
+                const changed = await assignSelectionToExistingSprint(context.boardId, draft.existingSprintId);
+                if (!changed) return;
+                closeRoadmapEntityModal();
+                clearPortfolioBulkSelection(context.boardId);
+                renderPortfolio();
+                return;
+            }
             if (!draft.title) {
                 document.getElementById('roadmapEntityTitle').focus();
                 return;
@@ -8615,6 +8751,7 @@
                 const boardId = taskCard.dataset.boardId || '';
                 const taskId = Number(taskCard.dataset.taskId);
                 setSelectedPortfolioCard(boardId, taskId);
+                renderPortfolio();
                 if (taskCard.dataset.historical === 'true') {
                     const viewState = getSelectedBoardTimelineViewState();
                     openPortfolioTaskDetails(boardId, taskId, {
@@ -8643,6 +8780,16 @@
             openRoadmapEntityModal('sprints', '', { mode: 'create-sprint-from-selection' });
         }
 
+        function openAssignExistingSprintFromSelectionModal() {
+            const boardId = selectedPortfolioBoardId;
+            if (!boardId) return;
+            if (getSelectedPortfolioBulkTaskIds(boardId).length === 0) return;
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            const roadmap = getRoadmapExtension(boardRecord?.data);
+            if (!Array.isArray(roadmap?.sprints) || roadmap.sprints.length === 0) return;
+            openRoadmapEntityModal('sprints', '', { mode: 'assign-sprint-from-selection' });
+        }
+
         function handlePortfolioBulkActionsClick(event) {
             const button = event.target.closest('button');
             if (!button) return;
@@ -8653,6 +8800,10 @@
             }
             if (button.id === 'portfolioBulkCreateSprintBtn') {
                 openCreateSprintFromSelectionModal();
+                return;
+            }
+            if (button.id === 'portfolioBulkAssignSprintBtn') {
+                openAssignExistingSprintFromSelectionModal();
             }
         }
 
@@ -8809,6 +8960,8 @@
             Refs.portfolioBulkActions?.addEventListener('click', handlePortfolioBulkActionsClick);
             Refs.portfolioBoard?.addEventListener('pointerover', handlePortfolioBoardPointerOver);
             Refs.portfolioBoard?.addEventListener('pointerout', handlePortfolioBoardPointerOut);
+            Refs.portfolioRoadmapView?.addEventListener('pointerover', handlePortfolioBoardPointerOver);
+            Refs.portfolioRoadmapView?.addEventListener('pointerout', handlePortfolioBoardPointerOut);
             document.getElementById('taskChecklistItems')?.addEventListener('click', handleTaskChecklistEditorClick);
             document.getElementById('taskChecklistItems')?.addEventListener('input', handleTaskChecklistEditorInput);
             document.getElementById('taskChecklistItems')?.addEventListener('change', handleTaskChecklistEditorChange);
