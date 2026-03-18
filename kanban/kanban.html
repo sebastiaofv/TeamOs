@@ -2670,7 +2670,7 @@
             }
             portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
             portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
-            selectedPortfolioBoardId = portfolioBoard;
+            setSelectedPortfolioBoardId(portfolioBoard);
             selectedPortfolioViewMode = selectedPortfolioBoardId ? normalizePortfolioViewMode(portfolioViewMode) : 'board';
             renderPortfolio();
         }
@@ -3165,6 +3165,17 @@
             if (!boardRecord) return [];
             syncPortfolioBulkSelection(boardId, boardRecord.data);
             return getPortfolioBulkSelection(boardId);
+        }
+
+        function setSelectedPortfolioBoardId(boardId, options = {}) {
+            const nextBoardId = boardId || '';
+            if (nextBoardId !== selectedPortfolioBoardId) {
+                clearPortfolioBulkSelection();
+            }
+            selectedPortfolioBoardId = nextBoardId;
+            if (options.resetViewModeWhenEmpty !== false && !selectedPortfolioBoardId) {
+                selectedPortfolioViewMode = 'board';
+            }
         }
 
         function createProjectSaveState() {
@@ -4044,6 +4055,31 @@
                 }
                 return nextState;
             }
+            if (event.kind === 'roadmap.bulk-assigned') {
+                nextState.extensions = nextState.extensions && typeof nextState.extensions === 'object'
+                    ? nextState.extensions
+                    : {};
+                const roadmap = normalizeRoadmapExtension(nextState.extensions[ROADMAP_EXTENSION_KEY]) || createEmptyRoadmapExtension();
+                nextState.extensions[ROADMAP_EXTENSION_KEY] = roadmap;
+
+                const sprint = event.meta?.sprint && typeof event.meta.sprint === 'object'
+                    ? cloneSerializable(event.meta.sprint)
+                    : null;
+                if (!sprint?.id) {
+                    return nextState;
+                }
+
+                roadmap.sprints = Array.isArray(roadmap.sprints) ? roadmap.sprints : [];
+                roadmap.sprints = roadmap.sprints.filter((entry) => entry?.id !== sprint.id);
+                roadmap.sprints.push(sprint);
+
+                const taskIdSet = new Set(Array.isArray(event.meta?.taskIds) ? event.meta.taskIds.map((taskId) => Number(taskId)) : []);
+                nextState.board.tasks.forEach((task) => {
+                    if (!taskIdSet.has(Number(task?.id))) return;
+                    task.sprintId = sprint.id;
+                });
+                return nextState;
+            }
             return nextState;
         }
 
@@ -4139,10 +4175,10 @@
             portfolioBoards = [...portfolioBoards, ...list];
             sortPortfolioBoardsAlphabetically();
             if (typeof options.selectBoardId === 'string') {
-                selectedPortfolioBoardId = options.selectBoardId;
+                setSelectedPortfolioBoardId(options.selectBoardId, { resetViewModeWhenEmpty: false });
             }
             if (selectedPortfolioBoardId && !portfolioBoards.some(board => board.id === selectedPortfolioBoardId)) {
-                selectedPortfolioBoardId = '';
+                setSelectedPortfolioBoardId('');
             }
             buildPortfolioTasks();
             renderPortfolio();
@@ -4195,12 +4231,8 @@
         function selectPortfolioBoard(boardId) {
             if ((boardId || '') !== selectedPortfolioBoardId) {
                 clearPortfolioTimelineSelection();
-                clearPortfolioBulkSelection();
             }
-            selectedPortfolioBoardId = boardId || '';
-            if (!selectedPortfolioBoardId) {
-                selectedPortfolioViewMode = 'board';
-            }
+            setSelectedPortfolioBoardId(boardId);
             renderPortfolio();
             updateUrlState();
         }
@@ -4217,8 +4249,7 @@
             }
             portfolioBoards.splice(index, 1);
             if (selectedPortfolioBoardId === boardId) {
-                selectedPortfolioBoardId = '';
-                selectedPortfolioViewMode = 'board';
+                setSelectedPortfolioBoardId('');
             }
             if (portfolioTimelineSelection.boardId === boardId) {
                 clearPortfolioTimelineSelection();
@@ -4817,9 +4848,7 @@
                 return;
             }
             if (!getPortfolioBoardRecord(selectedPortfolioBoardId)) {
-                selectedPortfolioBoardId = '';
-                selectedPortfolioViewMode = 'board';
-                clearPortfolioBulkSelection();
+                setSelectedPortfolioBoardId('');
                 return;
             }
             selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
@@ -4986,6 +5015,7 @@
                         roadmapKind: 'sprints',
                         roadmapItemId: nextSprint.id,
                         action: 'create-from-selection',
+                        sprint: cloneSerializable(nextSprint),
                         taskIds: [...taskIdSet]
                     }
                 });
@@ -7271,7 +7301,7 @@
                 syncPortfolioTimelineSelectionToLatest(boardId, boardRecord.data);
                 markProjectDirty(boardId);
 
-                selectedPortfolioBoardId = boardId;
+                setSelectedPortfolioBoardId(boardId, { resetViewModeWhenEmpty: false });
                 buildPortfolioTasks();
                 renderPortfolio();
                 closeModal();

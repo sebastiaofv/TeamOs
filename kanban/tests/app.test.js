@@ -1036,6 +1036,96 @@ test.describe('portfolio-only app', () => {
     expect(board.board.tasks.every((task) => task.sprintId === board.extensions.roadmap.sprints[0].id)).toBeTruthy();
   });
 
+  test('bulk sprint creation clears selection and board changes clear stale bulk selection', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [
+      {
+        id: 'alpha',
+        hasHandle: true,
+        title: 'Alpha',
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog' },
+          { id: 2, title: 'Task B', status: 'to-do' }
+        ]
+      },
+      {
+        id: 'beta',
+        hasHandle: true,
+        title: 'Beta',
+        tasks: [{ id: 3, title: 'Task C', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'alpha' });
+
+    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
+    await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('1 task selected');
+
+    await page.getByRole('button', { name: 'Create Sprint' }).click();
+    await page.fill('#roadmapEntityTitle', 'Sprint 12');
+    await page.fill('#roadmapEntityStartDate', '2026-04-01');
+    await page.fill('#roadmapEntityEndDate', '2026-04-14');
+    await page.getByRole('button', { name: 'Save Item' }).click();
+
+    await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('0 tasks selected');
+    await expect(portfolioCard(page, 'Task A').locator('input[type="checkbox"]')).not.toBeChecked();
+
+    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+    await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('1 task selected');
+
+    await page.evaluate(() => {
+      history.replaceState({}, '', `${location.pathname}?pb=beta`);
+      applyUrlState();
+    });
+    await expect(portfolioCard(page, 'Task C')).toBeVisible();
+
+    await page.evaluate(() => {
+      history.replaceState({}, '', `${location.pathname}?pb=alpha`);
+      applyUrlState();
+    });
+    await expect(portfolioCard(page, 'Task A')).toBeVisible();
+    await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('0 tasks selected');
+    await expect(portfolioCard(page, 'Task B').locator('input[type="checkbox"]')).not.toBeChecked();
+  });
+
+  test('bulk sprint timeline event reconstructs sprint assignments in timeline preview', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Task A', status: 'backlog' },
+        { id: 2, title: 'Task B', status: 'to-do' }
+      ]
+    }], { selectedBoardId: 'alpha' });
+
+    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
+    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+    await page.getByRole('button', { name: 'Create Sprint' }).click();
+    await page.fill('#roadmapEntityTitle', 'Sprint 12');
+    await page.fill('#roadmapEntityStartDate', '2026-04-01');
+    await page.fill('#roadmapEntityEndDate', '2026-04-14');
+    await page.getByRole('button', { name: 'Save Item' }).click();
+
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
+
+    await page.locator('#portfolioTimelinePanel .timeline-slider').evaluate((node) => {
+      node.value = '1';
+      node.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    const preview = await page.evaluate(() => {
+      const projected = getSelectedBoardTimelineViewState()?.projectedBoard || null;
+      return {
+        sprintTitles: projected?.extensions?.roadmap?.sprints?.map((entry) => entry.title) || [],
+        sprintIds: projected?.board?.tasks?.map((task) => task.sprintId || '') || []
+      };
+    });
+
+    expect(preview.sprintTitles).toEqual(['Sprint 12']);
+    expect(preview.sprintIds.every((value) => value === 'sprint-12')).toBeTruthy();
+  });
+
   test('roadmap rows can create and delete milestones while clearing task refs', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
