@@ -36,6 +36,9 @@ function buildTaskPayload(task, index) {
     dueDate: task.dueDate || '',
     priority: Object.hasOwn(task, 'priority') ? task.priority : null,
     effort: Object.hasOwn(task, 'effort') ? task.effort : null,
+    phaseId: Object.hasOwn(task, 'phaseId') ? task.phaseId : undefined,
+    milestoneId: Object.hasOwn(task, 'milestoneId') ? task.milestoneId : undefined,
+    sprintId: Object.hasOwn(task, 'sprintId') ? task.sprintId : undefined,
     status: task.status || 'backlog'
   };
 }
@@ -883,6 +886,35 @@ test.describe('portfolio-only app', () => {
     expect(result.schemaVersion).toBe(1);
     expect(result.task.assignees).toEqual(['Alex']);
     expect(result.hasLegacyAssigneeKey).toBe(false);
+  });
+
+  test('roadmap schema normalizes roadmap entities and task assignment ids', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [{
+        id: 1,
+        title: 'Mapped task',
+        status: 'to-do',
+        phaseId: 'phase_foundation',
+        milestoneId: 'milestone_alpha',
+        sprintId: 'sprint_12'
+      }],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'milestone_alpha', title: 'Alpha', dueDate: '2026-04-15' }],
+          phases: [{ id: 'phase_foundation', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: [{ id: 'sprint_12', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    const snapshot = await page.evaluate(() => structuredClone(getPortfolioBoardRecord('alpha').data));
+    expect(snapshot.extensions.roadmap.milestones).toHaveLength(1);
+    expect(snapshot.board.tasks[0].phaseId).toBe('phase_foundation');
   });
 
   test('task attachments save on the task and show in task details', async ({ page }) => {

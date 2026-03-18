@@ -2249,6 +2249,8 @@
         const BOARD_ARCHIVE_FILTER_VALUES = ['active', 'all', 'archived'];
         const TEAMOS_EXTENSIONS_KEY = 'teamOsKanban';
         const TASK_ATTACHMENTS_EXTENSIONS_KEY = 'taskAttachments';
+        const ROADMAP_EXTENSION_KEY = 'roadmap';
+        const ROADMAP_VERSION = 1;
         const TIMELINE_EXTENSION_KEY = 'timeline';
         const TIMELINE_VERSION = 1;
         const ATTACHMENT_MAX_COUNT = 10;
@@ -2657,6 +2659,86 @@
             return String(value).trim();
         }
 
+        function normalizeRoadmapRef(value) {
+            if (typeof value !== 'string') return '';
+            return value.trim();
+        }
+
+        function normalizeRoadmapDate(value) {
+            if (typeof value !== 'string') return '';
+            const trimmed = value.trim();
+            return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
+        }
+
+        function normalizeRoadmapItems(value, dateKeys) {
+            if (!Array.isArray(value)) return null;
+            const normalized = [];
+            for (const item of value) {
+                if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+                const allowedKeys = ['id', 'title', ...dateKeys];
+                const keys = Object.keys(item);
+                const hasRequiredKeys = typeof item.id === 'string' && item.id.trim()
+                    && typeof item.title === 'string' && item.title.trim();
+                const hasOnlyAllowedKeys = keys.every((key) => allowedKeys.includes(key));
+                if (!hasRequiredKeys || !hasOnlyAllowedKeys) return null;
+
+                const normalizedItem = {
+                    id: item.id.trim(),
+                    title: item.title.trim()
+                };
+
+                for (const key of dateKeys) {
+                    if (Object.prototype.hasOwnProperty.call(item, key)) {
+                        const normalizedDate = normalizeRoadmapDate(item[key]);
+                        if (!normalizedDate) return null;
+                        normalizedItem[key] = normalizedDate;
+                    }
+                }
+
+                normalized.push(normalizedItem);
+            }
+            return normalized;
+        }
+
+        function normalizeRoadmapExtension(value) {
+            if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+            if (Number(value.version) !== ROADMAP_VERSION) return null;
+            if (!hasExactKeys(value, ['version', 'milestones', 'phases', 'sprints'])) return null;
+
+            const milestones = normalizeRoadmapItems(value.milestones, ['dueDate']);
+            const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate']);
+            const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate']);
+            if (!milestones || !phases || !sprints) return null;
+
+            return {
+                version: ROADMAP_VERSION,
+                milestones,
+                phases,
+                sprints
+            };
+        }
+
+        function clearInvalidRoadmapTaskRefs(normalizedTask, roadmap) {
+            if (!normalizedTask || typeof normalizedTask !== 'object' || Array.isArray(normalizedTask)) return normalizedTask;
+            const normalizedRoadmap = normalizeRoadmapExtension(roadmap);
+            if (!normalizedRoadmap) return normalizedTask;
+
+            const phaseIds = new Set(normalizedRoadmap.phases.map((phase) => phase.id));
+            const milestoneIds = new Set(normalizedRoadmap.milestones.map((milestone) => milestone.id));
+            const sprintIds = new Set(normalizedRoadmap.sprints.map((sprint) => sprint.id));
+
+            if (normalizedTask.phaseId && !phaseIds.has(normalizedTask.phaseId)) {
+                normalizedTask.phaseId = '';
+            }
+            if (normalizedTask.milestoneId && !milestoneIds.has(normalizedTask.milestoneId)) {
+                normalizedTask.milestoneId = '';
+            }
+            if (normalizedTask.sprintId && !sprintIds.has(normalizedTask.sprintId)) {
+                normalizedTask.sprintId = '';
+            }
+            return normalizedTask;
+        }
+
         function getPortfolioBoardRecord(boardId) {
             return portfolioBoards.find(board => board.id === boardId) || null;
         }
@@ -2836,12 +2918,14 @@
             const meta = input.meta && typeof input.meta === 'object' ? input.meta : {};
             const board = input.board && typeof input.board === 'object' ? input.board : {};
             const settings = board.settings && typeof board.settings === 'object' ? board.settings : {};
+            const roadmap = normalizeRoadmapExtension(input.extensions?.[ROADMAP_EXTENSION_KEY]);
 
             const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
             const normalizedTasks = Array.isArray(board.tasks)
                 ? board.tasks.map(task => normalizeTask(task, {
                     fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
-                    includeStatusChangedAt: false
+                    includeStatusChangedAt: false,
+                    roadmap
                 }))
                 : [];
             const title = typeof settings.title === 'string' && settings.title.trim()
@@ -4672,6 +4756,9 @@
                 dueDate: normalizeDueDate(task.dueDate),
                 priority: normalizePriority(task.priority),
                 effort: normalizeEffort(task.effort),
+                phaseId: normalizeRoadmapRef(task.phaseId),
+                milestoneId: normalizeRoadmapRef(task.milestoneId),
+                sprintId: normalizeRoadmapRef(task.sprintId),
                 status: normalizeTaskStatus(task.status)
             };
             if (includeStatusChangedAt) {
@@ -4680,7 +4767,7 @@
                     normalizedTask.statusChangedAt = statusChangedAt;
                 }
             }
-            return normalizedTask;
+            return clearInvalidRoadmapTaskRefs(normalizedTask, options.roadmap);
         }
 
         function normalizeTaskAttachments(value) {
@@ -4787,6 +4874,12 @@
             if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) {
                 throw new Error('Invalid extensions structure.');
             }
+            if (Object.prototype.hasOwnProperty.call(data.extensions, ROADMAP_EXTENSION_KEY)) {
+                const normalizedRoadmap = normalizeRoadmapExtension(data.extensions[ROADMAP_EXTENSION_KEY]);
+                if (!normalizedRoadmap) {
+                    throw new Error('Invalid extensions.roadmap structure.');
+                }
+            }
             if (Object.prototype.hasOwnProperty.call(data.extensions, TIMELINE_EXTENSION_KEY)) {
                 const normalizedTimeline = normalizeTimelineExtension(data.extensions[TIMELINE_EXTENSION_KEY]);
                 if (!normalizedTimeline) {
@@ -4820,7 +4913,7 @@
 
             data.board.tasks.forEach((task) => {
                 const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-                const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt']);
+                const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
                 const taskKeys = Object.keys(task || {});
                 const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
                 const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -4868,6 +4961,15 @@
                 }
                 if ('assignees' in task && (!Array.isArray(task.assignees) || task.assignees.some((name) => typeof name !== 'string'))) {
                     throw new Error('Task assignees must be a string array.');
+                }
+                if ('phaseId' in task && typeof task.phaseId !== 'string') {
+                    throw new Error('Task phaseId must be a string.');
+                }
+                if ('milestoneId' in task && typeof task.milestoneId !== 'string') {
+                    throw new Error('Task milestoneId must be a string.');
+                }
+                if ('sprintId' in task && typeof task.sprintId !== 'string') {
+                    throw new Error('Task sprintId must be a string.');
                 }
                 if ('blocked' in task && typeof task.blocked !== 'boolean') {
                     throw new Error('Task blocked must be boolean.');
@@ -5430,6 +5532,15 @@
                 ? { ...base }
                 : {};
 
+            if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
+                const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);
+                if (normalizedRoadmap) {
+                    nextExtensions[ROADMAP_EXTENSION_KEY] = normalizedRoadmap;
+                } else {
+                    delete nextExtensions[ROADMAP_EXTENSION_KEY];
+                }
+            }
+
             if (!includeTimeline) {
                 delete nextExtensions[TIMELINE_EXTENSION_KEY];
                 return nextExtensions;
@@ -5444,6 +5555,10 @@
                 }
             }
             return nextExtensions;
+        }
+
+        function getRoadmapExtension(boardData) {
+            return normalizeRoadmapExtension(boardData?.extensions?.[ROADMAP_EXTENSION_KEY]);
         }
 
         function getTimelineExtensionObject(boardData, options = {}) {
@@ -5461,17 +5576,38 @@
             return extensions[TIMELINE_EXTENSION_KEY];
         }
 
+        function getRoadmapTaskFieldTasks(boardData, fieldName, refId) {
+            const normalizedRef = normalizeRoadmapRef(refId);
+            if (!normalizedRef) return [];
+            const tasks = Array.isArray(boardData?.board?.tasks) ? boardData.board.tasks : [];
+            return tasks.filter((task) => task && normalizeRoadmapRef(task[fieldName]) === normalizedRef);
+        }
+
+        function getTasksForMilestone(boardData, milestoneId) {
+            return getRoadmapTaskFieldTasks(boardData, 'milestoneId', milestoneId);
+        }
+
+        function getTasksForPhase(boardData, phaseId) {
+            return getRoadmapTaskFieldTasks(boardData, 'phaseId', phaseId);
+        }
+
+        function getTasksForSprint(boardData, sprintId) {
+            return getRoadmapTaskFieldTasks(boardData, 'sprintId', sprintId);
+        }
+
         function createBoardStateSnapshot(boardData) {
             const input = boardData && typeof boardData === 'object' ? boardData : {};
             const meta = input.meta && typeof input.meta === 'object' ? input.meta : {};
             const board = input.board && typeof input.board === 'object' ? input.board : {};
             const settings = board.settings && typeof board.settings === 'object' ? board.settings : {};
             const now = nowIso();
+            const roadmap = normalizeRoadmapExtension(input.extensions?.[ROADMAP_EXTENSION_KEY]);
             const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
             const normalizedTasks = Array.isArray(board.tasks)
                 ? board.tasks.map((task) => normalizeTask(task, {
                     fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
-                    includeStatusChangedAt: false
+                    includeStatusChangedAt: false,
+                    roadmap
                 }))
                 : [];
             const title = typeof settings.title === 'string' && settings.title.trim()
@@ -5501,7 +5637,8 @@
             if (!task) return null;
             return normalizeTask(task, {
                 fallbackAttachments: getTaskAttachments(boardData, taskId),
-                includeStatusChangedAt: false
+                includeStatusChangedAt: false,
+                roadmap: getRoadmapExtension(boardData)
             });
         }
 
@@ -5557,7 +5694,7 @@
         }
 
         function buildTaskTimelineChanges(beforeTask, afterTask) {
-            const fieldNames = ['title', 'description', 'assignees', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'status'];
+            const fieldNames = ['title', 'description', 'assignees', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status'];
             const changes = {};
             fieldNames.forEach((field) => {
                 const beforeValue = beforeTask ? beforeTask[field] : undefined;
