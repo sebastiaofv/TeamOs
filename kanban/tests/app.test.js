@@ -1297,6 +1297,11 @@ test.describe('portfolio-only app', () => {
 
     await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
     await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
+    const taskGridColumns = await page.locator('[data-roadmap-task-list="phase:p1"]').evaluate((node) => {
+      const columns = getComputedStyle(node).gridTemplateColumns.split(' ').filter(Boolean);
+      return columns.length;
+    });
+    expect(taskGridColumns).toBeGreaterThan(1);
   });
 
   test('roadmap rows support keyboard disclosure for task expansion', async ({ page }) => {

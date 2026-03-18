@@ -457,7 +457,12 @@
             width: 100%;
             display: grid;
             grid-template-columns: minmax(0, 1fr);
-            gap: 12px;
+            gap: 18px;
+        }
+
+        .portfolio-roadmap-header {
+            display: grid;
+            gap: 8px;
         }
 
         .portfolio-roadmap-timeline {
@@ -567,10 +572,11 @@
         }
 
         .roadmap-row {
+            position: relative;
             display: flex;
             flex-direction: column;
             gap: 6px;
-            padding: 6px 0;
+            padding: 6px 0 6px 0;
             border-bottom: 1px solid #efe8db;
         }
 
@@ -588,7 +594,7 @@
 
         .roadmap-row-main {
             display: grid;
-            grid-template-columns: minmax(150px, 210px) minmax(0, 1fr) auto;
+            grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
             gap: 14px;
             align-items: center;
             min-height: 28px;
@@ -628,11 +634,14 @@
         }
 
         .roadmap-row-actions {
+            position: absolute;
+            top: 8px;
+            right: 0;
             display: flex;
             gap: 4px;
-            flex-shrink: 0;
             opacity: 0.45;
             transition: opacity 120ms ease;
+            z-index: 2;
         }
 
         .roadmap-row:hover .roadmap-row-actions,
@@ -748,9 +757,10 @@
         .roadmap-task-list {
             display: grid;
             gap: 8px;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             padding: 2px 0 0 min(164px, 18vw);
             align-items: start;
+            grid-auto-flow: row dense;
         }
 
         .roadmap-task-list .portfolio-task-card-select,
@@ -761,6 +771,13 @@
         .roadmap-task-list .portfolio-task-card {
             cursor: pointer;
             height: 100%;
+            min-width: 0;
+        }
+
+        @media (min-width: 1080px) {
+            .roadmap-task-list {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
         }
 
         .roadmap-task-empty {
@@ -5230,10 +5247,10 @@
                                     `
                                     : `<div class="roadmap-row-timeline-bar" style="left:${placement?.left ?? 0}%;width:${placement?.width ?? 0}%"></div>`}
                             </div>
-                            <div class="roadmap-row-actions">
-                                <button class="roadmap-action-btn" type="button" aria-label="Edit ${escapeHtml(item.title)}" title="Edit" data-action="edit-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#9998;</button>
-                                <button class="roadmap-action-btn" type="button" aria-label="Delete ${escapeHtml(item.title)}" title="Delete" data-action="delete-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#128465;</button>
-                            </div>
+                        </div>
+                        <div class="roadmap-row-actions">
+                            <button class="roadmap-action-btn" type="button" aria-label="Edit ${escapeHtml(item.title)}" title="Edit" data-action="edit-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#9998;</button>
+                            <button class="roadmap-action-btn" type="button" aria-label="Delete ${escapeHtml(item.title)}" title="Delete" data-action="delete-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#128465;</button>
                         </div>
                         <div class="roadmap-expand-icon">${expanded ? 'Collapse' : 'Expand'}</div>
                         ${expanded
@@ -5270,10 +5287,12 @@
             const range = getVisibleRoadmapDateRange(roadmap);
             const axisTicks = getRoadmapAxisTicks(range);
             roadmapView.innerHTML = `
-                <div class="portfolio-roadmap-kicker">Roadmap</div>
-                <h2 class="portfolio-roadmap-title">${escapeHtml(boardTitle)}</h2>
-                <p class="portfolio-roadmap-copy">Create and manage milestones, phases, and sprints, then assign tasks to them from the task modal.</p>
                 <div class="portfolio-roadmap-grid">
+                    <div class="portfolio-roadmap-header">
+                        <div class="portfolio-roadmap-kicker">Roadmap</div>
+                        <h2 class="portfolio-roadmap-title">${escapeHtml(boardTitle)}</h2>
+                        <p class="portfolio-roadmap-copy">Create and manage milestones, phases, and sprints, then assign tasks to them from the task modal.</p>
+                    </div>
                     <div class="portfolio-roadmap-timeline">
                         <div class="roadmap-axis-shell">
                             <div class="roadmap-axis-label">Timeline</div>
