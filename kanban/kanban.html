@@ -3381,9 +3381,13 @@
             const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
             const startOffset = Math.max(0, Math.min(totalDays, getRoadmapDayDiff(range.start, bounds.start)));
             const endOffset = Math.max(startOffset, Math.min(totalDays, getRoadmapDayDiff(range.start, bounds.end)));
+            const rawLeft = (startOffset / totalDays) * 100;
+            const rawWidth = Math.max(((endOffset - startOffset + 1) / (totalDays + 1)) * 100, 2.5);
+            const left = Math.max(0, Math.min(100, rawLeft));
+            const width = Math.max(0, Math.min(100 - left, rawWidth));
             return {
-                left: (startOffset / totalDays) * 100,
-                width: Math.max(((endOffset - startOffset + 1) / (totalDays + 1)) * 100, 2.5),
+                left,
+                width,
                 point: (endOffset / totalDays) * 100
             };
         }

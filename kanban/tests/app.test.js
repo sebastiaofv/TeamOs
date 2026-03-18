@@ -1319,6 +1319,52 @@ test.describe('portfolio-only app', () => {
     expect(taskGridColumns).toBeGreaterThan(1);
   });
 
+  test('roadmap timeline bars stay contained within the track at edge dates', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [],
+          phases: [
+            { id: 'p1', title: 'Full Range', startDate: '2026-04-01', endDate: '2026-04-30' }
+          ],
+          sprints: [
+            { id: 's1', title: 'Closing Sprint', startDate: '2026-04-30', endDate: '2026-04-30' }
+          ]
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+
+    const placements = await page.locator('.roadmap-row-timeline-bar').evaluateAll((bars) => {
+      return bars.map((bar) => {
+        const track = bar.closest('.roadmap-row-track');
+        if (!track) return null;
+        const barRect = bar.getBoundingClientRect();
+        const trackRect = track.getBoundingClientRect();
+        return {
+          leftInside: barRect.left >= trackRect.left,
+          rightInside: barRect.right <= trackRect.right,
+          width: barRect.width,
+          trackWidth: trackRect.width
+        };
+      });
+    });
+
+    for (const placement of placements) {
+      expect(placement).not.toBeNull();
+      expect(placement.leftInside).toBeTruthy();
+      expect(placement.rightInside).toBeTruthy();
+      expect(placement.width).toBeLessThanOrEqual(placement.trackWidth);
+    }
+  });
+
   test('roadmap rows support keyboard disclosure for task expansion', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
