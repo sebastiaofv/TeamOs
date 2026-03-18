@@ -1056,7 +1056,9 @@ test.describe('portfolio-only app', () => {
       }
     ], { selectedBoardId: 'alpha' });
 
+    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
     await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
+    await expect(page.locator('#portfolioBulkActions')).toBeVisible();
     await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('1 task selected');
 
     await page.getByRole('button', { name: 'Create Sprint' }).click();
@@ -1065,10 +1067,12 @@ test.describe('portfolio-only app', () => {
     await page.fill('#roadmapEntityEndDate', '2026-04-14');
     await page.getByRole('button', { name: 'Save Item' }).click();
 
+    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
     await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('0 tasks selected');
     await expect(portfolioCard(page, 'Task A').locator('input[type="checkbox"]')).not.toBeChecked();
 
     await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+    await expect(page.locator('#portfolioBulkActions')).toBeVisible();
     await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('1 task selected');
 
     await page.evaluate(() => {
@@ -1082,6 +1086,7 @@ test.describe('portfolio-only app', () => {
       applyUrlState();
     });
     await expect(portfolioCard(page, 'Task A')).toBeVisible();
+    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
     await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('0 tasks selected');
     await expect(portfolioCard(page, 'Task B').locator('input[type="checkbox"]')).not.toBeChecked();
   });

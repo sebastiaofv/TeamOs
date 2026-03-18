@@ -5088,8 +5088,9 @@
                 && selectedPortfolioViewMode === 'board'
                 && canUsePortfolioTaskMutations(selectedPortfolioBoardId);
             const selectedCount = canShow ? getSelectedPortfolioBulkTaskIds(selectedPortfolioBoardId).length : 0;
+            const showActions = canShow && selectedCount > 0;
 
-            actions.classList.toggle('active', canShow);
+            actions.classList.toggle('active', showActions);
             summary.textContent = `${selectedCount} ${selectedCount === 1 ? 'task' : 'tasks'} selected`;
             createButton.disabled = selectedCount === 0;
         }
