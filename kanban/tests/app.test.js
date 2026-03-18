@@ -350,6 +350,17 @@ test.describe('portfolio-only app', () => {
     await expect(page).toHaveURL(/pv=roadmap/);
   });
 
+  test('invalid selected board query resets roadmap mode and clears URL state', async ({ page }) => {
+    await page.goto('/kanban.html?pb=ghost&pv=roadmap');
+    await expect(page.locator('#portfolioView')).toBeVisible();
+    await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'ghost' });
+
+    await expect(page.locator('#portfolioViewModeToggle')).toBeHidden();
+    await expect(page.locator('#portfolioBoard')).toBeVisible();
+    await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
+    await expect(page).toHaveURL(/\/kanban\.html$/);
+  });
+
   test('normalizeColumns keeps valid canonical columns and removes duplicates', async ({ page }) => {
     const columns = await page.evaluate(() => normalizeColumns([
       { status: 'Backlog', title: 'Ideas' },

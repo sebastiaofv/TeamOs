@@ -4355,15 +4355,24 @@
             `;
         }
 
+        function syncSelectedPortfolioBoardSelection() {
+            if (!selectedPortfolioBoardId) {
+                selectedPortfolioViewMode = 'board';
+                return;
+            }
+            if (portfolioBoards.length > 0 && !portfolioBoards.some((board) => board.id === selectedPortfolioBoardId)) {
+                selectedPortfolioBoardId = '';
+                selectedPortfolioViewMode = 'board';
+                return;
+            }
+            selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
+        }
+
         function renderPortfolio() {
             const boardWrap = document.getElementById('portfolioBoardWrap');
             if (!boardWrap) return;
 
-            if (!selectedPortfolioBoardId) {
-                selectedPortfolioViewMode = 'board';
-            } else {
-                selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
-            }
+            syncSelectedPortfolioBoardSelection();
             renderPortfolioAssigneeFilterOptions();
             renderTaskAssigneeSuggestions();
             const rows = getFilteredSortedPortfolioRows();
