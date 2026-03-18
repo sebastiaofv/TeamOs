@@ -340,6 +340,16 @@ test.describe('portfolio-only app', () => {
     expect(metrics.bodyScrollHeight).toBe(metrics.viewportHeight);
   });
 
+  test('selected project shows a board roadmap toggle and persists roadmap mode', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'alpha' });
+
+    await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+
+    await expect(page.locator('#portfolioRoadmapView')).toBeVisible();
+    await expect(page).toHaveURL(/pv=roadmap/);
+  });
+
   test('normalizeColumns keeps valid canonical columns and removes duplicates', async ({ page }) => {
     const columns = await page.evaluate(() => normalizeColumns([
       { status: 'Backlog', title: 'Ideas' },

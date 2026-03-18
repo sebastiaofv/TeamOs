@@ -407,6 +407,49 @@
             color: white;
         }
 
+        .portfolio-roadmap-view {
+            flex: 1;
+            min-height: 0;
+            background: var(--bg-card);
+            display: flex;
+            padding: 16px;
+        }
+
+        .portfolio-roadmap-shell {
+            width: 100%;
+            border: 1px dashed var(--border);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(245, 242, 234, 0.92));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 24px;
+        }
+
+        .portfolio-roadmap-kicker {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .portfolio-roadmap-title {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .portfolio-roadmap-copy {
+            margin: 0;
+            max-width: 56ch;
+            color: var(--text-secondary);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
         .portfolio-table-wrap {
             overflow: auto;
             flex: 1;
@@ -1953,6 +1996,10 @@
                     </div>
                 </div>
                 <div class="portfolio-toolbar-right">
+                    <div class="portfolio-view-toggle hidden" id="portfolioViewModeToggle" aria-label="Selected project view mode">
+                        <button class="btn active" type="button" data-view-mode="board">Board</button>
+                        <button class="btn" type="button" data-view-mode="roadmap">Roadmap</button>
+                    </div>
                     <button class="btn" id="resetPortfolioFiltersBtn">Reset Filters</button>
                     <button class="btn" id="importProjectsBtn">Import Projects</button>
                     <button class="btn btn-primary" id="newProjectBtn">+ New Project</button>
@@ -1963,6 +2010,7 @@
                 <div class="timeline-panel" id="portfolioTimelinePanel"></div>
                 <div class="portfolio-empty-banner hidden" id="portfolioBoardEmptyBanner"></div>
                 <div class="portfolio-board-grid" id="portfolioBoard"></div>
+                <div class="portfolio-roadmap-view hidden" id="portfolioRoadmapView"></div>
             </div>
         </div>
         <div class="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">Drop project files to import</div>
@@ -2271,6 +2319,7 @@
         let projectSaveStateById = new Map();
         let projectFileStateById = new Map();
         let selectedPortfolioBoardId = '';
+        let selectedPortfolioViewMode = 'board';
         let portfolioSortKey = 'priority';
         let portfolioSortDir = 'asc';
         let portfolioEditContext = null;
@@ -2356,6 +2405,7 @@
             if (portfolioSortKey !== 'priority') params.set('ps', portfolioSortKey);
             if (portfolioSortDir === 'desc') params.set('pd', portfolioSortDir);
             if (selectedPortfolioBoardId) params.set('pb', selectedPortfolioBoardId);
+            if (selectedPortfolioBoardId && selectedPortfolioViewMode === 'roadmap') params.set('pv', selectedPortfolioViewMode);
             const query = params.toString();
             const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
             window.history.replaceState(null, '', nextUrl);
@@ -2371,6 +2421,7 @@
             const portfolioSort = readQueryParam('ps', 'priority');
             const portfolioSortDirParam = readQueryParam('pd', 'asc');
             const portfolioBoard = readQueryParam('pb', '');
+            const portfolioViewMode = readQueryParam('pv', 'board');
 
             const pSearch = document.getElementById('portfolioSearchInput');
             const pPriority = document.getElementById('portfolioPriorityFilter');
@@ -2397,6 +2448,7 @@
             portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
             portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
             selectedPortfolioBoardId = portfolioBoard;
+            selectedPortfolioViewMode = selectedPortfolioBoardId ? normalizePortfolioViewMode(portfolioViewMode) : 'board';
             renderPortfolio();
         }
 
@@ -3781,6 +3833,9 @@
                 clearPortfolioTimelineSelection();
             }
             selectedPortfolioBoardId = boardId || '';
+            if (!selectedPortfolioBoardId) {
+                selectedPortfolioViewMode = 'board';
+            }
             renderPortfolio();
             updateUrlState();
         }
@@ -3798,6 +3853,7 @@
             portfolioBoards.splice(index, 1);
             if (selectedPortfolioBoardId === boardId) {
                 selectedPortfolioBoardId = '';
+                selectedPortfolioViewMode = 'board';
             }
             if (portfolioTimelineSelection.boardId === boardId) {
                 clearPortfolioTimelineSelection();
@@ -4204,8 +4260,6 @@
             const boardGrid = document.getElementById('portfolioBoard');
             const banner = document.getElementById('portfolioBoardEmptyBanner');
             if (!boardWrap || !boardGrid || !banner) return;
-
-            renderPortfolioTimelinePanel();
             const searchTerm = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
             const canAddTasks = Boolean(selectedPortfolioBoardId)
                 && isPortfolioBoardMutable(selectedPortfolioBoardId)
@@ -4263,10 +4317,53 @@
             });
         }
 
+        function normalizePortfolioViewMode(value) {
+            return value === 'roadmap' ? 'roadmap' : 'board';
+        }
+
+        function renderSelectedBoardViewToggle() {
+            const toggle = document.getElementById('portfolioViewModeToggle');
+            if (!toggle) return;
+
+            const hasSelectedBoard = Boolean(selectedPortfolioBoardId);
+            toggle.classList.toggle('hidden', !hasSelectedBoard);
+            if (!hasSelectedBoard) {
+                selectedPortfolioViewMode = 'board';
+                return;
+            }
+
+            selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
+            toggle.querySelectorAll('button[data-view-mode]').forEach((button) => {
+                const isActive = button.dataset.viewMode === selectedPortfolioViewMode;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            });
+        }
+
+        function renderPortfolioRoadmapView() {
+            const roadmapView = document.getElementById('portfolioRoadmapView');
+            if (!roadmapView) return;
+
+            const board = selectedPortfolioBoardId ? getPortfolioBoardRecord(selectedPortfolioBoardId) : null;
+            const boardTitle = board?.title || 'Selected project';
+            roadmapView.innerHTML = `
+                <div class="portfolio-roadmap-shell">
+                    <div class="portfolio-roadmap-kicker">Roadmap</div>
+                    <h2 class="portfolio-roadmap-title">${escapeHtml(boardTitle)}</h2>
+                    <p class="portfolio-roadmap-copy">Create a milestone, phase, or sprint to start planning this project as a roadmap. The shell is intentionally empty for now.</p>
+                </div>
+            `;
+        }
+
         function renderPortfolio() {
             const boardWrap = document.getElementById('portfolioBoardWrap');
             if (!boardWrap) return;
 
+            if (!selectedPortfolioBoardId) {
+                selectedPortfolioViewMode = 'board';
+            } else {
+                selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
+            }
             renderPortfolioAssigneeFilterOptions();
             renderTaskAssigneeSuggestions();
             const rows = getFilteredSortedPortfolioRows();
@@ -4274,7 +4371,20 @@
             syncHoveredPortfolioCardWithVisibleRows(rows);
             boardWrap.classList.remove('hidden');
             applyPortfolioSortSelect();
-            renderPortfolioBoardView(rows);
+            renderPortfolioTimelinePanel();
+            renderSelectedBoardViewToggle();
+
+            const boardGrid = document.getElementById('portfolioBoard');
+            const roadmapView = document.getElementById('portfolioRoadmapView');
+            const roadmapActive = Boolean(selectedPortfolioBoardId) && selectedPortfolioViewMode === 'roadmap';
+            if (boardGrid) boardGrid.classList.toggle('hidden', roadmapActive);
+            if (roadmapView) roadmapView.classList.toggle('hidden', !roadmapActive);
+
+            if (roadmapActive) {
+                renderPortfolioRoadmapView();
+            } else {
+                renderPortfolioBoardView(rows);
+            }
 
             renderPortfolioBoardChips();
             updateUrlState();
@@ -4570,6 +4680,16 @@
 
         function normalizePortfolioSortDir(value) {
             return value === 'desc' ? 'desc' : 'asc';
+        }
+
+        function handlePortfolioViewModeToggleClick(event) {
+            const button = event.target.closest('button[data-view-mode]');
+            if (!button || !selectedPortfolioBoardId) return;
+
+            const nextMode = normalizePortfolioViewMode(button.dataset.viewMode || '');
+            if (nextMode === selectedPortfolioViewMode) return;
+            selectedPortfolioViewMode = nextMode;
+            renderPortfolio();
         }
 
         function portfolioSortSelectValueFromKey(sortKey) {
@@ -6935,6 +7055,7 @@
 
         function cacheRefs() {
             Refs.portfolioView = document.getElementById('portfolioView');
+            Refs.portfolioViewModeToggle = document.getElementById('portfolioViewModeToggle');
             Refs.portfolioBoard = document.getElementById('portfolioBoard');
             Refs.portfolioBoardsChips = document.getElementById('portfolioBoardsChips');
             Refs.portfolioTimelinePanel = document.getElementById('portfolioTimelinePanel');
@@ -7308,6 +7429,7 @@
                 }
             });
             Refs.portfolioBoardsChips?.addEventListener('click', handlePortfolioBoardChipsClick);
+            Refs.portfolioViewModeToggle?.addEventListener('click', handlePortfolioViewModeToggleClick);
             Refs.portfolioTimelinePanel?.addEventListener('click', handleTimelinePanelClick);
             Refs.portfolioTimelinePanel?.addEventListener('input', handleTimelinePanelInput);
             Refs.portfolioBoard?.addEventListener('click', handlePortfolioBoardClick);
