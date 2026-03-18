@@ -1011,6 +1011,31 @@ test.describe('portfolio-only app', () => {
     expect(task.milestoneId).toBe('m1');
   });
 
+  test('checked board tasks can be grouped into a new sprint', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Task A', status: 'backlog' },
+        { id: 2, title: 'Task B', status: 'to-do' }
+      ]
+    }], { selectedBoardId: 'alpha' });
+
+    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
+    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+    await page.getByRole('button', { name: 'Create Sprint' }).click();
+    await page.fill('#roadmapEntityTitle', 'Sprint 12');
+    await page.fill('#roadmapEntityStartDate', '2026-04-01');
+    await page.fill('#roadmapEntityEndDate', '2026-04-14');
+    await page.getByRole('button', { name: 'Save Item' }).click();
+
+    const board = await page.evaluate(() => structuredClone(getPortfolioBoardRecord('alpha').data));
+    expect(board.extensions.roadmap.sprints).toHaveLength(1);
+    expect(board.board.tasks.every((task) => task.sprintId === board.extensions.roadmap.sprints[0].id)).toBeTruthy();
+  });
+
   test('roadmap rows can create and delete milestones while clearing task refs', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{

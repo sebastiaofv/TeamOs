@@ -830,6 +830,31 @@
             display: none;
         }
 
+        .portfolio-bulk-actions {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: #f7f3ea;
+        }
+
+        .portfolio-bulk-actions.active {
+            display: flex;
+        }
+
+        .portfolio-bulk-actions-summary {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .portfolio-bulk-actions-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .portfolio-board-grid {
             display: flex;
             gap: 1px;
@@ -887,6 +912,30 @@
 
         .portfolio-task-card:hover {
             transform: none;
+        }
+
+        .portfolio-task-card-select {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .portfolio-task-card-select input {
+            margin: 0;
+        }
+
+        .portfolio-task-card-select-label {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         .portfolio-task-card .task-action-btn:disabled {
@@ -2109,6 +2158,13 @@
             <div class="portfolio-board-wrap" id="portfolioBoardWrap">
                 <div class="timeline-panel" id="portfolioTimelinePanel"></div>
                 <div class="portfolio-empty-banner hidden" id="portfolioBoardEmptyBanner"></div>
+                <div class="portfolio-bulk-actions" id="portfolioBulkActions">
+                    <div class="portfolio-bulk-actions-summary" id="portfolioBulkActionsSummary">0 tasks selected</div>
+                    <div class="portfolio-bulk-actions-buttons">
+                        <button class="btn" type="button" id="portfolioBulkClearBtn">Clear</button>
+                        <button class="btn btn-primary" type="button" id="portfolioBulkCreateSprintBtn">Create Sprint</button>
+                    </div>
+                </div>
                 <div class="portfolio-board-grid" id="portfolioBoard"></div>
                 <div class="portfolio-roadmap-view hidden" id="portfolioRoadmapView"></div>
             </div>
@@ -2491,6 +2547,7 @@
         let portfolioCreateContext = null;
         let portfolioDetailContext = null;
         let roadmapEntityContext = null;
+        let portfolioBulkSelectionByBoardId = {};
         let portfolioDragContext = null;
         let selectedPortfolioCardRef = null;
         let hoveredPortfolioCardRef = null;
@@ -3056,6 +3113,58 @@
 
         function getPortfolioBoardRecord(boardId) {
             return portfolioBoards.find(board => board.id === boardId) || null;
+        }
+
+        function getPortfolioBulkSelection(boardId) {
+            return Array.isArray(portfolioBulkSelectionByBoardId[boardId]) ? portfolioBulkSelectionByBoardId[boardId] : [];
+        }
+
+        function isPortfolioTaskBulkSelected(boardId, taskId) {
+            return getPortfolioBulkSelection(boardId).includes(Number(taskId));
+        }
+
+        function clearPortfolioBulkSelection(boardId = '') {
+            if (boardId) {
+                delete portfolioBulkSelectionByBoardId[boardId];
+                return;
+            }
+            portfolioBulkSelectionByBoardId = {};
+        }
+
+        function syncPortfolioBulkSelection(boardId, boardData) {
+            const normalizedBoardId = String(boardId || '');
+            if (!normalizedBoardId) return;
+            const taskIds = new Set(Array.isArray(boardData?.board?.tasks) ? boardData.board.tasks.map((task) => Number(task.id)) : []);
+            const nextIds = getPortfolioBulkSelection(normalizedBoardId).filter((taskId) => taskIds.has(Number(taskId)));
+            if (nextIds.length > 0) {
+                portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
+                return;
+            }
+            delete portfolioBulkSelectionByBoardId[normalizedBoardId];
+        }
+
+        function togglePortfolioTaskBulkSelection(boardId, taskId, checked) {
+            const normalizedBoardId = String(boardId || '');
+            if (!normalizedBoardId) return;
+            const ids = new Set(getPortfolioBulkSelection(normalizedBoardId).map((value) => Number(value)));
+            if (checked) {
+                ids.add(Number(taskId));
+            } else {
+                ids.delete(Number(taskId));
+            }
+            const nextIds = [...ids];
+            if (nextIds.length > 0) {
+                portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
+                return;
+            }
+            delete portfolioBulkSelectionByBoardId[normalizedBoardId];
+        }
+
+        function getSelectedPortfolioBulkTaskIds(boardId) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord) return [];
+            syncPortfolioBulkSelection(boardId, boardRecord.data);
+            return getPortfolioBulkSelection(boardId);
         }
 
         function createProjectSaveState() {
@@ -4086,6 +4195,7 @@
         function selectPortfolioBoard(boardId) {
             if ((boardId || '') !== selectedPortfolioBoardId) {
                 clearPortfolioTimelineSelection();
+                clearPortfolioBulkSelection();
             }
             selectedPortfolioBoardId = boardId || '';
             if (!selectedPortfolioBoardId) {
@@ -4113,6 +4223,7 @@
             if (portfolioTimelineSelection.boardId === boardId) {
                 clearPortfolioTimelineSelection();
             }
+            clearPortfolioBulkSelection(boardId);
             projectSaveStateById.delete(boardId);
             projectFileStateById.delete(boardId);
             buildPortfolioTasks();
@@ -4481,6 +4592,9 @@
             const readOnlyTitle = item.historical ? 'Historical preview (read-only)' : 'Read-only (no file handle)';
             const assignees = taskAssignees(task);
             const statusAge = formatTaskStatusAge(task);
+            const showBulkSelect = Boolean(selectedPortfolioBoardId)
+                && selectedPortfolioBoardId === item.boardId
+                && canMutate;
             const metaParts = [
                 showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : '',
                 ...assignees.map((name) => `<span class="task-tag task-tag-assignee" title="Assignee">${escapeHtml(name)}</span>`),
@@ -4494,10 +4608,27 @@
                 task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(entry => entry.done).length}/${task.checklist.length} done</span>` : ''
             ].filter(Boolean);
             const taskMetaHtml = metaParts.length ? `<div class="task-meta">${metaParts.join('')}</div>` : '';
+            const bulkSelectHtml = showBulkSelect
+                ? `
+                    <label class="portfolio-task-card-select">
+                        <input
+                            type="checkbox"
+                            data-action="toggle-bulk-task-selection"
+                            data-board-id="${escapeHtml(item.boardId)}"
+                            data-task-id="${escapeHtml(String(item.taskId ?? task.id))}"
+                            ${isPortfolioTaskBulkSelected(item.boardId, task.id) ? 'checked' : ''}
+                        >
+                        <span class="portfolio-task-card-select-label">Select ${escapeHtml(task.title || `Task ${task.id}`)}</span>
+                    </label>
+                `
+                : '';
 
             div.innerHTML = `
                 <div class="task-header">
-                    <span class="task-title">${highlightedTitle}</span>
+                    <div style="display:flex;align-items:flex-start;min-width:0;flex:1;">
+                        ${bulkSelectHtml}
+                        <span class="task-title">${highlightedTitle}</span>
+                    </div>
                     <div class="task-actions">
                         <button class="task-action-btn" type="button" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Edit' : readOnlyTitle}" data-action="edit-task">${editButtonLabel}</button>
                         <button class="task-action-btn" type="button" ${canMutate ? '' : 'disabled'} title="${canMutate ? archiveButtonTitle : readOnlyTitle}" data-action="archive-task">${archiveButtonLabel}</button>
@@ -4507,7 +4638,30 @@
                 ${taskMetaHtml}
             `;
 
+            const bulkCheckbox = div.querySelector('input[data-action="toggle-bulk-task-selection"]');
+            if (bulkCheckbox) {
+                bulkCheckbox.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
+            }
+
             return div;
+        }
+
+        function renderPortfolioBulkActions() {
+            const actions = document.getElementById('portfolioBulkActions');
+            const summary = document.getElementById('portfolioBulkActionsSummary');
+            const createButton = document.getElementById('portfolioBulkCreateSprintBtn');
+            if (!actions || !summary || !createButton) return;
+
+            const canShow = Boolean(selectedPortfolioBoardId)
+                && selectedPortfolioViewMode === 'board'
+                && canUsePortfolioTaskMutations(selectedPortfolioBoardId);
+            const selectedCount = canShow ? getSelectedPortfolioBulkTaskIds(selectedPortfolioBoardId).length : 0;
+
+            actions.classList.toggle('active', canShow);
+            summary.textContent = `${selectedCount} ${selectedCount === 1 ? 'task' : 'tasks'} selected`;
+            createButton.disabled = selectedCount === 0;
         }
 
         function renderPortfolioBoardView(rows) {
@@ -4659,11 +4813,13 @@
         function syncSelectedPortfolioBoardSelection() {
             if (!selectedPortfolioBoardId) {
                 selectedPortfolioViewMode = 'board';
+                clearPortfolioBulkSelection();
                 return;
             }
             if (!getPortfolioBoardRecord(selectedPortfolioBoardId)) {
                 selectedPortfolioBoardId = '';
                 selectedPortfolioViewMode = 'board';
+                clearPortfolioBulkSelection();
                 return;
             }
             selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
@@ -4696,6 +4852,7 @@
                 renderPortfolioBoardView(rows);
             }
 
+            renderPortfolioBulkActions();
             renderPortfolioBoardChips();
             updateUrlState();
         }
@@ -4785,6 +4942,55 @@
 
             await enqueueProjectSave(boardRecord);
             return true;
+        }
+
+        function createSprintFromSelection(boardId, draft) {
+            const boardRecord = getPortfolioBoardRecord(boardId);
+            if (!boardRecord) return false;
+            const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
+            if (selectedTaskIds.length === 0) return false;
+            const sprintConfig = getRoadmapEntityConfig('sprints');
+            if (!sprintConfig) return false;
+
+            return runPortfolioBoardMutation(boardId, (boardData) => {
+                const roadmap = getRoadmapExtensionObject(boardData, { create: true });
+                const items = roadmap[sprintConfig.itemsKey];
+                const nextSprint = {
+                    id: slugifyRoadmapEntityId(draft.title, items),
+                    title: draft.title,
+                    startDate: draft.startDate,
+                    endDate: draft.endDate
+                };
+                const taskIdSet = new Set(selectedTaskIds.map((taskId) => Number(taskId)));
+                let assignedCount = 0;
+                const timestamp = nowIso();
+
+                boardData.board.tasks.forEach((task) => {
+                    if (!taskIdSet.has(Number(task?.id))) return;
+                    assignedCount += 1;
+                    task.sprintId = nextSprint.id;
+                    task.updatedAt = timestamp;
+                });
+
+                if (assignedCount === 0) {
+                    return false;
+                }
+
+                items.push(nextSprint);
+                appendTimelineEvent(boardData, {
+                    kind: 'roadmap.bulk-assigned',
+                    entityType: 'board',
+                    entityId: 'board',
+                    summary: `Sprint created from ${assignedCount} selected ${assignedCount === 1 ? 'task' : 'tasks'}: ${nextSprint.title}`,
+                    meta: {
+                        roadmapKind: 'sprints',
+                        roadmapItemId: nextSprint.id,
+                        action: 'create-from-selection',
+                        taskIds: [...taskIdSet]
+                    }
+                });
+                return true;
+            });
         }
 
         function getRoadmapItemTitle(roadmap, kind, refId) {
@@ -6742,7 +6948,7 @@
             roadmapEntityContext = null;
         }
 
-        function openRoadmapEntityModal(kind, itemId = '') {
+        function openRoadmapEntityModal(kind, itemId = '', options = {}) {
             const boardId = selectedPortfolioBoardId;
             const boardRecord = boardId ? getPortfolioBoardRecord(boardId) : null;
             if (!boardRecord) return;
@@ -6760,13 +6966,16 @@
             roadmapEntityContext = {
                 boardId,
                 kind,
-                itemId: item?.id || ''
+                itemId: item?.id || '',
+                mode: options.mode || 'default'
             };
 
             document.getElementById('roadmapEntityForm').reset();
             document.getElementById('roadmapEntityKind').value = kind;
             document.getElementById('roadmapEntityId').value = item?.id || '';
-            document.getElementById('roadmapEntityModalTitle').textContent = `${item ? 'Edit' : 'New'} ${config.label}`;
+            document.getElementById('roadmapEntityModalTitle').textContent = options.mode === 'create-sprint-from-selection'
+                ? 'Create Sprint'
+                : `${item ? 'Edit' : 'New'} ${config.label}`;
             document.getElementById('roadmapEntityTitle').value = item?.title || '';
             document.getElementById('roadmapEntityDateLabel').textContent = config.dateLabel || 'Date';
             document.getElementById('roadmapEntityDate').value = item?.dueDate || '';
@@ -6807,6 +7016,14 @@
             if (config.dateMode === 'range' && (!draft.startDate || !draft.endDate)) {
                 alert(`${config.label} requires valid start and end dates.`);
                 document.getElementById('roadmapEntityStartDate').focus();
+                return;
+            }
+            if (context.mode === 'create-sprint-from-selection') {
+                const changed = await createSprintFromSelection(context.boardId, draft);
+                if (!changed) return;
+                closeRoadmapEntityModal();
+                clearPortfolioBulkSelection(context.boardId);
+                renderPortfolio();
                 return;
             }
 
@@ -7598,6 +7815,7 @@
             Refs.portfolioViewModeToggle = document.getElementById('portfolioViewModeToggle');
             Refs.portfolioBoard = document.getElementById('portfolioBoard');
             Refs.portfolioRoadmapView = document.getElementById('portfolioRoadmapView');
+            Refs.portfolioBulkActions = document.getElementById('portfolioBulkActions');
             Refs.portfolioBoardsChips = document.getElementById('portfolioBoardsChips');
             Refs.portfolioTimelinePanel = document.getElementById('portfolioTimelinePanel');
             Refs.portfolioSearchInput = document.getElementById('portfolioSearchInput');
@@ -7834,6 +8052,13 @@
             openPortfolioTaskDetails(boardId, taskId);
         }
 
+        function handlePortfolioBoardChange(event) {
+            const checkbox = event.target.closest('input[data-action="toggle-bulk-task-selection"]');
+            if (!checkbox) return;
+            togglePortfolioTaskBulkSelection(checkbox.dataset.boardId || '', Number(checkbox.dataset.taskId), checkbox.checked);
+            renderPortfolioBulkActions();
+        }
+
         function handlePortfolioRoadmapViewClick(event) {
             const button = event.target.closest('button[data-action][data-roadmap-kind]');
             if (!button) return;
@@ -7850,6 +8075,26 @@
             }
             if (action === 'delete-roadmap-item') {
                 deleteRoadmapEntity(kind, itemId);
+            }
+        }
+
+        function openCreateSprintFromSelectionModal() {
+            const boardId = selectedPortfolioBoardId;
+            if (!boardId) return;
+            if (getSelectedPortfolioBulkTaskIds(boardId).length === 0) return;
+            openRoadmapEntityModal('sprints', '', { mode: 'create-sprint-from-selection' });
+        }
+
+        function handlePortfolioBulkActionsClick(event) {
+            const button = event.target.closest('button');
+            if (!button) return;
+            if (button.id === 'portfolioBulkClearBtn') {
+                clearPortfolioBulkSelection(selectedPortfolioBoardId);
+                renderPortfolio();
+                return;
+            }
+            if (button.id === 'portfolioBulkCreateSprintBtn') {
+                openCreateSprintFromSelectionModal();
             }
         }
 
@@ -8001,7 +8246,9 @@
             Refs.portfolioTimelinePanel?.addEventListener('click', handleTimelinePanelClick);
             Refs.portfolioTimelinePanel?.addEventListener('input', handleTimelinePanelInput);
             Refs.portfolioBoard?.addEventListener('click', handlePortfolioBoardClick);
+            Refs.portfolioBoard?.addEventListener('change', handlePortfolioBoardChange);
             Refs.portfolioRoadmapView?.addEventListener('click', handlePortfolioRoadmapViewClick);
+            Refs.portfolioBulkActions?.addEventListener('click', handlePortfolioBulkActionsClick);
             Refs.portfolioBoard?.addEventListener('pointerover', handlePortfolioBoardPointerOver);
             Refs.portfolioBoard?.addEventListener('pointerout', handlePortfolioBoardPointerOut);
             document.getElementById('taskChecklistItems')?.addEventListener('click', handleTaskChecklistEditorClick);
