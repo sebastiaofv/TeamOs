@@ -912,9 +912,36 @@ test.describe('portfolio-only app', () => {
       }
     }], { selectedBoardId: 'alpha' });
 
-    const snapshot = await page.evaluate(() => structuredClone(getPortfolioBoardRecord('alpha').data));
-    expect(snapshot.extensions.roadmap.milestones).toHaveLength(1);
-    expect(snapshot.board.tasks[0].phaseId).toBe('phase_foundation');
+    const snapshot = await page.evaluate(() => {
+      const source = structuredClone(getPortfolioBoardRecord('alpha').data);
+      validateBoardData(source);
+      const serialized = serializeBoardDataFromObject(source);
+      return structuredClone(serialized);
+    });
+
+    expect(snapshot.extensions.roadmap.version).toBe(1);
+    expect(snapshot.extensions.roadmap.milestones).toEqual([{
+      id: 'milestone_alpha',
+      title: 'Alpha',
+      dueDate: '2026-04-15'
+    }]);
+    expect(snapshot.extensions.roadmap.phases).toEqual([{
+      id: 'phase_foundation',
+      title: 'Foundation',
+      startDate: '2026-04-01',
+      endDate: '2026-04-30'
+    }]);
+    expect(snapshot.extensions.roadmap.sprints).toEqual([{
+      id: 'sprint_12',
+      title: 'Sprint 12',
+      startDate: '2026-04-01',
+      endDate: '2026-04-14'
+    }]);
+    expect(snapshot.board.tasks[0]).toMatchObject({
+      phaseId: 'phase_foundation',
+      milestoneId: 'milestone_alpha',
+      sprintId: 'sprint_12'
+    });
   });
 
   test('task attachments save on the task and show in task details', async ({ page }) => {
