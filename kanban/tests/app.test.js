@@ -1216,6 +1216,36 @@ test.describe('portfolio-only app', () => {
     expect(result.task.milestoneId).toBe('m1');
   });
 
+  test('roadmap view renders milestones phases and sprints with assigned task rows', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Task A', status: 'backlog', phaseId: 'p1', sprintId: 's1' },
+        { id: 2, title: 'Task B', status: 'to-do', milestoneId: 'm1' }
+      ],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'm1', title: 'Alpha Release', dueDate: '2026-04-15' }],
+          phases: [{ id: 'p1', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: [{ id: 's1', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await expect(page.locator('#portfolioRoadmapView')).toContainText('Milestones');
+    await expect(page.locator('[data-roadmap-kind="milestone"]')).toHaveCount(1);
+    await expect(page.locator('[data-roadmap-kind="phase"]')).toHaveCount(1);
+    await expect(page.locator('[data-roadmap-kind="sprint"]')).toHaveCount(1);
+
+    await page.locator('[data-roadmap-kind="phase"]').click();
+    await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
+  });
+
   test('roadmap entity modal traps shortcut context and Escape closes it', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
