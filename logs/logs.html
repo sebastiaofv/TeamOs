@@ -66,23 +66,8 @@
       padding:var(--sp-3) var(--sp-6);
       display:flex;
       align-items:center;
-      justify-content:space-between;
+      justify-content:center;
       gap:var(--sp-4);
-    }
-    .brand{
-      display:flex;
-      align-items:baseline;
-      gap:var(--sp-2);
-      white-space:nowrap;
-    }
-    .brand .title{
-      font-size:var(--fs-title);
-      font-weight:700;
-      letter-spacing:0.2px;
-    }
-    .brand .meta{
-      font-size:var(--fs-small);
-      color:var(--fg-secondary);
     }
 
     .controls{
@@ -90,7 +75,7 @@
       align-items:center;
       gap:var(--sp-2);
       flex-wrap:wrap;
-      justify-content:flex-end;
+      justify-content:center;
     }
 
     input[type="text"], select{
@@ -285,17 +270,6 @@
       align-items:center;
     }
 
-    .progress{
-      height:3px;
-      background:var(--border-light);
-      width:100%;
-    }
-    .progress > div{
-      height:3px;
-      background:var(--success);
-      width:0%;
-    }
-
     .sticky-subbar{
       position:sticky;
       top:54px;
@@ -327,11 +301,6 @@
 <body>
   <header class="appbar">
     <div class="appbar-inner">
-      <div class="brand">
-        <div class="title">Monitor</div>
-        <div class="meta">Logs + Audits unified by Request ID</div>
-      </div>
-
       <div class="controls">
         <input id="q" type="text" placeholder="Search request ID, user, message, table, column…" />
         <select id="scope">
@@ -830,12 +799,10 @@
               <div class="kv">
                 <div class="k">First</div><div class="v">${highlight(fmtTs(trace.minTs), qTxt)}</div>
                 <div class="k">Last</div><div class="v">${highlight(fmtTs(trace.maxTs), qTxt)}</div>
-                <div class="k">Scope</div><div class="v">${escapeHtml(f.scope.toUpperCase())}</div>
               </div>
             </div>
           </div>
         </div>
-        <div class="progress"><div style="width:${Math.min(100, unified.length * 8)}%"></div></div>
       </div>
     `;
 
