@@ -419,6 +419,7 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('.portfolio-calendar-title')).toHaveCount(0);
     await expect(page.locator('.portfolio-calendar-subtitle')).toHaveCount(0);
     await expect(page.locator('.portfolio-calendar-quarter-label')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Heat Map' })).toBeVisible();
     await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2026');
     await page.getByRole('button', { name: 'Previous year' }).click();
     await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2025');

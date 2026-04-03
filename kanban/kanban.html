@@ -461,6 +461,12 @@
             width: 100%;
         }
 
+        .portfolio-calendar-period-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .portfolio-calendar-period {
             min-width: 110px;
             padding: 5px 10px;
@@ -3326,6 +3332,7 @@
         let portfolioTimelineListScrollTopByBoardId = {};
         let portfolioRoadmapExpandedRowsByBoardId = {};
         let portfolioCalendarView = 'year';
+        let portfolioCalendarDisplayMode = 'calendar';
         let portfolioCalendarYear = null;
         let portfolioCalendarMonth = null;
         let ShortcutRegistry = [];
@@ -3998,6 +4005,9 @@
             if (!['year', 'month'].includes(portfolioCalendarView)) {
                 portfolioCalendarView = 'year';
             }
+            if (!['calendar', 'heatmap'].includes(portfolioCalendarDisplayMode)) {
+                portfolioCalendarDisplayMode = 'calendar';
+            }
             normalizePortfolioCalendarYear(items);
             normalizePortfolioCalendarMonth(items);
         }
@@ -4528,13 +4538,17 @@
             const bodyMarkup = portfolioCalendarView === 'month'
                 ? renderPortfolioCalendarMonthView(items, { aggregate })
                 : renderPortfolioCalendarYearView(items, { aggregate });
+            const toggleLabel = portfolioCalendarDisplayMode === 'heatmap' ? 'Calendar' : 'Heat Map';
 
             calendarViewNode.innerHTML = `
                 <div class="portfolio-calendar-header">
                     <div class="portfolio-calendar-controls">
                         ${portfolioCalendarView === 'month' ? '<button class="btn" type="button" data-action="calendar-back-to-year" aria-label="Back to year">Back to year</button>' : ''}
                         <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Previous month' : 'Previous year'}">Prev</button>
-                        <div class="portfolio-calendar-period">${escapeHtml(periodLabel)}</div>
+                        <div class="portfolio-calendar-period-group">
+                            <div class="portfolio-calendar-period">${escapeHtml(periodLabel)}</div>
+                            <button class="btn" type="button" data-action="calendar-toggle-mode">${escapeHtml(toggleLabel)}</button>
+                        </div>
                         <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-next-month' : 'calendar-next-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Next month' : 'Next year'}">Next</button>
                     </div>
                 </div>
@@ -10062,6 +10076,11 @@
                 }
                 if (action === 'calendar-back-to-year') {
                     portfolioCalendarView = 'year';
+                    renderPortfolio();
+                    return;
+                }
+                if (action === 'calendar-toggle-mode') {
+                    portfolioCalendarDisplayMode = portfolioCalendarDisplayMode === 'heatmap' ? 'calendar' : 'heatmap';
                     renderPortfolio();
                     return;
                 }
