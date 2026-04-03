@@ -428,12 +428,16 @@ test.describe('portfolio-only app', () => {
     await expect(toggleButton).toHaveCount(1);
     await expect(toggleButton).toHaveText('Heat Map');
     await expect(calendarHeader).toContainText('2026');
+    const calendarShell = page.locator('.portfolio-calendar-shell');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'calendar');
 
     await toggleButton.click();
     await expect(periodGroup.getByRole('button')).toHaveText('Calendar');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
 
     await periodGroup.getByRole('button', { name: 'Calendar' }).click();
     await expect(periodGroup.getByRole('button')).toHaveText('Heat Map');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'calendar');
 
     await page.getByRole('button', { name: 'Previous year' }).click();
     await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2025');

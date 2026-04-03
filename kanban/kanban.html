@@ -4552,7 +4552,7 @@
                         <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-next-month' : 'calendar-next-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Next month' : 'Next year'}">Next</button>
                     </div>
                 </div>
-                <div class="portfolio-calendar-shell" data-calendar-scope="${aggregate ? 'aggregate' : 'selected'}" data-calendar-view="${escapeHtml(portfolioCalendarView)}">
+                <div class="portfolio-calendar-shell" data-calendar-scope="${aggregate ? 'aggregate' : 'selected'}" data-calendar-view="${escapeHtml(portfolioCalendarView)}" data-calendar-display-mode="${portfolioCalendarDisplayMode}">
                     ${bodyMarkup}
                 </div>
             `;
