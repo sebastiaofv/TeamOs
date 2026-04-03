@@ -4373,6 +4373,47 @@
             });
         }
 
+        function getPortfolioCalendarTaskCountsByDay(items) {
+            return (Array.isArray(items) ? items : []).reduce((counts, item) => {
+                if (item?.kind !== 'task' || !item?.bounds?.start) return counts;
+                const isoDate = formatUtcIsoDate(item.bounds.start);
+                if (!isoDate) return counts;
+                counts.set(isoDate, (counts.get(isoDate) || 0) + 1);
+                return counts;
+            }, new Map());
+        }
+
+        function getPortfolioCalendarYearHeatStats(taskCounts, year) {
+            if (!Number.isInteger(year)) {
+                return { min: 0, max: 0 };
+            }
+            let min = Infinity;
+            let max = -Infinity;
+            const end = createUtcDate(year + 1, 0, 1);
+            for (let date = createUtcDate(year, 0, 1); date < end; date = addRoadmapDays(date, 1)) {
+                const isoDate = formatUtcIsoDate(date);
+                const count = taskCounts instanceof Map ? (taskCounts.get(isoDate) || 0) : 0;
+                min = Math.min(min, count);
+                max = Math.max(max, count);
+            }
+            if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                return { min: 0, max: 0 };
+            }
+            return { min, max };
+        }
+
+        function getPortfolioCalendarHeatColor(count, stats) {
+            const max = Math.max(0, Number(stats?.max) || 0);
+            const normalized = max > 0
+                ? Math.max(0, Math.min(1, (Number(count) || 0) / max))
+                : 0;
+            const hue = 118 - (normalized * 118);
+            const lightness = 91 - (normalized * 18);
+            const hueValue = hue.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+            const lightnessValue = lightness.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+            return `hsl(${hueValue} 68% ${lightnessValue}%)`;
+        }
+
         function renderPortfolioCalendarMiniMonth(items, year, month, options = {}) {
             const firstOfMonth = createUtcDate(year, month, 1);
             const leadingDays = firstOfMonth.getUTCDay();
@@ -4389,9 +4430,15 @@
                 if (inCurrentMonth) classes.push('portfolio-calendar-mini-day-current');
                 else classes.push('portfolio-calendar-mini-day-outside');
                 if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-mini-day-today');
+                const taskCount = inCurrentMonth && options.taskCounts instanceof Map
+                    ? (options.taskCounts.get(isoDate) || 0)
+                    : 0;
+                const heatStyle = options.heatmap && inCurrentMonth
+                    ? `background:${getPortfolioCalendarHeatColor(taskCount, options.heatStats)};`
+                    : '';
 
                 return `
-                    <div class="${classes.join(' ')}" data-calendar-mini-day="${escapeHtml(isoDate)}">
+                    <div class="${classes.join(' ')}" data-calendar-mini-day="${escapeHtml(isoDate)}" ${heatStyle ? `style="${heatStyle}"` : ''}>
                         <div class="portfolio-calendar-mini-day-number">${date.getUTCDate()}</div>
                         <div class="portfolio-calendar-mini-markers">
                             ${markers.map((marker) => {
@@ -4419,6 +4466,9 @@
 
         function renderPortfolioCalendarYearView(items, options = {}) {
             const year = portfolioCalendarYear;
+            const heatmap = Boolean(options.heatmap);
+            const taskCounts = heatmap ? getPortfolioCalendarTaskCountsByDay(items) : null;
+            const heatStats = heatmap ? getPortfolioCalendarYearHeatStats(taskCounts, year) : null;
             const quarterMarkup = Array.from({ length: 4 }, (_, quarterIndex) => {
                 const baseMonth = quarterIndex * 3;
                 const monthButtons = Array.from({ length: 3 }, (_, monthOffset) => {
@@ -4437,7 +4487,12 @@
                                 <span class="portfolio-calendar-month-name">${escapeHtml(CALENDAR_MONTH_NAMES[month])}</span>
                                 <span class="portfolio-calendar-month-count">${monthItems.length} item${monthItems.length === 1 ? '' : 's'}</span>
                             </div>
-                            ${renderPortfolioCalendarMiniMonth(monthItems, year, month, { aggregate: options.aggregate })}
+                            ${renderPortfolioCalendarMiniMonth(monthItems, year, month, {
+                                aggregate: options.aggregate,
+                                heatmap,
+                                taskCounts,
+                                heatStats
+                            })}
                         </button>
                     `;
                 }).join('');
@@ -4531,13 +4586,14 @@
             const items = buildPortfolioCalendarItems(rows);
             const aggregate = !selectedPortfolioBoardId;
             ensurePortfolioCalendarState(items);
+            const heatmap = portfolioCalendarDisplayMode === 'heatmap';
 
             const periodLabel = portfolioCalendarView === 'month'
                 ? getUtcMonthLabel(portfolioCalendarYear, portfolioCalendarMonth)
                 : String(portfolioCalendarYear);
             const bodyMarkup = portfolioCalendarView === 'month'
-                ? renderPortfolioCalendarMonthView(items, { aggregate })
-                : renderPortfolioCalendarYearView(items, { aggregate });
+                ? renderPortfolioCalendarMonthView(items, { aggregate, heatmap })
+                : renderPortfolioCalendarYearView(items, { aggregate, heatmap });
             const toggleLabel = portfolioCalendarDisplayMode === 'heatmap' ? 'Calendar' : 'Heat Map';
 
             calendarViewNode.innerHTML = `

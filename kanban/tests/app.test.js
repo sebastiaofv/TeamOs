@@ -402,6 +402,9 @@ test.describe('portfolio-only app', () => {
       tasks: [
         { id: 1, title: 'Due Task', status: 'backlog', dueDate: '2026-04-03' },
         { id: 3, title: 'Launch Task', status: 'backlog', dueDate: '2026-04-10' },
+        { id: 4, title: 'Scale Task', status: 'backlog', dueDate: '2026-04-10' },
+        { id: 5, title: 'Support Task', status: 'backlog', dueDate: '2026-04-10' },
+        { id: 6, title: 'September Task', status: 'backlog', dueDate: '2026-09-15' },
         { id: 2, title: 'Undated Task', status: 'backlog' }
       ],
       extensions: {
@@ -431,9 +434,46 @@ test.describe('portfolio-only app', () => {
     const calendarShell = page.locator('.portfolio-calendar-shell');
     await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'calendar');
 
+    const calendarModeYearColors = await page.evaluate(() => {
+      const readBackground = (selector) => {
+        const node = document.querySelector(selector);
+        return node ? getComputedStyle(node).backgroundColor : '';
+      };
+      return {
+        zero: readBackground('.portfolio-calendar-month-card[data-month="3"] [data-calendar-mini-day="2026-04-02"]'),
+        single: readBackground('.portfolio-calendar-month-card[data-month="3"] [data-calendar-mini-day="2026-04-03"]'),
+        high: readBackground('.portfolio-calendar-month-card[data-month="3"] [data-calendar-mini-day="2026-04-10"]'),
+        sameCount: readBackground('.portfolio-calendar-month-card[data-month="8"] [data-calendar-mini-day="2026-09-15"]'),
+        aprilCard: readBackground('.portfolio-calendar-month-card[data-month="3"]')
+      };
+    });
+
     await toggleButton.click();
     await expect(periodGroup.getByRole('button')).toHaveText('Calendar');
     await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
+
+    const heatMapYearColors = await page.evaluate(() => {
+      const readBackground = (selector) => {
+        const node = document.querySelector(selector);
+        return node ? getComputedStyle(node).backgroundColor : '';
+      };
+      return {
+        zero: readBackground('.portfolio-calendar-month-card[data-month="3"] [data-calendar-mini-day="2026-04-02"]'),
+        single: readBackground('.portfolio-calendar-month-card[data-month="3"] [data-calendar-mini-day="2026-04-03"]'),
+        high: readBackground('.portfolio-calendar-month-card[data-month="3"] [data-calendar-mini-day="2026-04-10"]'),
+        sameCount: readBackground('.portfolio-calendar-month-card[data-month="8"] [data-calendar-mini-day="2026-09-15"]'),
+        aprilCard: readBackground('.portfolio-calendar-month-card[data-month="3"]')
+      };
+    });
+    const parseRgb = (value) => ((value.match(/\d+(?:\.\d+)?/g) || []).slice(0, 3).map(Number));
+    const zeroRgb = parseRgb(heatMapYearColors.zero);
+    const highRgb = parseRgb(heatMapYearColors.high);
+
+    expect(heatMapYearColors.high).not.toBe(calendarModeYearColors.high);
+    expect(heatMapYearColors.aprilCard).toBe(calendarModeYearColors.aprilCard);
+    expect(heatMapYearColors.single).toBe(heatMapYearColors.sameCount);
+    expect(zeroRgb[1]).toBeGreaterThan(highRgb[1]);
+    expect(highRgb[0]).toBeGreaterThan(zeroRgb[0]);
 
     await periodGroup.getByRole('button', { name: 'Calendar' }).click();
     await expect(periodGroup.getByRole('button')).toHaveText('Heat Map');
@@ -483,7 +523,7 @@ test.describe('portfolio-only app', () => {
     await expect(aprilCard.locator('.portfolio-calendar-mini-day').first()).toHaveCSS('min-height', '48px');
     await expect(aprilCard.locator('[data-calendar-mini-day="2026-04-03"]')).toHaveCount(1);
     await expect(aprilCard.locator('[data-calendar-mini-day="2026-04-10"]')).toHaveCount(1);
-    await expect(aprilCard.locator('.portfolio-calendar-mini-marker')).toHaveCount(6);
+    await expect(aprilCard.locator('.portfolio-calendar-mini-marker')).toHaveCount(8);
 
     await page.getByRole('button', { name: 'Open April 2026' }).click();
 
