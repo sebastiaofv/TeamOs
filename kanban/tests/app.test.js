@@ -419,8 +419,22 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('.portfolio-calendar-title')).toHaveCount(0);
     await expect(page.locator('.portfolio-calendar-subtitle')).toHaveCount(0);
     await expect(page.locator('.portfolio-calendar-quarter-label')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Heat Map' })).toBeVisible();
-    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2026');
+    const calendarHeader = page.locator('#portfolioCalendarView .portfolio-calendar-header');
+    const periodGroup = calendarHeader.locator('.portfolio-calendar-period-group');
+    const toggleButton = periodGroup.getByRole('button');
+
+    await expect(periodGroup).toBeVisible();
+    await expect(periodGroup.locator('.portfolio-calendar-period')).toBeVisible();
+    await expect(toggleButton).toHaveCount(1);
+    await expect(toggleButton).toHaveText('Heat Map');
+    await expect(calendarHeader).toContainText('2026');
+
+    await toggleButton.click();
+    await expect(periodGroup.getByRole('button')).toHaveText('Calendar');
+
+    await periodGroup.getByRole('button', { name: 'Calendar' }).click();
+    await expect(periodGroup.getByRole('button')).toHaveText('Heat Map');
+
     await page.getByRole('button', { name: 'Previous year' }).click();
     await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2025');
     await page.getByRole('button', { name: 'Next year' }).click();
