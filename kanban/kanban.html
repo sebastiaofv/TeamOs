@@ -4402,6 +4402,25 @@
             return { min, max };
         }
 
+        function getPortfolioCalendarMonthHeatStats(taskCounts, year, month) {
+            if (!Number.isInteger(year) || !Number.isInteger(month)) {
+                return { min: 0, max: 0 };
+            }
+            let min = Infinity;
+            let max = -Infinity;
+            const end = createUtcDate(year, month + 1, 1);
+            for (let date = createUtcDate(year, month, 1); date < end; date = addRoadmapDays(date, 1)) {
+                const isoDate = formatUtcIsoDate(date);
+                const count = taskCounts instanceof Map ? (taskCounts.get(isoDate) || 0) : 0;
+                min = Math.min(min, count);
+                max = Math.max(max, count);
+            }
+            if (!Number.isFinite(min) || !Number.isFinite(max)) {
+                return { min: 0, max: 0 };
+            }
+            return { min, max };
+        }
+
         function getPortfolioCalendarHeatColor(count, stats) {
             const max = Math.max(0, Number(stats?.max) || 0);
             const normalized = max > 0
@@ -4517,6 +4536,9 @@
             const firstOfMonth = createUtcDate(year, month, 1);
             const leadingDays = firstOfMonth.getUTCDay();
             const gridStart = addRoadmapDays(firstOfMonth, -leadingDays);
+            const heatmap = Boolean(options.heatmap);
+            const taskCounts = heatmap ? getPortfolioCalendarTaskCountsByDay(items) : null;
+            const heatStats = heatmap ? getPortfolioCalendarMonthHeatStats(taskCounts, year, month) : null;
             const canCreateTasks = Boolean(selectedPortfolioBoardId) && canUsePortfolioTaskMutations(selectedPortfolioBoardId);
             const weekMarkup = Array.from({ length: 6 }, (_, weekIndex) => {
                 const weekStart = addRoadmapDays(gridStart, weekIndex * 7);
@@ -4532,15 +4554,23 @@
                     const taskItems = visibleItems.filter((item) => item?.kind === 'task');
                     const overflow = Math.max(0, dayItems.length - visibleItems.length);
                     const classes = ['portfolio-calendar-day-cell'];
-                    if (date.getUTCMonth() === month) classes.push('portfolio-calendar-day-cell-current');
+                    const inCurrentMonth = date.getUTCMonth() === month;
+                    if (inCurrentMonth) classes.push('portfolio-calendar-day-cell-current');
                     else classes.push('portfolio-calendar-day-cell-outside');
                     if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-day-cell-today');
-                    if (canCreateTasks && date.getUTCMonth() === month) classes.push('portfolio-calendar-day-cell-actionable');
+                    if (canCreateTasks && inCurrentMonth) classes.push('portfolio-calendar-day-cell-actionable');
+                    const taskCount = inCurrentMonth && taskCounts instanceof Map
+                        ? (taskCounts.get(isoDate) || 0)
+                        : 0;
+                    const heatStyle = heatmap && inCurrentMonth
+                        ? `background:${getPortfolioCalendarHeatColor(taskCount, heatStats)};`
+                        : '';
                     return `
                         <div
                             class="${classes.join(' ')}"
                             data-calendar-day="${escapeHtml(isoDate)}"
-                        ${canCreateTasks && date.getUTCMonth() === month ? `data-action="create-calendar-task" data-due-date="${escapeHtml(isoDate)}"` : ''}
+                            ${heatStyle ? `style="${heatStyle}"` : ''}
+                        ${canCreateTasks && inCurrentMonth ? `data-action="create-calendar-task" data-due-date="${escapeHtml(isoDate)}"` : ''}
                     >
                         <div class="portfolio-calendar-day-number">${date.getUTCDate()}</div>
                         ${roadmapItems.length > 0 ? `

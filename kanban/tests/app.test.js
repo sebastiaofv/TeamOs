@@ -400,6 +400,10 @@ test.describe('portfolio-only app', () => {
       hasHandle: true,
       title: 'Alpha',
       tasks: [
+        { id: 7, title: 'March Peak A', status: 'backlog', dueDate: '2026-03-31' },
+        { id: 8, title: 'March Peak B', status: 'backlog', dueDate: '2026-03-31' },
+        { id: 9, title: 'March Peak C', status: 'backlog', dueDate: '2026-03-31' },
+        { id: 10, title: 'March Peak D', status: 'backlog', dueDate: '2026-03-31' },
         { id: 1, title: 'Due Task', status: 'backlog', dueDate: '2026-04-03' },
         { id: 3, title: 'Launch Task', status: 'backlog', dueDate: '2026-04-10' },
         { id: 4, title: 'Scale Task', status: 'backlog', dueDate: '2026-04-10' },
@@ -525,10 +529,39 @@ test.describe('portfolio-only app', () => {
     await expect(aprilCard.locator('[data-calendar-mini-day="2026-04-10"]')).toHaveCount(1);
     await expect(aprilCard.locator('.portfolio-calendar-mini-marker')).toHaveCount(8);
 
+    await toggleButton.click();
+    await expect(periodGroup.getByRole('button')).toHaveText('Calendar');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
     await page.getByRole('button', { name: 'Open April 2026' }).click();
 
     await expect(page.locator('#portfolioCalendarView')).toContainText('April 2026');
     await expect(page.getByRole('button', { name: 'Back to year' })).toBeVisible();
+    await expect(calendarShell).toHaveAttribute('data-calendar-view', 'month');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
+
+    const monthHeatColors = await page.evaluate(() => {
+      const readBackground = (selector) => {
+        const node = document.querySelector(selector);
+        return node ? getComputedStyle(node).backgroundColor : '';
+      };
+      return {
+        zero: readBackground('[data-calendar-day="2026-04-02"]'),
+        single: readBackground('[data-calendar-day="2026-04-03"]'),
+        high: readBackground('[data-calendar-day="2026-04-10"]'),
+        outsideTask: readBackground('[data-calendar-day="2026-03-31"]'),
+        outsideEmpty: readBackground('[data-calendar-day="2026-03-30"]')
+      };
+    });
+    const monthZeroRgb = parseRgb(monthHeatColors.zero);
+    const monthHighRgb = parseRgb(monthHeatColors.high);
+    const yearHighRgb = parseRgb(heatMapYearColors.high);
+
+    expect(monthHeatColors.high).not.toBe(monthHeatColors.outsideTask);
+    expect(monthHeatColors.outsideTask).toBe(monthHeatColors.outsideEmpty);
+    expect(monthHeatColors.high).not.toBe(heatMapYearColors.high);
+    expect(monthHighRgb[1]).toBeLessThan(yearHighRgb[1]);
+    expect(monthZeroRgb[1]).toBeGreaterThan(monthHighRgb[1]);
+    expect(monthHighRgb[0]).toBeGreaterThan(monthZeroRgb[0]);
 
     await expect(page.locator('.portfolio-calendar-week-roadmap')).toHaveCount(0);
 
