@@ -420,6 +420,14 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('.portfolio-calendar-subtitle')).toHaveCount(0);
     await expect(page.locator('.portfolio-calendar-quarter-label')).toHaveCount(0);
     await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2026');
+    await page.getByRole('button', { name: 'Previous year' }).click();
+    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2025');
+    await page.getByRole('button', { name: 'Next year' }).click();
+    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2026');
+    await page.getByRole('button', { name: 'Next year' }).click();
+    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2027');
+    await page.getByRole('button', { name: 'Previous year' }).click();
+    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2026');
 
     const calendarLayout = await page.evaluate(() => {
       const view = document.getElementById('portfolioCalendarView');
@@ -450,6 +458,7 @@ test.describe('portfolio-only app', () => {
 
     const aprilCard = page.locator('.portfolio-calendar-month-card[data-month="3"]');
     await expect(aprilCard).toBeVisible();
+    await expect(aprilCard.locator('.portfolio-calendar-month-name')).toHaveText('April');
     await expect(aprilCard.locator('.portfolio-calendar-mini-month-grid')).toHaveCount(1);
     await expect(aprilCard.locator('.portfolio-calendar-mini-day')).toHaveCount(35);
     await expect(aprilCard.locator('.portfolio-calendar-mini-day').first()).toHaveCSS('min-height', '48px');
