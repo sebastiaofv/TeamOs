@@ -532,6 +532,12 @@ test.describe('portfolio-only app', () => {
     await toggleButton.click();
     await expect(periodGroup.getByRole('button')).toHaveText('Calendar');
     await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
+    await page.getByRole('button', { name: 'Previous year' }).click();
+    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2025');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
+    await page.getByRole('button', { name: 'Next year' }).click();
+    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2026');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
     await page.getByRole('button', { name: 'Open April 2026' }).click();
 
     await expect(page.locator('#portfolioCalendarView')).toContainText('April 2026');
@@ -562,6 +568,19 @@ test.describe('portfolio-only app', () => {
     expect(monthHighRgb[1]).toBeLessThan(yearHighRgb[1]);
     expect(monthZeroRgb[1]).toBeGreaterThan(monthHighRgb[1]);
     expect(monthHighRgb[0]).toBeGreaterThan(monthZeroRgb[0]);
+
+    await page.getByRole('button', { name: 'Next month' }).click();
+    await expect(page.locator('#portfolioCalendarView')).toContainText('May 2026');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
+    await page.getByRole('button', { name: 'Previous month' }).click();
+    await expect(page.locator('#portfolioCalendarView')).toContainText('April 2026');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
+    await page.getByRole('button', { name: 'Back to year' }).click();
+    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2026');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
+    await page.getByRole('button', { name: 'Open April 2026' }).click();
+    await expect(page.locator('#portfolioCalendarView')).toContainText('April 2026');
+    await expect(calendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
 
     await expect(page.locator('.portfolio-calendar-week-roadmap')).toHaveCount(0);
 
@@ -634,27 +653,40 @@ test.describe('portfolio-only app', () => {
         id: 'bravo',
         hasHandle: true,
         title: 'Bravo',
-        tasks: [{ id: 2, title: 'Bravo Due', status: 'backlog', dueDate: '2026-04-09' }]
+        tasks: [
+          { id: 2, title: 'Bravo Due', status: 'backlog', dueDate: '2026-04-03' },
+          { id: 3, title: 'Bravo Later', status: 'backlog', dueDate: '2026-04-09' }
+        ]
       }
     ]);
 
     await page.getByRole('button', { name: 'Calendar' }).click();
+    const aggregateCalendarShell = page.locator('.portfolio-calendar-shell');
+    await expect(page.getByRole('button', { name: 'Heat Map' })).toBeVisible();
+    await page.getByRole('button', { name: 'Heat Map' }).click();
+    await expect(aggregateCalendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
     await page.getByRole('button', { name: 'Open April 2026' }).click();
+    await expect(aggregateCalendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
 
     await expect(page.locator('#portfolioCalendarView')).toContainText('Alpha Due');
     await expect(page.locator('#portfolioCalendarView')).toContainText('Bravo Due');
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Bravo Later');
     await expect(page.locator('#portfolioCalendarView')).toContainText('Launch');
 
     const styles = await page.evaluate(() => {
       const alpha = document.querySelector('[data-calendar-item-title="Alpha Due"]');
       const bravo = document.querySelector('[data-calendar-item-title="Bravo Due"]');
       const roadmap = document.querySelector('[data-calendar-day="2026-04-03"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title="Launch"]');
-      if (!alpha || !bravo || !roadmap) return null;
+      const aggregateHigh = document.querySelector('[data-calendar-day="2026-04-03"]');
+      const aggregateLow = document.querySelector('[data-calendar-day="2026-04-09"]');
+      if (!alpha || !bravo || !roadmap || !aggregateHigh || !aggregateLow) return null;
       return {
         selectedPortfolioBoardId,
         alphaLabel: alpha.textContent?.trim() || '',
         alphaTitle: alpha.getAttribute('title') || '',
         alphaBackground: getComputedStyle(alpha).backgroundColor,
+        aggregateHighBackground: getComputedStyle(aggregateHigh).backgroundColor,
+        aggregateLowBackground: getComputedStyle(aggregateLow).backgroundColor,
         roadmapLabel: roadmap.textContent?.trim() || '',
         roadmapTitle: roadmap.getAttribute('title') || '',
         bravoBackground: getComputedStyle(bravo).backgroundColor
@@ -670,6 +702,7 @@ test.describe('portfolio-only app', () => {
     expect(styles.roadmapTitle).toBe('Launch');
     expect(styles.bravoBackground).not.toBe('rgba(0, 0, 0, 0)');
     expect(styles.alphaBackground).not.toBe(styles.bravoBackground);
+    expect(styles.aggregateHighBackground).not.toBe(styles.aggregateLowBackground);
 
     await page.locator('[data-calendar-item-title="Alpha Due"]').click();
 
