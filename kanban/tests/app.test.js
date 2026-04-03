@@ -340,14 +340,17 @@ test.describe('portfolio-only app', () => {
     expect(metrics.bodyScrollHeight).toBe(metrics.viewportHeight);
   });
 
-  test('selected project shows a board roadmap toggle and persists roadmap mode', async ({ page }) => {
+  test('selected project shows board roadmap calendar toggles and persists calendar mode', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'alpha' });
 
     await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
-    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await expect(page.getByRole('button', { name: 'Board' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Roadmap' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Calendar' })).toBeVisible();
+    await page.getByRole('button', { name: 'Calendar' }).click();
 
-    await expect(page.locator('#portfolioRoadmapView')).toBeVisible();
-    await expect(page).toHaveURL(/pv=roadmap/);
+    await expect(page.locator('#portfolioCalendarView')).toBeVisible();
+    await expect(page).toHaveURL(/pv=calendar/);
   });
 
   test('invalid selected board query resets roadmap mode and clears URL state', async ({ page }) => {
@@ -355,10 +358,124 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolioView')).toBeVisible();
     await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'ghost' });
 
-    await expect(page.locator('#portfolioViewModeToggle')).toBeHidden();
+    await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Calendar' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Board' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
     await expect(page.locator('#portfolioBoard')).toBeVisible();
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
     await expect(page).toHaveURL(/\/kanban\.html$/);
+  });
+
+  test('aggregate portfolio shows calendar mode without selecting a board and persists calendar url state', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] },
+      { id: 'bravo', hasHandle: true, title: 'Bravo', tasks: [] }
+    ]);
+
+    await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Calendar' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Board' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Calendar' }).click();
+
+    await expect(page.locator('#portfolioCalendarView')).toBeVisible();
+    await expect(page).toHaveURL(/pv=calendar/);
+    await expect(page).not.toHaveURL(/pb=/);
+  });
+
+  test('calendar view renders roadmap items and due-date tasks with month drill-down', async ({ page }) => {
+    await seedPortfolioBoards(page, [{
+      id: 'alpha',
+      hasHandle: true,
+      title: 'Alpha',
+      tasks: [
+        { id: 1, title: 'Due Task', status: 'backlog', dueDate: '2026-04-03' },
+        { id: 2, title: 'Undated Task', status: 'backlog' }
+      ],
+      extensions: {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'm1', title: 'Launch', dueDate: '2026-04-10' }],
+          phases: [{ id: 'p1', title: 'Build', startDate: '2026-04-01', endDate: '2026-05-15' }],
+          sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2026-04-01', endDate: '2026-04-14' }]
+        }
+      }
+    }], { selectedBoardId: 'alpha' });
+
+    await page.getByRole('button', { name: 'Calendar' }).click();
+
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Q2');
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Due Task');
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Launch');
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Build');
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Sprint 1');
+    await expect(page.locator('#portfolioCalendarView')).not.toContainText('Undated Task');
+
+    await page.getByRole('button', { name: 'Open April 2026' }).click();
+
+    await expect(page.locator('#portfolioCalendarView')).toContainText('April 2026');
+    await expect(page.getByRole('button', { name: 'Back to year' })).toBeVisible();
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Due Task');
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Launch');
+    await expect(page.locator('#portfolioCalendarView')).not.toContainText('Undated Task');
+  });
+
+  test('aggregate calendar keeps cross-board context, uses board colors, and opens task detail without selecting a board', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'alpha',
+        hasHandle: true,
+        title: 'Alpha',
+        tasks: [{ id: 1, title: 'Alpha Due', status: 'backlog', dueDate: '2026-04-03' }]
+      },
+      {
+        id: 'bravo',
+        hasHandle: true,
+        title: 'Bravo',
+        tasks: [{ id: 2, title: 'Bravo Due', status: 'backlog', dueDate: '2026-04-09' }]
+      }
+    ]);
+
+    await page.getByRole('button', { name: 'Calendar' }).click();
+    await page.getByRole('button', { name: 'Open April 2026' }).click();
+
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Alpha Due');
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Bravo Due');
+
+    const styles = await page.evaluate(() => {
+      const alpha = document.querySelector('[data-calendar-item-title="Alpha Due"]');
+      const bravo = document.querySelector('[data-calendar-item-title="Bravo Due"]');
+      if (!alpha || !bravo) return null;
+      return {
+        selectedPortfolioBoardId,
+        alphaBackground: getComputedStyle(alpha).backgroundColor,
+        bravoBackground: getComputedStyle(bravo).backgroundColor
+      };
+    });
+
+    expect(styles).not.toBeNull();
+    expect(styles.selectedPortfolioBoardId).toBe('');
+    expect(styles.alphaBackground).not.toBe('rgba(0, 0, 0, 0)');
+    expect(styles.bravoBackground).not.toBe('rgba(0, 0, 0, 0)');
+    expect(styles.alphaBackground).not.toBe(styles.bravoBackground);
+
+    await page.locator('[data-calendar-item-title="Alpha Due"]').click();
+
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Alpha Due');
+    await expect(page.locator('#detailDescription')).toHaveText('-');
+
+    const state = await page.evaluate(() => ({
+      selectedPortfolioBoardId,
+      viewMode: selectedPortfolioViewMode
+    }));
+
+    expect(state).toEqual({
+      selectedPortfolioBoardId: '',
+      viewMode: 'calendar'
+    });
   });
 
   test('stale selected board query resets roadmap mode on empty startup portfolio', async ({ page }) => {
