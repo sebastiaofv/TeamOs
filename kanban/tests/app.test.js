@@ -152,7 +152,7 @@ async function seedPortfolioBoards(
   }, { boards: seededBoards, selectedBoardId, sortKey, sortDir });
 }
 
-async function mockNewProjectFlow(page, { promptValue = 'New Project', fileName = 'new-project.board.json' } = {}) {
+async function mockNewProjectFlow(page, { promptValue = 'New Project', fileName = 'new-project.json' } = {}) {
   await page.evaluate(({ promptValue, fileName }) => {
     window.__newProjectWrites = [];
     const disk = {
@@ -359,8 +359,8 @@ test.describe('portfolio-only app', () => {
     await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'ghost' });
 
     await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Board' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Calendar' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Board' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
     await expect(page.locator('#portfolioBoard')).toBeVisible();
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
@@ -374,15 +374,24 @@ test.describe('portfolio-only app', () => {
     ]);
 
     await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Board' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Calendar' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Board' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Board' })).toHaveClass(/active/);
+    await expect(page.locator('#portfolioBoard')).toBeVisible();
 
     await page.getByRole('button', { name: 'Calendar' }).click();
 
     await expect(page.locator('#portfolioCalendarView')).toBeVisible();
     await expect(page).toHaveURL(/pv=calendar/);
     await expect(page).not.toHaveURL(/pb=/);
+
+    await page.getByRole('button', { name: 'Board' }).click();
+
+    await expect(page.locator('#portfolioBoard')).toBeVisible();
+    await expect(page.locator('#portfolioCalendarView')).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Board' })).toHaveClass(/active/);
+    await expect(page).toHaveURL(/\/kanban\.html$/);
   });
 
   test('calendar view renders roadmap items and due-date tasks with month drill-down', async ({ page }) => {
@@ -392,6 +401,7 @@ test.describe('portfolio-only app', () => {
       title: 'Alpha',
       tasks: [
         { id: 1, title: 'Due Task', status: 'backlog', dueDate: '2026-04-03' },
+        { id: 3, title: 'Launch Task', status: 'backlog', dueDate: '2026-04-10' },
         { id: 2, title: 'Undated Task', status: 'backlog' }
       ],
       extensions: {
@@ -406,17 +416,98 @@ test.describe('portfolio-only app', () => {
 
     await page.getByRole('button', { name: 'Calendar' }).click();
 
-    await expect(page.locator('#portfolioCalendarView')).toContainText('Q2');
-    await expect(page.locator('#portfolioCalendarView')).toContainText('Due Task');
-    await expect(page.locator('#portfolioCalendarView')).toContainText('Launch');
-    await expect(page.locator('#portfolioCalendarView')).toContainText('Build');
-    await expect(page.locator('#portfolioCalendarView')).toContainText('Sprint 1');
-    await expect(page.locator('#portfolioCalendarView')).not.toContainText('Undated Task');
+    await expect(page.locator('.portfolio-calendar-title')).toHaveCount(0);
+    await expect(page.locator('.portfolio-calendar-subtitle')).toHaveCount(0);
+    await expect(page.locator('.portfolio-calendar-quarter-label')).toHaveCount(0);
+    await expect(page.locator('#portfolioCalendarView .portfolio-calendar-header')).toContainText('2026');
+
+    const calendarLayout = await page.evaluate(() => {
+      const view = document.getElementById('portfolioCalendarView');
+      const header = view?.querySelector('.portfolio-calendar-header');
+      const shell = view?.querySelector('.portfolio-calendar-shell');
+      if (!view || !header || !shell) return null;
+      const viewStyle = getComputedStyle(view);
+      const shellStyle = getComputedStyle(shell);
+      return {
+        viewChildren: Array.from(view.children).map((node) => node.className),
+        headerParentId: header.parentElement?.id || '',
+        headerBackground: getComputedStyle(header).backgroundColor,
+        viewPadding: `${viewStyle.paddingTop} ${viewStyle.paddingRight} ${viewStyle.paddingBottom} ${viewStyle.paddingLeft}`,
+        shellPadding: `${shellStyle.paddingTop} ${shellStyle.paddingRight} ${shellStyle.paddingBottom} ${shellStyle.paddingLeft}`,
+        viewOverflowY: viewStyle.overflowY,
+        shellOverflowY: shellStyle.overflowY
+      };
+    });
+
+    expect(calendarLayout).not.toBeNull();
+    expect(calendarLayout.viewChildren).toEqual(['portfolio-calendar-header', 'portfolio-calendar-shell']);
+    expect(calendarLayout.headerParentId).toBe('portfolioCalendarView');
+    expect(calendarLayout.headerBackground).toBe('rgb(250, 250, 250)');
+    expect(calendarLayout.viewPadding).toBe('0px 0px 0px 0px');
+    expect(calendarLayout.shellPadding).toBe('16px 16px 16px 16px');
+    expect(calendarLayout.viewOverflowY).toBe('hidden');
+    expect(calendarLayout.shellOverflowY).toBe('auto');
+
+    const aprilCard = page.locator('.portfolio-calendar-month-card[data-month="3"]');
+    await expect(aprilCard).toBeVisible();
+    await expect(aprilCard.locator('.portfolio-calendar-mini-month-grid')).toHaveCount(1);
+    await expect(aprilCard.locator('.portfolio-calendar-mini-day')).toHaveCount(35);
+    await expect(aprilCard.locator('.portfolio-calendar-mini-day').first()).toHaveCSS('min-height', '48px');
+    await expect(aprilCard.locator('[data-calendar-mini-day="2026-04-03"]')).toHaveCount(1);
+    await expect(aprilCard.locator('[data-calendar-mini-day="2026-04-10"]')).toHaveCount(1);
+    await expect(aprilCard.locator('.portfolio-calendar-mini-marker')).toHaveCount(6);
 
     await page.getByRole('button', { name: 'Open April 2026' }).click();
 
     await expect(page.locator('#portfolioCalendarView')).toContainText('April 2026');
     await expect(page.getByRole('button', { name: 'Back to year' })).toBeVisible();
+
+    await expect(page.locator('.portfolio-calendar-week-roadmap')).toHaveCount(0);
+
+    const roadmapTitles = await page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title]').evaluateAll((nodes) => (
+      nodes.map((node) => node.getAttribute('data-calendar-roadmap-title'))
+    ));
+    expect(roadmapTitles).toEqual(['Launch', 'Build', 'Sprint 1']);
+
+    const aprilTenthDayTitles = await page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-items [data-calendar-item-title]').evaluateAll((nodes) => (
+      nodes.map((node) => node.getAttribute('data-calendar-item-title'))
+    ));
+    expect(aprilTenthDayTitles).toEqual(['Launch Task']);
+
+    const calendarItemMetrics = await page.evaluate(() => {
+      const roadmap = document.querySelector('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title="Launch"]');
+      const task = document.querySelector('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-items [data-calendar-item-title="Launch Task"]');
+      const roadmapStack = document.querySelector('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-roadmap');
+      const taskStack = document.querySelector('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-items');
+      if (!roadmap || !task || !roadmapStack || !taskStack) return null;
+      const roadmapStyle = getComputedStyle(roadmap);
+      const taskStyle = getComputedStyle(task);
+      return {
+        roadmapHeight: Math.round(roadmap.getBoundingClientRect().height),
+        taskHeight: Math.round(task.getBoundingClientRect().height),
+        roadmapGap: getComputedStyle(roadmapStack).gap,
+        taskGap: getComputedStyle(taskStack).gap,
+        roadmapFontSize: roadmapStyle.fontSize,
+        taskFontSize: taskStyle.fontSize,
+        roadmapLineHeight: roadmapStyle.lineHeight,
+        taskLineHeight: taskStyle.lineHeight,
+        roadmapPadding: `${roadmapStyle.paddingTop} ${roadmapStyle.paddingRight} ${roadmapStyle.paddingBottom} ${roadmapStyle.paddingLeft}`,
+        taskPadding: `${taskStyle.paddingTop} ${taskStyle.paddingRight} ${taskStyle.paddingBottom} ${taskStyle.paddingLeft}`
+      };
+    });
+    expect(calendarItemMetrics).not.toBeNull();
+    expect(calendarItemMetrics.roadmapHeight).toBe(calendarItemMetrics.taskHeight);
+    expect(calendarItemMetrics.roadmapGap).toBe(calendarItemMetrics.taskGap);
+    expect(calendarItemMetrics.roadmapFontSize).toBe(calendarItemMetrics.taskFontSize);
+    expect(calendarItemMetrics.roadmapLineHeight).toBe(calendarItemMetrics.taskLineHeight);
+    expect(calendarItemMetrics.roadmapPadding).toBe(calendarItemMetrics.taskPadding);
+
+    await page.locator('[data-calendar-day="2026-04-04"]').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(page.locator('#modalTitle')).toHaveText('New Task');
+    await expect(page.locator('#taskDueDate')).toHaveValue('04/04/2026');
+    await page.locator('#taskModalCancelBtn').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
     await expect(page.locator('#portfolioCalendarView')).toContainText('Due Task');
     await expect(page.locator('#portfolioCalendarView')).toContainText('Launch');
     await expect(page.locator('#portfolioCalendarView')).not.toContainText('Undated Task');
@@ -428,7 +519,15 @@ test.describe('portfolio-only app', () => {
         id: 'alpha',
         hasHandle: true,
         title: 'Alpha',
-        tasks: [{ id: 1, title: 'Alpha Due', status: 'backlog', dueDate: '2026-04-03' }]
+        tasks: [{ id: 1, title: 'Alpha Due', status: 'backlog', dueDate: '2026-04-03' }],
+        extensions: {
+          roadmap: {
+            version: 1,
+            milestones: [{ id: 'm1', title: 'Launch', dueDate: '2026-04-03' }],
+            phases: [],
+            sprints: []
+          }
+        }
       },
       {
         id: 'bravo',
@@ -443,21 +542,31 @@ test.describe('portfolio-only app', () => {
 
     await expect(page.locator('#portfolioCalendarView')).toContainText('Alpha Due');
     await expect(page.locator('#portfolioCalendarView')).toContainText('Bravo Due');
+    await expect(page.locator('#portfolioCalendarView')).toContainText('Launch');
 
     const styles = await page.evaluate(() => {
       const alpha = document.querySelector('[data-calendar-item-title="Alpha Due"]');
       const bravo = document.querySelector('[data-calendar-item-title="Bravo Due"]');
-      if (!alpha || !bravo) return null;
+      const roadmap = document.querySelector('[data-calendar-day="2026-04-03"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title="Launch"]');
+      if (!alpha || !bravo || !roadmap) return null;
       return {
         selectedPortfolioBoardId,
+        alphaLabel: alpha.textContent?.trim() || '',
+        alphaTitle: alpha.getAttribute('title') || '',
         alphaBackground: getComputedStyle(alpha).backgroundColor,
+        roadmapLabel: roadmap.textContent?.trim() || '',
+        roadmapTitle: roadmap.getAttribute('title') || '',
         bravoBackground: getComputedStyle(bravo).backgroundColor
       };
     });
 
     expect(styles).not.toBeNull();
     expect(styles.selectedPortfolioBoardId).toBe('');
+    expect(styles.alphaLabel).toBe('Alpha Due');
+    expect(styles.alphaTitle).toBe('Alpha Due');
     expect(styles.alphaBackground).not.toBe('rgba(0, 0, 0, 0)');
+    expect(styles.roadmapLabel).toBe('Launch');
+    expect(styles.roadmapTitle).toBe('Launch');
     expect(styles.bravoBackground).not.toBe('rgba(0, 0, 0, 0)');
     expect(styles.alphaBackground).not.toBe(styles.bravoBackground);
 
@@ -552,7 +661,7 @@ test.describe('portfolio-only app', () => {
   });
 
   test('new project flow creates and selects a project', async ({ page }) => {
-    await mockNewProjectFlow(page, { promptValue: 'Project Alpha', fileName: 'project-alpha.board.json' });
+    await mockNewProjectFlow(page, { promptValue: 'Project Alpha', fileName: 'project-alpha.json' });
 
     await page.locator('#newProjectBtn').click();
 
@@ -576,7 +685,7 @@ test.describe('portfolio-only app', () => {
   });
 
   test('new project flow aborts cleanly if name prompt is canceled after file picker', async ({ page }) => {
-    await mockNewProjectFlow(page, { promptValue: null, fileName: 'canceled.board.json' });
+    await mockNewProjectFlow(page, { promptValue: null, fileName: 'canceled.json' });
 
     await page.locator('#newProjectBtn').click();
 
@@ -617,7 +726,7 @@ test.describe('portfolio-only app', () => {
 
     await mockImportProjectsPicker(page, [
       {
-        fileName: 'imported.board.json',
+        fileName: 'imported.json',
         payload: buildBoardPayload({
           title: 'Imported Via Shortcut',
           tasks: [{ id: 1, title: 'Shortcut import task', status: 'backlog' }]
@@ -637,7 +746,7 @@ test.describe('portfolio-only app', () => {
 
     await mockImportProjectsPicker(page, [
       {
-        fileName: 'project-two.board.json',
+        fileName: 'project-two.json',
         payload: buildBoardPayload({
           title: 'Project Two',
           tasks: [{ id: 2, title: 'Task 2', status: 'doing', priority: 'high', effort: 'S' }]
@@ -2936,6 +3045,65 @@ test.describe('portfolio-only app', () => {
     expect(result.lastEventKind).toBe('board.restored');
     expect(result.writes.length).toBeGreaterThan(0);
     expect(result.writes.at(-1).text).toContain('"board.restored"');
+  });
+
+  test('timeline slider supports continuous dragging across multiple events', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'tl4',
+        title: 'Timeline Drag Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Phase 0', status: 'backlog' }]
+      }
+    ], { selectedBoardId: 'tl4' });
+
+    for (const title of ['Phase 1', 'Phase 2', 'Phase 3']) {
+      await page.evaluate(() => editPortfolioTask('tl4', 1));
+      await expect(page.locator('#taskModal')).toBeVisible();
+      await page.locator('#taskName').fill(title);
+      await page.locator('#taskModal .btn-primary').click();
+      await expect(page.locator('#taskModal')).toBeHidden();
+    }
+
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
+
+    const slider = page.locator('#portfolioTimelinePanel .timeline-slider');
+    const box = await slider.boundingBox();
+    expect(box).not.toBeNull();
+
+    await page.mouse.move(box.x + box.width - 4, box.y + (box.height / 2));
+    await page.mouse.down();
+    await page.mouse.move(box.x + 4, box.y + (box.height / 2), { steps: 20 });
+
+    const midDrag = await page.evaluate(() => {
+      const viewState = getSelectedBoardTimelineViewState();
+      return {
+        selection: structuredClone(portfolioTimelineSelection),
+        title: viewState?.projectedBoard?.board?.tasks?.find((task) => task.id === 1)?.title || '',
+        summaryText: document.querySelector('#portfolioTimelinePanel .timeline-summary-row')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        expectedSummaryLabel: `Event ${(viewState?.selectedIndex ?? -1) + 1} / ${viewState?.timeline?.events?.length || 0}`,
+        activeEventIndex: document.querySelector('#portfolioTimelinePanel .timeline-event-item.active')?.getAttribute('data-event-index') || '',
+        detailTitle: document.querySelector('#portfolioTimelinePanel .timeline-event-detail-title')?.textContent?.trim() || '',
+        expectedDetailTitle: viewState?.selectedEvent?.summary || ''
+      };
+    });
+
+    expect(midDrag.selection).toEqual({ boardId: 'tl4', eventIndex: 0 });
+    expect(midDrag.title).toBe('Phase 0');
+    expect(midDrag.summaryText).toContain(midDrag.expectedSummaryLabel);
+    expect(midDrag.activeEventIndex).toBe('0');
+    expect(midDrag.detailTitle).toBe(midDrag.expectedDetailTitle);
+
+    await page.mouse.up();
+
+    const result = await page.evaluate(() => ({
+      selection: structuredClone(portfolioTimelineSelection),
+      title: getSelectedBoardTimelineViewState()?.projectedBoard?.board?.tasks?.find((task) => task.id === 1)?.title || ''
+    }));
+
+    expect(result.selection).toEqual({ boardId: 'tl4', eventIndex: 0 });
+    expect(result.title).toBe('Phase 0');
   });
 
   test('clicking a timeline event preserves the event list scroll position', async ({ page }) => {

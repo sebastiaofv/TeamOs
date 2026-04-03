@@ -107,7 +107,7 @@
             border: 1px solid var(--border);
             background: var(--bg-card);
             color: var(--text-primary);
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.15s ease;
@@ -425,46 +425,31 @@
             min-height: 0;
             background: var(--bg-primary);
             gap: 12px;
-            padding: 16px;
-            overflow: auto;
+            padding: 0;
+            overflow: hidden;
         }
 
         .portfolio-calendar-shell {
             display: flex;
+            flex: 1;
             flex-direction: column;
-            gap: 16px;
-            min-height: 100%;
+            gap: 12px;
+            min-height: 0;
+            padding: 16px;
+            overflow: auto;
+            box-sizing: border-box;
         }
 
         .portfolio-calendar-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            padding: 16px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-        }
-
-        .portfolio-calendar-label {
-            margin: 0 0 4px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-secondary);
-        }
-
-        .portfolio-calendar-title {
-            margin: 0;
-            font-size: 22px;
-            color: var(--text-primary);
-        }
-
-        .portfolio-calendar-subtitle {
-            margin-top: 6px;
-            font-size: 13px;
-            color: var(--text-muted);
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-primary);
+            box-sizing: border-box;
         }
 
         .portfolio-calendar-controls {
@@ -472,17 +457,18 @@
             align-items: center;
             gap: 8px;
             flex-wrap: wrap;
-            justify-content: flex-end;
+            justify-content: space-between;
+            width: 100%;
         }
 
         .portfolio-calendar-period {
             min-width: 110px;
-            padding: 6px 12px;
-            border: 1px solid var(--border);
-            background: var(--bg-primary);
-            font-size: 13px;
+            padding: 5px 10px;
+            border: 1px solid #cfc8bb;
+            background: #fbfaf7;
+            font-size: 12px;
             font-weight: 600;
-            color: var(--text-primary);
+            color: #4f4a40;
             text-align: center;
         }
 
@@ -492,19 +478,7 @@
         }
 
         .portfolio-calendar-quarter {
-            display: grid;
-            grid-template-columns: 78px minmax(0, 1fr);
-            gap: 12px;
-            align-items: start;
-        }
-
-        .portfolio-calendar-quarter-label {
-            padding-top: 10px;
-            font-size: 12px;
-            font-weight: 700;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+            display: block;
         }
 
         .portfolio-calendar-quarter-months {
@@ -517,8 +491,8 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            min-height: 150px;
-            padding: 14px;
+            min-height: 182px;
+            padding: 10px;
             border: 1px solid var(--border);
             background: var(--bg-card);
             text-align: left;
@@ -542,22 +516,95 @@
         }
 
         .portfolio-calendar-month-name {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
             color: var(--text-primary);
         }
 
         .portfolio-calendar-month-count {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-muted);
         }
 
-        .portfolio-calendar-month-items,
         .portfolio-calendar-day-items {
             display: flex;
             flex-direction: column;
             gap: 6px;
             min-width: 0;
+        }
+
+        .portfolio-calendar-mini-month-grid {
+            display: grid;
+            gap: 4px;
+        }
+
+        .portfolio-calendar-mini-weekdays,
+        .portfolio-calendar-mini-day-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 2px;
+        }
+
+        .portfolio-calendar-mini-weekday {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .portfolio-calendar-mini-day {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-height: 48px;
+            padding: 3px 2px;
+            border: 1px solid var(--border-light);
+            background: var(--bg-primary);
+            box-sizing: border-box;
+        }
+
+        .portfolio-calendar-mini-day-outside {
+            background: var(--bg-card);
+            color: var(--text-muted);
+        }
+
+        .portfolio-calendar-mini-day-today {
+            box-shadow: inset 0 0 0 1px rgba(0, 102, 204, 0.2);
+        }
+
+        .portfolio-calendar-mini-day-number {
+            font-size: 9px;
+            font-weight: 700;
+            line-height: 1;
+            color: var(--text-secondary);
+            text-align: left;
+        }
+
+        .portfolio-calendar-mini-day-current .portfolio-calendar-mini-day-number {
+            color: var(--text-primary);
+        }
+
+        .portfolio-calendar-mini-markers {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .portfolio-calendar-mini-marker {
+            display: block;
+            width: 100%;
+            height: 3px;
+            border-radius: 999px;
+            background: rgba(0, 102, 204, 0.38);
+        }
+
+        .portfolio-calendar-mini-marker-task {
+            background: var(--accent);
+        }
+
+        .portfolio-calendar-mini-marker-range-end {
+            opacity: 0.68;
         }
 
         .portfolio-calendar-empty {
@@ -569,8 +616,10 @@
         }
 
         .portfolio-calendar-item {
-            display: block;
+            display: flex;
+            align-items: center;
             min-width: 0;
+            min-height: 32px;
             padding: 6px 8px;
             border: 1px solid var(--border);
             background: var(--bg-primary);
@@ -580,13 +629,15 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            box-sizing: border-box;
         }
 
         button.portfolio-calendar-item {
             width: 100%;
             text-align: left;
             cursor: pointer;
-            font: inherit;
+            justify-content: flex-start;
+            font-family: inherit;
         }
 
         button.portfolio-calendar-item:hover,
@@ -611,16 +662,26 @@
         }
 
         .portfolio-calendar-month-grid {
-            display: grid;
-            gap: 0;
+            overflow-x: auto;
             border: 1px solid var(--border);
             background: var(--bg-card);
         }
 
+        .portfolio-calendar-month-grid-track {
+            min-width: 760px;
+        }
+
         .portfolio-calendar-weekdays,
-        .portfolio-calendar-day-grid {
+        .portfolio-calendar-week-dates,
+        .portfolio-calendar-week-roadmap-lane,
+        .portfolio-calendar-week-days {
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
+        }
+
+        .portfolio-calendar-day-grid {
+            display: flex;
+            flex-direction: column;
         }
 
         .portfolio-calendar-weekday {
@@ -634,12 +695,119 @@
             color: var(--text-secondary);
         }
 
+        .portfolio-calendar-week-row {
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-primary);
+        }
+
+        .portfolio-calendar-week-row:last-child {
+            border-bottom: 0;
+        }
+
+        .portfolio-calendar-week-dates {
+            background: var(--bg-primary);
+        }
+
+        .portfolio-calendar-week-date-cell {
+            padding: 10px 10px 6px;
+            border-right: 1px solid var(--border-light);
+            border-bottom: 1px solid var(--border-light);
+            background: var(--bg-primary);
+        }
+
+        .portfolio-calendar-week-date-cell:nth-child(7n) {
+            border-right: 0;
+        }
+
+        .portfolio-calendar-week-date-cell-outside {
+            background: var(--bg-card);
+        }
+
+        .portfolio-calendar-week-date-cell-today {
+            box-shadow: inset 0 0 0 2px rgba(0, 102, 204, 0.16);
+        }
+
+        .portfolio-calendar-week-roadmap {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 8px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .portfolio-calendar-week-roadmap-lane {
+            align-items: start;
+        }
+
+        .portfolio-calendar-roadmap-span {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            min-height: 32px;
+            margin: 0 1px;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-left-width: 4px;
+            border-radius: 8px;
+            background: #f5efe3;
+            color: #5e4720;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.3;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-sizing: border-box;
+        }
+
+        .portfolio-calendar-roadmap-span-milestone {
+            background: #f0e3c5;
+            border-color: #c99b3f;
+            color: #6b4a12;
+        }
+
+        .portfolio-calendar-roadmap-span-phase {
+            background: #e7eefc;
+            border-color: #6f91d8;
+            color: #24406d;
+        }
+
+        .portfolio-calendar-roadmap-span-sprint {
+            background: #ece8df;
+            border-color: #8d7c5d;
+            color: #4d4333;
+        }
+
+        .portfolio-calendar-roadmap-span-continues-before {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+
+        .portfolio-calendar-roadmap-span-continues-after {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
         .portfolio-calendar-day-cell {
             min-height: 130px;
             padding: 10px;
             border-right: 1px solid var(--border-light);
-            border-bottom: 1px solid var(--border-light);
+            border-bottom: 0;
             background: var(--bg-primary);
+            overflow: visible;
+        }
+
+        .portfolio-calendar-day-cell-actionable {
+            cursor: pointer;
+        }
+
+        .portfolio-calendar-day-cell-actionable:hover,
+        .portfolio-calendar-day-cell-actionable:focus-within {
+            background: #fbfaf7;
+            box-shadow: inset 0 0 0 1px rgba(0, 102, 204, 0.12);
         }
 
         .portfolio-calendar-day-cell:nth-child(7n) {
@@ -655,10 +823,35 @@
         }
 
         .portfolio-calendar-day-number {
-            margin-bottom: 8px;
             font-size: 12px;
             font-weight: 700;
             color: var(--text-secondary);
+        }
+
+        .portfolio-calendar-day-roadmap {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+        }
+
+        .portfolio-calendar-day-roadmap .portfolio-calendar-roadmap-span {
+            margin: 0;
+        }
+
+        .portfolio-calendar-day-roadmap .portfolio-calendar-roadmap-span-continues-before {
+            margin-left: -11px;
+            padding-left: 19px;
+        }
+
+        .portfolio-calendar-day-roadmap .portfolio-calendar-roadmap-span-continues-after {
+            margin-right: -11px;
+            padding-right: 19px;
+        }
+
+        .portfolio-calendar-week-date-cell-current .portfolio-calendar-day-number {
+            color: var(--text-primary);
         }
 
         .portfolio-calendar-day-cell-current .portfolio-calendar-day-number {
@@ -666,15 +859,6 @@
         }
 
         @media (max-width: 900px) {
-            .portfolio-calendar-header,
-            .portfolio-calendar-quarter {
-                grid-template-columns: 1fr;
-            }
-
-            .portfolio-calendar-header {
-                display: grid;
-            }
-
             .portfolio-calendar-controls {
                 justify-content: flex-start;
             }
@@ -683,16 +867,18 @@
                 grid-template-columns: 1fr;
             }
 
-            .portfolio-calendar-weekdays,
-            .portfolio-calendar-day-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+            .portfolio-calendar-month-grid-track .portfolio-calendar-weekdays,
+            .portfolio-calendar-week-dates,
+            .portfolio-calendar-week-roadmap-lane,
+            .portfolio-calendar-week-days {
+                grid-template-columns: repeat(7, minmax(96px, 1fr));
             }
 
-            .portfolio-calendar-day-cell:nth-child(7n) {
-                border-right: 1px solid var(--border-light);
+            .portfolio-calendar-week-days .portfolio-calendar-day-cell:nth-child(7n) {
+                border-right: 0;
             }
 
-            .portfolio-calendar-day-cell:nth-child(2n) {
+            .portfolio-calendar-week-dates .portfolio-calendar-week-date-cell:nth-child(7n) {
                 border-right: 0;
             }
         }
@@ -3025,7 +3211,7 @@
                                 <li>Use <strong>New Project</strong> to create a project file and add it to the
                                     portfolio.</li>
                                 <li>Use <strong>Import Projects</strong> to load one or more existing
-                                    <code>.board.json</code> files.
+                                    <code>.json</code> files.
                                 </li>
                                 <li>You can also drag project files into the app to import them.</li>
                             </ul>
@@ -3091,7 +3277,7 @@
         ];
         const BOARD_SCHEMA_VERSION = 1;
         const BOARD_APP_ID = 'teamos-kanban';
-        const BOARD_FILE_EXTENSION = '.board.json';
+        const BOARD_FILE_EXTENSION = '.json';
         const DEFAULT_BOARD_TITLE = 'Example Task Board';
         const TASK_TITLE_MAX_LENGTH = 80;
         const EFFORT_BUCKETS = ['XS', 'S', 'M', 'L', 'XL'];
@@ -3135,6 +3321,7 @@
         let taskModalAttachmentDraft = [];
         let taskModalAttachmentMessages = [];
         let portfolioTimelineSelection = { boardId: '', eventIndex: null };
+        let portfolioTimelineDragState = { active: false, boardId: '' };
         let portfolioTimelineExpandedByBoardId = {};
         let portfolioTimelineListScrollTopByBoardId = {};
         let portfolioRoadmapExpandedRowsByBoardId = {};
@@ -3865,6 +4052,14 @@
             };
         }
 
+        function getPortfolioCalendarItemPriority(item) {
+            if (item?.kind === 'milestone') return 0;
+            if (item?.kind === 'phase') return 1;
+            if (item?.kind === 'sprint') return 2;
+            if (item?.kind === 'task') return 3;
+            return 4;
+        }
+
         function comparePortfolioCalendarItems(a, b) {
             const aStart = a?.bounds?.start?.getTime?.() || 0;
             const bStart = b?.bounds?.start?.getTime?.() || 0;
@@ -3874,6 +4069,26 @@
             if (aEnd !== bEnd) return aEnd - bEnd;
             if (a?.isRange !== b?.isRange) return a?.isRange ? -1 : 1;
             if (a?.kind !== b?.kind) return compareText(a?.kind || '', b?.kind || '');
+            return compareText(a?.title || '', b?.title || '');
+        }
+
+        function comparePortfolioCalendarDayItems(a, b) {
+            const aPriority = getPortfolioCalendarItemPriority(a);
+            const bPriority = getPortfolioCalendarItemPriority(b);
+            if (aPriority !== bPriority) return aPriority - bPriority;
+            return comparePortfolioCalendarItems(a, b);
+        }
+
+        function comparePortfolioCalendarRoadmapItems(a, b) {
+            const aPriority = getPortfolioCalendarItemPriority(a);
+            const bPriority = getPortfolioCalendarItemPriority(b);
+            if (aPriority !== bPriority) return aPriority - bPriority;
+            const aStart = a?.bounds?.start?.getTime?.() || 0;
+            const bStart = b?.bounds?.start?.getTime?.() || 0;
+            if (aStart !== bStart) return aStart - bStart;
+            const aEnd = a?.bounds?.end?.getTime?.() || 0;
+            const bEnd = b?.bounds?.end?.getTime?.() || 0;
+            if (aEnd !== bEnd) return bEnd - aEnd;
             return compareText(a?.title || '', b?.title || '');
         }
 
@@ -3962,19 +4177,27 @@
             return `background:${color.bg};border-color:${color.border};color:${color.text};`;
         }
 
+        function buildPortfolioCalendarRoadmapSpanStyle(item, options = {}) {
+            return buildPortfolioCalendarItemStyle(item, options);
+        }
+
+        function getPortfolioCalendarItemLabel(item) {
+            return item?.title || '';
+        }
+
         function renderPortfolioCalendarStaticItem(item, options = {}) {
             const classes = ['portfolio-calendar-item'];
             if (item?.isRange) classes.push('portfolio-calendar-item-range');
             if (item?.kind === 'task') classes.push('portfolio-calendar-item-task');
             const style = buildPortfolioCalendarItemStyle(item, options);
-            const boardPrefix = options.aggregate ? `${item?.boardTitle || 'Project'} • ` : '';
+            const label = getPortfolioCalendarItemLabel(item);
             return `
                 <div
                     class="${classes.join(' ')}"
                     data-calendar-item-title="${escapeHtml(item?.title || '')}"
                     style="${style}"
-                    title="${escapeHtml(`${boardPrefix}${item?.title || ''}`)}"
-                >${escapeHtml(`${boardPrefix}${item?.title || ''}`)}</div>
+                    title="${escapeHtml(label)}"
+                >${escapeHtml(label)}</div>
             `;
         }
 
@@ -3982,8 +4205,7 @@
             const classes = ['portfolio-calendar-item', 'portfolio-calendar-item-task'];
             if (item?.isRange) classes.push('portfolio-calendar-item-range');
             const style = buildPortfolioCalendarItemStyle(item, options);
-            const boardPrefix = options.aggregate ? `${item?.boardTitle || 'Project'} • ` : '';
-            const title = `${boardPrefix}${item?.title || ''}`;
+            const title = getPortfolioCalendarItemLabel(item);
             return `
                 <button
                     class="${classes.join(' ')}"
@@ -3998,15 +4220,198 @@
             `;
         }
 
-        function renderPortfolioCalendarMonthItems(items, options = {}) {
-            const visibleItems = (Array.isArray(items) ? items : []).slice(0, options.limit || 4);
-            const overflow = Math.max(0, (items?.length || 0) - visibleItems.length);
-            if (visibleItems.length === 0) {
-                return '<div class="portfolio-calendar-empty">No scheduled items.</div>';
-            }
+        function getPortfolioCalendarDayOffset(start, end) {
+            return Math.round((end.getTime() - start.getTime()) / 86400000);
+        }
+
+        function buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd) {
+            return (Array.isArray(items) ? items : [])
+                .filter((item) => item?.kind !== 'task' && item?.bounds && item.bounds.start <= weekEnd && item.bounds.end >= weekStart)
+                .sort(comparePortfolioCalendarRoadmapItems)
+                .map((item) => {
+                    const segmentStart = item.bounds.start > weekStart ? item.bounds.start : weekStart;
+                    const segmentEnd = item.bounds.end < weekEnd ? item.bounds.end : weekEnd;
+                    return {
+                        item,
+                        startDay: getPortfolioCalendarDayOffset(weekStart, segmentStart),
+                        endDay: getPortfolioCalendarDayOffset(weekStart, segmentEnd),
+                        continuesBefore: item.bounds.start < weekStart,
+                        continuesAfter: item.bounds.end > weekEnd
+                    };
+                });
+        }
+
+        function assignPortfolioCalendarWeekRoadmapLanes(items, weekStart, weekEnd) {
+            const segments = buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd);
+            const lanes = [];
+            segments.forEach((segment) => {
+                let lane = lanes.find((entry) => entry.lastEnd < segment.startDay);
+                if (!lane) {
+                    lane = { lastEnd: -1, segments: [] };
+                    lanes.push(lane);
+                }
+                lane.segments.push(segment);
+                lane.lastEnd = segment.endDay;
+            });
+            return lanes.map((lane) => lane.segments);
+        }
+
+        function renderPortfolioCalendarRoadmapSpan(segment, options = {}) {
+            const item = segment?.item;
+            const classes = ['portfolio-calendar-roadmap-span'];
+            if (item?.kind) classes.push(`portfolio-calendar-roadmap-span-${item.kind}`);
+            if (segment?.continuesBefore) classes.push('portfolio-calendar-roadmap-span-continues-before');
+            if (segment?.continuesAfter) classes.push('portfolio-calendar-roadmap-span-continues-after');
+            const style = buildPortfolioCalendarRoadmapSpanStyle(item, options);
+            const title = getPortfolioCalendarItemLabel(item);
             return `
-                ${visibleItems.map((item) => renderPortfolioCalendarStaticItem(item, options)).join('')}
-                ${overflow > 0 ? `<div class="portfolio-calendar-item-overflow">+${overflow} more</div>` : ''}
+                <div
+                    class="${classes.join(' ')}"
+                    style="grid-column:${segment.startDay + 1} / ${segment.endDay + 2};${style}"
+                    data-calendar-roadmap-title="${escapeHtml(item?.title || '')}"
+                    data-calendar-roadmap-kind="${escapeHtml(item?.kind || '')}"
+                    title="${escapeHtml(title)}"
+                >${escapeHtml(title)}</div>
+            `;
+        }
+
+        function renderPortfolioCalendarWeekRoadmap(items, weekStart, weekEnd, options = {}) {
+            const lanes = assignPortfolioCalendarWeekRoadmapLanes(items, weekStart, weekEnd);
+            if (lanes.length === 0) return '';
+            return `
+                <div class="portfolio-calendar-week-roadmap">
+                    ${lanes.map((lane, index) => `
+                        <div class="portfolio-calendar-week-roadmap-lane" data-calendar-roadmap-lane="${index}">
+                            ${lane.map((segment) => renderPortfolioCalendarRoadmapSpan(segment, options)).join('')}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function shouldShowPortfolioCalendarRoadmapLabel(item, date) {
+            if (!item?.bounds || !item.isRange) return true;
+            const isoDate = formatUtcIsoDate(date);
+            if (formatUtcIsoDate(item.bounds.start) === isoDate) return true;
+            if (date.getUTCDate() === 1) return true;
+            if (date.getUTCDay() === 0) return true;
+            return false;
+        }
+
+        function renderPortfolioCalendarDayRoadmapItem(item, date, options = {}) {
+            if (!item) return '';
+            const classes = ['portfolio-calendar-roadmap-span'];
+            if (item?.kind) classes.push(`portfolio-calendar-roadmap-span-${item.kind}`);
+            if (item?.isRange && item.bounds.start < date) classes.push('portfolio-calendar-roadmap-span-continues-before');
+            if (item?.isRange && item.bounds.end > date) classes.push('portfolio-calendar-roadmap-span-continues-after');
+            const style = buildPortfolioCalendarRoadmapSpanStyle(item, options);
+            const title = getPortfolioCalendarItemLabel(item);
+            const content = shouldShowPortfolioCalendarRoadmapLabel(item, date)
+                ? escapeHtml(title)
+                : '&nbsp;';
+            return `
+                <div
+                    class="${classes.join(' ')}"
+                    data-calendar-roadmap-title="${escapeHtml(item?.title || '')}"
+                    data-calendar-roadmap-kind="${escapeHtml(item?.kind || '')}"
+                    style="${style}"
+                    title="${escapeHtml(title)}"
+                >${content}</div>
+            `;
+        }
+
+        function renderPortfolioCalendarWeekDateCell(date, month, canCreateTasks) {
+            const isoDate = formatUtcIsoDate(date);
+            const classes = ['portfolio-calendar-week-date-cell'];
+            if (date.getUTCMonth() === month) classes.push('portfolio-calendar-week-date-cell-current');
+            else classes.push('portfolio-calendar-week-date-cell-outside');
+            if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-week-date-cell-today');
+            if (canCreateTasks && date.getUTCMonth() === month) classes.push('portfolio-calendar-day-cell-actionable');
+            return `
+                <div
+                    class="${classes.join(' ')}"
+                    data-calendar-date="${escapeHtml(isoDate)}"
+                    ${canCreateTasks && date.getUTCMonth() === month ? `data-action="create-calendar-task" data-due-date="${escapeHtml(isoDate)}"` : ''}
+                >
+                    <div class="portfolio-calendar-day-number">${date.getUTCDate()}</div>
+                </div>
+            `;
+        }
+
+        function buildPortfolioCalendarMiniMarkerStyle(item, options = {}) {
+            if (!options.aggregate) return '';
+            const color = item?.projectColor || createPortfolioProjectColor(0);
+            return `background:${color.border};`;
+        }
+
+        function getPortfolioCalendarMiniMonthCellCount(year, month) {
+            const firstOfMonth = createUtcDate(year, month, 1);
+            const daysInMonth = createUtcDate(year, month + 1, 0).getUTCDate();
+            return Math.ceil((firstOfMonth.getUTCDay() + daysInMonth) / 7) * 7;
+        }
+
+        function getPortfolioCalendarMiniDayMarkers(items, isoDate) {
+            return (Array.isArray(items) ? items : []).flatMap((item) => {
+                if (!item?.bounds) return [];
+                if (!item.isRange) {
+                    return formatUtcIsoDate(item.bounds.start) === isoDate ? [{
+                        item,
+                        kind: item.kind === 'task' ? 'task' : 'point'
+                    }] : [];
+                }
+
+                const markers = [];
+                if (formatUtcIsoDate(item.bounds.start) === isoDate) {
+                    markers.push({ item, kind: 'range-start' });
+                }
+                if (formatUtcIsoDate(item.bounds.end) === isoDate && item.bounds.end.getTime() !== item.bounds.start.getTime()) {
+                    markers.push({ item, kind: 'range-end' });
+                }
+                return markers;
+            });
+        }
+
+        function renderPortfolioCalendarMiniMonth(items, year, month, options = {}) {
+            const firstOfMonth = createUtcDate(year, month, 1);
+            const leadingDays = firstOfMonth.getUTCDay();
+            const gridStart = addRoadmapDays(firstOfMonth, -leadingDays);
+            const cellCount = getPortfolioCalendarMiniMonthCellCount(year, month);
+            const dayMarkup = Array.from({ length: cellCount }, (_, index) => {
+                const date = addRoadmapDays(gridStart, index);
+                const isoDate = formatUtcIsoDate(date);
+                const inCurrentMonth = date.getUTCMonth() === month;
+                const markers = inCurrentMonth
+                    ? getPortfolioCalendarMiniDayMarkers(items.filter((item) => doesPortfolioCalendarItemOccurOnDay(item, isoDate)), isoDate)
+                    : [];
+                const classes = ['portfolio-calendar-mini-day'];
+                if (inCurrentMonth) classes.push('portfolio-calendar-mini-day-current');
+                else classes.push('portfolio-calendar-mini-day-outside');
+                if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-mini-day-today');
+
+                return `
+                    <div class="${classes.join(' ')}" data-calendar-mini-day="${escapeHtml(isoDate)}">
+                        <div class="portfolio-calendar-mini-day-number">${date.getUTCDate()}</div>
+                        <div class="portfolio-calendar-mini-markers">
+                            ${markers.map((marker) => {
+                                const markerClasses = ['portfolio-calendar-mini-marker'];
+                                if (marker.kind === 'task') markerClasses.push('portfolio-calendar-mini-marker-task');
+                                if (marker.kind === 'range-end') markerClasses.push('portfolio-calendar-mini-marker-range-end');
+                                return `<span class="${markerClasses.join(' ')}" style="${buildPortfolioCalendarMiniMarkerStyle(marker.item, options)}" title="${escapeHtml(marker.item.title || '')}"></span>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="portfolio-calendar-mini-month-grid">
+                    <div class="portfolio-calendar-mini-weekdays">
+                        ${CALENDAR_WEEKDAY_NAMES.map((name) => `<div class="portfolio-calendar-mini-weekday">${escapeHtml(name.charAt(0))}</div>`).join('')}
+                    </div>
+                    <div class="portfolio-calendar-mini-day-grid">
+                        ${dayMarkup}
+                    </div>
+                </div>
             `;
         }
 
@@ -4030,16 +4435,13 @@
                                 <span class="portfolio-calendar-month-name">${escapeHtml(CALENDAR_MONTH_SHORT_NAMES[month])}</span>
                                 <span class="portfolio-calendar-month-count">${monthItems.length} item${monthItems.length === 1 ? '' : 's'}</span>
                             </div>
-                            <div class="portfolio-calendar-month-items">
-                                ${renderPortfolioCalendarMonthItems(monthItems, { aggregate: options.aggregate })}
-                            </div>
+                            ${renderPortfolioCalendarMiniMonth(monthItems, year, month, { aggregate: options.aggregate })}
                         </button>
                     `;
                 }).join('');
 
                 return `
                     <section class="portfolio-calendar-quarter">
-                        <div class="portfolio-calendar-quarter-label">Q${quarterIndex + 1}</div>
                         <div class="portfolio-calendar-quarter-months">${monthButtons}</div>
                     </section>
                 `;
@@ -4058,25 +4460,49 @@
             const firstOfMonth = createUtcDate(year, month, 1);
             const leadingDays = firstOfMonth.getUTCDay();
             const gridStart = addRoadmapDays(firstOfMonth, -leadingDays);
-            const cellMarkup = Array.from({ length: 42 }, (_, index) => {
-                const date = addRoadmapDays(gridStart, index);
-                const isoDate = formatUtcIsoDate(date);
-                const dayItems = items.filter((item) => doesPortfolioCalendarItemOccurOnDay(item, isoDate));
-                const visibleItems = dayItems.slice(0, 4);
-                const overflow = Math.max(0, dayItems.length - visibleItems.length);
-                const classes = ['portfolio-calendar-day-cell'];
-                if (date.getUTCMonth() === month) classes.push('portfolio-calendar-day-cell-current');
-                else classes.push('portfolio-calendar-day-cell-outside');
-                if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-day-cell-today');
-                return `
-                    <div class="${classes.join(' ')}" data-calendar-day="${escapeHtml(isoDate)}">
+            const canCreateTasks = Boolean(selectedPortfolioBoardId) && canUsePortfolioTaskMutations(selectedPortfolioBoardId);
+            const weekMarkup = Array.from({ length: 6 }, (_, weekIndex) => {
+                const weekStart = addRoadmapDays(gridStart, weekIndex * 7);
+                const weekStartIso = formatUtcIsoDate(weekStart);
+                const cellMarkup = Array.from({ length: 7 }, (_, dayIndex) => {
+                    const date = addRoadmapDays(weekStart, dayIndex);
+                    const isoDate = formatUtcIsoDate(date);
+                    const dayItems = items
+                        .filter((item) => doesPortfolioCalendarItemOccurOnDay(item, isoDate))
+                        .sort(comparePortfolioCalendarDayItems);
+                    const visibleItems = dayItems.slice(0, 4);
+                    const roadmapItems = visibleItems.filter((item) => item?.kind !== 'task');
+                    const taskItems = visibleItems.filter((item) => item?.kind === 'task');
+                    const overflow = Math.max(0, dayItems.length - visibleItems.length);
+                    const classes = ['portfolio-calendar-day-cell'];
+                    if (date.getUTCMonth() === month) classes.push('portfolio-calendar-day-cell-current');
+                    else classes.push('portfolio-calendar-day-cell-outside');
+                    if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-day-cell-today');
+                    if (canCreateTasks && date.getUTCMonth() === month) classes.push('portfolio-calendar-day-cell-actionable');
+                    return `
+                        <div
+                            class="${classes.join(' ')}"
+                            data-calendar-day="${escapeHtml(isoDate)}"
+                        ${canCreateTasks && date.getUTCMonth() === month ? `data-action="create-calendar-task" data-due-date="${escapeHtml(isoDate)}"` : ''}
+                    >
                         <div class="portfolio-calendar-day-number">${date.getUTCDate()}</div>
+                        ${roadmapItems.length > 0 ? `
+                            <div class="portfolio-calendar-day-roadmap">
+                                ${roadmapItems.map((item) => renderPortfolioCalendarDayRoadmapItem(item, date, { aggregate: options.aggregate })).join('')}
+                            </div>
+                        ` : ''}
                         <div class="portfolio-calendar-day-items">
-                            ${visibleItems.map((item) => item.kind === 'task'
-                                ? renderPortfolioCalendarTaskButton(item, { aggregate: options.aggregate })
-                                : renderPortfolioCalendarStaticItem(item, { aggregate: options.aggregate })
-                            ).join('')}
-                            ${overflow > 0 ? `<div class="portfolio-calendar-item-overflow">+${overflow} more</div>` : ''}
+                                ${taskItems.map((item) => renderPortfolioCalendarTaskButton(item, { aggregate: options.aggregate })).join('')}
+                                ${overflow > 0 ? `<div class="portfolio-calendar-item-overflow">+${overflow} more</div>` : ''}
+                        </div>
+                    </div>
+                `;
+                }).join('');
+
+                return `
+                    <div class="portfolio-calendar-week-row" data-calendar-week-start="${escapeHtml(weekStartIso)}">
+                        <div class="portfolio-calendar-week-days">
+                            ${cellMarkup}
                         </div>
                     </div>
                 `;
@@ -4084,11 +4510,13 @@
 
             return `
                 <div class="portfolio-calendar-month-grid">
-                    <div class="portfolio-calendar-weekdays">
-                        ${CALENDAR_WEEKDAY_NAMES.map((name) => `<div class="portfolio-calendar-weekday">${escapeHtml(name)}</div>`).join('')}
-                    </div>
-                    <div class="portfolio-calendar-day-grid">
-                        ${cellMarkup}
+                    <div class="portfolio-calendar-month-grid-track">
+                        <div class="portfolio-calendar-weekdays">
+                            ${CALENDAR_WEEKDAY_NAMES.map((name) => `<div class="portfolio-calendar-weekday">${escapeHtml(name)}</div>`).join('')}
+                        </div>
+                        <div class="portfolio-calendar-day-grid">
+                            ${weekMarkup}
+                        </div>
                     </div>
                 </div>
             `;
@@ -4102,7 +4530,6 @@
             const aggregate = !selectedPortfolioBoardId;
             ensurePortfolioCalendarState(items);
 
-            const headerLabel = aggregate ? 'Portfolio Calendar' : 'Project Calendar';
             const periodLabel = portfolioCalendarView === 'month'
                 ? getUtcMonthLabel(portfolioCalendarYear, portfolioCalendarMonth)
                 : String(portfolioCalendarYear);
@@ -4111,20 +4538,15 @@
                 : renderPortfolioCalendarYearView(items, { aggregate });
 
             calendarViewNode.innerHTML = `
-                <div class="portfolio-calendar-shell" data-calendar-scope="${aggregate ? 'aggregate' : 'selected'}" data-calendar-view="${escapeHtml(portfolioCalendarView)}">
-                    <div class="portfolio-calendar-header">
-                        <div>
-                            <div class="portfolio-calendar-label">${escapeHtml(headerLabel)}</div>
-                            <h2 class="portfolio-calendar-title">${escapeHtml(getPortfolioCalendarScopeLabel())}</h2>
-                            <div class="portfolio-calendar-subtitle">Roadmap items and tasks with due dates.</div>
-                        </div>
-                        <div class="portfolio-calendar-controls">
-                            ${portfolioCalendarView === 'month' ? '<button class="btn" type="button" data-action="calendar-back-to-year" aria-label="Back to year">Back to year</button>' : ''}
-                            <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Previous month' : 'Previous year'}">Prev</button>
-                            <div class="portfolio-calendar-period">${escapeHtml(periodLabel)}</div>
-                            <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-next-month' : 'calendar-next-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Next month' : 'Next year'}">Next</button>
-                        </div>
+                <div class="portfolio-calendar-header">
+                    <div class="portfolio-calendar-controls">
+                        ${portfolioCalendarView === 'month' ? '<button class="btn" type="button" data-action="calendar-back-to-year" aria-label="Back to year">Back to year</button>' : ''}
+                        <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Previous month' : 'Previous year'}">Prev</button>
+                        <div class="portfolio-calendar-period">${escapeHtml(periodLabel)}</div>
+                        <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-next-month' : 'calendar-next-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Next month' : 'Next year'}">Next</button>
                     </div>
+                </div>
+                <div class="portfolio-calendar-shell" data-calendar-scope="${aggregate ? 'aggregate' : 'selected'}" data-calendar-view="${escapeHtml(portfolioCalendarView)}">
                     ${bodyMarkup}
                 </div>
             `;
@@ -5068,7 +5490,7 @@
             }
         }
 
-        function setPortfolioTimelineSelection(boardId, eventIndex) {
+        function setPortfolioTimelineSelection(boardId, eventIndex, options = {}) {
             const boardRecord = getPortfolioBoardRecord(boardId);
             if (!boardRecord) {
                 clearPortfolioTimelineSelection();
@@ -5086,7 +5508,7 @@
             portfolioTimelineSelection = { boardId, eventIndex: nextIndex };
             closeDetailModal();
             closeModal();
-            renderPortfolio();
+            renderPortfolio(options);
         }
 
         function movePortfolioTimelineToLatest(boardId = selectedPortfolioBoardId) {
@@ -5655,13 +6077,6 @@
             const restoreButtonHtml = viewState.boardRecord.handle
                 ? '<button class="btn btn-primary" type="button" data-action="timeline-restore">Restore this state</button>'
                 : '';
-            const eventItems = timeline.events.map((event, index) => `
-                <button class="timeline-event-item ${index === selectedIndex ? 'active' : ''}" type="button" data-action="timeline-select-event" data-board-id="${escapeHtml(viewState.boardRecord.id)}" data-event-index="${index}">
-                    <span class="timeline-event-kind">${escapeHtml(event.kind)}</span>
-                    <span class="timeline-event-summary">${escapeHtml(event.summary)}</span>
-                    <span class="timeline-event-time">${escapeHtml(formatDateTime(event.at))}</span>
-                </button>
-            `).reverse().join('');
 
             panel.dataset.boardId = viewState.boardRecord.id;
             panel.className = panelClasses.join(' ');
@@ -5677,29 +6092,110 @@
                     </div>
                 </div>
                 <div class="timeline-controls">
-                    ${isExpanded ? `
-                    <div class="timeline-summary-row">
-                        <span class="timeline-pill">${escapeHtml(formatDateTime(selectedEvent?.at || ''))}</span>
-                        <span class="timeline-pill">Event ${selectedIndex + 1} / ${timeline.events.length}</span>
-                        <span class="timeline-pill">${escapeHtml(selectedEvent?.kind || '')}</span>
-                        ${viewState.boardRecord.handle ? '' : '<span class="timeline-pill">Read-only project</span>'}
-                    </div>
-                    ` : ''}
+                    ${renderPortfolioTimelineSummaryRow(viewState)}
                     <div class="timeline-slider-row">
                         <input class="timeline-slider" type="range" min="0" max="${latestIndex}" step="1" value="${selectedIndex}" data-action="timeline-slider" data-board-id="${escapeHtml(viewState.boardRecord.id)}">
                         ${latestButtonHtml}
                         ${restoreButtonHtml}
                     </div>
                 </div>
-                <div class="timeline-body">
-                    <div class="timeline-event-list">${eventItems}</div>
-                    <div class="timeline-event-detail">
-                        <div class="timeline-event-detail-title">${escapeHtml(selectedEvent?.summary || 'Timeline event')}</div>
-                        ${renderTimelineEventChanges(selectedEvent)}
-                    </div>
-                </div>
+                ${renderPortfolioTimelineBody(viewState)}
             `;
             restorePortfolioTimelineListScrollPosition(viewState.boardRecord.id, panel);
+        }
+
+        function renderPortfolioTimelineSummaryRow(viewState) {
+            if (!viewState?.boardRecord || !viewState?.timeline || !isPortfolioTimelineExpanded(viewState.boardRecord.id)) return '';
+            return `
+                <div class="timeline-summary-row">
+                    <span class="timeline-pill">${escapeHtml(formatDateTime(viewState.selectedEvent?.at || ''))}</span>
+                    <span class="timeline-pill">Event ${viewState.selectedIndex + 1} / ${viewState.timeline.events.length}</span>
+                    <span class="timeline-pill">${escapeHtml(viewState.selectedEvent?.kind || '')}</span>
+                    ${viewState.boardRecord.handle ? '' : '<span class="timeline-pill">Read-only project</span>'}
+                </div>
+            `;
+        }
+
+        function renderPortfolioTimelineEventItems(viewState) {
+            if (!viewState?.boardRecord || !viewState?.timeline) return '';
+            return viewState.timeline.events.map((event, index) => `
+                <button class="timeline-event-item ${index === viewState.selectedIndex ? 'active' : ''}" type="button" data-action="timeline-select-event" data-board-id="${escapeHtml(viewState.boardRecord.id)}" data-event-index="${index}">
+                    <span class="timeline-event-kind">${escapeHtml(event.kind)}</span>
+                    <span class="timeline-event-summary">${escapeHtml(event.summary)}</span>
+                    <span class="timeline-event-time">${escapeHtml(formatDateTime(event.at))}</span>
+                </button>
+            `).reverse().join('');
+        }
+
+        function renderPortfolioTimelineEventDetail(viewState) {
+            return `
+                <div class="timeline-event-detail">
+                    <div class="timeline-event-detail-title">${escapeHtml(viewState?.selectedEvent?.summary || 'Timeline event')}</div>
+                    ${renderTimelineEventChanges(viewState?.selectedEvent)}
+                </div>
+            `;
+        }
+
+        function renderPortfolioTimelineBody(viewState) {
+            return `
+                <div class="timeline-body">
+                    <div class="timeline-event-list">${renderPortfolioTimelineEventItems(viewState)}</div>
+                    ${renderPortfolioTimelineEventDetail(viewState)}
+                </div>
+            `;
+        }
+
+        function syncPortfolioTimelinePanelSelection(panel = document.getElementById('portfolioTimelinePanel')) {
+            const viewState = getSelectedBoardTimelineViewState();
+            if (!panel || !viewState || !viewState.boardRecord || !viewState.timeline) {
+                renderPortfolioTimelinePanel();
+                return;
+            }
+            if (panel.dataset.boardId !== viewState.boardRecord.id) {
+                renderPortfolioTimelinePanel();
+                return;
+            }
+
+            const previewBanner = panel.querySelector('.timeline-preview-banner');
+            if (previewBanner) {
+                previewBanner.classList.toggle('active', viewState.isPreview);
+            }
+
+            const slider = panel.querySelector('.timeline-slider');
+            if (!slider) {
+                renderPortfolioTimelinePanel();
+                return;
+            }
+            slider.max = String(Math.max(0, viewState.timeline.events.length - 1));
+            slider.value = String(viewState.selectedIndex);
+
+            const controls = panel.querySelector('.timeline-controls');
+            const summaryRow = panel.querySelector('.timeline-summary-row');
+            const shouldShowSummary = isPortfolioTimelineExpanded(viewState.boardRecord.id);
+            if (controls) {
+                if (shouldShowSummary) {
+                    const summaryMarkup = renderPortfolioTimelineSummaryRow(viewState);
+                    if (summaryRow) {
+                        summaryRow.outerHTML = summaryMarkup;
+                    } else {
+                        controls.insertAdjacentHTML('afterbegin', summaryMarkup);
+                    }
+                } else if (summaryRow) {
+                    summaryRow.remove();
+                }
+            }
+
+            const eventList = panel.querySelector('.timeline-event-list');
+            if (eventList) {
+                const scrollTop = eventList.scrollTop;
+                eventList.innerHTML = renderPortfolioTimelineEventItems(viewState);
+                eventList.scrollTop = scrollTop;
+            }
+
+            const eventDetail = panel.querySelector('.timeline-event-detail');
+            if (eventDetail) {
+                eventDetail.outerHTML = renderPortfolioTimelineEventDetail(viewState);
+            }
         }
 
         async function restorePortfolioTimelineSelection() {
@@ -5929,7 +6425,7 @@
             const normalized = normalizePortfolioViewMode(mode);
             if (normalized === 'calendar') return portfolioBoards.length > 0;
             if (normalized === 'roadmap') return Boolean(selectedPortfolioBoardId);
-            return Boolean(selectedPortfolioBoardId);
+            return portfolioBoards.length > 0;
         }
 
         function renderSelectedBoardViewToggle() {
@@ -5950,7 +6446,7 @@
             }
             toggle.querySelectorAll('button[data-view-mode]').forEach((button) => {
                 const mode = normalizePortfolioViewMode(button.dataset.viewMode || '');
-                const isVisible = mode === 'calendar' ? hasBoards : hasSelectedBoard;
+                const isVisible = mode === 'roadmap' ? hasSelectedBoard : hasBoards;
                 button.classList.toggle('hidden', !isVisible);
                 if (!isVisible) {
                     button.classList.remove('active');
@@ -6138,7 +6634,7 @@
             selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
         }
 
-        function renderPortfolio() {
+        function renderPortfolio(options = {}) {
             const boardWrap = document.getElementById('portfolioBoardWrap');
             if (!boardWrap) return;
 
@@ -6150,7 +6646,11 @@
             syncHoveredPortfolioCardWithVisibleRows(rows);
             boardWrap.classList.remove('hidden');
             applyPortfolioSortSelect();
-            renderPortfolioTimelinePanel();
+            if (options.skipTimelinePanel !== true) {
+                renderPortfolioTimelinePanel();
+            } else {
+                syncPortfolioTimelinePanelSelection();
+            }
             renderSelectedBoardViewToggle();
 
             const boardGrid = document.getElementById('portfolioBoard');
@@ -6458,7 +6958,7 @@
             focusAndSelectTaskNameInput();
         }
 
-        function openPortfolioCreateTaskModal(boardId, preferredStatus) {
+        function openPortfolioCreateTaskModal(boardId, preferredStatus, options = {}) {
             const boardRecord = getPortfolioBoardRecord(boardId);
             if (!boardRecord) return;
             if (!canUsePortfolioTaskMutations(boardId)) {
@@ -6491,7 +6991,7 @@
             document.getElementById('taskChecklist').value = '';
             loadTaskChecklistEditorFromTextarea();
             resetTaskModalAttachmentDraft();
-            document.getElementById('taskDueDate').value = '';
+            document.getElementById('taskDueDate').value = formatDueDateForUi(options.preferredDueDate || '');
             document.getElementById('taskPriority').value = '';
             document.getElementById('taskEffort').value = '';
             populateTaskRoadmapSelectors();
@@ -9415,7 +9915,24 @@
         function handleTimelinePanelInput(event) {
             const input = event.target.closest('input[data-action="timeline-slider"]');
             if (!input) return;
-            setPortfolioTimelineSelection(input.dataset.boardId || '', Number(input.value));
+            setPortfolioTimelineSelection(input.dataset.boardId || '', Number(input.value), {
+                skipTimelinePanel: portfolioTimelineDragState.active && portfolioTimelineDragState.boardId === (input.dataset.boardId || '')
+            });
+        }
+
+        function handleTimelinePanelPointerDown(event) {
+            const input = event.target.closest('input[data-action="timeline-slider"]');
+            if (!input) return;
+            portfolioTimelineDragState = {
+                active: true,
+                boardId: input.dataset.boardId || ''
+            };
+        }
+
+        function handleTimelineSliderPointerCommit() {
+            if (!portfolioTimelineDragState.active) return;
+            portfolioTimelineDragState = { active: false, boardId: '' };
+            renderPortfolio();
         }
 
         function handlePortfolioBoardClick(event) {
@@ -9542,45 +10059,53 @@
 
         function handlePortfolioCalendarViewClick(event) {
             const button = event.target.closest('button[data-action]');
-            if (!button) return;
-            const action = button.dataset.action || '';
-            if (action === 'open-calendar-month') {
-                portfolioCalendarYear = Number(button.dataset.year);
-                portfolioCalendarMonth = Number(button.dataset.month);
-                portfolioCalendarView = 'month';
-                renderPortfolio();
-                return;
+            if (button) {
+                const action = button.dataset.action || '';
+                if (action === 'open-calendar-month') {
+                    portfolioCalendarYear = Number(button.dataset.year);
+                    portfolioCalendarMonth = Number(button.dataset.month);
+                    portfolioCalendarView = 'month';
+                    renderPortfolio();
+                    return;
+                }
+                if (action === 'calendar-back-to-year') {
+                    portfolioCalendarView = 'year';
+                    renderPortfolio();
+                    return;
+                }
+                if (action === 'calendar-prev-year') {
+                    portfolioCalendarYear -= 1;
+                    renderPortfolio();
+                    return;
+                }
+                if (action === 'calendar-next-year') {
+                    portfolioCalendarYear += 1;
+                    renderPortfolio();
+                    return;
+                }
+                if (action === 'calendar-prev-month') {
+                    shiftPortfolioCalendarMonth(-1);
+                    renderPortfolio();
+                    return;
+                }
+                if (action === 'calendar-next-month') {
+                    shiftPortfolioCalendarMonth(1);
+                    renderPortfolio();
+                    return;
+                }
+                if (action === 'open-calendar-task') {
+                    const boardId = button.dataset.boardId || '';
+                    const taskId = Number(button.dataset.taskId);
+                    if (!boardId || !taskId) return;
+                    openPortfolioCalendarTaskDetails(boardId, taskId);
+                    return;
+                }
             }
-            if (action === 'calendar-back-to-year') {
-                portfolioCalendarView = 'year';
-                renderPortfolio();
-                return;
-            }
-            if (action === 'calendar-prev-year') {
-                portfolioCalendarYear -= 1;
-                renderPortfolio();
-                return;
-            }
-            if (action === 'calendar-next-year') {
-                portfolioCalendarYear += 1;
-                renderPortfolio();
-                return;
-            }
-            if (action === 'calendar-prev-month') {
-                shiftPortfolioCalendarMonth(-1);
-                renderPortfolio();
-                return;
-            }
-            if (action === 'calendar-next-month') {
-                shiftPortfolioCalendarMonth(1);
-                renderPortfolio();
-                return;
-            }
-            if (action === 'open-calendar-task') {
-                const boardId = button.dataset.boardId || '';
-                const taskId = Number(button.dataset.taskId);
-                if (!boardId || !taskId) return;
-                openPortfolioCalendarTaskDetails(boardId, taskId);
+            const createCell = event.target.closest('.portfolio-calendar-day-cell[data-action="create-calendar-task"][data-due-date], .portfolio-calendar-week-date-cell[data-action="create-calendar-task"][data-due-date]');
+            if (createCell && selectedPortfolioBoardId) {
+                openPortfolioCreateTaskModal(selectedPortfolioBoardId, '', {
+                    preferredDueDate: createCell.dataset.dueDate || ''
+                });
             }
         }
 
@@ -9765,6 +10290,7 @@
             Refs.portfolioViewModeToggle?.addEventListener('click', handlePortfolioViewModeToggleClick);
             Refs.portfolioTimelinePanel?.addEventListener('click', handleTimelinePanelClick);
             Refs.portfolioTimelinePanel?.addEventListener('input', handleTimelinePanelInput);
+            Refs.portfolioTimelinePanel?.addEventListener('pointerdown', handleTimelinePanelPointerDown);
             Refs.portfolioBoard?.addEventListener('click', handlePortfolioBoardClick);
             Refs.portfolioBoard?.addEventListener('change', handlePortfolioBoardChange);
             Refs.portfolioRoadmapView?.addEventListener('click', handlePortfolioRoadmapViewClick);
@@ -9783,6 +10309,8 @@
             document.getElementById('detailChecklist')?.addEventListener('change', handleDetailChecklistChange);
             document.addEventListener('keydown', dispatchShortcutKeydown);
             document.addEventListener('click', handleDocumentClickForSelection);
+            document.addEventListener('pointerup', handleTimelineSliderPointerCommit);
+            document.addEventListener('pointercancel', handleTimelineSliderPointerCommit);
             window.addEventListener('popstate', () => {
                 applyUrlState();
                 renderPortfolio();
