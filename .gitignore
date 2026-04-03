@@ -24,6 +24,7 @@ Thumbs.db
 *.temp
 
 # Kanban (Playwright / Node)
+.worktrees/
 kanban/node_modules/
 kanban/test-results/
 kanban/playwright-report/
