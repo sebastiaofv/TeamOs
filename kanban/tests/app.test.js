@@ -592,17 +592,22 @@ test.describe('portfolio-only app', () => {
     const aprilTenthDayTitles = await page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-items [data-calendar-item-title]').evaluateAll((nodes) => (
       nodes.map((node) => node.getAttribute('data-calendar-item-title'))
     ));
-    expect(aprilTenthDayTitles).toEqual(['Launch Task']);
+    expect(aprilTenthDayTitles).toEqual(['Launch Task', 'Scale Task']);
+    await expect(page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-item-overflow')).toHaveText('+1 more');
 
     const calendarItemMetrics = await page.evaluate(() => {
+      const dayCell = document.querySelector('[data-calendar-day="2026-04-10"]');
       const roadmap = document.querySelector('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title="Launch"]');
       const task = document.querySelector('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-items [data-calendar-item-title="Launch Task"]');
       const roadmapStack = document.querySelector('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-roadmap');
       const taskStack = document.querySelector('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-items');
-      if (!roadmap || !task || !roadmapStack || !taskStack) return null;
+      if (!dayCell || !roadmap || !task || !roadmapStack || !taskStack) return null;
+      const dayCellStyle = getComputedStyle(dayCell);
       const roadmapStyle = getComputedStyle(roadmap);
       const taskStyle = getComputedStyle(task);
       return {
+        cellMinHeight: dayCellStyle.minHeight,
+        cellPadding: `${dayCellStyle.paddingTop} ${dayCellStyle.paddingRight} ${dayCellStyle.paddingBottom} ${dayCellStyle.paddingLeft}`,
         roadmapHeight: Math.round(roadmap.getBoundingClientRect().height),
         taskHeight: Math.round(task.getBoundingClientRect().height),
         roadmapGap: getComputedStyle(roadmapStack).gap,
@@ -616,6 +621,8 @@ test.describe('portfolio-only app', () => {
       };
     });
     expect(calendarItemMetrics).not.toBeNull();
+    expect(calendarItemMetrics.cellMinHeight).toBe('112px');
+    expect(calendarItemMetrics.cellPadding).toBe('8px 8px 8px 8px');
     expect(calendarItemMetrics.roadmapHeight).toBe(calendarItemMetrics.taskHeight);
     expect(calendarItemMetrics.roadmapGap).toBe(calendarItemMetrics.taskGap);
     expect(calendarItemMetrics.roadmapFontSize).toBe(calendarItemMetrics.taskFontSize);
