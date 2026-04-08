@@ -2205,7 +2205,7 @@
 
         .checklist-editor-row {
             display: grid;
-            grid-template-columns: 20px 1fr 28px;
+            grid-template-columns: 24px 20px 1fr 28px;
             gap: 8px;
             align-items: center;
         }
@@ -2215,6 +2215,25 @@
             grid-template-columns: 1fr 28px;
             gap: 8px;
             align-items: center;
+        }
+
+        .checklist-editor-drag-handle {
+            width: 24px;
+            height: 28px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-muted);
+            cursor: grab;
+            line-height: 1;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            padding: 0;
+        }
+
+        .checklist-editor-drag-handle:active,
+        .checklist-editor-row.dragging .checklist-editor-drag-handle {
+            cursor: grabbing;
         }
 
         .checklist-editor-row input[type="checkbox"] {
@@ -2242,6 +2261,18 @@
         .checklist-editor-row.done input[type="text"] {
             color: var(--text-muted);
             text-decoration: line-through;
+        }
+
+        .checklist-editor-row.dragging {
+            opacity: 0.6;
+        }
+
+        .checklist-editor-row.drag-over-before {
+            box-shadow: inset 0 2px 0 var(--accent);
+        }
+
+        .checklist-editor-row.drag-over-after {
+            box-shadow: inset 0 -2px 0 var(--accent);
         }
 
         .checklist-editor-remove,
@@ -3326,6 +3357,7 @@
         let hoveredPortfolioCardRef = null;
         let taskModalAttachmentDraft = [];
         let taskModalAttachmentMessages = [];
+        let taskChecklistDragState = { activeIndex: -1, targetIndex: -1, targetPlacement: '' };
         let portfolioTimelineSelection = { boardId: '', eventIndex: null };
         let portfolioTimelineDragState = { active: false, boardId: '' };
         let portfolioTimelineExpandedByBoardId = {};
@@ -7812,10 +7844,62 @@
             textarea.value = checklistToInput(readTaskChecklistEditorItems());
         }
 
+        function resetTaskChecklistDragState() {
+            taskChecklistDragState = { activeIndex: -1, targetIndex: -1, targetPlacement: '' };
+            const container = getTaskChecklistEditorRowsContainer();
+            if (!container) return;
+            container.querySelectorAll('.checklist-editor-row').forEach((row) => {
+                row.classList.remove('dragging', 'drag-over-before', 'drag-over-after');
+            });
+        }
+
+        function renderTaskChecklistDragState() {
+            const container = getTaskChecklistEditorRowsContainer();
+            if (!container) return;
+            container.querySelectorAll('.checklist-editor-row').forEach((row) => {
+                const rowIndex = Number(row.dataset.index);
+                row.classList.toggle('dragging', rowIndex === taskChecklistDragState.activeIndex);
+                row.classList.toggle(
+                    'drag-over-before',
+                    rowIndex === taskChecklistDragState.targetIndex
+                        && rowIndex !== taskChecklistDragState.activeIndex
+                        && taskChecklistDragState.targetPlacement === 'before'
+                );
+                row.classList.toggle(
+                    'drag-over-after',
+                    rowIndex === taskChecklistDragState.targetIndex
+                        && rowIndex !== taskChecklistDragState.activeIndex
+                        && taskChecklistDragState.targetPlacement === 'after'
+                );
+            });
+        }
+
+        function getTaskChecklistDropPlacement(row, clientY) {
+            const rect = row?.getBoundingClientRect?.();
+            if (!rect || !Number.isFinite(rect.top) || !Number.isFinite(rect.height)) return 'after';
+            return clientY < (rect.top + (rect.height / 2)) ? 'before' : 'after';
+        }
+
+        function moveTaskChecklistEditorItem(fromIndex, toIndex, placement = 'before') {
+            const items = readTaskChecklistEditorItems();
+            if (!items[fromIndex] || !items[toIndex]) return false;
+            if (fromIndex === toIndex) return false;
+
+            const [movedItem] = items.splice(fromIndex, 1);
+            let insertIndex = toIndex;
+            if (placement === 'after') insertIndex += 1;
+            if (fromIndex < toIndex) insertIndex -= 1;
+            insertIndex = Math.max(0, Math.min(items.length, insertIndex));
+            items.splice(insertIndex, 0, movedItem);
+            updateTaskChecklistEditor(items);
+            return true;
+        }
+
         function renderTaskChecklistEditor(items = []) {
             const container = getTaskChecklistEditorRowsContainer();
             if (!container) return;
             const normalized = normalizeChecklist(items);
+            resetTaskChecklistDragState();
 
             if (normalized.length === 0) {
                 container.innerHTML = '<div class="checklist-editor-empty">No todo items yet.</div>';
@@ -7825,6 +7909,7 @@
 
             container.innerHTML = normalized.map((item, index) => `
                 <div class="checklist-editor-row ${item.done ? 'done' : ''}" data-index="${index}">
+                    <button type="button" class="checklist-editor-drag-handle" aria-label="Drag to reorder todo item" title="Drag to reorder" data-index="${index}" draggable="true">::</button>
                     <input type="checkbox" ${item.done ? 'checked' : ''} aria-label="Mark todo as done" data-index="${index}">
                     <input type="text" value="${escapeHtml(item.text)}" aria-label="Todo item text" data-index="${index}">
                     <button type="button" class="checklist-editor-remove" aria-label="Remove todo item" title="Remove" data-index="${index}">×</button>
@@ -10281,6 +10366,56 @@
             toggleTaskChecklistEditorItem(Number(checkbox.dataset.index), checkbox.checked);
         }
 
+        function handleTaskChecklistEditorDragStart(event) {
+            const handle = event.target.closest('.checklist-editor-drag-handle[data-index]');
+            if (!handle) return;
+            const activeIndex = Number(handle.dataset.index);
+            if (!Number.isInteger(activeIndex) || activeIndex < 0) return;
+            taskChecklistDragState = { activeIndex, targetIndex: -1, targetPlacement: '' };
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = 'move';
+                event.dataTransfer.setData('text/plain', String(activeIndex));
+            }
+            renderTaskChecklistDragState();
+        }
+
+        function handleTaskChecklistEditorDragOver(event) {
+            if (taskChecklistDragState.activeIndex < 0) return;
+            const row = event.target.closest('.checklist-editor-row[data-index]');
+            if (!row) return;
+            const targetIndex = Number(row.dataset.index);
+            if (!Number.isInteger(targetIndex) || targetIndex < 0) return;
+            event.preventDefault();
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'move';
+            }
+            taskChecklistDragState.targetIndex = targetIndex;
+            taskChecklistDragState.targetPlacement = getTaskChecklistDropPlacement(row, event.clientY);
+            renderTaskChecklistDragState();
+        }
+
+        function handleTaskChecklistEditorDrop(event) {
+            if (taskChecklistDragState.activeIndex < 0) return;
+            const row = event.target.closest('.checklist-editor-row[data-index]');
+            if (!row) {
+                resetTaskChecklistDragState();
+                return;
+            }
+            const targetIndex = Number(row.dataset.index);
+            if (!Number.isInteger(targetIndex) || targetIndex < 0) {
+                resetTaskChecklistDragState();
+                return;
+            }
+            event.preventDefault();
+            const placement = getTaskChecklistDropPlacement(row, event.clientY);
+            moveTaskChecklistEditorItem(taskChecklistDragState.activeIndex, targetIndex, placement);
+            resetTaskChecklistDragState();
+        }
+
+        function handleTaskChecklistEditorDragEnd() {
+            resetTaskChecklistDragState();
+        }
+
         function handleTaskAssigneeEditorClick(event) {
             const button = event.target.closest('.assignee-editor-remove[data-index]');
             if (!button) return;
@@ -10388,6 +10523,10 @@
             document.getElementById('taskChecklistItems')?.addEventListener('click', handleTaskChecklistEditorClick);
             document.getElementById('taskChecklistItems')?.addEventListener('input', handleTaskChecklistEditorInput);
             document.getElementById('taskChecklistItems')?.addEventListener('change', handleTaskChecklistEditorChange);
+            document.getElementById('taskChecklistItems')?.addEventListener('dragstart', handleTaskChecklistEditorDragStart);
+            document.getElementById('taskChecklistItems')?.addEventListener('dragover', handleTaskChecklistEditorDragOver);
+            document.getElementById('taskChecklistItems')?.addEventListener('drop', handleTaskChecklistEditorDrop);
+            document.getElementById('taskChecklistItems')?.addEventListener('dragend', handleTaskChecklistEditorDragEnd);
             document.getElementById('taskAssigneeItems')?.addEventListener('click', handleTaskAssigneeEditorClick);
             document.getElementById('taskAssigneeItems')?.addEventListener('input', handleTaskAssigneeEditorInput);
             document.getElementById('taskAttachmentsList')?.addEventListener('click', handleTaskAttachmentsEditorClick);

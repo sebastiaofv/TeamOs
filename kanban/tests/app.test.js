@@ -1272,6 +1272,52 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#taskDueDate')).toHaveValue('2026-03-05');
   });
 
+  test('checklist items can be reordered in the task modal', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [{
+          id: 1,
+          title: 'Checklist task',
+          status: 'backlog',
+          checklist: [
+            { text: 'First', done: false },
+            { text: 'Second', done: false },
+            { text: 'Third', done: true }
+          ]
+        }]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => editPortfolioTask('p1', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    const checklistTexts = async () => page.locator('#taskChecklistItems .checklist-editor-row input[type="text"]').evaluateAll((nodes) => (
+      nodes.map((node) => node.value)
+    ));
+
+    await expect.poll(checklistTexts).toEqual(['First', 'Second', 'Third']);
+
+    await page.locator('#taskChecklistItems .checklist-editor-row').nth(2).locator('.checklist-editor-drag-handle').dragTo(
+      page.locator('#taskChecklistItems .checklist-editor-row').nth(0),
+      { targetPosition: { x: 10, y: 2 } }
+    );
+
+    await expect.poll(checklistTexts).toEqual(['Third', 'First', 'Second']);
+
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const persistedChecklist = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((entry) => entry.id === 1);
+      return (task?.checklist || []).map((item) => item.text);
+    });
+
+    expect(persistedChecklist).toEqual(['Third', 'First', 'Second']);
+  });
+
   test('legacy assignee strings are accepted and serialize as assignee lists', async ({ page }) => {
     const legacy = {
       meta: {
