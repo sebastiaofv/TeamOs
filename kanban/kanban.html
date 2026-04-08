@@ -3007,7 +3007,7 @@
                     </div>
                     <div class="form-group">
                         <label>Due Date</label>
-                        <input type="text" id="taskDueDate" inputmode="numeric" placeholder="dd/mm/yyyy" pattern="\\d{2}/\\d{2}/\\d{4}">
+                        <input type="date" id="taskDueDate">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -3590,18 +3590,6 @@
             return `${day}/${month}/${year}`;
         }
 
-        function parseDueDateInput(value) {
-            if (!value || typeof value !== 'string') return '';
-            const trimmed = value.trim();
-            if (!trimmed) return '';
-            const match = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-            if (!match) return '';
-            const [, day, month, year] = match;
-            const candidate = `${year}-${month}-${day}`;
-            const normalized = normalizeDueDate(candidate);
-            return formatDueDateForUi(normalized) === trimmed ? normalized : '';
-        }
-
         function taskAssignees(task) {
             if (Array.isArray(task?.assignees)) return normalizeAssignees(task.assignees);
             return normalizeAssignees(task?.assignee);
@@ -4055,9 +4043,9 @@
         }
 
         function getPortfolioCalendarItemPriority(item) {
-            if (item?.kind === 'milestone') return 0;
-            if (item?.kind === 'phase') return 1;
-            if (item?.kind === 'sprint') return 2;
+            if (item?.kind === 'phase') return 0;
+            if (item?.kind === 'sprint') return 1;
+            if (item?.kind === 'milestone') return 2;
             if (item?.kind === 'task') return 3;
             return 4;
         }
@@ -4549,7 +4537,7 @@
                     const dayItems = items
                         .filter((item) => doesPortfolioCalendarItemOccurOnDay(item, isoDate))
                         .sort(comparePortfolioCalendarDayItems);
-                    const visibleItems = dayItems.slice(0, 5);
+                    const visibleItems = dayItems.slice(0, 4);
                     const roadmapItems = visibleItems.filter((item) => item?.kind !== 'task');
                     const taskItems = visibleItems.filter((item) => item?.kind === 'task');
                     const overflow = Math.max(0, dayItems.length - visibleItems.length);
@@ -7041,7 +7029,7 @@
             document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
             loadTaskChecklistEditorFromTextarea();
             setTaskModalAttachmentDraft(getTaskAttachments(source.boardRecord.data, taskId), { messages: [] });
-            document.getElementById('taskDueDate').value = formatDueDateForUi(task.dueDate);
+            document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate) || '';
             document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
             document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
             populateTaskRoadmapSelectors(task);
@@ -7083,7 +7071,7 @@
             document.getElementById('taskChecklist').value = '';
             loadTaskChecklistEditorFromTextarea();
             resetTaskModalAttachmentDraft();
-            document.getElementById('taskDueDate').value = formatDueDateForUi(options.preferredDueDate || '');
+            document.getElementById('taskDueDate').value = normalizeDueDate(options.preferredDueDate || '') || '';
             document.getElementById('taskPriority').value = '';
             document.getElementById('taskEffort').value = '';
             populateTaskRoadmapSelectors();
@@ -9149,7 +9137,7 @@
                 checklist: parseChecklistInput(document.getElementById('taskChecklist').value),
                 attachments: getTaskModalAttachmentsDraft(),
                 rawDueDate: document.getElementById('taskDueDate').value.trim(),
-                dueDate: parseDueDateInput(document.getElementById('taskDueDate').value),
+                dueDate: normalizeDueDate(document.getElementById('taskDueDate').value),
                 priority: normalizePriority(document.getElementById('taskPriority').value),
                 effort: normalizeEffort(document.getElementById('taskEffort').value),
                 phaseId: normalizeRoadmapRef(document.getElementById('taskPhase').value),
@@ -9180,7 +9168,7 @@
                 if (draft.rawDueDate && !draft.dueDate) {
                     return {
                         ok: false,
-                        message: 'Due date must use dd/mm/yyyy.',
+                        message: 'Due date must be a valid date.',
                         focusFieldId: 'taskDueDate'
                     };
                 }

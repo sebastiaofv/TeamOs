@@ -584,16 +584,22 @@ test.describe('portfolio-only app', () => {
 
     await expect(page.locator('.portfolio-calendar-week-roadmap')).toHaveCount(0);
 
-    const roadmapTitles = await page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title]').evaluateAll((nodes) => (
-      nodes.map((node) => node.getAttribute('data-calendar-roadmap-title'))
-    ));
-    expect(roadmapTitles).toEqual(['Launch', 'Build', 'Sprint 1']);
+    const roadmapTitlesByDay = await page.evaluate(() => ({
+      aprilNinth: Array.from(document.querySelectorAll('[data-calendar-day="2026-04-09"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title]')).map((node) => node.getAttribute('data-calendar-roadmap-title')),
+      aprilTenth: Array.from(document.querySelectorAll('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title]')).map((node) => node.getAttribute('data-calendar-roadmap-title')),
+      aprilEleventh: Array.from(document.querySelectorAll('[data-calendar-day="2026-04-11"] .portfolio-calendar-day-roadmap [data-calendar-roadmap-title]')).map((node) => node.getAttribute('data-calendar-roadmap-title'))
+    }));
+    expect(roadmapTitlesByDay).toEqual({
+      aprilNinth: ['Build', 'Sprint 1'],
+      aprilTenth: ['Build', 'Sprint 1', 'Launch'],
+      aprilEleventh: ['Build', 'Sprint 1']
+    });
 
     const aprilTenthDayTitles = await page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-day-items [data-calendar-item-title]').evaluateAll((nodes) => (
       nodes.map((node) => node.getAttribute('data-calendar-item-title'))
     ));
-    expect(aprilTenthDayTitles).toEqual(['Launch Task', 'Scale Task']);
-    await expect(page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-item-overflow')).toHaveText('+1 more');
+    expect(aprilTenthDayTitles).toEqual(['Launch Task']);
+    await expect(page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-item-overflow')).toHaveText('+2 more');
 
     const calendarItemMetrics = await page.evaluate(() => {
       const dayCell = document.querySelector('[data-calendar-day="2026-04-10"]');
@@ -632,7 +638,8 @@ test.describe('portfolio-only app', () => {
     await page.locator('[data-calendar-day="2026-04-04"]').click();
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect(page.locator('#modalTitle')).toHaveText('New Task');
-    await expect(page.locator('#taskDueDate')).toHaveValue('04/04/2026');
+    await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'date');
+    await expect(page.locator('#taskDueDate')).toHaveValue('2026-04-04');
     await page.locator('#taskModalCancelBtn').click();
     await expect(page.locator('#taskModal')).toBeHidden();
     await expect(page.locator('#portfolioCalendarView')).toContainText('Due Task');
@@ -1214,14 +1221,15 @@ test.describe('portfolio-only app', () => {
     await expect(portfolioCard(page, 'Task A')).not.toContainText('Sam');
   });
 
-  test('due date input uses dd/mm/yyyy in the UI and saves ISO to JSON', async ({ page }) => {
+  test('due date input uses native date picker and saves ISO to JSON', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
     await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'date');
     await page.locator('#taskName').fill('Date formatting task');
-    await page.locator('#taskDueDate').fill('05/03/2026');
+    await page.locator('#taskDueDate').fill('2026-03-05');
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
@@ -1247,31 +1255,21 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#detailDueDate')).toHaveText('05/03/2026');
   });
 
-  test('invalid due date keeps the modal open and focuses the due date field', async ({ page }) => {
+  test('editing a task preloads the native due date picker with the saved ISO value', async ({ page }) => {
     await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Bad date task', status: 'backlog', dueDate: '2026-03-05' }]
+      }
     ], { selectedBoardId: 'p1' });
 
-    await page.evaluate(() => {
-      window.__lastAlert = '';
-      window.alert = (msg) => { window.__lastAlert = String(msg); };
-    });
-
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
-    await page.locator('#taskName').fill('Bad date task');
-    await page.locator('#taskDueDate').fill('2026-03-05');
-    await page.locator('#taskModal .btn-primary').click();
-
+    await page.evaluate(() => editPortfolioTask('p1', 1));
     await expect(page.locator('#taskModal')).toBeVisible();
-    await expect(page.locator('#taskDueDate')).toBeFocused();
-
-    const result = await page.evaluate(() => ({
-      alert: window.__lastAlert,
-      taskCount: portfolioBoards[0].data.board.tasks.length
-    }));
-
-    expect(result.alert).toContain('Due date must use dd/mm/yyyy');
-    expect(result.taskCount).toBe(0);
+    await expect(page.locator('#modalTitle')).toHaveText('Edit Task');
+    await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'date');
+    await expect(page.locator('#taskDueDate')).toHaveValue('2026-03-05');
   });
 
   test('legacy assignee strings are accepted and serialize as assignee lists', async ({ page }) => {
