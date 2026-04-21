@@ -27,6 +27,7 @@ function buildTaskPayload(task, index) {
     title: task.title,
     description: task.description || '',
     assignees,
+    tags: Array.isArray(task.tags) ? task.tags : [],
     blocked: Boolean(task.blocked),
     blockerReason: task.blocked ? (task.blockerReason || '') : '',
     checklist: task.checklist || [],
@@ -1219,6 +1220,122 @@ test.describe('portfolio-only app', () => {
     expect(result.savedAssignees).toEqual(['Jamie']);
     await expect(portfolioCard(page, 'Task A')).toContainText('Jamie');
     await expect(portfolioCard(page, 'Task A')).not.toContainText('Sam');
+  });
+
+  test('tags can be added on task create and display on cards and detail modal', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Tagged task');
+    await page.locator('#taskTagNewItem').fill('bug');
+    await page.locator('#taskTagAddBtn').click();
+    await page.locator('#taskTagNewItem').fill('urgent');
+    await page.locator('#taskTagAddBtn').click();
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const card = portfolioCard(page, 'Tagged task');
+    await expect(card).toContainText('bug');
+    await expect(card).toContainText('urgent');
+
+    await card.click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTags')).toHaveText('bug, urgent');
+
+    const result = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((t) => t.title === 'Tagged task');
+      const writes = window.__portfolioTestWrites || [];
+      const savedPayload = writes.length ? JSON.parse(writes[writes.length - 1].text) : null;
+      const savedTask = savedPayload?.board?.tasks?.find((t) => t.title === 'Tagged task');
+      return {
+        taskTags: task?.tags || [],
+        savedTags: savedTask?.tags || []
+      };
+    });
+
+    expect(result.taskTags).toEqual(['bug', 'urgent']);
+    expect(result.savedTags).toEqual(['bug', 'urgent']);
+  });
+
+  test('tag editor deduplicates and lowercases tags', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Dedup task');
+    await page.locator('#taskTagNewItem').fill('Bug');
+    await page.locator('#taskTagAddBtn').click();
+    await page.locator('#taskTagNewItem').fill('bug');
+    await page.locator('#taskTagAddBtn').click();
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const result = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((t) => t.title === 'Dedup task');
+      return { tags: task?.tags || [] };
+    });
+
+    expect(result.tags).toEqual(['bug']);
+  });
+
+  test('tag editor enforces max count and max length', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => {
+      window.__lastAlert = '';
+      window.alert = (msg) => { window.__lastAlert = String(msg); };
+    });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Limit task');
+
+    for (let i = 0; i < 11; i++) {
+      await page.locator('#taskTagNewItem').fill(`tag${i}`);
+      await page.locator('#taskTagAddBtn').click();
+    }
+
+    const alertResult = await page.evaluate(() => window.__lastAlert);
+    expect(alertResult).toContain('at most 10 tags');
+
+    await page.locator('#taskTagNewItem').fill('a'.repeat(31));
+    await page.locator('#taskTagAddBtn').click();
+
+    const lengthAlert = await page.evaluate(() => window.__lastAlert);
+    expect(lengthAlert).toContain('30 characters');
+  });
+
+  test('editing a task preloads and updates tags', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Edit tags task', status: 'backlog', tags: ['old'] }]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await page.evaluate(() => editPortfolioTask('p1', 1));
+    await expect(page.locator('#taskModal')).toBeVisible();
+
+    await expect(page.locator('#taskTagItems')).toContainText('old');
+
+    await page.locator('#taskTagItems .tag-editor-remove').click();
+    await page.locator('#taskTagNewItem').fill('new');
+    await page.locator('#taskTagAddBtn').click();
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    const result = await page.evaluate(() => {
+      const task = portfolioBoards[0].data.board.tasks.find((t) => t.id === 1);
+      return { tags: task?.tags || [] };
+    });
+
+    expect(result.tags).toEqual(['new']);
   });
 
   test('due date input uses native date picker and saves ISO to JSON', async ({ page }) => {

@@ -2000,6 +2000,14 @@
             padding: 1px 6px;
         }
 
+        .task-tag-label {
+            background: #e8e8e8;
+            color: #444;
+            border: 1px solid #d8d8d8;
+            border-radius: 4px;
+            padding: 1px 6px;
+        }
+
         .effort-dot {
             width: 6px;
             height: 6px;
@@ -2313,6 +2321,82 @@
 
         .checklist-editor-add input:focus,
         .assignee-editor-add input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .tag-editor {
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            padding: 8px;
+            display: grid;
+            gap: 8px;
+        }
+
+        .tag-editor-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            min-height: 28px;
+        }
+
+        .tag-editor-empty {
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 4px 2px;
+        }
+
+        .tag-editor-row {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-light);
+            padding: 2px 8px;
+            font-size: 12px;
+            border-radius: 12px;
+        }
+
+        .tag-editor-row input[type="text"] {
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            padding: 0;
+            width: 80px;
+            outline: none;
+        }
+
+        .tag-editor-remove {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0 2px;
+        }
+
+        .tag-editor-remove:hover {
+            color: var(--text-primary);
+        }
+
+        .tag-editor-add {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .tag-editor-add input {
+            width: 100%;
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            font-family: inherit;
+            background: var(--bg-card);
+        }
+
+        .tag-editor-add input:focus {
             outline: none;
             border-color: var(--accent);
         }
@@ -3011,6 +3095,18 @@
                         <datalist id="taskAssigneeSuggestions"></datalist>
                     </div>
                     <div class="form-group">
+                        <label>Tags</label>
+                        <div class="tag-editor" id="taskTagEditor">
+                            <div class="tag-editor-list" id="taskTagItems"></div>
+                            <div class="tag-editor-add">
+                                <input type="text" id="taskTagNewItem" list="taskTagSuggestions" placeholder="Add a tag and press Enter">
+                                <button type="button" class="btn" id="taskTagAddBtn">Add</button>
+                            </div>
+                        </div>
+                        <textarea id="taskTags" class="hidden" aria-hidden="true" tabindex="-1"></textarea>
+                        <datalist id="taskTagSuggestions"></datalist>
+                    </div>
+                    <div class="form-group">
                         <label>Todo List</label>
                         <div class="checklist-editor" id="taskChecklistEditor">
                             <div class="checklist-editor-list" id="taskChecklistItems"></div>
@@ -3104,6 +3200,10 @@
                     <div class="detail-item">
                         <span class="detail-label">Assignees</span>
                         <span class="detail-value" id="detailAssignees">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Tags</span>
+                        <span class="detail-value" id="detailTags">-</span>
                     </div>
                     <div class="detail-item">
                         <span class="detail-label">Blocked</span>
@@ -3732,6 +3832,95 @@
             if (!items[index]) return;
             items.splice(index, 1);
             updateTaskAssigneeEditor(items);
+        }
+
+        function getBoardTagSuggestions(boardData) {
+            const tasks = boardData?.board?.tasks || [];
+            const all = new Set();
+            tasks.forEach((task) => {
+                (task.tags || []).forEach((tag) => {
+                    if (typeof tag === 'string' && tag.trim()) all.add(tag.trim().toLowerCase());
+                });
+            });
+            return Array.from(all).sort();
+        }
+
+        function renderTagEditor(container, tags, suggestions) {
+            const list = container.querySelector('.tag-editor-list');
+            const datalist = document.getElementById('taskTagSuggestions');
+            if (datalist) {
+                datalist.innerHTML = (suggestions || []).map((s) => `<option value="${escapeHtml(s)}"></option>`).join('');
+            }
+            if (!tags || tags.length === 0) {
+                list.innerHTML = '<div class="tag-editor-empty">No tags yet.</div>';
+                const textarea = document.getElementById('taskTags');
+                if (textarea) textarea.value = '[]';
+                return;
+            }
+            list.innerHTML = tags.map((tag, index) => `
+                <div class="tag-editor-row" data-index="${index}">
+                    <span>${escapeHtml(tag)}</span>
+                    <button type="button" class="tag-editor-remove" aria-label="Remove tag" title="Remove" data-index="${index}">&times;</button>
+                </div>
+            `).join('');
+            const textarea = document.getElementById('taskTags');
+            if (textarea) textarea.value = JSON.stringify(tags);
+        }
+
+        function readTagEditorItems() {
+            const container = document.getElementById('taskTagItems');
+            if (!container) return [];
+            const rows = Array.from(container.querySelectorAll('.tag-editor-row'));
+            return rows.map((row) => {
+                const span = row.querySelector('span');
+                return span ? span.textContent.trim().toLowerCase() : '';
+            }).filter(Boolean);
+        }
+
+        function addTaskTagFromComposer() {
+            const input = document.getElementById('taskTagNewItem');
+            const container = document.getElementById('taskTagEditor');
+            const raw = input ? input.value.trim() : '';
+            if (!raw) return;
+            const tag = raw.toLowerCase();
+            if (tag.length > 30) {
+                alert('Tags must be 30 characters or fewer.');
+                return;
+            }
+            const items = readTagEditorItems();
+            if (items.includes(tag)) {
+                alert('This tag is already added.');
+                return;
+            }
+            if (items.length >= 10) {
+                alert('A task can have at most 10 tags.');
+                return;
+            }
+            items.push(tag);
+            const boardData = portfolioEditContext
+                ? getPortfolioBoardRecord(portfolioEditContext.boardId)?.data
+                : (portfolioCreateContext
+                    ? getPortfolioBoardRecord(portfolioCreateContext.boardId)?.data
+                    : currentBoard);
+            renderTagEditor(container, items, getBoardTagSuggestions(boardData));
+            if (input) input.value = '';
+            input?.focus();
+        }
+
+        function handleTagEditorClick(event) {
+            const button = event.target.closest('.tag-editor-remove[data-index]');
+            if (!button) return;
+            const index = Number(button.dataset.index);
+            const container = document.getElementById('taskTagEditor');
+            const items = readTagEditorItems();
+            if (!items[index]) return;
+            items.splice(index, 1);
+            const boardData = portfolioEditContext
+                ? getPortfolioBoardRecord(portfolioEditContext.boardId)?.data
+                : (portfolioCreateContext
+                    ? getPortfolioBoardRecord(portfolioCreateContext.boardId)?.data
+                    : currentBoard);
+            renderTagEditor(container, items, getBoardTagSuggestions(boardData));
         }
 
         function normalizeTaskBlocked(value) {
@@ -6393,6 +6582,7 @@
             const metaParts = [
                 showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : '',
                 ...assignees.map((name) => `<span class="task-tag task-tag-assignee" title="Assignee">${escapeHtml(name)}</span>`),
+                ...normalizeTags(task.tags).map((tag) => `<span class="task-tag task-tag-label">${escapeHtml(tag)}</span>`),
                 task.blocked ? '<span class="task-tag task-tag-blocked" title="Blocked">Blocked</span>' : '',
                 statusAge ? `<span class="task-tag task-tag-age" title="Time in current status">${escapeHtml(statusAge)}</span>` : '',
                 isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : '',
@@ -7015,6 +7205,7 @@
             document.getElementById('detailTitle').textContent = task.title || '-';
             document.getElementById('detailDescription').textContent = task.description || '-';
             document.getElementById('detailAssignees').textContent = formatAssignees(task.assignees) || '-';
+            document.getElementById('detailTags').textContent = normalizeTags(task.tags).join(', ') || '-';
             document.getElementById('detailBlocked').textContent = task.blocked ? 'Yes' : 'No';
             document.getElementById('detailBlockerReason').textContent = task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-';
             document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
@@ -7055,6 +7246,8 @@
             document.getElementById('taskDescription').value = task.description || '';
             document.getElementById('taskAssignee').value = assigneesToInput(task.assignees);
             loadTaskAssigneeEditorFromTextarea();
+            const tagSuggestions = getBoardTagSuggestions(source.boardRecord.data);
+            renderTagEditor(document.getElementById('taskTagEditor'), normalizeTags(task.tags), tagSuggestions);
             document.getElementById('taskBlocked').checked = Boolean(task.blocked);
             document.getElementById('taskBlockerReason').value = normalizeBlockerReason(task.blockerReason);
             syncTaskBlockedReasonVisibility();
@@ -7097,6 +7290,7 @@
             document.getElementById('modalTitle').textContent = 'New Task';
             document.getElementById('taskAssignee').value = '';
             loadTaskAssigneeEditorFromTextarea();
+            renderTagEditor(document.getElementById('taskTagEditor'), [], []);
             document.getElementById('taskBlocked').checked = false;
             document.getElementById('taskBlockerReason').value = '';
             syncTaskBlockedReasonVisibility();
@@ -7439,6 +7633,7 @@
                 title: task.title,
                 description: task.description || '',
                 assignees: taskAssignees(task),
+                tags: normalizeTags(task.tags),
                 blocked: normalizeTaskBlocked(task.blocked),
                 blockerReason: normalizeTaskBlocked(task.blocked) ? normalizeBlockerReason(task.blockerReason) : '',
                 checklist: normalizeChecklist(task.checklist),
@@ -7793,6 +7988,23 @@
                     return { text, done: Boolean(item.done) };
                 })
                 .filter(Boolean);
+        }
+
+        function normalizeTags(input) {
+            if (!Array.isArray(input)) return [];
+            const seen = new Set();
+            const result = [];
+            for (const item of input) {
+                if (typeof item !== 'string') continue;
+                const trimmed = item.trim().toLowerCase();
+                if (!trimmed) continue;
+                if (trimmed.length > 30) continue;
+                if (seen.has(trimmed)) continue;
+                seen.add(trimmed);
+                result.push(trimmed);
+                if (result.length >= 10) break;
+            }
+            return result;
         }
 
         function parseChecklistInput(value) {
@@ -8442,7 +8654,7 @@
         }
 
         function buildTaskTimelineChanges(beforeTask, afterTask) {
-            const fieldNames = ['title', 'description', 'assignees', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status'];
+            const fieldNames = ['title', 'description', 'assignees', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status'];
             const changes = {};
             fieldNames.forEach((field) => {
                 const beforeValue = beforeTask ? beforeTask[field] : undefined;
@@ -9217,6 +9429,7 @@
                 title: document.getElementById('taskName').value.trim(),
                 description: document.getElementById('taskDescription').value.trim(),
                 assignees: parseAssigneesInput(document.getElementById('taskAssignee').value),
+                tags: readTagEditorItems(),
                 blocked: Boolean(document.getElementById('taskBlocked').checked),
                 blockerReason: normalizeBlockerReason(document.getElementById('taskBlockerReason').value),
                 checklist: parseChecklistInput(document.getElementById('taskChecklist').value),
@@ -9278,6 +9491,7 @@
                 title: draft.title,
                 description: draft.description,
                 assignees: draft.assignees,
+                tags: normalizeTags(draft.tags),
                 blocked: draft.blocked,
                 blockerReason: draft.blocked ? draft.blockerReason : '',
                 checklist: draft.checklist,
@@ -10459,6 +10673,7 @@
             document.getElementById('helpModalFooterCloseBtn')?.addEventListener('click', closeHelpModal);
             document.getElementById('undoBtn')?.addEventListener('click', performUndo);
             document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
+            document.getElementById('taskTagAddBtn')?.addEventListener('click', addTaskTagFromComposer);
             document.getElementById('taskChecklistAddBtn')?.addEventListener('click', addTaskChecklistItemFromComposer);
             document.getElementById('taskAttachmentsAddBtn')?.addEventListener('click', triggerTaskAttachmentsPicker);
             document.getElementById('resetPortfolioFiltersBtn')?.addEventListener('click', resetPortfolioViewFiltersAndSort);
@@ -10480,6 +10695,12 @@
                 e.preventDefault();
                 addTaskAssigneeFromComposer();
             });
+            document.getElementById('taskTagNewItem')?.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                addTaskTagFromComposer();
+            });
+            document.getElementById('taskTagItems')?.addEventListener('click', handleTagEditorClick);
             document.getElementById('taskAttachmentsInput')?.addEventListener('change', handleTaskAttachmentsInputChange);
             document.getElementById('taskModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('taskModal')) {
