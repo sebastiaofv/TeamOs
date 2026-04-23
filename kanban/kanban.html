@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 
 <head>
     <meta charset="UTF-8">
@@ -14,6 +14,7 @@
         }
 
         :root {
+            color-scheme: light;
             --bg-primary: #fafafa;
             --bg-secondary: #f0f0f0;
             --bg-card: #ffffff;
@@ -34,6 +35,28 @@
             --effort-xl: #cc3300;
         }
 
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --bg-primary: #111111;
+            --bg-secondary: #1d1f22;
+            --bg-card: #25282d;
+            --border: #454b54;
+            --border-light: #333941;
+            --text-primary: #f1f3f5;
+            --text-secondary: #c3cad3;
+            --text-muted: #8c96a3;
+            --accent: #64a8ff;
+            --accent-hover: #8dbfff;
+            --priority-high: #ff7a59;
+            --priority-medium: #e4b84d;
+            --priority-low: #55c878;
+            --effort-xs: #55c878;
+            --effort-s: #6fd08d;
+            --effort-m: #e4b84d;
+            --effort-l: #f4a35d;
+            --effort-xl: #ff7a59;
+        }
+
         html,
         body {
             height: 100%;
@@ -49,6 +72,17 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+        }
+
+        input,
+        select,
+        textarea {
+            color: var(--text-primary);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--text-muted);
         }
 
         .header {
@@ -116,6 +150,46 @@
         .btn:hover {
             background: var(--bg-secondary);
             border-color: var(--text-secondary);
+        }
+
+        .btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        .icon-btn {
+            width: 34px;
+            height: 30px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-toggle-btn {
+            flex: 0 0 auto;
+        }
+
+        .theme-toggle-icon {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .theme-toggle-icon-dark {
+            display: none;
+        }
+
+        :root[data-theme="dark"] .theme-toggle-icon-light {
+            display: none;
+        }
+
+        :root[data-theme="dark"] .theme-toggle-icon-dark {
+            display: block;
         }
 
         .btn-primary {
@@ -2938,6 +3012,172 @@
             letter-spacing: 0.5px;
         }
 
+        :root[data-theme="dark"] .file-drop-overlay {
+            background: rgba(100, 168, 255, 0.14);
+        }
+
+        :root[data-theme="dark"] .chip-save-state.warning,
+        :root[data-theme="dark"] .chip-save-state.conflict {
+            color: #f1c56a;
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-period,
+        :root[data-theme="dark"] .timeline-toggle-btn {
+            border-color: #5a5041;
+            background: #2c2922;
+            color: #f0dba8;
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-month-card:hover,
+        :root[data-theme="dark"] .portfolio-calendar-month-card:focus-visible {
+            box-shadow: 0 0 0 1px rgba(100, 168, 255, 0.28);
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-mini-day-today,
+        :root[data-theme="dark"] .portfolio-calendar-week-date-cell-today,
+        :root[data-theme="dark"] .portfolio-calendar-day-cell-today {
+            background: #3a321c;
+            box-shadow: inset 0 0 0 1px rgba(228, 184, 77, 0.45);
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-day-cell-actionable:hover,
+        :root[data-theme="dark"] .portfolio-calendar-day-cell-actionable:focus-within {
+            background: #242a31;
+            box-shadow: inset 0 0 0 1px rgba(100, 168, 255, 0.22);
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-mini-marker {
+            background: rgba(100, 168, 255, 0.46);
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-roadmap-span {
+            background: #332c21;
+            border-color: #806642;
+            color: #efd7a2;
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-roadmap-span-milestone {
+            background: #3a2f18;
+            border-color: #d7a946;
+            color: #ffe0a1;
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-roadmap-span-phase {
+            background: #202f45;
+            border-color: #6798de;
+            color: #c9ddff;
+        }
+
+        :root[data-theme="dark"] .portfolio-calendar-roadmap-span-sprint {
+            background: #2f2c24;
+            border-color: #b49a63;
+            color: #ead8b6;
+        }
+
+        :root[data-theme="dark"] .roadmap-row[data-roadmap-id]:hover,
+        :root[data-theme="dark"] .portfolio-column-body.drag-over {
+            background: rgba(100, 168, 255, 0.1);
+        }
+
+        :root[data-theme="dark"] .roadmap-today-marker::before {
+            box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.85);
+        }
+
+        :root[data-theme="dark"] .roadmap-row-timeline-bar {
+            background: linear-gradient(90deg, #7890a8, #b1c1d1);
+        }
+
+        :root[data-theme="dark"] .roadmap-row-timeline-point {
+            border-color: rgba(17, 17, 17, 0.9);
+            box-shadow: 0 0 0 1px rgba(100, 168, 255, 0.35);
+        }
+
+        :root[data-theme="dark"] .timeline-panel,
+        :root[data-theme="dark"] .portfolio-bulk-actions {
+            background: #242119;
+        }
+
+        :root[data-theme="dark"] .timeline-preview-banner {
+            border-color: #806642;
+            background: #3a2f18;
+            color: #ffe0a1;
+        }
+
+        :root[data-theme="dark"] .timeline-slider {
+            accent-color: #e4b84d;
+        }
+
+        :root[data-theme="dark"] .timeline-pill,
+        :root[data-theme="dark"] .timeline-event-list,
+        :root[data-theme="dark"] .timeline-event-detail,
+        :root[data-theme="dark"] .timeline-diff-value {
+            background: #1f211f;
+            border-color: #4b463b;
+            color: var(--text-primary);
+        }
+
+        :root[data-theme="dark"] .timeline-event-item {
+            border-color: #1f211f;
+        }
+
+        :root[data-theme="dark"] .timeline-event-item:hover {
+            background: #2c2922;
+            border-color: #5a5041;
+        }
+
+        :root[data-theme="dark"] .timeline-event-item.active,
+        :root[data-theme="dark"] .timeline-diff-item {
+            background: #302b20;
+            border-color: #66593d;
+        }
+
+        :root[data-theme="dark"] .timeline-event-kind,
+        :root[data-theme="dark"] .timeline-diff-field {
+            color: #d8bd7b;
+        }
+
+        :root[data-theme="dark"] .task-card:hover {
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.32);
+        }
+
+        :root[data-theme="dark"] .task-tag-assignee,
+        :root[data-theme="dark"] .task-tag-age {
+            background: #22303d;
+            border-color: #3e5267;
+            color: #c7d7e8;
+        }
+
+        :root[data-theme="dark"] .task-tag-blocked {
+            background: #3c2222;
+            border-color: #6f3a3a;
+            color: #f4b7b7;
+        }
+
+        :root[data-theme="dark"] .task-tag-score,
+        :root[data-theme="dark"] .task-tag-label {
+            background: #303439;
+            border-color: #4a5058;
+            color: #d5dae0;
+        }
+
+        :root[data-theme="dark"] .task-action-btn.task-action-danger:hover,
+        :root[data-theme="dark"] .attachment-editor-error {
+            background: #3c2222;
+            border-color: #7a3b35;
+            color: #ffb3a8;
+        }
+
+        :root[data-theme="dark"] .attachment-editor-warning {
+            background: #3a2f18;
+            border-color: #806642;
+            color: #ffe0a1;
+        }
+
+        :root[data-theme="dark"] .search-highlight {
+            background: #5c4912;
+            color: #fff2b6;
+        }
+
         /* Scrollbar styling */
         ::-webkit-scrollbar {
             width: 8px;
@@ -2962,6 +3202,22 @@
     <div class="header">
         <div class="app-title">TeamOS → Kanban</div>
         <div class="header-actions">
+            <button class="btn icon-btn theme-toggle-btn" id="themeToggleBtn" type="button" aria-label="Switch to dark mode" title="Switch to dark mode" aria-pressed="false">
+                <svg class="theme-toggle-icon theme-toggle-icon-light" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"></path>
+                </svg>
+                <svg class="theme-toggle-icon theme-toggle-icon-dark" aria-hidden="true" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2"></path>
+                    <path d="M12 20v2"></path>
+                    <path d="m4.93 4.93 1.41 1.41"></path>
+                    <path d="m17.66 17.66 1.41 1.41"></path>
+                    <path d="M2 12h2"></path>
+                    <path d="M20 12h2"></path>
+                    <path d="m6.34 17.66-1.41 1.41"></path>
+                    <path d="m19.07 4.93-1.41 1.41"></path>
+                </svg>
+            </button>
             <button class="btn" id="openShortcutsBtn">Shortcuts</button>
             <button class="btn" id="openHelpBtn">Help</button>
             <button class="btn" id="importProjectsBtn">Import Projects</button>
@@ -3437,6 +3693,7 @@
         const PROJECT_FILE_WATCH_INTERVAL_MS = 4000;
         const PROJECT_FILE_CONFLICT_SUPPRESS_MS = 15000;
         const PROJECT_FILE_EXTERNAL_BADGE_MS = 5000;
+        const THEME_STORAGE_KEY = 'teamOsKanbanTheme';
         const DEBUG_LOGS_ENABLED = false;
         let pendingNewTaskStatus = null;
         let undoAction = null;
@@ -3470,6 +3727,7 @@
         let portfolioCalendarDisplayMode = 'calendar';
         let portfolioCalendarYear = null;
         let portfolioCalendarMonth = null;
+        let activeTheme = 'light';
         let ShortcutRegistry = [];
         let suppressPortfolioCardClickUntil = 0;
         let projectWatchTimerId = null;
@@ -9094,10 +9352,54 @@
             setTaskModalAttachmentDraft(next, { messages });
         }
 
+        function normalizeTheme(theme) {
+            return theme === 'dark' ? 'dark' : 'light';
+        }
+
+        function readStoredTheme() {
+            try {
+                return normalizeTheme(localStorage.getItem(THEME_STORAGE_KEY));
+            } catch (_) {
+                return 'light';
+            }
+        }
+
+        function persistTheme(theme) {
+            try {
+                localStorage.setItem(THEME_STORAGE_KEY, normalizeTheme(theme));
+            } catch (_) { }
+        }
+
+        function applyTheme(theme, options = {}) {
+            activeTheme = normalizeTheme(theme);
+            document.documentElement.setAttribute('data-theme', activeTheme);
+
+            const label = activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+            const toggle = Refs.themeToggleBtn || document.getElementById('themeToggleBtn');
+            if (toggle) {
+                toggle.setAttribute('aria-label', label);
+                toggle.setAttribute('title', label);
+                toggle.setAttribute('aria-pressed', activeTheme === 'dark' ? 'true' : 'false');
+            }
+
+            if (options.persist) {
+                persistTheme(activeTheme);
+            }
+        }
+
+        function initializeTheme() {
+            applyTheme(readStoredTheme());
+        }
+
+        function toggleTheme() {
+            applyTheme(activeTheme === 'dark' ? 'light' : 'dark', { persist: true });
+        }
+
         function init() {
             if (typeof cacheRefs === 'function') {
                 cacheRefs();
             }
+            initializeTheme();
             buildShortcutRegistry();
             renderShortcutsModalContent();
             updateDocumentTitle();
@@ -10101,6 +10403,7 @@
         }
 
         function cacheRefs() {
+            Refs.themeToggleBtn = document.getElementById('themeToggleBtn');
             Refs.portfolioView = document.getElementById('portfolioView');
             Refs.portfolioViewModeToggle = document.getElementById('portfolioViewModeToggle');
             Refs.portfolioBoard = document.getElementById('portfolioBoard');
@@ -10658,6 +10961,7 @@
         }
 
         function bindStaticUiEvents() {
+            Refs.themeToggleBtn?.addEventListener('click', toggleTheme);
             document.getElementById('openShortcutsBtn')?.addEventListener('click', openShortcutsModal);
             document.getElementById('openHelpBtn')?.addEventListener('click', openHelpModal);
             document.getElementById('newProjectBtn')?.addEventListener('click', newProject);

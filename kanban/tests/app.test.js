@@ -330,6 +330,36 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
   });
 
+  test('top bar theme toggle switches and persists dark mode', async ({ page }) => {
+    const root = page.locator('html');
+    const toggle = page.locator('#themeToggleBtn');
+
+    await expect(root).toHaveAttribute('data-theme', 'light');
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-label', 'Switch to dark mode');
+    await expect(toggle.locator('.theme-toggle-icon-light')).toBeVisible();
+    await expect(toggle.locator('.theme-toggle-icon-dark')).toBeHidden();
+
+    await toggle.click();
+
+    await expect(root).toHaveAttribute('data-theme', 'dark');
+    await expect(toggle).toHaveAttribute('aria-label', 'Switch to light mode');
+    await expect(toggle.locator('.theme-toggle-icon-light')).toBeHidden();
+    await expect(toggle.locator('.theme-toggle-icon-dark')).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanTheme'))).toBe('dark');
+
+    await page.reload();
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page.locator('#themeToggleBtn')).toHaveAttribute('aria-label', 'Switch to light mode');
+
+    await page.locator('#themeToggleBtn').click();
+
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await expect(page.locator('#themeToggleBtn')).toHaveAttribute('aria-label', 'Switch to dark mode');
+    expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanTheme'))).toBe('light');
+  });
+
   test('app shell does not create a page scrollbar on load', async ({ page }) => {
     const metrics = await page.evaluate(() => ({
       viewportHeight: window.innerHeight,
