@@ -41,9 +41,26 @@ are pure, not the ~58% first reported, and the true-rewrite share is larger than
 ~34% originally claimed. The phasing argument survives — the pure layer is still the
 single largest group and still moves first — but it is less lopsided than stated.
 
-A further caveat: the "pure" test is a body scan, so a function that delegates its DOM
-work to a callee is misclassified as pure. Real domain modules will be somewhat smaller
-than 249. See the function inventory for the per-function list and its warnings. This ratio is the reason for the domain-first phasing: the majority of the code can move before any React is written.
+**Superseded again 2026-09-11 (during Task 4 prep).** The caveat below proved to be the
+dominant effect, not a footnote. Re-running the classification transitively over the
+call graph — a function is impure if *anything it calls* touches the DOM or globals —
+gives a very different split:
+
+| Category | Body scan (wrong) | Transitive (correct) |
+|---|---:|---:|
+| Pure | 249 | **167** |
+| Stateful | 84 | 62 |
+| DOM-reachable | 95 | 199 |
+
+Phase 1's extraction surface is roughly **167 functions, not 253**, and Phase 2's
+rewrite surface is more than twice what this spec first claimed. The domain-first
+phasing still holds — the pure layer is still worth extracting first, and it is still
+the cheapest work — but the "only ~34% is a true rewrite" claim was wrong by a wide
+margin. Roughly 60% of the JS is UI-coupled.
+
+Concretely: of the 55 functions the old inventory listed for `task.js`, 24 are DOM or
+stateful, including every `*Editor*` and `handle*` function. Extracting them would have
+put UI code in the domain layer. This ratio is the reason for the domain-first phasing: the majority of the code can move before any React is written.
 
 Verified spot-check: `validateBoardData` (220 lines) contains zero references to `document`, `Refs`, `window`, or any global. `BoardRepository` is DOM-free and depends only on other pure functions plus File System Access handles.
 
