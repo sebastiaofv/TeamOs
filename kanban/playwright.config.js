@@ -1,9 +1,5 @@
 const { defineConfig } = require('@playwright/test');
 
-const webServerCommand = process.platform === 'win32'
-  ? 'py -3 -m http.server 4173 --bind 127.0.0.1'
-  : 'python3 -m http.server 4173 --bind 127.0.0.1';
-
 module.exports = defineConfig({
   testDir: './tests',
   testMatch: '**/*.test.js',
@@ -18,7 +14,7 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure'
   },
   webServer: {
-    command: webServerCommand,
+    command: 'npm run preview',
     port: 4173,
     reuseExistingServer: true,
     timeout: 30_000

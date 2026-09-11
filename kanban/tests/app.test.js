@@ -67,7 +67,7 @@ function buildBoardPayload({ title, tasks = [], extensions = {} }) {
 }
 
 async function gotoApp(page) {
-  await page.goto('/kanban.html');
+  await page.goto('/');
   await expect(page.locator('#portfolioView')).toBeVisible();
   await expect(page.locator('#boardView')).toHaveCount(0);
 }
@@ -385,7 +385,7 @@ test.describe('portfolio-only app', () => {
   });
 
   test('invalid selected board query resets roadmap mode and clears URL state', async ({ page }) => {
-    await page.goto('/kanban.html?pb=ghost&pv=roadmap');
+    await page.goto('/?pb=ghost&pv=roadmap');
     await expect(page.locator('#portfolioView')).toBeVisible();
     await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'ghost' });
 
@@ -395,7 +395,7 @@ test.describe('portfolio-only app', () => {
     await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
     await expect(page.locator('#portfolioBoard')).toBeVisible();
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
-    await expect(page).toHaveURL(/\/kanban\.html$/);
+    await expect(page).toHaveURL(/\/$/);
   });
 
   test('aggregate portfolio shows calendar mode without selecting a board and persists calendar url state', async ({ page }) => {
@@ -422,7 +422,7 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolioBoard')).toBeVisible();
     await expect(page.locator('#portfolioCalendarView')).toBeHidden();
     await expect(page.getByRole('button', { name: 'Board' })).toHaveClass(/active/);
-    await expect(page).toHaveURL(/\/kanban\.html$/);
+    await expect(page).toHaveURL(/\/$/);
   });
 
   test('calendar view renders roadmap items and due-date tasks with month drill-down', async ({ page }) => {
@@ -767,12 +767,12 @@ test.describe('portfolio-only app', () => {
   });
 
   test('stale selected board query resets roadmap mode on empty startup portfolio', async ({ page }) => {
-    await page.goto('/kanban.html?pb=ghost&pv=roadmap');
+    await page.goto('/?pb=ghost&pv=roadmap');
 
     await expect(page.locator('#portfolioView')).toBeVisible();
     await expect(page.locator('#portfolioViewModeToggle')).toBeHidden();
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
-    await expect(page).toHaveURL(/\/kanban\.html$/);
+    await expect(page).toHaveURL(/\/$/);
     const state = await page.evaluate(() => ({
       selectedPortfolioBoardId,
       selectedPortfolioViewMode,
@@ -786,7 +786,7 @@ test.describe('portfolio-only app', () => {
   });
 
   test('normalizeColumns keeps valid canonical columns and removes duplicates', async ({ page }) => {
-    const columns = await page.evaluate(() => normalizeColumns([
+    const columns = await page.evaluate(() => window.__legacyTestApi.normalizeColumns([
       { status: 'Backlog', title: 'Ideas' },
       { status: 'todo', title: 'Ready' },
       { status: 'to-do', title: 'Duplicate todo' },
@@ -804,7 +804,7 @@ test.describe('portfolio-only app', () => {
   });
 
   test('normalizeColumns falls back to defaults when no valid columns are provided', async ({ page }) => {
-    const columns = await page.evaluate(() => normalizeColumns([null, {}, { status: '', title: '' }]));
+    const columns = await page.evaluate(() => window.__legacyTestApi.normalizeColumns([null, {}, { status: '', title: '' }]));
 
     expect(columns).toEqual([
       { status: 'backlog', title: 'backlog' },
@@ -1504,7 +1504,7 @@ test.describe('portfolio-only app', () => {
     const result = await page.evaluate((legacyPayload) => {
       const legacy = legacyPayload;
       validateBoardData(legacy);
-      const serialized = serializeBoardDataFromObject(legacy);
+      const serialized = window.__legacyTestApi.serializeBoardDataFromObject(legacy);
       return {
         schemaVersion: serialized.meta.schemaVersion,
         task: serialized.board.tasks[0],
@@ -1544,7 +1544,7 @@ test.describe('portfolio-only app', () => {
     const snapshot = await page.evaluate(() => {
       const source = structuredClone(getPortfolioBoardRecord('alpha').data);
       validateBoardData(source);
-      const serialized = serializeBoardDataFromObject(source);
+      const serialized = window.__legacyTestApi.serializeBoardDataFromObject(source);
       return structuredClone(serialized);
     });
 
