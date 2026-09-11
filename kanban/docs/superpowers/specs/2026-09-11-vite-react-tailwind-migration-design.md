@@ -84,7 +84,7 @@ a planning estimate; exact placement is refined during extraction.
 
 Every `id` attribute in the current markup is reproduced in the JSX that replaces it.
 
-**Why:** the 95 Playwright tests select by id. Preserving ids is free at authoring
+**Why:** the 94 Playwright tests select by id. Preserving ids is free at authoring
 time and is the single measure that keeps the existing suite usable as a parity
 oracle throughout the rewrite. This is a hard constraint, not a preference.
 
@@ -128,23 +128,48 @@ burden — the exact problem this migration exists to solve.
 
 ## Test strategy
 
-The existing suite is the parity oracle. Planned disposition of all 95 tests:
+The existing suite is the parity oracle. Planned disposition of all 94 tests:
 
 | Fate | Count | Rationale |
 |---|---:|---|
-| Carry over unchanged | 87 | Stable ids make the implementation swap invisible |
+| Carry over unchanged | 86 | Stable ids make the implementation swap invisible |
 | Rewrite for dnd-kit | 4 | Native drag events → pointer/keyboard sensors |
 | Convert to Vitest | 4 | Unit tests currently expressed as E2E |
-| **Total** | **95** | |
+| **Total** | **94** | |
+
+**Correction (2026-09-11, discovered during Task 1):** the "carry over unchanged"
+row above is materially optimistic, and the original claim that the remaining
+`page.evaluate` calls only stub File System Access was wrong. Measured against the
+real suite:
+
+| Coupling | Tests | Survives a React rewrite on stable ids? |
+|---|---:|---|
+| Black-box (DOM ids, user flows only) | 34 | Yes |
+| White-box (reads/writes app internals) | 60 | **No** |
+
+The 60 white-box tests drive internals directly — `portfolioBoards` (36 tests),
+`editPortfolioTask` (12), `getPortfolioBoardRecord` (9), `runPortfolioTaskMutation`,
+`setPortfolioSort`, `getProjectSaveState` and others. Under Phase 2's React + Zustand
+rewrite those symbols cease to exist in their current form, and stable DOM ids do not
+save them.
+
+**Consequence for Phase 1:** none. The functions still exist, so a `window` bridge
+(added in Task 1) keeps all 94 green. Phase 1 proceeds as planned.
+
+**Consequence for Phase 2:** the suite is a far weaker parity oracle than this spec
+originally claimed, and Phase 2's spec must choose a strategy for those 60 tests
+before any React is written. See "Risks".
 
 The 4 conversions are the tests that call domain functions directly via
 `page.evaluate`: `normalizeColumns` (×2), legacy assignee serialization, and roadmap
 schema normalization. Once those functions are importable ES modules they belong in
 Vitest, where they run in milliseconds without a browser.
 
-The 129 remaining `page.evaluate` calls stub the File System Access API
-(`window.showOpenFilePicker` and friends) and are **unaffected** — they stub real
-browser APIs, not application internals.
+Of the 129 remaining `page.evaluate` calls, those that stub the File System Access
+API (`window.showOpenFilePicker` and friends) are unaffected. **But many others reach
+into application internals** — see the correction above. Converting the legacy script
+to an ES module removes top-level declarations from `window`, so Task 1 adds an
+explicit bridge to keep them reachable.
 
 Mechanical test-harness changes:
 
@@ -166,10 +191,10 @@ each with its own spec and plan.
 Move the 253 pure functions and `BoardRepository` into `src/domain/` and
 `src/persistence/` as ES modules with Vitest coverage. Stand up the Vite, Tailwind,
 and Vitest toolchain. `kanban.html` continues to run by importing the built bundle,
-so the app stays functional and all 95 Playwright tests stay green throughout.
+so the app stays functional and all 94 Playwright tests stay green throughout.
 
 **Exit criteria:** all 253 functions live in modules; Vitest suite covers them; all
-95 Playwright tests still pass; `kanban.html` still runs.
+94 Playwright tests still pass; `kanban.html` still runs.
 
 Phase 1 is mechanical, independently valuable, and is work that any migration
 approach would require.
@@ -207,6 +232,14 @@ external-change paths before touching it.
 (roadmap Gantt rows, calendar heat map, timeline scrubber) may not express cleanly as
 utilities. Mitigation: allow component-scoped CSS modules for genuinely bespoke
 layout rather than forcing utility classes.
+
+**The test suite is a weak oracle for Phase 2.** 60 of 94 tests are coupled to
+internals that Phase 2 deletes. Phase 2's spec must pick a strategy before writing
+components: rewrite them as black-box tests first (buys a real oracle, delays React),
+expose store state and actions on `window` for tests (preserves them, entrenches a
+test-only interface), or convert them view-by-view as each is rebuilt (spreads the
+cost, but the oracle is weakest exactly when it is most needed). Unresolved — this is
+the first decision Phase 2 must make.
 
 **Scope drift during a parity port.** "While I'm in here" improvements inflate a
 migration indefinitely. Mitigation: parity is the bar; improvements get filed, not

@@ -12,7 +12,7 @@
 
 These apply to every task. A task is not complete if it violates one.
 
-- **All 95 Playwright tests pass at every commit.** No task may leave the suite red.
+- **All 94 Playwright tests pass at every commit.** No task may leave the suite red.
 - **Preserve every DOM `id`.** Ids are the parity oracle for the test suite.
 - **No behavior changes.** Parity port only. Improvements get filed, not built.
 - **`BOARD_SCHEMA_VERSION` stays `1`.** Existing `*.board.json` files must load unchanged.
@@ -22,6 +22,14 @@ These apply to every task. A task is not complete if it violates one.
   string content; reindenting would silently change output. Domain modules are
   dedented by exactly 8 spaces on extraction (safe: they are pure logic).
 - **Node 18+.** Board files keep the `.board.json` extension.
+- **Do not remove the `window` internals bridge at the end of `src/legacy/main.js`.**
+  60 of the 94 Playwright tests drive app internals directly via `page.evaluate`
+  (`portfolioBoards`, `editPortfolioTask`, `getPortfolioBoardRecord`, …). Converting
+  the script to an ES module removed those from global scope, so Task 1 re-exposed
+  them explicitly. As you extract a bridged function into a domain module, keep its
+  bridge entry working — the imported binding assigns to `window` exactly as the
+  local declaration did. Only the separate `window.__legacyTestApi` block is removed
+  (Task 6). Retiring the larger bridge is Phase 2's problem, not Phase 1's.
 - **A failing assertion is investigated, never just adjusted.** The Vitest assertions
   in this plan were written from reading the source and some will be wrong guesses.
   When one fails, first check the function's behavior in the pre-migration file:
@@ -271,7 +279,7 @@ warnings.forEach((w) => console.warn('WARN ' + w));
 npm run build && npm test
 ```
 
-Expected: build succeeds; all 95 Playwright tests pass.
+Expected: build succeeds; all 94 Playwright tests pass.
 
 If tests fail here, the split in Step 2 took wrong line numbers. Verify `index.html`
 has no leftover `<style>`/`<script>` content and that `src/legacy/main.js` starts with
@@ -367,7 +375,7 @@ Expected: `0`
 npm run build && npm test
 ```
 
-Expected: build succeeds, 95 tests pass.
+Expected: build succeeds, 94 tests pass.
 
 - [ ] **Step 5: Commit**
 
@@ -475,7 +483,7 @@ the extraction — whichever the comparison shows is wrong.
 npm run build && npm test
 ```
 
-Expected: 95 Playwright tests pass.
+Expected: 94 Playwright tests pass.
 
 - [ ] **Step 7: Commit**
 
@@ -608,7 +616,7 @@ Expected: PASS — 10 tests.
 npm run build && npm test
 ```
 
-Expected: 95 Playwright tests pass.
+Expected: 94 Playwright tests pass.
 
 - [ ] **Step 7: Commit**
 
@@ -740,7 +748,7 @@ Expected: PASS — 11 tests.
 npm run build && npm test
 ```
 
-Expected: 95 Playwright tests pass.
+Expected: 94 Playwright tests pass.
 
 - [ ] **Step 7: Commit**
 
@@ -929,7 +937,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 These five follow the identical shape as Tasks 3-6. For each: write the failing Vitest
 test, run it to confirm it fails, extract with `scripts/extract-domain.mjs`, add the
 module's imports, confirm the unit test passes, run `npm run build && npm test` to
-confirm 91 Playwright tests still pass, commit.
+confirm 90 Playwright tests still pass, commit.
 
 **Do not batch these into one commit.** Each module is independently reviewable and an
 independent rollback point.
@@ -1127,7 +1135,7 @@ Expected: PASS — 4 new tests.
 npm run build && npm test
 ```
 
-Expected: 91 Playwright tests pass. This task carries the highest regression risk in
+Expected: 90 Playwright tests pass. This task carries the highest regression risk in
 Phase 1 — the FSA stubbing harness in `tests/app.test.js` exercises these paths
 heavily. If anything fails, the cause is almost certainly a missed import.
 
@@ -1218,7 +1226,7 @@ Remove the temporary class, then:
 npm run build && npm test
 ```
 
-Expected: 91 Playwright tests pass — Tailwind changed no existing styling.
+Expected: 90 Playwright tests pass — Tailwind changed no existing styling.
 
 - [ ] **Step 6: Update the README**
 
@@ -1272,7 +1280,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - [ ] 253 pure functions live in `src/domain/*.js` as named exports
 - [ ] `BoardRepository` and FSA helpers live in `src/persistence/*.js`
 - [ ] Vitest suite covers every extracted module
-- [ ] 91 Playwright tests pass (95 minus the 4 converted to Vitest)
+- [ ] 90 Playwright tests pass (94 minus the 4 converted to Vitest)
 - [ ] `npm run dev` and `npm run build` both work
 - [ ] Tailwind is installed and generating utilities, inert against legacy CSS
 - [ ] `window.__legacyTestApi` shim is gone
