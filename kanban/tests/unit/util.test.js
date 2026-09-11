@@ -7,7 +7,8 @@ import {
   compareText,
   hasExactKeys,
   escapeRegExp,
-  readFileAsDataUrl
+  readFileAsDataUrl,
+  formatFileSize
 } from '../../src/domain/util.js';
 
 describe('isAbortError', () => {
@@ -174,5 +175,37 @@ describe('readFileAsDataUrl', () => {
     globalThis.FileReader = FakeFileReader;
 
     await expect(readFileAsDataUrl({})).rejects.toThrow('File read failed.');
+  });
+});
+
+describe('formatFileSize', () => {
+  it('returns "0 B" for zero', () => {
+    expect(formatFileSize(0)).toBe('0 B');
+  });
+
+  it('returns "0 B" for a negative value', () => {
+    expect(formatFileSize(-5)).toBe('0 B');
+  });
+
+  it('returns "0 B" for non-finite input (NaN, Infinity)', () => {
+    expect(formatFileSize(NaN)).toBe('0 B');
+    expect(formatFileSize(Infinity)).toBe('0 B');
+    expect(formatFileSize(-Infinity)).toBe('0 B');
+  });
+
+  it('formats a bytes value under 1024 as whole bytes', () => {
+    expect(formatFileSize(500)).toBe('500 B');
+  });
+
+  it('formats a KB value below the 10-unit toFixed boundary with one decimal', () => {
+    expect(formatFileSize(9216)).toBe('9.0 KB'); // 9 KB, < 10 * 1024
+  });
+
+  it('formats a KB value at the 10-unit toFixed boundary with zero decimals', () => {
+    expect(formatFileSize(10240)).toBe('10 KB'); // 10 KB, >= 10 * 1024
+  });
+
+  it('formats an MB value with one decimal', () => {
+    expect(formatFileSize(3670016)).toBe('3.5 MB'); // 3.5 MB
   });
 });

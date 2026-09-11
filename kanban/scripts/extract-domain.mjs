@@ -1,10 +1,20 @@
 // scripts/extract-domain.mjs
 // Usage: node scripts/extract-domain.mjs <module> <fnName> [<fnName>...] [--force]
 //   --force: proceed even if an extracted function contains a template literal
-//            (backtick). Without --force, the script exits non-zero and writes
-//            nothing if any named function contains a backtick, because
-//            dedenting by 8 spaces silently changes the content of a template
-//            literal that spans multiple lines.
+//            that spans multiple lines. Without --force, the script exits
+//            non-zero and writes nothing if any named function has a line with
+//            an odd number of backticks — that means a template literal opens
+//            on that line and does not close on it, i.e. it spans lines, and
+//            dedenting by 8 spaces would silently change its content (leading
+//            whitespace inside a template literal is string content). A line
+//            with an even number of backticks only contains template literals
+//            that open and close on that same line, which dedenting cannot
+//            corrupt, so such lines are safe and do not trigger the guard.
+//   Known limitation: a line containing a nested template literal inside a
+//   ${...} substitution can produce an even backtick count while still being
+//   part of a literal that spans lines (e.g. an odd number of "real" backticks
+//   masked by a nested pair). No function in this file does that today; if one
+//   ever does, --force remains available after manual verification.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, relative } from 'node:path';
 
@@ -22,7 +32,7 @@ const lines = readFileSync(MAIN, 'utf8').split('\n');
 
 const extracted = [];
 const warnings = [];
-let hasTemplateLiteral = false;
+let hasMultilineTemplateLiteral = false;
 
 for (const fn of fnNames) {
   const start = lines.findIndex((l) => new RegExp(`^        (async )?function ${fn}\\(`).test(l));
@@ -35,9 +45,12 @@ for (const fn of fnNames) {
   if (end === -1) { console.error(`NO CLOSE: ${fn}`); process.exit(1); }
 
   const body = lines.slice(start, end + 1);
-  if (body.some((l) => l.includes('`'))) {
-    hasTemplateLiteral = true;
-    warnings.push(`${fn}: contains a template literal — verify dedent did not change output`);
+  // A line with an odd number of backticks opens a template literal that does
+  // not close on the same line, i.e. it spans multiple lines — exactly the
+  // case where dedenting by 8 spaces would corrupt string content.
+  if (body.some((l) => (l.match(/`/g) || []).length % 2 !== 0)) {
+    hasMultilineTemplateLiteral = true;
+    warnings.push(`${fn}: a line has an odd number of backticks — a template literal spans multiple lines; verify dedent did not change output`);
   }
   // Dedent by exactly 8 spaces; safe because domain functions are pure logic.
   const dedented = body.map((l) => (l.startsWith('        ') ? l.slice(8) : l));
@@ -47,11 +60,12 @@ for (const fn of fnNames) {
   lines.splice(start, end - start + 1);
 }
 
-if (hasTemplateLiteral && !force) {
-  console.error('ABORT: one or more extracted functions contain a template literal.');
-  console.error('Dedenting by 8 spaces changes template-literal content (leading whitespace');
-  console.error('inside a template literal is string content). Re-run with --force to proceed');
-  console.error('anyway (the warning below will still print, and you must verify the output).');
+if (hasMultilineTemplateLiteral && !force) {
+  console.error('ABORT: one or more extracted functions contain a template literal that spans multiple lines.');
+  console.error('A line with an odd number of backticks opens a template literal without closing it on');
+  console.error('the same line, so dedenting by 8 spaces changes its content (leading whitespace inside a');
+  console.error('template literal is string content). Re-run with --force to proceed anyway (the warning');
+  console.error('below will still print, and you must verify the output).');
   warnings.forEach((w) => console.warn('WARN ' + w));
   process.exit(1);
 }

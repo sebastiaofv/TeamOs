@@ -1,5 +1,5 @@
 import '../styles/legacy.css';
-import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl } from '../domain/util.js';
+import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize } from '../domain/util.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -5300,13 +5300,6 @@ import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasE
             });
         }
 
-        function formatFileSize(bytes) {
-            const value = Number(bytes);
-            if (!Number.isFinite(value) || value <= 0) return '0 B';
-            if (value < 1024) return `${Math.round(value)} B`;
-            if (value < 1024 * 1024) return `${(value / 1024).toFixed(value >= 10 * 1024 ? 0 : 1)} KB`;
-            return `${(value / (1024 * 1024)).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
-        }
 
 
         function getTaskModalAttachmentsDraft() {
