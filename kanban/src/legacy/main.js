@@ -1,34 +1,21 @@
 import '../styles/legacy.css';
+        import {
+            BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
+            TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
+            TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ROADMAP_EXTENSION_KEY,
+            ROADMAP_VERSION, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION, ATTACHMENT_MAX_COUNT,
+            ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES, ATTACHMENT_TASK_SOFT_TOTAL_BYTES,
+            ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES, PROJECT_FILE_WATCH_INTERVAL_MS,
+            PROJECT_FILE_CONFLICT_SUPPRESS_MS, PROJECT_FILE_EXTERNAL_BADGE_MS, THEME_STORAGE_KEY,
+            DEBUG_LOGS_ENABLED, CALENDAR_MONTH_NAMES, CALENDAR_MONTH_SHORT_NAMES,
+            CALENDAR_WEEKDAY_NAMES
+        } from '../domain/constants.js';
         const defaultColumns = [
             { status: 'backlog', title: 'backlog' },
             { status: 'to-do', title: 'to-do' },
             { status: 'doing', title: 'in progress' },
             { status: 'done', title: 'done' }
         ];
-        const BOARD_SCHEMA_VERSION = 1;
-        const BOARD_APP_ID = 'teamos-kanban';
-        const BOARD_FILE_EXTENSION = '.json';
-        const DEFAULT_BOARD_TITLE = 'Example Task Board';
-        const TASK_TITLE_MAX_LENGTH = 80;
-        const EFFORT_BUCKETS = ['XS', 'S', 'M', 'L', 'XL'];
-        const MAX_COLUMNS = 5;
-        const BOARD_ARCHIVE_FILTER_VALUES = ['active', 'all', 'archived'];
-        const TEAMOS_EXTENSIONS_KEY = 'teamOsKanban';
-        const TASK_ATTACHMENTS_EXTENSIONS_KEY = 'taskAttachments';
-        const ROADMAP_EXTENSION_KEY = 'roadmap';
-        const ROADMAP_VERSION = 1;
-        const TIMELINE_EXTENSION_KEY = 'timeline';
-        const TIMELINE_VERSION = 1;
-        const ATTACHMENT_MAX_COUNT = 10;
-        const ATTACHMENT_HARD_MAX_BYTES = 10 * 1024 * 1024;
-        const ATTACHMENT_SOFT_WARN_BYTES = 2 * 1024 * 1024;
-        const ATTACHMENT_TASK_SOFT_TOTAL_BYTES = 20 * 1024 * 1024;
-        const ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES = 25 * 1024 * 1024;
-        const PROJECT_FILE_WATCH_INTERVAL_MS = 4000;
-        const PROJECT_FILE_CONFLICT_SUPPRESS_MS = 15000;
-        const PROJECT_FILE_EXTERNAL_BADGE_MS = 5000;
-        const THEME_STORAGE_KEY = 'teamOsKanbanTheme';
-        const DEBUG_LOGS_ENABLED = false;
         let pendingNewTaskStatus = null;
         let undoAction = null;
         let undoTimer = null;
@@ -80,9 +67,6 @@ import '../styles/legacy.css';
                 console.error('[TeamOS Kanban]', ...args);
             }
         };
-        const CALENDAR_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        const CALENDAR_MONTH_SHORT_NAMES = CALENDAR_MONTH_NAMES.map((name) => name.slice(0, 3));
-        const CALENDAR_WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
         function readQueryParam(key, fallback = '') {
             const params = new URLSearchParams(window.location.search);
