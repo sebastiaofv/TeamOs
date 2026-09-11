@@ -1,8 +1,10 @@
 import '../styles/legacy.css';
-import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize } from '../domain/util.js';
+import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp } from '../domain/util.js';
 import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask } from '../domain/task.js';
 import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId } from '../domain/roadmap.js';
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor } from '../domain/board.js';
+import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions } from '../domain/attachments.js';
+import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate } from '../domain/calendar.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -71,9 +73,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             return params.get(key) ?? fallback;
         }
 
-        function hasRequiredExtension(fileName, extension) {
-            return typeof fileName === 'string' && fileName.toLowerCase().endsWith(extension);
-        }
 
         function assertRequiredExtension(fileName, extension, label) {
             if (!hasRequiredExtension(fileName, extension)) {
@@ -178,13 +177,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             return `h${(hash >>> 0).toString(16)}`;
         }
 
-        function formatLocalIsoDate(date) {
-            if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-            const yyyy = String(date.getFullYear());
-            const mm = String(date.getMonth() + 1).padStart(2, '0');
-            const dd = String(date.getDate()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd}`;
-        }
 
         function todayLocalIsoDate() {
             return formatLocalIsoDate(new Date());
@@ -238,9 +230,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
 
 
 
-        function assigneesToInput(value) {
-            return normalizeAssignees(value).join('\n');
-        }
 
         function formatDueDateForUi(value) {
             const iso = normalizeDueDate(value);
@@ -639,18 +628,8 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             };
         }
 
-        function formatUtcIsoDate(date) {
-            if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-            return date.toISOString().slice(0, 10);
-        }
 
-        function createUtcDate(year, month, day = 1) {
-            return new Date(Date.UTC(year, month, day));
-        }
 
-        function getUtcMonthLabel(year, month) {
-            return `${CALENDAR_MONTH_NAMES[month] || ''} ${year}`;
-        }
 
         function normalizePortfolioCalendarYear(items) {
             const years = (Array.isArray(items) ? items : [])
@@ -722,25 +701,7 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             };
         }
 
-        function getPortfolioCalendarItemPriority(item) {
-            if (item?.kind === 'phase') return 0;
-            if (item?.kind === 'sprint') return 1;
-            if (item?.kind === 'milestone') return 2;
-            if (item?.kind === 'task') return 3;
-            return 4;
-        }
 
-        function comparePortfolioCalendarItems(a, b) {
-            const aStart = a?.bounds?.start?.getTime?.() || 0;
-            const bStart = b?.bounds?.start?.getTime?.() || 0;
-            if (aStart !== bStart) return aStart - bStart;
-            const aEnd = a?.bounds?.end?.getTime?.() || 0;
-            const bEnd = b?.bounds?.end?.getTime?.() || 0;
-            if (aEnd !== bEnd) return aEnd - bEnd;
-            if (a?.isRange !== b?.isRange) return a?.isRange ? -1 : 1;
-            if (a?.kind !== b?.kind) return compareText(a?.kind || '', b?.kind || '');
-            return compareText(a?.title || '', b?.title || '');
-        }
 
         function comparePortfolioCalendarDayItems(a, b) {
             const aPriority = getPortfolioCalendarItemPriority(a);
@@ -851,9 +812,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             return buildPortfolioCalendarItemStyle(item, options);
         }
 
-        function getPortfolioCalendarItemLabel(item) {
-            return item?.title || '';
-        }
 
         function renderPortfolioCalendarStaticItem(item, options = {}) {
             const classes = ['portfolio-calendar-item'];
@@ -890,9 +848,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             `;
         }
 
-        function getPortfolioCalendarDayOffset(start, end) {
-            return Math.round((end.getTime() - start.getTime()) / 86400000);
-        }
 
         function buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd) {
             return (Array.isArray(items) ? items : [])
@@ -1089,17 +1044,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             return { min, max };
         }
 
-        function getPortfolioCalendarHeatColor(count, stats) {
-            const max = Math.max(0, Number(stats?.max) || 0);
-            const normalized = max > 0
-                ? Math.max(0, Math.min(1, (Number(count) || 0) / max))
-                : 0;
-            const hue = 118 - (normalized * 118);
-            const lightness = 91 - (normalized * 18);
-            const hueValue = hue.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-            const lightnessValue = lightness.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-            return `hsl(${hueValue} 68% ${lightnessValue}%)`;
-        }
 
         function renderPortfolioCalendarMiniMonth(items, year, month, options = {}) {
             const firstOfMonth = createUtcDate(year, month, 1);
@@ -4029,16 +3973,7 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
                 .slice(0, ATTACHMENT_MAX_COUNT);
         }
 
-        function normalizeTimestamp(value) {
-            if (!value || typeof value !== 'string') return '';
-            return Number.isNaN(Date.parse(value)) ? '' : value;
-        }
 
-        function normalizeDueDate(value) {
-            if (!value || typeof value !== 'string') return '';
-            const trimmed = value.trim();
-            return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
-        }
 
 
         function isTaskOverdue(task) {
@@ -4285,11 +4220,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
 
 
 
-        function checklistToInput(checklist) {
-            return normalizeChecklist(checklist)
-                .map(item => `${item.done ? '[x]' : '[ ]'} ${item.text}`)
-                .join('\n');
-        }
 
         function getTaskChecklistEditorRowsContainer() {
             return document.getElementById('taskChecklistItems');
@@ -4470,9 +4400,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             }
         }
 
-        function attachmentTaskKey(taskId) {
-            return `task:${Number(taskId)}`;
-        }
 
         function getBoardExtensionsObject(boardData, options = {}) {
             const create = Boolean(options.create);
@@ -4506,45 +4433,9 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             return teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
         }
 
-        function createAttachmentId() {
-            return `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        }
 
-        function classifyAttachmentKind(mime, fileName) {
-            const type = String(mime || '').toLowerCase();
-            if (type.startsWith('image/')) return 'image';
-            const name = String(fileName || '').toLowerCase();
-            if (/\.(png|jpe?g|gif|webp|bmp|svg|ico|avif|heic)$/.test(name)) return 'image';
-            return 'file';
-        }
 
-        function estimateAttachmentDataUrlSizeBytes(dataUrl) {
-            if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return 0;
-            const commaIndex = dataUrl.indexOf(',');
-            if (commaIndex < 0) return 0;
-            const header = dataUrl.slice(0, commaIndex);
-            const payload = dataUrl.slice(commaIndex + 1);
-            if (!payload) return 0;
-            if (/;base64/i.test(header)) {
-                const paddingMatch = payload.match(/=*$/);
-                const padding = paddingMatch ? paddingMatch[0].length : 0;
-                return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
-            }
-            try {
-                return new Blob([decodeURIComponent(payload)]).size;
-            } catch (_) {
-                return payload.length;
-            }
-        }
 
-        function attachmentDuplicateKey(input) {
-            if (!input || typeof input !== 'object') return '';
-            const name = typeof input.name === 'string' && input.name.trim() ? input.name.trim().toLowerCase() : '';
-            const mime = typeof input.mime === 'string' ? input.mime.trim().toLowerCase() : '';
-            const sizeBytes = Number.isFinite(Number(input.sizeBytes)) ? Math.max(0, Math.round(Number(input.sizeBytes))) : 0;
-            if (!name) return '';
-            return `${name}::${mime}::${sizeBytes}`;
-        }
 
         function normalizeAttachmentRecord(raw) {
             if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -4626,27 +4517,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             }
         }
 
-        function stripLegacyTaskAttachmentsFromExtensions(extensionsValue) {
-            const extensions = (extensionsValue && typeof extensionsValue === 'object' && !Array.isArray(extensionsValue))
-                ? extensionsValue
-                : {};
-            const hasTeamOs = extensions[TEAMOS_EXTENSIONS_KEY] && typeof extensions[TEAMOS_EXTENSIONS_KEY] === 'object' && !Array.isArray(extensions[TEAMOS_EXTENSIONS_KEY]);
-            if (!hasTeamOs) return extensions;
-            const teamOs = extensions[TEAMOS_EXTENSIONS_KEY];
-            if (!Object.prototype.hasOwnProperty.call(teamOs, TASK_ATTACHMENTS_EXTENSIONS_KEY)) {
-                return extensions;
-            }
-
-            const nextExtensions = { ...extensions };
-            const nextTeamOs = { ...teamOs };
-            delete nextTeamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
-            if (Object.keys(nextTeamOs).length === 0) {
-                delete nextExtensions[TEAMOS_EXTENSIONS_KEY];
-            } else {
-                nextExtensions[TEAMOS_EXTENSIONS_KEY] = nextTeamOs;
-            }
-            return nextExtensions;
-        }
 
         function cloneSerializable(value) {
             if (value === undefined) return undefined;
@@ -5328,9 +5198,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             setTaskModalAttachmentDraft(next, { messages });
         }
 
-        function normalizeTheme(theme) {
-            return theme === 'dark' ? 'dark' : 'light';
-        }
 
         function readStoredTheme() {
             try {

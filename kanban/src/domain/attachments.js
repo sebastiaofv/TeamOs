@@ -1,0 +1,67 @@
+import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY } from './constants.js';
+
+export function attachmentDuplicateKey(input) {
+    if (!input || typeof input !== 'object') return '';
+    const name = typeof input.name === 'string' && input.name.trim() ? input.name.trim().toLowerCase() : '';
+    const mime = typeof input.mime === 'string' ? input.mime.trim().toLowerCase() : '';
+    const sizeBytes = Number.isFinite(Number(input.sizeBytes)) ? Math.max(0, Math.round(Number(input.sizeBytes))) : 0;
+    if (!name) return '';
+    return `${name}::${mime}::${sizeBytes}`;
+}
+
+export function attachmentTaskKey(taskId) {
+    return `task:${Number(taskId)}`;
+}
+
+export function classifyAttachmentKind(mime, fileName) {
+    const type = String(mime || '').toLowerCase();
+    if (type.startsWith('image/')) return 'image';
+    const name = String(fileName || '').toLowerCase();
+    if (/\.(png|jpe?g|gif|webp|bmp|svg|ico|avif|heic)$/.test(name)) return 'image';
+    return 'file';
+}
+
+export function createAttachmentId() {
+    return `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function estimateAttachmentDataUrlSizeBytes(dataUrl) {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return 0;
+    const commaIndex = dataUrl.indexOf(',');
+    if (commaIndex < 0) return 0;
+    const header = dataUrl.slice(0, commaIndex);
+    const payload = dataUrl.slice(commaIndex + 1);
+    if (!payload) return 0;
+    if (/;base64/i.test(header)) {
+        const paddingMatch = payload.match(/=*$/);
+        const padding = paddingMatch ? paddingMatch[0].length : 0;
+        return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+    }
+    try {
+        return new Blob([decodeURIComponent(payload)]).size;
+    } catch (_) {
+        return payload.length;
+    }
+}
+
+export function stripLegacyTaskAttachmentsFromExtensions(extensionsValue) {
+    const extensions = (extensionsValue && typeof extensionsValue === 'object' && !Array.isArray(extensionsValue))
+        ? extensionsValue
+        : {};
+    const hasTeamOs = extensions[TEAMOS_EXTENSIONS_KEY] && typeof extensions[TEAMOS_EXTENSIONS_KEY] === 'object' && !Array.isArray(extensions[TEAMOS_EXTENSIONS_KEY]);
+    if (!hasTeamOs) return extensions;
+    const teamOs = extensions[TEAMOS_EXTENSIONS_KEY];
+    if (!Object.prototype.hasOwnProperty.call(teamOs, TASK_ATTACHMENTS_EXTENSIONS_KEY)) {
+        return extensions;
+    }
+
+    const nextExtensions = { ...extensions };
+    const nextTeamOs = { ...teamOs };
+    delete nextTeamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
+    if (Object.keys(nextTeamOs).length === 0) {
+        delete nextExtensions[TEAMOS_EXTENSIONS_KEY];
+    } else {
+        nextExtensions[TEAMOS_EXTENSIONS_KEY] = nextTeamOs;
+    }
+    return nextExtensions;
+}

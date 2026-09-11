@@ -8,7 +8,12 @@ import {
   hasExactKeys,
   escapeRegExp,
   readFileAsDataUrl,
-  formatFileSize
+  formatFileSize,
+  assigneesToInput,
+  checklistToInput,
+  hasRequiredExtension,
+  normalizeTheme,
+  normalizeTimestamp
 } from '../../src/domain/util.js';
 
 describe('isAbortError', () => {
@@ -241,5 +246,98 @@ describe('formatFileSize', () => {
 
   it('formats an MB value at the 10-unit toFixed boundary with zero decimals', () => {
     expect(formatFileSize(10 * 1024 * 1024)).toBe('10 MB'); // 10 MB, >= 10 * 1024 * 1024
+  });
+});
+
+describe('assigneesToInput', () => {
+  it('joins a list of assignees with newlines', () => {
+    expect(assigneesToInput(['Alice', 'Bob'])).toBe('Alice\nBob');
+  });
+
+  it('deduplicates case-insensitively, keeping the first-seen casing', () => {
+    expect(assigneesToInput(['Alice', 'bob', 'ALICE'])).toBe('Alice\nbob');
+  });
+
+  it('wraps a single non-array value as one entry (no comma splitting)', () => {
+    expect(assigneesToInput('Alice, Bob')).toBe('Alice, Bob');
+  });
+
+  it('returns an empty string for null, undefined, or an empty array', () => {
+    expect(assigneesToInput(null)).toBe('');
+    expect(assigneesToInput(undefined)).toBe('');
+    expect(assigneesToInput([])).toBe('');
+  });
+});
+
+describe('checklistToInput', () => {
+  it('renders each item as a "[x]"/"[ ]" line joined by newlines', () => {
+    expect(checklistToInput([
+      { text: 'Buy milk', done: true },
+      { text: 'Call mom', done: false }
+    ])).toBe('[x] Buy milk\n[ ] Call mom');
+  });
+
+  it('drops items with blank text via normalizeChecklist', () => {
+    expect(checklistToInput([
+      { text: '   ', done: true },
+      { text: 'Valid', done: false }
+    ])).toBe('[ ] Valid');
+  });
+
+  it('returns an empty string for an empty or non-array checklist', () => {
+    expect(checklistToInput([])).toBe('');
+    expect(checklistToInput(null)).toBe('');
+  });
+});
+
+describe('hasRequiredExtension', () => {
+  it('returns true when the filename ends with the extension', () => {
+    expect(hasRequiredExtension('board.json', '.json')).toBe(true);
+  });
+
+  it('lowercases the filename but not the extension before comparing', () => {
+    expect(hasRequiredExtension('board.JSON', '.json')).toBe(true);
+    expect(hasRequiredExtension('board.JSON', '.JSON')).toBe(false);
+  });
+
+  it('returns false when the filename has a different extension', () => {
+    expect(hasRequiredExtension('board.txt', '.json')).toBe(false);
+  });
+
+  it('returns false for non-string fileName', () => {
+    expect(hasRequiredExtension(null, '.json')).toBe(false);
+    expect(hasRequiredExtension(undefined, '.json')).toBe(false);
+    expect(hasRequiredExtension(123, '.json')).toBe(false);
+  });
+});
+
+describe('normalizeTheme', () => {
+  it('passes through "dark"', () => {
+    expect(normalizeTheme('dark')).toBe('dark');
+  });
+
+  it('defaults to "light" for anything else, including near-misses', () => {
+    expect(normalizeTheme('light')).toBe('light');
+    expect(normalizeTheme('Dark')).toBe('light');
+    expect(normalizeTheme(undefined)).toBe('light');
+    expect(normalizeTheme(null)).toBe('light');
+    expect(normalizeTheme('')).toBe('light');
+  });
+});
+
+describe('normalizeTimestamp', () => {
+  it('passes through a string that Date.parse can parse', () => {
+    expect(normalizeTimestamp('2024-03-15T10:00:00.000Z')).toBe('2024-03-15T10:00:00.000Z');
+  });
+
+  it('returns empty string for a string Date.parse cannot parse', () => {
+    expect(normalizeTimestamp('not-a-date')).toBe('');
+  });
+
+  it('returns empty string for a falsy or non-string value', () => {
+    expect(normalizeTimestamp('')).toBe('');
+    expect(normalizeTimestamp(null)).toBe('');
+    expect(normalizeTimestamp(undefined)).toBe('');
+    expect(normalizeTimestamp(1700000000000)).toBe('');
   });
 });
