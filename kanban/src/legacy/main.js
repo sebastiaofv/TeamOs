@@ -1,6 +1,8 @@
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize } from '../domain/util.js';
 import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask } from '../domain/task.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId } from '../domain/roadmap.js';
+import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName } from '../domain/board.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -10,14 +12,8 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES, PROJECT_FILE_WATCH_INTERVAL_MS,
             PROJECT_FILE_CONFLICT_SUPPRESS_MS, PROJECT_FILE_EXTERNAL_BADGE_MS, THEME_STORAGE_KEY,
             DEBUG_LOGS_ENABLED, CALENDAR_MONTH_NAMES, CALENDAR_MONTH_SHORT_NAMES,
-            CALENDAR_WEEKDAY_NAMES
+            CALENDAR_WEEKDAY_NAMES, defaultColumns
         } from '../domain/constants.js';
-        const defaultColumns = [
-            { status: 'backlog', title: 'backlog' },
-            { status: 'to-do', title: 'to-do' },
-            { status: 'doing', title: 'in progress' },
-            { status: 'done', title: 'done' }
-        ];
         let pendingNewTaskStatus = null;
         let undoAction = null;
         let undoTimer = null;
@@ -437,16 +433,7 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
 
 
 
-        function normalizeRoadmapRef(value) {
-            if (typeof value !== 'string') return '';
-            return value.trim();
-        }
 
-        function normalizeRoadmapDate(value) {
-            if (typeof value !== 'string') return '';
-            const trimmed = value.trim();
-            return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
-        }
 
         function normalizeRoadmapItems(value, dateKeys, requiredDateKeys) {
             if (!Array.isArray(value)) return null;
@@ -504,14 +491,6 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             };
         }
 
-        function createEmptyRoadmapExtension() {
-            return {
-                version: ROADMAP_VERSION,
-                milestones: [],
-                phases: [],
-                sprints: []
-            };
-        }
 
         function getRoadmapExtensionObject(boardData, options = {}) {
             const create = Boolean(options.create);
@@ -527,29 +506,9 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             return extensions[ROADMAP_EXTENSION_KEY];
         }
 
-        function formatRoadmapDateRange(item) {
-            if (!item || typeof item !== 'object') return '';
-            if (item.dueDate) return `Due ${item.dueDate}`;
-            if (item.startDate && item.endDate) return `${item.startDate} to ${item.endDate}`;
-            return '';
-        }
 
-        function parseRoadmapIsoDate(value) {
-            if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-            const date = new Date(`${value}T00:00:00Z`);
-            return Number.isNaN(date.getTime()) ? null : date;
-        }
 
-        function addRoadmapDays(date, days) {
-            if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
-            return new Date(date.getTime() + (Number(days) * 24 * 60 * 60 * 1000));
-        }
 
-        function getRoadmapDayDiff(start, end) {
-            if (!(start instanceof Date) || Number.isNaN(start.getTime())) return 0;
-            if (!(end instanceof Date) || Number.isNaN(end.getTime())) return 0;
-            return Math.max(0, Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
-        }
 
         function getRoadmapItemDateBounds(item) {
             if (!item || typeof item !== 'object') return null;
@@ -616,11 +575,6 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             };
         }
 
-        function formatRoadmapAxisDate(date) {
-            if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-            const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getUTCMonth()];
-            return `${month} ${String(date.getUTCDate()).padStart(2, '0')}`;
-        }
 
         function getRoadmapDatePosition(date, range) {
             if (!(date instanceof Date) || Number.isNaN(date.getTime()) || !range?.start || !range?.end) return 0;
@@ -1398,56 +1352,7 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             ].join('');
         }
 
-        function slugifyRoadmapEntityId(title, items, currentId = '') {
-            const base = String(title || '')
-                .trim()
-                .toLowerCase()
-                .replace(/[^a-z0-9]+/g, '-')
-                .replace(/^-+|-+$/g, '') || 'item';
-            const existingIds = new Set((Array.isArray(items) ? items : []).map((item) => item.id).filter(Boolean));
-            if (currentId) {
-                existingIds.delete(currentId);
-            }
-            let candidate = base;
-            let suffix = 2;
-            while (existingIds.has(candidate)) {
-                candidate = `${base}-${suffix}`;
-                suffix += 1;
-            }
-            return candidate;
-        }
 
-        function getRoadmapEntityConfig(kind) {
-            if (kind === 'milestones') {
-                return {
-                    label: 'Milestone',
-                    singular: 'milestone',
-                    dateMode: 'single',
-                    dateLabel: 'Due Date',
-                    taskField: 'milestoneId',
-                    itemsKey: 'milestones'
-                };
-            }
-            if (kind === 'phases') {
-                return {
-                    label: 'Phase',
-                    singular: 'phase',
-                    dateMode: 'range',
-                    taskField: 'phaseId',
-                    itemsKey: 'phases'
-                };
-            }
-            if (kind === 'sprints') {
-                return {
-                    label: 'Sprint',
-                    singular: 'sprint',
-                    dateMode: 'range',
-                    taskField: 'sprintId',
-                    itemsKey: 'sprints'
-                };
-            }
-            return null;
-        }
 
         function clearInvalidRoadmapTaskRefs(normalizedTask, roadmap) {
             if (!normalizedTask || typeof normalizedTask !== 'object' || Array.isArray(normalizedTask)) return normalizedTask;
@@ -2155,10 +2060,6 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             };
         }
 
-        function portfolioProjectColorKey(color) {
-            if (!color) return '';
-            return `${color.bg}|${color.border}|${color.text}`;
-        }
 
         function syncPortfolioProjectColors() {
             const usedSeeds = new Set();
@@ -2227,9 +2128,6 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             });
         }
 
-        function nextPortfolioProjectId() {
-            return `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
-        }
 
         function createEmptyProjectData(title) {
             const now = nowIso();
@@ -3222,11 +3120,6 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             });
         }
 
-        function normalizePortfolioViewMode(value) {
-            if (value === 'roadmap') return 'roadmap';
-            if (value === 'calendar') return 'calendar';
-            return 'board';
-        }
 
         function canUsePortfolioViewMode(mode) {
             const normalized = normalizePortfolioViewMode(mode);
@@ -3934,15 +3827,7 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             datalist.innerHTML = options.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
         }
 
-        function normalizePortfolioSortKey(value) {
-            return ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'].includes(value)
-                ? value
-                : 'priority';
-        }
 
-        function normalizePortfolioSortDir(value) {
-            return value === 'desc' ? 'desc' : 'asc';
-        }
 
         function handlePortfolioViewModeToggleClick(event) {
             const button = event.target.closest('button[data-view-mode]');
@@ -4169,11 +4054,6 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
         }
 
-        function normalizeBoardArchiveFilter(value) {
-            if (value === true || value === '1' || value === 'archived') return 'archived';
-            if (value === 'all') return 'all';
-            return 'active';
-        }
 
         function isTaskOverdue(task) {
             const due = normalizeDueDate(task.dueDate);
@@ -4184,14 +4064,7 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
 
         // Legacy import compatibility: older boards may still carry
         // pre-v1 settings shapes or a single assignee field.
-        function hasTitleOnlyBoardSettings(settings) {
-            return hasExactKeys(settings, ['title']);
-        }
 
-        function hasExtendedBoardSettings(settings) {
-            return hasExactKeys(settings, ['title', 'sortMode', 'showArchivedOnly'])
-                || hasExactKeys(settings, ['title', 'sortMode', 'showArchivedOnly', 'archiveFilter']);
-        }
 
         function isAcceptedBoardSettingsShape(settings) {
             return hasTitleOnlyBoardSettings(settings) || hasExtendedBoardSettings(settings);
@@ -4414,38 +4287,7 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
             });
         }
 
-        function slugifyColumnName(name) {
-            return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-        }
 
-        function normalizeColumns(inputColumns) {
-            if (!Array.isArray(inputColumns) || inputColumns.length === 0) {
-                return defaultColumns.map(col => ({ ...col }));
-            }
-
-            const defaultsByStatus = Object.fromEntries(defaultColumns.map(col => [col.status, col]));
-            const seen = new Set();
-            const normalized = [];
-            inputColumns.forEach((col) => {
-                if (!col || typeof col !== 'object') return;
-                const status = resolveKnownTaskStatus(col.status);
-                if (!status) return;
-                if (seen.has(status)) return;
-                const rawTitle = typeof col.title === 'string' ? col.title.trim() : '';
-                const fallbackTitle = defaultsByStatus[status]?.title || status;
-                normalized.push({
-                    status,
-                    title: rawTitle || fallbackTitle
-                });
-                seen.add(status);
-            });
-
-            if (normalized.length === 0) {
-                return defaultColumns.map(col => ({ ...col }));
-            }
-
-            return normalized.slice(0, MAX_COLUMNS);
-        }
 
 
         function normalizeTaskStatus(status) {
