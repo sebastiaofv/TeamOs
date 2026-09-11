@@ -1,4 +1,5 @@
 import '../styles/legacy.css';
+import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl } from '../domain/util.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -83,18 +84,8 @@ import '../styles/legacy.css';
             }
         }
 
-        function isAbortError(error) {
-            return Boolean(error && error.name === 'AbortError');
-        }
 
-        function formatErrorMessage(error, fallback = 'Unexpected error.') {
-            return error?.message ? String(error.message) : fallback;
-        }
 
-        function isFileDrag(ev) {
-            if (!ev.dataTransfer) return false;
-            return Array.from(ev.dataTransfer.types || []).includes('Files');
-        }
 
         function setFileDropActive(active) {
             const view = document.getElementById('portfolioView');
@@ -179,9 +170,6 @@ import '../styles/legacy.css';
             document.title = 'TeamOS → Kanban';
         }
 
-        function nowIso() {
-            return new Date().toISOString();
-        }
 
         function hashTextContent(text) {
             const value = String(text ?? '');
@@ -4134,9 +4122,6 @@ import '../styles/legacy.css';
             return 0;
         }
 
-        function compareText(a, b) {
-            return String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
-        }
 
         function formatDateTime(value) {
             const ts = normalizeTimestamp(value);
@@ -4197,12 +4182,6 @@ import '../styles/legacy.css';
             fn();
         }
 
-        function hasExactKeys(obj, expectedKeys) {
-            if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
-            const actual = Object.keys(obj).sort();
-            const expected = [...expectedKeys].sort();
-            return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
-        }
 
         function normalizeTask(task, options = {}) {
             const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
@@ -5329,14 +5308,6 @@ import '../styles/legacy.css';
             return `${(value / (1024 * 1024)).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
         }
 
-        function readFileAsDataUrl(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(String(reader.result || ''));
-                reader.onerror = () => reject(reader.error || new Error('File read failed.'));
-                reader.readAsDataURL(file);
-            });
-        }
 
         function getTaskModalAttachmentsDraft() {
             return taskModalAttachmentDraft.map(normalizeAttachmentRecord).filter(Boolean);
@@ -5743,9 +5714,6 @@ import '../styles/legacy.css';
             return div.innerHTML;
         }
 
-        function escapeRegExp(text) {
-            return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
 
         function highlightSearchMatch(text, searchTerm) {
             const safeText = escapeHtml(text || '');
