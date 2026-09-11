@@ -10,6 +10,13 @@ this by extracting `isTaskOverdue`, which built cleanly then failed with
 Grouping by module also creates false circular dependencies (`serialize`<->`attachments`,
 `board`<->`timeline`, and seven more). Those cycles are an artifact of name-based grouping.
 
+**Revised again 2026-09-11** after Task 5 prep found two more classifier blind spots:
+`alert()`/`confirm()`/`prompt()` are browser globals the DOM regex missed, and calls
+dispatched through `const` objects (`BoardRepository.saveRecord`, `Logger.debug`) are
+invisible to a function-only call graph. `notifyPortfolioReadOnly` (calls `alert`) and
+`savePortfolioBoardRecord` (calls `BoardRepository`) were wrongly listed as pure.
+Pure count corrected 136 -> 132.
+
 **The pure call graph itself is a perfect DAG** — 136 remaining functions, 136
 strongly-connected components, zero multi-function cycles. So a safe order exists. These
 tasks follow a topological sort: no function is extracted before everything it calls.
@@ -33,26 +40,16 @@ between hoisted function declarations called at runtime, that is fine and expect
 
 
 
----
-
-### Task 5 — layer 0, 13 functions
-
-
-**`src/domain/board.js`** (13):
-
-```
-createPortfolioProjectColor hasExtendedBoardSettings hasTitleOnlyBoardSettings nextPortfolioProjectId normalizeBoardArchiveFilter normalizeColumns normalizePortfolioSortDir normalizePortfolioSortKey normalizePortfolioViewMode notifyPortfolioReadOnly portfolioProjectColorKey savePortfolioBoardRecord slugifyColumnName
-```
 
 ---
 
-### Task 6 — layer 0, 21 functions
+### Task 5 — layer 0, 22 functions
 
 
-**`src/domain/calendar.js`** (10):
+**`src/domain/board.js`** (11):
 
 ```
-comparePortfolioCalendarItems createUtcDate formatLocalIsoDate formatUtcIsoDate getPortfolioCalendarDayOffset getPortfolioCalendarHeatColor getPortfolioCalendarItemLabel getPortfolioCalendarItemPriority getUtcMonthLabel normalizeDueDate
+createPortfolioProjectColor hasExtendedBoardSettings hasTitleOnlyBoardSettings nextPortfolioProjectId normalizeBoardArchiveFilter normalizeColumns normalizePortfolioSortDir normalizePortfolioSortKey normalizePortfolioViewMode portfolioProjectColorKey slugifyColumnName
 ```
 
 **`src/domain/roadmap.js`** (11):
@@ -63,7 +60,7 @@ addRoadmapDays createEmptyRoadmapExtension formatRoadmapAxisDate formatRoadmapDa
 
 ---
 
-### Task 7 — layer 0, 21 functions
+### Task 6 — layer 0, 22 functions
 
 
 **`src/domain/attachments.js`** (7):
@@ -72,16 +69,10 @@ addRoadmapDays createEmptyRoadmapExtension formatRoadmapAxisDate formatRoadmapDa
 attachmentDuplicateKey attachmentTaskKey classifyAttachmentKind createAttachmentId estimateAttachmentDataUrlSizeBytes normalizeTaskAttachments stripLegacyTaskAttachmentsFromExtensions
 ```
 
-**`src/domain/serialize.js`** (4):
+**`src/domain/calendar.js`** (10):
 
 ```
-areSerializableValuesEqual cloneSerializable getBoardExtensionsObject hashTextContent
-```
-
-**`src/domain/timeline.js`** (5):
-
-```
-createEmptyTimelineData createTimelineEventId formatTimelineValue normalizeTimelineExtension notifyTimelinePreviewReadOnly
+comparePortfolioCalendarItems createUtcDate formatLocalIsoDate formatUtcIsoDate getPortfolioCalendarDayOffset getPortfolioCalendarHeatColor getPortfolioCalendarItemLabel getPortfolioCalendarItemPriority getUtcMonthLabel normalizeDueDate
 ```
 
 **`src/domain/util.js`** (5):
@@ -92,13 +83,13 @@ assigneesToInput checklistToInput hasRequiredExtension normalizeTheme normalizeT
 
 ---
 
-### Task 8 — layer 0, 7 functions
+### Task 7 — layer 0, 14 functions
 
 
-**`src/domain/persistence.js`** (2):
+**`src/domain/persistence.js`** (1):
 
 ```
-createProjectSaveState writeJsonToFileHandle
+createProjectSaveState
 ```
 
 **`src/domain/scoring.js`** (4):
@@ -107,15 +98,27 @@ createProjectSaveState writeJsonToFileHandle
 effortRank effortScoreValue priorityRank priorityScoreValue
 ```
 
+**`src/domain/serialize.js`** (4):
+
+```
+areSerializableValuesEqual cloneSerializable getBoardExtensionsObject hashTextContent
+```
+
 **`src/domain/task.js`** (1):
 
 ```
 normalizeTaskStatus
 ```
 
+**`src/domain/timeline.js`** (4):
+
+```
+createEmptyTimelineData createTimelineEventId formatTimelineValue normalizeTimelineExtension
+```
+
 ---
 
-### Task 9 — layer 1, 22 functions
+### Task 8 — layer 1, 22 functions
 
 
 **`src/domain/calendar.js`** (14):
@@ -132,7 +135,7 @@ buildPortfolioCalendarWeekRoadmapSegments comparePortfolioCalendarRoadmapItems g
 
 ---
 
-### Task 10 — layer 1, 12 functions
+### Task 9 — layer 1, 12 functions
 
 
 **`src/domain/attachments.js`** (1):
@@ -179,7 +182,7 @@ assertRequiredExtension portfolioSortSelectValueFromKey
 
 ---
 
-### Task 11 — layer 2, 20 functions
+### Task 10 — layer 2, 20 functions
 
 
 **`src/domain/attachments.js`** (1):
@@ -226,7 +229,7 @@ buildTaskTimelineEvent getBoardTimelineData normalizeTimelineEvent
 
 ---
 
-### Task 12 — layer 3, 8 functions
+### Task 11 — layer 3, 8 functions
 
 
 **`src/domain/attachments.js`** (2):
@@ -261,10 +264,10 @@ applyTimelineEventToState
 
 ---
 
-### Task 13 — layers 4-8, 12 functions
+### Task 12 — layers 4+, 12 functions
 
-These layers are small but strictly ordered: each depends on the one before. Extract them
-as separate batches **in this order**, running `npm run build && npm test` between batches.
+Strictly ordered: each batch depends on the one before. Extract in this order, running
+`npm run build && npm test` between batches.
 
 
 **Batch 1 (layer 4):**
@@ -293,13 +296,11 @@ as separate batches **in this order**, running `npm run build && npm test` betwe
 
 ---
 
-## After Task 13
+## After Task 12
 
-Original **Task 12 (persistence: `BoardRepository`, `fileSystem`)** and **Task 13
-(Tailwind, README, close-out)** still apply and run last, renumbered as Tasks 14 and 15.
+**Task 13** persistence (`BoardRepository`, `fileSystem`, plus `savePortfolioBoardRecord`
+and the other `BoardRepository` callers excluded above). **Task 14** Tailwind, README,
+close-out.
 
-Task 4 deferred 9 functions (`normalizeTask`, `isTaskOverdue`, `normalizeTaskStatus`,
-`resolveCreateTaskStatus`, `formatTaskStatusAge`, `getTaskStatusAgeBaseTimestamp`,
-`getTasksForMilestone`, `getTasksForPhase`, `getTasksForSprint`) because their dependencies
-did not exist yet. All nine appear in the layers above and are covered by this sequence.
+`notifyPortfolioReadOnly` is UI (`alert`) and stays in `main.js` for Phase 2.
 
