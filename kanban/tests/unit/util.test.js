@@ -132,6 +132,19 @@ describe('escapeRegExp', () => {
   it('leaves plain alphanumeric text unchanged', () => {
     expect(escapeRegExp('hello world')).toBe('hello world');
   });
+
+  it('escapes every special character in the class (including [ ] { } | ^ + \\), matching literally as a strict-mode RegExp', () => {
+    // Interspersed with letters so an unescaped backslash can't accidentally
+    // form an unrelated escape sequence (e.g. \d) and mask a dropped member.
+    const raw = 'a.b*c+d?e^f$g{h}i(j)k|l[m]n\\o';
+    const escaped = escapeRegExp(raw);
+    // The 'u' flag makes JS strict about regex syntax: a stray unescaped
+    // ] { } or an unknown \-escape throws a SyntaxError instead of being
+    // leniently reinterpreted, so a dropped class member fails loudly here
+    // rather than silently matching anyway.
+    const re = new RegExp(`^${escaped}$`, 'u');
+    expect(re.test(raw)).toBe(true);
+  });
 });
 
 describe('readFileAsDataUrl', () => {
@@ -207,5 +220,26 @@ describe('formatFileSize', () => {
 
   it('formats an MB value with one decimal', () => {
     expect(formatFileSize(3670016)).toBe('3.5 MB'); // 3.5 MB
+  });
+
+  it('formats exactly 1024 bytes as the KB unit, not the byte unit', () => {
+    // value < 1024 is false at the threshold itself, so 1024 falls through
+    // to the KB branch: 1024 / 1024 = 1, and 1 < 10 * 1024 so toFixed(1).
+    expect(formatFileSize(1024)).toBe('1.0 KB');
+  });
+
+  it('formats exactly 1048576 bytes (1024^2) as the MB unit, not the KB unit', () => {
+    // value < 1024 * 1024 is false at the threshold itself, so 1048576 falls
+    // through to the MB branch: 1048576 / 1048576 = 1, and 1 < 10 * 1024 * 1024
+    // so toFixed(1).
+    expect(formatFileSize(1048576)).toBe('1.0 MB');
+  });
+
+  it('formats an MB value below the 10-unit toFixed boundary with one decimal', () => {
+    expect(formatFileSize(9 * 1024 * 1024)).toBe('9.0 MB'); // 9 MB, < 10 * 1024 * 1024
+  });
+
+  it('formats an MB value at the 10-unit toFixed boundary with zero decimals', () => {
+    expect(formatFileSize(10 * 1024 * 1024)).toBe('10 MB'); // 10 MB, >= 10 * 1024 * 1024
   });
 });

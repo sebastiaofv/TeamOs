@@ -10,11 +10,20 @@
 //            with an even number of backticks only contains template literals
 //            that open and close on that same line, which dedenting cannot
 //            corrupt, so such lines are safe and do not trigger the guard.
-//   Known limitation: a line containing a nested template literal inside a
-//   ${...} substitution can produce an even backtick count while still being
-//   part of a literal that spans lines (e.g. an odd number of "real" backticks
-//   masked by a nested pair). No function in this file does that today; if one
-//   ever does, --force remains available after manual verification.
+//   Known limitations:
+//   1. A ${...} substitution breaks the simple parity model: a line like
+//      `` `a ${`b `` has two backticks (even) yet ends inside a template
+//      literal that continues on the next line. A nested literal that opens
+//      and closes within the same ${...} on one line is fine — parity holds
+//      and dedenting it is safe; it's a substitution left open across lines
+//      that fools the count. No function in this file does that today.
+//   2. An escaped backtick (\`) is not a delimiter, so the backtick count is
+//      taken on each line with backslash-escape pairs stripped first — see
+//      countBackticks() below. Without that, an escaped backtick would be
+//      counted as real, which can flip an odd (unsafe) count to an even
+//      (apparently safe) one and let a multi-line literal through undetected.
+//   In either case, if a function is ever miscounted, --force remains
+//   available after manual verification.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, relative } from 'node:path';
 
@@ -29,6 +38,13 @@ if (!moduleName || fnNames.length === 0) {
 const MAIN = 'src/legacy/main.js';
 const OUT = `src/domain/${moduleName}.js`;
 const lines = readFileSync(MAIN, 'utf8').split('\n');
+
+// Counts only backticks that are real template-literal delimiters. Strips
+// backslash-escape pairs first (not just \`) because a literal \\ immediately
+// before a backtick would otherwise mislead a narrower \`-only strip.
+function countBackticks(line) {
+  return (line.replace(/\\./g, '').match(/`/g) || []).length;
+}
 
 const extracted = [];
 const warnings = [];
@@ -45,10 +61,11 @@ for (const fn of fnNames) {
   if (end === -1) { console.error(`NO CLOSE: ${fn}`); process.exit(1); }
 
   const body = lines.slice(start, end + 1);
-  // A line with an odd number of backticks opens a template literal that does
-  // not close on the same line, i.e. it spans multiple lines — exactly the
-  // case where dedenting by 8 spaces would corrupt string content.
-  if (body.some((l) => (l.match(/`/g) || []).length % 2 !== 0)) {
+  // A line with an odd number of (real, non-escaped) backticks opens a
+  // template literal that does not close on the same line, i.e. it spans
+  // multiple lines — exactly the case where dedenting by 8 spaces would
+  // corrupt string content.
+  if (body.some((l) => countBackticks(l) % 2 !== 0)) {
     hasMultilineTemplateLiteral = true;
     warnings.push(`${fn}: a line has an odd number of backticks — a template literal spans multiple lines; verify dedent did not change output`);
   }
