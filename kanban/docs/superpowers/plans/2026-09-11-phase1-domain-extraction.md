@@ -22,6 +22,18 @@ These apply to every task. A task is not complete if it violates one.
   string content; reindenting would silently change output. Domain modules are
   dedented by exactly 8 spaces on extraction (safe: they are pure logic).
 - **Node 18+.** Board files keep the `.board.json` extension.
+- **A failing assertion is investigated, never just adjusted.** The Vitest assertions
+  in this plan were written from reading the source and some will be wrong guesses.
+  When one fails, first check the function's behavior in the pre-migration file:
+
+  ```bash
+  git show e78741b:kanban/kanban.html | sed -n '/^        function NAME(/,/^        }/p'
+  ```
+
+  If the original and the extracted version agree, the assertion was a bad guess —
+  correct the assertion. If they disagree, the extraction broke something — fix the
+  code, never the assertion. **Never change an extracted function to satisfy an
+  assertion.** State which case applied in your report.
 
 **Reference spec:** `docs/superpowers/specs/2026-09-11-vite-react-tailwind-migration-design.md`
 
@@ -453,9 +465,9 @@ npm run test:unit
 
 Expected: PASS — 4 tests.
 
-Adjust the assertions if the real implementations differ; the goal is tests that
-document actual behavior, not tests that force a change. **Do not modify the extracted
-functions to satisfy a guessed assertion.**
+If an assertion fails, follow the "failing assertion" rule in Global Constraints:
+verify against the pre-migration source first, then correct either the assertion or
+the extraction — whichever the comparison shows is wrong.
 
 - [ ] **Step 6: Build and run the full suite**
 
