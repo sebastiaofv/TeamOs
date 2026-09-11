@@ -1,5 +1,5 @@
 // scripts/extract-domain.mjs
-// Usage: node scripts/extract-domain.mjs <module> <fnName> [<fnName>...] [--force]
+// Usage: node scripts/extract-domain.mjs <module> <fnName> [<fnName>...] [--force] [--allow-unresolved]
 //   --force: proceed even if an extracted function contains a template literal
 //            that spans multiple lines. Without --force, the script exits
 //            non-zero and writes nothing if any named function has a line with
@@ -24,20 +24,284 @@
 //      (apparently safe) one and let a multi-line literal through undetected.
 //   In either case, if a function is ever miscounted, --force remains
 //   available after manual verification.
+//
+//   --allow-unresolved: proceed even if an extracted function calls an
+//            identifier (a plain function call, or a bare function reference
+//            passed to .map/.filter/etc.) that does not resolve to: a
+//            function already in the output module (this run's functions or
+//            ones from earlier runs), a name the output module imports, or a
+//            known JS/browser builtin (see GLOBAL_ALLOWLIST below). This is
+//            OFF BY DEFAULT: an unresolved identifier means the extracted
+//            code has a free variable that will throw
+//            "ReferenceError: <name> is not defined" at runtime — Vite's
+//            build does NOT catch this (it only bundles what each module
+//            statically imports; it has no idea main.js used to provide
+//            <name> as an ambient top-level function). Without this check a
+//            broken extraction can pass `npm run build` and reach a commit
+//            silently, surfacing only when a test happens to exercise that
+//            code path — which is exactly what happened extracting
+//            isTaskOverdue (called normalizeDueDate, left behind in main.js).
+//            Use --allow-unresolved only when you are deliberately extracting
+//            a function ahead of a dependency you will import by hand right
+//            afterward; the script prints exactly which names it is letting
+//            through so that promise is easy to keep honest.
+//
+//   On any abort (multiline-template guard or unresolved-identifier guard),
+//   nothing is written: main.js keeps the function, the output module does
+//   not gain a broken one. The two checks run in memory against the
+//   candidate output before either file touches disk.
+//
+//   Circular imports between domain modules (serialize<->attachments,
+//   board<->timeline, calendar<->roadmap, etc.) are expected and valid: ES
+//   modules resolve cycles correctly for hoisted function declarations called
+//   at runtime. This script does not detect or warn about cycles — an
+//   import naming an unresolved-here identifier is trusted at face value,
+//   regardless of whether the module it comes from imports back.
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, relative } from 'node:path';
 
+// ---------------------------------------------------------------------------
+// Unresolved-callee detection
+//
+// Pragmatic, regex-based — not a real JS parser. It looks for identifiers
+// used in "call position" (`name(`) or passed bare to a handful of common
+// higher-order array methods (`.map(name)`), then subtracts everything that
+// is locally declared inside the function, everything already resolvable in
+// the destination module (sibling functions/consts, existing imports), and a
+// curated allowlist of JS/browser builtins. Whatever remains is a free
+// identifier that will throw a ReferenceError at runtime once the code that
+// used to provide it (still in main.js, or not yet imported) is gone from
+// scope. False alarms are preferred over silent misses, but keep the locals
+// extraction reasonably thorough so real, well-formed code stays quiet.
+// ---------------------------------------------------------------------------
+
+// JS/browser builtins actually used across this codebase's extracted (or
+// extractable) top-level functions. Extend this list by inspection as new
+// extractions surface new globals — do not silently widen it to "anything
+// capitalized", that defeats the point of the check.
+export const GLOBAL_ALLOWLIST = new Set([
+  // Constructors / namespace objects usable standalone (i.e. not only via
+  // member access, though member-accessed usages like `Math.max(` never hit
+  // this allowlist anyway since `.max` is filtered as a property access).
+  'Number', 'String', 'Array', 'Object', 'JSON', 'Math', 'Date', 'Boolean',
+  'Set', 'Map', 'WeakMap', 'WeakSet', 'RegExp', 'Error', 'TypeError',
+  'RangeError', 'SyntaxError', 'Promise', 'Symbol', 'Proxy', 'Reflect',
+  // Global functions.
+  'isNaN', 'isFinite', 'parseInt', 'parseFloat',
+  'encodeURIComponent', 'decodeURIComponent', 'encodeURI', 'decodeURI',
+  'structuredClone', 'fetch', 'alert', 'confirm', 'prompt',
+  'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+  'requestAnimationFrame', 'cancelAnimationFrame', 'queueMicrotask',
+  // Browser/runtime globals used standalone or as constructors.
+  'crypto', 'console', 'document', 'window', 'localStorage', 'sessionStorage',
+  'navigator', 'FileReader', 'Blob', 'File', 'URL', 'URLSearchParams',
+  'TextEncoder', 'TextDecoder', 'CustomEvent', 'Event', 'AbortController',
+  'Image', 'Audio'
+]);
+
+// Reserved words / control-flow keywords that can be immediately followed by
+// `(` without being a function call (`if (`, `function (`, `catch (`, ...),
+// plus a few that show up as bare "identifiers" in expressions (`this`,
+// `undefined`, ...) which must never be treated as unresolved callees.
+const RESERVED_WORDS = new Set([
+  'if', 'for', 'while', 'switch', 'catch', 'with', 'function', 'return',
+  'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'yield',
+  'await', 'do', 'else', 'try', 'finally', 'throw', 'case', 'default',
+  'class', 'extends', 'super', 'this', 'null', 'true', 'false', 'undefined',
+  'break', 'continue', 'import', 'export', 'const', 'let', 'var', 'static',
+  'get', 'set', 'async', 'debugger', 'arguments'
+]);
+
+// Strips comments and non-template string literals so their contents can't
+// be mistaken for code. Template literals are deliberately left alone: their
+// `${...}` substitutions are real identifier references we want to see, and
+// stripping only the literal text around them isn't worth the complexity for
+// this codebase (no template literal here embeds anything call-shaped in its
+// plain-text portions).
+function stripStringsAndComments(src) {
+  let out = src.replace(/\/\*[\s\S]*?\*\//g, '');
+  out = out.replace(/'(?:[^'\\\n]|\\.)*'/g, "''");
+  out = out.replace(/"(?:[^"\\\n]|\\.)*"/g, '""');
+  out = out.replace(/\/\/[^\n]*/g, '');
+  return out;
+}
+
+function addIdentifiersFrom(set, chunk) {
+  const matches = chunk.replace(/=(?!=|>)[^,]*/g, '').match(/[A-Za-z_$][\w$]*/g) || [];
+  matches.forEach((name) => { if (!RESERVED_WORDS.has(name)) set.add(name); });
+}
+
+// Collects every name that is a local binding somewhere inside `code`:
+// function params (including nested/inner function declarations and their
+// own params), arrow function params, const/let/var declarations (including
+// destructuring — handled by grabbing every identifier-shaped token on the
+// LHS, which over-includes destructuring property keys but never
+// under-includes a real binding), for-of/for-in/classic-for bindings, catch
+// bindings, and class names. Over-inclusion here just means a rare false
+// negative (a real dependency happens to share a name with a destructuring
+// key elsewhere); under-inclusion would mean flagging code that's actually
+// fine, which is the failure mode this function exists to avoid.
+function extractLocalNames(code) {
+  const locals = new Set();
+
+  for (const m of code.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\(([^)]*)\)/g)) {
+    locals.add(m[1]);
+    addIdentifiersFrom(locals, m[2]);
+  }
+
+  for (const m of code.matchAll(/\(([^()]*)\)\s*=>/g)) {
+    addIdentifiersFrom(locals, m[1]);
+  }
+  for (const m of code.matchAll(/(?<![\w$)\].])([A-Za-z_$][\w$]*)\s*=>/g)) {
+    if (!RESERVED_WORDS.has(m[1])) locals.add(m[1]);
+  }
+
+  for (const m of code.matchAll(/\bfor\s*\(\s*(?:const|let|var)\s+([^)]+?)\s+(?:of|in)\s+/g)) {
+    addIdentifiersFrom(locals, m[1]);
+  }
+  for (const m of code.matchAll(/\bfor\s*\(\s*(?:const|let|var)\s+([^;]+);/g)) {
+    addIdentifiersFrom(locals, m[1]);
+  }
+
+  for (const m of code.matchAll(/\bcatch\s*\(\s*([A-Za-z_$][\w$]*)\s*\)/g)) {
+    locals.add(m[1]);
+  }
+
+  for (const m of code.matchAll(/\bclass\s+([A-Za-z_$][\w$]*)/g)) {
+    locals.add(m[1]);
+  }
+
+  for (const m of code.matchAll(/\b(?:const|let|var)\s+([^=;\n]+?)\s*(?:=(?!=|>)|;|\n|$)/g)) {
+    addIdentifiersFrom(locals, m[1]);
+  }
+
+  return locals;
+}
+
+// Identifiers used in literal call position: `name(...)`, excluding property
+// accesses (`.name(`) and the name in a function declaration (`function
+// name(`), which is a binding, not a call.
+function extractCalledIdentifiers(code) {
+  const called = new Set();
+  const re = /([A-Za-z_$][\w$]*)\s*\(/g;
+  let m;
+  while ((m = re.exec(code))) {
+    const name = m[1];
+    if (RESERVED_WORDS.has(name)) continue;
+    let idx = m.index - 1;
+    while (idx >= 0 && /\s/.test(code[idx])) idx--;
+    if (idx >= 0 && code[idx] === '.') continue;
+    const before = code.slice(0, m.index);
+    const prevWord = before.match(/([A-Za-z_$][\w$]*)\s*$/);
+    if (prevWord && prevWord[1] === 'function') continue;
+    called.add(name);
+  }
+  return called;
+}
+
+// Bare function references handed to common higher-order array methods, e.g.
+// `list.map(normalizeAttachmentRecord)`. These never appear in `name(` call
+// position themselves, but referencing an undefined identifier at all throws
+// a ReferenceError — same failure mode as an unresolved call — so they need
+// to be caught too, not just literal calls.
+function extractHofCallbackIdentifiers(code) {
+  const names = new Set();
+  const re = /\.(?:map|filter|forEach|find|findIndex|some|every|reduce|reduceRight|flatMap|sort)\(\s*([A-Za-z_$][\w$]*)\s*[,)]/g;
+  let m;
+  while ((m = re.exec(code))) {
+    if (!RESERVED_WORDS.has(m[1])) names.add(m[1]);
+  }
+  return names;
+}
+
+// Top-level names a module source already provides: function/const/let/var/
+// class declarations, exported or not.
+export function parseModuleDeclaredNames(source) {
+  const names = new Set();
+  for (const m of source.matchAll(/^(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/gm)) names.add(m[1]);
+  for (const m of source.matchAll(/^(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)/gm)) names.add(m[1]);
+  for (const m of source.matchAll(/^(?:export\s+)?class\s+([A-Za-z_$][\w$]*)/gm)) names.add(m[1]);
+  return names;
+}
+
+// Local names a module source's own `import` statements bring into scope
+// (named, default, namespace, and `as`-aliased named imports).
+export function parseModuleImportedNames(source) {
+  const names = new Set();
+  for (const rawLine of source.split('\n')) {
+    const line = rawLine.trim();
+    if (!/^import\s/.test(line)) continue;
+    const named = line.match(/\{([^}]*)\}/);
+    if (named) {
+      named[1].split(',').forEach((part) => {
+        const piece = part.trim();
+        if (!piece) return;
+        const asMatch = piece.match(/\bas\s+([A-Za-z_$][\w$]*)/);
+        const localName = asMatch ? asMatch[1] : piece.split(/\s+/)[0];
+        if (localName) names.add(localName);
+      });
+    }
+    const def = line.match(/^import\s+([A-Za-z_$][\w$]*)\s*(?:,|from)/);
+    if (def) names.add(def[1]);
+    const ns = line.match(/\*\s+as\s+([A-Za-z_$][\w$]*)/);
+    if (ns) names.add(ns[1]);
+  }
+  return names;
+}
+
+// Given the full source of one extracted function (already dedented, with
+// `export` applied) and the set of names already resolvable in the
+// destination module (sibling declarations + its imports + the other
+// functions extracted alongside this one in the same run), returns the list
+// of called identifiers that resolve to none of: a local binding inside the
+// function, a resolvable module name, or a builtin.
+export function findUnresolvedCallees(fnSource, resolvedNames) {
+  const stripped = stripStringsAndComments(fnSource);
+  const locals = extractLocalNames(stripped);
+  const called = new Set([
+    ...extractCalledIdentifiers(stripped),
+    ...extractHofCallbackIdentifiers(stripped)
+  ]);
+  const unresolved = [];
+  for (const name of called) {
+    if (locals.has(name)) continue;
+    if (resolvedNames.has(name)) continue;
+    if (GLOBAL_ALLOWLIST.has(name)) continue;
+    unresolved.push(name);
+  }
+  return unresolved.sort();
+}
+
+// ---------------------------------------------------------------------------
+// CLI
+//
+// Guarded so this file can also be `import`ed (e.g. by a verification
+// harness that wants to reuse findUnresolvedCallees/parseModule*Names
+// against arbitrary source) without triggering an extraction run.
+// ---------------------------------------------------------------------------
+
+import { fileURLToPath } from 'node:url';
+
+const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+if (isMain) {
+  runCli();
+}
+
+function runCli() {
+
 const rawArgs = process.argv.slice(2);
 const force = rawArgs.includes('--force');
-const [moduleName, ...fnNames] = rawArgs.filter((a) => a !== '--force');
+const allowUnresolved = rawArgs.includes('--allow-unresolved');
+const [moduleName, ...fnNames] = rawArgs.filter((a) => a !== '--force' && a !== '--allow-unresolved');
 if (!moduleName || fnNames.length === 0) {
-  console.error('Usage: node scripts/extract-domain.mjs <module> <fnName>... [--force]');
+  console.error('Usage: node scripts/extract-domain.mjs <module> <fnName>... [--force] [--allow-unresolved]');
   process.exit(1);
 }
 
 const MAIN = 'src/legacy/main.js';
 const OUT = `src/domain/${moduleName}.js`;
 const lines = readFileSync(MAIN, 'utf8').split('\n');
+const existingOutSource = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
 
 // Counts only backticks that are real template-literal delimiters. Strips
 // backslash-escape pairs first (not just \`) because a literal \\ immediately
@@ -87,8 +351,44 @@ if (hasMultilineTemplateLiteral && !force) {
   process.exit(1);
 }
 
+// Unresolved-callee check: run against the candidate output before anything
+// is written. `resolvedNames` is everything the destination module will be
+// able to see once this run's functions land in it: names it already
+// declares, names it already imports, and the sibling functions extracted
+// together in this same invocation.
+const resolvedNames = new Set([
+  ...parseModuleDeclaredNames(existingOutSource),
+  ...parseModuleImportedNames(existingOutSource),
+  ...fnNames
+]);
+
+const unresolvedByFn = fnNames.map((fn, i) => ({
+  fn,
+  names: findUnresolvedCallees(extracted[i], resolvedNames)
+})).filter((entry) => entry.names.length > 0);
+
+if (unresolvedByFn.length > 0) {
+  if (!allowUnresolved) {
+    console.error('ABORT: extracted code calls identifiers that are not defined in the output module,');
+    console.error(`imported by it, or a known builtin — they are almost certainly still in ${MAIN}.`);
+    console.error('Vite will NOT catch this (the build only checks static imports it can see); it would');
+    console.error('surface as a runtime "ReferenceError: <name> is not defined", and only if a test');
+    console.error('happens to exercise that code path. Nothing has been written.');
+    unresolvedByFn.forEach(({ fn, names }) => {
+      names.forEach((name) => console.error(`  UNRESOLVED: ${name} (called in ${fn})`));
+    });
+    console.error('Move the missing function(s) first, import them manually and re-run with');
+    console.error('--allow-unresolved, or extract this function together with its dependency.');
+    process.exit(1);
+  }
+  console.warn('--allow-unresolved: proceeding despite unresolved identifiers. Permitting:');
+  unresolvedByFn.forEach(({ fn, names }) => {
+    names.forEach((name) => console.warn(`  ALLOWED UNRESOLVED: ${name} (called in ${fn})`));
+  });
+}
+
 mkdirSync(dirname(OUT), { recursive: true });
-const header = existsSync(OUT) ? readFileSync(OUT, 'utf8').trimEnd() + '\n\n' : '';
+const header = existingOutSource ? existingOutSource.trimEnd() + '\n\n' : '';
 writeFileSync(OUT, header + extracted.join('\n\n') + '\n');
 
 // Insert the import after the existing import block at the top of main.js,
@@ -119,3 +419,5 @@ writeFileSync(MAIN, lines.join('\n'));
 
 console.log(`Extracted ${fnNames.length} fn(s) to ${OUT}`);
 warnings.forEach((w) => console.warn('WARN ' + w));
+
+}
