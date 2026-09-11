@@ -2,7 +2,7 @@ import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize } from '../domain/util.js';
 import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask } from '../domain/task.js';
 import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId } from '../domain/roadmap.js';
-import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName } from '../domain/board.js';
+import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor } from '../domain/board.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -2045,20 +2045,6 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
             return true;
         }
 
-        function createPortfolioProjectColor(seed, offset = 0) {
-            const baseSeed = Math.max(0, Number(seed) || 0) + (offset * 997);
-            const hue = (((baseSeed * 137.50776405) % 360) + 360) % 360;
-            const saturation = 62 + (baseSeed % 4) * 5;
-            const bgLightness = 95 - (baseSeed % 3);
-            const borderLightness = 78 - (baseSeed % 4) * 4;
-            const textLightness = 28 - (baseSeed % 2) * 4;
-            const hueValue = hue.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
-            return {
-                bg: `hsl(${hueValue} ${saturation}% ${bgLightness}%)`,
-                border: `hsl(${hueValue} ${Math.max(50, saturation - 12)}% ${borderLightness}%)`,
-                text: `hsl(${hueValue} ${Math.min(84, saturation + 8)}% ${textLightness}%)`
-            };
-        }
 
 
         function syncPortfolioProjectColors() {

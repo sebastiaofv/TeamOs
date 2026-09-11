@@ -74,3 +74,18 @@ export function portfolioProjectColorKey(color) {
 export function slugifyColumnName(name) {
     return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
+
+export function createPortfolioProjectColor(seed, offset = 0) {
+    const baseSeed = Math.max(0, Number(seed) || 0) + (offset * 997);
+    const hue = (((baseSeed * 137.50776405) % 360) + 360) % 360;
+    const saturation = 62 + (baseSeed % 4) * 5;
+    const bgLightness = 95 - (baseSeed % 3);
+    const borderLightness = 78 - (baseSeed % 4) * 4;
+    const textLightness = 28 - (baseSeed % 2) * 4;
+    const hueValue = hue.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+    return {
+        bg: `hsl(${hueValue} ${saturation}% ${bgLightness}%)`,
+        border: `hsl(${hueValue} ${Math.max(50, saturation - 12)}% ${borderLightness}%)`,
+        text: `hsl(${hueValue} ${Math.min(84, saturation + 8)}% ${textLightness}%)`
+    };
+}

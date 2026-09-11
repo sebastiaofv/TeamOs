@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
+  createPortfolioProjectColor,
   hasExtendedBoardSettings,
   hasTitleOnlyBoardSettings,
   nextPortfolioProjectId,
@@ -11,6 +12,53 @@ import {
   portfolioProjectColorKey,
   slugifyColumnName
 } from '../../src/domain/board.js';
+
+describe('createPortfolioProjectColor', () => {
+  it('is deterministic: the same seed and offset always produce the same color', () => {
+    expect(createPortfolioProjectColor(1)).toEqual(createPortfolioProjectColor(1));
+  });
+
+  it('derives an exact hsl triple from seed 0 / default offset', () => {
+    // baseSeed = max(0, 0) + 0 = 0, so hue = 0 and every % is against 0.
+    expect(createPortfolioProjectColor(0)).toEqual({
+      bg: 'hsl(0 62% 95%)',
+      border: 'hsl(0 50% 78%)',
+      text: 'hsl(0 70% 28%)'
+    });
+  });
+
+  it('derives an exact hsl triple from seed 1 / default offset', () => {
+    expect(createPortfolioProjectColor(1)).toEqual({
+      bg: 'hsl(137.508 67% 94%)',
+      border: 'hsl(137.508 55% 74%)',
+      text: 'hsl(137.508 75% 24%)'
+    });
+  });
+
+  it('produces different colors for different seeds', () => {
+    expect(createPortfolioProjectColor(1)).not.toEqual(createPortfolioProjectColor(2));
+  });
+
+  it('shifts the result when offset changes (baseSeed includes offset * 997)', () => {
+    const withoutOffset = createPortfolioProjectColor(0);
+    const withOffset = createPortfolioProjectColor(0, 1);
+    expect(withOffset).not.toEqual(withoutOffset);
+    // baseSeed = max(0, 0) + 1 * 997 = 997, hand-derived hue/saturation/lightness below.
+    expect(withOffset).toEqual({
+      bg: 'hsl(295.241 67% 94%)',
+      border: 'hsl(295.241 55% 74%)',
+      text: 'hsl(295.241 75% 24%)'
+    });
+  });
+
+  it('treats a non-numeric seed as 0 (Number(seed) || 0 falls back to 0 for NaN)', () => {
+    expect(createPortfolioProjectColor('not-a-number')).toEqual(createPortfolioProjectColor(0));
+  });
+
+  it('clamps a negative seed to 0 (Math.max(0, ...))', () => {
+    expect(createPortfolioProjectColor(-5)).toEqual(createPortfolioProjectColor(0));
+  });
+});
 
 describe('hasExtendedBoardSettings', () => {
   it('returns true for exactly title/sortMode/showArchivedOnly', () => {

@@ -112,17 +112,99 @@ const RESERVED_WORDS = new Set([
   'get', 'set', 'async', 'debugger', 'arguments'
 ]);
 
-// Strips comments and non-template string literals so their contents can't
-// be mistaken for code. Template literals are deliberately left alone: their
-// `${...}` substitutions are real identifier references we want to see, and
-// stripping only the literal text around them isn't worth the complexity for
-// this codebase (no template literal here embeds anything call-shaped in its
-// plain-text portions).
+// Strips comments and literal text so it can't be mistaken for code, while
+// preserving everything that is actually an expression: single/double-
+// quoted string *contents* are removed (the quotes stay, empty), and so is
+// the plain-text portion of template literals — but a template literal's
+// `${...}` substitutions are left intact, since they can contain genuine
+// calls (e.g. `` `${formatThing(x)}` ``). This matters because CSS-ish
+// template literals are common in this codebase (colour builders returning
+// `` `hsl(${hue} 62% 95%)` ``) and `hsl(`/`calc(`/`rgb(` etc. are plain text,
+// not calls — treating them as calls was a false positive that blocked a
+// real extraction (createPortfolioProjectColor).
+//
+// This is a single left-to-right scan with a stack, rather than the
+// sequential regex passes this function used to run, for two reasons: (1) a
+// regex pass for comments run before the string-handling pass would
+// wrongly treat `//` or `/* */` appearing inside a string as a real
+// comment; scanning contextually avoids that. (2) template literals need
+// state (are we in literal text, or inside a `${...}`?) that a stack
+// tracks naturally, including a `${...}` that itself contains a *nested*
+// template literal (`` `${`inner ${x}`}` ``) — entering the inner backtick
+// pushes a new frame, popped when its own closing backtick is hit, which
+// correctly resumes the outer `${...}` afterward.
+//
+// Deliberately NOT handled: regex literals (e.g. /hsl\(/). Telling a regex
+// literal apart from the division operator requires knowing whether the
+// previous token was an operand or an operator, which this lexical scanner
+// does not track — doing it properly needs something close to a real
+// parser. No extracted function in this codebase currently contains a
+// regex literal; if one ever does and its pattern contains call-shaped
+// text, this guard will (safely) over-report it as unresolved, same as any
+// other false positive — annotate that call site or extract by hand.
 function stripStringsAndComments(src) {
-  let out = src.replace(/\/\*[\s\S]*?\*\//g, '');
-  out = out.replace(/'(?:[^'\\\n]|\\.)*'/g, "''");
-  out = out.replace(/"(?:[^"\\\n]|\\.)*"/g, '""');
-  out = out.replace(/\/\/[^\n]*/g, '');
+  let out = '';
+  let i = 0;
+  const n = src.length;
+  // Stack of open template literals. Top-of-stack `mode` is 'text' while
+  // scanning the literal's plain text, or 'code' while inside its current
+  // `${...}` substitution (in which case `depth` counts nested `{`/`}` so
+  // the substitution's own closing `}` isn't mistaken for a nested one's).
+  const templates = [];
+
+  while (i < n) {
+    const c = src[i];
+    const c2 = src[i + 1];
+    const top = templates[templates.length - 1];
+
+    if (top && top.mode === 'text') {
+      if (c === '\\') { i += 2; continue; } // escaped char: strip, never re-interpret
+      if (c === '`') { templates.pop(); out += '`'; i++; continue; }
+      if (c === '$' && c2 === '{') { top.mode = 'code'; top.depth = 0; out += '${'; i += 2; continue; }
+      i++; continue; // literal text: stripped
+    }
+
+    // Here we're either at top level, or inside a template's `${...}` (code
+    // mode) — both cases scan for comments/strings/nested-templates the
+    // same way; the only extra work in code mode is brace-depth tracking so
+    // the substitution's closing `}` is recognized instead of consumed as
+    // ordinary code.
+    if (top && top.mode === 'code') {
+      if (c === '{') { top.depth++; }
+      else if (c === '}') {
+        if (top.depth === 0) { top.mode = 'text'; out += '}'; i++; continue; }
+        top.depth--;
+      }
+    }
+
+    if (c === '/' && c2 === '*') {
+      const end = src.indexOf('*/', i + 2);
+      i = end === -1 ? n : end + 2;
+      continue;
+    }
+    if (c === '/' && c2 === '/') {
+      const end = src.indexOf('\n', i + 2);
+      i = end === -1 ? n : end;
+      continue;
+    }
+    if (c === "'" || c === '"') {
+      const quote = c;
+      i++;
+      while (i < n && src[i] !== quote) { i += src[i] === '\\' ? 2 : 1; }
+      i++; // skip closing quote (or run off the end on unterminated input)
+      out += quote + quote;
+      continue;
+    }
+    if (c === '`') {
+      templates.push({ mode: 'text' });
+      out += '`';
+      i++;
+      continue;
+    }
+
+    out += c;
+    i++;
+  }
   return out;
 }
 
