@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Move the 253 pure functions and `BoardRepository` out of `kanban.html` into tested ES modules under `src/`, on a Vite toolchain, without changing any behavior.
+**Goal:** Move the pure functions and `BoardRepository` out of `kanban.html` into tested ES modules under `src/`, on a Vite toolchain, without changing any behavior.
 
 **Architecture:** `kanban.html` becomes `index.html` (a Vite entry) whose inline `<style>` and `<script>` move to `src/styles/legacy.css` and `src/legacy/main.js`. The script becomes `type="module"`. Domain functions are then cut from `main.js` into `src/domain/*.js` one module at a time and imported back, so the legacy app keeps running unchanged at every commit. A repeatable extraction script does the cutting so the work is mechanical rather than error-prone hand-editing.
 
@@ -1277,7 +1277,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ## Phase 1 Definition of Done
 
-- [ ] 253 pure functions live in `src/domain/*.js` as named exports
+- [ ] Pure domain functions live in `src/domain/*.js` as named exports
 - [ ] `BoardRepository` and FSA helpers live in `src/persistence/*.js`
 - [ ] Vitest suite covers every extracted module
 - [ ] 90 Playwright tests pass (94 minus the 4 converted to Vitest)

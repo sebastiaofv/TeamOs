@@ -8,7 +8,7 @@
 
 Two drivers, both stated by the project owner:
 
-1. **Maintainability.** `kanban.html` is 11,078 lines in one file — ~3,190 CSS, ~465 HTML, ~7,400 JS across 402 top-level functions and ~40 module-level mutable globals. Navigating and editing it is the bottleneck.
+1. **Maintainability.** `kanban.html` is 11,078 lines in one file — ~3,190 CSS, ~465 HTML, ~7,400 JS across 428 top-level functions and 36 module-level mutable globals. Navigating and editing it is the bottleneck.
 2. **Ecosystem access.** Replace hand-rolled drag/drop, modals, and date handling with maintained libraries.
 
 React and Tailwind are the means, not the goal. Any decision that improves the stack at the cost of maintainability should be re-examined.
@@ -25,15 +25,25 @@ Dropping single-file delivery means `README.md` and `playwright.config.js` both 
 
 ## Codebase analysis
 
-Classification of all 402 top-level JS functions by what they touch:
+Classification of all 428 top-level JS functions by what they touch:
 
-| Category | Fns | Lines | Migration cost |
-|---|---:|---:|---|
-| **Pure** — no DOM, no globals | 253 | 3,382 | Lift and shift |
-| **Stateful** — reads/writes module globals | 60 | 1,440 | Mechanical reshape into store |
-| **UI** — touches DOM/`Refs`/`window` | 89 | 2,502 | Genuine rewrite |
+| Category | Fns | Migration cost |
+|---|---:|---|
+| **Pure** — no DOM, no globals | 249 | Lift and shift |
+| **Stateful** — reads/writes module globals | 84 | Mechanical reshape into store |
+| **UI** — touches DOM/`Refs`/`window` | 95 | Genuine rewrite |
+| **Total** | **428** | |
 
-Only ~34% of the JS is a true rewrite. This ratio is the reason for the domain-first phasing: the majority of the code can move before any React is written.
+**Corrected 2026-09-11 (during Task 1).** The original figures (402 = 253/60/89) came
+from a regex that matched `function NAME(` and so missed all 26 `async` top-level
+functions; it also used an incomplete list of module globals. Roughly 42% of functions
+are pure, not the ~58% first reported, and the true-rewrite share is larger than the
+~34% originally claimed. The phasing argument survives — the pure layer is still the
+single largest group and still moves first — but it is less lopsided than stated.
+
+A further caveat: the "pure" test is a body scan, so a function that delegates its DOM
+work to a callee is misclassified as pure. Real domain modules will be somewhat smaller
+than 249. See the function inventory for the per-function list and its warnings. This ratio is the reason for the domain-first phasing: the majority of the code can move before any React is written.
 
 Verified spot-check: `validateBoardData` (220 lines) contains zero references to `document`, `Refs`, `window`, or any global. `BoardRepository` is DOM-free and depends only on other pure functions plus File System Access handles.
 
@@ -49,7 +59,7 @@ kanban/
 └─ src/
    ├─ main.jsx
    ├─ App.jsx
-   ├─ domain/               # 253 pure functions
+   ├─ domain/               # the pure functions (249 by body scan)
    ├─ persistence/          # boardRepository, fileSystem, fileWatch
    ├─ store/                # 60 stateful functions as Zustand slices
    ├─ components/           # 89 UI functions as React components
@@ -59,7 +69,7 @@ kanban/
 
 ### `src/domain/` module inventory
 
-Derived from clustering the 253 pure functions by name and call graph. Counts are
+Derived from clustering the pure functions by name and call graph. Counts are
 a planning estimate; exact placement is refined during extraction.
 
 | Module | Fns | Lines | Representative functions |
@@ -188,7 +198,7 @@ each with its own spec and plan.
 
 ### Phase 1 — domain extraction
 
-Move the 253 pure functions and `BoardRepository` into `src/domain/` and
+Move the pure functions and `BoardRepository` into `src/domain/` and
 `src/persistence/` as ES modules with Vitest coverage. Stand up the Vite, Tailwind,
 and Vitest toolchain. `kanban.html` continues to run by importing the built bundle,
 so the app stays functional and all 94 Playwright tests stay green throughout.

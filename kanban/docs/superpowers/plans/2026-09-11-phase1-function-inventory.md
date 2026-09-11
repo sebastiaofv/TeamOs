@@ -1,24 +1,42 @@
 # Phase 1 Function Inventory
 
-Generated from `kanban.html` (11,078 lines) on 2026-09-11. The complete list of the
-253 pure functions Phase 1 extracts, grouped by target module. Tasks 3-12 of
-`2026-09-11-phase1-domain-extraction.md` reference this file for their exact function
-lists, so no task needs the phrase "and the remaining N".
+Regenerated 2026-09-11 against `src/legacy/main.js` after Task 1, **including the 26
+`async` top-level functions the first version missed** (its regex matched only
+`function NAME(`). Corrected totals: **428 top-level functions = 249 pure + 84 stateful
++ 95 UI**, superseding the 402 = 253/60/89 in the design spec.
 
-Classification rule: a function is *pure* here if its body references none of
-`document`, `Refs`, `window`, `querySelector`, `addEventListener`, `innerHTML`,
-`classList`, and none of the ~40 module-level mutable globals.
+Classification: a function is *pure* here if its body references none of `document`,
+`Refs`, `window`, `querySelector`, `addEventListener`, `innerHTML`, `classList`, and
+none of the 36 module-level mutable globals.
 
-Module assignment within this list is a name-based clustering heuristic. A few are
-misfiled — `validateBoardData` sits under `board.js` because its name matched "board"
-first, and `handleTaskAttachmentsEditorClick` / `clearPortfolioTimelineSelection` are
-named like handlers. Verify each before extracting; the task notes flag the known ones.
+## Read this before trusting the list
 
-Per-module counts here differ from the table in the design spec because that table used
-a coarser clustering rule and was labelled a planning estimate. **This file is the
-authoritative list for execution.** Both total 253.
+**The heuristic overstates purity.** A function that delegates its DOM work to a callee
+looks pure to a body scan. Several entries below — `movePortfolioTaskToStatus`,
+`toggleArchiveSelectedPortfolioCard`, `handleTaskAttachmentsInputChange`,
+`openPortfolioFromFiles` — are UI actions that call DOM-touching helpers. **Inspect
+each function before extracting it.** If it turns out to be UI or stateful, leave it in
+`main.js` for Phase 2 and note it in your report.
+
+Module assignment is a name-clustering heuristic too. `async` functions are marked.
+The extraction script handles `async` as of the Task 1 fix pass.
+
+
+## `persistence.js` — 10 functions
+
+- `createProjectSaveState`
+- `writeJsonToFileHandle` *(async)*
+- `refreshProjectFileBaseline` *(async)*
+- `primeProjectFileBaselines` *(async)*
+- `checkProjectFileForExternalChanges` *(async)*
+- `runQueuedProjectSave` *(async)*
+- `enqueueProjectSave` *(async)*
+- `retryProjectSave`
+- `openPortfolioFromFiles` *(async)*
+- `ensureBoardTimelineBaseline`
 
 ## `scoring.js` — 6 functions
+
 - `priorityRank`
 - `effortRank`
 - `priorityScoreValue`
@@ -26,7 +44,8 @@ authoritative list for execution.** Both total 253.
 - `taskScore`
 - `formatTaskScore`
 
-## `attachments.js` — 16 functions
+## `attachments.js` — 17 functions
+
 - `normalizeTaskAttachments`
 - `attachmentTaskKey`
 - `getTaskAttachmentsMap`
@@ -42,9 +61,11 @@ authoritative list for execution.** Both total 253.
 - `stripLegacyTaskAttachmentsFromExtensions`
 - `calculateBoardAttachmentBytes`
 - `getTaskModalAttachmentDerivedMessages`
+- `handleTaskAttachmentsInputChange` *(async)*
 - `handleTaskAttachmentsEditorClick`
 
-## `roadmap.js` — 40 functions
+## `roadmap.js` — 38 functions
+
 - `normalizeRoadmapRef`
 - `normalizeRoadmapDate`
 - `normalizeRoadmapItems`
@@ -72,9 +93,7 @@ authoritative list for execution.** Both total 253.
 - `renderPortfolioCalendarWeekRoadmap`
 - `shouldShowPortfolioCalendarRoadmapLabel`
 - `renderPortfolioCalendarDayRoadmapItem`
-- `getPortfolioRoadmapExpandedRows`
 - `isPortfolioRoadmapRowExpanded`
-- `togglePortfolioRoadmapRowExpanded`
 - `buildRoadmapEntityOptionMarkup`
 - `buildRoadmapSprintSelectionOptionMarkup`
 - `slugifyRoadmapEntityId`
@@ -86,13 +105,9 @@ authoritative list for execution.** Both total 253.
 - `getRoadmapExtension`
 - `getRoadmapTaskFieldTasks`
 
-## `timeline.js` — 32 functions
+## `timeline.js` — 23 functions
+
 - `getBoardTimelineData`
-- `getTimelineSelectionIndex`
-- `clearPortfolioTimelineSelection`
-- `setPortfolioTimelineSelection`
-- `isPortfolioTimelineExpanded`
-- `setPortfolioTimelineExpanded`
 - `applyTimelineEventToState`
 - `reconstructBoardStateFromTimeline`
 - `formatTimelineValue`
@@ -109,23 +124,18 @@ authoritative list for execution.** Both total 253.
 - `normalizeTimelineExtension`
 - `getTimelineExtensionObject`
 - `captureTaskTimelineSnapshot`
-- `ensureBoardTimelineBaseline`
 - `appendTimelineEvent`
 - `buildTaskTimelineChanges`
 - `buildTaskTimelineEvent`
 - `recordTaskTimelineEvent`
 - `recordBoardRestoreTimelineEvent`
 - `handleTimelinePanelClick`
-- `handleTimelinePanelInput`
-- `handleTimelinePanelPointerDown`
-- `handleTimelineSliderPointerCommit`
 
-## `calendar.js` — 36 functions
+## `calendar.js` — 31 functions
+
 - `formatLocalIsoDate`
 - `todayLocalIsoDate`
 - `formatDueDateForUi`
-- `updateTaskAssigneeEditor`
-- `updateTaskAssigneeEditorItemText`
 - `formatUtcIsoDate`
 - `createUtcDate`
 - `getUtcMonthLabel`
@@ -154,11 +164,9 @@ authoritative list for execution.** Both total 253.
 - `comparePortfolioDueDateAsc`
 - `formatDateTime`
 - `normalizeDueDate`
-- `validateBoardData`
-- `updateTaskChecklistEditor`
-- `updateTaskChecklistEditorItemText`
 
 ## `serialize.js` — 7 functions
+
 - `hashTextContent`
 - `serializeBoardDataFromObject`
 - `getBoardExtensionsObject`
@@ -167,7 +175,8 @@ authoritative list for execution.** Both total 253.
 - `areSerializableValuesEqual`
 - `normalizeBoardExtensionsValue`
 
-## `task.js` — 52 functions
+## `task.js` — 55 functions
+
 - `normalizeEffort`
 - `normalizePriority`
 - `normalizeAssignee`
@@ -177,6 +186,8 @@ authoritative list for execution.** Both total 253.
 - `taskAssignees`
 - `taskHasAssignee`
 - `syncTaskAssigneeTextareaFromEditor`
+- `updateTaskAssigneeEditor`
+- `updateTaskAssigneeEditorItemText`
 - `removeTaskAssigneeEditorItem`
 - `getBoardTagSuggestions`
 - `normalizeTaskBlocked`
@@ -202,7 +213,9 @@ authoritative list for execution.** Both total 253.
 - `syncTaskChecklistTextareaFromEditor`
 - `getTaskChecklistDropPlacement`
 - `moveTaskChecklistEditorItem`
+- `updateTaskChecklistEditor`
 - `toggleTaskChecklistEditorItem`
+- `updateTaskChecklistEditorItemText`
 - `removeTaskChecklistEditorItem`
 - `findTaskInBoardData`
 - `getTasksForMilestone`
@@ -210,35 +223,34 @@ authoritative list for execution.** Both total 253.
 - `getTasksForSprint`
 - `buildTaskFieldsFromDraft`
 - `nextTaskIdForBoard`
+- `resolveCreateTaskStatus`
+- `movePortfolioTaskToStatus` *(async)*
 - `handleTaskChecklistEditorClick`
 - `handleTaskChecklistEditorInput`
 - `handleTaskChecklistEditorChange`
-- `handleTaskChecklistEditorDragStart`
-- `handleTaskChecklistEditorDragOver`
-- `handleTaskChecklistEditorDrop`
 - `handleTaskChecklistEditorDragEnd`
 - `handleTaskAssigneeEditorClick`
 - `handleTaskAssigneeEditorInput`
 - `handleDetailChecklistChange`
 
-## `board.js` — 39 functions
-- `createProjectSaveState`
+## `board.js` — 37 functions
+
 - `setProjectWatchStatus`
 - `clearProjectWatchStatus`
 - `markProjectDirty`
 - `getProjectChipSaveUiState`
 - `isPortfolioBoardMutable`
-- `stopProjectFileWatcher`
-- `retryProjectSave`
+- `applySnapshotToBoardRecord`
+- `savePortfolioBoardRecord` *(async)*
 - `createPortfolioProjectColor`
 - `portfolioProjectColorKey`
 - `nextPortfolioProjectId`
 - `createEmptyProjectData`
-- `createPortfolioRecord`
 - `isHistoricalPreviewActiveForBoard`
 - `portfolioProjectColor`
 - `normalizePortfolioViewMode`
 - `notifyPortfolioReadOnly`
+- `notifyPortfolioMutationUnavailable`
 - `normalizePortfolioSortKey`
 - `normalizePortfolioSortDir`
 - `comparePortfolioRows`
@@ -246,23 +258,23 @@ authoritative list for execution.** Both total 253.
 - `hasTitleOnlyBoardSettings`
 - `hasExtendedBoardSettings`
 - `isAcceptedBoardSettingsShape`
+- `validateBoardData`
 - `slugifyColumnName`
 - `normalizeColumns`
 - `createBoardStateSnapshot`
-- `setHoveredPortfolioCard`
-- `syncHoveredPortfolioCardWithVisibleRows`
 - `getVisiblePortfolioRowsForShortcuts`
-- `getHoveredPortfolioRow`
 - `getShortcutTargetPortfolioRow`
 - `openSelectedPortfolioCardDetails`
 - `editSelectedPortfolioCard`
+- `toggleArchiveSelectedPortfolioCard` *(async)*
+- `moveSelectedPortfolioCardToShortcutStatus` *(async)*
 - `canDragPortfolioContext`
 - `handlePortfolioBoardChipsClick`
 - `handlePortfolioBoardChange`
 - `handlePortfolioBoardPointerOver`
-- `handlePortfolioBoardPointerOut`
 
 ## `util.js` — 25 functions
+
 - `hasRequiredExtension`
 - `assertRequiredExtension`
 - `isAbortError`
@@ -288,4 +300,3 @@ authoritative list for execution.** Both total 253.
 - `escapeRegExp`
 - `highlightSearchMatch`
 - `renderShortcutKeys`
-
