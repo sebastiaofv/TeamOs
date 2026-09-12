@@ -11,7 +11,6 @@ import {
   buildPortfolioCalendarRoadmapSpanStyle,
   comparePortfolioCalendarDayItems,
   comparePortfolioCalendarItems,
-  comparePortfolioCalendarRoadmapItems,
   comparePortfolioDueDateAsc,
   createUtcDate,
   doesPortfolioCalendarItemIntersectMonth,
@@ -20,7 +19,6 @@ import {
   formatDueDateForUi,
   formatLocalIsoDate,
   formatUtcIsoDate,
-  getPortfolioCalendarDayOffset,
   getPortfolioCalendarHeatColor,
   getPortfolioCalendarItemLabel,
   getPortfolioCalendarItemPriority,
@@ -33,9 +31,7 @@ import {
   getUtcMonthLabel,
   normalizeDueDate,
   shouldShowPortfolioCalendarRoadmapLabel,
-  todayLocalIsoDate,
-  buildPortfolioCalendarWeekRoadmapSegments,
-  assignPortfolioCalendarWeekRoadmapLanes
+  todayLocalIsoDate
 } from '../../src/domain/calendar.js';
 import { createPortfolioProjectColor } from '../../src/domain/board.js';
 
@@ -126,25 +122,6 @@ describe('normalizeDueDate', () => {
     expect(normalizeDueDate(null)).toBe('');
     expect(normalizeDueDate(undefined)).toBe('');
     expect(normalizeDueDate(20240315)).toBe('');
-  });
-});
-
-describe('getPortfolioCalendarDayOffset', () => {
-  it('returns 0 for the same instant', () => {
-    const d = createUtcDate(2024, 2, 10);
-    expect(getPortfolioCalendarDayOffset(d, d)).toBe(0);
-  });
-
-  it('returns a positive day count for a later end date', () => {
-    const start = createUtcDate(2024, 2, 10);
-    const end = createUtcDate(2024, 2, 13);
-    expect(getPortfolioCalendarDayOffset(start, end)).toBe(3);
-  });
-
-  it('returns a negative day count when end precedes start', () => {
-    const start = createUtcDate(2024, 2, 13);
-    const end = createUtcDate(2024, 2, 10);
-    expect(getPortfolioCalendarDayOffset(start, end)).toBe(-3);
   });
 });
 
@@ -660,49 +637,6 @@ describe('buildPortfolioCalendarRoadmapSpanStyle', () => {
   });
 });
 
-describe('comparePortfolioCalendarRoadmapItems', () => {
-  function item({ kind, start, end, title = '' }) {
-    return {
-      kind,
-      title,
-      bounds: {
-        start: createUtcDate(2024, 0, start),
-        end: createUtcDate(2024, 0, end ?? start)
-      }
-    };
-  }
-
-  it('orders by priority first: phase, sprint, milestone, task, other', () => {
-    const phase = item({ kind: 'phase', start: 20 });
-    const task = item({ kind: 'task', start: 1 });
-    expect(comparePortfolioCalendarRoadmapItems(phase, task)).toBeLessThan(0);
-    expect(comparePortfolioCalendarRoadmapItems(task, phase)).toBeGreaterThan(0);
-  });
-
-  it('breaks a priority tie by start date ascending', () => {
-    const a = item({ kind: 'sprint', start: 5 });
-    const b = item({ kind: 'sprint', start: 10 });
-    expect(comparePortfolioCalendarRoadmapItems(a, b)).toBeLessThan(0);
-  });
-
-  it('breaks a start-date tie by end date DESCENDING (longer spans first)', () => {
-    const longer = item({ kind: 'sprint', start: 5, end: 20 });
-    const shorter = item({ kind: 'sprint', start: 5, end: 6 });
-    expect(comparePortfolioCalendarRoadmapItems(longer, shorter)).toBeLessThan(0);
-    expect(comparePortfolioCalendarRoadmapItems(shorter, longer)).toBeGreaterThan(0);
-  });
-
-  it('finally breaks a full tie by title via compareText', () => {
-    const a = item({ kind: 'sprint', start: 5, end: 5, title: 'Alpha' });
-    const b = item({ kind: 'sprint', start: 5, end: 5, title: 'Beta' });
-    expect(comparePortfolioCalendarRoadmapItems(a, b)).toBeLessThan(0);
-  });
-
-  it('treats items with entirely missing bounds as equal on the date terms', () => {
-    expect(comparePortfolioCalendarRoadmapItems({ kind: 'task' }, { kind: 'task' })).toBe(0);
-  });
-});
-
 describe('doesPortfolioCalendarItemIntersectMonth', () => {
   it('returns false when the item has no bounds', () => {
     expect(doesPortfolioCalendarItemIntersectMonth({}, 2024, 2)).toBe(false);
@@ -767,134 +701,5 @@ describe('shouldShowPortfolioCalendarRoadmapLabel', () => {
     const item = { isRange: true, bounds: { start: createUtcDate(2024, 1, 20), end: createUtcDate(2024, 3, 1) } };
     // 2024-03-12 is a Tuesday.
     expect(shouldShowPortfolioCalendarRoadmapLabel(item, createUtcDate(2024, 2, 12))).toBe(false);
-  });
-});
-
-describe('buildPortfolioCalendarWeekRoadmapSegments', () => {
-  const weekStart = createUtcDate(2024, 2, 4);
-  const weekEnd = createUtcDate(2024, 2, 10);
-
-  it('excludes items with kind "task"', () => {
-    const taskItem = { kind: 'task', title: 'A task', bounds: { start: createUtcDate(2024, 2, 5), end: createUtcDate(2024, 2, 5) } };
-    expect(buildPortfolioCalendarWeekRoadmapSegments([taskItem], weekStart, weekEnd)).toEqual([]);
-  });
-
-  it('excludes items with no bounds', () => {
-    const noBounds = { kind: 'milestone', title: 'No bounds' };
-    expect(buildPortfolioCalendarWeekRoadmapSegments([noBounds], weekStart, weekEnd)).toEqual([]);
-  });
-
-  it('excludes items whose bounds do not overlap the week', () => {
-    const earlier = { kind: 'sprint', title: 'Old', bounds: { start: createUtcDate(2024, 1, 1), end: createUtcDate(2024, 1, 20) } };
-    expect(buildPortfolioCalendarWeekRoadmapSegments([earlier], weekStart, weekEnd)).toEqual([]);
-  });
-
-  it('defaults to an empty array for non-array items', () => {
-    expect(buildPortfolioCalendarWeekRoadmapSegments(null, weekStart, weekEnd)).toEqual([]);
-    expect(buildPortfolioCalendarWeekRoadmapSegments(undefined, weekStart, weekEnd)).toEqual([]);
-  });
-
-  it('clamps segment bounds to the week, flags continuation, and sorts by roadmap priority (phase before sprint)', () => {
-    const phase = { kind: 'phase', title: 'Phase A', bounds: { start: createUtcDate(2024, 2, 1), end: createUtcDate(2024, 2, 6) } };
-    const sprint = { kind: 'sprint', title: 'Sprint B', bounds: { start: createUtcDate(2024, 2, 5), end: createUtcDate(2024, 2, 12) } };
-
-    const segments = buildPortfolioCalendarWeekRoadmapSegments([sprint, phase], weekStart, weekEnd);
-
-    expect(segments).toEqual([
-      {
-        item: phase,
-        startDay: 0,
-        endDay: 2,
-        continuesBefore: true,
-        continuesAfter: false
-      },
-      {
-        item: sprint,
-        startDay: 1,
-        endDay: 6,
-        continuesBefore: false,
-        continuesAfter: true
-      }
-    ]);
-  });
-
-  it('marks neither continuesBefore nor continuesAfter when an item is fully contained in the week', () => {
-    const milestone = { kind: 'milestone', title: 'Launch', bounds: { start: createUtcDate(2024, 2, 6), end: createUtcDate(2024, 2, 6) } };
-    const [segment] = buildPortfolioCalendarWeekRoadmapSegments([milestone], weekStart, weekEnd);
-    expect(segment.continuesBefore).toBe(false);
-    expect(segment.continuesAfter).toBe(false);
-    expect(segment.startDay).toBe(2);
-    expect(segment.endDay).toBe(2);
-  });
-});
-
-describe('assignPortfolioCalendarWeekRoadmapLanes', () => {
-  const weekStart = createUtcDate(2024, 2, 4);
-  const weekEnd = createUtcDate(2024, 2, 10);
-
-  it('returns an empty array when there are no items', () => {
-    expect(assignPortfolioCalendarWeekRoadmapLanes([], weekStart, weekEnd)).toEqual([]);
-    expect(assignPortfolioCalendarWeekRoadmapLanes(null, weekStart, weekEnd)).toEqual([]);
-  });
-
-  it('returns an empty array when every item is filtered out (e.g. all kind "task")', () => {
-    const taskItem = { kind: 'task', title: 'A task', bounds: { start: createUtcDate(2024, 2, 5), end: createUtcDate(2024, 2, 5) } };
-    expect(assignPortfolioCalendarWeekRoadmapLanes([taskItem], weekStart, weekEnd)).toEqual([]);
-  });
-
-  it('puts non-overlapping items in the same lane', () => {
-    const first = { kind: 'phase', title: 'First', bounds: { start: createUtcDate(2024, 2, 4), end: createUtcDate(2024, 2, 6) } };
-    const second = { kind: 'phase', title: 'Second', bounds: { start: createUtcDate(2024, 2, 7), end: createUtcDate(2024, 2, 9) } };
-
-    const lanes = assignPortfolioCalendarWeekRoadmapLanes([first, second], weekStart, weekEnd);
-
-    expect(lanes).toHaveLength(1);
-    expect(lanes[0]).toHaveLength(2);
-    expect(lanes[0][0].item).toBe(first);
-    expect(lanes[0][1].item).toBe(second);
-  });
-
-  it('puts overlapping items in separate lanes, ordered by roadmap priority (phase before sprint)', () => {
-    const phase = { kind: 'phase', title: 'Phase A', bounds: { start: createUtcDate(2024, 2, 1), end: createUtcDate(2024, 2, 6) } };
-    const sprint = { kind: 'sprint', title: 'Sprint B', bounds: { start: createUtcDate(2024, 2, 5), end: createUtcDate(2024, 2, 12) } };
-
-    const lanes = assignPortfolioCalendarWeekRoadmapLanes([sprint, phase], weekStart, weekEnd);
-
-    expect(lanes).toHaveLength(2);
-    expect(lanes[0]).toHaveLength(1);
-    expect(lanes[0][0].item).toBe(phase);
-    expect(lanes[1]).toHaveLength(1);
-    expect(lanes[1][0].item).toBe(sprint);
-  });
-
-  it('opens a new lane for each item when three items all overlap the same day', () => {
-    const long = { kind: 'phase', title: 'Long', bounds: { start: createUtcDate(2024, 2, 4), end: createUtcDate(2024, 2, 10) } };
-    const mid = { kind: 'phase', title: 'Mid', bounds: { start: createUtcDate(2024, 2, 4), end: createUtcDate(2024, 2, 7) } };
-    const short = { kind: 'phase', title: 'Short', bounds: { start: createUtcDate(2024, 2, 4), end: createUtcDate(2024, 2, 4) } };
-
-    const lanes = assignPortfolioCalendarWeekRoadmapLanes([short, mid, long], weekStart, weekEnd);
-
-    // Same kind (phase) sorts by start ascending, then end descending, so
-    // the longest-running item is placed first and claims the first lane;
-    // since all three share day 0, each subsequent item needs its own lane.
-    expect(lanes).toHaveLength(3);
-    expect(lanes[0][0].item).toBe(long);
-    expect(lanes[1][0].item).toBe(mid);
-    expect(lanes[2][0].item).toBe(short);
-  });
-
-  it('reuses an earlier lane once it frees up, rather than always opening a new one', () => {
-    const phase = { kind: 'phase', title: 'Phase A', bounds: { start: createUtcDate(2024, 2, 4), end: createUtcDate(2024, 2, 5) } };
-    const sprint = { kind: 'sprint', title: 'Sprint B', bounds: { start: createUtcDate(2024, 2, 4), end: createUtcDate(2024, 2, 8) } };
-    const laterPhase = { kind: 'phase', title: 'Phase C', bounds: { start: createUtcDate(2024, 2, 6), end: createUtcDate(2024, 2, 9) } };
-
-    const lanes = assignPortfolioCalendarWeekRoadmapLanes([sprint, phase, laterPhase], weekStart, weekEnd);
-
-    // Sort order (priority then start): phase (day0-1), laterPhase (day2-5), sprint (day0-4).
-    // phase -> lane0 (lastEnd 1). laterPhase startDay 2 > lane0.lastEnd 1 -> reuses lane0 (lastEnd 5).
-    // sprint startDay 0 fits neither lane0 (lastEnd 5) -> opens lane1.
-    expect(lanes).toHaveLength(2);
-    expect(lanes[0].map((segment) => segment.item)).toEqual([phase, laterPhase]);
-    expect(lanes[1].map((segment) => segment.item)).toEqual([sprint]);
   });
 });

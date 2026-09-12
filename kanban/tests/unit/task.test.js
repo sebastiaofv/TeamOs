@@ -27,9 +27,6 @@ import {
   isTaskOverdue,
   normalizeTaskStatus,
   formatTaskStatusAge,
-  getTasksForMilestone,
-  getTasksForPhase,
-  getTasksForSprint,
   resolveCreateTaskStatus
 } from '../../src/domain/task.js';
 import { defaultColumns } from '../../src/domain/constants.js';
@@ -647,90 +644,6 @@ describe('formatTaskStatusAge', () => {
       const task = { statusChangedAt: ageAgo(-60 * 60 * 1000) };
       expect(formatTaskStatusAge(task)).toBe('Age <1h');
     });
-  });
-});
-
-describe('getTasksForMilestone', () => {
-  it('returns an empty array when milestoneId is blank', () => {
-    const boardData = { board: { tasks: [{ id: 1, milestoneId: 'm1' }] } };
-    expect(getTasksForMilestone(boardData, '')).toEqual([]);
-    expect(getTasksForMilestone(boardData, null)).toEqual([]);
-  });
-
-  it('returns an empty array when boardData has no tasks array', () => {
-    expect(getTasksForMilestone({}, 'm1')).toEqual([]);
-    expect(getTasksForMilestone(null, 'm1')).toEqual([]);
-  });
-
-  it('returns only the tasks whose milestoneId matches', () => {
-    const taskA = { id: 1, milestoneId: 'm1' };
-    const taskB = { id: 2, milestoneId: 'm2' };
-    const taskC = { id: 3, milestoneId: 'm1' };
-    const boardData = { board: { tasks: [taskA, taskB, taskC] } };
-    expect(getTasksForMilestone(boardData, 'm1')).toEqual([taskA, taskC]);
-  });
-
-  it('matches after trimming the requested milestoneId', () => {
-    const taskA = { id: 1, milestoneId: 'm1' };
-    const boardData = { board: { tasks: [taskA] } };
-    expect(getTasksForMilestone(boardData, '  m1  ')).toEqual([taskA]);
-  });
-
-  it('excludes tasks with no milestoneId', () => {
-    const boardData = { board: { tasks: [{ id: 1 }] } };
-    expect(getTasksForMilestone(boardData, 'm1')).toEqual([]);
-  });
-});
-
-describe('getTasksForPhase', () => {
-  it('returns an empty array when phaseId is blank', () => {
-    const boardData = { board: { tasks: [{ id: 1, phaseId: 'p1' }] } };
-    expect(getTasksForPhase(boardData, '')).toEqual([]);
-    expect(getTasksForPhase(boardData, null)).toEqual([]);
-  });
-
-  it('returns an empty array when boardData has no tasks array', () => {
-    expect(getTasksForPhase({}, 'p1')).toEqual([]);
-    expect(getTasksForPhase(null, 'p1')).toEqual([]);
-  });
-
-  it('returns only the tasks whose phaseId matches', () => {
-    const taskA = { id: 1, phaseId: 'p1' };
-    const taskB = { id: 2, phaseId: 'p2' };
-    const taskC = { id: 3, phaseId: 'p1' };
-    const boardData = { board: { tasks: [taskA, taskB, taskC] } };
-    expect(getTasksForPhase(boardData, 'p1')).toEqual([taskA, taskC]);
-  });
-
-  it('excludes tasks with no phaseId', () => {
-    const boardData = { board: { tasks: [{ id: 1 }] } };
-    expect(getTasksForPhase(boardData, 'p1')).toEqual([]);
-  });
-});
-
-describe('getTasksForSprint', () => {
-  it('returns an empty array when sprintId is blank', () => {
-    const boardData = { board: { tasks: [{ id: 1, sprintId: 's1' }] } };
-    expect(getTasksForSprint(boardData, '')).toEqual([]);
-    expect(getTasksForSprint(boardData, null)).toEqual([]);
-  });
-
-  it('returns an empty array when boardData has no tasks array', () => {
-    expect(getTasksForSprint({}, 's1')).toEqual([]);
-    expect(getTasksForSprint(null, 's1')).toEqual([]);
-  });
-
-  it('returns only the tasks whose sprintId matches', () => {
-    const taskA = { id: 1, sprintId: 's1' };
-    const taskB = { id: 2, sprintId: 's2' };
-    const taskC = { id: 3, sprintId: 's1' };
-    const boardData = { board: { tasks: [taskA, taskB, taskC] } };
-    expect(getTasksForSprint(boardData, 's1')).toEqual([taskA, taskC]);
-  });
-
-  it('excludes tasks with no sprintId', () => {
-    const boardData = { board: { tasks: [{ id: 1 }] } };
-    expect(getTasksForSprint(boardData, 's1')).toEqual([]);
   });
 });
 

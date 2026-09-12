@@ -1,7 +1,7 @@
 import { EFFORT_BUCKETS, defaultColumns } from './constants.js';
 import { nowIso, normalizeTimestamp } from './util.js';
 import { normalizeDueDate, todayLocalIsoDate } from './calendar.js';
-import { clearInvalidRoadmapTaskRefs, getRoadmapTaskFieldTasks, normalizeRoadmapRef } from './roadmap.js';
+import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap.js';
 import { normalizeTaskAttachments } from './attachments.js';
 
 export function normalizeAssignee(value) {
@@ -213,18 +213,6 @@ export function formatTaskStatusAge(task) {
     if (diffMs < hourMs) return 'Age <1h';
     if (diffMs < dayMs) return `Age ${Math.floor(diffMs / hourMs)}h`;
     return `Age ${Math.floor(diffMs / dayMs)}d`;
-}
-
-export function getTasksForMilestone(boardData, milestoneId) {
-    return getRoadmapTaskFieldTasks(boardData, 'milestoneId', milestoneId);
-}
-
-export function getTasksForPhase(boardData, phaseId) {
-    return getRoadmapTaskFieldTasks(boardData, 'phaseId', phaseId);
-}
-
-export function getTasksForSprint(boardData, sprintId) {
-    return getRoadmapTaskFieldTasks(boardData, 'sprintId', sprintId);
 }
 
 export function resolveCreateTaskStatus(boardRecord, preferredStatus) {

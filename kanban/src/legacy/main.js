@@ -1,28 +1,23 @@
 import '../styles/legacy.css';
-import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
-import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, getTasksForMilestone, getTasksForPhase, getTasksForSprint, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, normalizeRoadmapExtension, clearInvalidRoadmapTaskRefs, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
-import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape, comparePortfolioRows, validateBoardData } from '../domain/board.js';
-import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap, getLegacyTaskAttachmentsFromExtensions, normalizeTaskAttachments, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
-import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel, buildPortfolioCalendarWeekRoadmapSegments, assignPortfolioCalendarWeekRoadmapLanes } from '../domain/calendar.js';
-import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject, normalizeBoardExtensionsValue, createBoardStateSnapshot, serializeBoardDataFromObject } from '../domain/serialize.js';
-import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension, getTimelineExtensionObject, captureTaskTimelineSnapshot, getBoardTimelineData, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline, appendTimelineEvent, recordBoardRestoreTimelineEvent, recordTaskTimelineEvent } from '../domain/timeline.js';
-import { createProjectSaveState } from '../domain/persistence.js';
-import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore, formatTaskScore } from '../domain/scoring.js';
+import { isAbortError, formatErrorMessage, isFileDrag, nowIso, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
+import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, parseChecklistInput, getBoardTagSuggestions, getTaskChecklistDropPlacement, nextTaskIdForBoard, touchTask, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
+import { normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, comparePortfolioRows } from '../domain/board.js';
+import { attachmentDuplicateKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, normalizeAttachmentRecord, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
+import { comparePortfolioCalendarItems, createUtcDate, formatUtcIsoDate, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
+import { cloneSerializable, getBoardExtensionsObject, createBoardStateSnapshot, serializeBoardDataFromObject } from '../domain/serialize.js';
+import { formatTimelineValue, captureTaskTimelineSnapshot, getBoardTimelineData, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline, appendTimelineEvent, recordBoardRestoreTimelineEvent, recordTaskTimelineEvent } from '../domain/timeline.js';
+import { formatTaskScore } from '../domain/scoring.js';
 import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 import { appState, getPortfolioBoardRecord } from '../state/store.js';
 import { Logger } from '../logger.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
-import { setPersistenceHost, getProjectSaveState, getProjectFileState, setProjectWatchStatus, clearProjectWatchStatus, syncProjectSaveStates, refreshProjectFileBaseline, primeProjectFileBaselines, checkProjectFileForExternalChanges, checkProjectFilesNow, stopProjectFileWatcher, savePortfolioBoardRecord, runQueuedProjectSave, enqueueProjectSave, retryProjectSave, createPortfolioRecord, resolveExternalChangeConflict, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
+import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, checkProjectFilesNow, stopProjectFileWatcher, enqueueProjectSave, retryProjectSave, createPortfolioRecord, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
         import {
-            BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
-            TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
-            TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ROADMAP_EXTENSION_KEY,
-            ROADMAP_VERSION, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION, ATTACHMENT_MAX_COUNT,
-            ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES, ATTACHMENT_TASK_SOFT_TOTAL_BYTES,
-            ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES, PROJECT_FILE_WATCH_INTERVAL_MS,
-            PROJECT_FILE_CONFLICT_SUPPRESS_MS, PROJECT_FILE_EXTERNAL_BADGE_MS, THEME_STORAGE_KEY,
-            DEBUG_LOGS_ENABLED, CALENDAR_MONTH_NAMES, CALENDAR_MONTH_SHORT_NAMES,
+            BOARD_FILE_EXTENSION, TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, TIMELINE_EXTENSION_KEY,
+            ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES,
+            ATTACHMENT_TASK_SOFT_TOTAL_BYTES, ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES,
+            PROJECT_FILE_WATCH_INTERVAL_MS, THEME_STORAGE_KEY, CALENDAR_MONTH_NAMES,
             CALENDAR_WEEKDAY_NAMES, defaultColumns
         } from '../domain/constants.js';
         const Refs = {};
@@ -481,31 +476,6 @@ import { setPersistenceHost, getProjectSaveState, getProjectFileState, setProjec
 
 
 
-        function getPortfolioCalendarScopeLabel() {
-            if (!appState.selectedPortfolioBoardId) return 'All Projects';
-            const board = getPortfolioBoardRecord(appState.selectedPortfolioBoardId);
-            return board?.title || board?.fileName || 'Selected Project';
-        }
-
-
-
-
-        function renderPortfolioCalendarStaticItem(item, options = {}) {
-            const classes = ['portfolio-calendar-item'];
-            if (item?.isRange) classes.push('portfolio-calendar-item-range');
-            if (item?.kind === 'task') classes.push('portfolio-calendar-item-task');
-            const style = buildPortfolioCalendarItemStyle(item, options);
-            const label = getPortfolioCalendarItemLabel(item);
-            return `
-                <div
-                    class="${classes.join(' ')}"
-                    data-calendar-item-title="${escapeHtml(item?.title || '')}"
-                    style="${style}"
-                    title="${escapeHtml(label)}"
-                >${escapeHtml(label)}</div>
-            `;
-        }
-
         function renderPortfolioCalendarTaskButton(item, options = {}) {
             const classes = ['portfolio-calendar-item', 'portfolio-calendar-item-task'];
             if (item?.isRange) classes.push('portfolio-calendar-item-range');
@@ -526,40 +496,6 @@ import { setPersistenceHost, getProjectSaveState, getProjectFileState, setProjec
         }
 
 
-
-
-        function renderPortfolioCalendarRoadmapSpan(segment, options = {}) {
-            const item = segment?.item;
-            const classes = ['portfolio-calendar-roadmap-span'];
-            if (item?.kind) classes.push(`portfolio-calendar-roadmap-span-${item.kind}`);
-            if (segment?.continuesBefore) classes.push('portfolio-calendar-roadmap-span-continues-before');
-            if (segment?.continuesAfter) classes.push('portfolio-calendar-roadmap-span-continues-after');
-            const style = buildPortfolioCalendarRoadmapSpanStyle(item, options);
-            const title = getPortfolioCalendarItemLabel(item);
-            return `
-                <div
-                    class="${classes.join(' ')}"
-                    style="grid-column:${segment.startDay + 1} / ${segment.endDay + 2};${style}"
-                    data-calendar-roadmap-title="${escapeHtml(item?.title || '')}"
-                    data-calendar-roadmap-kind="${escapeHtml(item?.kind || '')}"
-                    title="${escapeHtml(title)}"
-                >${escapeHtml(title)}</div>
-            `;
-        }
-
-        function renderPortfolioCalendarWeekRoadmap(items, weekStart, weekEnd, options = {}) {
-            const lanes = assignPortfolioCalendarWeekRoadmapLanes(items, weekStart, weekEnd);
-            if (lanes.length === 0) return '';
-            return `
-                <div class="portfolio-calendar-week-roadmap">
-                    ${lanes.map((lane, index) => `
-                        <div class="portfolio-calendar-week-roadmap-lane" data-calendar-roadmap-lane="${index}">
-                            ${lane.map((segment) => renderPortfolioCalendarRoadmapSpan(segment, options)).join('')}
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
 
 
         function renderPortfolioCalendarDayRoadmapItem(item, date, options = {}) {
@@ -583,31 +519,6 @@ import { setPersistenceHost, getProjectSaveState, getProjectFileState, setProjec
                 >${content}</div>
             `;
         }
-
-        function renderPortfolioCalendarWeekDateCell(date, month, canCreateTasks) {
-            const isoDate = formatUtcIsoDate(date);
-            const classes = ['portfolio-calendar-week-date-cell'];
-            if (date.getUTCMonth() === month) classes.push('portfolio-calendar-week-date-cell-current');
-            else classes.push('portfolio-calendar-week-date-cell-outside');
-            if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-week-date-cell-today');
-            if (canCreateTasks && date.getUTCMonth() === month) classes.push('portfolio-calendar-day-cell-actionable');
-            return `
-                <div
-                    class="${classes.join(' ')}"
-                    data-calendar-date="${escapeHtml(isoDate)}"
-                    ${canCreateTasks && date.getUTCMonth() === month ? `data-action="create-calendar-task" data-due-date="${escapeHtml(isoDate)}"` : ''}
-                >
-                    <div class="portfolio-calendar-day-number">${date.getUTCDate()}</div>
-                </div>
-            `;
-        }
-
-
-
-
-
-
-
 
         function renderPortfolioCalendarMiniMonth(items, year, month, options = {}) {
             const firstOfMonth = createUtcDate(year, month, 1);
@@ -4730,7 +4641,7 @@ import { setPersistenceHost, getProjectSaveState, getProjectFileState, setProjec
                     return;
                 }
             }
-            const createCell = event.target.closest('.portfolio-calendar-day-cell[data-action="create-calendar-task"][data-due-date], .portfolio-calendar-week-date-cell[data-action="create-calendar-task"][data-due-date]');
+            const createCell = event.target.closest('.portfolio-calendar-day-cell[data-action="create-calendar-task"][data-due-date]');
             if (createCell && appState.selectedPortfolioBoardId) {
                 openPortfolioCreateTaskModal(appState.selectedPortfolioBoardId, '', {
                     preferredDueDate: createCell.dataset.dueDate || ''
@@ -5098,6 +5009,5 @@ import { setPersistenceHost, getProjectSaveState, getProjectFileState, setProjec
             setTaskModalAttachmentDraft,
             syncPortfolioTimelineSelectionToLatest,
             todayLocalIsoDate,
-            touchTask,
-            validateBoardData
+            touchTask
         });

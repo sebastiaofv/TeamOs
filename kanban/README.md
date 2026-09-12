@@ -99,7 +99,7 @@ Tailwind CSS is wired into the build (`tailwind.config.js`, `postcss.config.js`)
 
 There are two test suites:
 
-- **Unit tests** (`npm run test:unit`) — Vitest, 856 tests covering the pure functions in `src/domain/` and `src/persistence/`.
+- **Unit tests** (`npm run test:unit`) — Vitest, 820 tests covering the pure functions in `src/domain/` and `src/persistence/`.
 - **End-to-end tests** (`npm test`) — Playwright, 94 tests driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
 
 ### Prerequisites

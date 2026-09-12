@@ -32,10 +32,6 @@ export function formatUtcIsoDate(date) {
     return date.toISOString().slice(0, 10);
 }
 
-export function getPortfolioCalendarDayOffset(start, end) {
-    return Math.round((end.getTime() - start.getTime()) / 86400000);
-}
-
 export function getPortfolioCalendarHeatColor(count, stats) {
     const max = Math.max(0, Number(stats?.max) || 0);
     const normalized = max > 0
@@ -210,19 +206,6 @@ export function buildPortfolioCalendarRoadmapSpanStyle(item, options = {}) {
     return buildPortfolioCalendarItemStyle(item, options);
 }
 
-export function comparePortfolioCalendarRoadmapItems(a, b) {
-    const aPriority = getPortfolioCalendarItemPriority(a);
-    const bPriority = getPortfolioCalendarItemPriority(b);
-    if (aPriority !== bPriority) return aPriority - bPriority;
-    const aStart = a?.bounds?.start?.getTime?.() || 0;
-    const bStart = b?.bounds?.start?.getTime?.() || 0;
-    if (aStart !== bStart) return aStart - bStart;
-    const aEnd = a?.bounds?.end?.getTime?.() || 0;
-    const bEnd = b?.bounds?.end?.getTime?.() || 0;
-    if (aEnd !== bEnd) return bEnd - aEnd;
-    return compareText(a?.title || '', b?.title || '');
-}
-
 export function doesPortfolioCalendarItemIntersectMonth(item, year, month) {
     const range = getPortfolioCalendarMonthRange(year, month);
     const bounds = item?.bounds;
@@ -237,36 +220,4 @@ export function shouldShowPortfolioCalendarRoadmapLabel(item, date) {
     if (date.getUTCDate() === 1) return true;
     if (date.getUTCDay() === 0) return true;
     return false;
-}
-
-export function buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd) {
-    return (Array.isArray(items) ? items : [])
-        .filter((item) => item?.kind !== 'task' && item?.bounds && item.bounds.start <= weekEnd && item.bounds.end >= weekStart)
-        .sort(comparePortfolioCalendarRoadmapItems)
-        .map((item) => {
-            const segmentStart = item.bounds.start > weekStart ? item.bounds.start : weekStart;
-            const segmentEnd = item.bounds.end < weekEnd ? item.bounds.end : weekEnd;
-            return {
-                item,
-                startDay: getPortfolioCalendarDayOffset(weekStart, segmentStart),
-                endDay: getPortfolioCalendarDayOffset(weekStart, segmentEnd),
-                continuesBefore: item.bounds.start < weekStart,
-                continuesAfter: item.bounds.end > weekEnd
-            };
-        });
-}
-
-export function assignPortfolioCalendarWeekRoadmapLanes(items, weekStart, weekEnd) {
-    const segments = buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd);
-    const lanes = [];
-    segments.forEach((segment) => {
-        let lane = lanes.find((entry) => entry.lastEnd < segment.startDay);
-        if (!lane) {
-            lane = { lastEnd: -1, segments: [] };
-            lanes.push(lane);
-        }
-        lane.segments.push(segment);
-        lane.lastEnd = segment.endDay;
-    });
-    return lanes.map((lane) => lane.segments);
 }
