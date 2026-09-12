@@ -255,3 +255,18 @@ export function buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, week
             };
         });
 }
+
+export function assignPortfolioCalendarWeekRoadmapLanes(items, weekStart, weekEnd) {
+    const segments = buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd);
+    const lanes = [];
+    segments.forEach((segment) => {
+        let lane = lanes.find((entry) => entry.lastEnd < segment.startDay);
+        if (!lane) {
+            lane = { lastEnd: -1, segments: [] };
+            lanes.push(lane);
+        }
+        lane.segments.push(segment);
+        lane.lastEnd = segment.endDay;
+    });
+    return lanes.map((lane) => lane.segments);
+}

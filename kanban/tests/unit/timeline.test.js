@@ -5,7 +5,8 @@ import {
   formatTimelineValue,
   buildTaskTimelineChanges,
   normalizeTimelineChanges,
-  buildTaskTimelineEvent
+  buildTaskTimelineEvent,
+  normalizeTimelineEvent
 } from '../../src/domain/timeline.js';
 import { TIMELINE_VERSION } from '../../src/domain/constants.js';
 
@@ -324,5 +325,124 @@ describe('buildTaskTimelineEvent', () => {
     // but taskTitle (derived from taskRef = afterTask) still falls back to
     // "Task <id>" since afterTask.title is blank.
     expect(buildTaskTimelineEvent(before, after).summary).toBe('Status changed: Task 2');
+  });
+});
+
+describe('normalizeTimelineEvent', () => {
+  const baseValid = {
+    id: 'evt_1',
+    at: '2024-03-01T00:00:00.000Z',
+    kind: 'task.created',
+    entityType: 'task',
+    entityId: '42'
+  };
+
+  it('returns null for non-object input', () => {
+    expect(normalizeTimelineEvent(null)).toBeNull();
+    expect(normalizeTimelineEvent(undefined)).toBeNull();
+    expect(normalizeTimelineEvent('nope')).toBeNull();
+  });
+
+  it('returns null for an array, even though typeof is object', () => {
+    expect(normalizeTimelineEvent([])).toBeNull();
+  });
+
+  it('returns null when id is missing or blank', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, id: undefined })).toBeNull();
+    expect(normalizeTimelineEvent({ ...baseValid, id: '   ' })).toBeNull();
+  });
+
+  it('returns null when at is missing or an unparseable timestamp', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, at: undefined })).toBeNull();
+    expect(normalizeTimelineEvent({ ...baseValid, at: 'not-a-date' })).toBeNull();
+    expect(normalizeTimelineEvent({ ...baseValid, at: 12345 })).toBeNull();
+  });
+
+  it('returns null when kind is missing or blank', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, kind: undefined })).toBeNull();
+    expect(normalizeTimelineEvent({ ...baseValid, kind: '   ' })).toBeNull();
+  });
+
+  it('returns null when entityType is missing or not "board"/"task"', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, entityType: undefined })).toBeNull();
+    expect(normalizeTimelineEvent({ ...baseValid, entityType: 'project' })).toBeNull();
+  });
+
+  it('returns null when entityId is missing or blank', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, entityId: undefined })).toBeNull();
+    expect(normalizeTimelineEvent({ ...baseValid, entityId: '   ' })).toBeNull();
+  });
+
+  it('accepts entityType "board"', () => {
+    const event = normalizeTimelineEvent({ ...baseValid, entityType: 'board', entityId: 'b1' });
+    expect(event.entityType).toBe('board');
+  });
+
+  it('trims id, kind, entityId, and summary', () => {
+    const event = normalizeTimelineEvent({
+      ...baseValid,
+      id: '  evt_1  ',
+      kind: '  task.created  ',
+      entityId: '  42  ',
+      summary: '  Created  '
+    });
+    expect(event.id).toBe('evt_1');
+    expect(event.kind).toBe('task.created');
+    expect(event.entityId).toBe('42');
+    expect(event.summary).toBe('Created');
+  });
+
+  it('defaults summary to kind when summary is missing or blank', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, summary: undefined }).summary).toBe('task.created');
+    expect(normalizeTimelineEvent({ ...baseValid, summary: '   ' }).summary).toBe('task.created');
+  });
+
+  it('returns exactly the required fields for a sparse valid event (no changes/snapshot/meta)', () => {
+    const event = normalizeTimelineEvent(baseValid);
+    expect(Object.keys(event).sort()).toEqual(['at', 'entityId', 'entityType', 'id', 'kind', 'summary'].sort());
+    expect(event).toEqual({
+      id: 'evt_1',
+      at: baseValid.at,
+      kind: 'task.created',
+      entityType: 'task',
+      entityId: '42',
+      summary: 'task.created'
+    });
+  });
+
+  it('returns null when changes is present but invalid', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, changes: {} })).toBeNull();
+    expect(normalizeTimelineEvent({ ...baseValid, changes: 'nope' })).toBeNull();
+  });
+
+  it('includes normalized changes when valid', () => {
+    const event = normalizeTimelineEvent({
+      ...baseValid,
+      changes: { title: { before: 'a', after: 'b' } }
+    });
+    expect(event.changes).toEqual({ title: { before: 'a', after: 'b' } });
+  });
+
+  it('returns null when snapshot is present but not a plain object (e.g. an array)', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, snapshot: [] })).toBeNull();
+    expect(normalizeTimelineEvent({ ...baseValid, snapshot: 'nope' })).toBeNull();
+  });
+
+  it('clones snapshot when valid (not the same reference)', () => {
+    const snapshot = { title: 'Task', nested: { a: 1 } };
+    const event = normalizeTimelineEvent({ ...baseValid, snapshot });
+    expect(event.snapshot).toEqual(snapshot);
+    expect(event.snapshot).not.toBe(snapshot);
+  });
+
+  it('returns null when meta is present but not a plain object (e.g. an array)', () => {
+    expect(normalizeTimelineEvent({ ...baseValid, meta: [] })).toBeNull();
+  });
+
+  it('clones meta when valid (not the same reference)', () => {
+    const meta = { source: 'import' };
+    const event = normalizeTimelineEvent({ ...baseValid, meta });
+    expect(event.meta).toEqual(meta);
+    expect(event.meta).not.toBe(meta);
   });
 });

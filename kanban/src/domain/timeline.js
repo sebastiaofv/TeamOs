@@ -1,5 +1,6 @@
 import { TIMELINE_VERSION } from './constants.js';
 import { areSerializableValuesEqual, cloneSerializable } from './serialize.js';
+import { normalizeTimestamp } from './util.js';
 
 export function createEmptyTimelineData() {
     return {
@@ -106,4 +107,39 @@ export function buildTaskTimelineEvent(beforeTask, afterTask) {
         summary: `Task updated: ${taskTitle}`,
         changes
     };
+}
+
+export function normalizeTimelineEvent(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : '';
+    const at = normalizeTimestamp(raw.at);
+    const kind = typeof raw.kind === 'string' && raw.kind.trim() ? raw.kind.trim() : '';
+    const entityType = raw.entityType === 'board' ? 'board' : (raw.entityType === 'task' ? 'task' : '');
+    const entityId = typeof raw.entityId === 'string' && raw.entityId.trim() ? raw.entityId.trim() : '';
+    const summary = typeof raw.summary === 'string' && raw.summary.trim() ? raw.summary.trim() : kind;
+    if (!id || !at || !kind || !entityType || !entityId) return null;
+
+    const event = {
+        id,
+        at,
+        kind,
+        entityType,
+        entityId,
+        summary
+    };
+
+    if (Object.prototype.hasOwnProperty.call(raw, 'changes')) {
+        const changes = normalizeTimelineChanges(raw.changes);
+        if (!changes) return null;
+        event.changes = changes;
+    }
+    if (Object.prototype.hasOwnProperty.call(raw, 'snapshot')) {
+        if (!raw.snapshot || typeof raw.snapshot !== 'object' || Array.isArray(raw.snapshot)) return null;
+        event.snapshot = cloneSerializable(raw.snapshot);
+    }
+    if (Object.prototype.hasOwnProperty.call(raw, 'meta')) {
+        if (!raw.meta || typeof raw.meta !== 'object' || Array.isArray(raw.meta)) return null;
+        event.meta = cloneSerializable(raw.meta);
+    }
+    return event;
 }

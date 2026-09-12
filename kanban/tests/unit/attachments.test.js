@@ -7,9 +7,12 @@ import {
   estimateAttachmentDataUrlSizeBytes,
   normalizeAttachmentRecord,
   stripLegacyTaskAttachmentsFromExtensions,
-  getTaskAttachmentsMap
+  getTaskAttachmentsMap,
+  getLegacyTaskAttachmentsFromExtensions,
+  normalizeTaskAttachments,
+  removeLegacyTaskAttachmentsFromExtensions
 } from '../../src/domain/attachments.js';
-import { ATTACHMENT_HARD_MAX_BYTES } from '../../src/domain/constants.js';
+import { ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_MAX_COUNT } from '../../src/domain/constants.js';
 
 // A valid data: URL whose base64 payload decodes to the 5-byte string
 // "Hello" (estimateAttachmentDataUrlSizeBytes computes 5 for it, verified
@@ -341,5 +344,152 @@ describe('getTaskAttachmentsMap', () => {
     const taskAttachments = { 'task:2': [] };
     const boardData = { extensions: { teamOsKanban: { taskAttachments } } };
     expect(getTaskAttachmentsMap(boardData, { create: true })).toBe(taskAttachments);
+  });
+});
+
+describe('normalizeTaskAttachments', () => {
+  it('returns an empty array for non-array input', () => {
+    expect(normalizeTaskAttachments(null)).toEqual([]);
+    expect(normalizeTaskAttachments(undefined)).toEqual([]);
+    expect(normalizeTaskAttachments('nope')).toEqual([]);
+    expect(normalizeTaskAttachments({})).toEqual([]);
+  });
+
+  it('returns an empty array for an empty array', () => {
+    expect(normalizeTaskAttachments([])).toEqual([]);
+  });
+
+  it('normalizes each record through normalizeAttachmentRecord', () => {
+    const result = normalizeTaskAttachments([{ dataUrl: HELLO_DATA_URL, name: 'a.txt' }]);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('a.txt');
+    expect(result[0].dataUrl).toBe(HELLO_DATA_URL);
+  });
+
+  it('drops records that normalize to null (e.g. missing a data: URL)', () => {
+    const good = { dataUrl: HELLO_DATA_URL, name: 'keep.txt' };
+    const bad = { name: 'no-data-url.txt' };
+    const result = normalizeTaskAttachments([bad, good, null, 'not-an-object']);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('keep.txt');
+  });
+
+  it(`caps the result at ATTACHMENT_MAX_COUNT (${ATTACHMENT_MAX_COUNT})`, () => {
+    const records = Array.from({ length: ATTACHMENT_MAX_COUNT + 5 }, (_, i) => ({
+      dataUrl: HELLO_DATA_URL,
+      name: `file-${i}.txt`
+    }));
+    const result = normalizeTaskAttachments(records);
+    expect(result).toHaveLength(ATTACHMENT_MAX_COUNT);
+    expect(result.map((r) => r.name)).toEqual(
+      records.slice(0, ATTACHMENT_MAX_COUNT).map((r) => r.name)
+    );
+  });
+
+  it('applies the cap after dropping invalid records, not before', () => {
+    const invalid = Array.from({ length: 3 }, () => ({ name: 'no-data-url' }));
+    const valid = Array.from({ length: ATTACHMENT_MAX_COUNT }, (_, i) => ({
+      dataUrl: HELLO_DATA_URL,
+      name: `file-${i}.txt`
+    }));
+    const result = normalizeTaskAttachments([...invalid, ...valid]);
+    expect(result).toHaveLength(ATTACHMENT_MAX_COUNT);
+    expect(result.map((r) => r.name)).toEqual(valid.map((r) => r.name));
+  });
+});
+
+describe('getLegacyTaskAttachmentsFromExtensions', () => {
+  it('returns an empty array when taskId is null, undefined, or empty string', () => {
+    const boardData = { extensions: { teamOsKanban: { taskAttachments: { 'task:1': [] } } } };
+    expect(getLegacyTaskAttachmentsFromExtensions(boardData, null)).toEqual([]);
+    expect(getLegacyTaskAttachmentsFromExtensions(boardData, undefined)).toEqual([]);
+    expect(getLegacyTaskAttachmentsFromExtensions(boardData, '')).toEqual([]);
+  });
+
+  it('returns an empty array when there is no attachments map at all (absent case)', () => {
+    expect(getLegacyTaskAttachmentsFromExtensions({}, 1)).toEqual([]);
+    expect(getLegacyTaskAttachmentsFromExtensions(null, 1)).toEqual([]);
+  });
+
+  it('returns an empty array when the map has no entry for this task', () => {
+    const boardData = { extensions: { teamOsKanban: { taskAttachments: {} } } };
+    expect(getLegacyTaskAttachmentsFromExtensions(boardData, 1)).toEqual([]);
+  });
+
+  it('returns an empty array when the stored value for the task is not an array', () => {
+    const boardData = { extensions: { teamOsKanban: { taskAttachments: { 'task:1': 'nope' } } } };
+    expect(getLegacyTaskAttachmentsFromExtensions(boardData, 1)).toEqual([]);
+  });
+
+  it('normalizes and returns the legacy attachments when present', () => {
+    const boardData = {
+      extensions: {
+        teamOsKanban: {
+          taskAttachments: {
+            'task:1': [{ dataUrl: HELLO_DATA_URL, name: 'legacy.txt' }, { name: 'invalid-no-url' }]
+          }
+        }
+      }
+    };
+    const result = getLegacyTaskAttachmentsFromExtensions(boardData, 1);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('legacy.txt');
+  });
+});
+
+describe('removeLegacyTaskAttachmentsFromExtensions', () => {
+  it('does nothing when taskId is null, undefined, or empty string', () => {
+    const boardData = { extensions: { teamOsKanban: { taskAttachments: { 'task:1': [] } } } };
+    removeLegacyTaskAttachmentsFromExtensions(boardData, null);
+    removeLegacyTaskAttachmentsFromExtensions(boardData, undefined);
+    removeLegacyTaskAttachmentsFromExtensions(boardData, '');
+    expect(boardData.extensions.teamOsKanban.taskAttachments).toEqual({ 'task:1': [] });
+  });
+
+  it('does nothing when there is no attachments map at all (absent case)', () => {
+    const boardData = {};
+    removeLegacyTaskAttachmentsFromExtensions(boardData, 1);
+    expect(boardData).toEqual({});
+  });
+
+  it('does nothing when the map exists but has no entry for this task', () => {
+    const boardData = { extensions: { teamOsKanban: { taskAttachments: { 'task:2': [] } } } };
+    removeLegacyTaskAttachmentsFromExtensions(boardData, 1);
+    expect(boardData.extensions.teamOsKanban.taskAttachments).toEqual({ 'task:2': [] });
+  });
+
+  it('removes only the matching entry, keeping sibling task entries and the extensions chain (present case)', () => {
+    const boardData = {
+      extensions: {
+        teamOsKanban: { taskAttachments: { 'task:1': [], 'task:2': [] } },
+        roadmap: { some: 'thing' }
+      }
+    };
+    removeLegacyTaskAttachmentsFromExtensions(boardData, 1);
+    expect(boardData.extensions.teamOsKanban.taskAttachments).toEqual({ 'task:2': [] });
+    expect(boardData.extensions.roadmap).toEqual({ some: 'thing' });
+  });
+
+  it('removes the taskAttachments key entirely once the map becomes empty', () => {
+    const boardData = {
+      extensions: {
+        teamOsKanban: { taskAttachments: { 'task:1': [] }, otherThing: 1 }
+      }
+    };
+    removeLegacyTaskAttachmentsFromExtensions(boardData, 1);
+    expect(Object.prototype.hasOwnProperty.call(boardData.extensions.teamOsKanban, 'taskAttachments')).toBe(false);
+    expect(boardData.extensions.teamOsKanban.otherThing).toBe(1);
+  });
+
+  it('removes the whole teamOsKanban key when taskAttachments was its only key and the map is now empty', () => {
+    const boardData = {
+      extensions: {
+        teamOsKanban: { taskAttachments: { 'task:1': [] } },
+        roadmap: {}
+      }
+    };
+    removeLegacyTaskAttachmentsFromExtensions(boardData, 1);
+    expect(Object.prototype.hasOwnProperty.call(boardData.extensions, 'teamOsKanban')).toBe(false);
+    expect(boardData.extensions.roadmap).toEqual({});
   });
 });

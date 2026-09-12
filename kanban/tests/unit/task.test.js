@@ -26,8 +26,12 @@ import {
   isTaskOverdue,
   normalizeTaskStatus,
   formatTaskStatusAge,
-  getTasksForMilestone
+  getTasksForMilestone,
+  getTasksForPhase,
+  getTasksForSprint,
+  resolveCreateTaskStatus
 } from '../../src/domain/task.js';
+import { defaultColumns } from '../../src/domain/constants.js';
 
 describe('normalizeAssignee', () => {
   it('trims surrounding whitespace', () => {
@@ -674,5 +678,86 @@ describe('getTasksForMilestone', () => {
   it('excludes tasks with no milestoneId', () => {
     const boardData = { board: { tasks: [{ id: 1 }] } };
     expect(getTasksForMilestone(boardData, 'm1')).toEqual([]);
+  });
+});
+
+describe('getTasksForPhase', () => {
+  it('returns an empty array when phaseId is blank', () => {
+    const boardData = { board: { tasks: [{ id: 1, phaseId: 'p1' }] } };
+    expect(getTasksForPhase(boardData, '')).toEqual([]);
+    expect(getTasksForPhase(boardData, null)).toEqual([]);
+  });
+
+  it('returns an empty array when boardData has no tasks array', () => {
+    expect(getTasksForPhase({}, 'p1')).toEqual([]);
+    expect(getTasksForPhase(null, 'p1')).toEqual([]);
+  });
+
+  it('returns only the tasks whose phaseId matches', () => {
+    const taskA = { id: 1, phaseId: 'p1' };
+    const taskB = { id: 2, phaseId: 'p2' };
+    const taskC = { id: 3, phaseId: 'p1' };
+    const boardData = { board: { tasks: [taskA, taskB, taskC] } };
+    expect(getTasksForPhase(boardData, 'p1')).toEqual([taskA, taskC]);
+  });
+
+  it('excludes tasks with no phaseId', () => {
+    const boardData = { board: { tasks: [{ id: 1 }] } };
+    expect(getTasksForPhase(boardData, 'p1')).toEqual([]);
+  });
+});
+
+describe('getTasksForSprint', () => {
+  it('returns an empty array when sprintId is blank', () => {
+    const boardData = { board: { tasks: [{ id: 1, sprintId: 's1' }] } };
+    expect(getTasksForSprint(boardData, '')).toEqual([]);
+    expect(getTasksForSprint(boardData, null)).toEqual([]);
+  });
+
+  it('returns an empty array when boardData has no tasks array', () => {
+    expect(getTasksForSprint({}, 's1')).toEqual([]);
+    expect(getTasksForSprint(null, 's1')).toEqual([]);
+  });
+
+  it('returns only the tasks whose sprintId matches', () => {
+    const taskA = { id: 1, sprintId: 's1' };
+    const taskB = { id: 2, sprintId: 's2' };
+    const taskC = { id: 3, sprintId: 's1' };
+    const boardData = { board: { tasks: [taskA, taskB, taskC] } };
+    expect(getTasksForSprint(boardData, 's1')).toEqual([taskA, taskC]);
+  });
+
+  it('excludes tasks with no sprintId', () => {
+    const boardData = { board: { tasks: [{ id: 1 }] } };
+    expect(getTasksForSprint(boardData, 's1')).toEqual([]);
+  });
+});
+
+describe('resolveCreateTaskStatus', () => {
+  it('returns the normalized preferred status when it matches one of the board columns', () => {
+    const boardRecord = { data: { board: { columns: [{ status: 'backlog' }, { status: 'doing' }] } } };
+    expect(resolveCreateTaskStatus(boardRecord, 'doing')).toBe('doing');
+  });
+
+  it('accepts a legacy/alias status value that normalizes to a valid column', () => {
+    const boardRecord = { data: { board: { columns: [{ status: 'doing' }] } } };
+    expect(resolveCreateTaskStatus(boardRecord, 'in-progress')).toBe('doing');
+  });
+
+  it('falls back to the first column status when preferredStatus does not match any column', () => {
+    const boardRecord = { data: { board: { columns: [{ status: 'doing' }, { status: 'done' }] } } };
+    expect(resolveCreateTaskStatus(boardRecord, 'backlog')).toBe('doing');
+  });
+
+  it('falls back to the first column status when preferredStatus is missing or unrecognized', () => {
+    const boardRecord = { data: { board: { columns: [{ status: 'doing' }, { status: 'done' }] } } };
+    expect(resolveCreateTaskStatus(boardRecord, undefined)).toBe('doing');
+    expect(resolveCreateTaskStatus(boardRecord, 'not-a-status')).toBe('doing');
+  });
+
+  it('falls back to defaultColumns[0].status when boardRecord has no columns at all', () => {
+    expect(resolveCreateTaskStatus({}, 'doing')).toBe(defaultColumns[0].status);
+    expect(resolveCreateTaskStatus(null, 'doing')).toBe(defaultColumns[0].status);
+    expect(resolveCreateTaskStatus({ data: { board: { columns: [] } } }, 'doing')).toBe(defaultColumns[0].status);
   });
 });

@@ -217,3 +217,18 @@ export function formatTaskStatusAge(task) {
 export function getTasksForMilestone(boardData, milestoneId) {
     return getRoadmapTaskFieldTasks(boardData, 'milestoneId', milestoneId);
 }
+
+export function getTasksForPhase(boardData, phaseId) {
+    return getRoadmapTaskFieldTasks(boardData, 'phaseId', phaseId);
+}
+
+export function getTasksForSprint(boardData, sprintId) {
+    return getRoadmapTaskFieldTasks(boardData, 'sprintId', sprintId);
+}
+
+export function resolveCreateTaskStatus(boardRecord, preferredStatus) {
+    const validStatuses = new Set((boardRecord?.data?.board?.columns || []).map(col => normalizeTaskStatus(col.status)));
+    const fallbackStatus = normalizeTaskStatus((boardRecord?.data?.board?.columns || [defaultColumns[0]])[0]?.status);
+    const normalizedPreferred = normalizeTaskStatus(preferredStatus);
+    return validStatuses.has(normalizedPreferred) ? normalizedPreferred : fallbackStatus;
+}

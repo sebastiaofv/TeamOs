@@ -1,6 +1,6 @@
-import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY } from './constants.js';
+import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_COUNT } from './constants.js';
 import { normalizeTimestamp, nowIso } from './util.js';
-import { getTeamOsExtensionsObject } from './serialize.js';
+import { getTeamOsExtensionsObject, getBoardExtensionsObject } from './serialize.js';
 
 export function attachmentDuplicateKey(input) {
     if (!input || typeof input !== 'object') return '';
@@ -101,4 +101,40 @@ export function getTaskAttachmentsMap(boardData, options = {}) {
         teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] = {};
     }
     return teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
+}
+
+export function getLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
+    if (taskId === null || taskId === undefined || taskId === '') return [];
+    const map = getTaskAttachmentsMap(boardData);
+    if (!map) return [];
+    const rawList = map[attachmentTaskKey(taskId)];
+    if (!Array.isArray(rawList)) return [];
+    return rawList.map(normalizeAttachmentRecord).filter(Boolean);
+}
+
+export function normalizeTaskAttachments(value) {
+    if (!Array.isArray(value)) return [];
+    return value
+        .map(normalizeAttachmentRecord)
+        .filter(Boolean)
+        .slice(0, ATTACHMENT_MAX_COUNT);
+}
+
+export function removeLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
+    if (taskId === null || taskId === undefined || taskId === '') return;
+    const key = attachmentTaskKey(taskId);
+    const map = getTaskAttachmentsMap(boardData);
+    if (!map || !Object.prototype.hasOwnProperty.call(map, key)) return;
+    delete map[key];
+
+    if (Object.keys(map).length > 0) return;
+
+    const teamOs = getTeamOsExtensionsObject(boardData);
+    if (teamOs && Object.prototype.hasOwnProperty.call(teamOs, TASK_ATTACHMENTS_EXTENSIONS_KEY)) {
+        delete teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
+    }
+    const extensions = getBoardExtensionsObject(boardData);
+    if (teamOs && Object.keys(teamOs).length === 0 && extensions && Object.prototype.hasOwnProperty.call(extensions, TEAMOS_EXTENSIONS_KEY)) {
+        delete extensions[TEAMOS_EXTENSIONS_KEY];
+    }
 }

@@ -1,5 +1,6 @@
 import { ROADMAP_VERSION } from './constants.js';
 import { todayLocalIsoDate } from './calendar.js';
+import { hasExactKeys } from './util.js';
 
 export function addRoadmapDays(date, days) {
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
@@ -237,5 +238,56 @@ export function getRoadmapTodayMarker(range) {
     return {
         iso: todayIso,
         position: getRoadmapDatePosition(today, range)
+    };
+}
+
+export function getVisibleRoadmapDateRange(roadmap) {
+    const bounds = ['milestones', 'phases', 'sprints']
+        .flatMap((kind) => Array.isArray(roadmap?.[kind]) ? roadmap[kind] : [])
+        .map((item) => getRoadmapItemDateBounds(item))
+        .filter(Boolean);
+    if (bounds.length === 0) {
+        const today = parseRoadmapIsoDate(todayLocalIsoDate()) || new Date();
+        const start = addRoadmapDays(today, -7);
+        const end = addRoadmapDays(today, 7);
+        return {
+            start,
+            end,
+            totalDays: Math.max(1, getRoadmapDayDiff(start, end))
+        };
+    }
+
+    let start = bounds[0].start;
+    let end = bounds[0].end;
+    bounds.forEach((entry) => {
+        if (entry.start < start) start = entry.start;
+        if (entry.end > end) end = entry.end;
+    });
+    if (start.getTime() === end.getTime()) {
+        start = addRoadmapDays(start, -1);
+        end = addRoadmapDays(end, 1);
+    }
+    return {
+        start,
+        end,
+        totalDays: Math.max(1, getRoadmapDayDiff(start, end))
+    };
+}
+
+export function normalizeRoadmapExtension(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (Number(value.version) !== ROADMAP_VERSION) return null;
+    if (!hasExactKeys(value, ['version', 'milestones', 'phases', 'sprints'])) return null;
+
+    const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate']);
+    const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate'], ['startDate', 'endDate']);
+    const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate']);
+    if (!milestones || !phases || !sprints) return null;
+
+    return {
+        version: ROADMAP_VERSION,
+        milestones,
+        phases,
+        sprints
     };
 }

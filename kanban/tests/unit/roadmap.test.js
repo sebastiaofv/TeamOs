@@ -18,8 +18,11 @@ import {
   compareRoadmapItemsByDate,
   getRoadmapAxisTicks,
   getRoadmapTimelinePlacement,
-  getRoadmapTodayMarker
+  getRoadmapTodayMarker,
+  getVisibleRoadmapDateRange,
+  normalizeRoadmapExtension
 } from '../../src/domain/roadmap.js';
+import { ROADMAP_VERSION } from '../../src/domain/constants.js';
 
 describe('addRoadmapDays', () => {
   it('returns null when date is not a Date instance', () => {
@@ -757,5 +760,139 @@ describe('getRoadmapTodayMarker', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('getVisibleRoadmapDateRange', () => {
+  it('falls back to a 14-day range centered on today when there are no items at all', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 5, 15, 10, 0, 0));
+    try {
+      const range = getVisibleRoadmapDateRange({});
+      expect(range.start).toEqual(parseRoadmapIsoDate('2024-06-08'));
+      expect(range.end).toEqual(parseRoadmapIsoDate('2024-06-22'));
+      expect(range.totalDays).toBe(14);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('falls back to the same empty-range default for a null/undefined roadmap', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 5, 15, 10, 0, 0));
+    try {
+      expect(getVisibleRoadmapDateRange(null)).toEqual(getVisibleRoadmapDateRange(undefined));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('widens a single-day range (one item, dueDate) by one day on each side', () => {
+    const roadmap = { milestones: [{ id: 'm1', title: 'Launch', dueDate: '2024-06-15' }] };
+    const range = getVisibleRoadmapDateRange(roadmap);
+    expect(range.start).toEqual(parseRoadmapIsoDate('2024-06-14'));
+    expect(range.end).toEqual(parseRoadmapIsoDate('2024-06-16'));
+    expect(range.totalDays).toBe(2);
+  });
+
+  it('does not widen a single item that already spans more than one day', () => {
+    const roadmap = { phases: [{ id: 'p1', title: 'Phase 1', startDate: '2024-06-01', endDate: '2024-06-10' }] };
+    const range = getVisibleRoadmapDateRange(roadmap);
+    expect(range.start).toEqual(parseRoadmapIsoDate('2024-06-01'));
+    expect(range.end).toEqual(parseRoadmapIsoDate('2024-06-10'));
+    expect(range.totalDays).toBe(9);
+  });
+
+  it('spans the min start to the max end across milestones, phases, and sprints', () => {
+    const roadmap = {
+      milestones: [{ id: 'm1', title: 'M', dueDate: '2024-01-10' }],
+      phases: [{ id: 'p1', title: 'P', startDate: '2024-02-01', endDate: '2024-02-20' }],
+      sprints: [{ id: 's1', title: 'S', startDate: '2024-06-01', endDate: '2024-06-14' }]
+    };
+    const range = getVisibleRoadmapDateRange(roadmap);
+    expect(range.start).toEqual(parseRoadmapIsoDate('2024-01-10'));
+    expect(range.end).toEqual(parseRoadmapIsoDate('2024-06-14'));
+    expect(range.totalDays).toBe(
+      getRoadmapDayDiff(parseRoadmapIsoDate('2024-01-10'), parseRoadmapIsoDate('2024-06-14'))
+    );
+  });
+
+  it('ignores items whose bounds cannot be resolved (e.g. malformed dates)', () => {
+    const roadmap = {
+      milestones: [{ id: 'm1', title: 'Bad' }],
+      phases: [{ id: 'p1', title: 'Good', startDate: '2024-03-01', endDate: '2024-03-05' }]
+    };
+    const range = getVisibleRoadmapDateRange(roadmap);
+    expect(range.start).toEqual(parseRoadmapIsoDate('2024-03-01'));
+    expect(range.end).toEqual(parseRoadmapIsoDate('2024-03-05'));
+  });
+});
+
+describe('normalizeRoadmapExtension', () => {
+  it('returns null for non-object input', () => {
+    expect(normalizeRoadmapExtension(null)).toBeNull();
+    expect(normalizeRoadmapExtension(undefined)).toBeNull();
+    expect(normalizeRoadmapExtension('nope')).toBeNull();
+  });
+
+  it('returns null for an array, even though typeof is object', () => {
+    expect(normalizeRoadmapExtension([])).toBeNull();
+  });
+
+  it('returns null when version does not match ROADMAP_VERSION', () => {
+    const value = { version: ROADMAP_VERSION + 1, milestones: [], phases: [], sprints: [] };
+    expect(normalizeRoadmapExtension(value)).toBeNull();
+  });
+
+  it('returns null when a required top-level key is missing', () => {
+    const value = { version: ROADMAP_VERSION, milestones: [], phases: [] };
+    expect(normalizeRoadmapExtension(value)).toBeNull();
+  });
+
+  it('returns null when there is an unexpected extra top-level key', () => {
+    const value = { version: ROADMAP_VERSION, milestones: [], phases: [], sprints: [], extra: true };
+    expect(normalizeRoadmapExtension(value)).toBeNull();
+  });
+
+  it('returns null when milestones contains an invalid item (missing dueDate)', () => {
+    const value = {
+      version: ROADMAP_VERSION,
+      milestones: [{ id: 'm1', title: 'Launch' }],
+      phases: [],
+      sprints: []
+    };
+    expect(normalizeRoadmapExtension(value)).toBeNull();
+  });
+
+  it('returns null when phases contains an invalid item (missing endDate)', () => {
+    const value = {
+      version: ROADMAP_VERSION,
+      milestones: [],
+      phases: [{ id: 'p1', title: 'Phase 1', startDate: '2024-01-01' }],
+      sprints: []
+    };
+    expect(normalizeRoadmapExtension(value)).toBeNull();
+  });
+
+  it('normalizes and stamps ROADMAP_VERSION for a valid extension', () => {
+    const value = {
+      version: ROADMAP_VERSION,
+      milestones: [{ id: 'm1', title: 'Launch', dueDate: '2024-06-15' }],
+      phases: [{ id: 'p1', title: 'Phase 1', startDate: '2024-01-01', endDate: '2024-02-01' }],
+      sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14' }]
+    };
+    expect(normalizeRoadmapExtension(value)).toEqual({
+      version: ROADMAP_VERSION,
+      milestones: [{ id: 'm1', title: 'Launch', dueDate: '2024-06-15' }],
+      phases: [{ id: 'p1', title: 'Phase 1', startDate: '2024-01-01', endDate: '2024-02-01' }],
+      sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14' }]
+    });
+  });
+
+  it('accepts a version value coercible to the expected number (e.g. a numeric string)', () => {
+    const value = { version: String(ROADMAP_VERSION), milestones: [], phases: [], sprints: [] };
+    const result = normalizeRoadmapExtension(value);
+    expect(result).not.toBeNull();
+    expect(result.version).toBe(ROADMAP_VERSION);
   });
 });

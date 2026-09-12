@@ -1,12 +1,12 @@
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
-import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, getTasksForMilestone } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '../domain/roadmap.js';
+import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, getTasksForMilestone, getTasksForPhase, getTasksForSprint, resolveCreateTaskStatus } from '../domain/task.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, normalizeRoadmapExtension } from '../domain/roadmap.js';
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape } from '../domain/board.js';
-import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap } from '../domain/attachments.js';
-import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel, buildPortfolioCalendarWeekRoadmapSegments } from '../domain/calendar.js';
+import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap, getLegacyTaskAttachmentsFromExtensions, normalizeTaskAttachments, removeLegacyTaskAttachmentsFromExtensions } from '../domain/attachments.js';
+import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel, buildPortfolioCalendarWeekRoadmapSegments, assignPortfolioCalendarWeekRoadmapLanes } from '../domain/calendar.js';
 import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject } from '../domain/serialize.js';
-import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent } from '../domain/timeline.js';
+import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
 import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '../domain/scoring.js';
         import {
@@ -380,23 +380,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function normalizeRoadmapExtension(value) {
-            if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-            if (Number(value.version) !== ROADMAP_VERSION) return null;
-            if (!hasExactKeys(value, ['version', 'milestones', 'phases', 'sprints'])) return null;
-
-            const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate']);
-            const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate'], ['startDate', 'endDate']);
-            const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate']);
-            if (!milestones || !phases || !sprints) return null;
-
-            return {
-                version: ROADMAP_VERSION,
-                milestones,
-                phases,
-                sprints
-            };
-        }
 
 
         function getRoadmapExtensionObject(boardData, options = {}) {
@@ -419,38 +402,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function getVisibleRoadmapDateRange(roadmap) {
-            const bounds = ['milestones', 'phases', 'sprints']
-                .flatMap((kind) => Array.isArray(roadmap?.[kind]) ? roadmap[kind] : [])
-                .map((item) => getRoadmapItemDateBounds(item))
-                .filter(Boolean);
-            if (bounds.length === 0) {
-                const today = parseRoadmapIsoDate(todayLocalIsoDate()) || new Date();
-                const start = addRoadmapDays(today, -7);
-                const end = addRoadmapDays(today, 7);
-                return {
-                    start,
-                    end,
-                    totalDays: Math.max(1, getRoadmapDayDiff(start, end))
-                };
-            }
-
-            let start = bounds[0].start;
-            let end = bounds[0].end;
-            bounds.forEach((entry) => {
-                if (entry.start < start) start = entry.start;
-                if (entry.end > end) end = entry.end;
-            });
-            if (start.getTime() === end.getTime()) {
-                start = addRoadmapDays(start, -1);
-                end = addRoadmapDays(end, 1);
-            }
-            return {
-                start,
-                end,
-                totalDays: Math.max(1, getRoadmapDayDiff(start, end))
-            };
-        }
 
 
 
@@ -643,20 +594,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function assignPortfolioCalendarWeekRoadmapLanes(items, weekStart, weekEnd) {
-            const segments = buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd);
-            const lanes = [];
-            segments.forEach((segment) => {
-                let lane = lanes.find((entry) => entry.lastEnd < segment.startDay);
-                if (!lane) {
-                    lane = { lastEnd: -1, segments: [] };
-                    lanes.push(lane);
-                }
-                lane.segments.push(segment);
-                lane.lastEnd = segment.endDay;
-            });
-            return lanes.map((lane) => lane.segments);
-        }
 
         function renderPortfolioCalendarRoadmapSpan(segment, options = {}) {
             const item = segment?.item;
@@ -3575,13 +3512,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
             return clearInvalidRoadmapTaskRefs(normalizedTask, options.roadmap);
         }
 
-        function normalizeTaskAttachments(value) {
-            if (!Array.isArray(value)) return [];
-            return value
-                .map(normalizeAttachmentRecord)
-                .filter(Boolean)
-                .slice(0, ATTACHMENT_MAX_COUNT);
-        }
 
 
 
@@ -4008,14 +3938,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
         // Legacy import compatibility: older boards stored attachments in
         // extensions.teamOsKanban.taskAttachments instead of task.attachments.
-        function getLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
-            if (taskId === null || taskId === undefined || taskId === '') return [];
-            const map = getTaskAttachmentsMap(boardData);
-            if (!map) return [];
-            const rawList = map[attachmentTaskKey(taskId)];
-            if (!Array.isArray(rawList)) return [];
-            return rawList.map(normalizeAttachmentRecord).filter(Boolean);
-        }
 
         function getTaskAttachments(boardData, taskId) {
             if (taskId === null || taskId === undefined || taskId === '') return [];
@@ -4042,24 +3964,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
             removeLegacyTaskAttachmentsFromExtensions(boardData, taskId);
         }
 
-        function removeLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
-            if (taskId === null || taskId === undefined || taskId === '') return;
-            const key = attachmentTaskKey(taskId);
-            const map = getTaskAttachmentsMap(boardData);
-            if (!map || !Object.prototype.hasOwnProperty.call(map, key)) return;
-            delete map[key];
-
-            if (Object.keys(map).length > 0) return;
-
-            const teamOs = getTeamOsExtensionsObject(boardData);
-            if (teamOs && Object.prototype.hasOwnProperty.call(teamOs, TASK_ATTACHMENTS_EXTENSIONS_KEY)) {
-                delete teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
-            }
-            const extensions = getBoardExtensionsObject(boardData);
-            if (teamOs && Object.keys(teamOs).length === 0 && extensions && Object.prototype.hasOwnProperty.call(extensions, TEAMOS_EXTENSIONS_KEY)) {
-                delete extensions[TEAMOS_EXTENSIONS_KEY];
-            }
-        }
 
 
 
@@ -4067,40 +3971,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function normalizeTimelineEvent(raw) {
-            if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-            const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : '';
-            const at = normalizeTimestamp(raw.at);
-            const kind = typeof raw.kind === 'string' && raw.kind.trim() ? raw.kind.trim() : '';
-            const entityType = raw.entityType === 'board' ? 'board' : (raw.entityType === 'task' ? 'task' : '');
-            const entityId = typeof raw.entityId === 'string' && raw.entityId.trim() ? raw.entityId.trim() : '';
-            const summary = typeof raw.summary === 'string' && raw.summary.trim() ? raw.summary.trim() : kind;
-            if (!id || !at || !kind || !entityType || !entityId) return null;
-
-            const event = {
-                id,
-                at,
-                kind,
-                entityType,
-                entityId,
-                summary
-            };
-
-            if (Object.prototype.hasOwnProperty.call(raw, 'changes')) {
-                const changes = normalizeTimelineChanges(raw.changes);
-                if (!changes) return null;
-                event.changes = changes;
-            }
-            if (Object.prototype.hasOwnProperty.call(raw, 'snapshot')) {
-                if (!raw.snapshot || typeof raw.snapshot !== 'object' || Array.isArray(raw.snapshot)) return null;
-                event.snapshot = cloneSerializable(raw.snapshot);
-            }
-            if (Object.prototype.hasOwnProperty.call(raw, 'meta')) {
-                if (!raw.meta || typeof raw.meta !== 'object' || Array.isArray(raw.meta)) return null;
-                event.meta = cloneSerializable(raw.meta);
-            }
-            return event;
-        }
 
         function normalizeTimelineExtension(value) {
             if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -4170,13 +4040,7 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function getTasksForPhase(boardData, phaseId) {
-            return getRoadmapTaskFieldTasks(boardData, 'phaseId', phaseId);
-        }
 
-        function getTasksForSprint(boardData, sprintId) {
-            return getRoadmapTaskFieldTasks(boardData, 'sprintId', sprintId);
-        }
 
         function createBoardStateSnapshot(boardData) {
             const input = boardData && typeof boardData === 'object' ? boardData : {};
@@ -5067,12 +4931,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function resolveCreateTaskStatus(boardRecord, preferredStatus) {
-            const validStatuses = new Set((boardRecord?.data?.board?.columns || []).map(col => normalizeTaskStatus(col.status)));
-            const fallbackStatus = normalizeTaskStatus((boardRecord?.data?.board?.columns || [defaultColumns[0]])[0]?.status);
-            const normalizedPreferred = normalizeTaskStatus(preferredStatus);
-            return validStatuses.has(normalizedPreferred) ? normalizedPreferred : fallbackStatus;
-        }
 
         async function saveTask() {
             const draft = readTaskDraftFromForm();
