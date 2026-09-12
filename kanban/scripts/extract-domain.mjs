@@ -281,6 +281,36 @@ function extractCalledIdentifiers(code) {
   return called;
 }
 
+// Identifiers used as the base of a member expression: `Name.method(...)` or
+// `Name.prop`. These are not in call position, so extractCalledIdentifiers
+// misses them -- which is exactly how an extraction of savePortfolioBoardRecord
+// shipped a module referencing an unimported `BoardRepository` and failed 32
+// Playwright tests at runtime. Referencing an undefined identifier throws a
+// ReferenceError whether you then call it or read a property off it.
+//
+// Restricted to PascalCase bases. Lowercase bases are overwhelmingly locals,
+// parameters and builtins (`str.trim()`, `el.dataset`), and flagging those
+// produces noise that trains people to ignore the guard.
+function extractMemberBaseIdentifiers(code) {
+  const names = new Set();
+  const re = /([A-Z][A-Za-z0-9_$]*)\s*\./g;
+  let m;
+  while ((m = re.exec(code))) {
+    const name = m[1];
+    if (RESERVED_WORDS.has(name)) continue;
+    let idx = m.index - 1;
+    while (idx >= 0 && /\s/.test(code[idx])) idx--;
+    // skip `foo.Bar.baz` -- Bar is a property, not a free identifier
+    if (idx >= 0 && code[idx] === '.') continue;
+    // skip `new Foo.Bar()` style and declarations
+    const before = code.slice(0, m.index);
+    const prevWord = before.match(/([A-Za-z_$][\w$]*)\s*$/);
+    if (prevWord && (prevWord[1] === 'function' || prevWord[1] === 'class')) continue;
+    names.add(name);
+  }
+  return names;
+}
+
 // Bare function references handed to common higher-order array methods, e.g.
 // `list.map(normalizeAttachmentRecord)`. These never appear in `name(` call
 // position themselves, but referencing an undefined identifier at all throws
@@ -342,7 +372,8 @@ export function findUnresolvedCallees(fnSource, resolvedNames) {
   const locals = extractLocalNames(stripped);
   const called = new Set([
     ...extractCalledIdentifiers(stripped),
-    ...extractHofCallbackIdentifiers(stripped)
+    ...extractHofCallbackIdentifiers(stripped),
+    ...extractMemberBaseIdentifiers(stripped)
   ]);
   const unresolved = [];
   for (const name of called) {
@@ -381,7 +412,11 @@ if (!moduleName || fnNames.length === 0) {
 }
 
 const MAIN = 'src/legacy/main.js';
-const OUT = `src/domain/${moduleName}.js`;
+// A module name may carry a directory, e.g. "persistence/projectFiles", to
+// target a layer other than src/domain (the default for a bare name).
+const OUT = moduleName.includes('/')
+  ? `src/${moduleName}.js`
+  : `src/domain/${moduleName}.js`;
 const lines = readFileSync(MAIN, 'utf8').split('\n');
 const existingOutSource = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
 
