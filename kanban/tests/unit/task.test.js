@@ -21,7 +21,9 @@ import {
   getTaskChecklistDropPlacement,
   isAcceptedLegacyAssigneeValue,
   nextTaskIdForBoard,
-  touchTask
+  touchTask,
+  getTaskStatusAgeBaseTimestamp,
+  isTaskOverdue
 } from '../../src/domain/task.js';
 
 describe('normalizeAssignee', () => {
@@ -452,5 +454,87 @@ describe('touchTask', () => {
     const task = {};
     expect(touchTask(task)).toBeUndefined();
     expect(task.updatedAt).toBeDefined();
+  });
+});
+
+describe('getTaskStatusAgeBaseTimestamp', () => {
+  it('prefers statusChangedAt when present and valid', () => {
+    const task = {
+      statusChangedAt: '2024-03-01T00:00:00.000Z',
+      updatedAt: '2024-02-01T00:00:00.000Z',
+      createdAt: '2024-01-01T00:00:00.000Z'
+    };
+    expect(getTaskStatusAgeBaseTimestamp(task)).toBe('2024-03-01T00:00:00.000Z');
+  });
+
+  it('falls back to updatedAt when statusChangedAt is absent', () => {
+    const task = { updatedAt: '2024-02-01T00:00:00.000Z', createdAt: '2024-01-01T00:00:00.000Z' };
+    expect(getTaskStatusAgeBaseTimestamp(task)).toBe('2024-02-01T00:00:00.000Z');
+  });
+
+  it('falls back to updatedAt when statusChangedAt is an unparsable string', () => {
+    const task = { statusChangedAt: 'not-a-date', updatedAt: '2024-02-01T00:00:00.000Z' };
+    expect(getTaskStatusAgeBaseTimestamp(task)).toBe('2024-02-01T00:00:00.000Z');
+  });
+
+  it('falls back to createdAt when statusChangedAt and updatedAt are both absent', () => {
+    const task = { createdAt: '2024-01-01T00:00:00.000Z' };
+    expect(getTaskStatusAgeBaseTimestamp(task)).toBe('2024-01-01T00:00:00.000Z');
+  });
+
+  it('returns an empty string when no valid timestamp is present on the task', () => {
+    expect(getTaskStatusAgeBaseTimestamp({})).toBe('');
+    expect(getTaskStatusAgeBaseTimestamp({ statusChangedAt: 'bogus', updatedAt: '', createdAt: null })).toBe('');
+  });
+
+  it('returns an empty string for a non-object or nullish task', () => {
+    expect(getTaskStatusAgeBaseTimestamp(null)).toBe('');
+    expect(getTaskStatusAgeBaseTimestamp(undefined)).toBe('');
+    expect(getTaskStatusAgeBaseTimestamp('x')).toBe('');
+  });
+});
+
+describe('isTaskOverdue', () => {
+  function localIsoDateOffset(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const yyyy = String(d.getFullYear());
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  it('returns true for a task due yesterday that is not done or archived', () => {
+    const task = { dueDate: localIsoDateOffset(-1), status: 'doing', archived: false };
+    expect(isTaskOverdue(task)).toBe(true);
+  });
+
+  it('returns false for a task due today (the boundary is exclusive)', () => {
+    const task = { dueDate: localIsoDateOffset(0), status: 'doing', archived: false };
+    expect(isTaskOverdue(task)).toBe(false);
+  });
+
+  it('returns false for a task due tomorrow', () => {
+    const task = { dueDate: localIsoDateOffset(1), status: 'doing', archived: false };
+    expect(isTaskOverdue(task)).toBe(false);
+  });
+
+  it('returns false when there is no due date', () => {
+    expect(isTaskOverdue({ status: 'doing', archived: false })).toBe(false);
+    expect(isTaskOverdue({ dueDate: '', status: 'doing' })).toBe(false);
+  });
+
+  it('returns false when the due date fails normalization (invalid format)', () => {
+    expect(isTaskOverdue({ dueDate: 'not-a-date', status: 'doing' })).toBe(false);
+  });
+
+  it('returns false for an overdue-by-date task whose status is "done"', () => {
+    const task = { dueDate: localIsoDateOffset(-1), status: 'done', archived: false };
+    expect(isTaskOverdue(task)).toBe(false);
+  });
+
+  it('returns false for an overdue-by-date task that is archived', () => {
+    const task = { dueDate: localIsoDateOffset(-1), status: 'doing', archived: true };
+    expect(isTaskOverdue(task)).toBe(false);
   });
 });

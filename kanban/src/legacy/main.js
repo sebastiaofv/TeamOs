@@ -1,13 +1,14 @@
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp } from '../domain/util.js';
-import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds } from '../domain/roadmap.js';
+import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue } from '../domain/task.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems } from '../domain/roadmap.js';
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape } from '../domain/board.js';
 import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
-import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent } from '../domain/serialize.js';
+import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject } from '../domain/serialize.js';
 import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
+import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '../domain/scoring.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -173,35 +174,9 @@ import { createProjectSaveState } from '../domain/persistence.js';
 
 
 
-        function priorityRank(priority) {
-            if (priority === 'high') return 0;
-            if (priority === 'medium') return 1;
-            if (priority === 'low') return 2;
-            return 3;
-        }
 
-        function effortRank(effort) {
-            const normalized = normalizeEffort(effort);
-            if (!normalized) return EFFORT_BUCKETS.length;
-            return EFFORT_BUCKETS.indexOf(normalized);
-        }
 
-        function priorityScoreValue(priority) {
-            if (priority === 'high') return 3;
-            if (priority === 'medium') return 2;
-            if (priority === 'low') return 1;
-            return 0;
-        }
 
-        function effortScoreValue(effort) {
-            const normalized = normalizeEffort(effort);
-            if (normalized === 'XS') return 1;
-            if (normalized === 'S') return 2;
-            if (normalized === 'M') return 3;
-            if (normalized === 'L') return 5;
-            if (normalized === 'XL') return 8;
-            return 0;
-        }
 
         function taskScore(task) {
             const denominator = effortScoreValue(task?.effort);
@@ -409,43 +384,6 @@ import { createProjectSaveState } from '../domain/persistence.js';
 
 
 
-        function normalizeRoadmapItems(value, dateKeys, requiredDateKeys) {
-            if (!Array.isArray(value)) return null;
-            const normalized = [];
-            const seenIds = new Set();
-            for (const item of value) {
-                if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-                const allowedKeys = ['id', 'title', ...dateKeys];
-                const keys = Object.keys(item);
-                const hasRequiredKeys = typeof item.id === 'string' && item.id.trim()
-                    && typeof item.title === 'string' && item.title.trim();
-                const hasOnlyAllowedKeys = keys.every((key) => allowedKeys.includes(key));
-                if (!hasRequiredKeys || !hasOnlyAllowedKeys) return null;
-
-                const id = item.id.trim();
-                if (seenIds.has(id)) return null;
-                seenIds.add(id);
-
-                const normalizedItem = { id, title: item.title.trim() };
-
-                for (const key of dateKeys) {
-                    if (Object.prototype.hasOwnProperty.call(item, key)) {
-                        const normalizedDate = normalizeRoadmapDate(item[key]);
-                        if (!normalizedDate) return null;
-                        normalizedItem[key] = normalizedDate;
-                    }
-                }
-
-                for (const key of requiredDateKeys) {
-                    if (!Object.prototype.hasOwnProperty.call(normalizedItem, key)) {
-                        return null;
-                    }
-                }
-
-                normalized.push(normalizedItem);
-            }
-            return normalized;
-        }
 
         function normalizeRoadmapExtension(value) {
             if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -3283,13 +3221,6 @@ import { createProjectSaveState } from '../domain/persistence.js';
             });
         }
 
-        function getRoadmapItemTitle(roadmap, kind, refId) {
-            const config = getRoadmapEntityConfig(kind);
-            const normalizedRef = normalizeRoadmapRef(refId);
-            if (!config || !normalizedRef) return '';
-            const items = Array.isArray(roadmap?.[config.itemsKey]) ? roadmap[config.itemsKey] : [];
-            return items.find((item) => item.id === normalizedRef)?.title || '';
-        }
 
         function getTaskModalBoardRecord() {
             if (portfolioEditContext?.boardId) {
@@ -3661,13 +3592,6 @@ import { createProjectSaveState } from '../domain/persistence.js';
 
 
 
-        function getTaskStatusAgeBaseTimestamp(task) {
-            if (!task || typeof task !== 'object') return '';
-            return normalizeTimestamp(task.statusChangedAt)
-                || normalizeTimestamp(task.updatedAt)
-                || normalizeTimestamp(task.createdAt)
-                || '';
-        }
 
         function formatTaskStatusAge(task) {
             const base = getTaskStatusAgeBaseTimestamp(task);
@@ -3758,12 +3682,6 @@ import { createProjectSaveState } from '../domain/persistence.js';
 
 
 
-        function isTaskOverdue(task) {
-            const due = normalizeDueDate(task.dueDate);
-            if (!due || task.status === 'done' || task.archived) return false;
-            const today = todayLocalIsoDate();
-            return due < today;
-        }
 
         // Legacy import compatibility: older boards may still carry
         // pre-v1 settings shapes or a single assignee field.
@@ -4181,16 +4099,6 @@ import { createProjectSaveState } from '../domain/persistence.js';
 
 
 
-        function getTeamOsExtensionsObject(boardData, options = {}) {
-            const create = Boolean(options.create);
-            const extensions = getBoardExtensionsObject(boardData, { create });
-            if (!extensions) return null;
-            if (!extensions[TEAMOS_EXTENSIONS_KEY] || typeof extensions[TEAMOS_EXTENSIONS_KEY] !== 'object' || Array.isArray(extensions[TEAMOS_EXTENSIONS_KEY])) {
-                if (!create) return null;
-                extensions[TEAMOS_EXTENSIONS_KEY] = {};
-            }
-            return extensions[TEAMOS_EXTENSIONS_KEY];
-        }
 
         function getTaskAttachmentsMap(boardData, options = {}) {
             const create = Boolean(options.create);
@@ -4388,12 +4296,6 @@ import { createProjectSaveState } from '../domain/persistence.js';
             return extensions[TIMELINE_EXTENSION_KEY];
         }
 
-        function getRoadmapTaskFieldTasks(boardData, fieldName, refId) {
-            const normalizedRef = normalizeRoadmapRef(refId);
-            if (!normalizedRef) return [];
-            const tasks = Array.isArray(boardData?.board?.tasks) ? boardData.board.tasks : [];
-            return tasks.filter((task) => task && normalizeRoadmapRef(task[fieldName]) === normalizedRef);
-        }
 
         function getTasksForMilestone(boardData, milestoneId) {
             return getRoadmapTaskFieldTasks(boardData, 'milestoneId', milestoneId);

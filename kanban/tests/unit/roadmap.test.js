@@ -11,7 +11,10 @@ import {
   normalizeRoadmapDate,
   normalizeRoadmapRef,
   parseRoadmapIsoDate,
-  slugifyRoadmapEntityId
+  slugifyRoadmapEntityId,
+  getRoadmapItemTitle,
+  getRoadmapTaskFieldTasks,
+  normalizeRoadmapItems
 } from '../../src/domain/roadmap.js';
 
 describe('addRoadmapDays', () => {
@@ -375,5 +378,179 @@ describe('getRoadmapDatePosition', () => {
   it('treats a zero-day range (start === end) as a single-point range (totalDays floors at 1)', () => {
     const singlePoint = { start: range.start, end: range.start };
     expect(getRoadmapDatePosition(range.start, singlePoint)).toBe(0);
+  });
+});
+
+describe('getRoadmapItemTitle', () => {
+  const roadmap = {
+    milestones: [{ id: 'm1', title: 'Launch' }, { id: 'm2', title: '' }],
+    phases: [{ id: 'p1', title: 'Build' }]
+  };
+
+  it('returns the title of the matching item for the given kind', () => {
+    expect(getRoadmapItemTitle(roadmap, 'milestones', 'm1')).toBe('Launch');
+    expect(getRoadmapItemTitle(roadmap, 'phases', 'p1')).toBe('Build');
+  });
+
+  it('returns an empty string for an unrecognized kind', () => {
+    expect(getRoadmapItemTitle(roadmap, 'bogus', 'm1')).toBe('');
+  });
+
+  it('returns an empty string for a blank or non-string refId', () => {
+    expect(getRoadmapItemTitle(roadmap, 'milestones', '')).toBe('');
+    expect(getRoadmapItemTitle(roadmap, 'milestones', null)).toBe('');
+  });
+
+  it('returns an empty string when no item matches refId', () => {
+    expect(getRoadmapItemTitle(roadmap, 'milestones', 'missing')).toBe('');
+  });
+
+  it('returns an empty string when the matched item has a falsy title', () => {
+    expect(getRoadmapItemTitle(roadmap, 'milestones', 'm2')).toBe('');
+  });
+
+  it('treats a non-array itemsKey value as an empty list', () => {
+    expect(getRoadmapItemTitle({ milestones: null }, 'milestones', 'm1')).toBe('');
+    expect(getRoadmapItemTitle({}, 'sprints', 's1')).toBe('');
+  });
+
+  it('normalizes (trims) refId before matching', () => {
+    expect(getRoadmapItemTitle(roadmap, 'milestones', '  m1  ')).toBe('Launch');
+  });
+});
+
+describe('getRoadmapTaskFieldTasks', () => {
+  const boardData = {
+    board: {
+      tasks: [
+        { id: 1, milestoneId: 'm1' },
+        { id: 2, milestoneId: 'm2' },
+        { id: 3, milestoneId: 'm1' },
+        null
+      ]
+    }
+  };
+
+  it('returns tasks whose field matches the normalized refId', () => {
+    expect(getRoadmapTaskFieldTasks(boardData, 'milestoneId', 'm1')).toEqual([
+      { id: 1, milestoneId: 'm1' },
+      { id: 3, milestoneId: 'm1' }
+    ]);
+  });
+
+  it('returns an empty array for a blank or non-string refId', () => {
+    expect(getRoadmapTaskFieldTasks(boardData, 'milestoneId', '')).toEqual([]);
+    expect(getRoadmapTaskFieldTasks(boardData, 'milestoneId', null)).toEqual([]);
+  });
+
+  it('returns an empty array when boardData has no task list', () => {
+    expect(getRoadmapTaskFieldTasks({}, 'milestoneId', 'm1')).toEqual([]);
+    expect(getRoadmapTaskFieldTasks(null, 'milestoneId', 'm1')).toEqual([]);
+  });
+
+  it('skips falsy task entries without throwing', () => {
+    expect(getRoadmapTaskFieldTasks(boardData, 'milestoneId', 'nonexistent')).toEqual([]);
+  });
+
+  it('normalizes (trims) refId before comparing', () => {
+    expect(getRoadmapTaskFieldTasks(boardData, 'milestoneId', '  m2  ')).toEqual([
+      { id: 2, milestoneId: 'm2' }
+    ]);
+  });
+});
+
+describe('normalizeRoadmapItems', () => {
+  it('returns null for non-array input', () => {
+    expect(normalizeRoadmapItems(null, ['dueDate'], ['dueDate'])).toBeNull();
+    expect(normalizeRoadmapItems({}, ['dueDate'], ['dueDate'])).toBeNull();
+  });
+
+  it('returns an empty array for an empty input array', () => {
+    expect(normalizeRoadmapItems([], ['dueDate'], ['dueDate'])).toEqual([]);
+  });
+
+  it('normalizes a valid single-date-key item (milestone shape), trimming id and title', () => {
+    const result = normalizeRoadmapItems(
+      [{ id: '  m1  ', title: '  Launch  ', dueDate: '2024-01-01' }],
+      ['dueDate'],
+      ['dueDate']
+    );
+    expect(result).toEqual([{ id: 'm1', title: 'Launch', dueDate: '2024-01-01' }]);
+  });
+
+  it('normalizes a valid range-shaped item (phase/sprint shape) with two date keys', () => {
+    const result = normalizeRoadmapItems(
+      [{ id: 'p1', title: 'Build', startDate: '2024-01-01', endDate: '2024-02-01' }],
+      ['startDate', 'endDate'],
+      ['startDate', 'endDate']
+    );
+    expect(result).toEqual([{ id: 'p1', title: 'Build', startDate: '2024-01-01', endDate: '2024-02-01' }]);
+  });
+
+  it('preserves input order across multiple valid items', () => {
+    const result = normalizeRoadmapItems(
+      [{ id: 'a', title: 'A', dueDate: '2024-01-01' }, { id: 'b', title: 'B', dueDate: '2024-02-01' }],
+      ['dueDate'],
+      ['dueDate']
+    );
+    expect(result.map((item) => item.id)).toEqual(['a', 'b']);
+  });
+
+  it('returns null when any entry is not a plain object (null, array, or primitive)', () => {
+    expect(normalizeRoadmapItems([null], ['dueDate'], ['dueDate'])).toBeNull();
+    expect(normalizeRoadmapItems([[]], ['dueDate'], ['dueDate'])).toBeNull();
+    expect(normalizeRoadmapItems(['x'], ['dueDate'], ['dueDate'])).toBeNull();
+  });
+
+  it('returns null when id or title is missing, blank, or non-string', () => {
+    expect(normalizeRoadmapItems([{ title: 'Launch', dueDate: '2024-01-01' }], ['dueDate'], ['dueDate'])).toBeNull();
+    expect(normalizeRoadmapItems([{ id: 'm1', dueDate: '2024-01-01' }], ['dueDate'], ['dueDate'])).toBeNull();
+    expect(normalizeRoadmapItems([{ id: '  ', title: 'Launch', dueDate: '2024-01-01' }], ['dueDate'], ['dueDate'])).toBeNull();
+    expect(normalizeRoadmapItems([{ id: 1, title: 'Launch', dueDate: '2024-01-01' }], ['dueDate'], ['dueDate'])).toBeNull();
+  });
+
+  it('returns null when an item has a key outside id/title/dateKeys', () => {
+    const result = normalizeRoadmapItems(
+      [{ id: 'm1', title: 'Launch', dueDate: '2024-01-01', extra: 'nope' }],
+      ['dueDate'],
+      ['dueDate']
+    );
+    expect(result).toBeNull();
+  });
+
+  it('returns null on a duplicate id within the list', () => {
+    const result = normalizeRoadmapItems(
+      [{ id: 'm1', title: 'A', dueDate: '2024-01-01' }, { id: 'm1', title: 'B', dueDate: '2024-02-01' }],
+      ['dueDate'],
+      ['dueDate']
+    );
+    expect(result).toBeNull();
+  });
+
+  it('returns null when a present date key fails ISO-date normalization', () => {
+    const result = normalizeRoadmapItems(
+      [{ id: 'm1', title: 'Launch', dueDate: 'not-a-date' }],
+      ['dueDate'],
+      ['dueDate']
+    );
+    expect(result).toBeNull();
+  });
+
+  it('returns null when a required date key is absent from the item', () => {
+    const result = normalizeRoadmapItems(
+      [{ id: 'p1', title: 'Build', startDate: '2024-01-01' }],
+      ['startDate', 'endDate'],
+      ['startDate', 'endDate']
+    );
+    expect(result).toBeNull();
+  });
+
+  it('omits an optional (non-required) date key entirely when absent from the item', () => {
+    const result = normalizeRoadmapItems(
+      [{ id: 'm1', title: 'Launch' }],
+      ['dueDate'],
+      []
+    );
+    expect(result).toEqual([{ id: 'm1', title: 'Launch' }]);
   });
 });

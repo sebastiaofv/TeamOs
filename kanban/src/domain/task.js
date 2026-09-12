@@ -1,5 +1,6 @@
 import { EFFORT_BUCKETS } from './constants.js';
-import { nowIso } from './util.js';
+import { nowIso, normalizeTimestamp } from './util.js';
+import { normalizeDueDate, todayLocalIsoDate } from './calendar.js';
 
 export function normalizeAssignee(value) {
     if (value === null || value === undefined) return '';
@@ -178,4 +179,19 @@ export function nextTaskIdForBoard(boardRecord) {
 
 export function touchTask(task) {
     task.updatedAt = nowIso();
+}
+
+export function getTaskStatusAgeBaseTimestamp(task) {
+    if (!task || typeof task !== 'object') return '';
+    return normalizeTimestamp(task.statusChangedAt)
+        || normalizeTimestamp(task.updatedAt)
+        || normalizeTimestamp(task.createdAt)
+        || '';
+}
+
+export function isTaskOverdue(task) {
+    const due = normalizeDueDate(task.dueDate);
+    if (!due || task.status === 'done' || task.archived) return false;
+    const today = todayLocalIsoDate();
+    return due < today;
 }

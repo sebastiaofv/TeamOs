@@ -122,3 +122,56 @@ export function getRoadmapItemDateBounds(item) {
     }
     return null;
 }
+
+export function getRoadmapItemTitle(roadmap, kind, refId) {
+    const config = getRoadmapEntityConfig(kind);
+    const normalizedRef = normalizeRoadmapRef(refId);
+    if (!config || !normalizedRef) return '';
+    const items = Array.isArray(roadmap?.[config.itemsKey]) ? roadmap[config.itemsKey] : [];
+    return items.find((item) => item.id === normalizedRef)?.title || '';
+}
+
+export function getRoadmapTaskFieldTasks(boardData, fieldName, refId) {
+    const normalizedRef = normalizeRoadmapRef(refId);
+    if (!normalizedRef) return [];
+    const tasks = Array.isArray(boardData?.board?.tasks) ? boardData.board.tasks : [];
+    return tasks.filter((task) => task && normalizeRoadmapRef(task[fieldName]) === normalizedRef);
+}
+
+export function normalizeRoadmapItems(value, dateKeys, requiredDateKeys) {
+    if (!Array.isArray(value)) return null;
+    const normalized = [];
+    const seenIds = new Set();
+    for (const item of value) {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
+        const allowedKeys = ['id', 'title', ...dateKeys];
+        const keys = Object.keys(item);
+        const hasRequiredKeys = typeof item.id === 'string' && item.id.trim()
+            && typeof item.title === 'string' && item.title.trim();
+        const hasOnlyAllowedKeys = keys.every((key) => allowedKeys.includes(key));
+        if (!hasRequiredKeys || !hasOnlyAllowedKeys) return null;
+
+        const id = item.id.trim();
+        if (seenIds.has(id)) return null;
+        seenIds.add(id);
+
+        const normalizedItem = { id, title: item.title.trim() };
+
+        for (const key of dateKeys) {
+            if (Object.prototype.hasOwnProperty.call(item, key)) {
+                const normalizedDate = normalizeRoadmapDate(item[key]);
+                if (!normalizedDate) return null;
+                normalizedItem[key] = normalizedDate;
+            }
+        }
+
+        for (const key of requiredDateKeys) {
+            if (!Object.prototype.hasOwnProperty.call(normalizedItem, key)) {
+                return null;
+            }
+        }
+
+        normalized.push(normalizedItem);
+    }
+    return normalized;
+}

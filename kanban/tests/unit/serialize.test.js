@@ -3,7 +3,8 @@ import {
   areSerializableValuesEqual,
   cloneSerializable,
   getBoardExtensionsObject,
-  hashTextContent
+  hashTextContent,
+  getTeamOsExtensionsObject
 } from '../../src/domain/serialize.js';
 
 describe('cloneSerializable', () => {
@@ -141,5 +142,52 @@ describe('getBoardExtensionsObject', () => {
     const existing = { foo: 'bar' };
     const board = { extensions: existing };
     expect(getBoardExtensionsObject(board)).toBe(existing);
+  });
+});
+
+describe('getTeamOsExtensionsObject', () => {
+  it('returns null when boardData has no extensions and create is not requested', () => {
+    expect(getTeamOsExtensionsObject({})).toBeNull();
+  });
+
+  it('returns null when boardData is not a plain object and create is not requested', () => {
+    expect(getTeamOsExtensionsObject(null)).toBeNull();
+    expect(getTeamOsExtensionsObject('board')).toBeNull();
+  });
+
+  it('returns null when extensions exists but has no teamOsKanban key and create is not requested', () => {
+    expect(getTeamOsExtensionsObject({ extensions: {} })).toBeNull();
+  });
+
+  it('returns null when teamOsKanban is a non-object value (e.g. array) and create is not requested', () => {
+    expect(getTeamOsExtensionsObject({ extensions: { teamOsKanban: [] } })).toBeNull();
+    expect(getTeamOsExtensionsObject({ extensions: { teamOsKanban: 'x' } })).toBeNull();
+  });
+
+  it('returns the existing teamOsKanban object unchanged when it is already valid', () => {
+    const existing = { attachments: {} };
+    const board = { extensions: { teamOsKanban: existing } };
+    expect(getTeamOsExtensionsObject(board)).toBe(existing);
+  });
+
+  it('creates extensions and teamOsKanban from scratch when create is true', () => {
+    const board = {};
+    const result = getTeamOsExtensionsObject(board, { create: true });
+    expect(result).toEqual({});
+    expect(board.extensions.teamOsKanban).toBe(result);
+  });
+
+  it('creates teamOsKanban in place when extensions already exists but teamOsKanban does not, when create is true', () => {
+    const board = { extensions: { other: 'keep' } };
+    const result = getTeamOsExtensionsObject(board, { create: true });
+    expect(result).toEqual({});
+    expect(board.extensions).toEqual({ other: 'keep', teamOsKanban: {} });
+  });
+
+  it('replaces a non-object teamOsKanban (e.g. an array) with {} when create is true', () => {
+    const board = { extensions: { teamOsKanban: [1, 2] } };
+    const result = getTeamOsExtensionsObject(board, { create: true });
+    expect(result).toEqual({});
+    expect(board.extensions.teamOsKanban).toBe(result);
   });
 });
