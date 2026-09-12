@@ -5,6 +5,8 @@ import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, for
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor } from '../domain/board.js';
 import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate } from '../domain/calendar.js';
+import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent } from '../domain/serialize.js';
+import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } from '../domain/timeline.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -167,15 +169,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
         }
 
 
-        function hashTextContent(text) {
-            const value = String(text ?? '');
-            let hash = 2166136261;
-            for (let i = 0; i < value.length; i += 1) {
-                hash ^= value.charCodeAt(i);
-                hash = Math.imul(hash, 16777619);
-            }
-            return `h${(hash >>> 0).toString(16)}`;
-        }
 
 
 
@@ -2520,13 +2513,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
             return board.projectColor || createPortfolioProjectColor(board.colorSeed || 0);
         }
 
-        function formatTimelineValue(value) {
-            if (value === undefined) return '(unset)';
-            if (value === null) return 'null';
-            if (typeof value === 'string') return value || '(empty)';
-            if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-            return JSON.stringify(value, null, 2);
-        }
 
         function renderTimelineEventChanges(event) {
             const changeEntries = Object.entries(event?.changes || {});
@@ -4279,15 +4265,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
         }
 
 
-        function getBoardExtensionsObject(boardData, options = {}) {
-            const create = Boolean(options.create);
-            if (!boardData || typeof boardData !== 'object' || Array.isArray(boardData)) return null;
-            if (!boardData.extensions || typeof boardData.extensions !== 'object' || Array.isArray(boardData.extensions)) {
-                if (!create) return null;
-                boardData.extensions = {};
-            }
-            return boardData.extensions;
-        }
 
         function getTeamOsExtensionsObject(boardData, options = {}) {
             const create = Boolean(options.create);
@@ -4396,26 +4373,9 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
         }
 
 
-        function cloneSerializable(value) {
-            if (value === undefined) return undefined;
-            return JSON.parse(JSON.stringify(value));
-        }
 
-        function areSerializableValuesEqual(a, b) {
-            return JSON.stringify(a) === JSON.stringify(b);
-        }
 
-        function createTimelineEventId() {
-            return `evt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        }
 
-        function createEmptyTimelineData() {
-            return {
-                version: TIMELINE_VERSION,
-                baselineEventId: '',
-                events: []
-            };
-        }
 
         function normalizeTimelineChanges(changes) {
             if (!changes || typeof changes !== 'object' || Array.isArray(changes)) return null;
