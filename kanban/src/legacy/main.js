@@ -1,7 +1,7 @@
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
 import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, parseChecklistInput, getBoardTagSuggestions, getTaskChecklistDropPlacement, nextTaskIdForBoard, touchTask, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, slugifyRoadmapEntityId, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
 import { normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, comparePortfolioRows } from '../domain/board.js';
 import { attachmentDuplicateKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, normalizeAttachmentRecord, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatUtcIsoDate, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
@@ -2648,24 +2648,6 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
             renderPortfolio();
         }
 
-        function setPortfolioSort(sortKey) {
-            const nextKey = normalizePortfolioSortKey(sortKey);
-            if (appState.portfolioSortKey === nextKey) {
-                appState.portfolioSortDir = appState.portfolioSortDir === 'asc' ? 'desc' : 'asc';
-            } else {
-                appState.portfolioSortKey = nextKey;
-                appState.portfolioSortDir = 'asc';
-            }
-            renderPortfolio();
-        }
-
-
-
-
-
-
-
-
         function showUndo(message, undoFn) {
             const toast = document.getElementById('undoToast');
             const text = document.getElementById('undoToastText');
@@ -4929,85 +4911,3 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
         cacheRefs();
         bindStaticUiEvents();
         init();
-
-
-        // TEMPORARY: bridges the rest of the Playwright suite, which calls many
-        // internal app functions and reads/writes internal app state directly via
-        // page.evaluate (e.g. buildPortfolioTasks(), portfolioBoards). These were
-        // implicit globals under the original classic <script> tag; type="module"
-        // no longer exposes top-level declarations on window.
-        //
-        // 60 of the 90 Playwright tests depend on this bridge, so it cannot be
-        // removed until those tests are rewritten. Unlike the pure domain functions
-        // -- which are now real modules in src/domain/ and tested directly by
-        // Vitest -- these are UI and stateful internals that become React
-        // components and store actions in Phase 2. Retiring this bridge is part of
-        // that work: each entry disappears when the test driving it is converted to
-        // a locator-based assertion or a unit test against the store.
-        Object.defineProperties(window, {
-            portfolioBoards: {
-                get: () => appState.portfolioBoards,
-                set: (value) => { appState.portfolioBoards = value; },
-                configurable: true
-            },
-            portfolioSortKey: {
-                get: () => appState.portfolioSortKey,
-                set: (value) => { appState.portfolioSortKey = value; },
-                configurable: true
-            },
-            portfolioSortDir: {
-                get: () => appState.portfolioSortDir,
-                set: (value) => { appState.portfolioSortDir = value; },
-                configurable: true
-            },
-            selectedPortfolioBoardId: {
-                get: () => appState.selectedPortfolioBoardId,
-                set: (value) => { appState.selectedPortfolioBoardId = value; },
-                configurable: true
-            },
-            portfolioDetailContext: {
-                get: () => appState.portfolioDetailContext,
-                set: (value) => { appState.portfolioDetailContext = value; },
-                configurable: true
-            },
-            portfolioTimelineSelection: {
-                get: () => appState.portfolioTimelineSelection,
-                set: (value) => { appState.portfolioTimelineSelection = value; },
-                configurable: true
-            },
-            selectedPortfolioViewMode: {
-                get: () => appState.selectedPortfolioViewMode,
-                set: (value) => { appState.selectedPortfolioViewMode = value; },
-                configurable: true
-            }
-        });
-
-        Object.assign(window, {
-            ATTACHMENT_HARD_MAX_BYTES,
-            TaskFormValidator,
-            applyUrlState,
-            buildPortfolioTasks,
-            captureTaskTimelineSnapshot,
-            checkProjectFilesNow,
-            editPortfolioTask,
-            ensureBoardTimelineBaseline,
-            getPortfolioBoardRecord,
-            getProjectSaveState,
-            getRoadmapDatePosition,
-            getRoadmapExtension,
-            getSelectedBoardTimelineViewState,
-            getVisibleRoadmapDateRange,
-            isHistoricalPreviewActiveForBoard,
-            isTaskOverdue,
-            parseRoadmapIsoDate,
-            reconstructBoardStateFromTimeline,
-            recordTaskTimelineEvent,
-            renderPortfolio,
-            runPortfolioTaskMutation,
-            setPortfolioSort,
-            setPortfolioTimelineSelection,
-            setTaskModalAttachmentDraft,
-            syncPortfolioTimelineSelectionToLatest,
-            todayLocalIsoDate,
-            touchTask
-        });

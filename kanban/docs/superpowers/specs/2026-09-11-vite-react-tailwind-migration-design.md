@@ -276,6 +276,14 @@ Measured at decision time: 55 of 90 tests reference internals directly, and 78 c
 `seedPortfolioBoards`, which itself writes app state — so effectively the whole suite
 was coupled. Plan: `docs/superpowers/plans/2026-09-12-black-box-e2e-suite.md`.
 
+**Done 2026-09-12:** all 89 Playwright tests are black-box and the `window` bridge is
+deleted. One check could not be kept at the UI level: `TaskFormValidator`'s save-time
+attachment count/size limits are unreachable, because the attachment picker already
+rejects those files; the picker's own limits are tested instead. The rewrite also
+surfaced a minor chip quirk: while a single save is in flight the project chip shows
+"Unsaved" rather than "Saving", because `runQueuedProjectSave` notifies before
+`state.inFlight` is assigned (filed, not fixed — parity is the bar).
+
 **Scope drift during a parity port.** "While I'm in here" improvements inflate a
 migration indefinitely. Mitigation: parity is the bar; improvements get filed, not
 built.

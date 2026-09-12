@@ -1,6 +1,8 @@
 # Black-Box E2E Suite Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
+
+**Status (2026-09-12): complete.** Tasks 1–4 landed as one commit: seeding through Import gives boards random ids, which breaks every id-based internal call at once, so the harness and the per-test conversions could not land separately.
 
 **Goal:** Rewrite `tests/app.test.js` so no test reads or writes app internals, then delete the `window` bridge in `src/legacy/main.js` with the suite still green.
 
@@ -35,15 +37,15 @@
 - `triggerExternalFileCheck(page, boardLabel?)` → dispatches `focus` and waits for a fresh `text()` read of the file(s).
 - `installControlledPortfolioWriter(page, { boardId, holdWrites, failWrites })` → only configures `window.__portfolioWriteControl`; the seeded handle's `createWritable` honours it.
 
-- [ ] Rewrite helpers; seed handles count `getFile`/`text` reads per label.
-- [ ] Run full e2e; fix tests broken only by seeding semantics (import appends instead of replacing, alphabetical board order, serialization on import).
-- [ ] Commit `test(e2e): seed boards through import instead of app internals`.
+- [x] Rewrite helpers; seed handles count `getFile`/`text` reads per label.
+- [x] Run full e2e; fix tests broken only by seeding semantics (import appends instead of replacing, alphabetical board order, serialization on import).
+- [x] Commit `test(e2e): seed boards through import instead of app internals`.
 
 ### Task 2: Replace in-memory state reads
 
 Replace `portfolioBoards[...]`, `getPortfolioBoardRecord(...)`, `getRoadmapExtension(...)` reads with `readSavedBoard` (polled where a save is pending) or DOM assertions for read-only boards.
 
-- [ ] Convert; run e2e; commit `test(e2e): assert persisted board files instead of in-memory state`.
+- [x] Convert; run e2e; commit `test(e2e): assert persisted board files instead of in-memory state`.
 
 ### Task 3: Replace internal actions with user actions
 
@@ -54,13 +56,13 @@ Replace `portfolioBoards[...]`, `getPortfolioBoardRecord(...)`, `getRoadmapExten
 - `runPortfolioTaskMutation` + `getProjectSaveState` → edit through the modal; assert chip save label and fake-disk writes.
 - Stale-query test → assert chips/URL/visible view instead of state vars.
 
-- [ ] Convert; run e2e; commit `test(e2e): drive mutations, sorting and selection through the UI`.
+- [x] Convert; run e2e; commit `test(e2e): drive mutations, sorting and selection through the UI`.
 
 ### Task 4: Timeline internals
 
 `reconstructBoardStateFromTimeline`, `getSelectedBoardTimelineViewState`, `isHistoricalPreviewActiveForBoard`, `setPortfolioTimelineSelection`, and the scroll-position test's direct event recording → build history with UI edits, read preview state from the timeline panel DOM and the task cards it projects.
 
-- [ ] Convert; run e2e; commit `test(e2e): verify timeline behaviour through the timeline panel`.
+- [x] Convert; run e2e; commit `test(e2e): verify timeline behaviour through the timeline panel`.
 
 ### Task 5: Logic tests out of the browser
 
@@ -68,11 +70,11 @@ Replace `portfolioBoards[...]`, `getPortfolioBoardRecord(...)`, `getRoadmapExten
 - `TaskFormValidator` → keep coverage through the task modal (blocker reason, oversized attachment) if not already asserted; delete the direct-call test.
 - Today marker → fixed clock via `page.addInitScript`; expected position derived from the rendered phase bar, not from roadmap functions.
 
-- [ ] Convert; run unit + e2e; commit `test: move logic-only checks to Vitest`.
+- [x] Convert; run unit + e2e; commit `test: move logic-only checks to Vitest`.
 
 ### Task 6: Delete the bridge
 
-- [ ] Remove `Object.defineProperties(window, …)`, `Object.assign(window, …)` and their comment from `src/legacy/main.js`; drop imports that become unused.
-- [ ] `grep` the test file for every former bridge name → zero hits.
-- [ ] Update README test counts and the spec's coupling note.
-- [ ] Unit, build, e2e green; commit `refactor: remove window test bridge`.
+- [x] Remove `Object.defineProperties(window, …)`, `Object.assign(window, …)` and their comment from `src/legacy/main.js`; drop imports that become unused.
+- [x] `grep` the test file for every former bridge name → zero hits.
+- [x] Update README test counts and the spec's coupling note.
+- [x] Unit, build, e2e green; commit `refactor: remove window test bridge`.
