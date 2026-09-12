@@ -1,4 +1,4 @@
-import { EFFORT_BUCKETS } from './constants.js';
+import { EFFORT_BUCKETS, defaultColumns } from './constants.js';
 import { nowIso, normalizeTimestamp } from './util.js';
 import { normalizeDueDate, todayLocalIsoDate } from './calendar.js';
 
@@ -194,4 +194,10 @@ export function isTaskOverdue(task) {
     if (!due || task.status === 'done' || task.archived) return false;
     const today = todayLocalIsoDate();
     return due < today;
+}
+
+export function normalizeTaskStatus(status) {
+    const normalized = resolveKnownTaskStatus(status);
+    if (normalized) return normalized;
+    return defaultColumns[0].status;
 }

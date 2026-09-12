@@ -23,7 +23,8 @@ import {
   nextTaskIdForBoard,
   touchTask,
   getTaskStatusAgeBaseTimestamp,
-  isTaskOverdue
+  isTaskOverdue,
+  normalizeTaskStatus
 } from '../../src/domain/task.js';
 
 describe('normalizeAssignee', () => {
@@ -536,5 +537,36 @@ describe('isTaskOverdue', () => {
   it('returns false for an overdue-by-date task that is archived', () => {
     const task = { dueDate: localIsoDateOffset(-1), status: 'doing', archived: true };
     expect(isTaskOverdue(task)).toBe(false);
+  });
+});
+
+describe('normalizeTaskStatus', () => {
+  it('passes through each canonical status', () => {
+    expect(normalizeTaskStatus('backlog')).toBe('backlog');
+    expect(normalizeTaskStatus('to-do')).toBe('to-do');
+    expect(normalizeTaskStatus('doing')).toBe('doing');
+    expect(normalizeTaskStatus('done')).toBe('done');
+  });
+
+  it('resolves known aliases via resolveKnownTaskStatus', () => {
+    expect(normalizeTaskStatus('todo')).toBe('to-do');
+    expect(normalizeTaskStatus('nextup')).toBe('to-do');
+    expect(normalizeTaskStatus('inprogress')).toBe('doing');
+    expect(normalizeTaskStatus('in-progress')).toBe('doing');
+    expect(normalizeTaskStatus('concluid')).toBe('done');
+  });
+
+  it('is case-insensitive and trims whitespace', () => {
+    expect(normalizeTaskStatus('  DOING  ')).toBe('doing');
+  });
+
+  it('falls back to the first default column status ("backlog") for an unknown value', () => {
+    expect(normalizeTaskStatus('bogus')).toBe('backlog');
+  });
+
+  it('falls back to "backlog" for blank, null, or undefined input', () => {
+    expect(normalizeTaskStatus('')).toBe('backlog');
+    expect(normalizeTaskStatus(null)).toBe('backlog');
+    expect(normalizeTaskStatus(undefined)).toBe('backlog');
   });
 });

@@ -1,4 +1,5 @@
 import { normalizeAssignees, normalizeChecklist } from './task.js';
+import { normalizePortfolioSortKey } from './board.js';
 
 export function isAbortError(error) {
     return Boolean(error && error.name === 'AbortError');
@@ -70,4 +71,17 @@ export function normalizeTheme(theme) {
 export function normalizeTimestamp(value) {
     if (!value || typeof value !== 'string') return '';
     return Number.isNaN(Date.parse(value)) ? '' : value;
+}
+
+export function assertRequiredExtension(fileName, extension, label) {
+    if (!hasRequiredExtension(fileName, extension)) {
+        throw new Error(`${label} must use ${extension} extension.`);
+    }
+}
+
+export function portfolioSortSelectValueFromKey(sortKey) {
+    const key = normalizePortfolioSortKey(sortKey);
+    if (key === 'task') return 'name';
+    if (['priority', 'effort', 'score'].includes(key)) return key;
+    return 'priority';
 }

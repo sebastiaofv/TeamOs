@@ -1,4 +1,5 @@
 import { TIMELINE_VERSION } from './constants.js';
+import { areSerializableValuesEqual, cloneSerializable } from './serialize.js';
 
 export function createEmptyTimelineData() {
     return {
@@ -18,4 +19,37 @@ export function formatTimelineValue(value) {
     if (typeof value === 'string') return value || '(empty)';
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);
     return JSON.stringify(value, null, 2);
+}
+
+export function buildTaskTimelineChanges(beforeTask, afterTask) {
+    const fieldNames = ['title', 'description', 'assignees', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status'];
+    const changes = {};
+    fieldNames.forEach((field) => {
+        const beforeValue = beforeTask ? beforeTask[field] : undefined;
+        const afterValue = afterTask ? afterTask[field] : undefined;
+        if (areSerializableValuesEqual(beforeValue, afterValue)) return;
+        changes[field] = {
+            before: cloneSerializable(beforeValue),
+            after: cloneSerializable(afterValue)
+        };
+    });
+    return Object.keys(changes).length > 0 ? changes : null;
+}
+
+export function normalizeTimelineChanges(changes) {
+    if (!changes || typeof changes !== 'object' || Array.isArray(changes)) return null;
+    const entries = Object.entries(changes);
+    if (entries.length === 0) return null;
+    const normalized = {};
+    for (const [field, value] of entries) {
+        if (!field || !value || typeof value !== 'object' || Array.isArray(value)) return null;
+        if (!Object.prototype.hasOwnProperty.call(value, 'before') || !Object.prototype.hasOwnProperty.call(value, 'after')) {
+            return null;
+        }
+        normalized[field] = {
+            before: cloneSerializable(value.before),
+            after: cloneSerializable(value.after)
+        };
+    }
+    return normalized;
 }

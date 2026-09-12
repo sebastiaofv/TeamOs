@@ -1,12 +1,12 @@
 import '../styles/legacy.css';
-import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp } from '../domain/util.js';
-import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue } from '../domain/task.js';
+import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
+import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus } from '../domain/task.js';
 import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems } from '../domain/roadmap.js';
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape } from '../domain/board.js';
 import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
 import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject } from '../domain/serialize.js';
-import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } from '../domain/timeline.js';
+import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
 import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '../domain/scoring.js';
         import {
@@ -78,11 +78,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
         }
 
 
-        function assertRequiredExtension(fileName, extension, label) {
-            if (!hasRequiredExtension(fileName, extension)) {
-                throw new Error(`${label} must use ${extension} extension.`);
-            }
-        }
 
 
 
@@ -3496,12 +3491,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
             renderPortfolio();
         }
 
-        function portfolioSortSelectValueFromKey(sortKey) {
-            const key = normalizePortfolioSortKey(sortKey);
-            if (key === 'task') return 'name';
-            if (['priority', 'effort', 'score'].includes(key)) return key;
-            return 'priority';
-        }
 
         function applyPortfolioSortSelect() {
             const select = document.getElementById('portfolioSortSelect');
@@ -3908,11 +3897,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function normalizeTaskStatus(status) {
-            const normalized = resolveKnownTaskStatus(status);
-            if (normalized) return normalized;
-            return defaultColumns[0].status;
-        }
 
 
 
@@ -4177,23 +4161,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function normalizeTimelineChanges(changes) {
-            if (!changes || typeof changes !== 'object' || Array.isArray(changes)) return null;
-            const entries = Object.entries(changes);
-            if (entries.length === 0) return null;
-            const normalized = {};
-            for (const [field, value] of entries) {
-                if (!field || !value || typeof value !== 'object' || Array.isArray(value)) return null;
-                if (!Object.prototype.hasOwnProperty.call(value, 'before') || !Object.prototype.hasOwnProperty.call(value, 'after')) {
-                    return null;
-                }
-                normalized[field] = {
-                    before: cloneSerializable(value.before),
-                    after: cloneSerializable(value.after)
-                };
-            }
-            return normalized;
-        }
 
         function normalizeTimelineEvent(raw) {
             if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -4407,20 +4374,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
             return normalizedEvent;
         }
 
-        function buildTaskTimelineChanges(beforeTask, afterTask) {
-            const fieldNames = ['title', 'description', 'assignees', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status'];
-            const changes = {};
-            fieldNames.forEach((field) => {
-                const beforeValue = beforeTask ? beforeTask[field] : undefined;
-                const afterValue = afterTask ? afterTask[field] : undefined;
-                if (areSerializableValuesEqual(beforeValue, afterValue)) return;
-                changes[field] = {
-                    before: cloneSerializable(beforeValue),
-                    after: cloneSerializable(afterValue)
-                };
-            });
-            return Object.keys(changes).length > 0 ? changes : null;
-        }
 
         function buildTaskTimelineEvent(beforeTask, afterTask) {
             const taskRef = afterTask || beforeTask;

@@ -13,7 +13,9 @@ import {
   checklistToInput,
   hasRequiredExtension,
   normalizeTheme,
-  normalizeTimestamp
+  normalizeTimestamp,
+  assertRequiredExtension,
+  portfolioSortSelectValueFromKey
 } from '../../src/domain/util.js';
 
 describe('isAbortError', () => {
@@ -339,5 +341,45 @@ describe('normalizeTimestamp', () => {
     expect(normalizeTimestamp(null)).toBe('');
     expect(normalizeTimestamp(undefined)).toBe('');
     expect(normalizeTimestamp(1700000000000)).toBe('');
+  });
+});
+
+describe('assertRequiredExtension', () => {
+  it('does not throw when the filename has the required extension', () => {
+    expect(() => assertRequiredExtension('board.json', '.json', 'Project file')).not.toThrow();
+  });
+
+  it('throws with the exact "<label> must use <extension> extension." message when the extension is missing', () => {
+    expect(() => assertRequiredExtension('board.txt', '.json', 'Project file'))
+      .toThrow('Project file must use .json extension.');
+  });
+
+  it('throws for a non-string filename', () => {
+    expect(() => assertRequiredExtension(null, '.json', 'Project file'))
+      .toThrow('Project file must use .json extension.');
+  });
+});
+
+describe('portfolioSortSelectValueFromKey', () => {
+  it('maps "task" to "name"', () => {
+    expect(portfolioSortSelectValueFromKey('task')).toBe('name');
+  });
+
+  it('passes through priority, effort, and score unchanged', () => {
+    expect(portfolioSortSelectValueFromKey('priority')).toBe('priority');
+    expect(portfolioSortSelectValueFromKey('effort')).toBe('effort');
+    expect(portfolioSortSelectValueFromKey('score')).toBe('score');
+  });
+
+  it('falls back to "priority" for other known sort keys (board, column, dueDate, updatedAt)', () => {
+    expect(portfolioSortSelectValueFromKey('board')).toBe('priority');
+    expect(portfolioSortSelectValueFromKey('column')).toBe('priority');
+    expect(portfolioSortSelectValueFromKey('dueDate')).toBe('priority');
+    expect(portfolioSortSelectValueFromKey('updatedAt')).toBe('priority');
+  });
+
+  it('falls back to "priority" for an unknown sort key, via normalizePortfolioSortKey', () => {
+    expect(portfolioSortSelectValueFromKey('bogus')).toBe('priority');
+    expect(portfolioSortSelectValueFromKey(undefined)).toBe('priority');
   });
 });
