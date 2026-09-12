@@ -11,9 +11,15 @@ import {
   applyTimelineEventToState,
   normalizeTimelineExtension,
   captureTaskTimelineSnapshot,
-  getBoardTimelineData
+  getBoardTimelineData,
+  ensureBoardTimelineBaseline,
+  reconstructBoardStateFromTimeline,
+  appendTimelineEvent,
+  recordTaskTimelineEvent,
+  recordBoardRestoreTimelineEvent
 } from '../../src/domain/timeline.js';
-import { TIMELINE_VERSION, ROADMAP_VERSION } from '../../src/domain/constants.js';
+import { TIMELINE_VERSION, ROADMAP_VERSION, BOARD_SCHEMA_VERSION, BOARD_APP_ID } from '../../src/domain/constants.js';
+import { createBoardStateSnapshot } from '../../src/domain/serialize.js';
 
 describe('createEmptyTimelineData', () => {
   it('returns a fresh empty timeline shape at the current version', () => {
@@ -826,5 +832,332 @@ describe('getBoardTimelineData', () => {
     expect(timeline).not.toBeNull();
     expect(timeline.events).toHaveLength(1);
     expect(timeline.events[0].id).toBe('evt_1');
+  });
+});
+
+describe('ensureBoardTimelineBaseline', () => {
+  const freshBoard = () => ({ board: { tasks: [], columns: [], settings: {} }, extensions: {} });
+
+  it('returns null when boardData is not an object that can hold extensions', () => {
+    expect(ensureBoardTimelineBaseline(null)).toBeNull();
+    expect(ensureBoardTimelineBaseline('nope')).toBeNull();
+  });
+
+  it('creates a baseline event with a full board snapshot when the board has no timeline yet', () => {
+    const board = {
+      board: {
+        tasks: [{ id: 1, title: 'Ship it', status: 'backlog' }],
+        columns: [{ status: 'backlog', title: 'Backlog' }],
+        settings: { title: 'My Board' }
+      },
+      extensions: {}
+    };
+    const timeline = ensureBoardTimelineBaseline(board);
+    expect(timeline.version).toBe(TIMELINE_VERSION);
+    expect(timeline.events).toHaveLength(1);
+    const [baselineEvent] = timeline.events;
+    expect(baselineEvent.kind).toBe('board.baseline');
+    expect(baselineEvent.entityType).toBe('board');
+    expect(baselineEvent.entityId).toBe('board');
+    expect(baselineEvent.summary).toBe('Baseline snapshot created');
+    expect(timeline.baselineEventId).toBe(baselineEvent.id);
+    expect(baselineEvent.snapshot.board.tasks).toHaveLength(1);
+    expect(baselineEvent.snapshot.board.tasks[0].title).toBe('Ship it');
+  });
+
+  it('is idempotent: a second call on a board that already has a baseline adds no event and keeps the same id', () => {
+    const board = freshBoard();
+    const first = ensureBoardTimelineBaseline(board);
+    const firstEventId = first.events[0].id;
+    const firstSnapshot = first.events[0].snapshot;
+
+    const second = ensureBoardTimelineBaseline(board);
+
+    expect(second.events).toHaveLength(1);
+    expect(second.events[0].id).toBe(firstEventId);
+    expect(second.events[0].snapshot).toEqual(firstSnapshot);
+    expect(second.baselineEventId).toBe(firstEventId);
+    // Same object reference returned/stored -- no replacement occurred.
+    expect(second).toBe(board.extensions.timeline);
+  });
+
+  it('backfills a blank baselineEventId from the first existing event without adding a new one', () => {
+    const board = {
+      board: { tasks: [], columns: [], settings: {} },
+      extensions: {
+        timeline: {
+          version: TIMELINE_VERSION,
+          baselineEventId: '',
+          events: [{
+            id: 'evt_existing',
+            at: '2026-01-01T00:00:00.000Z',
+            kind: 'board.baseline',
+            entityType: 'board',
+            entityId: 'board',
+            summary: 'Baseline snapshot created'
+          }]
+        }
+      }
+    };
+    const timeline = ensureBoardTimelineBaseline(board);
+    expect(timeline.events).toHaveLength(1);
+    expect(timeline.baselineEventId).toBe('evt_existing');
+  });
+});
+
+describe('appendTimelineEvent', () => {
+  const freshBoard = () => ({ board: { tasks: [], columns: [], settings: {} }, extensions: {} });
+
+  it('returns null when boardData cannot hold a timeline', () => {
+    expect(appendTimelineEvent(null, { kind: 'task.created', entityType: 'task', entityId: '1' })).toBeNull();
+  });
+
+  it('returns null when eventInput is missing', () => {
+    expect(appendTimelineEvent(freshBoard(), null)).toBeNull();
+    expect(appendTimelineEvent(freshBoard(), undefined)).toBeNull();
+  });
+
+  it('returns null when the event fails normalization (e.g. missing kind)', () => {
+    expect(appendTimelineEvent(freshBoard(), { entityType: 'task', entityId: '1' })).toBeNull();
+  });
+
+  it('creates the baseline first, then appends the new event after it', () => {
+    const board = freshBoard();
+    const event = appendTimelineEvent(board, {
+      kind: 'task.created',
+      entityType: 'task',
+      entityId: '1',
+      summary: 'Task created: X'
+    });
+    expect(event.kind).toBe('task.created');
+    expect(board.extensions.timeline.events).toHaveLength(2);
+    expect(board.extensions.timeline.events[0].kind).toBe('board.baseline');
+    expect(board.extensions.timeline.events[1]).toBe(event);
+  });
+
+  it('uses the provided id and at instead of generating new ones', () => {
+    const board = freshBoard();
+    const event = appendTimelineEvent(board, {
+      id: 'evt_custom',
+      at: '2026-02-02T00:00:00.000Z',
+      kind: 'task.created',
+      entityType: 'task',
+      entityId: '1'
+    });
+    expect(event.id).toBe('evt_custom');
+    expect(event.at).toBe('2026-02-02T00:00:00.000Z');
+  });
+
+  it('generates an id and an "at" timestamp when neither is provided', () => {
+    const board = freshBoard();
+    const event = appendTimelineEvent(board, { kind: 'task.created', entityType: 'task', entityId: '1' });
+    expect(event.id).toMatch(/^evt_\d+_[0-9a-z]{1,6}$/);
+    expect(new Date(event.at).toISOString()).toBe(event.at);
+  });
+
+  it('only carries changes/snapshot/meta over when explicitly present on eventInput', () => {
+    const board = freshBoard();
+    const event = appendTimelineEvent(board, {
+      kind: 'task.created',
+      entityType: 'task',
+      entityId: '1',
+      snapshot: { id: 1, title: 'X' }
+    });
+    expect(event.snapshot).toEqual({ id: 1, title: 'X' });
+    expect('changes' in event).toBe(false);
+    expect('meta' in event).toBe(false);
+  });
+});
+
+describe('reconstructBoardStateFromTimeline', () => {
+  const validBoard = () => ({
+    meta: {
+      schemaVersion: BOARD_SCHEMA_VERSION,
+      appId: BOARD_APP_ID,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    },
+    board: {
+      columns: [
+        { status: 'backlog', title: 'Backlog' },
+        { status: 'doing', title: 'Doing' }
+      ],
+      tasks: [
+        {
+          id: 1,
+          title: 'Ship it',
+          description: '',
+          checklist: [],
+          archived: false,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+          dueDate: '',
+          priority: null,
+          status: 'backlog'
+        }
+      ],
+      settings: { title: 'Test Board' }
+    },
+    extensions: {}
+  });
+
+  const secondTask = () => ({
+    id: 2,
+    title: 'New task',
+    description: '',
+    checklist: [],
+    archived: false,
+    createdAt: '2026-01-02T00:00:00.000Z',
+    updatedAt: '2026-01-02T00:00:00.000Z',
+    dueDate: '',
+    priority: null,
+    status: 'backlog'
+  });
+
+  it('returns a plain current-state snapshot when there is no timeline extension at all', () => {
+    const board = validBoard();
+    const result = reconstructBoardStateFromTimeline(board, 0);
+    expect(result).toEqual(createBoardStateSnapshot(board));
+  });
+
+  it('returns a plain current-state snapshot when the timeline extension has an empty events array', () => {
+    const board = validBoard();
+    board.extensions.timeline = { version: TIMELINE_VERSION, baselineEventId: '', events: [] };
+    const result = reconstructBoardStateFromTimeline(board, 0);
+    expect(result).toEqual(createBoardStateSnapshot(board));
+  });
+
+  it('index 0 reconstructs to exactly the baseline snapshot', () => {
+    const board = validBoard();
+    ensureBoardTimelineBaseline(board);
+    const result = reconstructBoardStateFromTimeline(board, 0);
+    expect(result.board.tasks.map((t) => t.id)).toEqual([1]);
+    expect(result.board.tasks[0].title).toBe('Ship it');
+  });
+
+  it('replays a recorded task.created event on top of the baseline', () => {
+    const board = validBoard();
+    ensureBoardTimelineBaseline(board);
+    const newTask = secondTask();
+    board.board.tasks.push(newTask);
+    recordTaskTimelineEvent(board, null, newTask);
+
+    const atBaseline = reconstructBoardStateFromTimeline(board, 0);
+    expect(atBaseline.board.tasks.map((t) => t.id)).toEqual([1]);
+
+    const afterCreate = reconstructBoardStateFromTimeline(board, 1);
+    expect(afterCreate.board.tasks.map((t) => t.id).sort()).toEqual([1, 2]);
+    expect(afterCreate.board.tasks.find((t) => t.id === 2).title).toBe('New task');
+  });
+
+  it('clamps an out-of-range eventIndex up to the last event', () => {
+    const board = validBoard();
+    ensureBoardTimelineBaseline(board);
+    const newTask = secondTask();
+    board.board.tasks.push(newTask);
+    recordTaskTimelineEvent(board, null, newTask);
+
+    const clamped = reconstructBoardStateFromTimeline(board, 99);
+    const exact = reconstructBoardStateFromTimeline(board, 1);
+    expect(clamped).toEqual(exact);
+  });
+
+  it('clamps a negative eventIndex down to 0', () => {
+    const board = validBoard();
+    ensureBoardTimelineBaseline(board);
+    const clamped = reconstructBoardStateFromTimeline(board, -5);
+    const atZero = reconstructBoardStateFromTimeline(board, 0);
+    expect(clamped).toEqual(atZero);
+  });
+
+  it('an unrecognized event kind in the timeline is a no-op on replay', () => {
+    const board = validBoard();
+    ensureBoardTimelineBaseline(board);
+    appendTimelineEvent(board, { kind: 'something.unknown', entityType: 'board', entityId: 'board' });
+    const result = reconstructBoardStateFromTimeline(board, 1);
+    expect(result.board.tasks.map((t) => t.id)).toEqual([1]);
+  });
+});
+
+describe('recordTaskTimelineEvent', () => {
+  const freshBoard = () => ({ board: { tasks: [], columns: [], settings: {} }, extensions: {} });
+
+  it('returns null and does not create a timeline when there is nothing to record', () => {
+    const board = freshBoard();
+    const task = { id: 1, title: 'Same', status: 'doing' };
+    const result = recordTaskTimelineEvent(board, task, { ...task });
+    expect(result).toBeNull();
+    expect(board.extensions.timeline).toBeUndefined();
+  });
+
+  it('returns null when both beforeTask and afterTask are absent', () => {
+    expect(recordTaskTimelineEvent(freshBoard(), null, undefined)).toBeNull();
+  });
+
+  it('appends a task.created event (creating the baseline first) when there is no beforeTask', () => {
+    const board = freshBoard();
+    const afterTask = { id: 5, title: 'Ship it', status: 'backlog' };
+    const result = recordTaskTimelineEvent(board, null, afterTask);
+    expect(result.kind).toBe('task.created');
+    expect(result.entityId).toBe('5');
+    expect(board.extensions.timeline.events).toHaveLength(2);
+    expect(board.extensions.timeline.events[0].kind).toBe('board.baseline');
+    expect(board.extensions.timeline.events[1]).toBe(result);
+  });
+
+  it('appends a task.updated event carrying the changed field', () => {
+    const board = freshBoard();
+    const before = { id: 3, title: 'Old', status: 'doing' };
+    const after = { id: 3, title: 'New', status: 'doing' };
+    const result = recordTaskTimelineEvent(board, before, after);
+    expect(result.kind).toBe('task.updated');
+    expect(result.changes).toEqual({ title: { before: 'Old', after: 'New' } });
+  });
+
+  it('appends a task.deleted event with a snapshot when afterTask is absent', () => {
+    const board = freshBoard();
+    const before = { id: 9, title: 'Gone', status: 'done' };
+    const result = recordTaskTimelineEvent(board, before, null);
+    expect(result.kind).toBe('task.deleted');
+    expect(result.snapshot).toEqual(before);
+  });
+});
+
+describe('recordBoardRestoreTimelineEvent', () => {
+  const freshBoard = () => ({
+    board: { tasks: [{ id: 1, title: 'A', status: 'backlog' }], columns: [], settings: {} },
+    extensions: {}
+  });
+
+  it('returns null when boardData cannot hold a timeline', () => {
+    expect(recordBoardRestoreTimelineEvent(null, { id: 'evt_1', at: '2026-01-01T00:00:00.000Z' })).toBeNull();
+  });
+
+  it('appends a board.restored event carrying a fresh snapshot of the current board', () => {
+    const board = freshBoard();
+    const restoredFromEvent = { id: 'evt_src', at: '2026-01-05T00:00:00.000Z' };
+    const result = recordBoardRestoreTimelineEvent(board, restoredFromEvent);
+    expect(result.kind).toBe('board.restored');
+    expect(result.entityType).toBe('board');
+    expect(result.entityId).toBe('board');
+    expect(result.summary).toBe('Board restored from timeline');
+    expect(result.snapshot.board.tasks).toHaveLength(1);
+    expect(result.meta).toEqual({ fromEventId: 'evt_src', fromTimestamp: '2026-01-05T00:00:00.000Z' });
+    // baseline + restore event
+    expect(board.extensions.timeline.events).toHaveLength(2);
+  });
+
+  it('defaults meta.fromEventId/fromTimestamp to empty strings when restoredFromEvent is absent', () => {
+    const board = freshBoard();
+    const result = recordBoardRestoreTimelineEvent(board, null);
+    expect(result.meta).toEqual({ fromEventId: '', fromTimestamp: '' });
+  });
+
+  it('always appends a new event, even when nothing about the board changed since the baseline', () => {
+    const board = freshBoard();
+    ensureBoardTimelineBaseline(board);
+    const before = board.extensions.timeline.events.length;
+    recordBoardRestoreTimelineEvent(board, null);
+    expect(board.extensions.timeline.events.length).toBe(before + 1);
   });
 });

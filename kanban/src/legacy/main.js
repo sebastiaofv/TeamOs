@@ -6,7 +6,7 @@ import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProje
 import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap, getLegacyTaskAttachmentsFromExtensions, normalizeTaskAttachments, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel, buildPortfolioCalendarWeekRoadmapSegments, assignPortfolioCalendarWeekRoadmapLanes } from '../domain/calendar.js';
 import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject, normalizeBoardExtensionsValue, createBoardStateSnapshot, serializeBoardDataFromObject } from '../domain/serialize.js';
-import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension, getTimelineExtensionObject, captureTaskTimelineSnapshot, getBoardTimelineData } from '../domain/timeline.js';
+import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension, getTimelineExtensionObject, captureTaskTimelineSnapshot, getBoardTimelineData, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline, appendTimelineEvent, recordBoardRestoreTimelineEvent, recordTaskTimelineEvent } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
 import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore, formatTaskScore } from '../domain/scoring.js';
         import {
@@ -1728,21 +1728,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
         }
 
 
-        function reconstructBoardStateFromTimeline(boardData, eventIndex) {
-            const timeline = getBoardTimelineData(boardData);
-            if (!timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) {
-                return createBoardStateSnapshot(boardData);
-            }
-            const maxIndex = timeline.events.length - 1;
-            const targetIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
-            let state = timeline.events[0]?.snapshot
-                ? cloneSerializable(timeline.events[0].snapshot)
-                : createBoardStateSnapshot(boardData);
-            for (let index = 1; index <= targetIndex; index += 1) {
-                state = applyTimelineEventToState(state, timeline.events[index]);
-            }
-            return createBoardStateSnapshot(state);
-        }
 
         function buildPortfolioRowsFromBoardData(boardRecord, boardData, options = {}) {
             if (!boardRecord || !boardData) return [];
@@ -3489,78 +3474,11 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
 
 
 
-        function ensureBoardTimelineBaseline(boardData) {
-            const timeline = getTimelineExtensionObject(boardData, { create: true });
-            if (!timeline) return null;
-            if (Array.isArray(timeline.events) && timeline.events.length > 0) {
-                if (!timeline.baselineEventId) {
-                    timeline.baselineEventId = timeline.events[0].id;
-                }
-                return timeline;
-            }
-
-            const baselineEvent = {
-                id: createTimelineEventId(),
-                at: nowIso(),
-                kind: 'board.baseline',
-                entityType: 'board',
-                entityId: 'board',
-                summary: 'Baseline snapshot created',
-                snapshot: createBoardStateSnapshot(boardData)
-            };
-            timeline.version = TIMELINE_VERSION;
-            timeline.baselineEventId = baselineEvent.id;
-            timeline.events = [baselineEvent];
-            return timeline;
-        }
-
-        function appendTimelineEvent(boardData, eventInput) {
-            const timeline = ensureBoardTimelineBaseline(boardData);
-            if (!timeline || !eventInput) return null;
-            const rawEvent = {
-                id: eventInput.id || createTimelineEventId(),
-                at: eventInput.at || nowIso(),
-                kind: eventInput.kind,
-                entityType: eventInput.entityType,
-                entityId: eventInput.entityId,
-                summary: eventInput.summary
-            };
-            if (Object.prototype.hasOwnProperty.call(eventInput, 'changes')) {
-                rawEvent.changes = eventInput.changes;
-            }
-            if (Object.prototype.hasOwnProperty.call(eventInput, 'snapshot')) {
-                rawEvent.snapshot = eventInput.snapshot;
-            }
-            if (Object.prototype.hasOwnProperty.call(eventInput, 'meta')) {
-                rawEvent.meta = eventInput.meta;
-            }
-            const normalizedEvent = normalizeTimelineEvent(rawEvent);
-            if (!normalizedEvent) return null;
-            timeline.events.push(normalizedEvent);
-            return normalizedEvent;
-        }
 
 
 
-        function recordTaskTimelineEvent(boardData, beforeTask, afterTask) {
-            const event = buildTaskTimelineEvent(beforeTask, afterTask);
-            if (!event) return null;
-            return appendTimelineEvent(boardData, event);
-        }
 
-        function recordBoardRestoreTimelineEvent(boardData, restoredFromEvent) {
-            return appendTimelineEvent(boardData, {
-                kind: 'board.restored',
-                entityType: 'board',
-                entityId: 'board',
-                summary: 'Board restored from timeline',
-                snapshot: createBoardStateSnapshot(boardData),
-                meta: {
-                    fromEventId: restoredFromEvent?.id || '',
-                    fromTimestamp: restoredFromEvent?.at || ''
-                }
-            });
-        }
+
 
 
 

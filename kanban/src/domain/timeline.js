@@ -1,7 +1,7 @@
 import { ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION } from './constants.js';
 import { getTaskAttachments } from './attachments.js';
-import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject } from './serialize.js';
-import { normalizeTimestamp } from './util.js';
+import { areSerializableValuesEqual, cloneSerializable, createBoardStateSnapshot, getBoardExtensionsObject } from './serialize.js';
+import { normalizeTimestamp, nowIso } from './util.js';
 import { createEmptyRoadmapExtension, getRoadmapExtension, normalizeRoadmapExtension } from './roadmap.js';
 import { findTaskInBoardData, normalizeTask } from './task.js';
 
@@ -269,4 +269,91 @@ export function captureTaskTimelineSnapshot(boardData, taskId) {
 export function getBoardTimelineData(boardData) {
     const timeline = getTimelineExtensionObject(boardData);
     return timeline ? normalizeTimelineExtension(timeline) : null;
+}
+
+export function ensureBoardTimelineBaseline(boardData) {
+    const timeline = getTimelineExtensionObject(boardData, { create: true });
+    if (!timeline) return null;
+    if (Array.isArray(timeline.events) && timeline.events.length > 0) {
+        if (!timeline.baselineEventId) {
+            timeline.baselineEventId = timeline.events[0].id;
+        }
+        return timeline;
+    }
+
+    const baselineEvent = {
+        id: createTimelineEventId(),
+        at: nowIso(),
+        kind: 'board.baseline',
+        entityType: 'board',
+        entityId: 'board',
+        summary: 'Baseline snapshot created',
+        snapshot: createBoardStateSnapshot(boardData)
+    };
+    timeline.version = TIMELINE_VERSION;
+    timeline.baselineEventId = baselineEvent.id;
+    timeline.events = [baselineEvent];
+    return timeline;
+}
+
+export function reconstructBoardStateFromTimeline(boardData, eventIndex) {
+    const timeline = getBoardTimelineData(boardData);
+    if (!timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) {
+        return createBoardStateSnapshot(boardData);
+    }
+    const maxIndex = timeline.events.length - 1;
+    const targetIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
+    let state = timeline.events[0]?.snapshot
+        ? cloneSerializable(timeline.events[0].snapshot)
+        : createBoardStateSnapshot(boardData);
+    for (let index = 1; index <= targetIndex; index += 1) {
+        state = applyTimelineEventToState(state, timeline.events[index]);
+    }
+    return createBoardStateSnapshot(state);
+}
+
+export function appendTimelineEvent(boardData, eventInput) {
+    const timeline = ensureBoardTimelineBaseline(boardData);
+    if (!timeline || !eventInput) return null;
+    const rawEvent = {
+        id: eventInput.id || createTimelineEventId(),
+        at: eventInput.at || nowIso(),
+        kind: eventInput.kind,
+        entityType: eventInput.entityType,
+        entityId: eventInput.entityId,
+        summary: eventInput.summary
+    };
+    if (Object.prototype.hasOwnProperty.call(eventInput, 'changes')) {
+        rawEvent.changes = eventInput.changes;
+    }
+    if (Object.prototype.hasOwnProperty.call(eventInput, 'snapshot')) {
+        rawEvent.snapshot = eventInput.snapshot;
+    }
+    if (Object.prototype.hasOwnProperty.call(eventInput, 'meta')) {
+        rawEvent.meta = eventInput.meta;
+    }
+    const normalizedEvent = normalizeTimelineEvent(rawEvent);
+    if (!normalizedEvent) return null;
+    timeline.events.push(normalizedEvent);
+    return normalizedEvent;
+}
+
+export function recordBoardRestoreTimelineEvent(boardData, restoredFromEvent) {
+    return appendTimelineEvent(boardData, {
+        kind: 'board.restored',
+        entityType: 'board',
+        entityId: 'board',
+        summary: 'Board restored from timeline',
+        snapshot: createBoardStateSnapshot(boardData),
+        meta: {
+            fromEventId: restoredFromEvent?.id || '',
+            fromTimestamp: restoredFromEvent?.at || ''
+        }
+    });
+}
+
+export function recordTaskTimelineEvent(boardData, beforeTask, afterTask) {
+    const event = buildTaskTimelineEvent(beforeTask, afterTask);
+    if (!event) return null;
+    return appendTimelineEvent(boardData, event);
 }
