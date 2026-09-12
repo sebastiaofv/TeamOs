@@ -30,6 +30,7 @@ import {
   resolveCreateTaskStatus
 } from '../../src/domain/task.js';
 import { defaultColumns } from '../../src/domain/constants.js';
+import { todayLocalIsoDate } from '../../src/domain/calendar.js';
 
 describe('normalizeAssignee', () => {
   it('trims surrounding whitespace', () => {
@@ -759,5 +760,36 @@ describe('normalizeTask', () => {
       .toHaveLength(1);
     expect(normalizeTask({ id: 1, title: 'A', attachments: [] }, { fallbackAttachments: fallback }).attachments)
       .toEqual([]);
+  });
+});
+
+describe('isTaskOverdue near local midnight', () => {
+  // Ported from tests/app.test.js (Playwright). The local calendar date is
+  // 2026-02-26 while the UTC ISO date has already rolled over to 2026-02-27, so
+  // a task due on the 26th must not be overdue yet.
+  it('uses the local date instead of the UTC ISO date', () => {
+    const RealDate = globalThis.Date;
+    function FakeDate(...args) {
+      if (!(this instanceof FakeDate)) return new RealDate(...args);
+      if (args.length > 0) return new RealDate(...args);
+      this.getTime = () => 1;
+      this.getFullYear = () => 2026;
+      this.getMonth = () => 1; // February (0-based)
+      this.getDate = () => 26;
+      this.toISOString = () => '2026-02-27T00:30:00.000Z';
+    }
+    FakeDate.parse = RealDate.parse;
+    FakeDate.UTC = RealDate.UTC;
+    FakeDate.now = () => RealDate.parse('2026-02-27T00:30:00.000Z');
+    FakeDate.prototype = RealDate.prototype;
+
+    globalThis.Date = FakeDate;
+    try {
+      expect(todayLocalIsoDate()).toBe('2026-02-26');
+      expect(isTaskOverdue({ dueDate: '2026-02-26', status: 'backlog', archived: false })).toBe(false);
+      expect(isTaskOverdue({ dueDate: '2026-02-25', status: 'backlog', archived: false })).toBe(true);
+    } finally {
+      globalThis.Date = RealDate;
+    }
   });
 });
