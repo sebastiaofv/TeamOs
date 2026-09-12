@@ -265,8 +265,16 @@ internals that Phase 2 deletes. Phase 2's spec must pick a strategy before writi
 components: rewrite them as black-box tests first (buys a real oracle, delays React),
 expose store state and actions on `window` for tests (preserves them, entrenches a
 test-only interface), or convert them view-by-view as each is rebuilt (spreads the
-cost, but the oracle is weakest exactly when it is most needed). Unresolved — this is
-the first decision Phase 2 must make.
+cost, but the oracle is weakest exactly when it is most needed).
+
+**Decided 2026-09-12: black-box first.** Before any React is written, every Playwright
+test is rewritten to drive the app only through the DOM, URL, keyboard/pointer input,
+and test doubles for browser APIs (File System Access, `prompt`/`alert`/`confirm`,
+clock). Tests that only exercise pure logic move to Vitest. Exit criterion: the
+`window` bridge in `src/legacy/main.js` is deleted and the full suite still passes.
+Measured at decision time: 55 of 90 tests reference internals directly, and 78 call
+`seedPortfolioBoards`, which itself writes app state — so effectively the whole suite
+was coupled. Plan: `docs/superpowers/plans/2026-09-12-black-box-e2e-suite.md`.
 
 **Scope drift during a parity port.** "While I'm in here" improvements inflate a
 migration indefinitely. Mitigation: parity is the bar; improvements get filed, not
