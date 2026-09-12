@@ -1,7 +1,9 @@
 import { ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION } from './constants.js';
+import { getTaskAttachments } from './attachments.js';
 import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject } from './serialize.js';
 import { normalizeTimestamp } from './util.js';
-import { createEmptyRoadmapExtension, normalizeRoadmapExtension } from './roadmap.js';
+import { createEmptyRoadmapExtension, getRoadmapExtension, normalizeRoadmapExtension } from './roadmap.js';
+import { findTaskInBoardData, normalizeTask } from './task.js';
 
 export function createEmptyTimelineData() {
     return {
@@ -252,4 +254,19 @@ export function getTimelineExtensionObject(boardData, options = {}) {
     if (!create) return null;
     extensions[TIMELINE_EXTENSION_KEY] = createEmptyTimelineData();
     return extensions[TIMELINE_EXTENSION_KEY];
+}
+
+export function captureTaskTimelineSnapshot(boardData, taskId) {
+    const task = findTaskInBoardData(boardData, taskId);
+    if (!task) return null;
+    return normalizeTask(task, {
+        fallbackAttachments: getTaskAttachments(boardData, taskId),
+        includeStatusChangedAt: false,
+        roadmap: getRoadmapExtension(boardData)
+    });
+}
+
+export function getBoardTimelineData(boardData) {
+    const timeline = getTimelineExtensionObject(boardData);
+    return timeline ? normalizeTimelineExtension(timeline) : null;
 }

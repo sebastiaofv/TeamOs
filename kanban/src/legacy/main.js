@@ -5,8 +5,8 @@ import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, for
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape, comparePortfolioRows, validateBoardData } from '../domain/board.js';
 import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap, getLegacyTaskAttachmentsFromExtensions, normalizeTaskAttachments, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel, buildPortfolioCalendarWeekRoadmapSegments, assignPortfolioCalendarWeekRoadmapLanes } from '../domain/calendar.js';
-import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject, normalizeBoardExtensionsValue } from '../domain/serialize.js';
-import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension, getTimelineExtensionObject } from '../domain/timeline.js';
+import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject, normalizeBoardExtensionsValue, createBoardStateSnapshot, serializeBoardDataFromObject } from '../domain/serialize.js';
+import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension, getTimelineExtensionObject, captureTaskTimelineSnapshot, getBoardTimelineData } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
 import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore, formatTaskScore } from '../domain/scoring.js';
         import {
@@ -1146,43 +1146,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
             return isPortfolioBoardMutable(boardId);
         }
 
-        function serializeBoardDataFromObject(boardData) {
-            const now = nowIso();
-            const input = boardData && typeof boardData === 'object' ? boardData : {};
-            const meta = input.meta && typeof input.meta === 'object' ? input.meta : {};
-            const board = input.board && typeof input.board === 'object' ? input.board : {};
-            const settings = board.settings && typeof board.settings === 'object' ? board.settings : {};
-            const roadmap = normalizeRoadmapExtension(input.extensions?.[ROADMAP_EXTENSION_KEY]);
-
-            const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
-            const normalizedTasks = Array.isArray(board.tasks)
-                ? board.tasks.map(task => normalizeTask(task, {
-                    fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
-                    includeStatusChangedAt: false,
-                    roadmap
-                }))
-                : [];
-            const title = typeof settings.title === 'string' && settings.title.trim()
-                ? settings.title.trim()
-                : DEFAULT_BOARD_TITLE;
-
-            return {
-                meta: {
-                    schemaVersion: BOARD_SCHEMA_VERSION,
-                    appId: BOARD_APP_ID,
-                    createdAt: normalizeTimestamp(meta.createdAt) || now,
-                    updatedAt: now
-                },
-                board: {
-                    columns: normalizedColumns.map(col => ({ status: col.status, title: col.title })),
-                    tasks: normalizedTasks,
-                    settings: {
-                        title
-                    }
-                },
-                extensions: normalizeBoardExtensionsValue(input.extensions)
-            };
-        }
 
         async function writeJsonToFileHandle(fileHandle, data) {
             const writable = await fileHandle.createWritable();
@@ -1646,10 +1609,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
             };
         }
 
-        function getBoardTimelineData(boardData) {
-            const timeline = getTimelineExtensionObject(boardData);
-            return timeline ? normalizeTimelineExtension(timeline) : null;
-        }
 
         function getTimelineSelectionIndex(boardId, timeline) {
             if (!boardId || !timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) return null;
@@ -3528,52 +3487,7 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
 
 
 
-        function createBoardStateSnapshot(boardData) {
-            const input = boardData && typeof boardData === 'object' ? boardData : {};
-            const meta = input.meta && typeof input.meta === 'object' ? input.meta : {};
-            const board = input.board && typeof input.board === 'object' ? input.board : {};
-            const settings = board.settings && typeof board.settings === 'object' ? board.settings : {};
-            const now = nowIso();
-            const roadmap = normalizeRoadmapExtension(input.extensions?.[ROADMAP_EXTENSION_KEY]);
-            const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
-            const normalizedTasks = Array.isArray(board.tasks)
-                ? board.tasks.map((task) => normalizeTask(task, {
-                    fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
-                    includeStatusChangedAt: false,
-                    roadmap
-                }))
-                : [];
-            const title = typeof settings.title === 'string' && settings.title.trim()
-                ? settings.title.trim()
-                : DEFAULT_BOARD_TITLE;
 
-            return {
-                meta: {
-                    schemaVersion: BOARD_SCHEMA_VERSION,
-                    appId: BOARD_APP_ID,
-                    createdAt: normalizeTimestamp(meta.createdAt) || now,
-                    updatedAt: normalizeTimestamp(meta.updatedAt) || normalizeTimestamp(meta.createdAt) || now
-                },
-                board: {
-                    columns: normalizedColumns.map((col) => ({ status: col.status, title: col.title })),
-                    tasks: normalizedTasks,
-                    settings: {
-                        title
-                    }
-                },
-                extensions: normalizeBoardExtensionsValue(input.extensions, { includeTimeline: false })
-            };
-        }
-
-        function captureTaskTimelineSnapshot(boardData, taskId) {
-            const task = findTaskInBoardData(boardData, taskId);
-            if (!task) return null;
-            return normalizeTask(task, {
-                fallbackAttachments: getTaskAttachments(boardData, taskId),
-                includeStatusChangedAt: false,
-                roadmap: getRoadmapExtension(boardData)
-            });
-        }
 
         function ensureBoardTimelineBaseline(boardData) {
             const timeline = getTimelineExtensionObject(boardData, { create: true });

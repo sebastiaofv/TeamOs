@@ -9,7 +9,9 @@ import {
   buildTaskTimelineEvent,
   normalizeTimelineEvent,
   applyTimelineEventToState,
-  normalizeTimelineExtension
+  normalizeTimelineExtension,
+  captureTaskTimelineSnapshot,
+  getBoardTimelineData
 } from '../../src/domain/timeline.js';
 import { TIMELINE_VERSION, ROADMAP_VERSION } from '../../src/domain/constants.js';
 
@@ -730,5 +732,99 @@ describe('getTimelineExtensionObject', () => {
     const tl = getTimelineExtensionObject(board);
     expect(tl).not.toBeNull();
     expect(tl.events).toEqual([]);
+  });
+});
+
+describe('captureTaskTimelineSnapshot', () => {
+  const boardWithTask = (taskOverrides = {}) => ({
+    board: {
+      tasks: [
+        { id: 1, title: 'Task One', status: 'backlog', ...taskOverrides }
+      ]
+    },
+    extensions: {}
+  });
+
+  it('returns null when the task is not found on the board', () => {
+    expect(captureTaskTimelineSnapshot(boardWithTask(), 999)).toBeNull();
+  });
+
+  it('returns null when boardData itself has no tasks list', () => {
+    expect(captureTaskTimelineSnapshot({}, 1)).toBeNull();
+  });
+
+  it('returns a normalized snapshot of the task when found', () => {
+    const snapshot = captureTaskTimelineSnapshot(boardWithTask({ priority: 'URGENT' }), 1);
+    expect(snapshot).not.toBeNull();
+    expect(snapshot.id).toBe(1);
+    expect(snapshot.title).toBe('Task One');
+    // normalizePriority drops an unrecognized value to null.
+    expect(snapshot.priority).toBeNull();
+  });
+
+  it('omits statusChangedAt, since it is captured with includeStatusChangedAt: false', () => {
+    const snapshot = captureTaskTimelineSnapshot(boardWithTask({ statusChangedAt: '2026-01-01T00:00:00.000Z' }), 1);
+    expect('statusChangedAt' in snapshot).toBe(false);
+  });
+
+  it('falls back to getTaskAttachments when the task has no attachments array of its own', () => {
+    const board = boardWithTask();
+    board.extensions = {
+      teamOsKanban: {
+        taskAttachments: { 'task:1': [{ id: 'legacy-1', name: 'legacy.png', dataUrl: 'data:image/png;base64,AA==', sizeBytes: 2 }] }
+      }
+    };
+    const snapshot = captureTaskTimelineSnapshot(board, 1);
+    expect(snapshot.attachments).toHaveLength(1);
+    expect(snapshot.attachments[0].id).toBe('legacy-1');
+  });
+
+  it('resolves roadmap task refs against the board roadmap extension, dropping refs that do not exist', () => {
+    const board = boardWithTask({ milestoneId: 'does-not-exist' });
+    board.extensions = { roadmap: { version: 1, milestones: [], phases: [], sprints: [] } };
+    const snapshot = captureTaskTimelineSnapshot(board, 1);
+    expect(snapshot.milestoneId).toBe('');
+  });
+});
+
+describe('getBoardTimelineData', () => {
+  it('returns null when boardData has no extensions object', () => {
+    expect(getBoardTimelineData({})).toBeNull();
+  });
+
+  it('returns null when boardData is null/undefined', () => {
+    expect(getBoardTimelineData(null)).toBeNull();
+    expect(getBoardTimelineData(undefined)).toBeNull();
+  });
+
+  it('returns null when extensions exists but has no timeline key', () => {
+    expect(getBoardTimelineData({ extensions: {} })).toBeNull();
+  });
+
+  it('returns null when the timeline extension present fails normalization', () => {
+    expect(getBoardTimelineData({ extensions: { timeline: 'garbage' } })).toBeNull();
+  });
+
+  it('returns the normalized timeline extension when present and valid', () => {
+    const board = {
+      extensions: {
+        timeline: {
+          version: TIMELINE_VERSION,
+          baselineEventId: 'evt_1',
+          events: [{
+            id: 'evt_1',
+            at: '2026-01-01T00:00:00.000Z',
+            kind: 'board.baseline',
+            entityType: 'board',
+            entityId: 'board',
+            summary: 'Baseline snapshot created'
+          }]
+        }
+      }
+    };
+    const timeline = getBoardTimelineData(board);
+    expect(timeline).not.toBeNull();
+    expect(timeline.events).toHaveLength(1);
+    expect(timeline.events[0].id).toBe('evt_1');
   });
 });

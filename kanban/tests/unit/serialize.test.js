@@ -5,8 +5,12 @@ import {
   cloneSerializable,
   getBoardExtensionsObject,
   hashTextContent,
-  getTeamOsExtensionsObject
+  getTeamOsExtensionsObject,
+  createBoardStateSnapshot,
+  serializeBoardDataFromObject
 } from '../../src/domain/serialize.js';
+import { validateBoardData } from '../../src/domain/board.js';
+import { BOARD_SCHEMA_VERSION, BOARD_APP_ID, DEFAULT_BOARD_TITLE } from '../../src/domain/constants.js';
 
 describe('cloneSerializable', () => {
   it('returns undefined for undefined (special-cased ahead of the JSON round-trip)', () => {
@@ -222,5 +226,162 @@ describe('normalizeBoardExtensionsValue', () => {
 
   it('preserves unrelated extension keys', () => {
     expect(normalizeBoardExtensionsValue({ somethingElse: { a: 1 } }).somethingElse).toEqual({ a: 1 });
+  });
+});
+
+// Minimal well-formed input accepted by serializeBoardDataFromObject /
+// createBoardStateSnapshot: an already-parsed *.board.json-shaped object.
+const rawBoardInput = () => ({
+  meta: {
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-02T00:00:00.000Z'
+  },
+  board: {
+    columns: [
+      { status: 'backlog', title: 'backlog' },
+      { status: 'to-do', title: 'to-do' }
+    ],
+    tasks: [
+      {
+        id: 1,
+        title: 'Task One',
+        status: 'backlog',
+        priority: 'URGENT', // invalid -> normalizePriority should drop it to null
+        tags: ['Dup', 'dup', 42, 'ok'],
+        checklist: [{ text: 'step', done: true }, { text: '  ', done: false }]
+      }
+    ],
+    settings: { title: 'My Board' }
+  },
+  extensions: {}
+});
+
+describe('serializeBoardDataFromObject', () => {
+  it('produces output that passes validateBoardData', () => {
+    expect(() => validateBoardData(serializeBoardDataFromObject(rawBoardInput()))).not.toThrow();
+  });
+
+  it('stamps meta.schemaVersion and meta.appId', () => {
+    const out = serializeBoardDataFromObject(rawBoardInput());
+    expect(out.meta.schemaVersion).toBe(BOARD_SCHEMA_VERSION);
+    expect(out.meta.schemaVersion).toBe(1);
+    expect(out.meta.appId).toBe(BOARD_APP_ID);
+    expect(out.meta.appId).toBe('teamos-kanban');
+  });
+
+  it('always stamps meta.updatedAt to now, regardless of input meta.updatedAt', () => {
+    const out = serializeBoardDataFromObject(rawBoardInput());
+    // "now" per nowIso() at call time - assert it's a valid, recent timestamp
+    // rather than exactly equal to Date.now() (avoids flakiness).
+    const ageMs = Date.now() - new Date(out.meta.updatedAt).getTime();
+    expect(ageMs).toBeGreaterThanOrEqual(0);
+    expect(ageMs).toBeLessThan(5000);
+    expect(out.meta.updatedAt).not.toBe('2026-01-02T00:00:00.000Z');
+  });
+
+  it('normalizes tasks on the way out: invalid priority, deduped/lowercased tags, blank checklist entry dropped', () => {
+    const out = serializeBoardDataFromObject(rawBoardInput());
+    const task = out.board.tasks[0];
+    expect(task.priority).toBeNull();
+    expect(task.tags).toEqual(['dup', 'ok']);
+    expect(task.checklist).toEqual([{ text: 'step', done: true }]);
+    // includeStatusChangedAt: false -> the key must not appear at all.
+    expect('statusChangedAt' in task).toBe(false);
+  });
+
+  it('falls back to DEFAULT_BOARD_TITLE when board.settings.title is missing or blank', () => {
+    const input = rawBoardInput();
+    input.board.settings.title = '   ';
+    const out = serializeBoardDataFromObject(input);
+    expect(out.board.settings.title).toBe(DEFAULT_BOARD_TITLE);
+
+    delete input.board.settings.title;
+    const out2 = serializeBoardDataFromObject(input);
+    expect(out2.board.settings.title).toBe(DEFAULT_BOARD_TITLE);
+  });
+
+  it('cleans legacy per-task attachment storage out of extensions', () => {
+    const input = rawBoardInput();
+    input.extensions = {
+      teamOsKanban: {
+        taskAttachments: { 1: [{ id: 'a1', name: 'file.png' }] }
+      }
+    };
+    const out = serializeBoardDataFromObject(input);
+    expect(out.extensions.teamOsKanban).toBeUndefined();
+  });
+
+  it('round-trips: serializing an already-serialized board still validates', () => {
+    const once = serializeBoardDataFromObject(rawBoardInput());
+    const twice = serializeBoardDataFromObject(once);
+    expect(() => validateBoardData(twice)).not.toThrow();
+  });
+
+  it('falls back to defaultColumns when board.columns is not an array', () => {
+    const input = rawBoardInput();
+    input.board.columns = null;
+    const out = serializeBoardDataFromObject(input);
+    expect(out.board.columns.map((c) => c.status)).toEqual(['backlog', 'to-do', 'doing', 'done']);
+  });
+
+  it('tolerates entirely absent boardData', () => {
+    expect(() => validateBoardData(serializeBoardDataFromObject(undefined))).not.toThrow();
+  });
+});
+
+describe('createBoardStateSnapshot', () => {
+  it('produces output that passes validateBoardData', () => {
+    expect(() => validateBoardData(createBoardStateSnapshot(rawBoardInput()))).not.toThrow();
+  });
+
+  it('stamps meta.schemaVersion and meta.appId', () => {
+    const out = createBoardStateSnapshot(rawBoardInput());
+    expect(out.meta.schemaVersion).toBe(1);
+    expect(out.meta.appId).toBe('teamos-kanban');
+  });
+
+  it('prefers meta.updatedAt from the input over "now" (unlike serializeBoardDataFromObject)', () => {
+    const out = createBoardStateSnapshot(rawBoardInput());
+    expect(out.meta.updatedAt).toBe('2026-01-02T00:00:00.000Z');
+  });
+
+  it('falls back updatedAt to createdAt, then to now, when meta.updatedAt is missing', () => {
+    const input = rawBoardInput();
+    delete input.meta.updatedAt;
+    const out = createBoardStateSnapshot(input);
+    expect(out.meta.updatedAt).toBe('2026-01-01T00:00:00.000Z');
+
+    delete input.meta.createdAt;
+    const out2 = createBoardStateSnapshot(input);
+    const ageMs = Date.now() - new Date(out2.meta.updatedAt).getTime();
+    expect(ageMs).toBeGreaterThanOrEqual(0);
+    expect(ageMs).toBeLessThan(5000);
+  });
+
+  it('normalizes tasks on the way out, same as serializeBoardDataFromObject', () => {
+    const out = createBoardStateSnapshot(rawBoardInput());
+    expect(out.board.tasks[0].priority).toBeNull();
+    expect(out.board.tasks[0].tags).toEqual(['dup', 'ok']);
+  });
+
+  it('falls back to DEFAULT_BOARD_TITLE when board.settings.title is missing', () => {
+    const input = rawBoardInput();
+    delete input.board.settings.title;
+    expect(createBoardStateSnapshot(input).board.settings.title).toBe(DEFAULT_BOARD_TITLE);
+  });
+
+  it('strips the timeline extension (includeTimeline: false) but keeps a valid roadmap extension', () => {
+    const input = rawBoardInput();
+    input.extensions = {
+      timeline: { version: 1, baselineEventId: '', events: [] },
+      roadmap: { version: 1, milestones: [], phases: [], sprints: [] }
+    };
+    const out = createBoardStateSnapshot(input);
+    expect('timeline' in out.extensions).toBe(false);
+    expect(out.extensions.roadmap).toEqual({ version: 1, milestones: [], phases: [], sprints: [] });
+  });
+
+  it('tolerates entirely absent boardData', () => {
+    expect(() => validateBoardData(createBoardStateSnapshot(undefined))).not.toThrow();
   });
 });
