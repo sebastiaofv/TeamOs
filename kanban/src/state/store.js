@@ -76,3 +76,9 @@ export const appState = {
     projectWatchRunning: false,
     projectWatchListenersBound: false,
 };
+
+// Selectors -- derived reads over the state above.
+
+export function getPortfolioBoardRecord(boardId) {
+    return appState.portfolioBoards.find(board => board.id === boardId) || null;
+}

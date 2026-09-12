@@ -10,7 +10,10 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, bu
 import { createProjectSaveState } from '../domain/persistence.js';
 import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore, formatTaskScore } from '../domain/scoring.js';
 import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
-import { appState } from '../state/store.js';
+import { appState, getPortfolioBoardRecord } from '../state/store.js';
+import { Logger } from '../logger.js';
+import { BoardRepository } from '../persistence/boardRepository.js';
+import { setPersistenceHost, getProjectSaveState, getProjectFileState, setProjectWatchStatus, clearProjectWatchStatus, syncProjectSaveStates, refreshProjectFileBaseline, primeProjectFileBaselines, checkProjectFileForExternalChanges, checkProjectFilesNow, stopProjectFileWatcher, savePortfolioBoardRecord, runQueuedProjectSave, enqueueProjectSave, retryProjectSave, createPortfolioRecord, resolveExternalChangeConflict, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -23,18 +26,7 @@ import { appState } from '../state/store.js';
             CALENDAR_WEEKDAY_NAMES, defaultColumns
         } from '../domain/constants.js';
         const Refs = {};
-        const Logger = {
-            debug(...args) {
-                if (!DEBUG_LOGS_ENABLED) return;
-                console.debug('[TeamOS Kanban]', ...args);
-            },
-            warn(...args) {
-                console.warn('[TeamOS Kanban]', ...args);
-            },
-            error(...args) {
-                console.error('[TeamOS Kanban]', ...args);
-            }
-        };
+
 
         function readQueryParam(key, fallback = '') {
             const params = new URLSearchParams(window.location.search);
@@ -871,9 +863,6 @@ import { appState } from '../state/store.js';
 
 
 
-        function getPortfolioBoardRecord(boardId) {
-            return appState.portfolioBoards.find(board => board.id === boardId) || null;
-        }
 
         function getPortfolioBulkSelection(boardId) {
             return Array.isArray(appState.portfolioBulkSelectionByBoardId[boardId]) ? appState.portfolioBulkSelectionByBoardId[boardId] : [];
@@ -939,67 +928,10 @@ import { appState } from '../state/store.js';
         }
 
 
-        function getProjectSaveState(boardId, options = {}) {
-            if (!boardId) return null;
-            const createIfMissing = options.create !== false;
-            let state = appState.projectSaveStateById.get(boardId) || null;
-            if (!state && createIfMissing) {
-                state = createProjectSaveState();
-                appState.projectSaveStateById.set(boardId, state);
-            }
-            return state;
-        }
 
-        function getProjectFileState(boardId, options = {}) {
-            if (!boardId) return null;
-            const createIfMissing = options.create !== false;
-            let state = appState.projectFileStateById.get(boardId) || null;
-            if (!state && createIfMissing) {
-                state = {
-                    lastModified: 0,
-                    size: 0,
-                    lastTextHash: '',
-                    checking: false,
-                    suppressedUntilMs: 0
-                };
-                appState.projectFileStateById.set(boardId, state);
-            }
-            return state;
-        }
 
-        function setProjectWatchStatus(boardId, status = 'idle', message = '', options = {}) {
-            const state = getProjectSaveState(boardId, { create: false });
-            if (!state) return;
-            state.watchStatus = status || 'idle';
-            state.watchMessage = message || '';
-            state.watchStatusUntil = Number(options.untilMs) > 0 ? Number(options.untilMs) : 0;
-            if (options.render !== false) {
-                renderPortfolioBoardChips();
-            }
-        }
 
-        function clearProjectWatchStatus(boardId, options = {}) {
-            setProjectWatchStatus(boardId, 'idle', '', options);
-        }
 
-        function syncProjectSaveStates() {
-            const activeIds = new Set();
-            appState.portfolioBoards.forEach((board) => {
-                if (!board || !board.id) return;
-                activeIds.add(board.id);
-                getProjectSaveState(board.id);
-            });
-            Array.from(appState.projectSaveStateById.keys()).forEach((boardId) => {
-                if (!activeIds.has(boardId)) {
-                    appState.projectSaveStateById.delete(boardId);
-                }
-            });
-            Array.from(appState.projectFileStateById.keys()).forEach((boardId) => {
-                if (!activeIds.has(boardId)) {
-                    appState.projectFileStateById.delete(boardId);
-                }
-            });
-        }
 
         function markProjectDirty(boardId) {
             const state = getProjectSaveState(boardId);
@@ -1018,10 +950,6 @@ import { appState } from '../state/store.js';
             return state;
         }
 
-        function projectHasUnsavedChanges(boardId) {
-            const state = getProjectSaveState(boardId, { create: false });
-            return Boolean(state && state.revision > state.savedRevision);
-        }
 
         function getProjectChipSaveUiState(boardId) {
             const state = getProjectSaveState(boardId, { create: false });
@@ -1112,127 +1040,9 @@ import { appState } from '../state/store.js';
 
 
 
-        const BoardRepository = {
-            serialize(boardData) {
-                return serializeBoardDataFromObject(boardData);
-            },
-            validate(boardData) {
-                validateBoardData(boardData);
-            },
-            async readHandleFileMeta(handle) {
-                if (!handle || typeof handle.getFile !== 'function') {
-                    throw new Error('Project file handle is not readable.');
-                }
-                const file = await handle.getFile();
-                return {
-                    file,
-                    lastModified: Number(file?.lastModified) || 0,
-                    size: Number(file?.size) || 0
-                };
-            },
-            async readFileSnapshot(file) {
-                const text = await file.text();
-                const parsed = JSON.parse(text);
-                this.validate(parsed);
-                return {
-                    parsed,
-                    fileMeta: {
-                        lastModified: Number(file?.lastModified) || 0,
-                        size: Number(file?.size) || 0,
-                        textHash: hashTextContent(text)
-                    }
-                };
-            },
-            async readHandleSnapshot(handle) {
-                const { file } = await this.readHandleFileMeta(handle);
-                return this.readFileSnapshot(file);
-            },
-            async saveRecord(boardRecord) {
-                if (!boardRecord || !boardRecord.handle) return false;
-                const payload = this.serialize(boardRecord.data);
-                await writeJsonToFileHandle(boardRecord.handle, payload);
-                return true;
-            },
-            async createRecordFromFile({ file, handle = null }) {
-                assertRequiredExtension(file?.name || '', BOARD_FILE_EXTENSION, 'Project file');
-                const parsed = JSON.parse(await file.text());
-                this.validate(parsed);
-                return createPortfolioRecord({
-                    handle,
-                    fileName: file.name,
-                    data: parsed
-                });
-            },
-            async createRecordFromHandle(handle) {
-                const file = await handle.getFile();
-                return this.createRecordFromFile({ file, handle });
-            },
-            async importFromHandles(handles) {
-                const loaded = [];
-                const errors = [];
-                for (const handle of handles) {
-                    try {
-                        loaded.push(await this.createRecordFromHandle(handle));
-                    } catch (error) {
-                        errors.push(`${handle.name || 'Unknown file'}: ${formatErrorMessage(error)}`);
-                    }
-                }
-                return { loaded, errors };
-            },
-            async importFromLooseFiles(files) {
-                const loaded = [];
-                const errors = [];
-                for (const file of files) {
-                    try {
-                        loaded.push(await this.createRecordFromFile({ file, handle: null }));
-                    } catch (error) {
-                        errors.push(`${file.name || 'Unknown file'}: ${formatErrorMessage(error)}`);
-                    }
-                }
-                return { loaded, errors };
-            }
-        };
 
-        async function refreshProjectFileBaseline(boardRecord, options = {}) {
-            if (!boardRecord || !boardRecord.id || !boardRecord.handle) return null;
-            const boardId = boardRecord.id;
-            const state = getProjectFileState(boardId);
-            if (!state) return null;
-            if (state.checking && options.force !== true) return null;
-            state.checking = true;
-            try {
-                const snapshot = await BoardRepository.readHandleSnapshot(boardRecord.handle);
-                state.lastModified = snapshot.fileMeta.lastModified;
-                state.size = snapshot.fileMeta.size;
-                state.lastTextHash = snapshot.fileMeta.textHash;
-                if (options.resetSuppress !== false) {
-                    state.suppressedUntilMs = 0;
-                }
-                if (options.clearWatchError !== false) {
-                    clearProjectWatchStatus(boardId, { render: false });
-                }
-                return snapshot;
-            } catch (error) {
-                if (options.markError !== false) {
-                    setProjectWatchStatus(
-                        boardId,
-                        'watch-error',
-                        `Could not watch file: ${formatErrorMessage(error, 'Read failed.')}`
-                    );
-                }
-                return null;
-            } finally {
-                state.checking = false;
-            }
-        }
 
-        async function primeProjectFileBaselines(records) {
-            const list = Array.isArray(records) ? records : [];
-            for (const boardRecord of list) {
-                if (!boardRecord || !boardRecord.handle) continue;
-                await refreshProjectFileBaseline(boardRecord, { markError: true, clearWatchError: true });
-            }
-        }
+
 
         function applySnapshotToBoardRecord(boardRecord, parsed, options = {}) {
             if (!boardRecord || !parsed) return false;
@@ -1255,148 +1065,9 @@ import { appState } from '../state/store.js';
             return true;
         }
 
-        async function resolveExternalChangeConflict(boardRecord, snapshot, fileState) {
-            const boardId = boardRecord.id;
-            setProjectWatchStatus(
-                boardId,
-                'conflict',
-                'External file updates detected while this project has unsaved local edits.'
-            );
 
-            const answer = window.prompt(
-                'Project file changed on disk while this app has unsaved edits.\n' +
-                'Type "local" to keep local edits and save.\n' +
-                'Type "reload" to reload from disk and discard unsaved edits.',
-                'local'
-            );
 
-            if (answer === null) {
-                fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
-                return false;
-            }
 
-            const choice = String(answer).trim().toLowerCase();
-            if (choice === 'reload' || choice === 'r') {
-                applySnapshotToBoardRecord(boardRecord, snapshot.parsed, { discardLocalChanges: true });
-                setProjectWatchStatus(
-                    boardId,
-                    'external',
-                    'Reloaded from disk after conflict.',
-                    { untilMs: Date.now() + PROJECT_FILE_EXTERNAL_BADGE_MS }
-                );
-                return true;
-            }
-
-            if (choice === 'local' || choice === 'l' || choice === 'keep') {
-                const saved = await enqueueProjectSave(boardRecord);
-                if (!saved) {
-                    fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
-                    setProjectWatchStatus(
-                        boardId,
-                        'conflict',
-                        'Conflict persists because local save failed. Fix save issues and retry.'
-                    );
-                    return false;
-                }
-                await refreshProjectFileBaseline(boardRecord, { markError: true, clearWatchError: true, force: true });
-                clearProjectWatchStatus(boardId);
-                return true;
-            }
-
-            fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
-            setProjectWatchStatus(
-                boardId,
-                'conflict',
-                'Conflict unresolved. Type "local" or "reload" when prompted again.'
-            );
-            return false;
-        }
-
-        async function checkProjectFileForExternalChanges(boardRecord) {
-            if (!boardRecord || !boardRecord.id || !boardRecord.handle) return false;
-            const boardId = boardRecord.id;
-            const saveState = getProjectSaveState(boardId, { create: false });
-            if (saveState?.inFlight) return false;
-            const fileState = getProjectFileState(boardId);
-            if (!fileState || fileState.checking) return false;
-
-            fileState.checking = true;
-            try {
-                const { file, lastModified, size } = await BoardRepository.readHandleFileMeta(boardRecord.handle);
-                const hasBaseline = Boolean(fileState.lastTextHash);
-                const metaUnchanged = hasBaseline && fileState.lastModified === lastModified && fileState.size === size;
-                if (metaUnchanged) {
-                    return false;
-                }
-
-                const snapshot = await BoardRepository.readFileSnapshot(file);
-                const previousHash = fileState.lastTextHash;
-                fileState.lastModified = snapshot.fileMeta.lastModified;
-                fileState.size = snapshot.fileMeta.size;
-                fileState.lastTextHash = snapshot.fileMeta.textHash;
-
-                if (!previousHash) {
-                    clearProjectWatchStatus(boardId, { render: false });
-                    return false;
-                }
-
-                if (previousHash === snapshot.fileMeta.textHash) {
-                    clearProjectWatchStatus(boardId, { render: false });
-                    return false;
-                }
-
-                if (projectHasUnsavedChanges(boardId)) {
-                    if (fileState.suppressedUntilMs > Date.now()) {
-                        setProjectWatchStatus(
-                            boardId,
-                            'conflict',
-                            'External and local changes both exist. Resolve conflict to continue.'
-                        );
-                        return true;
-                    }
-                    return resolveExternalChangeConflict(boardRecord, snapshot, fileState);
-                }
-
-                applySnapshotToBoardRecord(boardRecord, snapshot.parsed);
-                setProjectWatchStatus(
-                    boardId,
-                    'external',
-                    'Project reloaded from disk.',
-                    { untilMs: Date.now() + PROJECT_FILE_EXTERNAL_BADGE_MS }
-                );
-                return true;
-            } catch (error) {
-                setProjectWatchStatus(
-                    boardId,
-                    'watch-error',
-                    `Could not watch file: ${formatErrorMessage(error, 'Read failed.')}`
-                );
-                return false;
-            } finally {
-                fileState.checking = false;
-            }
-        }
-
-        async function checkProjectFilesNow() {
-            if (appState.projectWatchRunning) return false;
-            appState.projectWatchRunning = true;
-            try {
-                const boards = appState.portfolioBoards.filter(board => board && board.handle);
-                for (const board of boards) {
-                    await checkProjectFileForExternalChanges(board);
-                }
-                return true;
-            } finally {
-                appState.projectWatchRunning = false;
-            }
-        }
-
-        function stopProjectFileWatcher() {
-            if (appState.projectWatchTimerId) {
-                clearInterval(appState.projectWatchTimerId);
-                appState.projectWatchTimerId = null;
-            }
-        }
 
         function startProjectFileWatcher() {
             stopProjectFileWatcher();
@@ -1407,82 +1078,9 @@ import { appState } from '../state/store.js';
             void checkProjectFilesNow();
         }
 
-        async function savePortfolioBoardRecord(boardRecord) {
-            return BoardRepository.saveRecord(boardRecord);
-        }
 
-        async function runQueuedProjectSave(boardRecord) {
-            if (!boardRecord || !boardRecord.id || !boardRecord.handle) return false;
-            const state = getProjectSaveState(boardRecord.id);
-            if (!state) return false;
-            if (state.inFlight) return state.inFlight;
 
-            state.inFlight = (async () => {
-                while (projectHasUnsavedChanges(boardRecord.id)) {
-                    const targetRevision = state.revision;
-                    state.status = 'saving';
-                    state.lastErrorMessage = '';
-                    renderPortfolioBoardChips();
-                    try {
-                        await savePortfolioBoardRecord(boardRecord);
-                        await refreshProjectFileBaseline(boardRecord, {
-                            markError: false,
-                            clearWatchError: true,
-                            force: true
-                        });
-                        clearProjectWatchStatus(boardRecord.id, { render: false });
-                    } catch (error) {
-                        Logger.error('Project autosave failed', { boardId: boardRecord.id, error });
-                        state.status = 'error';
-                        state.lastErrorMessage = formatErrorMessage(error, 'Save failed.');
-                        renderPortfolioBoardChips();
-                        return false;
-                    }
 
-                    state.savedRevision = Math.max(state.savedRevision, targetRevision);
-                    state.lastSavedAt = nowIso();
-                    state.queued = state.revision > state.savedRevision;
-                }
-
-                state.status = 'idle';
-                state.queued = false;
-                state.lastErrorMessage = '';
-                renderPortfolioBoardChips();
-                return true;
-            })();
-
-            try {
-                return await state.inFlight;
-            } finally {
-                state.inFlight = null;
-                if (state.status !== 'error' && projectHasUnsavedChanges(boardRecord.id)) {
-                    state.status = 'dirty';
-                }
-                renderPortfolioBoardChips();
-            }
-        }
-
-        async function enqueueProjectSave(boardRecord) {
-            if (!boardRecord || !boardRecord.handle) return false;
-            const state = getProjectSaveState(boardRecord.id);
-            if (!state) return false;
-            if (state.inFlight) {
-                state.queued = true;
-                renderPortfolioBoardChips();
-                return state.inFlight;
-            }
-            return runQueuedProjectSave(boardRecord);
-        }
-
-        function retryProjectSave(boardId) {
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            if (!boardRecord || !boardRecord.handle) return false;
-            const state = getProjectSaveState(boardId);
-            if (!state) return false;
-            if (!projectHasUnsavedChanges(boardId) && state.status !== 'error') return false;
-            enqueueProjectSave(boardRecord);
-            return true;
-        }
 
 
 
@@ -1555,17 +1153,6 @@ import { appState } from '../state/store.js';
 
 
 
-        function createPortfolioRecord({ handle = null, fileName = '', data }) {
-            const payload = serializeBoardDataFromObject(data);
-            return {
-                id: nextPortfolioProjectId(),
-                colorSeed: appState.nextPortfolioProjectColorSeed++,
-                handle,
-                fileName,
-                title: payload.board.settings.title,
-                data: payload
-            };
-        }
 
 
         function getTimelineSelectionIndex(boardId, timeline) {
@@ -5420,6 +5007,13 @@ import { appState } from '../state/store.js';
                 renderPortfolio();
             });
         }
+
+        // Persistence calls back into the UI through these two seams; see
+        // src/persistence/projectFiles.js.
+        setPersistenceHost({
+            onStatusChanged: renderPortfolioBoardChips,
+            applySnapshot: applySnapshotToBoardRecord
+        });
 
         cacheRefs();
         bindStaticUiEvents();
