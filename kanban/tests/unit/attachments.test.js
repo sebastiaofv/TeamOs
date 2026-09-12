@@ -5,8 +5,15 @@ import {
   classifyAttachmentKind,
   createAttachmentId,
   estimateAttachmentDataUrlSizeBytes,
+  normalizeAttachmentRecord,
   stripLegacyTaskAttachmentsFromExtensions
 } from '../../src/domain/attachments.js';
+import { ATTACHMENT_HARD_MAX_BYTES } from '../../src/domain/constants.js';
+
+// A valid data: URL whose base64 payload decodes to the 5-byte string
+// "Hello" (estimateAttachmentDataUrlSizeBytes computes 5 for it, verified
+// against estimateAttachmentDataUrlSizeBytes's own test coverage below).
+const HELLO_DATA_URL = 'data:text/plain;base64,SGVsbG8=';
 
 describe('attachmentDuplicateKey', () => {
   it('builds a key from lowercased name, lowercased mime, and rounded size', () => {
@@ -184,5 +191,104 @@ describe('stripLegacyTaskAttachmentsFromExtensions', () => {
 
     expect(result).toEqual({ roadmap: {} });
     expect(Object.prototype.hasOwnProperty.call(result, 'teamOsKanban')).toBe(false);
+  });
+});
+
+describe('normalizeAttachmentRecord', () => {
+  it('returns null for non-object input', () => {
+    expect(normalizeAttachmentRecord(null)).toBeNull();
+    expect(normalizeAttachmentRecord(undefined)).toBeNull();
+    expect(normalizeAttachmentRecord('a string')).toBeNull();
+    expect(normalizeAttachmentRecord(42)).toBeNull();
+  });
+
+  it('returns null for an array, even though typeof is object', () => {
+    expect(normalizeAttachmentRecord([])).toBeNull();
+  });
+
+  it('returns null when dataUrl is missing or not a data: URL', () => {
+    expect(normalizeAttachmentRecord({})).toBeNull();
+    expect(normalizeAttachmentRecord({ dataUrl: 'https://example.com/a.png' })).toBeNull();
+    expect(normalizeAttachmentRecord({ dataUrl: 42 })).toBeNull();
+  });
+
+  it('defaults name to "Attachment" when missing or blank', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL }).name).toBe('Attachment');
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, name: '   ' }).name).toBe('Attachment');
+  });
+
+  it('trims a provided name', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, name: '  photo.png  ' }).name).toBe('photo.png');
+  });
+
+  it('defaults mime to an empty string when missing or not a string', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL }).mime).toBe('');
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, mime: 7 }).mime).toBe('');
+  });
+
+  it('uses a valid, non-negative sizeBytes as-is (rounded)', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, sizeBytes: 1024.6 }).sizeBytes).toBe(1025);
+  });
+
+  it('falls back to estimateAttachmentDataUrlSizeBytes when sizeBytes is missing, negative, or non-finite', () => {
+    const estimated = estimateAttachmentDataUrlSizeBytes(HELLO_DATA_URL);
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL }).sizeBytes).toBe(estimated);
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, sizeBytes: -5 }).sizeBytes).toBe(estimated);
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, sizeBytes: NaN }).sizeBytes).toBe(estimated);
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, sizeBytes: 'not-a-number' }).sizeBytes).toBe(estimated);
+  });
+
+  // normalizeAttachmentRecord does not enforce ATTACHMENT_HARD_MAX_BYTES at
+  // all -- that limit is only checked at the call sites that accept new
+  // attachments (file-drop handling and task-draft validation in
+  // src/legacy/main.js), not inside normalization itself. A record already
+  // carrying an oversized sizeBytes is passed through unchanged.
+  it('does not clamp or reject a sizeBytes that exceeds ATTACHMENT_HARD_MAX_BYTES', () => {
+    const oversized = ATTACHMENT_HARD_MAX_BYTES + 1000;
+    const result = normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, sizeBytes: oversized });
+    expect(result.sizeBytes).toBe(oversized);
+  });
+
+  it('keeps an explicit kind of "image" or "file" as-is', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, kind: 'image', mime: 'application/pdf' }).kind).toBe('image');
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, kind: 'file', mime: 'image/png' }).kind).toBe('file');
+  });
+
+  it('derives kind via classifyAttachmentKind when kind is absent or not one of the two accepted values', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, mime: 'image/png' }).kind).toBe('image');
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, mime: 'text/plain' }).kind).toBe('file');
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, kind: 'bogus', mime: 'image/png' }).kind).toBe('image');
+  });
+
+  it('keeps a provided, trimmed id', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, id: '  keep-me  ' }).id).toBe('keep-me');
+  });
+
+  it('generates an id via createAttachmentId when id is missing or blank', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL }).id).toMatch(/^att_\d+_[a-z0-9]+$/);
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, id: '   ' }).id).toMatch(/^att_\d+_[a-z0-9]+$/);
+  });
+
+  it('keeps a valid createdAt timestamp as-is', () => {
+    const createdAt = '2024-03-01T00:00:00.000Z';
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, createdAt }).createdAt).toBe(createdAt);
+  });
+
+  it('falls back to nowIso() when createdAt is missing or unparseable', () => {
+    const before = Date.now();
+    const result = normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, createdAt: 'not-a-date' });
+    const after = Date.now();
+    expect(Number.isNaN(Date.parse(result.createdAt))).toBe(false);
+    const parsed = Date.parse(result.createdAt);
+    expect(parsed).toBeGreaterThanOrEqual(before);
+    expect(parsed).toBeLessThanOrEqual(after);
+  });
+
+  it('returns the full expected shape for a minimal valid record', () => {
+    const result = normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL });
+    expect(Object.keys(result).sort()).toEqual(
+      ['createdAt', 'dataUrl', 'id', 'kind', 'mime', 'name', 'sizeBytes'].sort()
+    );
+    expect(result.dataUrl).toBe(HELLO_DATA_URL);
   });
 });

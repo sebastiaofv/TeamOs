@@ -4,8 +4,10 @@ import {
   createEmptyRoadmapExtension,
   formatRoadmapAxisDate,
   formatRoadmapDateRange,
+  getRoadmapDatePosition,
   getRoadmapDayDiff,
   getRoadmapEntityConfig,
+  getRoadmapItemDateBounds,
   normalizeRoadmapDate,
   normalizeRoadmapRef,
   parseRoadmapIsoDate,
@@ -254,5 +256,124 @@ describe('slugifyRoadmapEntityId', () => {
     // skipped -- only object entries lacking an `id` are tolerated.
     expect(slugifyRoadmapEntityId('Task', [{ notId: 'x' }])).toBe('task');
     expect(slugifyRoadmapEntityId('Task', null)).toBe('task');
+  });
+});
+
+describe('getRoadmapItemDateBounds', () => {
+  it('returns null for non-object or nullish input', () => {
+    expect(getRoadmapItemDateBounds(null)).toBeNull();
+    expect(getRoadmapItemDateBounds(undefined)).toBeNull();
+    expect(getRoadmapItemDateBounds('2024-01-01')).toBeNull();
+  });
+
+  it('treats dueDate as a single-point bound (start === end)', () => {
+    const result = getRoadmapItemDateBounds({ dueDate: '2024-03-15' });
+    expect(result.start).toEqual(result.end);
+    expect(result.start.toISOString()).toBe('2024-03-15T00:00:00.000Z');
+  });
+
+  it('returns null when dueDate is present but not a valid ISO date', () => {
+    expect(getRoadmapItemDateBounds({ dueDate: 'not-a-date' })).toBeNull();
+    expect(getRoadmapItemDateBounds({ dueDate: '15/03/2024' })).toBeNull();
+  });
+
+  it('dueDate takes precedence over startDate/endDate when both are present', () => {
+    const result = getRoadmapItemDateBounds({
+      dueDate: '2024-03-15',
+      startDate: '2024-01-01',
+      endDate: '2024-12-31'
+    });
+    expect(result.start.toISOString()).toBe('2024-03-15T00:00:00.000Z');
+    expect(result.end.toISOString()).toBe('2024-03-15T00:00:00.000Z');
+  });
+
+  it('builds a range from startDate/endDate when already in order', () => {
+    const result = getRoadmapItemDateBounds({ startDate: '2024-03-01', endDate: '2024-03-10' });
+    expect(result.start.toISOString()).toBe('2024-03-01T00:00:00.000Z');
+    expect(result.end.toISOString()).toBe('2024-03-10T00:00:00.000Z');
+  });
+
+  it('swaps startDate/endDate when start is after end', () => {
+    const result = getRoadmapItemDateBounds({ startDate: '2024-03-10', endDate: '2024-03-01' });
+    expect(result.start.toISOString()).toBe('2024-03-01T00:00:00.000Z');
+    expect(result.end.toISOString()).toBe('2024-03-10T00:00:00.000Z');
+  });
+
+  it('returns a degenerate single-point range when startDate and endDate are equal', () => {
+    const result = getRoadmapItemDateBounds({ startDate: '2024-03-05', endDate: '2024-03-05' });
+    expect(result.start.toISOString()).toBe('2024-03-05T00:00:00.000Z');
+    expect(result.end.toISOString()).toBe('2024-03-05T00:00:00.000Z');
+  });
+
+  it('returns null when only one of startDate/endDate is present', () => {
+    expect(getRoadmapItemDateBounds({ startDate: '2024-03-01' })).toBeNull();
+    expect(getRoadmapItemDateBounds({ endDate: '2024-03-01' })).toBeNull();
+  });
+
+  it('returns null when startDate or endDate is not a valid ISO date', () => {
+    expect(getRoadmapItemDateBounds({ startDate: 'bogus', endDate: '2024-03-01' })).toBeNull();
+    expect(getRoadmapItemDateBounds({ startDate: '2024-03-01', endDate: 'bogus' })).toBeNull();
+  });
+
+  it('returns null when the item has neither dueDate nor a startDate/endDate pair', () => {
+    expect(getRoadmapItemDateBounds({})).toBeNull();
+    expect(getRoadmapItemDateBounds({ title: 'Untitled' })).toBeNull();
+  });
+});
+
+describe('getRoadmapDatePosition', () => {
+  const range = {
+    start: parseRoadmapIsoDate('2024-03-01'),
+    end: parseRoadmapIsoDate('2024-03-11')
+  };
+
+  it('returns 0 when date is not a Date instance', () => {
+    expect(getRoadmapDatePosition('2024-03-05', range)).toBe(0);
+    expect(getRoadmapDatePosition(null, range)).toBe(0);
+  });
+
+  it('returns 0 for an Invalid Date', () => {
+    expect(getRoadmapDatePosition(new Date('bogus'), range)).toBe(0);
+  });
+
+  it('returns 0 when range is missing start or end', () => {
+    expect(getRoadmapDatePosition(parseRoadmapIsoDate('2024-03-05'), {})).toBe(0);
+    expect(getRoadmapDatePosition(parseRoadmapIsoDate('2024-03-05'), { start: range.start })).toBe(0);
+    expect(getRoadmapDatePosition(parseRoadmapIsoDate('2024-03-05'), null)).toBe(0);
+  });
+
+  it('positions the range start at 0', () => {
+    expect(getRoadmapDatePosition(range.start, range)).toBe(0);
+  });
+
+  it('positions the range end at 100', () => {
+    expect(getRoadmapDatePosition(range.end, range)).toBe(100);
+  });
+
+  it('positions the midpoint at 50 (10-day span)', () => {
+    const mid = parseRoadmapIsoDate('2024-03-06');
+    expect(getRoadmapDatePosition(mid, range)).toBe(50);
+  });
+
+  it('clamps a date before range.start to position 0', () => {
+    const before = parseRoadmapIsoDate('2024-02-15');
+    expect(getRoadmapDatePosition(before, range)).toBe(0);
+  });
+
+  it('clamps a date after range.end to position 100', () => {
+    const after = parseRoadmapIsoDate('2024-04-01');
+    expect(getRoadmapDatePosition(after, range)).toBe(100);
+  });
+
+  it('uses an explicit range.totalDays instead of re-deriving it from start/end', () => {
+    const withExplicitTotal = { start: range.start, end: range.end, totalDays: 4 };
+    const twoIn = parseRoadmapIsoDate('2024-03-03');
+    // offsetDays = getRoadmapDayDiff(start, twoIn) = 2; totalDays = 4 -> 50%.
+    expect(getRoadmapDatePosition(twoIn, withExplicitTotal)).toBe(50);
+  });
+
+  it('treats a zero-day range (start === end) as a single-point range (totalDays floors at 1)', () => {
+    const singlePoint = { start: range.start, end: range.start };
+    expect(getRoadmapDatePosition(range.start, singlePoint)).toBe(0);
   });
 });

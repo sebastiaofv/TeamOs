@@ -1,6 +1,6 @@
-import { hasExactKeys } from './util.js';
+import { hasExactKeys, nowIso } from './util.js';
 import { resolveKnownTaskStatus } from './task.js';
-import { MAX_COLUMNS, defaultColumns } from './constants.js';
+import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, defaultColumns } from './constants.js';
 
 export function hasExtendedBoardSettings(settings) {
     return hasExactKeys(settings, ['title', 'sortMode', 'showArchivedOnly'])
@@ -92,4 +92,29 @@ export function createPortfolioProjectColor(seed, offset = 0) {
         border: `hsl(${hueValue} ${Math.max(50, saturation - 12)}% ${borderLightness}%)`,
         text: `hsl(${hueValue} ${Math.min(84, saturation + 8)}% ${textLightness}%)`
     };
+}
+
+export function createEmptyProjectData(title) {
+    const now = nowIso();
+    const projectTitle = (title || '').trim() || 'Untitled Project';
+    return {
+        meta: {
+            schemaVersion: BOARD_SCHEMA_VERSION,
+            appId: BOARD_APP_ID,
+            createdAt: now,
+            updatedAt: now
+        },
+        board: {
+            columns: normalizeColumns(defaultColumns).map(col => ({ status: col.status, title: col.title })),
+            tasks: [],
+            settings: {
+                title: projectTitle
+            }
+        },
+        extensions: {}
+    };
+}
+
+export function isAcceptedBoardSettingsShape(settings) {
+    return hasTitleOnlyBoardSettings(settings) || hasExtendedBoardSettings(settings);
 }

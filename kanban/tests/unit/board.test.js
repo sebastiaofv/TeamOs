@@ -1,8 +1,10 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import {
+  createEmptyProjectData,
   createPortfolioProjectColor,
   hasExtendedBoardSettings,
   hasTitleOnlyBoardSettings,
+  isAcceptedBoardSettingsShape,
   nextPortfolioProjectId,
   normalizeBoardArchiveFilter,
   normalizeColumns,
@@ -12,6 +14,39 @@ import {
   portfolioProjectColorKey,
   slugifyColumnName
 } from '../../src/domain/board.js';
+import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS } from '../../src/domain/constants.js';
+import { hasExactKeys } from '../../src/domain/util.js';
+
+// Mirrors the structural checks validateBoardData (src/legacy/main.js, not
+// yet extracted) performs on the parts of a project's shape that
+// createEmptyProjectData actually produces -- built from the same exported
+// primitives validateBoardData itself uses (hasExactKeys,
+// isAcceptedBoardSettingsShape) plus its own literal constants, so this
+// stays a faithful proxy for "would validateBoardData accept this" without
+// importing src/legacy/main.js (which has document/window side effects at
+// module scope and cannot run under vitest's node environment).
+function assertPassesBoardValidationShape(data) {
+  expect(hasExactKeys(data, ['meta', 'board', 'extensions'])).toBe(true);
+  expect(hasExactKeys(data.meta, ['schemaVersion', 'appId', 'createdAt', 'updatedAt'])).toBe(true);
+  expect(data.meta.schemaVersion).toBe(BOARD_SCHEMA_VERSION);
+  expect(data.meta.appId).toBe(BOARD_APP_ID);
+  expect(Number.isNaN(Date.parse(data.meta.createdAt))).toBe(false);
+  expect(Number.isNaN(Date.parse(data.meta.updatedAt))).toBe(false);
+  expect(hasExactKeys(data.board, ['columns', 'tasks', 'settings'])).toBe(true);
+  expect(Array.isArray(data.board.columns)).toBe(true);
+  expect(data.board.columns.length).toBeGreaterThan(0);
+  expect(data.board.columns.length).toBeLessThanOrEqual(MAX_COLUMNS);
+  const statuses = new Set();
+  data.board.columns.forEach((col) => {
+    expect(hasExactKeys(col, ['status', 'title'])).toBe(true);
+    expect(typeof col.status === 'string' && col.status.trim().length > 0).toBe(true);
+    expect(typeof col.title === 'string' && col.title.trim().length > 0).toBe(true);
+    expect(statuses.has(col.status)).toBe(false);
+    statuses.add(col.status);
+  });
+  expect(Array.isArray(data.board.tasks)).toBe(true);
+  expect(isAcceptedBoardSettingsShape(data.board.settings)).toBe(true);
+}
 
 describe('createPortfolioProjectColor', () => {
   it('is deterministic: the same seed and offset always produce the same color', () => {
@@ -279,5 +314,79 @@ describe('slugifyColumnName', () => {
 
   it('collapses consecutive separators into a single dash', () => {
     expect(slugifyColumnName('a   b')).toBe('a-b');
+  });
+});
+
+describe('createEmptyProjectData', () => {
+  it('produces a board that satisfies validateBoardData\'s structural checks', () => {
+    assertPassesBoardValidationShape(createEmptyProjectData('My Project'));
+    assertPassesBoardValidationShape(createEmptyProjectData(''));
+  });
+
+  it('sets meta.schemaVersion to 1 and meta.appId to teamos-kanban', () => {
+    const data = createEmptyProjectData('Title');
+    expect(data.meta.schemaVersion).toBe(1);
+    expect(data.meta.appId).toBe('teamos-kanban');
+  });
+
+  it('trims the given title into board.settings.title', () => {
+    expect(createEmptyProjectData('  My Project  ').board.settings.title).toBe('My Project');
+  });
+
+  it('defaults the title to "Untitled Project" when blank or missing', () => {
+    expect(createEmptyProjectData('').board.settings.title).toBe('Untitled Project');
+    expect(createEmptyProjectData('   ').board.settings.title).toBe('Untitled Project');
+    expect(createEmptyProjectData(undefined).board.settings.title).toBe('Untitled Project');
+  });
+
+  it('starts with no tasks and no extensions', () => {
+    const data = createEmptyProjectData('Title');
+    expect(data.board.tasks).toEqual([]);
+    expect(data.extensions).toEqual({});
+  });
+
+  it('sets createdAt and updatedAt to the same timestamp', () => {
+    const data = createEmptyProjectData('Title');
+    expect(data.meta.createdAt).toBe(data.meta.updatedAt);
+  });
+
+  it('derives board.columns from the default columns via normalizeColumns, keeping only status/title', () => {
+    const data = createEmptyProjectData('Title');
+    const expected = normalizeColumns(undefined).map((col) => ({ status: col.status, title: col.title }));
+    expect(data.board.columns).toEqual(expected);
+    expect(data.board.columns.every((col) => Object.keys(col).sort().join(',') === 'status,title')).toBe(true);
+  });
+});
+
+describe('isAcceptedBoardSettingsShape', () => {
+  it('accepts title-only settings', () => {
+    expect(isAcceptedBoardSettingsShape({ title: 'Board' })).toBe(true);
+  });
+
+  it('accepts extended settings without archiveFilter', () => {
+    expect(isAcceptedBoardSettingsShape({ title: 'Board', sortMode: 'manual', showArchivedOnly: false })).toBe(true);
+  });
+
+  it('accepts extended settings with archiveFilter', () => {
+    expect(isAcceptedBoardSettingsShape({
+      title: 'Board',
+      sortMode: 'manual',
+      showArchivedOnly: false,
+      archiveFilter: 'all'
+    })).toBe(true);
+  });
+
+  it('rejects settings missing the required title key', () => {
+    expect(isAcceptedBoardSettingsShape({ sortMode: 'manual', showArchivedOnly: false })).toBe(false);
+  });
+
+  it('rejects settings with an extra, unrecognized key', () => {
+    expect(isAcceptedBoardSettingsShape({ title: 'Board', extra: true })).toBe(false);
+  });
+
+  it('rejects non-object input', () => {
+    expect(isAcceptedBoardSettingsShape(null)).toBe(false);
+    expect(isAcceptedBoardSettingsShape(undefined)).toBe(false);
+    expect(isAcceptedBoardSettingsShape('title')).toBe(false);
   });
 });

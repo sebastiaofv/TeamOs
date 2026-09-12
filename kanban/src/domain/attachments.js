@@ -1,4 +1,5 @@
 import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY } from './constants.js';
+import { normalizeTimestamp, nowIso } from './util.js';
 
 export function attachmentDuplicateKey(input) {
     if (!input || typeof input !== 'object') return '';
@@ -64,4 +65,28 @@ export function stripLegacyTaskAttachmentsFromExtensions(extensionsValue) {
         nextExtensions[TEAMOS_EXTENSIONS_KEY] = nextTeamOs;
     }
     return nextExtensions;
+}
+
+export function normalizeAttachmentRecord(raw) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const dataUrl = typeof raw.dataUrl === 'string' && raw.dataUrl.startsWith('data:') ? raw.dataUrl : '';
+    if (!dataUrl) return null;
+    const name = typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Attachment';
+    const mime = typeof raw.mime === 'string' ? raw.mime.trim() : '';
+    const sizeCandidate = Number(raw.sizeBytes);
+    const sizeBytes = Number.isFinite(sizeCandidate) && sizeCandidate >= 0
+        ? Math.round(sizeCandidate)
+        : estimateAttachmentDataUrlSizeBytes(dataUrl);
+    const kind = raw.kind === 'image' || raw.kind === 'file'
+        ? raw.kind
+        : classifyAttachmentKind(mime, name);
+    return {
+        id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : createAttachmentId(),
+        name,
+        mime,
+        sizeBytes,
+        kind,
+        dataUrl,
+        createdAt: normalizeTimestamp(raw.createdAt) || nowIso()
+    };
 }

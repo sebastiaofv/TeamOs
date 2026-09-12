@@ -205,3 +205,36 @@ export function getPortfolioCalendarYearHeatStats(taskCounts, year) {
 export function todayLocalIsoDate() {
     return formatLocalIsoDate(new Date());
 }
+
+export function buildPortfolioCalendarRoadmapSpanStyle(item, options = {}) {
+    return buildPortfolioCalendarItemStyle(item, options);
+}
+
+export function comparePortfolioCalendarRoadmapItems(a, b) {
+    const aPriority = getPortfolioCalendarItemPriority(a);
+    const bPriority = getPortfolioCalendarItemPriority(b);
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    const aStart = a?.bounds?.start?.getTime?.() || 0;
+    const bStart = b?.bounds?.start?.getTime?.() || 0;
+    if (aStart !== bStart) return aStart - bStart;
+    const aEnd = a?.bounds?.end?.getTime?.() || 0;
+    const bEnd = b?.bounds?.end?.getTime?.() || 0;
+    if (aEnd !== bEnd) return bEnd - aEnd;
+    return compareText(a?.title || '', b?.title || '');
+}
+
+export function doesPortfolioCalendarItemIntersectMonth(item, year, month) {
+    const range = getPortfolioCalendarMonthRange(year, month);
+    const bounds = item?.bounds;
+    if (!bounds) return false;
+    return bounds.start <= range.end && bounds.end >= range.start;
+}
+
+export function shouldShowPortfolioCalendarRoadmapLabel(item, date) {
+    if (!item?.bounds || !item.isRange) return true;
+    const isoDate = formatUtcIsoDate(date);
+    if (formatUtcIsoDate(item.bounds.start) === isoDate) return true;
+    if (date.getUTCDate() === 1) return true;
+    if (date.getUTCDay() === 0) return true;
+    return false;
+}

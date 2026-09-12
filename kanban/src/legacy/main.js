@@ -1,12 +1,13 @@
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp } from '../domain/util.js';
 import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId } from '../domain/roadmap.js';
-import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor } from '../domain/board.js';
-import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions } from '../domain/attachments.js';
-import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate } from '../domain/calendar.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds } from '../domain/roadmap.js';
+import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape } from '../domain/board.js';
+import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord } from '../domain/attachments.js';
+import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
 import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent } from '../domain/serialize.js';
 import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } from '../domain/timeline.js';
+import { createProjectSaveState } from '../domain/persistence.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -483,20 +484,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
 
 
 
-        function getRoadmapItemDateBounds(item) {
-            if (!item || typeof item !== 'object') return null;
-            if (item.dueDate) {
-                const point = parseRoadmapIsoDate(item.dueDate);
-                return point ? { start: point, end: point } : null;
-            }
-            if (item.startDate && item.endDate) {
-                const start = parseRoadmapIsoDate(item.startDate);
-                const end = parseRoadmapIsoDate(item.endDate);
-                if (!start || !end) return null;
-                return start <= end ? { start, end } : { start: end, end: start };
-            }
-            return null;
-        }
 
         function compareRoadmapItemsByDate(a, b) {
             const aBounds = getRoadmapItemDateBounds(a);
@@ -549,12 +536,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
         }
 
 
-        function getRoadmapDatePosition(date, range) {
-            if (!(date instanceof Date) || Number.isNaN(date.getTime()) || !range?.start || !range?.end) return 0;
-            const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
-            const offsetDays = Math.max(0, Math.min(totalDays, getRoadmapDayDiff(range.start, date)));
-            return Math.max(0, Math.min(100, (offsetDays / totalDays) * 100));
-        }
 
         function getRoadmapAxisTicks(range) {
             if (!range?.start || !range?.end) return [];
@@ -688,18 +669,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
 
 
 
-        function comparePortfolioCalendarRoadmapItems(a, b) {
-            const aPriority = getPortfolioCalendarItemPriority(a);
-            const bPriority = getPortfolioCalendarItemPriority(b);
-            if (aPriority !== bPriority) return aPriority - bPriority;
-            const aStart = a?.bounds?.start?.getTime?.() || 0;
-            const bStart = b?.bounds?.start?.getTime?.() || 0;
-            if (aStart !== bStart) return aStart - bStart;
-            const aEnd = a?.bounds?.end?.getTime?.() || 0;
-            const bEnd = b?.bounds?.end?.getTime?.() || 0;
-            if (aEnd !== bEnd) return bEnd - aEnd;
-            return compareText(a?.title || '', b?.title || '');
-        }
 
         function buildPortfolioCalendarItems(rows) {
             const items = [];
@@ -752,12 +721,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
         }
 
 
-        function doesPortfolioCalendarItemIntersectMonth(item, year, month) {
-            const range = getPortfolioCalendarMonthRange(year, month);
-            const bounds = item?.bounds;
-            if (!bounds) return false;
-            return bounds.start <= range.end && bounds.end >= range.start;
-        }
 
 
         function getPortfolioCalendarScopeLabel() {
@@ -767,9 +730,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
         }
 
 
-        function buildPortfolioCalendarRoadmapSpanStyle(item, options = {}) {
-            return buildPortfolioCalendarItemStyle(item, options);
-        }
 
 
         function renderPortfolioCalendarStaticItem(item, options = {}) {
@@ -873,14 +833,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
             `;
         }
 
-        function shouldShowPortfolioCalendarRoadmapLabel(item, date) {
-            if (!item?.bounds || !item.isRange) return true;
-            const isoDate = formatUtcIsoDate(date);
-            if (formatUtcIsoDate(item.bounds.start) === isoDate) return true;
-            if (date.getUTCDate() === 1) return true;
-            if (date.getUTCDay() === 0) return true;
-            return false;
-        }
 
         function renderPortfolioCalendarDayRoadmapItem(item, date, options = {}) {
             if (!item) return '';
@@ -1270,20 +1222,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
             }
         }
 
-        function createProjectSaveState() {
-            return {
-                status: 'idle',
-                inFlight: null,
-                queued: false,
-                lastErrorMessage: '',
-                lastSavedAt: '',
-                revision: 0,
-                savedRevision: 0,
-                watchStatus: 'idle',
-                watchMessage: '',
-                watchStatusUntil: 0
-            };
-        }
 
         function getProjectSaveState(boardId, options = {}) {
             if (!boardId) return null;
@@ -1943,26 +1881,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
         }
 
 
-        function createEmptyProjectData(title) {
-            const now = nowIso();
-            const projectTitle = (title || '').trim() || 'Untitled Project';
-            return {
-                meta: {
-                    schemaVersion: BOARD_SCHEMA_VERSION,
-                    appId: BOARD_APP_ID,
-                    createdAt: now,
-                    updatedAt: now
-                },
-                board: {
-                    columns: normalizeColumns(defaultColumns).map(col => ({ status: col.status, title: col.title })),
-                    tasks: [],
-                    settings: {
-                        title: projectTitle
-                    }
-                },
-                extensions: {}
-            };
-        }
 
         function createPortfolioRecord({ handle = null, fileName = '', data }) {
             const payload = serializeBoardDataFromObject(data);
@@ -3851,9 +3769,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
         // pre-v1 settings shapes or a single assignee field.
 
 
-        function isAcceptedBoardSettingsShape(settings) {
-            return hasTitleOnlyBoardSettings(settings) || hasExtendedBoardSettings(settings);
-        }
 
 
         function validateBoardData(data) {
@@ -4292,29 +4207,6 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue } f
 
 
 
-        function normalizeAttachmentRecord(raw) {
-            if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-            const dataUrl = typeof raw.dataUrl === 'string' && raw.dataUrl.startsWith('data:') ? raw.dataUrl : '';
-            if (!dataUrl) return null;
-            const name = typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Attachment';
-            const mime = typeof raw.mime === 'string' ? raw.mime.trim() : '';
-            const sizeCandidate = Number(raw.sizeBytes);
-            const sizeBytes = Number.isFinite(sizeCandidate) && sizeCandidate >= 0
-                ? Math.round(sizeCandidate)
-                : estimateAttachmentDataUrlSizeBytes(dataUrl);
-            const kind = raw.kind === 'image' || raw.kind === 'file'
-                ? raw.kind
-                : classifyAttachmentKind(mime, name);
-            return {
-                id: typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : createAttachmentId(),
-                name,
-                mime,
-                sizeBytes,
-                kind,
-                dataUrl,
-                createdAt: normalizeTimestamp(raw.createdAt) || nowIso()
-            };
-        }
 
 
         // Legacy import compatibility: older boards stored attachments in

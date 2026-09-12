@@ -100,3 +100,25 @@ export function slugifyRoadmapEntityId(title, items, currentId = '') {
     }
     return candidate;
 }
+
+export function getRoadmapDatePosition(date, range) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime()) || !range?.start || !range?.end) return 0;
+    const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
+    const offsetDays = Math.max(0, Math.min(totalDays, getRoadmapDayDiff(range.start, date)));
+    return Math.max(0, Math.min(100, (offsetDays / totalDays) * 100));
+}
+
+export function getRoadmapItemDateBounds(item) {
+    if (!item || typeof item !== 'object') return null;
+    if (item.dueDate) {
+        const point = parseRoadmapIsoDate(item.dueDate);
+        return point ? { start: point, end: point } : null;
+    }
+    if (item.startDate && item.endDate) {
+        const start = parseRoadmapIsoDate(item.startDate);
+        const end = parseRoadmapIsoDate(item.endDate);
+        if (!start || !end) return null;
+        return start <= end ? { start, end } : { start: end, end: start };
+    }
+    return null;
+}

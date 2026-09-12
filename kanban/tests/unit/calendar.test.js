@@ -8,10 +8,13 @@ import { describe, it, expect, vi } from 'vitest';
 import {
   buildPortfolioCalendarItemStyle,
   buildPortfolioCalendarMiniMarkerStyle,
+  buildPortfolioCalendarRoadmapSpanStyle,
   comparePortfolioCalendarDayItems,
   comparePortfolioCalendarItems,
+  comparePortfolioCalendarRoadmapItems,
   comparePortfolioDueDateAsc,
   createUtcDate,
+  doesPortfolioCalendarItemIntersectMonth,
   doesPortfolioCalendarItemOccurOnDay,
   formatDateTime,
   formatDueDateForUi,
@@ -29,6 +32,7 @@ import {
   getPortfolioCalendarYearHeatStats,
   getUtcMonthLabel,
   normalizeDueDate,
+  shouldShowPortfolioCalendarRoadmapLabel,
   todayLocalIsoDate
 } from '../../src/domain/calendar.js';
 import { createPortfolioProjectColor } from '../../src/domain/board.js';
@@ -632,5 +636,134 @@ describe('buildPortfolioCalendarMiniMarkerStyle', () => {
     const fallback = createPortfolioProjectColor(0);
     const style = buildPortfolioCalendarMiniMarkerStyle({}, { aggregate: true });
     expect(style).toBe(`background:${fallback.border};`);
+  });
+});
+
+describe('buildPortfolioCalendarRoadmapSpanStyle', () => {
+  // Delegates entirely to buildPortfolioCalendarItemStyle -- same behavior.
+  const projectColor = { bg: 'hsl(10 60% 90%)', border: 'hsl(10 50% 70%)', text: 'hsl(10 70% 20%)' };
+
+  it('returns an empty string when options.aggregate is not set', () => {
+    expect(buildPortfolioCalendarRoadmapSpanStyle({ projectColor })).toBe('');
+  });
+
+  it('builds a background/border/color declaration when aggregating', () => {
+    const style = buildPortfolioCalendarRoadmapSpanStyle({ projectColor }, { aggregate: true });
+    expect(style).toBe(`background:${projectColor.bg};border-color:${projectColor.border};color:${projectColor.text};`);
+  });
+
+  it('falls back to createPortfolioProjectColor(0) when the item has no projectColor', () => {
+    expect(buildPortfolioCalendarRoadmapSpanStyle({}, { aggregate: true }))
+      .toBe(buildPortfolioCalendarItemStyle({}, { aggregate: true }));
+  });
+});
+
+describe('comparePortfolioCalendarRoadmapItems', () => {
+  function item({ kind, start, end, title = '' }) {
+    return {
+      kind,
+      title,
+      bounds: {
+        start: createUtcDate(2024, 0, start),
+        end: createUtcDate(2024, 0, end ?? start)
+      }
+    };
+  }
+
+  it('orders by priority first: phase, sprint, milestone, task, other', () => {
+    const phase = item({ kind: 'phase', start: 20 });
+    const task = item({ kind: 'task', start: 1 });
+    expect(comparePortfolioCalendarRoadmapItems(phase, task)).toBeLessThan(0);
+    expect(comparePortfolioCalendarRoadmapItems(task, phase)).toBeGreaterThan(0);
+  });
+
+  it('breaks a priority tie by start date ascending', () => {
+    const a = item({ kind: 'sprint', start: 5 });
+    const b = item({ kind: 'sprint', start: 10 });
+    expect(comparePortfolioCalendarRoadmapItems(a, b)).toBeLessThan(0);
+  });
+
+  it('breaks a start-date tie by end date DESCENDING (longer spans first)', () => {
+    const longer = item({ kind: 'sprint', start: 5, end: 20 });
+    const shorter = item({ kind: 'sprint', start: 5, end: 6 });
+    expect(comparePortfolioCalendarRoadmapItems(longer, shorter)).toBeLessThan(0);
+    expect(comparePortfolioCalendarRoadmapItems(shorter, longer)).toBeGreaterThan(0);
+  });
+
+  it('finally breaks a full tie by title via compareText', () => {
+    const a = item({ kind: 'sprint', start: 5, end: 5, title: 'Alpha' });
+    const b = item({ kind: 'sprint', start: 5, end: 5, title: 'Beta' });
+    expect(comparePortfolioCalendarRoadmapItems(a, b)).toBeLessThan(0);
+  });
+
+  it('treats items with entirely missing bounds as equal on the date terms', () => {
+    expect(comparePortfolioCalendarRoadmapItems({ kind: 'task' }, { kind: 'task' })).toBe(0);
+  });
+});
+
+describe('doesPortfolioCalendarItemIntersectMonth', () => {
+  it('returns false when the item has no bounds', () => {
+    expect(doesPortfolioCalendarItemIntersectMonth({}, 2024, 2)).toBe(false);
+    expect(doesPortfolioCalendarItemIntersectMonth(null, 2024, 2)).toBe(false);
+  });
+
+  it('is inclusive at the end-of-month boundary: an item starting on the last day intersects', () => {
+    const item = { bounds: { start: createUtcDate(2024, 2, 31), end: createUtcDate(2024, 2, 31) } };
+    expect(doesPortfolioCalendarItemIntersectMonth(item, 2024, 2)).toBe(true);
+  });
+
+  it('excludes an item that starts the day after the month ends', () => {
+    const item = { bounds: { start: createUtcDate(2024, 3, 1), end: createUtcDate(2024, 3, 5) } };
+    expect(doesPortfolioCalendarItemIntersectMonth(item, 2024, 2)).toBe(false);
+  });
+
+  it('is inclusive at the start-of-month boundary: an item ending on the first day intersects', () => {
+    const item = { bounds: { start: createUtcDate(2024, 1, 20), end: createUtcDate(2024, 2, 1) } };
+    expect(doesPortfolioCalendarItemIntersectMonth(item, 2024, 2)).toBe(true);
+  });
+
+  it('excludes an item that ends the day before the month starts', () => {
+    const item = { bounds: { start: createUtcDate(2024, 1, 20), end: createUtcDate(2024, 1, 29) } };
+    expect(doesPortfolioCalendarItemIntersectMonth(item, 2024, 2)).toBe(false);
+  });
+
+  it('includes an item that spans the entire month and beyond', () => {
+    const item = { bounds: { start: createUtcDate(2024, 1, 1), end: createUtcDate(2024, 3, 1) } };
+    expect(doesPortfolioCalendarItemIntersectMonth(item, 2024, 2)).toBe(true);
+  });
+});
+
+describe('shouldShowPortfolioCalendarRoadmapLabel', () => {
+  it('always shows the label when the item has no bounds', () => {
+    expect(shouldShowPortfolioCalendarRoadmapLabel({}, createUtcDate(2024, 2, 12))).toBe(true);
+  });
+
+  it('always shows the label when the item is not a range (a point item)', () => {
+    const item = { isRange: false, bounds: { start: createUtcDate(2024, 2, 5), end: createUtcDate(2024, 2, 5) } };
+    expect(shouldShowPortfolioCalendarRoadmapLabel(item, createUtcDate(2024, 2, 12))).toBe(true);
+  });
+
+  it('shows the label on the range start date', () => {
+    const item = { isRange: true, bounds: { start: createUtcDate(2024, 2, 5), end: createUtcDate(2024, 2, 20) } };
+    expect(shouldShowPortfolioCalendarRoadmapLabel(item, createUtcDate(2024, 2, 5))).toBe(true);
+  });
+
+  it('shows the label on the 1st of the month, even mid-range', () => {
+    const item = { isRange: true, bounds: { start: createUtcDate(2024, 1, 20), end: createUtcDate(2024, 3, 1) } };
+    // 2024-03-01 is a Friday (not the start date, not a Sunday) -- only the
+    // day-of-month rule should trigger here.
+    expect(shouldShowPortfolioCalendarRoadmapLabel(item, createUtcDate(2024, 2, 1))).toBe(true);
+  });
+
+  it('shows the label on a Sunday, even mid-range', () => {
+    const item = { isRange: true, bounds: { start: createUtcDate(2024, 1, 20), end: createUtcDate(2024, 3, 1) } };
+    // 2024-03-03 is a Sunday (not the start date, not the 1st).
+    expect(shouldShowPortfolioCalendarRoadmapLabel(item, createUtcDate(2024, 2, 3))).toBe(true);
+  });
+
+  it('hides the label on an ordinary mid-range day that is not the start, the 1st, or a Sunday', () => {
+    const item = { isRange: true, bounds: { start: createUtcDate(2024, 1, 20), end: createUtcDate(2024, 3, 1) } };
+    // 2024-03-12 is a Tuesday.
+    expect(shouldShowPortfolioCalendarRoadmapLabel(item, createUtcDate(2024, 2, 12))).toBe(false);
   });
 });
