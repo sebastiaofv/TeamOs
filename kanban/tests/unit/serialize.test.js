@@ -385,3 +385,85 @@ describe('createBoardStateSnapshot', () => {
     expect(() => validateBoardData(createBoardStateSnapshot(undefined))).not.toThrow();
   });
 });
+
+// Both cases below were Playwright tests that reached into app internals via
+// window.__legacyTestApi. They exercise pure serialization logic with no DOM
+// involvement, so they belong here; porting them let the shim be deleted.
+describe('serializeBoardDataFromObject — ported from the Playwright suite', () => {
+  const baseTask = (over = {}) => ({
+    id: 1,
+    title: 'A task',
+    description: '',
+    checklist: [],
+    archived: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    dueDate: '',
+    priority: null,
+    status: 'to-do',
+    ...over
+  });
+
+  const baseBoard = (task, extensions = {}) => ({
+    meta: {
+      schemaVersion: 1,
+      appId: 'teamos-kanban',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    },
+    board: {
+      columns: [{ status: 'to-do', title: 'to-do' }],
+      tasks: [task],
+      settings: { title: 'Legacy Project', sortMode: 'manual', showArchivedOnly: false, archiveFilter: 'active' }
+    },
+    extensions
+  });
+
+  it('accepts a legacy single assignee string and emits an assignees array', () => {
+    const source = baseBoard(baseTask({ assignee: 'Alex' }));
+    expect(() => validateBoardData(source)).not.toThrow();
+
+    const serialized = serializeBoardDataFromObject(source);
+    expect(serialized.meta.schemaVersion).toBe(1);
+    expect(serialized.board.tasks[0].assignees).toEqual(['Alex']);
+    // The legacy key must not survive serialization.
+    expect(Object.prototype.hasOwnProperty.call(serialized.board.tasks[0], 'assignee')).toBe(false);
+  });
+
+  it('normalizes roadmap entities and preserves task assignment ids', () => {
+    const source = baseBoard(
+      baseTask({
+        title: 'Mapped task',
+        phaseId: 'phase_foundation',
+        milestoneId: 'milestone_alpha',
+        sprintId: 'sprint_12'
+      }),
+      {
+        roadmap: {
+          version: 1,
+          milestones: [{ id: 'milestone_alpha', title: 'Alpha', dueDate: '2026-04-15' }],
+          phases: [{ id: 'phase_foundation', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
+          sprints: [{ id: 'sprint_12', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
+        }
+      }
+    );
+    expect(() => validateBoardData(source)).not.toThrow();
+
+    const s = serializeBoardDataFromObject(source);
+    expect(s.extensions.roadmap.version).toBe(1);
+    expect(s.extensions.roadmap.milestones).toEqual([
+      { id: 'milestone_alpha', title: 'Alpha', dueDate: '2026-04-15' }
+    ]);
+    expect(s.extensions.roadmap.phases).toEqual([
+      { id: 'phase_foundation', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }
+    ]);
+    expect(s.extensions.roadmap.sprints).toEqual([
+      { id: 'sprint_12', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }
+    ]);
+    expect(s.board.tasks[0]).toMatchObject({
+      phaseId: 'phase_foundation',
+      milestoneId: 'milestone_alpha',
+      sprintId: 'sprint_12'
+    });
+  });
+});

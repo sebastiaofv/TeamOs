@@ -5462,23 +5462,20 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         bindStaticUiEvents();
         init();
 
-        // TEMPORARY: bridges 4 Playwright tests that call domain functions directly.
-        // Removed in Task 6 when those tests become Vitest unit tests.
-        window.__legacyTestApi = {
-            normalizeColumns,
-            normalizeTask,
-            serializeBoardDataFromObject,
-            normalizeRoadmapExtension
-        };
 
         // TEMPORARY: bridges the rest of the Playwright suite, which calls many
         // internal app functions and reads/writes internal app state directly via
         // page.evaluate (e.g. buildPortfolioTasks(), portfolioBoards). These were
         // implicit globals under the original classic <script> tag; type="module"
-        // no longer exposes top-level declarations on window. Distinct from
-        // __legacyTestApi above: this is not limited to pure domain functions and
-        // is not scheduled for removal in Task 6. Narrow this as tests are
-        // converted to Vitest unit tests or Playwright locator-based assertions.
+        // no longer exposes top-level declarations on window.
+        //
+        // 60 of the 90 Playwright tests depend on this bridge, so it cannot be
+        // removed until those tests are rewritten. Unlike the pure domain functions
+        // -- which are now real modules in src/domain/ and tested directly by
+        // Vitest -- these are UI and stateful internals that become React
+        // components and store actions in Phase 2. Retiring this bridge is part of
+        // that work: each entry disappears when the test driving it is converted to
+        // a locator-based assertion or a unit test against the store.
         Object.defineProperties(window, {
             portfolioBoards: {
                 get: () => portfolioBoards,
