@@ -1,6 +1,7 @@
 import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_COUNT } from './constants.js';
 import { normalizeTimestamp, nowIso } from './util.js';
 import { getTeamOsExtensionsObject, getBoardExtensionsObject } from './serialize.js';
+import { findTaskInBoardData } from './task.js';
 
 export function attachmentDuplicateKey(input) {
     if (!input || typeof input !== 'object') return '';
@@ -137,4 +138,64 @@ export function removeLegacyTaskAttachmentsFromExtensions(boardData, taskId) {
     if (teamOs && Object.keys(teamOs).length === 0 && extensions && Object.prototype.hasOwnProperty.call(extensions, TEAMOS_EXTENSIONS_KEY)) {
         delete extensions[TEAMOS_EXTENSIONS_KEY];
     }
+}
+
+export function calculateBoardAttachmentBytes(boardData, options = {}) {
+    const excludeTaskId = options.excludeTaskId;
+    const excludeTaskNum = excludeTaskId === null || excludeTaskId === undefined || excludeTaskId === ''
+        ? null
+        : Number(excludeTaskId);
+    let total = 0;
+
+    const taskList = boardData?.board?.tasks;
+    if (Array.isArray(taskList)) {
+        taskList.forEach((task) => {
+            if (!task) return;
+            if (excludeTaskNum !== null && Number(task.id) === excludeTaskNum) return;
+            const items = Array.isArray(task.attachments)
+                ? normalizeTaskAttachments(task.attachments)
+                : getLegacyTaskAttachmentsFromExtensions(boardData, task.id);
+            items.forEach((att) => {
+                total += Math.max(0, Number(att.sizeBytes) || 0);
+            });
+        });
+        return total;
+    }
+
+    const map = getTaskAttachmentsMap(boardData);
+    if (!map) return 0;
+    Object.entries(map).forEach(([key, list]) => {
+        if (excludeTaskNum !== null && key === attachmentTaskKey(excludeTaskNum)) return;
+        if (!Array.isArray(list)) return;
+        list.forEach((entry) => {
+            const att = normalizeAttachmentRecord(entry);
+            if (att) total += Math.max(0, Number(att.sizeBytes) || 0);
+        });
+    });
+    return total;
+}
+
+export function getTaskAttachments(boardData, taskId) {
+    if (taskId === null || taskId === undefined || taskId === '') return [];
+    const task = findTaskInBoardData(boardData, taskId);
+    if (task) {
+        if (Array.isArray(task.attachments)) {
+            return normalizeTaskAttachments(task.attachments);
+        }
+        return getLegacyTaskAttachmentsFromExtensions(boardData, taskId);
+    }
+    return getLegacyTaskAttachmentsFromExtensions(boardData, taskId);
+}
+
+export function setTaskAttachments(boardData, taskId, attachments) {
+    if (taskId === null || taskId === undefined || taskId === '') return;
+    const normalized = (Array.isArray(attachments) ? attachments : [])
+        .map(normalizeAttachmentRecord)
+        .filter(Boolean)
+        .slice(0, ATTACHMENT_MAX_COUNT);
+    const task = findTaskInBoardData(boardData, taskId);
+    if (task) {
+        task.attachments = normalized;
+    }
+    removeLegacyTaskAttachmentsFromExtensions(boardData, taskId);
 }

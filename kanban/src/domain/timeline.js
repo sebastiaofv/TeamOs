@@ -1,6 +1,7 @@
-import { TIMELINE_VERSION } from './constants.js';
+import { ROADMAP_EXTENSION_KEY, TIMELINE_VERSION } from './constants.js';
 import { areSerializableValuesEqual, cloneSerializable } from './serialize.js';
 import { normalizeTimestamp } from './util.js';
+import { createEmptyRoadmapExtension, normalizeRoadmapExtension } from './roadmap.js';
 
 export function createEmptyTimelineData() {
     return {
@@ -142,4 +143,98 @@ export function normalizeTimelineEvent(raw) {
         event.meta = cloneSerializable(raw.meta);
     }
     return event;
+}
+
+export function applyTimelineEventToState(state, event) {
+    if (!state || !event) return state;
+    if (event.kind === 'board.restored' && event.snapshot) {
+        return cloneSerializable(event.snapshot);
+    }
+
+    const nextState = cloneSerializable(state);
+    nextState.board = nextState.board || { columns: [], tasks: [], settings: {} };
+    nextState.board.tasks = Array.isArray(nextState.board.tasks) ? nextState.board.tasks : [];
+    nextState.board.columns = Array.isArray(nextState.board.columns) ? nextState.board.columns : [];
+    nextState.board.settings = nextState.board.settings && typeof nextState.board.settings === 'object'
+        ? nextState.board.settings
+        : {};
+
+    if (event.kind === 'task.created' && event.snapshot) {
+        nextState.board.tasks = nextState.board.tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
+        nextState.board.tasks.push(cloneSerializable(event.snapshot));
+        return nextState;
+    }
+    if (event.kind === 'task.deleted') {
+        nextState.board.tasks = nextState.board.tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
+        return nextState;
+    }
+    if (event.kind === 'task.updated' || event.kind === 'task.status.changed' || event.kind === 'task.archived' || event.kind === 'task.restored') {
+        const task = nextState.board.tasks.find((entry) => Number(entry?.id) === Number(event.entityId));
+        if (!task || !event.changes) return nextState;
+        Object.entries(event.changes).forEach(([field, change]) => {
+            task[field] = cloneSerializable(change.after);
+        });
+        return nextState;
+    }
+    if (event.kind === 'board.settings.updated' && event.changes) {
+        Object.entries(event.changes).forEach(([field, change]) => {
+            nextState.board.settings[field] = cloneSerializable(change.after);
+        });
+        return nextState;
+    }
+    if (event.kind === 'board.columns.updated') {
+        if (event.changes?.columns) {
+            nextState.board.columns = cloneSerializable(event.changes.columns.after) || [];
+        } else if (event.snapshot?.board?.columns) {
+            nextState.board.columns = cloneSerializable(event.snapshot.board.columns) || [];
+        }
+        return nextState;
+    }
+    if (event.kind === 'roadmap.bulk-assigned') {
+        nextState.extensions = nextState.extensions && typeof nextState.extensions === 'object'
+            ? nextState.extensions
+            : {};
+        const roadmap = normalizeRoadmapExtension(nextState.extensions[ROADMAP_EXTENSION_KEY]) || createEmptyRoadmapExtension();
+        nextState.extensions[ROADMAP_EXTENSION_KEY] = roadmap;
+
+        const sprint = event.meta?.sprint && typeof event.meta.sprint === 'object'
+            ? cloneSerializable(event.meta.sprint)
+            : null;
+        if (!sprint?.id) {
+            return nextState;
+        }
+
+        roadmap.sprints = Array.isArray(roadmap.sprints) ? roadmap.sprints : [];
+        roadmap.sprints = roadmap.sprints.filter((entry) => entry?.id !== sprint.id);
+        roadmap.sprints.push(sprint);
+
+        const taskIdSet = new Set(Array.isArray(event.meta?.taskIds) ? event.meta.taskIds.map((taskId) => Number(taskId)) : []);
+        nextState.board.tasks.forEach((task) => {
+            if (!taskIdSet.has(Number(task?.id))) return;
+            task.sprintId = sprint.id;
+        });
+        return nextState;
+    }
+    if (event.kind === 'roadmap.updated') {
+        if (event.snapshot) {
+            return cloneSerializable(event.snapshot);
+        }
+        return nextState;
+    }
+    return nextState;
+}
+
+export function normalizeTimelineExtension(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (Number(value.version) !== TIMELINE_VERSION) return null;
+    if (!Array.isArray(value.events)) return null;
+    const events = value.events.map(normalizeTimelineEvent);
+    if (events.some((event) => !event)) return null;
+    const baselineEventId = typeof value.baselineEventId === 'string' ? value.baselineEventId.trim() : '';
+    const fallbackBaselineId = events[0]?.id || '';
+    return {
+        version: TIMELINE_VERSION,
+        baselineEventId: baselineEventId || fallbackBaselineId,
+        events
+    };
 }

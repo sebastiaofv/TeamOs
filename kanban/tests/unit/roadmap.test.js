@@ -20,9 +20,12 @@ import {
   getRoadmapTimelinePlacement,
   getRoadmapTodayMarker,
   getVisibleRoadmapDateRange,
-  normalizeRoadmapExtension
+  normalizeRoadmapExtension,
+  clearInvalidRoadmapTaskRefs,
+  getRoadmapExtension,
+  getRoadmapExtensionObject
 } from '../../src/domain/roadmap.js';
-import { ROADMAP_VERSION } from '../../src/domain/constants.js';
+import { ROADMAP_VERSION, ROADMAP_EXTENSION_KEY } from '../../src/domain/constants.js';
 
 describe('addRoadmapDays', () => {
   it('returns null when date is not a Date instance', () => {
@@ -894,5 +897,122 @@ describe('normalizeRoadmapExtension', () => {
     const result = normalizeRoadmapExtension(value);
     expect(result).not.toBeNull();
     expect(result.version).toBe(ROADMAP_VERSION);
+  });
+});
+
+const VALID_ROADMAP = {
+  version: ROADMAP_VERSION,
+  milestones: [{ id: 'm1', title: 'Launch', dueDate: '2024-06-15' }],
+  phases: [{ id: 'p1', title: 'Phase 1', startDate: '2024-01-01', endDate: '2024-02-01' }],
+  sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14' }]
+};
+
+describe('clearInvalidRoadmapTaskRefs', () => {
+  it('returns non-object input unchanged (including null and arrays)', () => {
+    expect(clearInvalidRoadmapTaskRefs(null, VALID_ROADMAP)).toBeNull();
+    expect(clearInvalidRoadmapTaskRefs(undefined, VALID_ROADMAP)).toBeUndefined();
+    const arr = [];
+    expect(clearInvalidRoadmapTaskRefs(arr, VALID_ROADMAP)).toBe(arr);
+  });
+
+  it('returns the task unchanged when the roadmap itself does not normalize', () => {
+    const task = { phaseId: 'p1', milestoneId: 'm1', sprintId: 's1' };
+    expect(clearInvalidRoadmapTaskRefs(task, null)).toBe(task);
+    expect(task).toEqual({ phaseId: 'p1', milestoneId: 'm1', sprintId: 's1' });
+  });
+
+  it('keeps refs that point at existing roadmap entities', () => {
+    const task = { phaseId: 'p1', milestoneId: 'm1', sprintId: 's1' };
+    const result = clearInvalidRoadmapTaskRefs(task, VALID_ROADMAP);
+    expect(result).toBe(task);
+    expect(result).toEqual({ phaseId: 'p1', milestoneId: 'm1', sprintId: 's1' });
+  });
+
+  it('clears each ref that points at a roadmap entity that no longer exists', () => {
+    const task = { phaseId: 'gone-phase', milestoneId: 'gone-milestone', sprintId: 'gone-sprint' };
+    const result = clearInvalidRoadmapTaskRefs(task, VALID_ROADMAP);
+    expect(result).toEqual({ phaseId: '', milestoneId: '', sprintId: '' });
+  });
+
+  it('clears only the invalid ref, leaving valid refs on sibling fields intact', () => {
+    const task = { phaseId: 'p1', milestoneId: 'gone-milestone', sprintId: 's1' };
+    const result = clearInvalidRoadmapTaskRefs(task, VALID_ROADMAP);
+    expect(result).toEqual({ phaseId: 'p1', milestoneId: '', sprintId: 's1' });
+  });
+
+  it('leaves an already-empty ref alone rather than touching it', () => {
+    const task = { phaseId: '', milestoneId: 'm1', sprintId: '' };
+    const result = clearInvalidRoadmapTaskRefs(task, VALID_ROADMAP);
+    expect(result).toEqual({ phaseId: '', milestoneId: 'm1', sprintId: '' });
+  });
+
+  it('mutates and returns the same object reference', () => {
+    const task = { phaseId: 'gone' };
+    const result = clearInvalidRoadmapTaskRefs(task, VALID_ROADMAP);
+    expect(result).toBe(task);
+  });
+});
+
+describe('getRoadmapExtension', () => {
+  it('returns null when boardData has no extensions', () => {
+    expect(getRoadmapExtension({})).toBeNull();
+    expect(getRoadmapExtension(null)).toBeNull();
+    expect(getRoadmapExtension(undefined)).toBeNull();
+  });
+
+  it('returns null when extensions has no roadmap key', () => {
+    expect(getRoadmapExtension({ extensions: {} })).toBeNull();
+  });
+
+  it('returns the normalized roadmap extension when present and valid', () => {
+    const boardData = { extensions: { [ROADMAP_EXTENSION_KEY]: VALID_ROADMAP } };
+    expect(getRoadmapExtension(boardData)).toEqual(VALID_ROADMAP);
+  });
+
+  it('returns null when the stored roadmap extension is malformed', () => {
+    const boardData = { extensions: { [ROADMAP_EXTENSION_KEY]: { version: ROADMAP_VERSION, milestones: [] } } };
+    expect(getRoadmapExtension(boardData)).toBeNull();
+  });
+});
+
+describe('getRoadmapExtensionObject', () => {
+  it('returns null for non-object boardData without create', () => {
+    expect(getRoadmapExtensionObject(null)).toBeNull();
+    expect(getRoadmapExtensionObject('nope')).toBeNull();
+  });
+
+  it('returns null when there are no extensions and create is not requested', () => {
+    expect(getRoadmapExtensionObject({})).toBeNull();
+  });
+
+  it('returns the normalized roadmap extension in place when present and valid, without create', () => {
+    const boardData = { extensions: { [ROADMAP_EXTENSION_KEY]: VALID_ROADMAP } };
+    const result = getRoadmapExtensionObject(boardData);
+    expect(result).toEqual(VALID_ROADMAP);
+    expect(boardData.extensions[ROADMAP_EXTENSION_KEY]).toBe(result);
+  });
+
+  it('returns null when the stored roadmap extension is malformed and create is not requested', () => {
+    const boardData = { extensions: { [ROADMAP_EXTENSION_KEY]: { bogus: true } } };
+    expect(getRoadmapExtensionObject(boardData)).toBeNull();
+  });
+
+  it('builds the extensions chain and creates an empty roadmap extension when create is true and nothing exists', () => {
+    const boardData = {};
+    const result = getRoadmapExtensionObject(boardData, { create: true });
+    expect(result).toEqual({ version: ROADMAP_VERSION, milestones: [], phases: [], sprints: [] });
+    expect(boardData.extensions[ROADMAP_EXTENSION_KEY]).toBe(result);
+  });
+
+  it('replaces a malformed roadmap extension with an empty one when create is true', () => {
+    const boardData = { extensions: { [ROADMAP_EXTENSION_KEY]: { bogus: true } } };
+    const result = getRoadmapExtensionObject(boardData, { create: true });
+    expect(result).toEqual({ version: ROADMAP_VERSION, milestones: [], phases: [], sprints: [] });
+  });
+
+  it('does not touch an already-valid roadmap extension when create is true', () => {
+    const boardData = { extensions: { [ROADMAP_EXTENSION_KEY]: VALID_ROADMAP } };
+    const result = getRoadmapExtensionObject(boardData, { create: true });
+    expect(result).toEqual(VALID_ROADMAP);
   });
 });

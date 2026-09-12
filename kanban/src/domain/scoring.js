@@ -30,3 +30,10 @@ export function priorityScoreValue(priority) {
     if (priority === 'low') return 1;
     return 0;
 }
+
+export function taskScore(task) {
+    const denominator = effortScoreValue(task?.effort);
+    const numerator = priorityScoreValue(task?.priority);
+    if (!denominator || !numerator) return null;
+    return numerator / denominator;
+}

@@ -1,14 +1,14 @@
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
 import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, getTasksForMilestone, getTasksForPhase, getTasksForSprint, resolveCreateTaskStatus } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, normalizeRoadmapExtension } from '../domain/roadmap.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, normalizeRoadmapExtension, clearInvalidRoadmapTaskRefs, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape } from '../domain/board.js';
-import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap, getLegacyTaskAttachmentsFromExtensions, normalizeTaskAttachments, removeLegacyTaskAttachmentsFromExtensions } from '../domain/attachments.js';
+import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap, getLegacyTaskAttachmentsFromExtensions, normalizeTaskAttachments, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel, buildPortfolioCalendarWeekRoadmapSegments, assignPortfolioCalendarWeekRoadmapLanes } from '../domain/calendar.js';
 import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject } from '../domain/serialize.js';
-import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent } from '../domain/timeline.js';
+import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
-import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '../domain/scoring.js';
+import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore } from '../domain/scoring.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -173,12 +173,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function taskScore(task) {
-            const denominator = effortScoreValue(task?.effort);
-            const numerator = priorityScoreValue(task?.priority);
-            if (!denominator || !numerator) return null;
-            return numerator / denominator;
-        }
 
         function formatTaskScore(task) {
             const score = taskScore(task);
@@ -382,19 +376,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function getRoadmapExtensionObject(boardData, options = {}) {
-            const create = Boolean(options.create);
-            const extensions = getBoardExtensionsObject(boardData, { create });
-            if (!extensions) return null;
-            const normalized = normalizeRoadmapExtension(extensions[ROADMAP_EXTENSION_KEY]);
-            if (normalized) {
-                extensions[ROADMAP_EXTENSION_KEY] = normalized;
-                return extensions[ROADMAP_EXTENSION_KEY];
-            }
-            if (!create) return null;
-            extensions[ROADMAP_EXTENSION_KEY] = createEmptyRoadmapExtension();
-            return extensions[ROADMAP_EXTENSION_KEY];
-        }
 
 
 
@@ -929,26 +910,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function clearInvalidRoadmapTaskRefs(normalizedTask, roadmap) {
-            if (!normalizedTask || typeof normalizedTask !== 'object' || Array.isArray(normalizedTask)) return normalizedTask;
-            const normalizedRoadmap = normalizeRoadmapExtension(roadmap);
-            if (!normalizedRoadmap) return normalizedTask;
-
-            const phaseIds = new Set(normalizedRoadmap.phases.map((phase) => phase.id));
-            const milestoneIds = new Set(normalizedRoadmap.milestones.map((milestone) => milestone.id));
-            const sprintIds = new Set(normalizedRoadmap.sprints.map((sprint) => sprint.id));
-
-            if (normalizedTask.phaseId && !phaseIds.has(normalizedTask.phaseId)) {
-                normalizedTask.phaseId = '';
-            }
-            if (normalizedTask.milestoneId && !milestoneIds.has(normalizedTask.milestoneId)) {
-                normalizedTask.milestoneId = '';
-            }
-            if (normalizedTask.sprintId && !sprintIds.has(normalizedTask.sprintId)) {
-                normalizedTask.sprintId = '';
-            }
-            return normalizedTask;
-        }
 
         function getPortfolioBoardRecord(boardId) {
             return portfolioBoards.find(board => board.id === boardId) || null;
@@ -1811,84 +1772,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
             setPortfolioTimelineExpanded(boardId, !isPortfolioTimelineExpanded(boardId));
         }
 
-        function applyTimelineEventToState(state, event) {
-            if (!state || !event) return state;
-            if (event.kind === 'board.restored' && event.snapshot) {
-                return cloneSerializable(event.snapshot);
-            }
-
-            const nextState = cloneSerializable(state);
-            nextState.board = nextState.board || { columns: [], tasks: [], settings: {} };
-            nextState.board.tasks = Array.isArray(nextState.board.tasks) ? nextState.board.tasks : [];
-            nextState.board.columns = Array.isArray(nextState.board.columns) ? nextState.board.columns : [];
-            nextState.board.settings = nextState.board.settings && typeof nextState.board.settings === 'object'
-                ? nextState.board.settings
-                : {};
-
-            if (event.kind === 'task.created' && event.snapshot) {
-                nextState.board.tasks = nextState.board.tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
-                nextState.board.tasks.push(cloneSerializable(event.snapshot));
-                return nextState;
-            }
-            if (event.kind === 'task.deleted') {
-                nextState.board.tasks = nextState.board.tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
-                return nextState;
-            }
-            if (event.kind === 'task.updated' || event.kind === 'task.status.changed' || event.kind === 'task.archived' || event.kind === 'task.restored') {
-                const task = nextState.board.tasks.find((entry) => Number(entry?.id) === Number(event.entityId));
-                if (!task || !event.changes) return nextState;
-                Object.entries(event.changes).forEach(([field, change]) => {
-                    task[field] = cloneSerializable(change.after);
-                });
-                return nextState;
-            }
-            if (event.kind === 'board.settings.updated' && event.changes) {
-                Object.entries(event.changes).forEach(([field, change]) => {
-                    nextState.board.settings[field] = cloneSerializable(change.after);
-                });
-                return nextState;
-            }
-            if (event.kind === 'board.columns.updated') {
-                if (event.changes?.columns) {
-                    nextState.board.columns = cloneSerializable(event.changes.columns.after) || [];
-                } else if (event.snapshot?.board?.columns) {
-                    nextState.board.columns = cloneSerializable(event.snapshot.board.columns) || [];
-                }
-                return nextState;
-            }
-            if (event.kind === 'roadmap.bulk-assigned') {
-                nextState.extensions = nextState.extensions && typeof nextState.extensions === 'object'
-                    ? nextState.extensions
-                    : {};
-                const roadmap = normalizeRoadmapExtension(nextState.extensions[ROADMAP_EXTENSION_KEY]) || createEmptyRoadmapExtension();
-                nextState.extensions[ROADMAP_EXTENSION_KEY] = roadmap;
-
-                const sprint = event.meta?.sprint && typeof event.meta.sprint === 'object'
-                    ? cloneSerializable(event.meta.sprint)
-                    : null;
-                if (!sprint?.id) {
-                    return nextState;
-                }
-
-                roadmap.sprints = Array.isArray(roadmap.sprints) ? roadmap.sprints : [];
-                roadmap.sprints = roadmap.sprints.filter((entry) => entry?.id !== sprint.id);
-                roadmap.sprints.push(sprint);
-
-                const taskIdSet = new Set(Array.isArray(event.meta?.taskIds) ? event.meta.taskIds.map((taskId) => Number(taskId)) : []);
-                nextState.board.tasks.forEach((task) => {
-                    if (!taskIdSet.has(Number(task?.id))) return;
-                    task.sprintId = sprint.id;
-                });
-                return nextState;
-            }
-            if (event.kind === 'roadmap.updated') {
-                if (event.snapshot) {
-                    return cloneSerializable(event.snapshot);
-                }
-                return nextState;
-            }
-            return nextState;
-        }
 
         function reconstructBoardStateFromTimeline(boardData, eventIndex) {
             const timeline = getBoardTimelineData(boardData);
@@ -3939,30 +3822,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
         // Legacy import compatibility: older boards stored attachments in
         // extensions.teamOsKanban.taskAttachments instead of task.attachments.
 
-        function getTaskAttachments(boardData, taskId) {
-            if (taskId === null || taskId === undefined || taskId === '') return [];
-            const task = findTaskInBoardData(boardData, taskId);
-            if (task) {
-                if (Array.isArray(task.attachments)) {
-                    return normalizeTaskAttachments(task.attachments);
-                }
-                return getLegacyTaskAttachmentsFromExtensions(boardData, taskId);
-            }
-            return getLegacyTaskAttachmentsFromExtensions(boardData, taskId);
-        }
-
-        function setTaskAttachments(boardData, taskId, attachments) {
-            if (taskId === null || taskId === undefined || taskId === '') return;
-            const normalized = (Array.isArray(attachments) ? attachments : [])
-                .map(normalizeAttachmentRecord)
-                .filter(Boolean)
-                .slice(0, ATTACHMENT_MAX_COUNT);
-            const task = findTaskInBoardData(boardData, taskId);
-            if (task) {
-                task.attachments = normalized;
-            }
-            removeLegacyTaskAttachmentsFromExtensions(boardData, taskId);
-        }
 
 
 
@@ -3972,20 +3831,7 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function normalizeTimelineExtension(value) {
-            if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
-            if (Number(value.version) !== TIMELINE_VERSION) return null;
-            if (!Array.isArray(value.events)) return null;
-            const events = value.events.map(normalizeTimelineEvent);
-            if (events.some((event) => !event)) return null;
-            const baselineEventId = typeof value.baselineEventId === 'string' ? value.baselineEventId.trim() : '';
-            const fallbackBaselineId = events[0]?.id || '';
-            return {
-                version: TIMELINE_VERSION,
-                baselineEventId: baselineEventId || fallbackBaselineId,
-                events
-            };
-        }
+
 
         function normalizeBoardExtensionsValue(extensionsValue, options = {}) {
             const includeTimeline = options.includeTimeline !== false;
@@ -4019,9 +3865,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
             return nextExtensions;
         }
 
-        function getRoadmapExtension(boardData) {
-            return normalizeRoadmapExtension(boardData?.extensions?.[ROADMAP_EXTENSION_KEY]);
-        }
 
         function getTimelineExtensionObject(boardData, options = {}) {
             const create = Boolean(options.create);
@@ -4188,40 +4031,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
             return { boardData: null, taskId: null, mode: 'unknown' };
         }
 
-        function calculateBoardAttachmentBytes(boardData, options = {}) {
-            const excludeTaskId = options.excludeTaskId;
-            const excludeTaskNum = excludeTaskId === null || excludeTaskId === undefined || excludeTaskId === ''
-                ? null
-                : Number(excludeTaskId);
-            let total = 0;
-
-            const taskList = boardData?.board?.tasks;
-            if (Array.isArray(taskList)) {
-                taskList.forEach((task) => {
-                    if (!task) return;
-                    if (excludeTaskNum !== null && Number(task.id) === excludeTaskNum) return;
-                    const items = Array.isArray(task.attachments)
-                        ? normalizeTaskAttachments(task.attachments)
-                        : getLegacyTaskAttachmentsFromExtensions(boardData, task.id);
-                    items.forEach((att) => {
-                        total += Math.max(0, Number(att.sizeBytes) || 0);
-                    });
-                });
-                return total;
-            }
-
-            const map = getTaskAttachmentsMap(boardData);
-            if (!map) return 0;
-            Object.entries(map).forEach(([key, list]) => {
-                if (excludeTaskNum !== null && key === attachmentTaskKey(excludeTaskNum)) return;
-                if (!Array.isArray(list)) return;
-                list.forEach((entry) => {
-                    const att = normalizeAttachmentRecord(entry);
-                    if (att) total += Math.max(0, Number(att.sizeBytes) || 0);
-                });
-            });
-            return total;
-        }
 
         function getTaskModalAttachmentDerivedMessages() {
             const draft = getTaskModalAttachmentsDraft();

@@ -1,6 +1,7 @@
-import { ROADMAP_VERSION } from './constants.js';
+import { ROADMAP_VERSION, ROADMAP_EXTENSION_KEY } from './constants.js';
 import { todayLocalIsoDate } from './calendar.js';
 import { hasExactKeys } from './util.js';
+import { getBoardExtensionsObject } from './serialize.js';
 
 export function addRoadmapDays(date, days) {
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
@@ -290,4 +291,43 @@ export function normalizeRoadmapExtension(value) {
         phases,
         sprints
     };
+}
+
+export function clearInvalidRoadmapTaskRefs(normalizedTask, roadmap) {
+    if (!normalizedTask || typeof normalizedTask !== 'object' || Array.isArray(normalizedTask)) return normalizedTask;
+    const normalizedRoadmap = normalizeRoadmapExtension(roadmap);
+    if (!normalizedRoadmap) return normalizedTask;
+
+    const phaseIds = new Set(normalizedRoadmap.phases.map((phase) => phase.id));
+    const milestoneIds = new Set(normalizedRoadmap.milestones.map((milestone) => milestone.id));
+    const sprintIds = new Set(normalizedRoadmap.sprints.map((sprint) => sprint.id));
+
+    if (normalizedTask.phaseId && !phaseIds.has(normalizedTask.phaseId)) {
+        normalizedTask.phaseId = '';
+    }
+    if (normalizedTask.milestoneId && !milestoneIds.has(normalizedTask.milestoneId)) {
+        normalizedTask.milestoneId = '';
+    }
+    if (normalizedTask.sprintId && !sprintIds.has(normalizedTask.sprintId)) {
+        normalizedTask.sprintId = '';
+    }
+    return normalizedTask;
+}
+
+export function getRoadmapExtension(boardData) {
+    return normalizeRoadmapExtension(boardData?.extensions?.[ROADMAP_EXTENSION_KEY]);
+}
+
+export function getRoadmapExtensionObject(boardData, options = {}) {
+    const create = Boolean(options.create);
+    const extensions = getBoardExtensionsObject(boardData, { create });
+    if (!extensions) return null;
+    const normalized = normalizeRoadmapExtension(extensions[ROADMAP_EXTENSION_KEY]);
+    if (normalized) {
+        extensions[ROADMAP_EXTENSION_KEY] = normalized;
+        return extensions[ROADMAP_EXTENSION_KEY];
+    }
+    if (!create) return null;
+    extensions[ROADMAP_EXTENSION_KEY] = createEmptyRoadmapExtension();
+    return extensions[ROADMAP_EXTENSION_KEY];
 }

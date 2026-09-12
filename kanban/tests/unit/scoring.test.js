@@ -3,7 +3,8 @@ import {
   effortRank,
   effortScoreValue,
   priorityRank,
-  priorityScoreValue
+  priorityScoreValue,
+  taskScore
 } from '../../src/domain/scoring.js';
 
 describe('effortRank', () => {
@@ -83,5 +84,40 @@ describe('priorityScoreValue', () => {
 
   it('does not normalize case (comparison is against literal lowercase strings)', () => {
     expect(priorityScoreValue('HIGH')).toBe(0);
+  });
+});
+
+describe('taskScore', () => {
+  it('divides priorityScoreValue by effortScoreValue', () => {
+    expect(taskScore({ priority: 'high', effort: 'XS' })).toBe(3 / 1);
+    expect(taskScore({ priority: 'medium', effort: 'M' })).toBe(2 / 3);
+    expect(taskScore({ priority: 'low', effort: 'XL' })).toBe(1 / 8);
+  });
+
+  it('returns null when priority is missing or unrecognized (numerator is 0)', () => {
+    expect(taskScore({ effort: 'M' })).toBeNull();
+    expect(taskScore({ priority: 'urgent', effort: 'M' })).toBeNull();
+  });
+
+  it('returns null when effort is missing or unrecognized (denominator is 0)', () => {
+    expect(taskScore({ priority: 'high' })).toBeNull();
+    expect(taskScore({ priority: 'high', effort: 'HUGE' })).toBeNull();
+  });
+
+  it('returns null when both priority and effort are missing', () => {
+    expect(taskScore({})).toBeNull();
+  });
+
+  it('handles a task argument of null/undefined via optional chaining, returning null', () => {
+    expect(taskScore(null)).toBeNull();
+    expect(taskScore(undefined)).toBeNull();
+  });
+
+  it('does not normalize priority case, matching priorityScoreValue', () => {
+    expect(taskScore({ priority: 'HIGH', effort: 'XS' })).toBeNull();
+  });
+
+  it('does normalize effort case/whitespace, matching effortScoreValue/normalizeEffort', () => {
+    expect(taskScore({ priority: 'high', effort: '  xs ' })).toBe(3 / 1);
   });
 });

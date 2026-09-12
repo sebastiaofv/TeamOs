@@ -6,9 +6,11 @@ import {
   buildTaskTimelineChanges,
   normalizeTimelineChanges,
   buildTaskTimelineEvent,
-  normalizeTimelineEvent
+  normalizeTimelineEvent,
+  applyTimelineEventToState,
+  normalizeTimelineExtension
 } from '../../src/domain/timeline.js';
-import { TIMELINE_VERSION } from '../../src/domain/constants.js';
+import { TIMELINE_VERSION, ROADMAP_VERSION } from '../../src/domain/constants.js';
 
 describe('createEmptyTimelineData', () => {
   it('returns a fresh empty timeline shape at the current version', () => {
@@ -444,5 +446,268 @@ describe('normalizeTimelineEvent', () => {
     const event = normalizeTimelineEvent({ ...baseValid, meta });
     expect(event.meta).toEqual(meta);
     expect(event.meta).not.toBe(meta);
+  });
+});
+
+const VALID_EVENT = {
+  id: 'evt_1',
+  at: '2024-03-01T00:00:00.000Z',
+  kind: 'task.created',
+  entityType: 'task',
+  entityId: '1'
+};
+
+describe('normalizeTimelineExtension', () => {
+  it('returns null for non-object input, including null/undefined', () => {
+    expect(normalizeTimelineExtension(null)).toBeNull();
+    expect(normalizeTimelineExtension(undefined)).toBeNull();
+    expect(normalizeTimelineExtension('x')).toBeNull();
+  });
+
+  it('returns null for an array, even though typeof is object', () => {
+    expect(normalizeTimelineExtension([])).toBeNull();
+  });
+
+  it('returns null when version does not match TIMELINE_VERSION', () => {
+    expect(normalizeTimelineExtension({ version: TIMELINE_VERSION + 1, events: [] })).toBeNull();
+  });
+
+  it('returns null when events is missing or not an array', () => {
+    expect(normalizeTimelineExtension({ version: TIMELINE_VERSION })).toBeNull();
+    expect(normalizeTimelineExtension({ version: TIMELINE_VERSION, events: 'nope' })).toBeNull();
+  });
+
+  it('returns null when any event in the list fails to normalize', () => {
+    const value = { version: TIMELINE_VERSION, events: [VALID_EVENT, { bogus: true }] };
+    expect(normalizeTimelineExtension(value)).toBeNull();
+  });
+
+  it('stamps TIMELINE_VERSION and defaults baselineEventId to the first event id when absent', () => {
+    const value = { version: TIMELINE_VERSION, events: [VALID_EVENT] };
+    expect(normalizeTimelineExtension(value)).toEqual({
+      version: TIMELINE_VERSION,
+      baselineEventId: 'evt_1',
+      events: [normalizeTimelineEvent(VALID_EVENT)]
+    });
+  });
+
+  it('preserves an explicit, trimmed baselineEventId over the first-event fallback', () => {
+    const secondEvent = { ...VALID_EVENT, id: 'evt_2' };
+    const value = {
+      version: TIMELINE_VERSION,
+      baselineEventId: '  evt_2  ',
+      events: [VALID_EVENT, secondEvent]
+    };
+    expect(normalizeTimelineExtension(value).baselineEventId).toBe('evt_2');
+  });
+
+  it('falls back to the first event id when baselineEventId is blank', () => {
+    const value = { version: TIMELINE_VERSION, baselineEventId: '   ', events: [VALID_EVENT] };
+    expect(normalizeTimelineExtension(value).baselineEventId).toBe('evt_1');
+  });
+
+  it('defaults baselineEventId to an empty string when events is empty and baselineEventId is absent', () => {
+    const value = { version: TIMELINE_VERSION, events: [] };
+    expect(normalizeTimelineExtension(value)).toEqual({
+      version: TIMELINE_VERSION,
+      baselineEventId: '',
+      events: []
+    });
+  });
+
+  it('accepts a version value coercible to the expected number (e.g. a numeric string)', () => {
+    const value = { version: String(TIMELINE_VERSION), events: [] };
+    expect(normalizeTimelineExtension(value).version).toBe(TIMELINE_VERSION);
+  });
+});
+
+describe('applyTimelineEventToState', () => {
+  it('returns state unchanged (same reference, not cloned) when state or event is falsy', () => {
+    const state = { board: { tasks: [] } };
+    expect(applyTimelineEventToState(null, VALID_EVENT)).toBeNull();
+    expect(applyTimelineEventToState(state, null)).toBe(state);
+    expect(applyTimelineEventToState(undefined, VALID_EVENT)).toBeUndefined();
+  });
+
+  it('board.restored with a snapshot returns a deep clone of the snapshot, ignoring the rest of state', () => {
+    const state = { board: { tasks: [{ id: 1 }], columns: [], settings: {} } };
+    const snapshot = { board: { tasks: [{ id: 99 }], columns: [], settings: { theme: 'dark' } } };
+    const event = { kind: 'board.restored', snapshot };
+    const result = applyTimelineEventToState(state, event);
+    expect(result).toEqual(snapshot);
+    expect(result).not.toBe(snapshot);
+    expect(result.board.tasks).not.toBe(snapshot.board.tasks);
+  });
+
+  it('board.restored without a snapshot falls through and returns a normalized clone of state instead', () => {
+    const state = { board: { tasks: [{ id: 1 }] } };
+    const result = applyTimelineEventToState(state, { kind: 'board.restored' });
+    expect(result).toEqual({ board: { tasks: [{ id: 1 }], columns: [], settings: {} } });
+    expect(result).not.toBe(state);
+  });
+
+  it('task.created adds the snapshot task, and replaces any existing task sharing its id', () => {
+    const state = { board: { tasks: [{ id: 1, title: 'Old' }] } };
+    const event = { kind: 'task.created', entityId: '1', snapshot: { id: 1, title: 'New' } };
+    const result = applyTimelineEventToState(state, event);
+    expect(result.board.tasks).toEqual([{ id: 1, title: 'New' }]);
+  });
+
+  it('task.created without a snapshot is a no-op (falls through to unmatched, returns normalized state)', () => {
+    const state = { board: { tasks: [{ id: 1, title: 'Old' }] } };
+    const result = applyTimelineEventToState(state, { kind: 'task.created', entityId: '1' });
+    expect(result.board.tasks).toEqual([{ id: 1, title: 'Old' }]);
+  });
+
+  it('task.deleted removes the task matching entityId', () => {
+    const state = { board: { tasks: [{ id: 1 }, { id: 2 }] } };
+    const result = applyTimelineEventToState(state, { kind: 'task.deleted', entityId: '1' });
+    expect(result.board.tasks).toEqual([{ id: 2 }]);
+  });
+
+  it.each(['task.updated', 'task.status.changed', 'task.archived', 'task.restored'])(
+    '%s applies each changed field\'s "after" value onto the matching task',
+    (kind) => {
+      const state = { board: { tasks: [{ id: 1, title: 'Old', status: 'doing' }] } };
+      const event = {
+        kind,
+        entityId: '1',
+        changes: {
+          title: { before: 'Old', after: 'New' },
+          status: { before: 'doing', after: 'done' }
+        }
+      };
+      const result = applyTimelineEventToState(state, event);
+      expect(result.board.tasks[0]).toEqual({ id: 1, title: 'New', status: 'done' });
+    }
+  );
+
+  it('task.updated is a no-op when no task matches entityId', () => {
+    const state = { board: { tasks: [{ id: 2, title: 'Keep' }] } };
+    const event = { kind: 'task.updated', entityId: '1', changes: { title: { before: 'a', after: 'b' } } };
+    const result = applyTimelineEventToState(state, event);
+    expect(result.board.tasks).toEqual([{ id: 2, title: 'Keep' }]);
+  });
+
+  it('task.updated is a no-op when event.changes is missing', () => {
+    const state = { board: { tasks: [{ id: 1, title: 'Keep' }] } };
+    const result = applyTimelineEventToState(state, { kind: 'task.updated', entityId: '1' });
+    expect(result.board.tasks).toEqual([{ id: 1, title: 'Keep' }]);
+  });
+
+  it('board.settings.updated merges each changed field\'s "after" value into board.settings', () => {
+    const state = { board: { tasks: [], settings: { theme: 'light', wipLimit: 3 } } };
+    const event = {
+      kind: 'board.settings.updated',
+      changes: { theme: { before: 'light', after: 'dark' } }
+    };
+    const result = applyTimelineEventToState(state, event);
+    expect(result.board.settings).toEqual({ theme: 'dark', wipLimit: 3 });
+  });
+
+  it('board.settings.updated without changes is a no-op on settings', () => {
+    const state = { board: { tasks: [], settings: { theme: 'light' } } };
+    const result = applyTimelineEventToState(state, { kind: 'board.settings.updated' });
+    expect(result.board.settings).toEqual({ theme: 'light' });
+  });
+
+  it('board.columns.updated prefers event.changes.columns.after when present', () => {
+    const state = { board: { tasks: [], columns: [{ id: 'todo' }] } };
+    const event = {
+      kind: 'board.columns.updated',
+      changes: { columns: { before: [{ id: 'todo' }], after: [{ id: 'doing' }] } },
+      snapshot: { board: { columns: [{ id: 'ignored' }] } }
+    };
+    const result = applyTimelineEventToState(state, event);
+    expect(result.board.columns).toEqual([{ id: 'doing' }]);
+  });
+
+  it('board.columns.updated falls back to event.snapshot.board.columns when changes.columns is absent', () => {
+    const state = { board: { tasks: [], columns: [{ id: 'todo' }] } };
+    const event = {
+      kind: 'board.columns.updated',
+      snapshot: { board: { columns: [{ id: 'from-snapshot' }] } }
+    };
+    const result = applyTimelineEventToState(state, event);
+    expect(result.board.columns).toEqual([{ id: 'from-snapshot' }]);
+  });
+
+  it('board.columns.updated with neither changes.columns nor a snapshot leaves columns as-is', () => {
+    const state = { board: { tasks: [], columns: [{ id: 'todo' }] } };
+    const result = applyTimelineEventToState(state, { kind: 'board.columns.updated' });
+    expect(result.board.columns).toEqual([{ id: 'todo' }]);
+  });
+
+  it('roadmap.bulk-assigned creates the roadmap extension, upserts the sprint, and assigns sprintId to the named tasks', () => {
+    const state = { board: { tasks: [{ id: 1 }, { id: 2 }, { id: 3 }] } };
+    const event = {
+      kind: 'roadmap.bulk-assigned',
+      meta: {
+        sprint: { id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14' },
+        taskIds: [1, 3]
+      }
+    };
+    const result = applyTimelineEventToState(state, event);
+    expect(result.extensions.roadmap.sprints).toEqual([
+      { id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14' }
+    ]);
+    expect(result.board.tasks.map((t) => t.sprintId)).toEqual(['s1', undefined, 's1']);
+  });
+
+  it('roadmap.bulk-assigned replaces an existing sprint sharing the same id instead of duplicating it', () => {
+    const state = {
+      board: { tasks: [] },
+      extensions: {
+        roadmap: {
+          version: ROADMAP_VERSION,
+          milestones: [],
+          phases: [],
+          sprints: [{ id: 's1', title: 'Old Sprint', startDate: '2024-01-01', endDate: '2024-01-07' }]
+        }
+      }
+    };
+    const event = {
+      kind: 'roadmap.bulk-assigned',
+      meta: { sprint: { id: 's1', title: 'New Sprint', startDate: '2024-01-01', endDate: '2024-01-14' } }
+    };
+    const result = applyTimelineEventToState(state, event);
+    expect(result.extensions.roadmap.sprints).toEqual([
+      { id: 's1', title: 'New Sprint', startDate: '2024-01-01', endDate: '2024-01-14' }
+    ]);
+  });
+
+  it('roadmap.bulk-assigned still creates an empty roadmap extension but skips sprint work when meta.sprint has no id', () => {
+    const state = { board: { tasks: [{ id: 1 }] } };
+    const result = applyTimelineEventToState(state, { kind: 'roadmap.bulk-assigned', meta: {} });
+    expect(result.extensions.roadmap).toEqual({ version: ROADMAP_VERSION, milestones: [], phases: [], sprints: [] });
+    expect(result.board.tasks[0].sprintId).toBeUndefined();
+  });
+
+  it('roadmap.updated with a snapshot returns a deep clone of the snapshot', () => {
+    const state = { board: { tasks: [] } };
+    const snapshot = { board: { tasks: [{ id: 5 }], columns: [], settings: {} }, extensions: { roadmap: null } };
+    const result = applyTimelineEventToState(state, { kind: 'roadmap.updated', snapshot });
+    expect(result).toEqual(snapshot);
+    expect(result).not.toBe(snapshot);
+  });
+
+  it('roadmap.updated without a snapshot returns the normalized state unchanged', () => {
+    const state = { board: { tasks: [{ id: 1 }] } };
+    const result = applyTimelineEventToState(state, { kind: 'roadmap.updated' });
+    expect(result.board.tasks).toEqual([{ id: 1 }]);
+  });
+
+  it('an unrecognized event kind leaves state untouched aside from normalizing board.tasks/columns/settings', () => {
+    const state = { board: { tasks: [{ id: 1 }] } };
+    const result = applyTimelineEventToState(state, { kind: 'something.unknown', entityId: '1' });
+    expect(result).toEqual({ board: { tasks: [{ id: 1 }], columns: [], settings: {} } });
+    expect(result).not.toBe(state);
+  });
+
+  it('does not mutate the input state object', () => {
+    const state = { board: { tasks: [{ id: 1, title: 'Old' }] } };
+    const event = { kind: 'task.updated', entityId: '1', changes: { title: { before: 'Old', after: 'New' } } };
+    applyTimelineEventToState(state, event);
+    expect(state.board.tasks[0].title).toBe('Old');
   });
 });
