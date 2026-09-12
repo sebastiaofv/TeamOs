@@ -1,7 +1,8 @@
 import { EFFORT_BUCKETS, defaultColumns } from './constants.js';
 import { nowIso, normalizeTimestamp } from './util.js';
 import { normalizeDueDate, todayLocalIsoDate } from './calendar.js';
-import { getRoadmapTaskFieldTasks } from './roadmap.js';
+import { clearInvalidRoadmapTaskRefs, getRoadmapTaskFieldTasks, normalizeRoadmapRef } from './roadmap.js';
+import { normalizeTaskAttachments } from './attachments.js';
 
 export function normalizeAssignee(value) {
     if (value === null || value === undefined) return '';
@@ -231,4 +232,39 @@ export function resolveCreateTaskStatus(boardRecord, preferredStatus) {
     const fallbackStatus = normalizeTaskStatus((boardRecord?.data?.board?.columns || [defaultColumns[0]])[0]?.status);
     const normalizedPreferred = normalizeTaskStatus(preferredStatus);
     return validStatuses.has(normalizedPreferred) ? normalizedPreferred : fallbackStatus;
+}
+
+export function normalizeTask(task, options = {}) {
+    const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
+    const includeStatusChangedAt = options.includeStatusChangedAt !== false;
+    const normalizedTask = {
+        id: task.id,
+        title: task.title,
+        description: task.description || '',
+        assignees: taskAssignees(task),
+        tags: normalizeTags(task.tags),
+        blocked: normalizeTaskBlocked(task.blocked),
+        blockerReason: normalizeTaskBlocked(task.blocked) ? normalizeBlockerReason(task.blockerReason) : '',
+        checklist: normalizeChecklist(task.checklist),
+        attachments: normalizeTaskAttachments(
+            Array.isArray(task?.attachments) ? task.attachments : fallbackAttachments
+        ),
+        archived: Boolean(task.archived),
+        createdAt: normalizeTimestamp(task.createdAt) || nowIso(),
+        updatedAt: normalizeTimestamp(task.updatedAt) || nowIso(),
+        dueDate: normalizeDueDate(task.dueDate),
+        priority: normalizePriority(task.priority),
+        effort: normalizeEffort(task.effort),
+        phaseId: normalizeRoadmapRef(task.phaseId),
+        milestoneId: normalizeRoadmapRef(task.milestoneId),
+        sprintId: normalizeRoadmapRef(task.sprintId),
+        status: normalizeTaskStatus(task.status)
+    };
+    if (includeStatusChangedAt) {
+        const statusChangedAt = normalizeTimestamp(task.statusChangedAt);
+        if (statusChangedAt) {
+            normalizedTask.statusChangedAt = statusChangedAt;
+        }
+    }
+    return clearInvalidRoadmapTaskRefs(normalizedTask, options.roadmap);
 }

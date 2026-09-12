@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  getTimelineExtensionObject,
   createEmptyTimelineData,
   createTimelineEventId,
   formatTimelineValue,
@@ -709,5 +710,25 @@ describe('applyTimelineEventToState', () => {
     const event = { kind: 'task.updated', entityId: '1', changes: { title: { before: 'Old', after: 'New' } } };
     applyTimelineEventToState(state, event);
     expect(state.board.tasks[0].title).toBe('Old');
+  });
+});
+
+describe('getTimelineExtensionObject', () => {
+  it('returns null for a board with no timeline extension when create is false', () => {
+    expect(getTimelineExtensionObject({ extensions: {} })).toBeNull();
+  });
+
+  it('creates and returns an empty timeline when create is true', () => {
+    const board = { extensions: {} };
+    const tl = getTimelineExtensionObject(board, { create: true });
+    expect(tl).not.toBeNull();
+    expect(board.extensions.timeline).toBe(tl);
+  });
+
+  it('normalizes and returns an existing timeline extension', () => {
+    const board = { extensions: { timeline: { version: 1, baselineEventId: 'b1', events: [] } } };
+    const tl = getTimelineExtensionObject(board);
+    expect(tl).not.toBeNull();
+    expect(tl.events).toEqual([]);
   });
 });

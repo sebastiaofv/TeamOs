@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  normalizeBoardExtensionsValue,
   areSerializableValuesEqual,
   cloneSerializable,
   getBoardExtensionsObject,
@@ -189,5 +190,37 @@ describe('getTeamOsExtensionsObject', () => {
     const result = getTeamOsExtensionsObject(board, { create: true });
     expect(result).toEqual({});
     expect(board.extensions.teamOsKanban).toBe(result);
+  });
+});
+
+describe('normalizeBoardExtensionsValue', () => {
+  it('returns an empty object for null or non-object input', () => {
+    expect(normalizeBoardExtensionsValue(null)).toEqual({});
+    expect(normalizeBoardExtensionsValue('nope')).toEqual({});
+    expect(normalizeBoardExtensionsValue([1, 2])).toEqual({});
+  });
+
+  it('does not mutate the input object', () => {
+    const input = { roadmap: { version: 1, phases: [], milestones: [], sprints: [] } };
+    const snapshot = JSON.stringify(input);
+    normalizeBoardExtensionsValue(input);
+    expect(JSON.stringify(input)).toBe(snapshot);
+  });
+
+  it('drops a roadmap extension that fails normalization', () => {
+    const out = normalizeBoardExtensionsValue({ roadmap: 'garbage' });
+    expect('roadmap' in out).toBe(false);
+  });
+
+  it('drops the timeline extension when includeTimeline is false', () => {
+    const out = normalizeBoardExtensionsValue(
+      { timeline: { version: 1, baselineEventId: 'b1', events: [] } },
+      { includeTimeline: false }
+    );
+    expect('timeline' in out).toBe(false);
+  });
+
+  it('preserves unrelated extension keys', () => {
+    expect(normalizeBoardExtensionsValue({ somethingElse: { a: 1 } }).somethingElse).toEqual({ a: 1 });
   });
 });

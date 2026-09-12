@@ -8,45 +8,17 @@ import {
   nextPortfolioProjectId,
   normalizeBoardArchiveFilter,
   normalizeColumns,
+  validateBoardData,
+  comparePortfolioRows,
   normalizePortfolioSortDir,
   normalizePortfolioSortKey,
   normalizePortfolioViewMode,
   portfolioProjectColorKey,
   slugifyColumnName
 } from '../../src/domain/board.js';
-import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS } from '../../src/domain/constants.js';
+import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, TASK_TITLE_MAX_LENGTH } from '../../src/domain/constants.js';
 import { hasExactKeys } from '../../src/domain/util.js';
 
-// Mirrors the structural checks validateBoardData (src/legacy/main.js, not
-// yet extracted) performs on the parts of a project's shape that
-// createEmptyProjectData actually produces -- built from the same exported
-// primitives validateBoardData itself uses (hasExactKeys,
-// isAcceptedBoardSettingsShape) plus its own literal constants, so this
-// stays a faithful proxy for "would validateBoardData accept this" without
-// importing src/legacy/main.js (which has document/window side effects at
-// module scope and cannot run under vitest's node environment).
-function assertPassesBoardValidationShape(data) {
-  expect(hasExactKeys(data, ['meta', 'board', 'extensions'])).toBe(true);
-  expect(hasExactKeys(data.meta, ['schemaVersion', 'appId', 'createdAt', 'updatedAt'])).toBe(true);
-  expect(data.meta.schemaVersion).toBe(BOARD_SCHEMA_VERSION);
-  expect(data.meta.appId).toBe(BOARD_APP_ID);
-  expect(Number.isNaN(Date.parse(data.meta.createdAt))).toBe(false);
-  expect(Number.isNaN(Date.parse(data.meta.updatedAt))).toBe(false);
-  expect(hasExactKeys(data.board, ['columns', 'tasks', 'settings'])).toBe(true);
-  expect(Array.isArray(data.board.columns)).toBe(true);
-  expect(data.board.columns.length).toBeGreaterThan(0);
-  expect(data.board.columns.length).toBeLessThanOrEqual(MAX_COLUMNS);
-  const statuses = new Set();
-  data.board.columns.forEach((col) => {
-    expect(hasExactKeys(col, ['status', 'title'])).toBe(true);
-    expect(typeof col.status === 'string' && col.status.trim().length > 0).toBe(true);
-    expect(typeof col.title === 'string' && col.title.trim().length > 0).toBe(true);
-    expect(statuses.has(col.status)).toBe(false);
-    statuses.add(col.status);
-  });
-  expect(Array.isArray(data.board.tasks)).toBe(true);
-  expect(isAcceptedBoardSettingsShape(data.board.settings)).toBe(true);
-}
 
 describe('createPortfolioProjectColor', () => {
   it('is deterministic: the same seed and offset always produce the same color', () => {
@@ -319,8 +291,10 @@ describe('slugifyColumnName', () => {
 
 describe('createEmptyProjectData', () => {
   it('produces a board that satisfies validateBoardData\'s structural checks', () => {
-    assertPassesBoardValidationShape(createEmptyProjectData('My Project'));
-    assertPassesBoardValidationShape(createEmptyProjectData(''));
+    // validateBoardData is now a real module, so assert against it directly
+    // rather than against a local re-implementation of its rules.
+    expect(() => validateBoardData(createEmptyProjectData('My Project'))).not.toThrow();
+    expect(() => validateBoardData(createEmptyProjectData(''))).not.toThrow();
   });
 
   it('sets meta.schemaVersion to 1 and meta.appId to teamos-kanban', () => {
@@ -388,5 +362,251 @@ describe('isAcceptedBoardSettingsShape', () => {
     expect(isAcceptedBoardSettingsShape(null)).toBe(false);
     expect(isAcceptedBoardSettingsShape(undefined)).toBe(false);
     expect(isAcceptedBoardSettingsShape('title')).toBe(false);
+  });
+});
+
+describe('validateBoardData', () => {
+  // Built from boards/example.board.json, the app's own reference file.
+  const validBoard = () => ({
+    meta: {
+      schemaVersion: BOARD_SCHEMA_VERSION,
+      appId: BOARD_APP_ID,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    },
+    board: {
+      columns: [
+        { status: 'backlog', title: 'backlog' },
+        { status: 'to-do', title: 'to-do' }
+      ],
+      tasks: [],
+      settings: { title: 'Test Board' }
+    },
+    extensions: {}
+  });
+
+  // validateBoardData requires every one of these 10 keys on a task; anything
+  // missing fails the structural check before any field-specific check runs.
+  const validTask = (over = {}) => ({
+    id: 1,
+    title: 'A task',
+    description: '',
+    checklist: [],
+    archived: false,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    dueDate: '',
+    priority: null,
+    status: 'backlog',
+    ...over
+  });
+
+  it('accepts a well-formed board', () => {
+    expect(() => validateBoardData(validBoard())).not.toThrow();
+  });
+
+  it('accepts a board with a well-formed task', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask()];
+    expect(() => validateBoardData(b)).not.toThrow();
+  });
+
+  it('rejects a task missing a required key', () => {
+    const b = validBoard();
+    const t = validTask();
+    delete t.description;
+    b.board.tasks = [t];
+    expect(() => validateBoardData(b)).toThrow('Invalid task structure.');
+  });
+
+  it('rejects a task carrying an unknown key', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ bogusField: 1 })];
+    expect(() => validateBoardData(b)).toThrow('Invalid task structure.');
+  });
+
+  it('rejects a null or non-object root', () => {
+    expect(() => validateBoardData(null)).toThrow('Invalid file root structure.');
+    expect(() => validateBoardData('nope')).toThrow('Invalid file root structure.');
+  });
+
+  it('rejects a root missing one of meta/board/extensions', () => {
+    const b = validBoard();
+    delete b.meta;
+    // The root exact-key check runs before the meta-shape check.
+    expect(() => validateBoardData(b)).toThrow('Invalid file root structure.');
+  });
+
+  it('rejects a non-object meta block', () => {
+    const b = validBoard();
+    b.meta = 'nope';
+    expect(() => validateBoardData(b)).toThrow('Invalid meta structure.');
+  });
+
+  it('rejects an unsupported schemaVersion', () => {
+    const b = validBoard();
+    b.meta.schemaVersion = 999;
+    expect(() => validateBoardData(b)).toThrow(/Unsupported schemaVersion/);
+  });
+
+  it('rejects a foreign appId', () => {
+    const b = validBoard();
+    b.meta.appId = 'some-other-app';
+    expect(() => validateBoardData(b)).toThrow('Invalid appId.');
+  });
+
+  it('rejects a board with no columns', () => {
+    const b = validBoard();
+    b.board.columns = [];
+    expect(() => validateBoardData(b)).toThrow('Board must include at least one column.');
+  });
+
+  it('rejects more columns than MAX_COLUMNS', () => {
+    const b = validBoard();
+    b.board.columns = Array.from({ length: MAX_COLUMNS + 1 }, (_, i) => ({
+      status: `s${i}`, title: `t${i}`
+    }));
+    expect(() => validateBoardData(b)).toThrow(/cannot have more than/);
+  });
+
+  it('rejects duplicate column statuses', () => {
+    const b = validBoard();
+    b.board.columns = [
+      { status: 'backlog', title: 'one' },
+      { status: 'backlog', title: 'two' }
+    ];
+    expect(() => validateBoardData(b)).toThrow('Column statuses must be unique.');
+  });
+
+  it('rejects tasks that are not an array', () => {
+    const b = validBoard();
+    b.board.tasks = {};
+    expect(() => validateBoardData(b)).toThrow('Board tasks must be an array.');
+  });
+
+  it('rejects a non-numeric task id', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ id: 'abc' })];
+    expect(() => validateBoardData(b)).toThrow('Task id must be a number.');
+  });
+
+  it('rejects an empty task title', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ title: '' })];
+    expect(() => validateBoardData(b)).toThrow('Task title must be a non-empty string.');
+  });
+
+  it(`rejects a task title longer than ${TASK_TITLE_MAX_LENGTH} characters`, () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ title: 'x'.repeat(TASK_TITLE_MAX_LENGTH + 1) })];
+    expect(() => validateBoardData(b)).toThrow(/characters or fewer/);
+  });
+
+  it('accepts a task title of exactly the maximum length', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ title: 'x'.repeat(TASK_TITLE_MAX_LENGTH) })];
+    expect(() => validateBoardData(b)).not.toThrow();
+  });
+
+  it('rejects a non-boolean archived flag', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ archived: 'yes' })];
+    expect(() => validateBoardData(b)).toThrow('Task archived must be boolean.');
+  });
+
+  it('rejects a malformed dueDate', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ dueDate: '01/02/2026' })];
+    expect(() => validateBoardData(b)).toThrow(/dueDate must be YYYY-MM-DD/);
+  });
+
+  it('accepts null priority but rejects an empty string', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ priority: null })];
+    expect(() => validateBoardData(b)).not.toThrow();
+    b.board.tasks = [validTask({ priority: '' })];
+    expect(() => validateBoardData(b)).toThrow('Task priority is invalid.');
+  });
+
+  it('rejects an invalid priority', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ priority: 'urgent' })];
+    expect(() => validateBoardData(b)).toThrow('Task priority is invalid.');
+  });
+
+  it('rejects an invalid effort bucket', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ effort: 'XXL' })];
+    expect(() => validateBoardData(b)).toThrow('Task effort is invalid.');
+  });
+
+  it('rejects a non-array checklist', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ checklist: 'a,b' })];
+    expect(() => validateBoardData(b)).toThrow('Task checklist must be an array.');
+  });
+
+  it('rejects a non-string-array assignees list', () => {
+    const b = validBoard();
+    b.board.tasks = [validTask({ assignees: [1, 2] })];
+    expect(() => validateBoardData(b)).toThrow('Task assignees must be a string array.');
+  });
+
+  it('rejects a malformed settings block', () => {
+    const b = validBoard();
+    b.board.settings = 'Test Board';
+    expect(() => validateBoardData(b)).toThrow('Invalid board.settings structure.');
+  });
+
+  it('rejects a malformed extensions block', () => {
+    const b = validBoard();
+    b.extensions = 'none';
+    expect(() => validateBoardData(b)).toThrow('Invalid extensions structure.');
+  });
+
+  it('accepts the app\'s own example board file unchanged', async () => {
+    const { readFileSync } = await import('node:fs');
+    const raw = readFileSync(new URL('../../boards/example.board.json', import.meta.url), 'utf8');
+    expect(() => validateBoardData(JSON.parse(raw))).not.toThrow();
+  });
+});
+
+describe('comparePortfolioRows', () => {
+  // Rows are portfolio rows: a board-level wrapper around a nested task.
+  const row = (task = {}, over = {}) => ({
+    boardTitle: 'Board',
+    boardFileName: 'b.board.json',
+    task: { title: 'A', status: 'backlog', priority: null, effort: null, dueDate: '', ...task },
+    ...over
+  });
+
+  it('orders by column (status) rank ascending', () => {
+    expect(comparePortfolioRows(row({ status: 'backlog' }), row({ status: 'done' }), 'column', 'asc'))
+      .toBeLessThan(0);
+  });
+
+  it('reverses when direction is desc', () => {
+    const asc = comparePortfolioRows(row({ status: 'backlog' }), row({ status: 'done' }), 'column', 'asc');
+    const desc = comparePortfolioRows(row({ status: 'backlog' }), row({ status: 'done' }), 'column', 'desc');
+    expect(Math.sign(asc)).toBe(-Math.sign(desc));
+  });
+
+  it('orders by task title when sorting by task', () => {
+    expect(comparePortfolioRows(row({ title: 'Alpha' }), row({ title: 'Beta' }), 'task', 'asc'))
+      .toBeLessThan(0);
+  });
+
+  it('sorts rows with no score after rows that have one', () => {
+    const scored = row({ priority: 'high', effort: 'M' });
+    const unscored = row({ priority: null, effort: null });
+    expect(comparePortfolioRows(scored, unscored, 'score', 'asc')).toBeLessThan(0);
+    expect(comparePortfolioRows(unscored, scored, 'score', 'asc')).toBeGreaterThan(0);
+  });
+
+  it('is antisymmetric for differing rows', () => {
+    const a = row({ status: 'backlog' });
+    const b = row({ status: 'doing' });
+    expect(Math.sign(comparePortfolioRows(a, b, 'column', 'asc')))
+      .toBe(-Math.sign(comparePortfolioRows(b, a, 'column', 'asc')));
   });
 });

@@ -37,3 +37,8 @@ export function taskScore(task) {
     if (!denominator || !numerator) return null;
     return numerator / denominator;
 }
+
+export function formatTaskScore(task) {
+    const score = taskScore(task);
+    return Number.isFinite(score) ? score.toFixed(2) : '-';
+}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  formatTaskScore,
   effortRank,
   effortScoreValue,
   priorityRank,
@@ -119,5 +120,19 @@ describe('taskScore', () => {
 
   it('does normalize effort case/whitespace, matching effortScoreValue/normalizeEffort', () => {
     expect(taskScore({ priority: 'high', effort: '  xs ' })).toBe(3 / 1);
+  });
+});
+
+describe('formatTaskScore', () => {
+  it('formats a finite score to two decimal places', () => {
+    expect(formatTaskScore({ priority: 'high', effort: 'M' })).toBe('1.00');
+    expect(formatTaskScore({ priority: 'high', effort: 'L' })).toBe('0.60');
+    expect(formatTaskScore({ priority: 'high', effort: 'XS' })).toBe('3.00');
+  });
+
+  it('renders a dash when the score is not finite', () => {
+    expect(formatTaskScore({ priority: null, effort: 'M' })).toBe('-');
+    expect(formatTaskScore({ priority: 'high', effort: null })).toBe('-');
+    expect(formatTaskScore(null)).toBe('-');
   });
 });

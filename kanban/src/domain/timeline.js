@@ -1,5 +1,5 @@
-import { ROADMAP_EXTENSION_KEY, TIMELINE_VERSION } from './constants.js';
-import { areSerializableValuesEqual, cloneSerializable } from './serialize.js';
+import { ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION } from './constants.js';
+import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject } from './serialize.js';
 import { normalizeTimestamp } from './util.js';
 import { createEmptyRoadmapExtension, normalizeRoadmapExtension } from './roadmap.js';
 
@@ -237,4 +237,19 @@ export function normalizeTimelineExtension(value) {
         baselineEventId: baselineEventId || fallbackBaselineId,
         events
     };
+}
+
+export function getTimelineExtensionObject(boardData, options = {}) {
+    const create = Boolean(options.create);
+    const extensions = getBoardExtensionsObject(boardData, { create });
+    if (!extensions) return null;
+    const current = extensions[TIMELINE_EXTENSION_KEY];
+    const normalized = normalizeTimelineExtension(current);
+    if (normalized) {
+        extensions[TIMELINE_EXTENSION_KEY] = normalized;
+        return extensions[TIMELINE_EXTENSION_KEY];
+    }
+    if (!create) return null;
+    extensions[TIMELINE_EXTENSION_KEY] = createEmptyTimelineData();
+    return extensions[TIMELINE_EXTENSION_KEY];
 }

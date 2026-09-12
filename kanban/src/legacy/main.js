@@ -1,14 +1,14 @@
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
-import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, getTasksForMilestone, getTasksForPhase, getTasksForSprint, resolveCreateTaskStatus } from '../domain/task.js';
+import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, getTasksForMilestone, getTasksForPhase, getTasksForSprint, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
 import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, normalizeRoadmapExtension, clearInvalidRoadmapTaskRefs, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
-import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape } from '../domain/board.js';
+import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape, comparePortfolioRows, validateBoardData } from '../domain/board.js';
 import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap, getLegacyTaskAttachmentsFromExtensions, normalizeTaskAttachments, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel, buildPortfolioCalendarWeekRoadmapSegments, assignPortfolioCalendarWeekRoadmapLanes } from '../domain/calendar.js';
-import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject } from '../domain/serialize.js';
-import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension } from '../domain/timeline.js';
+import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject, normalizeBoardExtensionsValue } from '../domain/serialize.js';
+import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension, getTimelineExtensionObject } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
-import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore } from '../domain/scoring.js';
+import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore, formatTaskScore } from '../domain/scoring.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -174,10 +174,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
 
 
 
-        function formatTaskScore(task) {
-            const score = taskScore(task);
-            return Number.isFinite(score) ? score.toFixed(2) : '-';
-        }
 
 
 
@@ -3263,65 +3259,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
             renderPortfolio();
         }
 
-        function comparePortfolioRows(a, b, sortBy, sortDir) {
-            const key = normalizePortfolioSortKey(sortBy);
-            const dir = normalizePortfolioSortDir(sortDir);
-            const statusRank = (value) => {
-                const normalized = normalizeTaskStatus(value);
-                if (normalized === 'backlog') return 0;
-                if (normalized === 'to-do') return 1;
-                if (normalized === 'doing') return 2;
-                if (normalized === 'done') return 3;
-                return 99;
-            };
-
-            let base = 0;
-            if (key === 'board') {
-                base = compareText(
-                    a.boardTitle || a.boardFileName || '',
-                    b.boardTitle || b.boardFileName || ''
-                );
-            } else if (key === 'task') {
-                base = compareText(a.task.title || '', b.task.title || '');
-            } else if (key === 'column') {
-                base = statusRank(a.task.status) - statusRank(b.task.status);
-            } else if (key === 'priority') {
-                base = priorityRank(a.task.priority) - priorityRank(b.task.priority);
-            } else if (key === 'effort') {
-                base = effortRank(a.task.effort) - effortRank(b.task.effort);
-            } else if (key === 'score') {
-                const aScore = taskScore(a.task);
-                const bScore = taskScore(b.task);
-                if (aScore === null && bScore === null) {
-                    base = 0;
-                } else if (aScore === null) {
-                    base = 1;
-                } else if (bScore === null) {
-                    base = -1;
-                } else {
-                    base = aScore - bScore;
-                }
-            } else if (key === 'dueDate') {
-                base = comparePortfolioDueDateAsc(a, b);
-            } else if (key === 'updatedAt') {
-                base = (a.task.updatedAt || '').localeCompare(b.task.updatedAt || '');
-            }
-
-            if (base === 0) {
-                base = priorityRank(a.task.priority) - priorityRank(b.task.priority);
-            }
-            if (base === 0) {
-                base = (a.task.updatedAt || '').localeCompare(b.task.updatedAt || '') * -1;
-            }
-            if (base === 0) {
-                base = compareText(a.task.title || '', b.task.title || '');
-            }
-            if (base === 0) {
-                base = (a.task.id || 0) - (b.task.id || 0);
-            }
-
-            return dir === 'desc' ? base * -1 : base;
-        }
 
 
 
@@ -3360,40 +3297,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
         }
 
 
-        function normalizeTask(task, options = {}) {
-            const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
-            const includeStatusChangedAt = options.includeStatusChangedAt !== false;
-            const normalizedTask = {
-                id: task.id,
-                title: task.title,
-                description: task.description || '',
-                assignees: taskAssignees(task),
-                tags: normalizeTags(task.tags),
-                blocked: normalizeTaskBlocked(task.blocked),
-                blockerReason: normalizeTaskBlocked(task.blocked) ? normalizeBlockerReason(task.blockerReason) : '',
-                checklist: normalizeChecklist(task.checklist),
-                attachments: normalizeTaskAttachments(
-                    Array.isArray(task?.attachments) ? task.attachments : fallbackAttachments
-                ),
-                archived: Boolean(task.archived),
-                createdAt: normalizeTimestamp(task.createdAt) || nowIso(),
-                updatedAt: normalizeTimestamp(task.updatedAt) || nowIso(),
-                dueDate: normalizeDueDate(task.dueDate),
-                priority: normalizePriority(task.priority),
-                effort: normalizeEffort(task.effort),
-                phaseId: normalizeRoadmapRef(task.phaseId),
-                milestoneId: normalizeRoadmapRef(task.milestoneId),
-                sprintId: normalizeRoadmapRef(task.sprintId),
-                status: normalizeTaskStatus(task.status)
-            };
-            if (includeStatusChangedAt) {
-                const statusChangedAt = normalizeTimestamp(task.statusChangedAt);
-                if (statusChangedAt) {
-                    normalizedTask.statusChangedAt = statusChangedAt;
-                }
-            }
-            return clearInvalidRoadmapTaskRefs(normalizedTask, options.roadmap);
-        }
 
 
 
@@ -3406,221 +3309,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
 
 
 
-        function validateBoardData(data) {
-            if (!hasExactKeys(data, ['meta', 'board', 'extensions'])) {
-                throw new Error('Invalid file root structure.');
-            }
-            if (!hasExactKeys(data.meta, ['schemaVersion', 'appId', 'createdAt', 'updatedAt'])) {
-                throw new Error('Invalid meta structure.');
-            }
-            const schemaVersion = data.meta.schemaVersion;
-            if (schemaVersion !== BOARD_SCHEMA_VERSION) {
-                throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
-            }
-            if (data.meta.appId !== BOARD_APP_ID) {
-                throw new Error('Invalid appId.');
-            }
-            if (!data.meta.createdAt || Number.isNaN(Date.parse(data.meta.createdAt))) {
-                throw new Error('Invalid meta.createdAt.');
-            }
-            if (!data.meta.updatedAt || Number.isNaN(Date.parse(data.meta.updatedAt))) {
-                throw new Error('Invalid meta.updatedAt.');
-            }
-            if (!hasExactKeys(data.board, ['columns', 'tasks', 'settings'])) {
-                throw new Error('Invalid board structure.');
-            }
-            if (!Array.isArray(data.board.columns) || data.board.columns.length === 0) {
-                throw new Error('Board must include at least one column.');
-            }
-            if (data.board.columns.length > MAX_COLUMNS) {
-                throw new Error(`Board cannot have more than ${MAX_COLUMNS} columns.`);
-            }
-            if (!Array.isArray(data.board.tasks)) {
-                throw new Error('Board tasks must be an array.');
-            }
-            if (!isAcceptedBoardSettingsShape(data.board.settings)) {
-                throw new Error('Invalid board.settings structure.');
-            }
-            if (typeof data.board.settings.title !== 'string' || !data.board.settings.title.trim()) {
-                throw new Error('Invalid board.settings.title.');
-            }
-            if (hasExtendedBoardSettings(data.board.settings)) {
-                if (!['manual', 'dueDate', 'effort', 'score'].includes(data.board.settings.sortMode)) {
-                    throw new Error('Invalid board.settings.sortMode.');
-                }
-                if (typeof data.board.settings.showArchivedOnly !== 'boolean') {
-                    throw new Error('Invalid board.settings.showArchivedOnly.');
-                }
-                if ('archiveFilter' in data.board.settings && !BOARD_ARCHIVE_FILTER_VALUES.includes(data.board.settings.archiveFilter)) {
-                    throw new Error('Invalid board.settings.archiveFilter.');
-                }
-            }
-            if (!data.extensions || typeof data.extensions !== 'object' || Array.isArray(data.extensions)) {
-                throw new Error('Invalid extensions structure.');
-            }
-            if (Object.prototype.hasOwnProperty.call(data.extensions, ROADMAP_EXTENSION_KEY)) {
-                const normalizedRoadmap = normalizeRoadmapExtension(data.extensions[ROADMAP_EXTENSION_KEY]);
-                if (!normalizedRoadmap) {
-                    throw new Error('Invalid extensions.roadmap structure.');
-                }
-            }
-            if (Object.prototype.hasOwnProperty.call(data.extensions, TIMELINE_EXTENSION_KEY)) {
-                const normalizedTimeline = normalizeTimelineExtension(data.extensions[TIMELINE_EXTENSION_KEY]);
-                if (!normalizedTimeline) {
-                    throw new Error('Invalid extensions.timeline structure.');
-                }
-                if (normalizedTimeline.events.length > 0) {
-                    if (normalizedTimeline.events[0].kind !== 'board.baseline') {
-                        throw new Error('Timeline must start with board.baseline.');
-                    }
-                    if (normalizedTimeline.baselineEventId !== normalizedTimeline.events[0].id) {
-                        throw new Error('Timeline baselineEventId is invalid.');
-                    }
-                }
-            }
-            const statuses = new Set();
-            data.board.columns.forEach((col) => {
-                if (!hasExactKeys(col, ['status', 'title'])) {
-                    throw new Error('Invalid column structure.');
-                }
-                if (typeof col.status !== 'string' || !col.status.trim()) {
-                    throw new Error('Column status must be a non-empty string.');
-                }
-                if (typeof col.title !== 'string' || !col.title.trim()) {
-                    throw new Error('Column title must be a non-empty string.');
-                }
-                if (statuses.has(col.status)) {
-                    throw new Error('Column statuses must be unique.');
-                }
-                statuses.add(col.status);
-            });
-
-            data.board.tasks.forEach((task) => {
-                const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-                const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
-                const taskKeys = Object.keys(task || {});
-                const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
-                const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
-                if (!hasAllRequired || !hasOnlyAllowed) {
-                    throw new Error('Invalid task structure.');
-                }
-                if (typeof task.id !== 'number' || !Number.isFinite(task.id)) {
-                    throw new Error('Task id must be a number.');
-                }
-                if (typeof task.title !== 'string' || !task.title.trim()) {
-                    throw new Error('Task title must be a non-empty string.');
-                }
-                if (task.title.length > TASK_TITLE_MAX_LENGTH) {
-                    throw new Error(`Task title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer.`);
-                }
-                if (typeof task.description !== 'string') {
-                    throw new Error('Task description must be a string.');
-                }
-                if (!Array.isArray(task.checklist)) {
-                    throw new Error('Task checklist must be an array.');
-                }
-                if (typeof task.archived !== 'boolean') {
-                    throw new Error('Task archived must be boolean.');
-                }
-                if (!normalizeTimestamp(task.createdAt)) {
-                    throw new Error('Task createdAt must be a valid timestamp.');
-                }
-                if (!normalizeTimestamp(task.updatedAt)) {
-                    throw new Error('Task updatedAt must be a valid timestamp.');
-                }
-                if ('statusChangedAt' in task && !normalizeTimestamp(task.statusChangedAt)) {
-                    throw new Error('Task statusChangedAt must be a valid timestamp.');
-                }
-                if (typeof task.dueDate !== 'string' || (task.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))) {
-                    throw new Error('Task dueDate must be YYYY-MM-DD or empty.');
-                }
-                if (task.priority !== null && !['high', 'medium', 'low'].includes(task.priority)) {
-                    throw new Error('Task priority is invalid.');
-                }
-                if ('effort' in task && task.effort !== null && !EFFORT_BUCKETS.includes(String(task.effort).toUpperCase())) {
-                    throw new Error('Task effort is invalid.');
-                }
-                if ('assignee' in task && !isAcceptedLegacyAssigneeValue(task.assignee)) {
-                    throw new Error('Task assignee must be a string or string array.');
-                }
-                if ('assignees' in task && (!Array.isArray(task.assignees) || task.assignees.some((name) => typeof name !== 'string'))) {
-                    throw new Error('Task assignees must be a string array.');
-                }
-                if ('phaseId' in task && typeof task.phaseId !== 'string') {
-                    throw new Error('Task phaseId must be a string.');
-                }
-                if ('milestoneId' in task && typeof task.milestoneId !== 'string') {
-                    throw new Error('Task milestoneId must be a string.');
-                }
-                if ('sprintId' in task && typeof task.sprintId !== 'string') {
-                    throw new Error('Task sprintId must be a string.');
-                }
-                if ('blocked' in task && typeof task.blocked !== 'boolean') {
-                    throw new Error('Task blocked must be boolean.');
-                }
-                if ('blockerReason' in task && typeof task.blockerReason !== 'string') {
-                    throw new Error('Task blockerReason must be a string.');
-                }
-                if (task.blocked === true && !normalizeBlockerReason(task.blockerReason)) {
-                    throw new Error('Blocked tasks require blockerReason.');
-                }
-                if (typeof task.status !== 'string' || !statuses.has(task.status)) {
-                    throw new Error('Task status is invalid.');
-                }
-                task.checklist.forEach((item) => {
-                    if (!hasExactKeys(item, ['text', 'done'])) {
-                        throw new Error('Invalid checklist item structure.');
-                    }
-                    if (typeof item.text !== 'string' || !item.text.trim()) {
-                        throw new Error('Checklist item text must be non-empty.');
-                    }
-                    if (typeof item.done !== 'boolean') {
-                        throw new Error('Checklist item done must be boolean.');
-                    }
-                });
-                if (Object.prototype.hasOwnProperty.call(task, 'attachments')) {
-                    if (!Array.isArray(task.attachments)) {
-                        throw new Error('Task attachments must be an array.');
-                    }
-                    task.attachments.forEach((attachment) => {
-                        if (!hasExactKeys(attachment, ['id', 'name', 'mime', 'sizeBytes', 'kind', 'dataUrl', 'createdAt'])) {
-                            throw new Error('Invalid attachment structure.');
-                        }
-                        if (typeof attachment.id !== 'string' || !attachment.id.trim()) {
-                            throw new Error('Attachment id must be a non-empty string.');
-                        }
-                        if (typeof attachment.name !== 'string' || !attachment.name.trim()) {
-                            throw new Error('Attachment name must be a non-empty string.');
-                        }
-                        if (typeof attachment.mime !== 'string') {
-                            throw new Error('Attachment mime must be a string.');
-                        }
-                        if (typeof attachment.sizeBytes !== 'number' || !Number.isFinite(attachment.sizeBytes) || attachment.sizeBytes < 0) {
-                            throw new Error('Attachment sizeBytes must be a non-negative number.');
-                        }
-                        if (!['image', 'file'].includes(attachment.kind)) {
-                            throw new Error('Attachment kind is invalid.');
-                        }
-                        if (typeof attachment.dataUrl !== 'string' || !attachment.dataUrl.startsWith('data:')) {
-                            throw new Error('Attachment dataUrl must be a data URL string.');
-                        }
-                        if (!normalizeTimestamp(attachment.createdAt)) {
-                            throw new Error('Attachment createdAt must be a valid timestamp.');
-                        }
-                    });
-                }
-                if (Object.prototype.hasOwnProperty.call(task, 'tags')) {
-                    if (!Array.isArray(task.tags)) {
-                        throw new Error('Task tags must be an array.');
-                    }
-                    task.tags.forEach((tag) => {
-                        if (typeof tag !== 'string' || !tag.trim()) {
-                            throw new Error('Task tag must be non-empty string.');
-                        }
-                    });
-                }
-            });
-        }
 
 
 
@@ -3833,53 +3521,8 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
 
 
 
-        function normalizeBoardExtensionsValue(extensionsValue, options = {}) {
-            const includeTimeline = options.includeTimeline !== false;
-            const base = stripLegacyTaskAttachmentsFromExtensions(extensionsValue);
-            const nextExtensions = (base && typeof base === 'object' && !Array.isArray(base))
-                ? { ...base }
-                : {};
-
-            if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
-                const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);
-                if (normalizedRoadmap) {
-                    nextExtensions[ROADMAP_EXTENSION_KEY] = normalizedRoadmap;
-                } else {
-                    delete nextExtensions[ROADMAP_EXTENSION_KEY];
-                }
-            }
-
-            if (!includeTimeline) {
-                delete nextExtensions[TIMELINE_EXTENSION_KEY];
-                return nextExtensions;
-            }
-
-            if (Object.prototype.hasOwnProperty.call(nextExtensions, TIMELINE_EXTENSION_KEY)) {
-                const normalizedTimeline = normalizeTimelineExtension(nextExtensions[TIMELINE_EXTENSION_KEY]);
-                if (normalizedTimeline) {
-                    nextExtensions[TIMELINE_EXTENSION_KEY] = normalizedTimeline;
-                } else {
-                    delete nextExtensions[TIMELINE_EXTENSION_KEY];
-                }
-            }
-            return nextExtensions;
-        }
 
 
-        function getTimelineExtensionObject(boardData, options = {}) {
-            const create = Boolean(options.create);
-            const extensions = getBoardExtensionsObject(boardData, { create });
-            if (!extensions) return null;
-            const current = extensions[TIMELINE_EXTENSION_KEY];
-            const normalized = normalizeTimelineExtension(current);
-            if (normalized) {
-                extensions[TIMELINE_EXTENSION_KEY] = normalized;
-                return extensions[TIMELINE_EXTENSION_KEY];
-            }
-            if (!create) return null;
-            extensions[TIMELINE_EXTENSION_KEY] = createEmptyTimelineData();
-            return extensions[TIMELINE_EXTENSION_KEY];
-        }
 
 
 

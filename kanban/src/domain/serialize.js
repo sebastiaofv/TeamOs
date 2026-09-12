@@ -1,4 +1,7 @@
-import { TEAMOS_EXTENSIONS_KEY } from './constants.js';
+import { ROADMAP_EXTENSION_KEY, TEAMOS_EXTENSIONS_KEY, TIMELINE_EXTENSION_KEY } from './constants.js';
+import { stripLegacyTaskAttachmentsFromExtensions } from './attachments.js';
+import { normalizeRoadmapExtension } from './roadmap.js';
+import { normalizeTimelineExtension } from './timeline.js';
 
 export function areSerializableValuesEqual(a, b) {
     return JSON.stringify(a) === JSON.stringify(b);
@@ -38,4 +41,36 @@ export function getTeamOsExtensionsObject(boardData, options = {}) {
         extensions[TEAMOS_EXTENSIONS_KEY] = {};
     }
     return extensions[TEAMOS_EXTENSIONS_KEY];
+}
+
+export function normalizeBoardExtensionsValue(extensionsValue, options = {}) {
+    const includeTimeline = options.includeTimeline !== false;
+    const base = stripLegacyTaskAttachmentsFromExtensions(extensionsValue);
+    const nextExtensions = (base && typeof base === 'object' && !Array.isArray(base))
+        ? { ...base }
+        : {};
+
+    if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
+        const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);
+        if (normalizedRoadmap) {
+            nextExtensions[ROADMAP_EXTENSION_KEY] = normalizedRoadmap;
+        } else {
+            delete nextExtensions[ROADMAP_EXTENSION_KEY];
+        }
+    }
+
+    if (!includeTimeline) {
+        delete nextExtensions[TIMELINE_EXTENSION_KEY];
+        return nextExtensions;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(nextExtensions, TIMELINE_EXTENSION_KEY)) {
+        const normalizedTimeline = normalizeTimelineExtension(nextExtensions[TIMELINE_EXTENSION_KEY]);
+        if (normalizedTimeline) {
+            nextExtensions[TIMELINE_EXTENSION_KEY] = normalizedTimeline;
+        } else {
+            delete nextExtensions[TIMELINE_EXTENSION_KEY];
+        }
+    }
+    return nextExtensions;
 }

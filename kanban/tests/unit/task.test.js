@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  normalizeTask,
   normalizeAssignee,
   normalizeAssignees,
   parseAssigneesInput,
@@ -759,5 +760,91 @@ describe('resolveCreateTaskStatus', () => {
     expect(resolveCreateTaskStatus({}, 'doing')).toBe(defaultColumns[0].status);
     expect(resolveCreateTaskStatus(null, 'doing')).toBe(defaultColumns[0].status);
     expect(resolveCreateTaskStatus({ data: { board: { columns: [] } } }, 'doing')).toBe(defaultColumns[0].status);
+  });
+});
+
+describe('normalizeTask', () => {
+  it('fills defaults for a sparse task', () => {
+    const t = normalizeTask({ id: 1, title: 'A' });
+    expect(t.description).toBe('');
+    expect(t.assignees).toEqual([]);
+    expect(t.tags).toEqual([]);
+    expect(t.blocked).toBe(false);
+    expect(t.blockerReason).toBe('');
+    expect(t.checklist).toEqual([]);
+    expect(t.attachments).toEqual([]);
+    expect(t.archived).toBe(false);
+    expect(t.status).toBe('backlog');
+  });
+
+  it('stamps createdAt and updatedAt when absent', () => {
+    const t = normalizeTask({ id: 1, title: 'A' });
+    expect(Number.isNaN(Date.parse(t.createdAt))).toBe(false);
+    expect(Number.isNaN(Date.parse(t.updatedAt))).toBe(false);
+  });
+
+  it('preserves valid timestamps rather than restamping them', () => {
+    const iso = '2026-01-01T00:00:00.000Z';
+    const t = normalizeTask({ id: 1, title: 'A', createdAt: iso, updatedAt: iso });
+    expect(t.createdAt).toBe(iso);
+    expect(t.updatedAt).toBe(iso);
+  });
+
+  it('converts a legacy single assignee string into the assignees array', () => {
+    const t = normalizeTask({ id: 1, title: 'A', assignee: 'Ada' });
+    expect(t.assignees).toEqual(['Ada']);
+  });
+
+  it('clears blockerReason when the task is not blocked', () => {
+    const t = normalizeTask({ id: 1, title: 'A', blocked: false, blockerReason: 'stale reason' });
+    expect(t.blockerReason).toBe('');
+  });
+
+  it('keeps blockerReason when the task is blocked', () => {
+    const t = normalizeTask({ id: 1, title: 'A', blocked: true, blockerReason: 'waiting on API' });
+    expect(t.blocked).toBe(true);
+    expect(t.blockerReason).toBe('waiting on API');
+  });
+
+  it('treats any non-true blocked value as false', () => {
+    expect(normalizeTask({ id: 1, title: 'A', blocked: 'yes' }).blocked).toBe(false);
+    expect(normalizeTask({ id: 1, title: 'A', blocked: 1 }).blocked).toBe(false);
+  });
+
+  it('normalizes priority and effort, nulling invalid values', () => {
+    const t = normalizeTask({ id: 1, title: 'A', priority: 'HIGH', effort: ' m ' });
+    expect(t.priority).toBe('high');
+    expect(t.effort).toBe('M');
+    const bad = normalizeTask({ id: 1, title: 'A', priority: 'urgent', effort: 'XXL' });
+    expect(bad.priority).toBeNull();
+    expect(bad.effort).toBeNull();
+  });
+
+  it('falls back to the first default column for an unknown status', () => {
+    expect(normalizeTask({ id: 1, title: 'A', status: 'nonsense' }).status).toBe('backlog');
+  });
+
+  it('omits statusChangedAt when includeStatusChangedAt is false', () => {
+    const t = normalizeTask(
+      { id: 1, title: 'A', statusChangedAt: '2026-01-01T00:00:00.000Z' },
+      { includeStatusChangedAt: false }
+    );
+    expect('statusChangedAt' in t).toBe(false);
+  });
+
+  it('includes statusChangedAt by default when it is a valid timestamp', () => {
+    const iso = '2026-01-01T00:00:00.000Z';
+    expect(normalizeTask({ id: 1, title: 'A', statusChangedAt: iso }).statusChangedAt).toBe(iso);
+  });
+
+  it('uses fallbackAttachments only when the task has no attachments array', () => {
+    const fallback = [{
+      id: 'a1', name: 'f.txt', mime: 'text/plain', sizeBytes: 3,
+      kind: 'file', dataUrl: 'data:text/plain;base64,YWJj', createdAt: '2026-01-01T00:00:00.000Z'
+    }];
+    expect(normalizeTask({ id: 1, title: 'A' }, { fallbackAttachments: fallback }).attachments)
+      .toHaveLength(1);
+    expect(normalizeTask({ id: 1, title: 'A', attachments: [] }, { fallbackAttachments: fallback }).attachments)
+      .toEqual([]);
   });
 });
