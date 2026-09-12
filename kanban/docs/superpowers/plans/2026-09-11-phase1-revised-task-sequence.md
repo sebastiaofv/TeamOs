@@ -61,26 +61,37 @@ through callbacks. Tasks below are renumbered from 7; Tasks 1-6 are complete and
 
 
 
----
-
-### Task 7 — layer 0, 14 functions
-
-
-**`src/domain/calendar.js`** (14):
-
-```
-buildPortfolioCalendarItemStyle buildPortfolioCalendarMiniMarkerStyle comparePortfolioCalendarDayItems comparePortfolioDueDateAsc doesPortfolioCalendarItemOccurOnDay formatDateTime formatDueDateForUi getPortfolioCalendarMiniDayMarkers getPortfolioCalendarMiniMonthCellCount getPortfolioCalendarMonthHeatStats getPortfolioCalendarMonthRange getPortfolioCalendarTaskCountsByDay getPortfolioCalendarYearHeatStats todayLocalIsoDate
-```
 
 ---
 
-### Task 8 — layer 0, 17 functions
+## Revision 4 — 2026-09-12, after Task 7
+
+Task 8's generated list contained `renderRoadmapGridGuides` and
+`renderPortfolioCalendarDayRoadmapItem`. Both return HTML strings. They classify as
+"pure" because purity here means *no DOM access and no global state* — a function that
+builds markup as a string touches neither, yet it is presentation logic that becomes a
+React component in Phase 2, not domain logic.
+
+`renderRoadmapGridGuides` had already been excluded by hand from Task 5; the generator
+reintroduced it. Three such functions exist in the codebase and are now excluded
+permanently:
+
+- `renderPortfolioCalendarDayRoadmapItem`
+- `renderPortfolioCalendarWeekRoadmap`
+- `renderRoadmapGridGuides`
+
+They stay in `main.js` for Phase 2. Tasks renumbered from 8; Tasks 1-7 are complete.
 
 
-**`src/domain/roadmap.js`** (9):
+---
+
+### Task 8 — layer 0, 16 functions
+
+
+**`src/domain/roadmap.js`** (8):
 
 ```
-comparePortfolioCalendarRoadmapItems getRoadmapDatePosition getRoadmapItemDateBounds getRoadmapItemTitle getRoadmapTaskFieldTasks normalizeRoadmapItems renderPortfolioCalendarDayRoadmapItem renderRoadmapGridGuides shouldShowPortfolioCalendarRoadmapLabel
+buildPortfolioCalendarRoadmapSpanStyle comparePortfolioCalendarRoadmapItems getRoadmapDatePosition getRoadmapItemDateBounds getRoadmapItemTitle getRoadmapTaskFieldTasks normalizeRoadmapItems shouldShowPortfolioCalendarRoadmapLabel
 ```
 
 **`src/domain/serialize.js`** (4):
@@ -97,7 +108,7 @@ buildTaskTimelineEvent createEmptyTimelineData createTimelineEventId formatTimel
 
 ---
 
-### Task 9 — layer 0, 13 functions
+### Task 9 — layer 0, 15 functions
 
 
 **`src/domain/attachments.js`** (1):
@@ -112,6 +123,12 @@ normalizeAttachmentRecord
 createEmptyProjectData isAcceptedBoardSettingsShape validateBoardData
 ```
 
+**`src/domain/calendar.js`** (1):
+
+```
+doesPortfolioCalendarItemIntersectMonth
+```
+
 **`src/domain/persistence.js`** (1):
 
 ```
@@ -124,10 +141,10 @@ createProjectSaveState
 effortRank effortScoreValue priorityRank priorityScoreValue
 ```
 
-**`src/domain/task.js`** (2):
+**`src/domain/task.js`** (3):
 
 ```
-getTaskStatusAgeBaseTimestamp normalizeTaskStatus
+getTaskStatusAgeBaseTimestamp isTaskOverdue normalizeTaskStatus
 ```
 
 **`src/domain/util.js`** (2):
@@ -138,7 +155,7 @@ assertRequiredExtension portfolioSortSelectValueFromKey
 
 ---
 
-### Task 10 — layer 1, 20 functions
+### Task 10 — layer 1, 17 functions
 
 
 **`src/domain/attachments.js`** (1):
@@ -147,16 +164,10 @@ assertRequiredExtension portfolioSortSelectValueFromKey
 normalizeTaskAttachments
 ```
 
-**`src/domain/calendar.js`** (1):
+**`src/domain/roadmap.js`** (7):
 
 ```
-doesPortfolioCalendarItemIntersectMonth
-```
-
-**`src/domain/roadmap.js`** (8):
-
-```
-buildPortfolioCalendarRoadmapSpanStyle buildPortfolioCalendarWeekRoadmapSegments compareRoadmapItemsByDate getRoadmapAxisTicks getRoadmapTimelinePlacement getRoadmapTodayMarker getVisibleRoadmapDateRange normalizeRoadmapExtension
+buildPortfolioCalendarWeekRoadmapSegments compareRoadmapItemsByDate getRoadmapAxisTicks getRoadmapTimelinePlacement getRoadmapTodayMarker getVisibleRoadmapDateRange normalizeRoadmapExtension
 ```
 
 **`src/domain/scoring.js`** (1):
@@ -171,10 +182,10 @@ taskScore
 getTeamOsExtensionsObject
 ```
 
-**`src/domain/task.js`** (6):
+**`src/domain/task.js`** (5):
 
 ```
-formatTaskStatusAge getTasksForMilestone getTasksForPhase getTasksForSprint isTaskOverdue resolveCreateTaskStatus
+formatTaskStatusAge getTasksForMilestone getTasksForPhase getTasksForSprint resolveCreateTaskStatus
 ```
 
 **`src/domain/timeline.js`** (2):
@@ -185,83 +196,55 @@ buildTaskTimelineChanges normalizeTimelineChanges
 
 ---
 
-### Task 11 — layer 2, 9 functions
-
-
-**`src/domain/attachments.js`** (1):
-
-```
-getTaskAttachmentsMap
-```
-
-**`src/domain/board.js`** (1):
-
-```
-comparePortfolioRows
-```
-
-**`src/domain/roadmap.js`** (4):
-
-```
-assignPortfolioCalendarWeekRoadmapLanes clearInvalidRoadmapTaskRefs getRoadmapExtension getRoadmapExtensionObject
-```
-
-**`src/domain/scoring.js`** (1):
-
-```
-formatTaskScore
-```
-
-**`src/domain/timeline.js`** (2):
-
-```
-applyTimelineEventToState normalizeTimelineEvent
-```
-
----
-
-### Task 12 — layers 3+, 19 functions
+### Task 11 — layers 2+, 27 functions
 
 Strictly ordered: each batch depends on the one before. Extract in this order, running
 `npm run build && npm test` between batches.
 
 
-**Batch 1 (layer 3):**
+**Batch 1 (layer 2):**
+
+- `src/domain/attachments.js`: `getTaskAttachmentsMap`
+- `src/domain/board.js`: `comparePortfolioRows`
+- `src/domain/roadmap.js`: `assignPortfolioCalendarWeekRoadmapLanes`, `clearInvalidRoadmapTaskRefs`, `getRoadmapExtension`, `getRoadmapExtensionObject`
+- `src/domain/scoring.js`: `formatTaskScore`
+- `src/domain/timeline.js`: `applyTimelineEventToState`, `normalizeTimelineEvent`
+
+**Batch 2 (layer 3):**
 
 - `src/domain/attachments.js`: `getLegacyTaskAttachmentsFromExtensions`, `removeLegacyTaskAttachmentsFromExtensions`
-- `src/domain/roadmap.js`: `renderPortfolioCalendarWeekRoadmap`
 - `src/domain/task.js`: `normalizeTask`
 - `src/domain/timeline.js`: `normalizeTimelineExtension`
 
-**Batch 2 (layer 4):**
+**Batch 3 (layer 4):**
 
 - `src/domain/attachments.js`: `calculateBoardAttachmentBytes`, `getTaskAttachments`, `setTaskAttachments`
 - `src/domain/serialize.js`: `normalizeBoardExtensionsValue`
 - `src/domain/timeline.js`: `getTimelineExtensionObject`
 
-**Batch 3 (layer 5):**
+**Batch 4 (layer 5):**
 
 - `src/domain/board.js`: `createBoardStateSnapshot`
 - `src/domain/serialize.js`: `serializeBoardDataFromObject`
 - `src/domain/timeline.js`: `captureTaskTimelineSnapshot`, `getBoardTimelineData`
 
-**Batch 4 (layer 6):**
+**Batch 5 (layer 6):**
 
 - `src/domain/persistence.js`: `ensureBoardTimelineBaseline`
 - `src/domain/timeline.js`: `reconstructBoardStateFromTimeline`
 
-**Batch 5 (layer 7):**
+**Batch 6 (layer 7):**
 
 - `src/domain/timeline.js`: `appendTimelineEvent`
 
-**Batch 6 (layer 8):**
+**Batch 7 (layer 8):**
 
 - `src/domain/timeline.js`: `recordBoardRestoreTimelineEvent`, `recordTaskTimelineEvent`
 
 ---
 
-## After Task 12
+## After Task 11
 
-**Task 13** persistence (`BoardRepository`, `fileSystem`, `savePortfolioBoardRecord`).
-**Task 14** Tailwind, README, close-out.
+**Task 12** persistence (`BoardRepository`, `fileSystem`, `savePortfolioBoardRecord`).
+**Task 13** Tailwind, README, close-out.
 
