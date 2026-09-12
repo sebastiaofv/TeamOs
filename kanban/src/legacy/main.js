@@ -9,6 +9,7 @@ import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject
 import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent, normalizeTimelineEvent, applyTimelineEventToState, normalizeTimelineExtension, getTimelineExtensionObject, captureTaskTimelineSnapshot, getBoardTimelineData, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline, appendTimelineEvent, recordBoardRestoreTimelineEvent, recordTaskTimelineEvent } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
 import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore, formatTaskScore } from '../domain/scoring.js';
+import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -1147,12 +1148,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskSco
         }
 
 
-        async function writeJsonToFileHandle(fileHandle, data) {
-            const writable = await fileHandle.createWritable();
-            const payload = JSON.stringify(data, null, 2);
-            await writable.write(payload);
-            await writable.close();
-        }
 
         const BoardRepository = {
             serialize(boardData) {

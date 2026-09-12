@@ -349,3 +349,40 @@ Strictly ordered: each batch depends on the one before. Extract in this order, r
 **Task 17** persistence (`BoardRepository`, `fileSystem`, `savePortfolioBoardRecord`).
 **Task 18** Tailwind, README, close-out.
 
+
+---
+
+## Persistence layer — outcome and deviation from the spec
+
+The design spec's Task 12 called for moving `BoardRepository`, the File System Access
+wrappers, and `fileWatch` into `src/persistence/`. What actually shipped is narrower, and
+the reason is worth recording.
+
+**Extracted:** `writeJsonToFileHandle` → `src/persistence/fileSystem.js`. This is the only
+function that writes to the user's disk, and it is a clean I/O boundary.
+
+**Not extracted — `BoardRepository`.** Four of its eleven methods
+(`createRecordFromFile`, `createRecordFromHandle`, `importFromHandles`,
+`importFromLooseFiles`) route through `createPortfolioRecord`, which does
+`colorSeed: nextPortfolioProjectColorSeed++` — it mutates a module-level global. That
+counter becomes Zustand store state in Phase 2.
+
+Three options were considered:
+
+1. Split the object, extracting only the seven stateless methods. Rejected: a
+   half-extracted object is harder to reason about than an un-extracted one, and Phase 2
+   would have to reassemble it.
+2. Extract it whole with `createPortfolioRecord` injected as a dependency. Rejected: this
+   invents an interface that Phase 2 would immediately replace with a store action, and
+   Phase 1's constraint is a parity port, not a redesign.
+3. Leave it in `main.js` and document why. **Chosen.**
+
+**Not extracted — `fileWatch`.** Already excluded by the spec for the same reason:
+`refreshProjectFileBaseline`, `primeProjectFileBaselines`,
+`checkProjectFileForExternalChanges`, `runQueuedProjectSave` and `enqueueProjectSave` all
+coordinate through mutable globals and timers.
+
+This is the boundary the spec anticipated when it flagged File System Access and the
+external-file watcher as Phase 1's highest-risk area. The honest summary is that the
+persistence layer is *stateful by nature* and belongs with the store work in Phase 2,
+not with the pure-function extraction in Phase 1.
