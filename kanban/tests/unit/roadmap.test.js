@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   addRoadmapDays,
   createEmptyRoadmapExtension,
@@ -14,7 +14,11 @@ import {
   slugifyRoadmapEntityId,
   getRoadmapItemTitle,
   getRoadmapTaskFieldTasks,
-  normalizeRoadmapItems
+  normalizeRoadmapItems,
+  compareRoadmapItemsByDate,
+  getRoadmapAxisTicks,
+  getRoadmapTimelinePlacement,
+  getRoadmapTodayMarker
 } from '../../src/domain/roadmap.js';
 
 describe('addRoadmapDays', () => {
@@ -552,5 +556,206 @@ describe('normalizeRoadmapItems', () => {
       []
     );
     expect(result).toEqual([{ id: 'm1', title: 'Launch' }]);
+  });
+});
+
+describe('compareRoadmapItemsByDate', () => {
+  it('sorts by start date when both items have bounds and different starts', () => {
+    const earlier = { title: 'Earlier', dueDate: '2024-01-01' };
+    const later = { title: 'Later', dueDate: '2024-02-01' };
+    expect(compareRoadmapItemsByDate(earlier, later)).toBeLessThan(0);
+    expect(compareRoadmapItemsByDate(later, earlier)).toBeGreaterThan(0);
+  });
+
+  it('breaks a tied start date by end date', () => {
+    const shorter = { title: 'Shorter', startDate: '2024-01-01', endDate: '2024-01-05' };
+    const longer = { title: 'Longer', startDate: '2024-01-01', endDate: '2024-01-10' };
+    expect(compareRoadmapItemsByDate(shorter, longer)).toBeLessThan(0);
+  });
+
+  it('returns 0 for two items with identical bounds and identical titles', () => {
+    const a = { title: 'Same', dueDate: '2024-03-01' };
+    const b = { title: 'Same', dueDate: '2024-03-01' };
+    expect(compareRoadmapItemsByDate(a, b)).toBe(0);
+  });
+
+  it('falls back to title comparison when both items have identical bounds but different titles', () => {
+    const a = { title: 'Alpha', dueDate: '2024-03-01' };
+    const b = { title: 'Beta', dueDate: '2024-03-01' };
+    expect(compareRoadmapItemsByDate(a, b)).toBeLessThan(0);
+  });
+
+  it('orders an item with bounds before an item with no date bounds', () => {
+    const withDate = { title: 'Zzz', dueDate: '2024-01-01' };
+    const withoutDate = { title: 'Aaa' };
+    expect(compareRoadmapItemsByDate(withDate, withoutDate)).toBe(-1);
+    expect(compareRoadmapItemsByDate(withoutDate, withDate)).toBe(1);
+  });
+
+  it('falls back to title comparison (localeCompare) when neither item has date bounds', () => {
+    expect(compareRoadmapItemsByDate({ title: 'Aaa' }, { title: 'Bbb' })).toBeLessThan(0);
+    expect(compareRoadmapItemsByDate({}, {})).toBe(0);
+  });
+
+  it('treats a missing title as an empty string for the fallback comparison', () => {
+    expect(compareRoadmapItemsByDate({}, { title: 'Aaa' })).toBeLessThan(0);
+  });
+});
+
+describe('getRoadmapAxisTicks', () => {
+  it('returns an empty array when range.start or range.end is missing', () => {
+    expect(getRoadmapAxisTicks(null)).toEqual([]);
+    expect(getRoadmapAxisTicks({})).toEqual([]);
+    expect(getRoadmapAxisTicks({ start: parseRoadmapIsoDate('2024-01-01') })).toEqual([]);
+  });
+
+  it('produces two boundary ticks (0% and 100%) for a zero-length range', () => {
+    const point = parseRoadmapIsoDate('2024-06-15');
+    const ticks = getRoadmapAxisTicks({ start: point, end: point });
+    expect(ticks).toEqual([
+      { label: 'Jun 15', position: 0 },
+      { label: 'Jun 16', position: 100 }
+    ]);
+  });
+
+  it('treats an inverted range (end before start) the same as a zero-length range, since day-diff clamps to 0', () => {
+    const start = parseRoadmapIsoDate('2024-06-20');
+    const end = parseRoadmapIsoDate('2024-06-10');
+    const ticks = getRoadmapAxisTicks({ start, end });
+    expect(ticks).toEqual([
+      { label: 'Jun 20', position: 0 },
+      { label: 'Jun 21', position: 100 }
+    ]);
+  });
+
+  it('caps at 5 evenly spaced ticks for a wide range', () => {
+    const start = parseRoadmapIsoDate('2024-01-01');
+    const end = parseRoadmapIsoDate('2024-06-01');
+    const ticks = getRoadmapAxisTicks({ start, end });
+    expect(ticks.length).toBe(5);
+    expect(ticks[0]).toEqual({ label: 'Jan 01', position: 0 });
+    expect(ticks[ticks.length - 1].position).toBe(100);
+  });
+
+  it('skips a tick whose formatted label duplicates an earlier tick (a range spanning exactly one year)', () => {
+    // 2023 is not a leap year, so start + 365 days lands on the same
+    // month/day one year later -- the 5th tick's "Jan 01" label collides
+    // with the 1st tick's, so it is skipped and only 4 ticks are returned.
+    const start = parseRoadmapIsoDate('2023-01-01');
+    const end = parseRoadmapIsoDate('2024-01-01');
+    const ticks = getRoadmapAxisTicks({ start, end, totalDays: getRoadmapDayDiff(start, end) });
+    expect(ticks).toEqual([
+      { label: 'Jan 01', position: 0 },
+      { label: 'Apr 02', position: 24.93150684931507 },
+      { label: 'Jul 03', position: 50.136986301369866 },
+      { label: 'Oct 02', position: 75.06849315068493 }
+    ]);
+  });
+});
+
+describe('getRoadmapTimelinePlacement', () => {
+  const range = { start: parseRoadmapIsoDate('2024-06-01'), end: parseRoadmapIsoDate('2024-06-30'), totalDays: 29 };
+
+  it('returns null when the item has no resolvable date bounds', () => {
+    expect(getRoadmapTimelinePlacement({}, range)).toBeNull();
+    expect(getRoadmapTimelinePlacement(null, range)).toBeNull();
+  });
+
+  it('returns null when range.start or range.end is missing', () => {
+    expect(getRoadmapTimelinePlacement({ dueDate: '2024-06-05' }, {})).toBeNull();
+    expect(getRoadmapTimelinePlacement({ dueDate: '2024-06-05' }, null)).toBeNull();
+  });
+
+  it('gives a point item (dueDate) zero width, placed at its date position', () => {
+    const placement = getRoadmapTimelinePlacement({ dueDate: '2024-06-15' }, range);
+    expect(placement.width).toBe(0);
+    expect(placement.point).toBeCloseTo(48.275862068965516);
+    expect(placement.left).toBeCloseTo(48.275862068965516);
+  });
+
+  it('spans the full range (left 0, width 100) for an item covering the whole range', () => {
+    const placement = getRoadmapTimelinePlacement({ startDate: '2024-06-01', endDate: '2024-06-30' }, range);
+    expect(placement).toEqual({ left: 0, width: 100, point: 100 });
+  });
+
+  it('clamps a point item sitting exactly at the range start to left 0, width 0', () => {
+    const placement = getRoadmapTimelinePlacement({ dueDate: '2024-06-01' }, range);
+    expect(placement).toEqual({ left: 0, width: 0, point: 0 });
+  });
+
+  it('clamps a point item sitting exactly at the range end to left 100, width 0', () => {
+    const placement = getRoadmapTimelinePlacement({ dueDate: '2024-06-30' }, range);
+    expect(placement).toEqual({ left: 100, width: 0, point: 100 });
+  });
+
+  it('clamps an item entirely before the range start to left 0, width 0', () => {
+    const placement = getRoadmapTimelinePlacement({ dueDate: '2024-05-01' }, range);
+    expect(placement).toEqual({ left: 0, width: 0, point: 0 });
+  });
+});
+
+describe('getRoadmapTodayMarker', () => {
+  it('returns null when range.start or range.end is missing', () => {
+    expect(getRoadmapTodayMarker(null)).toBeNull();
+    expect(getRoadmapTodayMarker({})).toBeNull();
+    expect(getRoadmapTodayMarker({ start: parseRoadmapIsoDate('2024-01-01') })).toBeNull();
+  });
+
+  it('returns a marker with the current position when today falls inside the range', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 5, 15, 10, 0, 0));
+    try {
+      const range = { start: parseRoadmapIsoDate('2024-06-14'), end: parseRoadmapIsoDate('2024-06-20') };
+      expect(getRoadmapTodayMarker(range)).toEqual({
+        iso: '2024-06-15',
+        position: 16.666666666666664
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('places the marker at position 0 when today equals range.start', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 5, 15, 10, 0, 0));
+    try {
+      const range = { start: parseRoadmapIsoDate('2024-06-15'), end: parseRoadmapIsoDate('2024-06-20') };
+      expect(getRoadmapTodayMarker(range)).toEqual({ iso: '2024-06-15', position: 0 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('places the marker at position 100 when today equals range.end', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 5, 15, 10, 0, 0));
+    try {
+      const range = { start: parseRoadmapIsoDate('2024-06-10'), end: parseRoadmapIsoDate('2024-06-15') };
+      expect(getRoadmapTodayMarker(range)).toEqual({ iso: '2024-06-15', position: 100 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns null when today falls before the visible range', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 5, 1, 10, 0, 0));
+    try {
+      const range = { start: parseRoadmapIsoDate('2024-06-10'), end: parseRoadmapIsoDate('2024-06-20') };
+      expect(getRoadmapTodayMarker(range)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('returns null when today falls after the visible range', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 6, 1, 10, 0, 0));
+    try {
+      const range = { start: parseRoadmapIsoDate('2024-06-10'), end: parseRoadmapIsoDate('2024-06-20') };
+      expect(getRoadmapTodayMarker(range)).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

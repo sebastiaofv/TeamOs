@@ -1,6 +1,7 @@
 import { EFFORT_BUCKETS, defaultColumns } from './constants.js';
 import { nowIso, normalizeTimestamp } from './util.js';
 import { normalizeDueDate, todayLocalIsoDate } from './calendar.js';
+import { getRoadmapTaskFieldTasks } from './roadmap.js';
 
 export function normalizeAssignee(value) {
     if (value === null || value === undefined) return '';
@@ -200,4 +201,19 @@ export function normalizeTaskStatus(status) {
     const normalized = resolveKnownTaskStatus(status);
     if (normalized) return normalized;
     return defaultColumns[0].status;
+}
+
+export function formatTaskStatusAge(task) {
+    const base = getTaskStatusAgeBaseTimestamp(task);
+    if (!base) return '';
+    const diffMs = Math.max(0, Date.now() - new Date(base).getTime());
+    const hourMs = 60 * 60 * 1000;
+    const dayMs = 24 * hourMs;
+    if (diffMs < hourMs) return 'Age <1h';
+    if (diffMs < dayMs) return `Age ${Math.floor(diffMs / hourMs)}h`;
+    return `Age ${Math.floor(diffMs / dayMs)}d`;
+}
+
+export function getTasksForMilestone(boardData, milestoneId) {
+    return getRoadmapTaskFieldTasks(boardData, 'milestoneId', milestoneId);
 }

@@ -1,12 +1,12 @@
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, isFileDrag, nowIso, compareText, hasExactKeys, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, normalizeTimestamp, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
-import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems } from '../domain/roadmap.js';
+import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, normalizeTaskBlocked, parseChecklistInput, resolveKnownTaskStatus, findTaskInBoardData, getBoardTagSuggestions, getTaskChecklistDropPlacement, isAcceptedLegacyAssigneeValue, nextTaskIdForBoard, touchTask, getTaskStatusAgeBaseTimestamp, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, getTasksForMilestone } from '../domain/task.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId, getRoadmapDatePosition, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, normalizeRoadmapItems, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '../domain/roadmap.js';
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, isAcceptedBoardSettingsShape } from '../domain/board.js';
-import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord } from '../domain/attachments.js';
-import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
+import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions, normalizeAttachmentRecord, getTaskAttachmentsMap } from '../domain/attachments.js';
+import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, comparePortfolioCalendarRoadmapItems, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel, buildPortfolioCalendarWeekRoadmapSegments } from '../domain/calendar.js';
 import { areSerializableValuesEqual, cloneSerializable, getBoardExtensionsObject, hashTextContent, getTeamOsExtensionsObject } from '../domain/serialize.js';
-import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges } from '../domain/timeline.js';
+import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, buildTaskTimelineChanges, normalizeTimelineChanges, buildTaskTimelineEvent } from '../domain/timeline.js';
 import { createProjectSaveState } from '../domain/persistence.js';
 import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '../domain/scoring.js';
         import {
@@ -418,22 +418,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function compareRoadmapItemsByDate(a, b) {
-            const aBounds = getRoadmapItemDateBounds(a);
-            const bBounds = getRoadmapItemDateBounds(b);
-            if (aBounds && bBounds) {
-                const startDiff = aBounds.start.getTime() - bBounds.start.getTime();
-                if (startDiff !== 0) return startDiff;
-                const endDiff = aBounds.end.getTime() - bBounds.end.getTime();
-                if (endDiff !== 0) return endDiff;
-            } else if (aBounds) {
-                return -1;
-            } else if (bBounds) {
-                return 1;
-            }
-
-            return String(a?.title || '').localeCompare(String(b?.title || ''));
-        }
 
         function getVisibleRoadmapDateRange(roadmap) {
             const bounds = ['milestones', 'phases', 'sprints']
@@ -470,35 +454,7 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function getRoadmapAxisTicks(range) {
-            if (!range?.start || !range?.end) return [];
-            const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
-            const tickCount = Math.min(5, totalDays + 1);
-            const ticks = [];
-            for (let index = 0; index < tickCount; index += 1) {
-                const offsetDays = Math.round((totalDays * index) / Math.max(1, tickCount - 1));
-                const date = addRoadmapDays(range.start, offsetDays);
-                const label = formatRoadmapAxisDate(date);
-                if (ticks.some((tick) => tick.label === label)) continue;
-                ticks.push({
-                    label,
-                    position: getRoadmapDatePosition(date, range)
-                });
-            }
-            return ticks;
-        }
 
-        function getRoadmapTodayMarker(range) {
-            if (!range?.start || !range?.end) return null;
-            const todayIso = todayLocalIsoDate();
-            const today = parseRoadmapIsoDate(todayIso);
-            if (!today) return null;
-            if (today < range.start || today > range.end) return null;
-            return {
-                iso: todayIso,
-                position: getRoadmapDatePosition(today, range)
-            };
-        }
 
         function renderRoadmapTodayMarker(range) {
             const marker = getRoadmapTodayMarker(range);
@@ -510,21 +466,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
             `;
         }
 
-        function getRoadmapTimelinePlacement(item, range) {
-            const bounds = getRoadmapItemDateBounds(item);
-            if (!bounds || !range?.start || !range?.end) return null;
-            const start = getRoadmapDatePosition(bounds.start, range);
-            const end = getRoadmapDatePosition(bounds.end, range);
-            const minWidth = start === end ? 0 : 2.5;
-            const rawWidth = Math.max(end - start, minWidth);
-            const width = Math.max(0, Math.min(end, 100) - Math.max(0, Math.min(100, end - rawWidth)));
-            const left = Math.max(0, Math.min(100 - width, end - width));
-            return {
-                left,
-                width,
-                point: end
-            };
-        }
 
 
 
@@ -701,22 +642,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
         }
 
 
-        function buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd) {
-            return (Array.isArray(items) ? items : [])
-                .filter((item) => item?.kind !== 'task' && item?.bounds && item.bounds.start <= weekEnd && item.bounds.end >= weekStart)
-                .sort(comparePortfolioCalendarRoadmapItems)
-                .map((item) => {
-                    const segmentStart = item.bounds.start > weekStart ? item.bounds.start : weekStart;
-                    const segmentEnd = item.bounds.end < weekEnd ? item.bounds.end : weekEnd;
-                    return {
-                        item,
-                        startDay: getPortfolioCalendarDayOffset(weekStart, segmentStart),
-                        endDay: getPortfolioCalendarDayOffset(weekStart, segmentEnd),
-                        continuesBefore: item.bounds.start < weekStart,
-                        continuesAfter: item.bounds.end > weekEnd
-                    };
-                });
-        }
 
         function assignPortfolioCalendarWeekRoadmapLanes(items, weekStart, weekEnd) {
             const segments = buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd);
@@ -3582,16 +3507,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function formatTaskStatusAge(task) {
-            const base = getTaskStatusAgeBaseTimestamp(task);
-            if (!base) return '';
-            const diffMs = Math.max(0, Date.now() - new Date(base).getTime());
-            const hourMs = 60 * 60 * 1000;
-            const dayMs = 24 * hourMs;
-            if (diffMs < hourMs) return 'Age <1h';
-            if (diffMs < dayMs) return `Age ${Math.floor(diffMs / hourMs)}h`;
-            return `Age ${Math.floor(diffMs / dayMs)}d`;
-        }
 
 
         function showUndo(message, undoFn) {
@@ -4084,16 +3999,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
 
 
 
-        function getTaskAttachmentsMap(boardData, options = {}) {
-            const create = Boolean(options.create);
-            const teamOs = getTeamOsExtensionsObject(boardData, { create });
-            if (!teamOs) return null;
-            if (!teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] || typeof teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] !== 'object' || Array.isArray(teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY])) {
-                if (!create) return null;
-                teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] = {};
-            }
-            return teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
-        }
 
 
 
@@ -4264,9 +4169,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
         }
 
 
-        function getTasksForMilestone(boardData, milestoneId) {
-            return getRoadmapTaskFieldTasks(boardData, 'milestoneId', milestoneId);
-        }
 
         function getTasksForPhase(boardData, phaseId) {
             return getRoadmapTaskFieldTasks(boardData, 'phaseId', phaseId);
@@ -4375,59 +4277,6 @@ import { effortRank, effortScoreValue, priorityRank, priorityScoreValue } from '
         }
 
 
-        function buildTaskTimelineEvent(beforeTask, afterTask) {
-            const taskRef = afterTask || beforeTask;
-            if (!taskRef) return null;
-            const taskTitle = String(taskRef.title || '').trim() || `Task ${taskRef.id}`;
-            if (!beforeTask && afterTask) {
-                return {
-                    kind: 'task.created',
-                    entityType: 'task',
-                    entityId: String(afterTask.id),
-                    summary: `Task created: ${taskTitle}`,
-                    snapshot: cloneSerializable(afterTask)
-                };
-            }
-            if (beforeTask && !afterTask) {
-                return {
-                    kind: 'task.deleted',
-                    entityType: 'task',
-                    entityId: String(beforeTask.id),
-                    summary: `Task deleted: ${taskTitle}`,
-                    snapshot: cloneSerializable(beforeTask)
-                };
-            }
-
-            const changes = buildTaskTimelineChanges(beforeTask, afterTask);
-            if (!changes) return null;
-            const changedFields = Object.keys(changes);
-            if (changedFields.length === 1 && changedFields[0] === 'archived') {
-                const isArchived = Boolean(afterTask?.archived);
-                return {
-                    kind: isArchived ? 'task.archived' : 'task.restored',
-                    entityType: 'task',
-                    entityId: String(taskRef.id),
-                    summary: `${isArchived ? 'Task archived' : 'Task restored'}: ${taskTitle}`,
-                    changes
-                };
-            }
-            if (changedFields.length === 1 && changedFields[0] === 'status') {
-                return {
-                    kind: 'task.status.changed',
-                    entityType: 'task',
-                    entityId: String(taskRef.id),
-                    summary: `Status changed: ${taskTitle}`,
-                    changes
-                };
-            }
-            return {
-                kind: 'task.updated',
-                entityType: 'task',
-                entityId: String(taskRef.id),
-                summary: `Task updated: ${taskTitle}`,
-                changes
-            };
-        }
 
         function recordTaskTimelineEvent(boardData, beforeTask, afterTask) {
             const event = buildTaskTimelineEvent(beforeTask, afterTask);

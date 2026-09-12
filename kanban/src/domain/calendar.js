@@ -238,3 +238,20 @@ export function shouldShowPortfolioCalendarRoadmapLabel(item, date) {
     if (date.getUTCDay() === 0) return true;
     return false;
 }
+
+export function buildPortfolioCalendarWeekRoadmapSegments(items, weekStart, weekEnd) {
+    return (Array.isArray(items) ? items : [])
+        .filter((item) => item?.kind !== 'task' && item?.bounds && item.bounds.start <= weekEnd && item.bounds.end >= weekStart)
+        .sort(comparePortfolioCalendarRoadmapItems)
+        .map((item) => {
+            const segmentStart = item.bounds.start > weekStart ? item.bounds.start : weekStart;
+            const segmentEnd = item.bounds.end < weekEnd ? item.bounds.end : weekEnd;
+            return {
+                item,
+                startDay: getPortfolioCalendarDayOffset(weekStart, segmentStart),
+                endDay: getPortfolioCalendarDayOffset(weekStart, segmentEnd),
+                continuesBefore: item.bounds.start < weekStart,
+                continuesAfter: item.bounds.end > weekEnd
+            };
+        });
+}

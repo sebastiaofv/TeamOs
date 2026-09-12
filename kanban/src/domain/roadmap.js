@@ -1,4 +1,5 @@
 import { ROADMAP_VERSION } from './constants.js';
+import { todayLocalIsoDate } from './calendar.js';
 
 export function addRoadmapDays(date, days) {
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
@@ -174,4 +175,67 @@ export function normalizeRoadmapItems(value, dateKeys, requiredDateKeys) {
         normalized.push(normalizedItem);
     }
     return normalized;
+}
+
+export function compareRoadmapItemsByDate(a, b) {
+    const aBounds = getRoadmapItemDateBounds(a);
+    const bBounds = getRoadmapItemDateBounds(b);
+    if (aBounds && bBounds) {
+        const startDiff = aBounds.start.getTime() - bBounds.start.getTime();
+        if (startDiff !== 0) return startDiff;
+        const endDiff = aBounds.end.getTime() - bBounds.end.getTime();
+        if (endDiff !== 0) return endDiff;
+    } else if (aBounds) {
+        return -1;
+    } else if (bBounds) {
+        return 1;
+    }
+
+    return String(a?.title || '').localeCompare(String(b?.title || ''));
+}
+
+export function getRoadmapAxisTicks(range) {
+    if (!range?.start || !range?.end) return [];
+    const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
+    const tickCount = Math.min(5, totalDays + 1);
+    const ticks = [];
+    for (let index = 0; index < tickCount; index += 1) {
+        const offsetDays = Math.round((totalDays * index) / Math.max(1, tickCount - 1));
+        const date = addRoadmapDays(range.start, offsetDays);
+        const label = formatRoadmapAxisDate(date);
+        if (ticks.some((tick) => tick.label === label)) continue;
+        ticks.push({
+            label,
+            position: getRoadmapDatePosition(date, range)
+        });
+    }
+    return ticks;
+}
+
+export function getRoadmapTimelinePlacement(item, range) {
+    const bounds = getRoadmapItemDateBounds(item);
+    if (!bounds || !range?.start || !range?.end) return null;
+    const start = getRoadmapDatePosition(bounds.start, range);
+    const end = getRoadmapDatePosition(bounds.end, range);
+    const minWidth = start === end ? 0 : 2.5;
+    const rawWidth = Math.max(end - start, minWidth);
+    const width = Math.max(0, Math.min(end, 100) - Math.max(0, Math.min(100, end - rawWidth)));
+    const left = Math.max(0, Math.min(100 - width, end - width));
+    return {
+        left,
+        width,
+        point: end
+    };
+}
+
+export function getRoadmapTodayMarker(range) {
+    if (!range?.start || !range?.end) return null;
+    const todayIso = todayLocalIsoDate();
+    const today = parseRoadmapIsoDate(todayIso);
+    if (!today) return null;
+    if (today < range.start || today > range.end) return null;
+    return {
+        iso: todayIso,
+        position: getRoadmapDatePosition(today, range)
+    };
 }

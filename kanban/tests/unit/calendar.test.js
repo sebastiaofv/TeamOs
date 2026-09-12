@@ -33,7 +33,8 @@ import {
   getUtcMonthLabel,
   normalizeDueDate,
   shouldShowPortfolioCalendarRoadmapLabel,
-  todayLocalIsoDate
+  todayLocalIsoDate,
+  buildPortfolioCalendarWeekRoadmapSegments
 } from '../../src/domain/calendar.js';
 import { createPortfolioProjectColor } from '../../src/domain/board.js';
 
@@ -765,5 +766,63 @@ describe('shouldShowPortfolioCalendarRoadmapLabel', () => {
     const item = { isRange: true, bounds: { start: createUtcDate(2024, 1, 20), end: createUtcDate(2024, 3, 1) } };
     // 2024-03-12 is a Tuesday.
     expect(shouldShowPortfolioCalendarRoadmapLabel(item, createUtcDate(2024, 2, 12))).toBe(false);
+  });
+});
+
+describe('buildPortfolioCalendarWeekRoadmapSegments', () => {
+  const weekStart = createUtcDate(2024, 2, 4);
+  const weekEnd = createUtcDate(2024, 2, 10);
+
+  it('excludes items with kind "task"', () => {
+    const taskItem = { kind: 'task', title: 'A task', bounds: { start: createUtcDate(2024, 2, 5), end: createUtcDate(2024, 2, 5) } };
+    expect(buildPortfolioCalendarWeekRoadmapSegments([taskItem], weekStart, weekEnd)).toEqual([]);
+  });
+
+  it('excludes items with no bounds', () => {
+    const noBounds = { kind: 'milestone', title: 'No bounds' };
+    expect(buildPortfolioCalendarWeekRoadmapSegments([noBounds], weekStart, weekEnd)).toEqual([]);
+  });
+
+  it('excludes items whose bounds do not overlap the week', () => {
+    const earlier = { kind: 'sprint', title: 'Old', bounds: { start: createUtcDate(2024, 1, 1), end: createUtcDate(2024, 1, 20) } };
+    expect(buildPortfolioCalendarWeekRoadmapSegments([earlier], weekStart, weekEnd)).toEqual([]);
+  });
+
+  it('defaults to an empty array for non-array items', () => {
+    expect(buildPortfolioCalendarWeekRoadmapSegments(null, weekStart, weekEnd)).toEqual([]);
+    expect(buildPortfolioCalendarWeekRoadmapSegments(undefined, weekStart, weekEnd)).toEqual([]);
+  });
+
+  it('clamps segment bounds to the week, flags continuation, and sorts by roadmap priority (phase before sprint)', () => {
+    const phase = { kind: 'phase', title: 'Phase A', bounds: { start: createUtcDate(2024, 2, 1), end: createUtcDate(2024, 2, 6) } };
+    const sprint = { kind: 'sprint', title: 'Sprint B', bounds: { start: createUtcDate(2024, 2, 5), end: createUtcDate(2024, 2, 12) } };
+
+    const segments = buildPortfolioCalendarWeekRoadmapSegments([sprint, phase], weekStart, weekEnd);
+
+    expect(segments).toEqual([
+      {
+        item: phase,
+        startDay: 0,
+        endDay: 2,
+        continuesBefore: true,
+        continuesAfter: false
+      },
+      {
+        item: sprint,
+        startDay: 1,
+        endDay: 6,
+        continuesBefore: false,
+        continuesAfter: true
+      }
+    ]);
+  });
+
+  it('marks neither continuesBefore nor continuesAfter when an item is fully contained in the week', () => {
+    const milestone = { kind: 'milestone', title: 'Launch', bounds: { start: createUtcDate(2024, 2, 6), end: createUtcDate(2024, 2, 6) } };
+    const [segment] = buildPortfolioCalendarWeekRoadmapSegments([milestone], weekStart, weekEnd);
+    expect(segment.continuesBefore).toBe(false);
+    expect(segment.continuesAfter).toBe(false);
+    expect(segment.startDay).toBe(2);
+    expect(segment.endDay).toBe(2);
   });
 });

@@ -53,3 +53,57 @@ export function normalizeTimelineChanges(changes) {
     }
     return normalized;
 }
+
+export function buildTaskTimelineEvent(beforeTask, afterTask) {
+    const taskRef = afterTask || beforeTask;
+    if (!taskRef) return null;
+    const taskTitle = String(taskRef.title || '').trim() || `Task ${taskRef.id}`;
+    if (!beforeTask && afterTask) {
+        return {
+            kind: 'task.created',
+            entityType: 'task',
+            entityId: String(afterTask.id),
+            summary: `Task created: ${taskTitle}`,
+            snapshot: cloneSerializable(afterTask)
+        };
+    }
+    if (beforeTask && !afterTask) {
+        return {
+            kind: 'task.deleted',
+            entityType: 'task',
+            entityId: String(beforeTask.id),
+            summary: `Task deleted: ${taskTitle}`,
+            snapshot: cloneSerializable(beforeTask)
+        };
+    }
+
+    const changes = buildTaskTimelineChanges(beforeTask, afterTask);
+    if (!changes) return null;
+    const changedFields = Object.keys(changes);
+    if (changedFields.length === 1 && changedFields[0] === 'archived') {
+        const isArchived = Boolean(afterTask?.archived);
+        return {
+            kind: isArchived ? 'task.archived' : 'task.restored',
+            entityType: 'task',
+            entityId: String(taskRef.id),
+            summary: `${isArchived ? 'Task archived' : 'Task restored'}: ${taskTitle}`,
+            changes
+        };
+    }
+    if (changedFields.length === 1 && changedFields[0] === 'status') {
+        return {
+            kind: 'task.status.changed',
+            entityType: 'task',
+            entityId: String(taskRef.id),
+            summary: `Status changed: ${taskTitle}`,
+            changes
+        };
+    }
+    return {
+        kind: 'task.updated',
+        entityType: 'task',
+        entityId: String(taskRef.id),
+        summary: `Task updated: ${taskTitle}`,
+        changes
+    };
+}

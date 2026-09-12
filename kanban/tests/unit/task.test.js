@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   normalizeAssignee,
   normalizeAssignees,
@@ -24,7 +24,9 @@ import {
   touchTask,
   getTaskStatusAgeBaseTimestamp,
   isTaskOverdue,
-  normalizeTaskStatus
+  normalizeTaskStatus,
+  formatTaskStatusAge,
+  getTasksForMilestone
 } from '../../src/domain/task.js';
 
 describe('normalizeAssignee', () => {
@@ -568,5 +570,109 @@ describe('normalizeTaskStatus', () => {
     expect(normalizeTaskStatus('')).toBe('backlog');
     expect(normalizeTaskStatus(null)).toBe('backlog');
     expect(normalizeTaskStatus(undefined)).toBe('backlog');
+  });
+});
+
+describe('formatTaskStatusAge', () => {
+  const NOW = new Date('2024-06-15T12:00:00.000Z');
+
+  function ageAgo(ms) {
+    return new Date(NOW.getTime() - ms).toISOString();
+  }
+
+  function withFakeNow(fn) {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+    try {
+      return fn();
+    } finally {
+      vi.useRealTimers();
+    }
+  }
+
+  it('returns an empty string when the task has no usable status-age timestamp', () => {
+    expect(formatTaskStatusAge(null)).toBe('');
+    expect(formatTaskStatusAge({})).toBe('');
+  });
+
+  it('reports "Age <1h" for a timestamp under an hour old', () => {
+    withFakeNow(() => {
+      const task = { statusChangedAt: ageAgo(30 * 60 * 1000) };
+      expect(formatTaskStatusAge(task)).toBe('Age <1h');
+    });
+  });
+
+  it('reports "Age 1h" at the exact 1-hour boundary (the <1h check is strict less-than)', () => {
+    withFakeNow(() => {
+      const task = { statusChangedAt: ageAgo(60 * 60 * 1000) };
+      expect(formatTaskStatusAge(task)).toBe('Age 1h');
+    });
+  });
+
+  it('reports whole hours for a timestamp under a day old', () => {
+    withFakeNow(() => {
+      const task = { statusChangedAt: ageAgo(23 * 60 * 60 * 1000) };
+      expect(formatTaskStatusAge(task)).toBe('Age 23h');
+    });
+  });
+
+  it('reports "Age 1d" at the exact 24-hour boundary (the <1d check is strict less-than)', () => {
+    withFakeNow(() => {
+      const task = { statusChangedAt: ageAgo(24 * 60 * 60 * 1000) };
+      expect(formatTaskStatusAge(task)).toBe('Age 1d');
+    });
+  });
+
+  it('reports whole days for a multi-day-old timestamp', () => {
+    withFakeNow(() => {
+      const task = { statusChangedAt: ageAgo(50 * 60 * 60 * 1000) };
+      expect(formatTaskStatusAge(task)).toBe('Age 2d');
+    });
+  });
+
+  it('falls back through updatedAt then createdAt when statusChangedAt is absent, via getTaskStatusAgeBaseTimestamp', () => {
+    withFakeNow(() => {
+      expect(formatTaskStatusAge({ updatedAt: ageAgo(60 * 60 * 1000) })).toBe('Age 1h');
+      expect(formatTaskStatusAge({ createdAt: ageAgo(60 * 60 * 1000) })).toBe('Age 1h');
+    });
+  });
+
+  it('clamps a base timestamp in the future to a diff of 0, reporting "Age <1h"', () => {
+    withFakeNow(() => {
+      const task = { statusChangedAt: ageAgo(-60 * 60 * 1000) };
+      expect(formatTaskStatusAge(task)).toBe('Age <1h');
+    });
+  });
+});
+
+describe('getTasksForMilestone', () => {
+  it('returns an empty array when milestoneId is blank', () => {
+    const boardData = { board: { tasks: [{ id: 1, milestoneId: 'm1' }] } };
+    expect(getTasksForMilestone(boardData, '')).toEqual([]);
+    expect(getTasksForMilestone(boardData, null)).toEqual([]);
+  });
+
+  it('returns an empty array when boardData has no tasks array', () => {
+    expect(getTasksForMilestone({}, 'm1')).toEqual([]);
+    expect(getTasksForMilestone(null, 'm1')).toEqual([]);
+  });
+
+  it('returns only the tasks whose milestoneId matches', () => {
+    const taskA = { id: 1, milestoneId: 'm1' };
+    const taskB = { id: 2, milestoneId: 'm2' };
+    const taskC = { id: 3, milestoneId: 'm1' };
+    const boardData = { board: { tasks: [taskA, taskB, taskC] } };
+    expect(getTasksForMilestone(boardData, 'm1')).toEqual([taskA, taskC]);
+  });
+
+  it('matches after trimming the requested milestoneId', () => {
+    const taskA = { id: 1, milestoneId: 'm1' };
+    const boardData = { board: { tasks: [taskA] } };
+    expect(getTasksForMilestone(boardData, '  m1  ')).toEqual([taskA]);
+  });
+
+  it('excludes tasks with no milestoneId', () => {
+    const boardData = { board: { tasks: [{ id: 1 }] } };
+    expect(getTasksForMilestone(boardData, 'm1')).toEqual([]);
   });
 });

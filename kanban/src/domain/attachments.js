@@ -1,5 +1,6 @@
 import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY } from './constants.js';
 import { normalizeTimestamp, nowIso } from './util.js';
+import { getTeamOsExtensionsObject } from './serialize.js';
 
 export function attachmentDuplicateKey(input) {
     if (!input || typeof input !== 'object') return '';
@@ -89,4 +90,15 @@ export function normalizeAttachmentRecord(raw) {
         dataUrl,
         createdAt: normalizeTimestamp(raw.createdAt) || nowIso()
     };
+}
+
+export function getTaskAttachmentsMap(boardData, options = {}) {
+    const create = Boolean(options.create);
+    const teamOs = getTeamOsExtensionsObject(boardData, { create });
+    if (!teamOs) return null;
+    if (!teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] || typeof teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] !== 'object' || Array.isArray(teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY])) {
+        if (!create) return null;
+        teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY] = {};
+    }
+    return teamOs[TASK_ATTACHMENTS_EXTENSIONS_KEY];
 }

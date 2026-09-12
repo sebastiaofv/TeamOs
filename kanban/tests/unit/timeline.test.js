@@ -4,7 +4,8 @@ import {
   createTimelineEventId,
   formatTimelineValue,
   buildTaskTimelineChanges,
-  normalizeTimelineChanges
+  normalizeTimelineChanges,
+  buildTaskTimelineEvent
 } from '../../src/domain/timeline.js';
 import { TIMELINE_VERSION } from '../../src/domain/constants.js';
 
@@ -207,5 +208,121 @@ describe('normalizeTimelineChanges', () => {
     const result = normalizeTimelineChanges(input);
     nested.done = true;
     expect(result.checklist.before).toEqual([{ text: 'a', done: false }]);
+  });
+});
+
+describe('buildTaskTimelineEvent', () => {
+  it('returns null when both beforeTask and afterTask are absent', () => {
+    expect(buildTaskTimelineEvent(null, undefined)).toBeNull();
+    expect(buildTaskTimelineEvent(undefined, null)).toBeNull();
+  });
+
+  it('returns a task.created event with a snapshot when there is no beforeTask', () => {
+    const afterTask = { id: 5, title: 'Ship it', status: 'to-do' };
+    const event = buildTaskTimelineEvent(null, afterTask);
+    expect(event).toEqual({
+      kind: 'task.created',
+      entityType: 'task',
+      entityId: '5',
+      summary: 'Task created: Ship it',
+      snapshot: afterTask
+    });
+  });
+
+  it('falls back to "Task <id>" in the summary when the created task has a blank title', () => {
+    const afterTask = { id: 7, title: '   ' };
+    const event = buildTaskTimelineEvent(null, afterTask);
+    expect(event.summary).toBe('Task created: Task 7');
+  });
+
+  it('deep-clones the snapshot on task.created so later mutation of afterTask does not affect it', () => {
+    const afterTask = { id: 5, title: 'Ship it', checklist: [{ text: 'a', done: false }] };
+    const event = buildTaskTimelineEvent(null, afterTask);
+    afterTask.checklist[0].done = true;
+    expect(event.snapshot.checklist).toEqual([{ text: 'a', done: false }]);
+  });
+
+  it('returns a task.deleted event with a snapshot when there is no afterTask', () => {
+    const beforeTask = { id: 9, title: 'Old task', status: 'done' };
+    const event = buildTaskTimelineEvent(beforeTask, null);
+    expect(event).toEqual({
+      kind: 'task.deleted',
+      entityType: 'task',
+      entityId: '9',
+      summary: 'Task deleted: Old task',
+      snapshot: beforeTask
+    });
+  });
+
+  it('returns null when both tasks are present but nothing tracked has changed', () => {
+    const task = { id: 1, title: 'Same', status: 'doing' };
+    expect(buildTaskTimelineEvent(task, { ...task })).toBeNull();
+  });
+
+  it('returns a task.archived event when archived is the only changed field and it became true', () => {
+    const before = { id: 3, title: 'Widget', archived: false };
+    const after = { id: 3, title: 'Widget', archived: true };
+    expect(buildTaskTimelineEvent(before, after)).toEqual({
+      kind: 'task.archived',
+      entityType: 'task',
+      entityId: '3',
+      summary: 'Task archived: Widget',
+      changes: { archived: { before: false, after: true } }
+    });
+  });
+
+  it('returns a task.restored event when archived is the only changed field and it became false', () => {
+    const before = { id: 3, title: 'Widget', archived: true };
+    const after = { id: 3, title: 'Widget', archived: false };
+    expect(buildTaskTimelineEvent(before, after)).toEqual({
+      kind: 'task.restored',
+      entityType: 'task',
+      entityId: '3',
+      summary: 'Task restored: Widget',
+      changes: { archived: { before: true, after: false } }
+    });
+  });
+
+  it('returns a task.status.changed event when status is the only changed field', () => {
+    const before = { id: 4, title: 'Widget', status: 'doing' };
+    const after = { id: 4, title: 'Widget', status: 'done' };
+    expect(buildTaskTimelineEvent(before, after)).toEqual({
+      kind: 'task.status.changed',
+      entityType: 'task',
+      entityId: '4',
+      summary: 'Status changed: Widget',
+      changes: { status: { before: 'doing', after: 'done' } }
+    });
+  });
+
+  it('returns a generic task.updated event for a single changed field other than archived/status', () => {
+    const before = { id: 6, title: 'Old title', status: 'doing' };
+    const after = { id: 6, title: 'New title', status: 'doing' };
+    expect(buildTaskTimelineEvent(before, after)).toEqual({
+      kind: 'task.updated',
+      entityType: 'task',
+      entityId: '6',
+      summary: 'Task updated: New title',
+      changes: { title: { before: 'Old title', after: 'New title' } }
+    });
+  });
+
+  it('returns a generic task.updated event when multiple fields change at once, even including archived or status', () => {
+    const before = { id: 8, title: 'A', status: 'doing', archived: false };
+    const after = { id: 8, title: 'B', status: 'done', archived: true };
+    const event = buildTaskTimelineEvent(before, after);
+    expect(event.kind).toBe('task.updated');
+    expect(event.summary).toBe('Task updated: B');
+    expect(Object.keys(event.changes).sort()).toEqual(['archived', 'status', 'title']);
+  });
+
+  it('falls back the summary title to "Task <id>" when the (unchanged) title is blank on both sides', () => {
+    const before = { id: 2, title: '', status: 'doing' };
+    const after = { id: 2, title: '', status: 'done' };
+    // title is blank on both sides, so it is not itself a changed field --
+    // only status changes, keeping this on the task.status.changed branch --
+    // but taskTitle (derived from taskRef = afterTask) still falls back to
+    // "Task <id>" since afterTask.title is blank.
+    expect(buildTaskTimelineEvent(before, after).summary).toBe('Status changed: Task 2');
   });
 });

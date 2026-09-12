@@ -6,7 +6,8 @@ import {
   createAttachmentId,
   estimateAttachmentDataUrlSizeBytes,
   normalizeAttachmentRecord,
-  stripLegacyTaskAttachmentsFromExtensions
+  stripLegacyTaskAttachmentsFromExtensions,
+  getTaskAttachmentsMap
 } from '../../src/domain/attachments.js';
 import { ATTACHMENT_HARD_MAX_BYTES } from '../../src/domain/constants.js';
 
@@ -290,5 +291,55 @@ describe('normalizeAttachmentRecord', () => {
       ['createdAt', 'dataUrl', 'id', 'kind', 'mime', 'name', 'sizeBytes'].sort()
     );
     expect(result.dataUrl).toBe(HELLO_DATA_URL);
+  });
+});
+
+describe('getTaskAttachmentsMap', () => {
+  it('returns null for non-object boardData without create', () => {
+    expect(getTaskAttachmentsMap(null)).toBeNull();
+    expect(getTaskAttachmentsMap(undefined)).toBeNull();
+    expect(getTaskAttachmentsMap('nope')).toBeNull();
+  });
+
+  it('returns null when boardData has no extensions and create is not requested', () => {
+    expect(getTaskAttachmentsMap({})).toBeNull();
+  });
+
+  it('returns null when extensions exist but have no teamOsKanban key, without create', () => {
+    expect(getTaskAttachmentsMap({ extensions: {} })).toBeNull();
+  });
+
+  it('returns null when teamOsKanban exists but has no taskAttachments key, without create', () => {
+    expect(getTaskAttachmentsMap({ extensions: { teamOsKanban: {} } })).toBeNull();
+  });
+
+  it('returns null when taskAttachments is not a plain object (e.g. an array), without create', () => {
+    expect(getTaskAttachmentsMap({ extensions: { teamOsKanban: { taskAttachments: [] } } })).toBeNull();
+  });
+
+  it('returns the existing taskAttachments object as-is (same reference) when present', () => {
+    const taskAttachments = { 'task:1': [] };
+    const boardData = { extensions: { teamOsKanban: { taskAttachments } } };
+    expect(getTaskAttachmentsMap(boardData)).toBe(taskAttachments);
+  });
+
+  it('builds the full extensions chain and returns an empty map when create is true and nothing exists', () => {
+    const boardData = {};
+    const result = getTaskAttachmentsMap(boardData, { create: true });
+    expect(result).toEqual({});
+    expect(boardData.extensions.teamOsKanban.taskAttachments).toBe(result);
+  });
+
+  it('replaces a non-object taskAttachments (an array) with an empty object when create is true', () => {
+    const boardData = { extensions: { teamOsKanban: { taskAttachments: [] } } };
+    const result = getTaskAttachmentsMap(boardData, { create: true });
+    expect(result).toEqual({});
+    expect(Array.isArray(result)).toBe(false);
+  });
+
+  it('returns the existing taskAttachments object as-is when create is true and it is already valid', () => {
+    const taskAttachments = { 'task:2': [] };
+    const boardData = { extensions: { teamOsKanban: { taskAttachments } } };
+    expect(getTaskAttachmentsMap(boardData, { create: true })).toBe(taskAttachments);
   });
 });
