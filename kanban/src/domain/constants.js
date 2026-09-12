@@ -23,7 +23,6 @@ export const PROJECT_FILE_EXTERNAL_BADGE_MS = 5000;
 export const THEME_STORAGE_KEY = 'teamOsKanbanTheme';
 export const DEBUG_LOGS_ENABLED = false;
 export const CALENDAR_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-export const CALENDAR_MONTH_SHORT_NAMES = CALENDAR_MONTH_NAMES.map((name) => name.slice(0, 3));
 export const CALENDAR_WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const defaultColumns = [
     { status: 'backlog', title: 'backlog' },

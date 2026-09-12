@@ -19,12 +19,6 @@ export function nextPortfolioProjectId() {
     return `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function normalizeBoardArchiveFilter(value) {
-    if (value === true || value === '1' || value === 'archived') return 'archived';
-    if (value === 'all') return 'all';
-    return 'active';
-}
-
 export function normalizeColumns(inputColumns) {
     if (!Array.isArray(inputColumns) || inputColumns.length === 0) {
         return defaultColumns.map(col => ({ ...col }));

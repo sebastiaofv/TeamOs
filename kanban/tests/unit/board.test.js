@@ -6,7 +6,6 @@ import {
   hasTitleOnlyBoardSettings,
   isAcceptedBoardSettingsShape,
   nextPortfolioProjectId,
-  normalizeBoardArchiveFilter,
   normalizeColumns,
   validateBoardData,
   comparePortfolioRows,
@@ -126,31 +125,6 @@ describe('nextPortfolioProjectId', () => {
 
   it('always starts with "p" followed by digits', () => {
     expect(nextPortfolioProjectId()).toMatch(/^p\d+/);
-  });
-});
-
-describe('normalizeBoardArchiveFilter', () => {
-  it('maps true to "archived"', () => {
-    expect(normalizeBoardArchiveFilter(true)).toBe('archived');
-  });
-
-  it('maps the string "1" to "archived"', () => {
-    expect(normalizeBoardArchiveFilter('1')).toBe('archived');
-  });
-
-  it('maps "archived" to "archived"', () => {
-    expect(normalizeBoardArchiveFilter('archived')).toBe('archived');
-  });
-
-  it('maps "all" to "all"', () => {
-    expect(normalizeBoardArchiveFilter('all')).toBe('all');
-  });
-
-  it('falls back to "active" for anything else', () => {
-    expect(normalizeBoardArchiveFilter('active')).toBe('active');
-    expect(normalizeBoardArchiveFilter(undefined)).toBe('active');
-    expect(normalizeBoardArchiveFilter(false)).toBe('active');
-    expect(normalizeBoardArchiveFilter('0')).toBe('active');
   });
 });
 

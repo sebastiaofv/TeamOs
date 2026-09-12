@@ -1,5 +1,5 @@
 {
-  "name": "kanban-single-file-app",
+  "name": "teamos-kanban",
   "private": true,
   "scripts": {
     "dev": "vite",

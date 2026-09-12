@@ -8,12 +8,11 @@
 // module usable from tests without a document.
 
 import { appState, getPortfolioBoardRecord } from '../state/store.js';
-import { BOARD_FILE_EXTENSION, PROJECT_FILE_EXTERNAL_BADGE_MS, PROJECT_FILE_WATCH_INTERVAL_MS, PROJECT_FILE_CONFLICT_SUPPRESS_MS } from '../domain/constants.js';
-import { nextPortfolioProjectId, validateBoardData } from '../domain/board.js';
-import { hashTextContent, serializeBoardDataFromObject } from '../domain/serialize.js';
-import { assertRequiredExtension, formatErrorMessage, nowIso } from '../domain/util.js';
+import { PROJECT_FILE_EXTERNAL_BADGE_MS, PROJECT_FILE_CONFLICT_SUPPRESS_MS } from '../domain/constants.js';
+import { nextPortfolioProjectId } from '../domain/board.js';
+import { serializeBoardDataFromObject } from '../domain/serialize.js';
+import { formatErrorMessage, nowIso } from '../domain/util.js';
 import { createProjectSaveState } from '../domain/persistence.js';
-import { writeJsonToFileHandle } from './fileSystem.js';
 import { BoardRepository } from './boardRepository.js';
 import { Logger } from '../logger.js';
 
@@ -51,7 +50,7 @@ export function getProjectSaveState(boardId, options = {}) {
     return state;
 }
 
-export function getProjectFileState(boardId, options = {}) {
+function getProjectFileState(boardId, options = {}) {
     if (!boardId) return null;
     const createIfMissing = options.create !== false;
     let state = appState.projectFileStateById.get(boardId) || null;
@@ -68,7 +67,7 @@ export function getProjectFileState(boardId, options = {}) {
     return state;
 }
 
-export function setProjectWatchStatus(boardId, status = 'idle', message = '', options = {}) {
+function setProjectWatchStatus(boardId, status = 'idle', message = '', options = {}) {
     const state = getProjectSaveState(boardId, { create: false });
     if (!state) return;
     state.watchStatus = status || 'idle';
@@ -79,7 +78,7 @@ export function setProjectWatchStatus(boardId, status = 'idle', message = '', op
     }
 }
 
-export function clearProjectWatchStatus(boardId, options = {}) {
+function clearProjectWatchStatus(boardId, options = {}) {
     setProjectWatchStatus(boardId, 'idle', '', options);
 }
 
@@ -102,7 +101,7 @@ export function syncProjectSaveStates() {
     });
 }
 
-export async function refreshProjectFileBaseline(boardRecord, options = {}) {
+async function refreshProjectFileBaseline(boardRecord, options = {}) {
     if (!boardRecord || !boardRecord.id || !boardRecord.handle) return null;
     const boardId = boardRecord.id;
     const state = getProjectFileState(boardId);
@@ -143,7 +142,7 @@ export async function primeProjectFileBaselines(records) {
     }
 }
 
-export async function checkProjectFileForExternalChanges(boardRecord) {
+async function checkProjectFileForExternalChanges(boardRecord) {
     if (!boardRecord || !boardRecord.id || !boardRecord.handle) return false;
     const boardId = boardRecord.id;
     const saveState = getProjectSaveState(boardId, { create: false });
@@ -229,11 +228,11 @@ export function stopProjectFileWatcher() {
     }
 }
 
-export async function savePortfolioBoardRecord(boardRecord) {
+async function savePortfolioBoardRecord(boardRecord) {
     return BoardRepository.saveRecord(boardRecord);
 }
 
-export async function runQueuedProjectSave(boardRecord) {
+async function runQueuedProjectSave(boardRecord) {
     if (!boardRecord || !boardRecord.id || !boardRecord.handle) return false;
     const state = getProjectSaveState(boardRecord.id);
     if (!state) return false;
@@ -318,7 +317,7 @@ export function createPortfolioRecord({ handle = null, fileName = '', data }) {
     };
 }
 
-export async function resolveExternalChangeConflict(boardRecord, snapshot, fileState) {
+async function resolveExternalChangeConflict(boardRecord, snapshot, fileState) {
     const boardId = boardRecord.id;
     setProjectWatchStatus(
         boardId,
