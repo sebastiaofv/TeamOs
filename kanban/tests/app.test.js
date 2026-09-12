@@ -67,7 +67,7 @@ function buildBoardPayload({ title, tasks = [], extensions = {} }) {
 }
 
 async function gotoApp(page) {
-  await page.goto('/kanban.html');
+  await page.goto('/');
   await expect(page.locator('#portfolioView')).toBeVisible();
   await expect(page.locator('#boardView')).toHaveCount(0);
 }
@@ -385,7 +385,7 @@ test.describe('portfolio-only app', () => {
   });
 
   test('invalid selected board query resets roadmap mode and clears URL state', async ({ page }) => {
-    await page.goto('/kanban.html?pb=ghost&pv=roadmap');
+    await page.goto('/?pb=ghost&pv=roadmap');
     await expect(page.locator('#portfolioView')).toBeVisible();
     await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'ghost' });
 
@@ -395,7 +395,7 @@ test.describe('portfolio-only app', () => {
     await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
     await expect(page.locator('#portfolioBoard')).toBeVisible();
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
-    await expect(page).toHaveURL(/\/kanban\.html$/);
+    await expect(page).toHaveURL(/\/$/);
   });
 
   test('aggregate portfolio shows calendar mode without selecting a board and persists calendar url state', async ({ page }) => {
@@ -422,7 +422,7 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#portfolioBoard')).toBeVisible();
     await expect(page.locator('#portfolioCalendarView')).toBeHidden();
     await expect(page.getByRole('button', { name: 'Board' })).toHaveClass(/active/);
-    await expect(page).toHaveURL(/\/kanban\.html$/);
+    await expect(page).toHaveURL(/\/$/);
   });
 
   test('calendar view renders roadmap items and due-date tasks with month drill-down', async ({ page }) => {
@@ -767,12 +767,12 @@ test.describe('portfolio-only app', () => {
   });
 
   test('stale selected board query resets roadmap mode on empty startup portfolio', async ({ page }) => {
-    await page.goto('/kanban.html?pb=ghost&pv=roadmap');
+    await page.goto('/?pb=ghost&pv=roadmap');
 
     await expect(page.locator('#portfolioView')).toBeVisible();
     await expect(page.locator('#portfolioViewModeToggle')).toBeHidden();
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
-    await expect(page).toHaveURL(/\/kanban\.html$/);
+    await expect(page).toHaveURL(/\/$/);
     const state = await page.evaluate(() => ({
       selectedPortfolioBoardId,
       selectedPortfolioViewMode,
@@ -783,35 +783,6 @@ test.describe('portfolio-only app', () => {
       selectedPortfolioViewMode: 'board',
       boardCount: 0
     });
-  });
-
-  test('normalizeColumns keeps valid canonical columns and removes duplicates', async ({ page }) => {
-    const columns = await page.evaluate(() => normalizeColumns([
-      { status: 'Backlog', title: 'Ideas' },
-      { status: 'todo', title: 'Ready' },
-      { status: 'to-do', title: 'Duplicate todo' },
-      { status: 'in-progress', title: 'Working' },
-      { status: 'done', title: '' },
-      { status: 'custom', title: 'Ignored custom' }
-    ]));
-
-    expect(columns).toEqual([
-      { status: 'backlog', title: 'Ideas' },
-      { status: 'to-do', title: 'Ready' },
-      { status: 'doing', title: 'Working' },
-      { status: 'done', title: 'done' }
-    ]);
-  });
-
-  test('normalizeColumns falls back to defaults when no valid columns are provided', async ({ page }) => {
-    const columns = await page.evaluate(() => normalizeColumns([null, {}, { status: '', title: '' }]));
-
-    expect(columns).toEqual([
-      { status: 'backlog', title: 'backlog' },
-      { status: 'to-do', title: 'to-do' },
-      { status: 'doing', title: 'in progress' },
-      { status: 'done', title: 'done' }
-    ]);
   });
 
   test('TaskFormValidator enforces blocker reason and attachment hard size', async ({ page }) => {
@@ -1463,114 +1434,6 @@ test.describe('portfolio-only app', () => {
     });
 
     expect(persistedChecklist).toEqual(['Third', 'First', 'Second']);
-  });
-
-  test('legacy assignee strings are accepted and serialize as assignee lists', async ({ page }) => {
-    const legacy = {
-      meta: {
-        schemaVersion: 1,
-        appId: BOARD_APP_ID,
-        createdAt: FIXED_TIMESTAMP,
-        updatedAt: FIXED_TIMESTAMP
-      },
-      board: {
-        columns: buildDefaultColumns(),
-        tasks: [{
-          id: 1,
-          title: 'Legacy task',
-          description: '',
-          assignee: 'Alex',
-          blocked: false,
-          blockerReason: '',
-          checklist: [],
-          archived: false,
-          createdAt: FIXED_TIMESTAMP,
-          updatedAt: FIXED_TIMESTAMP,
-          dueDate: '',
-          priority: null,
-          effort: null,
-          status: 'backlog'
-        }],
-        settings: {
-          title: 'Legacy Project',
-          sortMode: 'manual',
-          showArchivedOnly: false,
-          archiveFilter: 'active'
-        }
-      },
-      extensions: {}
-    };
-
-    const result = await page.evaluate((legacyPayload) => {
-      const legacy = legacyPayload;
-      validateBoardData(legacy);
-      const serialized = serializeBoardDataFromObject(legacy);
-      return {
-        schemaVersion: serialized.meta.schemaVersion,
-        task: serialized.board.tasks[0],
-        hasLegacyAssigneeKey: Object.prototype.hasOwnProperty.call(serialized.board.tasks[0], 'assignee')
-      };
-    }, legacy);
-
-    expect(result.schemaVersion).toBe(1);
-    expect(result.task.assignees).toEqual(['Alex']);
-    expect(result.hasLegacyAssigneeKey).toBe(false);
-  });
-
-  test('roadmap schema normalizes roadmap entities and task assignment ids', async ({ page }) => {
-    await gotoApp(page);
-    await seedPortfolioBoards(page, [{
-      id: 'alpha',
-      hasHandle: true,
-      title: 'Alpha',
-      tasks: [{
-        id: 1,
-        title: 'Mapped task',
-        status: 'to-do',
-        phaseId: 'phase_foundation',
-        milestoneId: 'milestone_alpha',
-        sprintId: 'sprint_12'
-      }],
-      extensions: {
-        roadmap: {
-          version: 1,
-          milestones: [{ id: 'milestone_alpha', title: 'Alpha', dueDate: '2026-04-15' }],
-          phases: [{ id: 'phase_foundation', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }],
-          sprints: [{ id: 'sprint_12', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
-        }
-      }
-    }], { selectedBoardId: 'alpha' });
-
-    const snapshot = await page.evaluate(() => {
-      const source = structuredClone(getPortfolioBoardRecord('alpha').data);
-      validateBoardData(source);
-      const serialized = serializeBoardDataFromObject(source);
-      return structuredClone(serialized);
-    });
-
-    expect(snapshot.extensions.roadmap.version).toBe(1);
-    expect(snapshot.extensions.roadmap.milestones).toEqual([{
-      id: 'milestone_alpha',
-      title: 'Alpha',
-      dueDate: '2026-04-15'
-    }]);
-    expect(snapshot.extensions.roadmap.phases).toEqual([{
-      id: 'phase_foundation',
-      title: 'Foundation',
-      startDate: '2026-04-01',
-      endDate: '2026-04-30'
-    }]);
-    expect(snapshot.extensions.roadmap.sprints).toEqual([{
-      id: 'sprint_12',
-      title: 'Sprint 12',
-      startDate: '2026-04-01',
-      endDate: '2026-04-14'
-    }]);
-    expect(snapshot.board.tasks[0]).toMatchObject({
-      phaseId: 'phase_foundation',
-      milestoneId: 'milestone_alpha',
-      sprintId: 'sprint_12'
-    });
   });
 
   test('task modal assigns phase and milestone from roadmap selectors', async ({ page }) => {

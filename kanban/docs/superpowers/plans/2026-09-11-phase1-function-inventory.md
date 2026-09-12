@@ -1,291 +1,228 @@
 # Phase 1 Function Inventory
 
-Generated from `kanban.html` (11,078 lines) on 2026-09-11. The complete list of the
-253 pure functions Phase 1 extracts, grouped by target module. Tasks 3-12 of
-`2026-09-11-phase1-domain-extraction.md` reference this file for their exact function
-lists, so no task needs the phrase "and the remaining N".
+**Regenerated 2026-09-11 (third revision) using transitive call-graph analysis.**
+Supersedes both earlier versions, which used a body scan and were badly wrong.
 
-Classification rule: a function is *pure* here if its body references none of
-`document`, `Refs`, `window`, `querySelector`, `addEventListener`, `innerHTML`,
-`classList`, and none of the ~40 module-level mutable globals.
+## Why this revision exists
 
-Module assignment within this list is a name-based clustering heuristic. A few are
-misfiled — `validateBoardData` sits under `board.js` because its name matched "board"
-first, and `handleTaskAttachmentsEditorClick` / `clearPortfolioTimelineSelection` are
-named like handlers. Verify each before extracting; the task notes flag the known ones.
+A body scan asks "does this function's own text touch the DOM?" That misses
+delegation. `updateTaskAssigneeEditor` is three lines that call
+`renderTaskAssigneeEditor(items)` — no `document` in its own body, yet it is pure UI.
+Under the old inventory all 55 `task.js` candidates looked clean; **24 of them are
+actually DOM-reachable or stateful.**
 
-Per-module counts here differ from the table in the design spec because that table used
-a coarser clustering rule and was labelled a planning estimate. **This file is the
-authoritative list for execution.** Both total 253.
+This revision marks a function impure if it, or anything it transitively calls, touches
+the DOM (`document`, `Refs`, `window`, `localStorage`, `FileReader`, query/listener/
+class APIs) or reads/writes any of the 36 module globals. Computed to fixpoint over the
+call graph.
 
-## `scoring.js` — 6 functions
-- `priorityRank`
+## Corrected totals
+
+Against `src/legacy/main.js` as of Task 3 (419 top-level functions remaining, 9 already
+extracted to `util.js`):
+
+| Category | Count |
+|---|---:|
+| DOM-reachable (transitively) | 199 |
+| Stateful (globals, not DOM) | 62 |
+| **Genuinely pure** | **158** |
+
+The design spec's figure of 249 pure functions is wrong. Including the 9 already
+extracted, Phase 1's real extraction surface is about **167** functions, not 253.
+Phase 2's rewrite surface is correspondingly larger.
+
+## Still verify before extracting
+
+This is far more accurate than the body scan, but it is still static analysis. It
+resolves calls by bare identifier name, so it cannot see indirect dispatch
+(callbacks stored in objects, dynamic lookup). Read a function before extracting it;
+if it turns out to be UI or stateful, leave it in `main.js` and report it.
+
+
+## `persistence.js` — 3 pure functions
+
+- `createProjectSaveState`
+- `ensureBoardTimelineBaseline`
+- `writeJsonToFileHandle`
+
+## `scoring.js` — 6 pure functions
+
 - `effortRank`
-- `priorityScoreValue`
 - `effortScoreValue`
-- `taskScore`
 - `formatTaskScore`
+- `priorityRank`
+- `priorityScoreValue`
+- `taskScore`
 
-## `attachments.js` — 16 functions
-- `normalizeTaskAttachments`
-- `attachmentTaskKey`
-- `getTaskAttachmentsMap`
-- `createAttachmentId`
-- `classifyAttachmentKind`
-- `estimateAttachmentDataUrlSizeBytes`
+## `attachments.js` — 14 pure functions
+
 - `attachmentDuplicateKey`
-- `normalizeAttachmentRecord`
+- `attachmentTaskKey`
+- `calculateBoardAttachmentBytes`
+- `classifyAttachmentKind`
+- `createAttachmentId`
+- `estimateAttachmentDataUrlSizeBytes`
 - `getLegacyTaskAttachmentsFromExtensions`
 - `getTaskAttachments`
-- `setTaskAttachments`
+- `getTaskAttachmentsMap`
+- `normalizeAttachmentRecord`
+- `normalizeTaskAttachments`
 - `removeLegacyTaskAttachmentsFromExtensions`
+- `setTaskAttachments`
 - `stripLegacyTaskAttachmentsFromExtensions`
-- `calculateBoardAttachmentBytes`
-- `getTaskModalAttachmentDerivedMessages`
-- `handleTaskAttachmentsEditorClick`
 
-## `roadmap.js` — 40 functions
-- `normalizeRoadmapRef`
-- `normalizeRoadmapDate`
-- `normalizeRoadmapItems`
-- `normalizeRoadmapExtension`
-- `createEmptyRoadmapExtension`
-- `getRoadmapExtensionObject`
-- `formatRoadmapDateRange`
-- `parseRoadmapIsoDate`
+## `roadmap.js` — 30 pure functions
+
 - `addRoadmapDays`
-- `getRoadmapDayDiff`
-- `getRoadmapItemDateBounds`
-- `compareRoadmapItemsByDate`
-- `getVisibleRoadmapDateRange`
-- `formatRoadmapAxisDate`
-- `getRoadmapDatePosition`
-- `getRoadmapAxisTicks`
-- `getRoadmapTodayMarker`
-- `renderRoadmapTodayMarker`
-- `getRoadmapTimelinePlacement`
-- `comparePortfolioCalendarRoadmapItems`
+- `assignPortfolioCalendarWeekRoadmapLanes`
 - `buildPortfolioCalendarRoadmapSpanStyle`
 - `buildPortfolioCalendarWeekRoadmapSegments`
-- `assignPortfolioCalendarWeekRoadmapLanes`
-- `renderPortfolioCalendarRoadmapSpan`
-- `renderPortfolioCalendarWeekRoadmap`
-- `shouldShowPortfolioCalendarRoadmapLabel`
-- `renderPortfolioCalendarDayRoadmapItem`
-- `getPortfolioRoadmapExpandedRows`
-- `isPortfolioRoadmapRowExpanded`
-- `togglePortfolioRoadmapRowExpanded`
-- `buildRoadmapEntityOptionMarkup`
-- `buildRoadmapSprintSelectionOptionMarkup`
-- `slugifyRoadmapEntityId`
-- `getRoadmapEntityConfig`
 - `clearInvalidRoadmapTaskRefs`
-- `renderRoadmapGridGuides`
-- `renderRoadmapSection`
-- `getRoadmapItemTitle`
+- `comparePortfolioCalendarRoadmapItems`
+- `compareRoadmapItemsByDate`
+- `createEmptyRoadmapExtension`
+- `formatRoadmapAxisDate`
+- `formatRoadmapDateRange`
+- `getRoadmapAxisTicks`
+- `getRoadmapDatePosition`
+- `getRoadmapDayDiff`
+- `getRoadmapEntityConfig`
 - `getRoadmapExtension`
+- `getRoadmapExtensionObject`
+- `getRoadmapItemDateBounds`
+- `getRoadmapItemTitle`
 - `getRoadmapTaskFieldTasks`
+- `getRoadmapTimelinePlacement`
+- `getRoadmapTodayMarker`
+- `getVisibleRoadmapDateRange`
+- `normalizeRoadmapDate`
+- `normalizeRoadmapExtension`
+- `normalizeRoadmapItems`
+- `normalizeRoadmapRef`
+- `parseRoadmapIsoDate`
+- `renderRoadmapGridGuides`
+- `shouldShowPortfolioCalendarRoadmapLabel`
+- `slugifyRoadmapEntityId`
 
-## `timeline.js` — 32 functions
-- `getBoardTimelineData`
-- `getTimelineSelectionIndex`
-- `clearPortfolioTimelineSelection`
-- `setPortfolioTimelineSelection`
-- `isPortfolioTimelineExpanded`
-- `setPortfolioTimelineExpanded`
+## `timeline.js` — 17 pure functions
+
+- `appendTimelineEvent`
 - `applyTimelineEventToState`
-- `reconstructBoardStateFromTimeline`
-- `formatTimelineValue`
-- `renderTimelineEventChanges`
-- `renderPortfolioTimelineSummaryRow`
-- `renderPortfolioTimelineEventItems`
-- `renderPortfolioTimelineEventDetail`
-- `renderPortfolioTimelineBody`
-- `notifyTimelinePreviewReadOnly`
-- `createTimelineEventId`
+- `buildTaskTimelineChanges`
+- `buildTaskTimelineEvent`
+- `captureTaskTimelineSnapshot`
 - `createEmptyTimelineData`
+- `createTimelineEventId`
+- `formatTimelineValue`
+- `getBoardTimelineData`
+- `getTimelineExtensionObject`
 - `normalizeTimelineChanges`
 - `normalizeTimelineEvent`
 - `normalizeTimelineExtension`
-- `getTimelineExtensionObject`
-- `captureTaskTimelineSnapshot`
-- `ensureBoardTimelineBaseline`
-- `appendTimelineEvent`
-- `buildTaskTimelineChanges`
-- `buildTaskTimelineEvent`
-- `recordTaskTimelineEvent`
+- `notifyTimelinePreviewReadOnly`
+- `reconstructBoardStateFromTimeline`
 - `recordBoardRestoreTimelineEvent`
-- `handleTimelinePanelClick`
-- `handleTimelinePanelInput`
-- `handleTimelinePanelPointerDown`
-- `handleTimelineSliderPointerCommit`
+- `recordTaskTimelineEvent`
 
-## `calendar.js` — 36 functions
-- `formatLocalIsoDate`
-- `todayLocalIsoDate`
-- `formatDueDateForUi`
-- `updateTaskAssigneeEditor`
-- `updateTaskAssigneeEditorItemText`
-- `formatUtcIsoDate`
-- `createUtcDate`
-- `getUtcMonthLabel`
-- `createPortfolioCalendarItem`
-- `getPortfolioCalendarItemPriority`
-- `comparePortfolioCalendarItems`
+## `calendar.js` — 25 pure functions
+
+- `buildPortfolioCalendarItemStyle`
+- `buildPortfolioCalendarMiniMarkerStyle`
 - `comparePortfolioCalendarDayItems`
-- `buildPortfolioCalendarItems`
-- `getPortfolioCalendarMonthRange`
+- `comparePortfolioCalendarItems`
+- `comparePortfolioDueDateAsc`
+- `createUtcDate`
 - `doesPortfolioCalendarItemIntersectMonth`
 - `doesPortfolioCalendarItemOccurOnDay`
-- `buildPortfolioCalendarItemStyle`
-- `getPortfolioCalendarItemLabel`
-- `renderPortfolioCalendarStaticItem`
-- `renderPortfolioCalendarTaskButton`
+- `formatDateTime`
+- `formatDueDateForUi`
+- `formatLocalIsoDate`
+- `formatUtcIsoDate`
 - `getPortfolioCalendarDayOffset`
-- `renderPortfolioCalendarWeekDateCell`
-- `buildPortfolioCalendarMiniMarkerStyle`
-- `getPortfolioCalendarMiniMonthCellCount`
+- `getPortfolioCalendarHeatColor`
+- `getPortfolioCalendarItemLabel`
+- `getPortfolioCalendarItemPriority`
 - `getPortfolioCalendarMiniDayMarkers`
+- `getPortfolioCalendarMiniMonthCellCount`
+- `getPortfolioCalendarMonthHeatStats`
+- `getPortfolioCalendarMonthRange`
 - `getPortfolioCalendarTaskCountsByDay`
 - `getPortfolioCalendarYearHeatStats`
-- `getPortfolioCalendarMonthHeatStats`
-- `getPortfolioCalendarHeatColor`
-- `renderPortfolioCalendarMiniMonth`
-- `comparePortfolioDueDateAsc`
-- `formatDateTime`
+- `getUtcMonthLabel`
 - `normalizeDueDate`
-- `validateBoardData`
-- `updateTaskChecklistEditor`
-- `updateTaskChecklistEditorItemText`
+- `todayLocalIsoDate`
 
-## `serialize.js` — 7 functions
-- `hashTextContent`
-- `serializeBoardDataFromObject`
+## `serialize.js` — 7 pure functions
+
+- `areSerializableValuesEqual`
+- `cloneSerializable`
 - `getBoardExtensionsObject`
 - `getTeamOsExtensionsObject`
-- `cloneSerializable`
-- `areSerializableValuesEqual`
+- `hashTextContent`
 - `normalizeBoardExtensionsValue`
+- `serializeBoardDataFromObject`
 
-## `task.js` — 52 functions
-- `normalizeEffort`
-- `normalizePriority`
-- `normalizeAssignee`
-- `normalizeAssignees`
-- `parseAssigneesInput`
-- `formatAssignees`
-- `taskAssignees`
-- `taskHasAssignee`
-- `syncTaskAssigneeTextareaFromEditor`
-- `removeTaskAssigneeEditorItem`
-- `getBoardTagSuggestions`
-- `normalizeTaskBlocked`
-- `normalizeBlockerReason`
-- `isPortfolioTaskBulkSelected`
-- `getSelectedPortfolioBulkTaskIds`
-- `findPortfolioTaskSource`
-- `findPortfolioTaskDetailSource`
-- `isPortfolioTaskMutable`
-- `canUsePortfolioTaskMutations`
-- `normalizePortfolioBlockedFilter`
-- `getTaskStatusAgeBaseTimestamp`
-- `formatTaskStatusAge`
-- `touchTask`
-- `normalizeTask`
-- `isTaskOverdue`
-- `isAcceptedLegacyAssigneeValue`
-- `resolveKnownTaskStatus`
-- `normalizeTaskStatus`
-- `normalizeChecklist`
-- `normalizeTags`
-- `parseChecklistInput`
-- `syncTaskChecklistTextareaFromEditor`
-- `getTaskChecklistDropPlacement`
-- `moveTaskChecklistEditorItem`
-- `toggleTaskChecklistEditorItem`
-- `removeTaskChecklistEditorItem`
+## `task.js` — 31 pure functions
+
+- `buildTaskFieldsFromDraft`
 - `findTaskInBoardData`
+- `formatAssignees`
+- `formatTaskStatusAge`
+- `getBoardTagSuggestions`
+- `getTaskChecklistDropPlacement`
+- `getTaskStatusAgeBaseTimestamp`
 - `getTasksForMilestone`
 - `getTasksForPhase`
 - `getTasksForSprint`
-- `buildTaskFieldsFromDraft`
+- `isAcceptedLegacyAssigneeValue`
+- `isTaskOverdue`
 - `nextTaskIdForBoard`
-- `handleTaskChecklistEditorClick`
-- `handleTaskChecklistEditorInput`
-- `handleTaskChecklistEditorChange`
-- `handleTaskChecklistEditorDragStart`
-- `handleTaskChecklistEditorDragOver`
-- `handleTaskChecklistEditorDrop`
-- `handleTaskChecklistEditorDragEnd`
-- `handleTaskAssigneeEditorClick`
-- `handleTaskAssigneeEditorInput`
-- `handleDetailChecklistChange`
+- `normalizeAssignee`
+- `normalizeAssignees`
+- `normalizeBlockerReason`
+- `normalizeChecklist`
+- `normalizeEffort`
+- `normalizePortfolioBlockedFilter`
+- `normalizePriority`
+- `normalizeTags`
+- `normalizeTask`
+- `normalizeTaskBlocked`
+- `normalizeTaskStatus`
+- `parseAssigneesInput`
+- `parseChecklistInput`
+- `resolveCreateTaskStatus`
+- `resolveKnownTaskStatus`
+- `taskAssignees`
+- `taskHasAssignee`
+- `touchTask`
 
-## `board.js` — 39 functions
-- `createProjectSaveState`
-- `setProjectWatchStatus`
-- `clearProjectWatchStatus`
-- `markProjectDirty`
-- `getProjectChipSaveUiState`
-- `isPortfolioBoardMutable`
-- `stopProjectFileWatcher`
-- `retryProjectSave`
-- `createPortfolioProjectColor`
-- `portfolioProjectColorKey`
-- `nextPortfolioProjectId`
+## `board.js` — 18 pure functions
+
+- `comparePortfolioRows`
+- `createBoardStateSnapshot`
 - `createEmptyProjectData`
-- `createPortfolioRecord`
-- `isHistoricalPreviewActiveForBoard`
-- `portfolioProjectColor`
+- `createPortfolioProjectColor`
+- `hasExtendedBoardSettings`
+- `hasTitleOnlyBoardSettings`
+- `isAcceptedBoardSettingsShape`
+- `nextPortfolioProjectId`
+- `normalizeBoardArchiveFilter`
+- `normalizeColumns`
+- `normalizePortfolioSortDir`
+- `normalizePortfolioSortKey`
 - `normalizePortfolioViewMode`
 - `notifyPortfolioReadOnly`
-- `normalizePortfolioSortKey`
-- `normalizePortfolioSortDir`
-- `comparePortfolioRows`
-- `normalizeBoardArchiveFilter`
-- `hasTitleOnlyBoardSettings`
-- `hasExtendedBoardSettings`
-- `isAcceptedBoardSettingsShape`
+- `portfolioProjectColorKey`
+- `savePortfolioBoardRecord`
 - `slugifyColumnName`
-- `normalizeColumns`
-- `createBoardStateSnapshot`
-- `setHoveredPortfolioCard`
-- `syncHoveredPortfolioCardWithVisibleRows`
-- `getVisiblePortfolioRowsForShortcuts`
-- `getHoveredPortfolioRow`
-- `getShortcutTargetPortfolioRow`
-- `openSelectedPortfolioCardDetails`
-- `editSelectedPortfolioCard`
-- `canDragPortfolioContext`
-- `handlePortfolioBoardChipsClick`
-- `handlePortfolioBoardChange`
-- `handlePortfolioBoardPointerOver`
-- `handlePortfolioBoardPointerOut`
+- `validateBoardData`
 
-## `util.js` — 25 functions
-- `hasRequiredExtension`
+## `util.js` — 7 pure functions
+
 - `assertRequiredExtension`
-- `isAbortError`
-- `formatErrorMessage`
-- `isFileDrag`
-- `nowIso`
 - `assigneesToInput`
-- `projectHasUnsavedChanges`
-- `createSprintFromSelection`
-- `assignSelectionToExistingSprint`
-- `portfolioSortSelectValueFromKey`
-- `compareText`
-- `performUndo`
-- `hasExactKeys`
-- `normalizeTimestamp`
 - `checklistToInput`
-- `formatFileSize`
-- `readFileAsDataUrl`
+- `hasRequiredExtension`
 - `normalizeTheme`
-- `readStoredTheme`
-- `persistTheme`
-- `initializeTheme`
-- `escapeRegExp`
-- `highlightSearchMatch`
-- `renderShortcutKeys`
-
+- `normalizeTimestamp`
+- `portfolioSortSelectValueFromKey`

@@ -8,7 +8,7 @@
 
 Two drivers, both stated by the project owner:
 
-1. **Maintainability.** `kanban.html` is 11,078 lines in one file — ~3,190 CSS, ~465 HTML, ~7,400 JS across 402 top-level functions and ~40 module-level mutable globals. Navigating and editing it is the bottleneck.
+1. **Maintainability.** `kanban.html` is 11,078 lines in one file — ~3,190 CSS, ~465 HTML, ~7,400 JS across 428 top-level functions and 36 module-level mutable globals. Navigating and editing it is the bottleneck.
 2. **Ecosystem access.** Replace hand-rolled drag/drop, modals, and date handling with maintained libraries.
 
 React and Tailwind are the means, not the goal. Any decision that improves the stack at the cost of maintainability should be re-examined.
@@ -25,15 +25,42 @@ Dropping single-file delivery means `README.md` and `playwright.config.js` both 
 
 ## Codebase analysis
 
-Classification of all 402 top-level JS functions by what they touch:
+Classification of all 428 top-level JS functions by what they touch:
 
-| Category | Fns | Lines | Migration cost |
-|---|---:|---:|---|
-| **Pure** — no DOM, no globals | 253 | 3,382 | Lift and shift |
-| **Stateful** — reads/writes module globals | 60 | 1,440 | Mechanical reshape into store |
-| **UI** — touches DOM/`Refs`/`window` | 89 | 2,502 | Genuine rewrite |
+| Category | Fns | Migration cost |
+|---|---:|---|
+| **Pure** — no DOM, no globals | 249 | Lift and shift |
+| **Stateful** — reads/writes module globals | 84 | Mechanical reshape into store |
+| **UI** — touches DOM/`Refs`/`window` | 95 | Genuine rewrite |
+| **Total** | **428** | |
 
-Only ~34% of the JS is a true rewrite. This ratio is the reason for the domain-first phasing: the majority of the code can move before any React is written.
+**Corrected 2026-09-11 (during Task 1).** The original figures (402 = 253/60/89) came
+from a regex that matched `function NAME(` and so missed all 26 `async` top-level
+functions; it also used an incomplete list of module globals. Roughly 42% of functions
+are pure, not the ~58% first reported, and the true-rewrite share is larger than the
+~34% originally claimed. The phasing argument survives — the pure layer is still the
+single largest group and still moves first — but it is less lopsided than stated.
+
+**Superseded again 2026-09-11 (during Task 4 prep).** The caveat below proved to be the
+dominant effect, not a footnote. Re-running the classification transitively over the
+call graph — a function is impure if *anything it calls* touches the DOM or globals —
+gives a very different split:
+
+| Category | Body scan (wrong) | Transitive (correct) |
+|---|---:|---:|
+| Pure | 249 | **167** |
+| Stateful | 84 | 62 |
+| DOM-reachable | 95 | 199 |
+
+Phase 1's extraction surface is roughly **167 functions, not 253**, and Phase 2's
+rewrite surface is more than twice what this spec first claimed. The domain-first
+phasing still holds — the pure layer is still worth extracting first, and it is still
+the cheapest work — but the "only ~34% is a true rewrite" claim was wrong by a wide
+margin. Roughly 60% of the JS is UI-coupled.
+
+Concretely: of the 55 functions the old inventory listed for `task.js`, 24 are DOM or
+stateful, including every `*Editor*` and `handle*` function. Extracting them would have
+put UI code in the domain layer. This ratio is the reason for the domain-first phasing: the majority of the code can move before any React is written.
 
 Verified spot-check: `validateBoardData` (220 lines) contains zero references to `document`, `Refs`, `window`, or any global. `BoardRepository` is DOM-free and depends only on other pure functions plus File System Access handles.
 
@@ -49,7 +76,7 @@ kanban/
 └─ src/
    ├─ main.jsx
    ├─ App.jsx
-   ├─ domain/               # 253 pure functions
+   ├─ domain/               # the pure functions (249 by body scan)
    ├─ persistence/          # boardRepository, fileSystem, fileWatch
    ├─ store/                # 60 stateful functions as Zustand slices
    ├─ components/           # 89 UI functions as React components
@@ -59,7 +86,7 @@ kanban/
 
 ### `src/domain/` module inventory
 
-Derived from clustering the 253 pure functions by name and call graph. Counts are
+Derived from clustering the pure functions by name and call graph. Counts are
 a planning estimate; exact placement is refined during extraction.
 
 | Module | Fns | Lines | Representative functions |
@@ -84,7 +111,7 @@ a planning estimate; exact placement is refined during extraction.
 
 Every `id` attribute in the current markup is reproduced in the JSX that replaces it.
 
-**Why:** the 95 Playwright tests select by id. Preserving ids is free at authoring
+**Why:** the 94 Playwright tests select by id. Preserving ids is free at authoring
 time and is the single measure that keeps the existing suite usable as a parity
 oracle throughout the rewrite. This is a hard constraint, not a preference.
 
@@ -128,23 +155,48 @@ burden — the exact problem this migration exists to solve.
 
 ## Test strategy
 
-The existing suite is the parity oracle. Planned disposition of all 95 tests:
+The existing suite is the parity oracle. Planned disposition of all 94 tests:
 
 | Fate | Count | Rationale |
 |---|---:|---|
-| Carry over unchanged | 87 | Stable ids make the implementation swap invisible |
+| Carry over unchanged | 86 | Stable ids make the implementation swap invisible |
 | Rewrite for dnd-kit | 4 | Native drag events → pointer/keyboard sensors |
 | Convert to Vitest | 4 | Unit tests currently expressed as E2E |
-| **Total** | **95** | |
+| **Total** | **94** | |
+
+**Correction (2026-09-11, discovered during Task 1):** the "carry over unchanged"
+row above is materially optimistic, and the original claim that the remaining
+`page.evaluate` calls only stub File System Access was wrong. Measured against the
+real suite:
+
+| Coupling | Tests | Survives a React rewrite on stable ids? |
+|---|---:|---|
+| Black-box (DOM ids, user flows only) | 34 | Yes |
+| White-box (reads/writes app internals) | 60 | **No** |
+
+The 60 white-box tests drive internals directly — `portfolioBoards` (36 tests),
+`editPortfolioTask` (12), `getPortfolioBoardRecord` (9), `runPortfolioTaskMutation`,
+`setPortfolioSort`, `getProjectSaveState` and others. Under Phase 2's React + Zustand
+rewrite those symbols cease to exist in their current form, and stable DOM ids do not
+save them.
+
+**Consequence for Phase 1:** none. The functions still exist, so a `window` bridge
+(added in Task 1) keeps all 94 green. Phase 1 proceeds as planned.
+
+**Consequence for Phase 2:** the suite is a far weaker parity oracle than this spec
+originally claimed, and Phase 2's spec must choose a strategy for those 60 tests
+before any React is written. See "Risks".
 
 The 4 conversions are the tests that call domain functions directly via
 `page.evaluate`: `normalizeColumns` (×2), legacy assignee serialization, and roadmap
 schema normalization. Once those functions are importable ES modules they belong in
 Vitest, where they run in milliseconds without a browser.
 
-The 129 remaining `page.evaluate` calls stub the File System Access API
-(`window.showOpenFilePicker` and friends) and are **unaffected** — they stub real
-browser APIs, not application internals.
+Of the 129 remaining `page.evaluate` calls, those that stub the File System Access
+API (`window.showOpenFilePicker` and friends) are unaffected. **But many others reach
+into application internals** — see the correction above. Converting the legacy script
+to an ES module removes top-level declarations from `window`, so Task 1 adds an
+explicit bridge to keep them reachable.
 
 Mechanical test-harness changes:
 
@@ -163,13 +215,13 @@ each with its own spec and plan.
 
 ### Phase 1 — domain extraction
 
-Move the 253 pure functions and `BoardRepository` into `src/domain/` and
+Move the pure functions and `BoardRepository` into `src/domain/` and
 `src/persistence/` as ES modules with Vitest coverage. Stand up the Vite, Tailwind,
 and Vitest toolchain. `kanban.html` continues to run by importing the built bundle,
-so the app stays functional and all 95 Playwright tests stay green throughout.
+so the app stays functional and all 94 Playwright tests stay green throughout.
 
 **Exit criteria:** all 253 functions live in modules; Vitest suite covers them; all
-95 Playwright tests still pass; `kanban.html` still runs.
+94 Playwright tests still pass; `kanban.html` still runs.
 
 Phase 1 is mechanical, independently valuable, and is work that any migration
 approach would require.
@@ -207,6 +259,14 @@ external-change paths before touching it.
 (roadmap Gantt rows, calendar heat map, timeline scrubber) may not express cleanly as
 utilities. Mitigation: allow component-scoped CSS modules for genuinely bespoke
 layout rather than forcing utility classes.
+
+**The test suite is a weak oracle for Phase 2.** 60 of 94 tests are coupled to
+internals that Phase 2 deletes. Phase 2's spec must pick a strategy before writing
+components: rewrite them as black-box tests first (buys a real oracle, delays React),
+expose store state and actions on `window` for tests (preserves them, entrenches a
+test-only interface), or convert them view-by-view as each is rebuilt (spreads the
+cost, but the oracle is weakest exactly when it is most needed). Unresolved — this is
+the first decision Phase 2 must make.
 
 **Scope drift during a parity port.** "While I'm in here" improvements inflate a
 migration indefinitely. Mitigation: parity is the bar; improvements get filed, not

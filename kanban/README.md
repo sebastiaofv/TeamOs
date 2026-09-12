@@ -1,6 +1,6 @@
 # Kanban Board
 
-A minimalist single-file Kanban app built with plain HTML, CSS, and JavaScript (`kanban.html`).
+A Kanban app built as a Vite project. It is mid-migration from a single 11,000+ line `kanban.html` file: pure domain logic has been extracted into tested modules under `src/domain/` and `src/persistence/`, while UI and stateful code still lives in `src/legacy/main.js` pending Phase 2.
 
 ## What it does
 
@@ -26,17 +26,20 @@ A minimalist single-file Kanban app built with plain HTML, CSS, and JavaScript (
   - New board from template
 - Strict board schema validation (versioned JSON format).
 
-## Internal architecture (single-file, layered)
+## Internal architecture
 
-`kanban.html` keeps a single-file delivery model but follows internal layers:
+The app is a Vite project (`index.html` + `src/`), split by responsibility:
 
-- `Domain`: pure normalization, validation, scoring, and selectors.
-- `BoardRepository`: board parsing/validation/serialization and file I/O orchestration.
-- `UI`: render and modal helpers.
-- `Controllers`: drag/drop and interaction workflows.
-- `State`: compatibility snapshot plus focused state mutators.
-
-This keeps the app minimal while reducing coupling between DOM, business rules, and persistence.
+- `src/domain/` — pure, dependency-free logic, unit-tested with Vitest. 11 modules:
+  - `task.js`, `board.js`, `calendar.js`, `roadmap.js`, `timeline.js`, `attachments.js` — feature-specific normalization, validation, and selectors.
+  - `serialize.js` — board parsing/validation/serialization.
+  - `scoring.js` — priority/effort score calculation.
+  - `util.js` — shared helpers.
+  - `constants.js` — shared constants.
+  - `persistence.js` — pure save-state/queue helpers (not I/O; see `src/persistence/` for that).
+- `src/persistence/fileSystem.js` — File System Access API wrappers. This is the only place that writes to the user's disk; it is kept separate from `src/domain/` because it is I/O, not pure logic.
+- `src/legacy/main.js` — UI rendering, DOM event wiring, drag/drop controllers, and application state. This is a temporary home for everything not yet extracted, pending Phase 2. It ends with a `window` bridge that exposes selected internals (functions, constants, and state getters) so the existing Playwright suite can keep driving app internals directly during the migration.
+- `src/styles/legacy.css` — the app's styling, largely unchanged from the original single-file app. It also carries the Tailwind `@tailwind` directives (see below); Tailwind's preflight reset is disabled so this stylesheet keeps working untouched until it is retired in a later phase.
 
 ## Task and schema invariants
 
@@ -81,16 +84,27 @@ The app validates both extension and JSON structure on open/upload.
 
 ## Run
 
-Open `kanban.html` directly in a modern Chromium browser.
+```bash
+npm install
+npm run dev
+```
+
+This starts the Vite dev server.
+
+## Styling
+
+Tailwind CSS is wired into the build (`tailwind.config.js`, `postcss.config.js`) with `corePlugins.preflight` disabled, so it contributes only utility classes and does not reset or otherwise alter the existing hand-written styles in `src/styles/legacy.css`.
 
 ## Testing
 
-Automated tests use Playwright and start a temporary local HTTP server automatically.
+There are two test suites:
+
+- **Unit tests** (`npm run test:unit`) — Vitest, 856 tests covering the pure functions in `src/domain/` and `src/persistence/`.
+- **End-to-end tests** (`npm test`) — Playwright, 94 tests driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
 
 ### Prerequisites
 
 - Node.js 18+ (recommended)
-- Python 3 (used for the local static server in Playwright config)
 
 ### Install
 
@@ -102,10 +116,11 @@ npx playwright install
 ### Run tests
 
 ```bash
-npm test
+npm run test:unit
+npm run build && npm test
 ```
 
-Optional modes:
+Optional Playwright modes:
 
 ```bash
 npm run test:headed
