@@ -83,32 +83,33 @@ permanently:
 They stay in `main.js` for Phase 2. Tasks renumbered from 8; Tasks 1-7 are complete.
 
 
----
-
-### Task 8 — layer 0, 16 functions
-
-
-**`src/domain/roadmap.js`** (8):
-
-```
-buildPortfolioCalendarRoadmapSpanStyle comparePortfolioCalendarRoadmapItems getRoadmapDatePosition getRoadmapItemDateBounds getRoadmapItemTitle getRoadmapTaskFieldTasks normalizeRoadmapItems shouldShowPortfolioCalendarRoadmapLabel
-```
-
-**`src/domain/serialize.js`** (4):
-
-```
-areSerializableValuesEqual cloneSerializable getBoardExtensionsObject hashTextContent
-```
-
-**`src/domain/timeline.js`** (4):
-
-```
-buildTaskTimelineEvent createEmptyTimelineData createTimelineEventId formatTimelineValue
-```
 
 ---
 
-### Task 9 — layer 0, 15 functions
+## Revision 5 — 2026-09-12, after Task 8a
+
+Task 8a's extraction guard refused `buildTaskTimelineEvent`, which calls
+`buildTaskTimelineChanges`. That dependency should have placed it in a later layer, and
+did not — because of a bug in the classifier's literal-stripper, not in the app.
+
+The stripper removes string and comment text before looking for identifiers, keeping
+`${...}` substitution code. It entered substitution mode but never returned to template
+mode at the closing brace, so after the first `${...}` the parity inverted and real code
+was swallowed as literal text. `buildTaskTimelineEvent` appeared to call nothing at all.
+Any function containing a template literal had its dependencies under-detected.
+
+Fixed with an explicit mode stack and a brace counter. Corrected totals: **94 extracted,
+68 pure remaining, 8 layers.**
+
+Tasks are also capped at ~10 functions and at most 2 modules each — two agents stalled on
+larger units of work. Tasks renumbered from 9; Tasks 1-8a are complete.
+
+
+
+
+---
+
+### Task 9 — layer 0, 10 functions
 
 
 **`src/domain/attachments.js`** (1):
@@ -117,16 +118,16 @@ buildTaskTimelineEvent createEmptyTimelineData createTimelineEventId formatTimel
 normalizeAttachmentRecord
 ```
 
-**`src/domain/board.js`** (3):
+**`src/domain/board.js`** (2):
 
 ```
-createEmptyProjectData isAcceptedBoardSettingsShape validateBoardData
+createEmptyProjectData isAcceptedBoardSettingsShape
 ```
 
-**`src/domain/calendar.js`** (1):
+**`src/domain/calendar.js`** (4):
 
 ```
-doesPortfolioCalendarItemIntersectMonth
+buildPortfolioCalendarRoadmapSpanStyle comparePortfolioCalendarRoadmapItems doesPortfolioCalendarItemIntersectMonth shouldShowPortfolioCalendarRoadmapLabel
 ```
 
 **`src/domain/persistence.js`** (1):
@@ -135,16 +136,56 @@ doesPortfolioCalendarItemIntersectMonth
 createProjectSaveState
 ```
 
+**`src/domain/roadmap.js`** (2):
+
+```
+getRoadmapDatePosition getRoadmapItemDateBounds
+```
+
+---
+
+### Task 10 — layer 0, 10 functions
+
+
+**`src/domain/roadmap.js`** (3):
+
+```
+getRoadmapItemTitle getRoadmapTaskFieldTasks normalizeRoadmapItems
+```
+
 **`src/domain/scoring.js`** (4):
 
 ```
 effortRank effortScoreValue priorityRank priorityScoreValue
 ```
 
-**`src/domain/task.js`** (3):
+**`src/domain/serialize.js`** (1):
 
 ```
-getTaskStatusAgeBaseTimestamp isTaskOverdue normalizeTaskStatus
+getTeamOsExtensionsObject
+```
+
+**`src/domain/task.js`** (2):
+
+```
+getTaskStatusAgeBaseTimestamp isTaskOverdue
+```
+
+---
+
+### Task 11 — layer 0, 5 functions
+
+
+**`src/domain/task.js`** (1):
+
+```
+normalizeTaskStatus
+```
+
+**`src/domain/timeline.js`** (2):
+
+```
+buildTaskTimelineChanges normalizeTimelineChanges
 ```
 
 **`src/domain/util.js`** (2):
@@ -155,19 +196,25 @@ assertRequiredExtension portfolioSortSelectValueFromKey
 
 ---
 
-### Task 10 — layer 1, 17 functions
+### Task 12 — layer 1, 10 functions
 
 
-**`src/domain/attachments.js`** (1):
-
-```
-normalizeTaskAttachments
-```
-
-**`src/domain/roadmap.js`** (7):
+**`src/domain/attachments.js`** (2):
 
 ```
-buildPortfolioCalendarWeekRoadmapSegments compareRoadmapItemsByDate getRoadmapAxisTicks getRoadmapTimelinePlacement getRoadmapTodayMarker getVisibleRoadmapDateRange normalizeRoadmapExtension
+getTaskAttachmentsMap normalizeTaskAttachments
+```
+
+**`src/domain/calendar.js`** (1):
+
+```
+buildPortfolioCalendarWeekRoadmapSegments
+```
+
+**`src/domain/roadmap.js`** (6):
+
+```
+compareRoadmapItemsByDate getRoadmapAxisTicks getRoadmapTimelinePlacement getRoadmapTodayMarker getVisibleRoadmapDateRange normalizeRoadmapExtension
 ```
 
 **`src/domain/scoring.js`** (1):
@@ -176,11 +223,10 @@ buildPortfolioCalendarWeekRoadmapSegments compareRoadmapItemsByDate getRoadmapAx
 taskScore
 ```
 
-**`src/domain/serialize.js`** (1):
+---
 
-```
-getTeamOsExtensionsObject
-```
+### Task 13 — layer 1, 7 functions
+
 
 **`src/domain/task.js`** (5):
 
@@ -191,60 +237,115 @@ formatTaskStatusAge getTasksForMilestone getTasksForPhase getTasksForSprint reso
 **`src/domain/timeline.js`** (2):
 
 ```
-buildTaskTimelineChanges normalizeTimelineChanges
+buildTaskTimelineEvent normalizeTimelineEvent
 ```
 
 ---
 
-### Task 11 — layers 2+, 27 functions
+### Task 14 — layer 2, 10 functions
+
+
+**`src/domain/attachments.js`** (2):
+
+```
+getLegacyTaskAttachmentsFromExtensions removeLegacyTaskAttachmentsFromExtensions
+```
+
+**`src/domain/board.js`** (1):
+
+```
+comparePortfolioRows
+```
+
+**`src/domain/calendar.js`** (1):
+
+```
+assignPortfolioCalendarWeekRoadmapLanes
+```
+
+**`src/domain/roadmap.js`** (3):
+
+```
+clearInvalidRoadmapTaskRefs getRoadmapExtension getRoadmapExtensionObject
+```
+
+**`src/domain/scoring.js`** (1):
+
+```
+formatTaskScore
+```
+
+**`src/domain/timeline.js`** (2):
+
+```
+applyTimelineEventToState normalizeTimelineExtension
+```
+
+---
+
+### Task 15 — layer 3, 7 functions
+
+
+**`src/domain/attachments.js`** (3):
+
+```
+calculateBoardAttachmentBytes getTaskAttachments setTaskAttachments
+```
+
+**`src/domain/board.js`** (1):
+
+```
+validateBoardData
+```
+
+**`src/domain/serialize.js`** (1):
+
+```
+normalizeBoardExtensionsValue
+```
+
+**`src/domain/task.js`** (1):
+
+```
+normalizeTask
+```
+
+**`src/domain/timeline.js`** (1):
+
+```
+getTimelineExtensionObject
+```
+
+---
+
+### Task 16 — layers 4-7, 9 functions
 
 Strictly ordered: each batch depends on the one before. Extract in this order, running
 `npm run build && npm test` between batches.
 
 
-**Batch 1 (layer 2):**
+**Batch 1 (layer 4):**
 
-- `src/domain/attachments.js`: `getTaskAttachmentsMap`
-- `src/domain/board.js`: `comparePortfolioRows`
-- `src/domain/roadmap.js`: `assignPortfolioCalendarWeekRoadmapLanes`, `clearInvalidRoadmapTaskRefs`, `getRoadmapExtension`, `getRoadmapExtensionObject`
-- `src/domain/scoring.js`: `formatTaskScore`
-- `src/domain/timeline.js`: `applyTimelineEventToState`, `normalizeTimelineEvent`
-
-**Batch 2 (layer 3):**
-
-- `src/domain/attachments.js`: `getLegacyTaskAttachmentsFromExtensions`, `removeLegacyTaskAttachmentsFromExtensions`
-- `src/domain/task.js`: `normalizeTask`
-- `src/domain/timeline.js`: `normalizeTimelineExtension`
-
-**Batch 3 (layer 4):**
-
-- `src/domain/attachments.js`: `calculateBoardAttachmentBytes`, `getTaskAttachments`, `setTaskAttachments`
-- `src/domain/serialize.js`: `normalizeBoardExtensionsValue`
-- `src/domain/timeline.js`: `getTimelineExtensionObject`
-
-**Batch 4 (layer 5):**
-
-- `src/domain/board.js`: `createBoardStateSnapshot`
-- `src/domain/serialize.js`: `serializeBoardDataFromObject`
+- `src/domain/serialize.js`: `createBoardStateSnapshot`, `serializeBoardDataFromObject`
 - `src/domain/timeline.js`: `captureTaskTimelineSnapshot`, `getBoardTimelineData`
 
-**Batch 5 (layer 6):**
+**Batch 2 (layer 5):**
 
 - `src/domain/persistence.js`: `ensureBoardTimelineBaseline`
 - `src/domain/timeline.js`: `reconstructBoardStateFromTimeline`
 
-**Batch 6 (layer 7):**
+**Batch 3 (layer 6):**
 
 - `src/domain/timeline.js`: `appendTimelineEvent`
 
-**Batch 7 (layer 8):**
+**Batch 4 (layer 7):**
 
 - `src/domain/timeline.js`: `recordBoardRestoreTimelineEvent`, `recordTaskTimelineEvent`
 
 ---
 
-## After Task 11
+## After Task 16
 
-**Task 12** persistence (`BoardRepository`, `fileSystem`, `savePortfolioBoardRecord`).
-**Task 13** Tailwind, README, close-out.
+**Task 17** persistence (`BoardRepository`, `fileSystem`, `savePortfolioBoardRecord`).
+**Task 18** Tailwind, README, close-out.
 
