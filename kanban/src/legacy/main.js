@@ -10,6 +10,7 @@ import { createEmptyTimelineData, createTimelineEventId, formatTimelineValue, bu
 import { createProjectSaveState } from '../domain/persistence.js';
 import { effortRank, effortScoreValue, priorityRank, priorityScoreValue, taskScore, formatTaskScore } from '../domain/scoring.js';
 import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
+import { appState } from '../state/store.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -21,44 +22,6 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             DEBUG_LOGS_ENABLED, CALENDAR_MONTH_NAMES, CALENDAR_MONTH_SHORT_NAMES,
             CALENDAR_WEEKDAY_NAMES, defaultColumns
         } from '../domain/constants.js';
-        let pendingNewTaskStatus = null;
-        let undoAction = null;
-        let undoTimer = null;
-        let portfolioBoards = [];
-        let nextPortfolioProjectColorSeed = 0;
-        let portfolioTasks = [];
-        let projectSaveStateById = new Map();
-        let projectFileStateById = new Map();
-        let selectedPortfolioBoardId = '';
-        let selectedPortfolioViewMode = 'board';
-        let portfolioSortKey = 'priority';
-        let portfolioSortDir = 'asc';
-        let portfolioEditContext = null;
-        let portfolioCreateContext = null;
-        let portfolioDetailContext = null;
-        let roadmapEntityContext = null;
-        let portfolioBulkSelectionByBoardId = {};
-        let portfolioDragContext = null;
-        let selectedPortfolioCardRef = null;
-        let hoveredPortfolioCardRef = null;
-        let taskModalAttachmentDraft = [];
-        let taskModalAttachmentMessages = [];
-        let taskChecklistDragState = { activeIndex: -1, targetIndex: -1, targetPlacement: '' };
-        let portfolioTimelineSelection = { boardId: '', eventIndex: null };
-        let portfolioTimelineDragState = { active: false, boardId: '' };
-        let portfolioTimelineExpandedByBoardId = {};
-        let portfolioTimelineListScrollTopByBoardId = {};
-        let portfolioRoadmapExpandedRowsByBoardId = {};
-        let portfolioCalendarView = 'year';
-        let portfolioCalendarDisplayMode = 'calendar';
-        let portfolioCalendarYear = null;
-        let portfolioCalendarMonth = null;
-        let activeTheme = 'light';
-        let ShortcutRegistry = [];
-        let suppressPortfolioCardClickUntil = 0;
-        let projectWatchTimerId = null;
-        let projectWatchRunning = false;
-        let projectWatchListenersBound = false;
         const Refs = {};
         const Logger = {
             debug(...args) {
@@ -105,13 +68,13 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (portfolioBlocked !== 'all') params.set('pbk', portfolioBlocked);
             if (portfolioEffort) params.set('pe', portfolioEffort);
             if (portfolioArchive !== 'active') params.set('pa', portfolioArchive);
-            if (portfolioSortKey !== 'priority') params.set('ps', portfolioSortKey);
-            if (portfolioSortDir === 'desc') params.set('pd', portfolioSortDir);
-            if (selectedPortfolioBoardId) params.set('pb', selectedPortfolioBoardId);
-            if (selectedPortfolioViewMode === 'calendar' && portfolioBoards.length > 0) {
-                params.set('pv', selectedPortfolioViewMode);
-            } else if (selectedPortfolioBoardId && selectedPortfolioViewMode === 'roadmap') {
-                params.set('pv', selectedPortfolioViewMode);
+            if (appState.portfolioSortKey !== 'priority') params.set('ps', appState.portfolioSortKey);
+            if (appState.portfolioSortDir === 'desc') params.set('pd', appState.portfolioSortDir);
+            if (appState.selectedPortfolioBoardId) params.set('pb', appState.selectedPortfolioBoardId);
+            if (appState.selectedPortfolioViewMode === 'calendar' && appState.portfolioBoards.length > 0) {
+                params.set('pv', appState.selectedPortfolioViewMode);
+            } else if (appState.selectedPortfolioBoardId && appState.selectedPortfolioViewMode === 'roadmap') {
+                params.set('pv', appState.selectedPortfolioViewMode);
             }
             const query = params.toString();
             const nextUrl = `${window.location.pathname}${query ? `?${query}` : ''}`;
@@ -152,12 +115,12 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (pArchive && ['active', 'all', 'archived'].includes(portfolioArchive)) {
                 pArchive.value = portfolioArchive;
             }
-            portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
-            portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
+            appState.portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
+            appState.portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
             setSelectedPortfolioBoardId(portfolioBoard);
-            selectedPortfolioViewMode = normalizePortfolioViewMode(portfolioViewMode);
-            if (!selectedPortfolioBoardId && selectedPortfolioViewMode !== 'calendar') {
-                selectedPortfolioViewMode = 'board';
+            appState.selectedPortfolioViewMode = normalizePortfolioViewMode(portfolioViewMode);
+            if (!appState.selectedPortfolioBoardId && appState.selectedPortfolioViewMode !== 'calendar') {
+                appState.selectedPortfolioViewMode = 'board';
             }
             renderPortfolio();
         }
@@ -340,10 +303,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 return;
             }
             items.push(tag);
-            const boardData = portfolioEditContext
-                ? getPortfolioBoardRecord(portfolioEditContext.boardId)?.data
-                : (portfolioCreateContext
-                    ? getPortfolioBoardRecord(portfolioCreateContext.boardId)?.data
+            const boardData = appState.portfolioEditContext
+                ? getPortfolioBoardRecord(appState.portfolioEditContext.boardId)?.data
+                : (appState.portfolioCreateContext
+                    ? getPortfolioBoardRecord(appState.portfolioCreateContext.boardId)?.data
                     : currentBoard);
             renderTagEditor(container, items, getBoardTagSuggestions(boardData));
             if (input) input.value = '';
@@ -358,10 +321,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const items = readTagEditorItems();
             if (!items[index]) return;
             items.splice(index, 1);
-            const boardData = portfolioEditContext
-                ? getPortfolioBoardRecord(portfolioEditContext.boardId)?.data
-                : (portfolioCreateContext
-                    ? getPortfolioBoardRecord(portfolioCreateContext.boardId)?.data
+            const boardData = appState.portfolioEditContext
+                ? getPortfolioBoardRecord(appState.portfolioEditContext.boardId)?.data
+                : (appState.portfolioCreateContext
+                    ? getPortfolioBoardRecord(appState.portfolioCreateContext.boardId)?.data
                     : currentBoard);
             renderTagEditor(container, items, getBoardTagSuggestions(boardData));
         }
@@ -404,33 +367,33 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 .flatMap((item) => [item?.bounds?.start?.getUTCFullYear(), item?.bounds?.end?.getUTCFullYear()])
                 .filter(Number.isFinite);
             const fallbackYear = years.length > 0 ? Math.min(...years) : new Date().getUTCFullYear();
-            if (!Number.isInteger(portfolioCalendarYear)) {
-                portfolioCalendarYear = fallbackYear;
+            if (!Number.isInteger(appState.portfolioCalendarYear)) {
+                appState.portfolioCalendarYear = fallbackYear;
             }
         }
 
         function normalizePortfolioCalendarMonth(items) {
             const defaultDate = (Array.isArray(items) ? items : []).find((item) => item?.bounds?.start)?.bounds?.start || new Date();
-            if (!Number.isInteger(portfolioCalendarMonth) || portfolioCalendarMonth < 0 || portfolioCalendarMonth > 11) {
-                portfolioCalendarMonth = defaultDate.getUTCMonth();
+            if (!Number.isInteger(appState.portfolioCalendarMonth) || appState.portfolioCalendarMonth < 0 || appState.portfolioCalendarMonth > 11) {
+                appState.portfolioCalendarMonth = defaultDate.getUTCMonth();
             }
         }
 
         function ensurePortfolioCalendarState(items) {
-            if (!['year', 'month'].includes(portfolioCalendarView)) {
-                portfolioCalendarView = 'year';
+            if (!['year', 'month'].includes(appState.portfolioCalendarView)) {
+                appState.portfolioCalendarView = 'year';
             }
-            if (!['calendar', 'heatmap'].includes(portfolioCalendarDisplayMode)) {
-                portfolioCalendarDisplayMode = 'calendar';
+            if (!['calendar', 'heatmap'].includes(appState.portfolioCalendarDisplayMode)) {
+                appState.portfolioCalendarDisplayMode = 'calendar';
             }
             normalizePortfolioCalendarYear(items);
             normalizePortfolioCalendarMonth(items);
         }
 
         function getPortfolioCalendarBoardSources() {
-            if (selectedPortfolioBoardId) {
+            if (appState.selectedPortfolioBoardId) {
                 const viewState = getSelectedBoardTimelineViewState();
-                const boardRecord = viewState?.boardRecord || getPortfolioBoardRecord(selectedPortfolioBoardId);
+                const boardRecord = viewState?.boardRecord || getPortfolioBoardRecord(appState.selectedPortfolioBoardId);
                 const boardData = viewState?.isPreview
                     ? (viewState.projectedBoard || boardRecord?.data || null)
                     : (boardRecord?.data || viewState?.projectedBoard || null);
@@ -440,7 +403,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                     historical: Boolean(viewState?.isPreview)
                 }] : [];
             }
-            return portfolioBoards
+            return appState.portfolioBoards
                 .filter((board) => board?.data)
                 .map((boardRecord) => ({
                     boardRecord,
@@ -527,8 +490,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
 
         function getPortfolioCalendarScopeLabel() {
-            if (!selectedPortfolioBoardId) return 'All Projects';
-            const board = getPortfolioBoardRecord(selectedPortfolioBoardId);
+            if (!appState.selectedPortfolioBoardId) return 'All Projects';
+            const board = getPortfolioBoardRecord(appState.selectedPortfolioBoardId);
             return board?.title || board?.fileName || 'Selected Project';
         }
 
@@ -705,7 +668,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function renderPortfolioCalendarYearView(items, options = {}) {
-            const year = portfolioCalendarYear;
+            const year = appState.portfolioCalendarYear;
             const heatmap = Boolean(options.heatmap);
             const taskCounts = heatmap ? getPortfolioCalendarTaskCountsByDay(items) : null;
             const heatStats = heatmap ? getPortfolioCalendarYearHeatStats(taskCounts, year) : null;
@@ -752,15 +715,15 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function renderPortfolioCalendarMonthView(items, options = {}) {
-            const year = portfolioCalendarYear;
-            const month = portfolioCalendarMonth;
+            const year = appState.portfolioCalendarYear;
+            const month = appState.portfolioCalendarMonth;
             const firstOfMonth = createUtcDate(year, month, 1);
             const leadingDays = firstOfMonth.getUTCDay();
             const gridStart = addRoadmapDays(firstOfMonth, -leadingDays);
             const heatmap = Boolean(options.heatmap);
             const taskCounts = heatmap ? getPortfolioCalendarTaskCountsByDay(items) : null;
             const heatStats = heatmap ? getPortfolioCalendarMonthHeatStats(taskCounts, year, month) : null;
-            const canCreateTasks = Boolean(selectedPortfolioBoardId) && canUsePortfolioTaskMutations(selectedPortfolioBoardId);
+            const canCreateTasks = Boolean(appState.selectedPortfolioBoardId) && canUsePortfolioTaskMutations(appState.selectedPortfolioBoardId);
             const weekMarkup = Array.from({ length: 6 }, (_, weekIndex) => {
                 const weekStart = addRoadmapDays(gridStart, weekIndex * 7);
                 const weekStartIso = formatUtcIsoDate(weekStart);
@@ -835,31 +798,31 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (!calendarViewNode) return;
 
             const items = buildPortfolioCalendarItems(rows);
-            const aggregate = !selectedPortfolioBoardId;
+            const aggregate = !appState.selectedPortfolioBoardId;
             ensurePortfolioCalendarState(items);
-            const heatmap = portfolioCalendarDisplayMode === 'heatmap';
+            const heatmap = appState.portfolioCalendarDisplayMode === 'heatmap';
 
-            const periodLabel = portfolioCalendarView === 'month'
-                ? getUtcMonthLabel(portfolioCalendarYear, portfolioCalendarMonth)
-                : String(portfolioCalendarYear);
-            const bodyMarkup = portfolioCalendarView === 'month'
+            const periodLabel = appState.portfolioCalendarView === 'month'
+                ? getUtcMonthLabel(appState.portfolioCalendarYear, appState.portfolioCalendarMonth)
+                : String(appState.portfolioCalendarYear);
+            const bodyMarkup = appState.portfolioCalendarView === 'month'
                 ? renderPortfolioCalendarMonthView(items, { aggregate, heatmap })
                 : renderPortfolioCalendarYearView(items, { aggregate, heatmap });
-            const toggleLabel = portfolioCalendarDisplayMode === 'heatmap' ? 'Calendar' : 'Heat Map';
+            const toggleLabel = appState.portfolioCalendarDisplayMode === 'heatmap' ? 'Calendar' : 'Heat Map';
 
             calendarViewNode.innerHTML = `
                 <div class="portfolio-calendar-header">
                     <div class="portfolio-calendar-controls">
-                        ${portfolioCalendarView === 'month' ? '<button class="btn" type="button" data-action="calendar-back-to-year" aria-label="Back to year">Back to year</button>' : ''}
-                        <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Previous month' : 'Previous year'}">Prev</button>
+                        ${appState.portfolioCalendarView === 'month' ? '<button class="btn" type="button" data-action="calendar-back-to-year" aria-label="Back to year">Back to year</button>' : ''}
+                        <button class="btn" type="button" data-action="${appState.portfolioCalendarView === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}" aria-label="${appState.portfolioCalendarView === 'month' ? 'Previous month' : 'Previous year'}">Prev</button>
                         <div class="portfolio-calendar-period-group">
                             <div class="portfolio-calendar-period">${escapeHtml(periodLabel)}</div>
                             <button class="btn" type="button" data-action="calendar-toggle-mode">${escapeHtml(toggleLabel)}</button>
                         </div>
-                        <button class="btn" type="button" data-action="${portfolioCalendarView === 'month' ? 'calendar-next-month' : 'calendar-next-year'}" aria-label="${portfolioCalendarView === 'month' ? 'Next month' : 'Next year'}">Next</button>
+                        <button class="btn" type="button" data-action="${appState.portfolioCalendarView === 'month' ? 'calendar-next-month' : 'calendar-next-year'}" aria-label="${appState.portfolioCalendarView === 'month' ? 'Next month' : 'Next year'}">Next</button>
                     </div>
                 </div>
-                <div class="portfolio-calendar-shell" data-calendar-scope="${aggregate ? 'aggregate' : 'selected'}" data-calendar-view="${escapeHtml(portfolioCalendarView)}" data-calendar-display-mode="${portfolioCalendarDisplayMode}">
+                <div class="portfolio-calendar-shell" data-calendar-scope="${aggregate ? 'aggregate' : 'selected'}" data-calendar-view="${escapeHtml(appState.portfolioCalendarView)}" data-calendar-display-mode="${appState.portfolioCalendarDisplayMode}">
                     ${bodyMarkup}
                 </div>
             `;
@@ -867,10 +830,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function getPortfolioRoadmapExpandedRows(boardId) {
             if (!boardId) return {};
-            const expandedRows = portfolioRoadmapExpandedRowsByBoardId[boardId];
+            const expandedRows = appState.portfolioRoadmapExpandedRowsByBoardId[boardId];
             if (expandedRows && typeof expandedRows === 'object' && !Array.isArray(expandedRows)) return expandedRows;
-            portfolioRoadmapExpandedRowsByBoardId[boardId] = {};
-            return portfolioRoadmapExpandedRowsByBoardId[boardId];
+            appState.portfolioRoadmapExpandedRowsByBoardId[boardId] = {};
+            return appState.portfolioRoadmapExpandedRowsByBoardId[boardId];
         }
 
         function isPortfolioRoadmapRowExpanded(boardId, key) {
@@ -881,7 +844,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (!boardId || !key) return;
             const next = { ...getPortfolioRoadmapExpandedRows(boardId) };
             next[key] = !next[key];
-            portfolioRoadmapExpandedRowsByBoardId[boardId] = next;
+            appState.portfolioRoadmapExpandedRowsByBoardId[boardId] = next;
         }
 
         function buildRoadmapEntityOptionMarkup(items, selectedId) {
@@ -909,11 +872,11 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
 
         function getPortfolioBoardRecord(boardId) {
-            return portfolioBoards.find(board => board.id === boardId) || null;
+            return appState.portfolioBoards.find(board => board.id === boardId) || null;
         }
 
         function getPortfolioBulkSelection(boardId) {
-            return Array.isArray(portfolioBulkSelectionByBoardId[boardId]) ? portfolioBulkSelectionByBoardId[boardId] : [];
+            return Array.isArray(appState.portfolioBulkSelectionByBoardId[boardId]) ? appState.portfolioBulkSelectionByBoardId[boardId] : [];
         }
 
         function isPortfolioTaskBulkSelected(boardId, taskId) {
@@ -922,10 +885,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function clearPortfolioBulkSelection(boardId = '') {
             if (boardId) {
-                delete portfolioBulkSelectionByBoardId[boardId];
+                delete appState.portfolioBulkSelectionByBoardId[boardId];
                 return;
             }
-            portfolioBulkSelectionByBoardId = {};
+            appState.portfolioBulkSelectionByBoardId = {};
         }
 
         function syncPortfolioBulkSelection(boardId, boardData) {
@@ -934,10 +897,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const taskIds = new Set(Array.isArray(boardData?.board?.tasks) ? boardData.board.tasks.map((task) => Number(task.id)) : []);
             const nextIds = getPortfolioBulkSelection(normalizedBoardId).filter((taskId) => taskIds.has(Number(taskId)));
             if (nextIds.length > 0) {
-                portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
+                appState.portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
                 return;
             }
-            delete portfolioBulkSelectionByBoardId[normalizedBoardId];
+            delete appState.portfolioBulkSelectionByBoardId[normalizedBoardId];
         }
 
         function togglePortfolioTaskBulkSelection(boardId, taskId, checked) {
@@ -951,10 +914,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             }
             const nextIds = [...ids];
             if (nextIds.length > 0) {
-                portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
+                appState.portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
                 return;
             }
-            delete portfolioBulkSelectionByBoardId[normalizedBoardId];
+            delete appState.portfolioBulkSelectionByBoardId[normalizedBoardId];
         }
 
         function getSelectedPortfolioBulkTaskIds(boardId) {
@@ -966,12 +929,12 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function setSelectedPortfolioBoardId(boardId, options = {}) {
             const nextBoardId = boardId || '';
-            if (nextBoardId !== selectedPortfolioBoardId) {
+            if (nextBoardId !== appState.selectedPortfolioBoardId) {
                 clearPortfolioBulkSelection();
             }
-            selectedPortfolioBoardId = nextBoardId;
-            if (options.resetViewModeWhenEmpty !== false && !selectedPortfolioBoardId) {
-                selectedPortfolioViewMode = 'board';
+            appState.selectedPortfolioBoardId = nextBoardId;
+            if (options.resetViewModeWhenEmpty !== false && !appState.selectedPortfolioBoardId) {
+                appState.selectedPortfolioViewMode = 'board';
             }
         }
 
@@ -979,10 +942,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function getProjectSaveState(boardId, options = {}) {
             if (!boardId) return null;
             const createIfMissing = options.create !== false;
-            let state = projectSaveStateById.get(boardId) || null;
+            let state = appState.projectSaveStateById.get(boardId) || null;
             if (!state && createIfMissing) {
                 state = createProjectSaveState();
-                projectSaveStateById.set(boardId, state);
+                appState.projectSaveStateById.set(boardId, state);
             }
             return state;
         }
@@ -990,7 +953,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function getProjectFileState(boardId, options = {}) {
             if (!boardId) return null;
             const createIfMissing = options.create !== false;
-            let state = projectFileStateById.get(boardId) || null;
+            let state = appState.projectFileStateById.get(boardId) || null;
             if (!state && createIfMissing) {
                 state = {
                     lastModified: 0,
@@ -999,7 +962,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                     checking: false,
                     suppressedUntilMs: 0
                 };
-                projectFileStateById.set(boardId, state);
+                appState.projectFileStateById.set(boardId, state);
             }
             return state;
         }
@@ -1021,19 +984,19 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function syncProjectSaveStates() {
             const activeIds = new Set();
-            portfolioBoards.forEach((board) => {
+            appState.portfolioBoards.forEach((board) => {
                 if (!board || !board.id) return;
                 activeIds.add(board.id);
                 getProjectSaveState(board.id);
             });
-            Array.from(projectSaveStateById.keys()).forEach((boardId) => {
+            Array.from(appState.projectSaveStateById.keys()).forEach((boardId) => {
                 if (!activeIds.has(boardId)) {
-                    projectSaveStateById.delete(boardId);
+                    appState.projectSaveStateById.delete(boardId);
                 }
             });
-            Array.from(projectFileStateById.keys()).forEach((boardId) => {
+            Array.from(appState.projectFileStateById.keys()).forEach((boardId) => {
                 if (!activeIds.has(boardId)) {
-                    projectFileStateById.delete(boardId);
+                    appState.projectFileStateById.delete(boardId);
                 }
             });
         }
@@ -1415,29 +1378,29 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         async function checkProjectFilesNow() {
-            if (projectWatchRunning) return false;
-            projectWatchRunning = true;
+            if (appState.projectWatchRunning) return false;
+            appState.projectWatchRunning = true;
             try {
-                const boards = portfolioBoards.filter(board => board && board.handle);
+                const boards = appState.portfolioBoards.filter(board => board && board.handle);
                 for (const board of boards) {
                     await checkProjectFileForExternalChanges(board);
                 }
                 return true;
             } finally {
-                projectWatchRunning = false;
+                appState.projectWatchRunning = false;
             }
         }
 
         function stopProjectFileWatcher() {
-            if (projectWatchTimerId) {
-                clearInterval(projectWatchTimerId);
-                projectWatchTimerId = null;
+            if (appState.projectWatchTimerId) {
+                clearInterval(appState.projectWatchTimerId);
+                appState.projectWatchTimerId = null;
             }
         }
 
         function startProjectFileWatcher() {
             stopProjectFileWatcher();
-            projectWatchTimerId = setInterval(() => {
+            appState.projectWatchTimerId = setInterval(() => {
                 if (document.hidden) return;
                 void checkProjectFilesNow();
             }, PROJECT_FILE_WATCH_INTERVAL_MS);
@@ -1527,7 +1490,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const usedSeeds = new Set();
             let nextSeed = 0;
 
-            portfolioBoards.forEach((board) => {
+            appState.portfolioBoards.forEach((board) => {
                 if (!board) return;
                 const seed = Number.isInteger(board.colorSeed) && board.colorSeed >= 0
                     ? board.colorSeed
@@ -1540,7 +1503,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 nextSeed = Math.max(nextSeed, seed + 1);
             });
 
-            portfolioBoards.forEach((board) => {
+            appState.portfolioBoards.forEach((board) => {
                 if (!board || Number.isInteger(board.colorSeed)) return;
                 while (usedSeeds.has(nextSeed)) {
                     nextSeed += 1;
@@ -1550,10 +1513,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 nextSeed += 1;
             });
 
-            nextPortfolioProjectColorSeed = nextSeed;
+            appState.nextPortfolioProjectColorSeed = nextSeed;
 
             const usedColorKeys = new Set();
-            portfolioBoards
+            appState.portfolioBoards
                 .filter(Boolean)
                 .slice()
                 .sort((a, b) => a.colorSeed - b.colorSeed)
@@ -1574,7 +1537,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function buildPortfolioTasks() {
             syncPortfolioProjectColors();
             syncProjectSaveStates();
-            portfolioTasks = portfolioBoards.flatMap((board, boardIndex) => {
+            appState.portfolioTasks = appState.portfolioBoards.flatMap((board, boardIndex) => {
                 const statusMap = Object.fromEntries(board.data.board.columns.map(col => [col.status, col.title]));
                 return board.data.board.tasks.map((task, taskIndex) => ({
                     boardIndex,
@@ -1596,7 +1559,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const payload = serializeBoardDataFromObject(data);
             return {
                 id: nextPortfolioProjectId(),
-                colorSeed: nextPortfolioProjectColorSeed++,
+                colorSeed: appState.nextPortfolioProjectColorSeed++,
                 handle,
                 fileName,
                 title: payload.board.settings.title,
@@ -1608,10 +1571,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function getTimelineSelectionIndex(boardId, timeline) {
             if (!boardId || !timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) return null;
             const maxIndex = timeline.events.length - 1;
-            if (portfolioTimelineSelection.boardId !== boardId || !Number.isInteger(portfolioTimelineSelection.eventIndex)) {
+            if (appState.portfolioTimelineSelection.boardId !== boardId || !Number.isInteger(appState.portfolioTimelineSelection.eventIndex)) {
                 return maxIndex;
             }
-            return Math.max(0, Math.min(maxIndex, portfolioTimelineSelection.eventIndex));
+            return Math.max(0, Math.min(maxIndex, appState.portfolioTimelineSelection.eventIndex));
         }
 
         function isHistoricalPreviewActiveForBoard(boardId) {
@@ -1625,7 +1588,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function clearPortfolioTimelineSelection(options = {}) {
-            portfolioTimelineSelection = { boardId: '', eventIndex: null };
+            appState.portfolioTimelineSelection = { boardId: '', eventIndex: null };
             if (options.keepModals !== true) {
                 closeDetailModal();
                 closeModal();
@@ -1647,13 +1610,13 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             }
             const maxIndex = timeline.events.length - 1;
             const nextIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
-            portfolioTimelineSelection = { boardId, eventIndex: nextIndex };
+            appState.portfolioTimelineSelection = { boardId, eventIndex: nextIndex };
             closeDetailModal();
             closeModal();
             renderPortfolio(options);
         }
 
-        function movePortfolioTimelineToLatest(boardId = selectedPortfolioBoardId) {
+        function movePortfolioTimelineToLatest(boardId = appState.selectedPortfolioBoardId) {
             if (!boardId) {
                 clearPortfolioTimelineSelection();
                 renderPortfolio();
@@ -1666,7 +1629,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 renderPortfolio();
                 return;
             }
-            portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
+            appState.portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
             closeDetailModal();
             closeModal();
             renderPortfolio();
@@ -1674,24 +1637,24 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function syncPortfolioTimelineSelectionToLatest(boardId, boardData = null) {
             if (!boardId) return;
-            if (selectedPortfolioBoardId !== boardId && portfolioTimelineSelection.boardId !== boardId) {
+            if (appState.selectedPortfolioBoardId !== boardId && appState.portfolioTimelineSelection.boardId !== boardId) {
                 return;
             }
 
             const resolvedBoardData = boardData || getPortfolioBoardRecord(boardId)?.data;
             const timeline = resolvedBoardData ? getBoardTimelineData(resolvedBoardData) : null;
             if (!timeline || timeline.events.length === 0) {
-                if (portfolioTimelineSelection.boardId === boardId) {
-                    portfolioTimelineSelection = { boardId: '', eventIndex: null };
+                if (appState.portfolioTimelineSelection.boardId === boardId) {
+                    appState.portfolioTimelineSelection = { boardId: '', eventIndex: null };
                 }
                 return;
             }
 
-            portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
+            appState.portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
         }
 
         function isPortfolioTimelineExpanded(boardId) {
-            return Boolean(boardId && portfolioTimelineExpandedByBoardId[boardId] === true);
+            return Boolean(boardId && appState.portfolioTimelineExpandedByBoardId[boardId] === true);
         }
 
         function cachePortfolioTimelineListScrollPosition(panel = document.getElementById('portfolioTimelinePanel')) {
@@ -1699,25 +1662,25 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const boardId = panel.dataset.boardId || '';
             const list = panel.querySelector('.timeline-event-list');
             if (!boardId || !list) return;
-            portfolioTimelineListScrollTopByBoardId[boardId] = list.scrollTop;
+            appState.portfolioTimelineListScrollTopByBoardId[boardId] = list.scrollTop;
         }
 
         function restorePortfolioTimelineListScrollPosition(boardId, panel = document.getElementById('portfolioTimelinePanel')) {
             if (!boardId || !panel) return;
             const list = panel.querySelector('.timeline-event-list');
             if (!list) return;
-            const scrollTop = portfolioTimelineListScrollTopByBoardId[boardId];
+            const scrollTop = appState.portfolioTimelineListScrollTopByBoardId[boardId];
             if (!Number.isFinite(scrollTop)) return;
             list.scrollTop = scrollTop;
         }
 
         function setPortfolioTimelineExpanded(boardId, expanded) {
             if (!boardId) return;
-            portfolioTimelineExpandedByBoardId[boardId] = Boolean(expanded);
+            appState.portfolioTimelineExpandedByBoardId[boardId] = Boolean(expanded);
             renderPortfolio();
         }
 
-        function togglePortfolioTimelineExpanded(boardId = selectedPortfolioBoardId) {
+        function togglePortfolioTimelineExpanded(boardId = appState.selectedPortfolioBoardId) {
             if (!boardId) return;
             setPortfolioTimelineExpanded(boardId, !isPortfolioTimelineExpanded(boardId));
         }
@@ -1731,7 +1694,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const canMutate = Boolean(boardRecord.handle) && options.canMutate !== false;
             const historical = Boolean(options.historical);
             return (normalizedBoard.board.tasks || []).map((task, taskIndex) => ({
-                boardIndex: portfolioBoards.findIndex((board) => board.id === boardRecord.id),
+                boardIndex: appState.portfolioBoards.findIndex((board) => board.id === boardRecord.id),
                 boardId: boardRecord.id,
                 taskId: task.id,
                 taskIndex,
@@ -1745,8 +1708,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function getSelectedBoardTimelineViewState() {
-            if (!selectedPortfolioBoardId) return null;
-            const boardRecord = getPortfolioBoardRecord(selectedPortfolioBoardId);
+            if (!appState.selectedPortfolioBoardId) return null;
+            const boardRecord = getPortfolioBoardRecord(appState.selectedPortfolioBoardId);
             if (!boardRecord) return null;
             const timeline = getBoardTimelineData(boardRecord.data);
             if (!timeline || timeline.events.length === 0) {
@@ -1775,19 +1738,19 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function closePortfolioContextsForProject(boardId) {
             if (!boardId) return;
-            if (portfolioDetailContext && portfolioDetailContext.boardId === boardId) {
+            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId === boardId) {
                 closeDetailModal();
             }
             if (
-                (portfolioEditContext && portfolioEditContext.boardId === boardId) ||
-                (portfolioCreateContext && portfolioCreateContext.boardId === boardId)
+                (appState.portfolioEditContext && appState.portfolioEditContext.boardId === boardId) ||
+                (appState.portfolioCreateContext && appState.portfolioCreateContext.boardId === boardId)
             ) {
                 closeModal();
             }
         }
 
         function sortPortfolioBoardsAlphabetically() {
-            portfolioBoards.sort((a, b) => {
+            appState.portfolioBoards.sort((a, b) => {
                 const aLabel = String(a.title || a.fileName || '').toLowerCase();
                 const bLabel = String(b.title || b.fileName || '').toLowerCase();
                 return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
@@ -1797,12 +1760,12 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function appendPortfolioRecords(records, options = {}) {
             const list = Array.isArray(records) ? records.filter(Boolean) : [];
             if (list.length === 0) return;
-            portfolioBoards = [...portfolioBoards, ...list];
+            appState.portfolioBoards = [...appState.portfolioBoards, ...list];
             sortPortfolioBoardsAlphabetically();
             if (typeof options.selectBoardId === 'string') {
                 setSelectedPortfolioBoardId(options.selectBoardId, { resetViewModeWhenEmpty: false });
             }
-            if (selectedPortfolioBoardId && !portfolioBoards.some(board => board.id === selectedPortfolioBoardId)) {
+            if (appState.selectedPortfolioBoardId && !appState.portfolioBoards.some(board => board.id === appState.selectedPortfolioBoardId)) {
                 setSelectedPortfolioBoardId('', { resetViewModeWhenEmpty: false });
             }
             buildPortfolioTasks();
@@ -1814,20 +1777,20 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const chips = document.getElementById('portfolioBoardsChips');
             if (!chips) return;
 
-            if (portfolioBoards.length === 0) {
+            if (appState.portfolioBoards.length === 0) {
                 chips.innerHTML = '<span class="empty-state-text">No projects loaded</span>';
                 return;
             }
 
-            const allActiveClass = selectedPortfolioBoardId ? '' : 'active';
+            const allActiveClass = appState.selectedPortfolioBoardId ? '' : 'active';
             const allChip = `
                 <span class="portfolio-chip ${allActiveClass}">
                     <button class="chip-link" type="button" data-action="select-board" data-board-id="">All</button>
                 </span>
             `;
 
-            const boardChips = portfolioBoards.map(board => {
-                const activeClass = selectedPortfolioBoardId === board.id ? 'active' : '';
+            const boardChips = appState.portfolioBoards.map(board => {
+                const activeClass = appState.selectedPortfolioBoardId === board.id ? 'active' : '';
                 const color = portfolioProjectColor(board.id);
                 const chipStyle = `--chip-bg:${color.bg};--chip-border:${color.border};--chip-text:${color.text};`;
                 const saveUi = getProjectChipSaveUiState(board.id);
@@ -1854,36 +1817,36 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function selectPortfolioBoard(boardId) {
-            if ((boardId || '') !== selectedPortfolioBoardId) {
+            if ((boardId || '') !== appState.selectedPortfolioBoardId) {
                 clearPortfolioTimelineSelection();
             }
             setSelectedPortfolioBoardId(boardId, {
-                resetViewModeWhenEmpty: !(!boardId && selectedPortfolioViewMode === 'calendar')
+                resetViewModeWhenEmpty: !(!boardId && appState.selectedPortfolioViewMode === 'calendar')
             });
             renderPortfolio();
             updateUrlState();
         }
 
         function removeProjectFromPortfolio(boardId) {
-            const index = portfolioBoards.findIndex(board => board.id === boardId);
+            const index = appState.portfolioBoards.findIndex(board => board.id === boardId);
             if (index < 0) return;
             closePortfolioContextsForProject(boardId);
-            if (selectedPortfolioCardRef && selectedPortfolioCardRef.boardId === boardId) {
-                selectedPortfolioCardRef = null;
+            if (appState.selectedPortfolioCardRef && appState.selectedPortfolioCardRef.boardId === boardId) {
+                appState.selectedPortfolioCardRef = null;
             }
-            if (hoveredPortfolioCardRef && hoveredPortfolioCardRef.boardId === boardId) {
-                hoveredPortfolioCardRef = null;
+            if (appState.hoveredPortfolioCardRef && appState.hoveredPortfolioCardRef.boardId === boardId) {
+                appState.hoveredPortfolioCardRef = null;
             }
-            portfolioBoards.splice(index, 1);
-            if (selectedPortfolioBoardId === boardId) {
+            appState.portfolioBoards.splice(index, 1);
+            if (appState.selectedPortfolioBoardId === boardId) {
                 setSelectedPortfolioBoardId('', { resetViewModeWhenEmpty: false });
             }
-            if (portfolioTimelineSelection.boardId === boardId) {
+            if (appState.portfolioTimelineSelection.boardId === boardId) {
                 clearPortfolioTimelineSelection();
             }
             clearPortfolioBulkSelection(boardId);
-            projectSaveStateById.delete(boardId);
-            projectFileStateById.delete(boardId);
+            appState.projectSaveStateById.delete(boardId);
+            appState.projectFileStateById.delete(boardId);
             buildPortfolioTasks();
             renderPortfolio();
         }
@@ -2006,20 +1969,20 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const blockedFilter = normalizePortfolioBlockedFilter(document.getElementById('portfolioBlockedFilter')?.value || 'all');
             const effortFilter = document.getElementById('portfolioEffortFilter')?.value || '';
             const archiveFilter = document.getElementById('portfolioArchiveFilter')?.value || 'active';
-            const sortBy = normalizePortfolioSortKey(portfolioSortKey);
-            const sortDir = normalizePortfolioSortDir(portfolioSortDir);
+            const sortBy = normalizePortfolioSortKey(appState.portfolioSortKey);
+            const sortDir = normalizePortfolioSortDir(appState.portfolioSortDir);
             const timelineView = getSelectedBoardTimelineViewState();
             const sourceRows = (timelineView && timelineView.isPreview && timelineView.projectedBoard)
                 ? buildPortfolioRowsFromBoardData(timelineView.boardRecord, timelineView.projectedBoard, {
                     canMutate: false,
                     historical: true
                 })
-                : portfolioTasks;
+                : appState.portfolioTasks;
 
             return sourceRows
                 .filter(item => {
                     const task = item.task;
-                    if (selectedPortfolioBoardId && item.boardId !== selectedPortfolioBoardId) return false;
+                    if (appState.selectedPortfolioBoardId && item.boardId !== appState.selectedPortfolioBoardId) return false;
                     if (archiveFilter === 'active' && task.archived) return false;
                     if (archiveFilter === 'archived' && !task.archived) return false;
                     if (priorityFilter && task.priority !== priorityFilter) return false;
@@ -2263,7 +2226,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             viewState.boardRecord.title = viewState.boardRecord.data.board.settings.title;
 
             const refreshedTimeline = getBoardTimelineData(viewState.boardRecord.data);
-            portfolioTimelineSelection = {
+            appState.portfolioTimelineSelection = {
                 boardId: viewState.boardRecord.id,
                 eventIndex: Math.max(0, (refreshedTimeline?.events?.length || 1) - 1)
             };
@@ -2307,7 +2270,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const score = formatTaskScore(task);
             const highlightedTitle = highlightSearchMatch(task.title || '', searchTerm);
             const projectLabel = item.boardTitle || item.boardFileName || 'Project';
-            const showProjectBadge = !selectedPortfolioBoardId;
+            const showProjectBadge = !appState.selectedPortfolioBoardId;
             const color = portfolioProjectColor(item.boardId);
             const badgeStyle = `background:${color.bg};border-color:${color.border};color:${color.text};`;
             const editButtonLabel = '&#9998;';
@@ -2317,8 +2280,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const readOnlyTitle = item.historical ? 'Historical preview (read-only)' : 'Read-only (no file handle)';
             const assignees = taskAssignees(task);
             const statusAge = formatTaskStatusAge(task);
-            const showBulkSelect = Boolean(selectedPortfolioBoardId)
-                && selectedPortfolioBoardId === item.boardId
+            const showBulkSelect = Boolean(appState.selectedPortfolioBoardId)
+                && appState.selectedPortfolioBoardId === item.boardId
                 && canMutate;
             const metaParts = [
                 showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : '',
@@ -2381,12 +2344,12 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const assignButton = document.getElementById('portfolioBulkAssignSprintBtn');
             if (!actions || !summary || !createButton || !assignButton) return;
 
-            const canShow = Boolean(selectedPortfolioBoardId)
-                && selectedPortfolioViewMode === 'board'
-                && canUsePortfolioTaskMutations(selectedPortfolioBoardId);
-            const selectedCount = canShow ? getSelectedPortfolioBulkTaskIds(selectedPortfolioBoardId).length : 0;
+            const canShow = Boolean(appState.selectedPortfolioBoardId)
+                && appState.selectedPortfolioViewMode === 'board'
+                && canUsePortfolioTaskMutations(appState.selectedPortfolioBoardId);
+            const selectedCount = canShow ? getSelectedPortfolioBulkTaskIds(appState.selectedPortfolioBoardId).length : 0;
             const showActions = canShow && selectedCount > 0;
-            const roadmap = canShow ? getRoadmapExtension(getPortfolioBoardRecord(selectedPortfolioBoardId)?.data) : null;
+            const roadmap = canShow ? getRoadmapExtension(getPortfolioBoardRecord(appState.selectedPortfolioBoardId)?.data) : null;
             const hasExistingSprints = Array.isArray(roadmap?.sprints) && roadmap.sprints.length > 0;
 
             actions.classList.toggle('active', showActions);
@@ -2402,9 +2365,9 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const banner = document.getElementById('portfolioBoardEmptyBanner');
             if (!boardWrap || !boardGrid || !banner) return;
             const searchTerm = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
-            const canAddTasks = Boolean(selectedPortfolioBoardId)
-                && isPortfolioBoardMutable(selectedPortfolioBoardId)
-                && !isHistoricalPreviewActiveForBoard(selectedPortfolioBoardId);
+            const canAddTasks = Boolean(appState.selectedPortfolioBoardId)
+                && isPortfolioBoardMutable(appState.selectedPortfolioBoardId)
+                && !isHistoricalPreviewActiveForBoard(appState.selectedPortfolioBoardId);
             const buckets = Object.fromEntries(defaultColumns.map(col => [col.status, []]));
             rows.forEach((item) => {
                 const status = normalizeTaskStatus(item.task.status);
@@ -2412,7 +2375,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 buckets[status].push(item);
             });
 
-            const hasBoards = portfolioBoards.length > 0;
+            const hasBoards = appState.portfolioBoards.length > 0;
             if (!hasBoards) {
                 banner.classList.add('hidden');
                 banner.textContent = '';
@@ -2461,26 +2424,26 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function canUsePortfolioViewMode(mode) {
             const normalized = normalizePortfolioViewMode(mode);
-            if (normalized === 'calendar') return portfolioBoards.length > 0;
-            if (normalized === 'roadmap') return Boolean(selectedPortfolioBoardId);
-            return portfolioBoards.length > 0;
+            if (normalized === 'calendar') return appState.portfolioBoards.length > 0;
+            if (normalized === 'roadmap') return Boolean(appState.selectedPortfolioBoardId);
+            return appState.portfolioBoards.length > 0;
         }
 
         function renderSelectedBoardViewToggle() {
             const toggle = document.getElementById('portfolioViewModeToggle');
             if (!toggle) return;
 
-            const hasBoards = portfolioBoards.length > 0;
-            const hasSelectedBoard = Boolean(selectedPortfolioBoardId);
+            const hasBoards = appState.portfolioBoards.length > 0;
+            const hasSelectedBoard = Boolean(appState.selectedPortfolioBoardId);
             toggle.classList.toggle('hidden', !hasBoards);
             if (!hasBoards) {
-                selectedPortfolioViewMode = 'board';
+                appState.selectedPortfolioViewMode = 'board';
                 return;
             }
 
-            selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
-            if (!canUsePortfolioViewMode(selectedPortfolioViewMode)) {
-                selectedPortfolioViewMode = 'board';
+            appState.selectedPortfolioViewMode = normalizePortfolioViewMode(appState.selectedPortfolioViewMode);
+            if (!canUsePortfolioViewMode(appState.selectedPortfolioViewMode)) {
+                appState.selectedPortfolioViewMode = 'board';
             }
             toggle.querySelectorAll('button[data-view-mode]').forEach((button) => {
                 const mode = normalizePortfolioViewMode(button.dataset.viewMode || '');
@@ -2491,7 +2454,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                     button.setAttribute('aria-pressed', 'false');
                     return;
                 }
-                const isActive = button.dataset.viewMode === selectedPortfolioViewMode;
+                const isActive = button.dataset.viewMode === appState.selectedPortfolioViewMode;
                 button.classList.toggle('active', isActive);
                 button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
             });
@@ -2586,7 +2549,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (!roadmapView) return;
 
             const viewState = getSelectedBoardTimelineViewState();
-            const board = viewState?.boardRecord || (selectedPortfolioBoardId ? getPortfolioBoardRecord(selectedPortfolioBoardId) : null);
+            const board = viewState?.boardRecord || (appState.selectedPortfolioBoardId ? getPortfolioBoardRecord(appState.selectedPortfolioBoardId) : null);
             const boardData = viewState?.isPreview ? (viewState.projectedBoard || board?.data || null) : (board?.data || viewState?.projectedBoard || null);
             const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
             const range = getVisibleRoadmapDateRange(roadmap);
@@ -2635,7 +2598,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 const track = document.createElement('div');
                 track.className = 'roadmap-task-list-track';
                 track.replaceChildren(...tasks.map((task, taskIndex) => createPortfolioTaskCard({
-                    boardIndex: portfolioBoards.findIndex((board) => board.id === boardRecord.id),
+                    boardIndex: appState.portfolioBoards.findIndex((board) => board.id === boardRecord.id),
                     boardId: boardRecord.id,
                     taskId: task.id,
                     taskIndex,
@@ -2650,26 +2613,26 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function syncSelectedPortfolioBoardSelection() {
-            if (!selectedPortfolioBoardId) {
+            if (!appState.selectedPortfolioBoardId) {
                 clearPortfolioBulkSelection();
-                if (portfolioBoards.length === 0) {
-                    selectedPortfolioViewMode = 'board';
-                } else if (selectedPortfolioViewMode === 'roadmap') {
-                    selectedPortfolioViewMode = 'board';
+                if (appState.portfolioBoards.length === 0) {
+                    appState.selectedPortfolioViewMode = 'board';
+                } else if (appState.selectedPortfolioViewMode === 'roadmap') {
+                    appState.selectedPortfolioViewMode = 'board';
                 } else {
-                    selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
+                    appState.selectedPortfolioViewMode = normalizePortfolioViewMode(appState.selectedPortfolioViewMode);
                 }
                 return;
             }
-            if (!getPortfolioBoardRecord(selectedPortfolioBoardId)) {
+            if (!getPortfolioBoardRecord(appState.selectedPortfolioBoardId)) {
                 setSelectedPortfolioBoardId('', { resetViewModeWhenEmpty: false });
                 clearPortfolioBulkSelection();
-                if (selectedPortfolioViewMode !== 'calendar') {
-                    selectedPortfolioViewMode = 'board';
+                if (appState.selectedPortfolioViewMode !== 'calendar') {
+                    appState.selectedPortfolioViewMode = 'board';
                 }
                 return;
             }
-            selectedPortfolioViewMode = normalizePortfolioViewMode(selectedPortfolioViewMode);
+            appState.selectedPortfolioViewMode = normalizePortfolioViewMode(appState.selectedPortfolioViewMode);
         }
 
         function renderPortfolio(options = {}) {
@@ -2694,8 +2657,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const boardGrid = document.getElementById('portfolioBoard');
             const roadmapView = document.getElementById('portfolioRoadmapView');
             const calendarView = document.getElementById('portfolioCalendarView');
-            const roadmapActive = Boolean(selectedPortfolioBoardId) && selectedPortfolioViewMode === 'roadmap';
-            const calendarActive = portfolioBoards.length > 0 && selectedPortfolioViewMode === 'calendar';
+            const roadmapActive = Boolean(appState.selectedPortfolioBoardId) && appState.selectedPortfolioViewMode === 'roadmap';
+            const calendarActive = appState.portfolioBoards.length > 0 && appState.selectedPortfolioViewMode === 'calendar';
             if (boardGrid) boardGrid.classList.toggle('hidden', roadmapActive || calendarActive);
             if (roadmapView) roadmapView.classList.toggle('hidden', !roadmapActive);
             if (calendarView) calendarView.classList.toggle('hidden', !calendarActive);
@@ -2760,7 +2723,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             buildPortfolioTasks();
             renderPortfolio();
 
-            if (portfolioDetailContext && portfolioDetailContext.boardId === boardId && portfolioDetailContext.taskId === taskId) {
+            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId === boardId && appState.portfolioDetailContext.taskId === taskId) {
                 openPortfolioTaskDetails(boardId, taskId);
             }
 
@@ -2792,8 +2755,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             buildPortfolioTasks();
             renderPortfolio();
 
-            if (portfolioDetailContext && portfolioDetailContext.boardId === boardId) {
-                openPortfolioTaskDetails(boardId, portfolioDetailContext.taskId);
+            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId === boardId) {
+                openPortfolioTaskDetails(boardId, appState.portfolioDetailContext.taskId);
             }
 
             await enqueueProjectSave(boardRecord);
@@ -2898,11 +2861,11 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
 
         function getTaskModalBoardRecord() {
-            if (portfolioEditContext?.boardId) {
-                return getPortfolioBoardRecord(portfolioEditContext.boardId);
+            if (appState.portfolioEditContext?.boardId) {
+                return getPortfolioBoardRecord(appState.portfolioEditContext.boardId);
             }
-            if (portfolioCreateContext?.boardId) {
-                return getPortfolioBoardRecord(portfolioCreateContext.boardId);
+            if (appState.portfolioCreateContext?.boardId) {
+                return getPortfolioBoardRecord(appState.portfolioCreateContext.boardId);
             }
             return null;
         }
@@ -2930,7 +2893,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const readOnly = options.readOnly === true || !canUsePortfolioTaskMutations(boardId);
             const roadmap = getRoadmapExtension(source.boardData);
 
-            portfolioDetailContext = { boardId, taskId, readOnly };
+            appState.portfolioDetailContext = { boardId, taskId, readOnly };
             document.getElementById('detailTitle').textContent = task.title || '-';
             document.getElementById('detailDescription').textContent = task.description || '-';
             document.getElementById('detailAssignees').textContent = formatAssignees(task.assignees) || '-';
@@ -2963,8 +2926,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
             setSelectedPortfolioCard(boardId, taskId);
             const task = normalizeTask(source.task);
-            portfolioEditContext = { boardId, taskId };
-            portfolioCreateContext = null;
+            appState.portfolioEditContext = { boardId, taskId };
+            appState.portfolioCreateContext = null;
             renderTaskAssigneeSuggestions();
 
             document.getElementById('taskModal').classList.add('active');
@@ -2987,7 +2950,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
             document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
             populateTaskRoadmapSelectors(task);
-            pendingNewTaskStatus = null;
+            appState.pendingNewTaskStatus = null;
 
             focusAndSelectTaskNameInput();
         }
@@ -3008,9 +2971,9 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 ? normalizeTaskStatus(preferredStatus)
                 : fallbackStatus;
 
-            portfolioCreateContext = { boardId, status };
-            portfolioEditContext = null;
-            pendingNewTaskStatus = null;
+            appState.portfolioCreateContext = { boardId, status };
+            appState.portfolioEditContext = null;
+            appState.pendingNewTaskStatus = null;
             renderTaskAssigneeSuggestions();
 
             document.getElementById('taskModal').classList.add('active');
@@ -3081,14 +3044,14 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             syncPortfolioTimelineSelectionToLatest(boardId, source.boardRecord.data);
             markProjectDirty(boardId);
 
-            if (portfolioDetailContext && portfolioDetailContext.boardId === boardId && portfolioDetailContext.taskId === taskId) {
+            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId === boardId && appState.portfolioDetailContext.taskId === taskId) {
                 closeDetailModal();
             }
-            if (selectedPortfolioCardRef && selectedPortfolioCardRef.boardId === boardId && Number(selectedPortfolioCardRef.taskId) === Number(taskId)) {
-                selectedPortfolioCardRef = null;
+            if (appState.selectedPortfolioCardRef && appState.selectedPortfolioCardRef.boardId === boardId && Number(appState.selectedPortfolioCardRef.taskId) === Number(taskId)) {
+                appState.selectedPortfolioCardRef = null;
             }
-            if (hoveredPortfolioCardRef && hoveredPortfolioCardRef.boardId === boardId && Number(hoveredPortfolioCardRef.taskId) === Number(taskId)) {
-                hoveredPortfolioCardRef = null;
+            if (appState.hoveredPortfolioCardRef && appState.hoveredPortfolioCardRef.boardId === boardId && Number(appState.hoveredPortfolioCardRef.taskId) === Number(taskId)) {
+                appState.hoveredPortfolioCardRef = null;
             }
 
             buildPortfolioTasks();
@@ -3100,7 +3063,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function getPortfolioAssigneeNames() {
             const seen = new Set();
             const values = [];
-            portfolioTasks.forEach((item) => {
+            appState.portfolioTasks.forEach((item) => {
                 taskAssignees(item?.task).forEach((name) => {
                     const key = name.toLowerCase();
                     if (seen.has(key)) return;
@@ -3125,7 +3088,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 values.push(name);
             };
 
-            portfolioTasks.forEach((item) => {
+            appState.portfolioTasks.forEach((item) => {
                 taskAssignees(item?.task).forEach(addName);
             });
 
@@ -3166,8 +3129,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
             const nextMode = normalizePortfolioViewMode(button.dataset.viewMode || '');
             if (!canUsePortfolioViewMode(nextMode)) return;
-            if (nextMode === selectedPortfolioViewMode) return;
-            selectedPortfolioViewMode = nextMode;
+            if (nextMode === appState.selectedPortfolioViewMode) return;
+            appState.selectedPortfolioViewMode = nextMode;
             renderPortfolio();
         }
 
@@ -3175,25 +3138,25 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function applyPortfolioSortSelect() {
             const select = document.getElementById('portfolioSortSelect');
             if (!select) return;
-            select.value = portfolioSortSelectValueFromKey(portfolioSortKey);
+            select.value = portfolioSortSelectValueFromKey(appState.portfolioSortKey);
         }
 
         function onPortfolioSortSelectChange() {
             const select = document.getElementById('portfolioSortSelect');
             if (!select) return;
             const nextKey = select.value === 'name' ? 'task' : normalizePortfolioSortKey(select.value);
-            portfolioSortKey = nextKey;
-            portfolioSortDir = 'asc';
+            appState.portfolioSortKey = nextKey;
+            appState.portfolioSortDir = 'asc';
             renderPortfolio();
         }
 
         function setPortfolioSort(sortKey) {
             const nextKey = normalizePortfolioSortKey(sortKey);
-            if (portfolioSortKey === nextKey) {
-                portfolioSortDir = portfolioSortDir === 'asc' ? 'desc' : 'asc';
+            if (appState.portfolioSortKey === nextKey) {
+                appState.portfolioSortDir = appState.portfolioSortDir === 'asc' ? 'desc' : 'asc';
             } else {
-                portfolioSortKey = nextKey;
-                portfolioSortDir = 'asc';
+                appState.portfolioSortKey = nextKey;
+                appState.portfolioSortDir = 'asc';
             }
             renderPortfolio();
         }
@@ -3209,11 +3172,11 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const toast = document.getElementById('undoToast');
             const text = document.getElementById('undoToastText');
             if (!toast || !text) return;
-            undoAction = undoFn;
+            appState.undoAction = undoFn;
             text.textContent = message;
             toast.classList.add('active');
-            if (undoTimer) clearTimeout(undoTimer);
-            undoTimer = setTimeout(() => hideUndo(), 5000);
+            if (appState.undoTimer) clearTimeout(appState.undoTimer);
+            appState.undoTimer = setTimeout(() => hideUndo(), 5000);
         }
 
         function hideUndo() {
@@ -3221,16 +3184,16 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (toast) {
                 toast.classList.remove('active');
             }
-            if (undoTimer) {
-                clearTimeout(undoTimer);
-                undoTimer = null;
+            if (appState.undoTimer) {
+                clearTimeout(appState.undoTimer);
+                appState.undoTimer = null;
             }
-            undoAction = null;
+            appState.undoAction = null;
         }
 
         function performUndo() {
-            if (!undoAction) return;
-            const fn = undoAction;
+            if (!appState.undoAction) return;
+            const fn = appState.undoAction;
             hideUndo();
             fn();
         }
@@ -3287,7 +3250,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function resetTaskChecklistDragState() {
-            taskChecklistDragState = { activeIndex: -1, targetIndex: -1, targetPlacement: '' };
+            appState.taskChecklistDragState = { activeIndex: -1, targetIndex: -1, targetPlacement: '' };
             const container = getTaskChecklistEditorRowsContainer();
             if (!container) return;
             container.querySelectorAll('.checklist-editor-row').forEach((row) => {
@@ -3300,18 +3263,18 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (!container) return;
             container.querySelectorAll('.checklist-editor-row').forEach((row) => {
                 const rowIndex = Number(row.dataset.index);
-                row.classList.toggle('dragging', rowIndex === taskChecklistDragState.activeIndex);
+                row.classList.toggle('dragging', rowIndex === appState.taskChecklistDragState.activeIndex);
                 row.classList.toggle(
                     'drag-over-before',
-                    rowIndex === taskChecklistDragState.targetIndex
-                        && rowIndex !== taskChecklistDragState.activeIndex
-                        && taskChecklistDragState.targetPlacement === 'before'
+                    rowIndex === appState.taskChecklistDragState.targetIndex
+                        && rowIndex !== appState.taskChecklistDragState.activeIndex
+                        && appState.taskChecklistDragState.targetPlacement === 'before'
                 );
                 row.classList.toggle(
                     'drag-over-after',
-                    rowIndex === taskChecklistDragState.targetIndex
-                        && rowIndex !== taskChecklistDragState.activeIndex
-                        && taskChecklistDragState.targetPlacement === 'after'
+                    rowIndex === appState.taskChecklistDragState.targetIndex
+                        && rowIndex !== appState.taskChecklistDragState.activeIndex
+                        && appState.taskChecklistDragState.targetPlacement === 'after'
                 );
             });
         }
@@ -3478,20 +3441,20 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
 
         function getTaskModalAttachmentsDraft() {
-            return taskModalAttachmentDraft.map(normalizeAttachmentRecord).filter(Boolean);
+            return appState.taskModalAttachmentDraft.map(normalizeAttachmentRecord).filter(Boolean);
         }
 
         function getTaskModalAttachmentContext() {
-            if (portfolioEditContext && portfolioEditContext.boardId) {
-                const boardRecord = getPortfolioBoardRecord(portfolioEditContext.boardId);
+            if (appState.portfolioEditContext && appState.portfolioEditContext.boardId) {
+                const boardRecord = getPortfolioBoardRecord(appState.portfolioEditContext.boardId);
                 return {
                     boardData: boardRecord ? boardRecord.data : null,
-                    taskId: portfolioEditContext.taskId,
+                    taskId: appState.portfolioEditContext.taskId,
                     mode: 'portfolio-edit'
                 };
             }
-            if (portfolioCreateContext && portfolioCreateContext.boardId) {
-                const boardRecord = getPortfolioBoardRecord(portfolioCreateContext.boardId);
+            if (appState.portfolioCreateContext && appState.portfolioCreateContext.boardId) {
+                const boardRecord = getPortfolioBoardRecord(appState.portfolioCreateContext.boardId);
                 return {
                     boardData: boardRecord ? boardRecord.data : null,
                     taskId: null,
@@ -3539,10 +3502,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function setTaskModalAttachmentDraft(attachments, options = {}) {
-            taskModalAttachmentDraft = (Array.isArray(attachments) ? attachments : [])
+            appState.taskModalAttachmentDraft = (Array.isArray(attachments) ? attachments : [])
                 .map(normalizeAttachmentRecord)
                 .filter(Boolean);
-            taskModalAttachmentMessages = Array.isArray(options.messages) ? options.messages.filter(Boolean) : [];
+            appState.taskModalAttachmentMessages = Array.isArray(options.messages) ? options.messages.filter(Boolean) : [];
             renderTaskAttachmentsEditor();
         }
 
@@ -3567,7 +3530,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 : `${items.length} / ${ATTACHMENT_MAX_COUNT} • ${formatFileSize(totalBytes)}`;
 
             const derived = getTaskModalAttachmentDerivedMessages();
-            const allMessages = [...taskModalAttachmentMessages, ...derived];
+            const allMessages = [...appState.taskModalAttachmentMessages, ...derived];
             warningsEl.innerHTML = '';
             allMessages.forEach((msg) => {
                 if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) return;
@@ -3701,8 +3664,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function removeTaskModalAttachment(attachmentId) {
-            taskModalAttachmentDraft = getTaskModalAttachmentsDraft().filter(item => item.id !== attachmentId);
-            taskModalAttachmentMessages = [];
+            appState.taskModalAttachmentDraft = getTaskModalAttachmentsDraft().filter(item => item.id !== attachmentId);
+            appState.taskModalAttachmentMessages = [];
             renderTaskAttachmentsEditor();
         }
 
@@ -3791,19 +3754,19 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function applyTheme(theme, options = {}) {
-            activeTheme = normalizeTheme(theme);
-            document.documentElement.setAttribute('data-theme', activeTheme);
+            appState.activeTheme = normalizeTheme(theme);
+            document.documentElement.setAttribute('data-theme', appState.activeTheme);
 
-            const label = activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+            const label = appState.activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
             const toggle = Refs.themeToggleBtn || document.getElementById('themeToggleBtn');
             if (toggle) {
                 toggle.setAttribute('aria-label', label);
                 toggle.setAttribute('title', label);
-                toggle.setAttribute('aria-pressed', activeTheme === 'dark' ? 'true' : 'false');
+                toggle.setAttribute('aria-pressed', appState.activeTheme === 'dark' ? 'true' : 'false');
             }
 
             if (options.persist) {
-                persistTheme(activeTheme);
+                persistTheme(appState.activeTheme);
             }
         }
 
@@ -3812,7 +3775,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function toggleTheme() {
-            applyTheme(activeTheme === 'dark' ? 'light' : 'dark', { persist: true });
+            applyTheme(appState.activeTheme === 'dark' ? 'light' : 'dark', { persist: true });
         }
 
         function init() {
@@ -3824,7 +3787,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             renderShortcutsModalContent();
             updateDocumentTitle();
             setupFileDrop();
-            if (!projectWatchListenersBound) {
+            if (!appState.projectWatchListenersBound) {
                 window.addEventListener('focus', () => {
                     void checkProjectFilesNow();
                 });
@@ -3833,7 +3796,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                         void checkProjectFilesNow();
                     }
                 });
-                projectWatchListenersBound = true;
+                appState.projectWatchListenersBound = true;
             }
             startProjectFileWatcher();
             applyUrlState();
@@ -3869,9 +3832,9 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             document.getElementById('taskBlocked').checked = false;
             document.getElementById('taskBlockerReason').value = '';
             syncTaskBlockedReasonVisibility();
-            pendingNewTaskStatus = null;
-            portfolioEditContext = null;
-            portfolioCreateContext = null;
+            appState.pendingNewTaskStatus = null;
+            appState.portfolioEditContext = null;
+            appState.portfolioCreateContext = null;
         }
 
         function renderDetailChecklist(task, options = {}) {
@@ -3893,12 +3856,12 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         async function toggleChecklistItem(taskId, itemIndex, checked) {
-            if (portfolioDetailContext && portfolioDetailContext.boardId && portfolioDetailContext.taskId) {
-                if (portfolioDetailContext.readOnly) {
-                    notifyPortfolioMutationUnavailable(portfolioDetailContext.boardId);
+            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId && appState.portfolioDetailContext.taskId) {
+                if (appState.portfolioDetailContext.readOnly) {
+                    notifyPortfolioMutationUnavailable(appState.portfolioDetailContext.boardId);
                     return;
                 }
-                await runPortfolioTaskMutation(portfolioDetailContext.boardId, portfolioDetailContext.taskId, (task) => {
+                await runPortfolioTaskMutation(appState.portfolioDetailContext.boardId, appState.portfolioDetailContext.taskId, (task) => {
                     if (!Array.isArray(task.checklist) || !task.checklist[itemIndex]) return false;
                     task.checklist[itemIndex].done = checked;
                     return true;
@@ -3909,17 +3872,17 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function closeDetailModal() {
             document.getElementById('taskDetailModal').classList.remove('active');
-            portfolioDetailContext = null;
+            appState.portfolioDetailContext = null;
         }
 
         function closeRoadmapEntityModal() {
             document.getElementById('roadmapEntityModal').classList.remove('active');
             document.getElementById('roadmapEntityForm').reset();
-            roadmapEntityContext = null;
+            appState.roadmapEntityContext = null;
         }
 
         function openRoadmapEntityModal(kind, itemId = '', options = {}) {
-            const boardId = selectedPortfolioBoardId;
+            const boardId = appState.selectedPortfolioBoardId;
             const boardRecord = boardId ? getPortfolioBoardRecord(boardId) : null;
             if (!boardRecord) return;
             if (!canUsePortfolioTaskMutations(boardId)) {
@@ -3933,7 +3896,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const items = Array.isArray(roadmap[config.itemsKey]) ? roadmap[config.itemsKey] : [];
             const item = itemId ? items.find((entry) => entry.id === itemId) : null;
 
-            roadmapEntityContext = {
+            appState.roadmapEntityContext = {
                 boardId,
                 kind,
                 itemId: item?.id || '',
@@ -3993,7 +3956,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         async function saveRoadmapEntity() {
             const draft = buildRoadmapEntityDraftFromForm();
-            const context = roadmapEntityContext;
+            const context = appState.roadmapEntityContext;
             if (!context?.boardId) return;
             const config = getRoadmapEntityConfig(draft.kind);
             if (!config) return;
@@ -4072,7 +4035,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         async function deleteRoadmapEntity(kind, itemId) {
-            const boardId = selectedPortfolioBoardId;
+            const boardId = appState.selectedPortfolioBoardId;
             const boardRecord = boardId ? getPortfolioBoardRecord(boardId) : null;
             const config = getRoadmapEntityConfig(kind);
             if (!boardRecord || !config) return;
@@ -4225,8 +4188,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             }
             const commonFields = buildTaskFieldsFromDraft(draft);
 
-            if (portfolioCreateContext && portfolioCreateContext.boardId) {
-                const { boardId } = portfolioCreateContext;
+            if (appState.portfolioCreateContext && appState.portfolioCreateContext.boardId) {
+                const { boardId } = appState.portfolioCreateContext;
                 const boardRecord = getPortfolioBoardRecord(boardId);
                 if (!boardRecord) return;
                 if (!canUsePortfolioTaskMutations(boardId)) {
@@ -4236,7 +4199,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
                 const now = nowIso();
                 const nextId = nextTaskIdForBoard(boardRecord);
-                const status = resolveCreateTaskStatus(boardRecord, portfolioCreateContext.status);
+                const status = resolveCreateTaskStatus(boardRecord, appState.portfolioCreateContext.status);
 
                 ensureBoardTimelineBaseline(boardRecord.data);
                 boardRecord.data.board.tasks.push({
@@ -4261,8 +4224,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 return;
             }
 
-            if (portfolioEditContext && portfolioEditContext.boardId && portfolioEditContext.taskId) {
-                const { boardId, taskId } = portfolioEditContext;
+            if (appState.portfolioEditContext && appState.portfolioEditContext.boardId && appState.portfolioEditContext.taskId) {
+                const { boardId, taskId } = appState.portfolioEditContext;
                 const saved = await runPortfolioTaskMutation(boardId, taskId, (task, boardRecord) => {
                     Object.assign(task, commonFields);
                     if (boardRecord && boardRecord.data) {
@@ -4272,54 +4235,54 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 });
                 if (!saved) return;
                 closeModal();
-                pendingNewTaskStatus = null;
+                appState.pendingNewTaskStatus = null;
                 return;
             }
 
             closeModal();
-            pendingNewTaskStatus = null;
+            appState.pendingNewTaskStatus = null;
         }
 
         function isSelectedPortfolioCard(boardId, taskId) {
-            if (!selectedPortfolioCardRef) return false;
-            return selectedPortfolioCardRef.boardId === boardId && Number(selectedPortfolioCardRef.taskId) === Number(taskId);
+            if (!appState.selectedPortfolioCardRef) return false;
+            return appState.selectedPortfolioCardRef.boardId === boardId && Number(appState.selectedPortfolioCardRef.taskId) === Number(taskId);
         }
 
         function setHoveredPortfolioCard(boardId, taskId) {
             if (!boardId || taskId === null || taskId === undefined) {
-                hoveredPortfolioCardRef = null;
+                appState.hoveredPortfolioCardRef = null;
                 return;
             }
-            hoveredPortfolioCardRef = { boardId, taskId: Number(taskId) };
+            appState.hoveredPortfolioCardRef = { boardId, taskId: Number(taskId) };
         }
 
         function setSelectedPortfolioCard(boardId, taskId) {
             if (!boardId || taskId === null || taskId === undefined) {
-                selectedPortfolioCardRef = null;
+                appState.selectedPortfolioCardRef = null;
                 return;
             }
-            selectedPortfolioCardRef = { boardId, taskId: Number(taskId) };
+            appState.selectedPortfolioCardRef = { boardId, taskId: Number(taskId) };
         }
 
         function syncSelectedPortfolioCardWithVisibleRows(rows) {
-            if (!selectedPortfolioCardRef) return;
+            if (!appState.selectedPortfolioCardRef) return;
             const visible = Array.isArray(rows) ? rows : [];
             const exists = visible.some(
-                (row) => row.boardId === selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(selectedPortfolioCardRef.taskId)
+                (row) => row.boardId === appState.selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(appState.selectedPortfolioCardRef.taskId)
             );
             if (!exists) {
-                selectedPortfolioCardRef = null;
+                appState.selectedPortfolioCardRef = null;
             }
         }
 
         function syncHoveredPortfolioCardWithVisibleRows(rows) {
-            if (!hoveredPortfolioCardRef) return;
+            if (!appState.hoveredPortfolioCardRef) return;
             const visible = Array.isArray(rows) ? rows : [];
             const exists = visible.some(
-                (row) => row.boardId === hoveredPortfolioCardRef.boardId && Number(row.taskId) === Number(hoveredPortfolioCardRef.taskId)
+                (row) => row.boardId === appState.hoveredPortfolioCardRef.boardId && Number(row.taskId) === Number(appState.hoveredPortfolioCardRef.taskId)
             );
             if (!exists) {
-                hoveredPortfolioCardRef = null;
+                appState.hoveredPortfolioCardRef = null;
             }
         }
 
@@ -4332,8 +4295,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function scrollSelectedPortfolioCardIntoView() {
-            if (!selectedPortfolioCardRef) return;
-            const selector = `.portfolio-task-card[data-board-id="${cssEscapeValue(selectedPortfolioCardRef.boardId)}"][data-task-id="${cssEscapeValue(selectedPortfolioCardRef.taskId)}"]`;
+            if (!appState.selectedPortfolioCardRef) return;
+            const selector = `.portfolio-task-card[data-board-id="${cssEscapeValue(appState.selectedPortfolioCardRef.boardId)}"][data-task-id="${cssEscapeValue(appState.selectedPortfolioCardRef.taskId)}"]`;
             const node = document.querySelector(selector);
             if (node && typeof node.scrollIntoView === 'function') {
                 node.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -4347,13 +4310,13 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function selectAdjacentPortfolioCard(step) {
             const rows = getVisiblePortfolioRowsForShortcuts();
             if (rows.length === 0) {
-                selectedPortfolioCardRef = null;
+                appState.selectedPortfolioCardRef = null;
                 renderPortfolio();
                 return;
             }
 
-            const currentIndex = selectedPortfolioCardRef
-                ? rows.findIndex((row) => row.boardId === selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(selectedPortfolioCardRef.taskId))
+            const currentIndex = appState.selectedPortfolioCardRef
+                ? rows.findIndex((row) => row.boardId === appState.selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(appState.selectedPortfolioCardRef.taskId))
                 : -1;
             let nextIndex;
             if (currentIndex < 0) {
@@ -4369,16 +4332,16 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function getSelectedPortfolioRow() {
-            if (!selectedPortfolioCardRef) return null;
+            if (!appState.selectedPortfolioCardRef) return null;
             return getVisiblePortfolioRowsForShortcuts().find(
-                (row) => row.boardId === selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(selectedPortfolioCardRef.taskId)
+                (row) => row.boardId === appState.selectedPortfolioCardRef.boardId && Number(row.taskId) === Number(appState.selectedPortfolioCardRef.taskId)
             ) || null;
         }
 
         function getHoveredPortfolioRow() {
-            if (!hoveredPortfolioCardRef) return null;
+            if (!appState.hoveredPortfolioCardRef) return null;
             return getVisiblePortfolioRowsForShortcuts().find(
-                (row) => row.boardId === hoveredPortfolioCardRef.boardId && Number(row.taskId) === Number(hoveredPortfolioCardRef.taskId)
+                (row) => row.boardId === appState.hoveredPortfolioCardRef.boardId && Number(row.taskId) === Number(appState.hoveredPortfolioCardRef.taskId)
             ) || null;
         }
 
@@ -4433,15 +4396,15 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (assignee) assignee.value = '';
             if (blocked) blocked.value = 'all';
             if (effort) effort.value = '';
-            portfolioSortKey = 'priority';
-            portfolioSortDir = 'asc';
+            appState.portfolioSortKey = 'priority';
+            appState.portfolioSortDir = 'asc';
             renderPortfolio();
         }
 
         function cyclePortfolioProjectChip(step) {
-            const ids = [''].concat(portfolioBoards.map((board) => board.id));
+            const ids = [''].concat(appState.portfolioBoards.map((board) => board.id));
             if (ids.length === 0) return;
-            let idx = ids.indexOf(selectedPortfolioBoardId || '');
+            let idx = ids.indexOf(appState.selectedPortfolioBoardId || '');
             if (idx < 0) idx = 0;
             const next = (idx + step + ids.length) % ids.length;
             selectPortfolioBoard(ids[next]);
@@ -4477,7 +4440,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function buildShortcutRegistry() {
-            ShortcutRegistry = [
+            appState.ShortcutRegistry = [
                 {
                     id: 'focus-search',
                     section: 'Global',
@@ -4685,10 +4648,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                     description: 'Edit open task',
                     contexts: ['detailModal'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'e' || e.key === 'E'),
-                    when: () => Boolean(portfolioDetailContext && !portfolioDetailContext.readOnly),
+                    when: () => Boolean(appState.portfolioDetailContext && !appState.portfolioDetailContext.readOnly),
                     handler: () => {
-                        if (!portfolioDetailContext) return;
-                        editPortfolioTask(portfolioDetailContext.boardId, portfolioDetailContext.taskId);
+                        if (!appState.portfolioDetailContext) return;
+                        editPortfolioTask(appState.portfolioDetailContext.boardId, appState.portfolioDetailContext.taskId);
                     }
                 },
                 {
@@ -4698,10 +4661,10 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                     description: 'Archive/restore open task',
                     contexts: ['detailModal'],
                     match: (e) => !e.ctrlKey && !e.metaKey && !e.altKey && (e.key === 'x' || e.key === 'X'),
-                    when: () => Boolean(portfolioDetailContext && !portfolioDetailContext.readOnly),
+                    when: () => Boolean(appState.portfolioDetailContext && !appState.portfolioDetailContext.readOnly),
                     handler: () => {
-                        if (!portfolioDetailContext) return;
-                        togglePortfolioArchiveTask(portfolioDetailContext.boardId, portfolioDetailContext.taskId);
+                        if (!appState.portfolioDetailContext) return;
+                        togglePortfolioArchiveTask(appState.portfolioDetailContext.boardId, appState.portfolioDetailContext.taskId);
                     }
                 },
                 {
@@ -4726,7 +4689,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         function renderShortcutsModalContent() {
             const container = document.getElementById('shortcutsList');
             if (!container) return;
-            if (!ShortcutRegistry || ShortcutRegistry.length === 0) {
+            if (!appState.ShortcutRegistry || appState.ShortcutRegistry.length === 0) {
                 buildShortcutRegistry();
             }
 
@@ -4740,7 +4703,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 const subgroups = group.sections
                     .map((section) => ({
                         section,
-                        rows: ShortcutRegistry.filter((entry) => entry.section === section)
+                        rows: appState.ShortcutRegistry.filter((entry) => entry.section === section)
                     }))
                     .filter((subgroup) => subgroup.rows.length > 0);
 
@@ -4773,13 +4736,13 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function dispatchShortcutKeydown(e) {
-            if (!ShortcutRegistry || ShortcutRegistry.length === 0) {
+            if (!appState.ShortcutRegistry || appState.ShortcutRegistry.length === 0) {
                 buildShortcutRegistry();
             }
             const context = getShortcutModalContext();
             const contextName = context.noModal ? 'global' : context.modal;
 
-            for (const entry of ShortcutRegistry) {
+            for (const entry of appState.ShortcutRegistry) {
                 if (!entry.contexts.includes(contextName)) continue;
                 if (context.isTyping && !entry.allowWhileTyping) continue;
                 if (!entry.match(e, context)) continue;
@@ -4817,7 +4780,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function setPortfolioDragContext(ctx) {
-            portfolioDragContext = ctx || null;
+            appState.portfolioDragContext = ctx || null;
         }
 
         async function movePortfolioTaskToStatus(boardId, taskId, targetStatus) {
@@ -4851,8 +4814,8 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function readPortfolioDragContextFromEvent(ev) {
-            if (portfolioDragContext && portfolioDragContext.boardId && portfolioDragContext.taskId) {
-                return portfolioDragContext;
+            if (appState.portfolioDragContext && appState.portfolioDragContext.boardId && appState.portfolioDragContext.taskId) {
+                return appState.portfolioDragContext;
             }
             const raw = ev?.dataTransfer?.getData?.('application/x-kanban-task') || ev?.dataTransfer?.getData?.('text/plain');
             if (!raw) return null;
@@ -4880,7 +4843,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 taskId: Number(ctx.taskId),
                 fromStatus: normalizeTaskStatus(ctx.status)
             });
-            const payload = JSON.stringify(portfolioDragContext);
+            const payload = JSON.stringify(appState.portfolioDragContext);
             if (ev.dataTransfer) {
                 ev.dataTransfer.effectAllowed = 'move';
                 try {
@@ -4897,7 +4860,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
         function onPortfolioTaskDragEnd(ev) {
             setPortfolioDragContext(null);
-            suppressPortfolioCardClickUntil = Date.now() + 120;
+            appState.suppressPortfolioCardClickUntil = Date.now() + 120;
             if (ev.currentTarget && ev.currentTarget.classList) {
                 ev.currentTarget.classList.remove('dragging');
             }
@@ -4990,22 +4953,22 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const input = event.target.closest('input[data-action="timeline-slider"]');
             if (!input) return;
             setPortfolioTimelineSelection(input.dataset.boardId || '', Number(input.value), {
-                skipTimelinePanel: portfolioTimelineDragState.active && portfolioTimelineDragState.boardId === (input.dataset.boardId || '')
+                skipTimelinePanel: appState.portfolioTimelineDragState.active && appState.portfolioTimelineDragState.boardId === (input.dataset.boardId || '')
             });
         }
 
         function handleTimelinePanelPointerDown(event) {
             const input = event.target.closest('input[data-action="timeline-slider"]');
             if (!input) return;
-            portfolioTimelineDragState = {
+            appState.portfolioTimelineDragState = {
                 active: true,
                 boardId: input.dataset.boardId || ''
             };
         }
 
         function handleTimelineSliderPointerCommit() {
-            if (!portfolioTimelineDragState.active) return;
-            portfolioTimelineDragState = { active: false, boardId: '' };
+            if (!appState.portfolioTimelineDragState.active) return;
+            appState.portfolioTimelineDragState = { active: false, boardId: '' };
             renderPortfolio();
         }
 
@@ -5035,13 +4998,13 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 
             const addTaskCard = event.target.closest('.add-task-card[data-action="add-task"]');
             if (addTaskCard) {
-                openPortfolioCreateTaskModal(selectedPortfolioBoardId, addTaskCard.dataset.status || '');
+                openPortfolioCreateTaskModal(appState.selectedPortfolioBoardId, addTaskCard.dataset.status || '');
                 return;
             }
 
             const taskCard = event.target.closest('.portfolio-task-card');
             if (!taskCard) return;
-            if (Date.now() < suppressPortfolioCardClickUntil) return;
+            if (Date.now() < appState.suppressPortfolioCardClickUntil) return;
             const boardId = taskCard.dataset.boardId || '';
             const taskId = Number(taskCard.dataset.taskId);
             setSelectedPortfolioCard(boardId, taskId);
@@ -5078,7 +5041,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                     return;
                 }
                 if (action === 'toggle-roadmap-row') {
-                    togglePortfolioRoadmapRowExpanded(selectedPortfolioBoardId, `${kind}:${itemId}`);
+                    togglePortfolioRoadmapRowExpanded(appState.selectedPortfolioBoardId, `${kind}:${itemId}`);
                     renderPortfolioRoadmapView();
                     return;
                 }
@@ -5105,22 +5068,22 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (event.target.closest('.roadmap-task-list')) return;
 
             const row = event.target.closest('.roadmap-row[data-roadmap-kind][data-roadmap-id]');
-            if (row && selectedPortfolioBoardId) {
-                togglePortfolioRoadmapRowExpanded(selectedPortfolioBoardId, `${row.dataset.roadmapKind}:${row.dataset.roadmapId}`);
+            if (row && appState.selectedPortfolioBoardId) {
+                togglePortfolioRoadmapRowExpanded(appState.selectedPortfolioBoardId, `${row.dataset.roadmapKind}:${row.dataset.roadmapId}`);
                 renderPortfolioRoadmapView();
             }
         }
 
         function shiftPortfolioCalendarMonth(step) {
-            const current = createUtcDate(portfolioCalendarYear, portfolioCalendarMonth, 1);
+            const current = createUtcDate(appState.portfolioCalendarYear, appState.portfolioCalendarMonth, 1);
             const next = createUtcDate(current.getUTCFullYear(), current.getUTCMonth() + step, 1);
-            portfolioCalendarYear = next.getUTCFullYear();
-            portfolioCalendarMonth = next.getUTCMonth();
-            portfolioCalendarView = 'month';
+            appState.portfolioCalendarYear = next.getUTCFullYear();
+            appState.portfolioCalendarMonth = next.getUTCMonth();
+            appState.portfolioCalendarView = 'month';
         }
 
         function openPortfolioCalendarTaskDetails(boardId, taskId) {
-            const viewState = selectedPortfolioBoardId === boardId ? getSelectedBoardTimelineViewState() : null;
+            const viewState = appState.selectedPortfolioBoardId === boardId ? getSelectedBoardTimelineViewState() : null;
             if (viewState?.isPreview) {
                 openPortfolioTaskDetails(boardId, taskId, {
                     boardData: viewState.projectedBoard || null,
@@ -5136,29 +5099,29 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (button) {
                 const action = button.dataset.action || '';
                 if (action === 'open-calendar-month') {
-                    portfolioCalendarYear = Number(button.dataset.year);
-                    portfolioCalendarMonth = Number(button.dataset.month);
-                    portfolioCalendarView = 'month';
+                    appState.portfolioCalendarYear = Number(button.dataset.year);
+                    appState.portfolioCalendarMonth = Number(button.dataset.month);
+                    appState.portfolioCalendarView = 'month';
                     renderPortfolio();
                     return;
                 }
                 if (action === 'calendar-back-to-year') {
-                    portfolioCalendarView = 'year';
+                    appState.portfolioCalendarView = 'year';
                     renderPortfolio();
                     return;
                 }
                 if (action === 'calendar-toggle-mode') {
-                    portfolioCalendarDisplayMode = portfolioCalendarDisplayMode === 'heatmap' ? 'calendar' : 'heatmap';
+                    appState.portfolioCalendarDisplayMode = appState.portfolioCalendarDisplayMode === 'heatmap' ? 'calendar' : 'heatmap';
                     renderPortfolio();
                     return;
                 }
                 if (action === 'calendar-prev-year') {
-                    portfolioCalendarYear -= 1;
+                    appState.portfolioCalendarYear -= 1;
                     renderPortfolio();
                     return;
                 }
                 if (action === 'calendar-next-year') {
-                    portfolioCalendarYear += 1;
+                    appState.portfolioCalendarYear += 1;
                     renderPortfolio();
                     return;
                 }
@@ -5181,22 +5144,22 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 }
             }
             const createCell = event.target.closest('.portfolio-calendar-day-cell[data-action="create-calendar-task"][data-due-date], .portfolio-calendar-week-date-cell[data-action="create-calendar-task"][data-due-date]');
-            if (createCell && selectedPortfolioBoardId) {
-                openPortfolioCreateTaskModal(selectedPortfolioBoardId, '', {
+            if (createCell && appState.selectedPortfolioBoardId) {
+                openPortfolioCreateTaskModal(appState.selectedPortfolioBoardId, '', {
                     preferredDueDate: createCell.dataset.dueDate || ''
                 });
             }
         }
 
         function openCreateSprintFromSelectionModal() {
-            const boardId = selectedPortfolioBoardId;
+            const boardId = appState.selectedPortfolioBoardId;
             if (!boardId) return;
             if (getSelectedPortfolioBulkTaskIds(boardId).length === 0) return;
             openRoadmapEntityModal('sprints', '', { mode: 'create-sprint-from-selection' });
         }
 
         function openAssignExistingSprintFromSelectionModal() {
-            const boardId = selectedPortfolioBoardId;
+            const boardId = appState.selectedPortfolioBoardId;
             if (!boardId) return;
             if (getSelectedPortfolioBulkTaskIds(boardId).length === 0) return;
             const boardRecord = getPortfolioBoardRecord(boardId);
@@ -5209,7 +5172,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             const button = event.target.closest('button');
             if (!button) return;
             if (button.id === 'portfolioBulkClearBtn') {
-                clearPortfolioBulkSelection(selectedPortfolioBoardId);
+                clearPortfolioBulkSelection(appState.selectedPortfolioBoardId);
                 renderPortfolio();
                 return;
             }
@@ -5236,16 +5199,16 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
                 return;
             }
             if (
-                hoveredPortfolioCardRef
-                && hoveredPortfolioCardRef.boardId === (taskCard.dataset.boardId || '')
-                && Number(hoveredPortfolioCardRef.taskId) === Number(taskCard.dataset.taskId)
+                appState.hoveredPortfolioCardRef
+                && appState.hoveredPortfolioCardRef.boardId === (taskCard.dataset.boardId || '')
+                && Number(appState.hoveredPortfolioCardRef.taskId) === Number(taskCard.dataset.taskId)
             ) {
-                hoveredPortfolioCardRef = null;
+                appState.hoveredPortfolioCardRef = null;
             }
         }
 
         function handleDocumentClickForSelection(event) {
-            if (!selectedPortfolioCardRef) return;
+            if (!appState.selectedPortfolioCardRef) return;
             const taskCard = event.target.closest('.portfolio-task-card');
             if (taskCard && isSelectedPortfolioCard(taskCard.dataset.boardId || '', Number(taskCard.dataset.taskId))) {
                 return;
@@ -5280,7 +5243,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (!handle) return;
             const activeIndex = Number(handle.dataset.index);
             if (!Number.isInteger(activeIndex) || activeIndex < 0) return;
-            taskChecklistDragState = { activeIndex, targetIndex: -1, targetPlacement: '' };
+            appState.taskChecklistDragState = { activeIndex, targetIndex: -1, targetPlacement: '' };
             if (event.dataTransfer) {
                 event.dataTransfer.effectAllowed = 'move';
                 event.dataTransfer.setData('text/plain', String(activeIndex));
@@ -5289,7 +5252,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         }
 
         function handleTaskChecklistEditorDragOver(event) {
-            if (taskChecklistDragState.activeIndex < 0) return;
+            if (appState.taskChecklistDragState.activeIndex < 0) return;
             const row = event.target.closest('.checklist-editor-row[data-index]');
             if (!row) return;
             const targetIndex = Number(row.dataset.index);
@@ -5298,13 +5261,13 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             if (event.dataTransfer) {
                 event.dataTransfer.dropEffect = 'move';
             }
-            taskChecklistDragState.targetIndex = targetIndex;
-            taskChecklistDragState.targetPlacement = getTaskChecklistDropPlacement(row, event.clientY);
+            appState.taskChecklistDragState.targetIndex = targetIndex;
+            appState.taskChecklistDragState.targetPlacement = getTaskChecklistDropPlacement(row, event.clientY);
             renderTaskChecklistDragState();
         }
 
         function handleTaskChecklistEditorDrop(event) {
-            if (taskChecklistDragState.activeIndex < 0) return;
+            if (appState.taskChecklistDragState.activeIndex < 0) return;
             const row = event.target.closest('.checklist-editor-row[data-index]');
             if (!row) {
                 resetTaskChecklistDragState();
@@ -5317,7 +5280,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
             }
             event.preventDefault();
             const placement = getTaskChecklistDropPlacement(row, event.clientY);
-            moveTaskChecklistEditorItem(taskChecklistDragState.activeIndex, targetIndex, placement);
+            moveTaskChecklistEditorItem(appState.taskChecklistDragState.activeIndex, targetIndex, placement);
             resetTaskChecklistDragState();
         }
 
@@ -5478,38 +5441,42 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
         // a locator-based assertion or a unit test against the store.
         Object.defineProperties(window, {
             portfolioBoards: {
-                get: () => portfolioBoards,
-                set: (value) => { portfolioBoards = value; },
+                get: () => appState.portfolioBoards,
+                set: (value) => { appState.portfolioBoards = value; },
                 configurable: true
             },
             portfolioSortKey: {
-                get: () => portfolioSortKey,
-                set: (value) => { portfolioSortKey = value; },
+                get: () => appState.portfolioSortKey,
+                set: (value) => { appState.portfolioSortKey = value; },
                 configurable: true
             },
             portfolioSortDir: {
-                get: () => portfolioSortDir,
-                set: (value) => { portfolioSortDir = value; },
+                get: () => appState.portfolioSortDir,
+                set: (value) => { appState.portfolioSortDir = value; },
                 configurable: true
             },
             selectedPortfolioBoardId: {
-                get: () => selectedPortfolioBoardId,
-                set: (value) => { selectedPortfolioBoardId = value; },
+                get: () => appState.selectedPortfolioBoardId,
+                set: (value) => { appState.selectedPortfolioBoardId = value; },
                 configurable: true
             },
             portfolioDetailContext: {
-                get: () => portfolioDetailContext,
+                get: () => appState.portfolioDetailContext,
+                set: (value) => { appState.portfolioDetailContext = value; },
                 configurable: true
             },
             portfolioTimelineSelection: {
-                get: () => portfolioTimelineSelection,
+                get: () => appState.portfolioTimelineSelection,
+                set: (value) => { appState.portfolioTimelineSelection = value; },
                 configurable: true
             },
             selectedPortfolioViewMode: {
-                get: () => selectedPortfolioViewMode,
+                get: () => appState.selectedPortfolioViewMode,
+                set: (value) => { appState.selectedPortfolioViewMode = value; },
                 configurable: true
             }
         });
+
         Object.assign(window, {
             ATTACHMENT_HARD_MAX_BYTES,
             TaskFormValidator,
