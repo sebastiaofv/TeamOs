@@ -47,6 +47,10 @@ export function normalizeColumns(inputColumns) {
         return defaultColumns.map(col => ({ ...col }));
     }
 
+    // Currently unreachable with real input: resolveKnownTaskStatus() only
+    // ever resolves to one of 4 canonical statuses (or null), so `normalized`
+    // (deduped on that resolved value) can never exceed length 4 against a
+    // cap (MAX_COLUMNS) of 5.
     return normalized.slice(0, MAX_COLUMNS);
 }
 

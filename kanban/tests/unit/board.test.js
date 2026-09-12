@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
   createPortfolioProjectColor,
   hasExtendedBoardSettings,
@@ -214,44 +214,6 @@ describe('normalizeColumns', () => {
     expect(columns).toEqual([{ status: 'backlog', title: 'First' }]);
   });
 
-  // normalizeColumns dedupes on the value resolveKnownTaskStatus() returns,
-  // and that function only ever resolves to one of 4 canonical statuses
-  // (backlog, to-do, doing, done) or null — so with the real status
-  // resolver, `normalized` can never exceed length 4, and the
-  // `.slice(0, MAX_COLUMNS)` call (MAX_COLUMNS = 5) can never actually
-  // truncate anything. To exercise that line as written, this test stubs
-  // task.js's resolveKnownTaskStatus (the only thing standing between input
-  // and a 5th+ distinct column) with a scoped, un-hoisted mock so the rest
-  // of this file keeps using the real resolver.
-  it('truncates to MAX_COLUMNS distinct columns when more than that many resolve', async () => {
-    vi.resetModules();
-    vi.doMock('../../src/domain/task.js', async (importOriginal) => {
-      const actual = await importOriginal();
-      return {
-        ...actual,
-        // Every non-empty status string resolves to itself, so 6 distinct
-        // inputs produce 6 distinct (pre-truncation) columns instead of the
-        // real resolver's ceiling of 4.
-        resolveKnownTaskStatus: (status) => (typeof status === 'string' && status.trim() ? status.trim() : null)
-      };
-    });
-
-    const { normalizeColumns: normalizeColumnsWithStubbedResolver } = await import('../../src/domain/board.js');
-    const columns = normalizeColumnsWithStubbedResolver([
-      { status: 'a', title: 'A' },
-      { status: 'b', title: 'B' },
-      { status: 'c', title: 'C' },
-      { status: 'd', title: 'D' },
-      { status: 'e', title: 'E' },
-      { status: 'f', title: 'F' }
-    ]);
-
-    expect(columns).toHaveLength(5);
-    expect(columns.map((col) => col.status)).toEqual(['a', 'b', 'c', 'd', 'e']);
-
-    vi.doUnmock('../../src/domain/task.js');
-    vi.resetModules();
-  });
 });
 
 describe('normalizePortfolioSortDir', () => {

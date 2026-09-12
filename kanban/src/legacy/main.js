@@ -4,7 +4,7 @@ import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssig
 import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapAxisDate, formatRoadmapDateRange, getRoadmapDayDiff, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, parseRoadmapIsoDate, slugifyRoadmapEntityId } from '../domain/roadmap.js';
 import { hasExtendedBoardSettings, hasTitleOnlyBoardSettings, nextPortfolioProjectId, normalizeBoardArchiveFilter, normalizeColumns, normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor } from '../domain/board.js';
 import { attachmentDuplicateKey, attachmentTaskKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, stripLegacyTaskAttachmentsFromExtensions } from '../domain/attachments.js';
-import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate } from '../domain/calendar.js';
+import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, formatUtcIsoDate, getPortfolioCalendarDayOffset, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getPortfolioCalendarItemPriority, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, comparePortfolioDueDateAsc, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarMonthRange, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate } from '../domain/calendar.js';
         import {
             BOARD_SCHEMA_VERSION, BOARD_APP_ID, BOARD_FILE_EXTENSION, DEFAULT_BOARD_TITLE,
             TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, MAX_COLUMNS, BOARD_ARCHIVE_FILTER_VALUES,
@@ -178,9 +178,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
         }
 
 
-        function todayLocalIsoDate() {
-            return formatLocalIsoDate(new Date());
-        }
 
         function priorityRank(priority) {
             if (priority === 'high') return 0;
@@ -231,12 +228,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
 
 
 
-        function formatDueDateForUi(value) {
-            const iso = normalizeDueDate(value);
-            if (!iso) return '';
-            const [year, month, day] = iso.split('-');
-            return `${day}/${month}/${year}`;
-        }
 
 
 
@@ -703,12 +694,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
 
 
 
-        function comparePortfolioCalendarDayItems(a, b) {
-            const aPriority = getPortfolioCalendarItemPriority(a);
-            const bPriority = getPortfolioCalendarItemPriority(b);
-            if (aPriority !== bPriority) return aPriority - bPriority;
-            return comparePortfolioCalendarItems(a, b);
-        }
 
         function comparePortfolioCalendarRoadmapItems(a, b) {
             const aPriority = getPortfolioCalendarItemPriority(a);
@@ -773,11 +758,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
             return items.sort(comparePortfolioCalendarItems);
         }
 
-        function getPortfolioCalendarMonthRange(year, month) {
-            const start = createUtcDate(year, month, 1);
-            const end = createUtcDate(year, month + 1, 0);
-            return { start, end };
-        }
 
         function doesPortfolioCalendarItemIntersectMonth(item, year, month) {
             const range = getPortfolioCalendarMonthRange(year, month);
@@ -786,12 +766,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
             return bounds.start <= range.end && bounds.end >= range.start;
         }
 
-        function doesPortfolioCalendarItemOccurOnDay(item, isoDate) {
-            const bounds = item?.bounds;
-            const day = parseRoadmapIsoDate(isoDate);
-            if (!bounds || !day) return false;
-            return bounds.start <= day && bounds.end >= day;
-        }
 
         function getPortfolioCalendarScopeLabel() {
             if (!selectedPortfolioBoardId) return 'All Projects';
@@ -799,14 +773,6 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
             return board?.title || board?.fileName || 'Selected Project';
         }
 
-        function buildPortfolioCalendarItemStyle(item, options = {}) {
-            const aggregate = Boolean(options.aggregate);
-            const color = item?.projectColor || createPortfolioProjectColor(0);
-            if (!aggregate) {
-                return '';
-            }
-            return `background:${color.bg};border-color:${color.border};color:${color.text};`;
-        }
 
         function buildPortfolioCalendarRoadmapSpanStyle(item, options = {}) {
             return buildPortfolioCalendarItemStyle(item, options);
@@ -963,86 +929,11 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
             `;
         }
 
-        function buildPortfolioCalendarMiniMarkerStyle(item, options = {}) {
-            if (!options.aggregate) return '';
-            const color = item?.projectColor || createPortfolioProjectColor(0);
-            return `background:${color.border};`;
-        }
 
-        function getPortfolioCalendarMiniMonthCellCount(year, month) {
-            const firstOfMonth = createUtcDate(year, month, 1);
-            const daysInMonth = createUtcDate(year, month + 1, 0).getUTCDate();
-            return Math.ceil((firstOfMonth.getUTCDay() + daysInMonth) / 7) * 7;
-        }
 
-        function getPortfolioCalendarMiniDayMarkers(items, isoDate) {
-            return (Array.isArray(items) ? items : []).flatMap((item) => {
-                if (!item?.bounds) return [];
-                if (!item.isRange) {
-                    return formatUtcIsoDate(item.bounds.start) === isoDate ? [{
-                        item,
-                        kind: item.kind === 'task' ? 'task' : 'point'
-                    }] : [];
-                }
 
-                const markers = [];
-                if (formatUtcIsoDate(item.bounds.start) === isoDate) {
-                    markers.push({ item, kind: 'range-start' });
-                }
-                if (formatUtcIsoDate(item.bounds.end) === isoDate && item.bounds.end.getTime() !== item.bounds.start.getTime()) {
-                    markers.push({ item, kind: 'range-end' });
-                }
-                return markers;
-            });
-        }
 
-        function getPortfolioCalendarTaskCountsByDay(items) {
-            return (Array.isArray(items) ? items : []).reduce((counts, item) => {
-                if (item?.kind !== 'task' || !item?.bounds?.start) return counts;
-                const isoDate = formatUtcIsoDate(item.bounds.start);
-                if (!isoDate) return counts;
-                counts.set(isoDate, (counts.get(isoDate) || 0) + 1);
-                return counts;
-            }, new Map());
-        }
 
-        function getPortfolioCalendarYearHeatStats(taskCounts, year) {
-            if (!Number.isInteger(year)) {
-                return { min: 0, max: 0 };
-            }
-            let min = Infinity;
-            let max = -Infinity;
-            const end = createUtcDate(year + 1, 0, 1);
-            for (let date = createUtcDate(year, 0, 1); date < end; date = addRoadmapDays(date, 1)) {
-                const isoDate = formatUtcIsoDate(date);
-                const count = taskCounts instanceof Map ? (taskCounts.get(isoDate) || 0) : 0;
-                min = Math.min(min, count);
-                max = Math.max(max, count);
-            }
-            if (!Number.isFinite(min) || !Number.isFinite(max)) {
-                return { min: 0, max: 0 };
-            }
-            return { min, max };
-        }
-
-        function getPortfolioCalendarMonthHeatStats(taskCounts, year, month) {
-            if (!Number.isInteger(year) || !Number.isInteger(month)) {
-                return { min: 0, max: 0 };
-            }
-            let min = Infinity;
-            let max = -Infinity;
-            const end = createUtcDate(year, month + 1, 1);
-            for (let date = createUtcDate(year, month, 1); date < end; date = addRoadmapDays(date, 1)) {
-                const isoDate = formatUtcIsoDate(date);
-                const count = taskCounts instanceof Map ? (taskCounts.get(isoDate) || 0) : 0;
-                min = Math.min(min, count);
-                max = Math.max(max, count);
-            }
-            if (!Number.isFinite(min) || !Number.isFinite(max)) {
-                return { min: 0, max: 0 };
-            }
-            return { min, max };
-        }
 
 
         function renderPortfolioCalendarMiniMonth(items, year, month, options = {}) {
@@ -3863,21 +3754,8 @@ import { comparePortfolioCalendarItems, createUtcDate, formatLocalIsoDate, forma
             return dir === 'desc' ? base * -1 : base;
         }
 
-        function comparePortfolioDueDateAsc(a, b) {
-            const aDue = normalizeDueDate(a.task.dueDate);
-            const bDue = normalizeDueDate(b.task.dueDate);
-            if (aDue && bDue) return aDue.localeCompare(bDue);
-            if (aDue && !bDue) return -1;
-            if (!aDue && bDue) return 1;
-            return 0;
-        }
 
 
-        function formatDateTime(value) {
-            const ts = normalizeTimestamp(value);
-            if (!ts) return '-';
-            return new Date(ts).toLocaleString();
-        }
 
         function getTaskStatusAgeBaseTimestamp(task) {
             if (!task || typeof task !== 'object') return '';
