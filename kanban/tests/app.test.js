@@ -989,6 +989,41 @@ test.describe('portfolio-only app', () => {
     await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true);
   });
 
+  for (const method of ['Escape', 'close button', 'footer button', 'overlay click']) {
+    test(`shortcuts dialog takes focus and returns it to the Shortcuts button when closed by ${method}`, async ({ page }) => {
+      const trigger = page.locator('#openShortcutsBtn');
+      await trigger.click();
+      await expect(page.locator('#shortcutsModal')).toBeVisible();
+      await expect.poll(() => focusIsInside(page, '#shortcutsModal')).toBe(true);
+
+      await closeDialogBy(page, 'shortcutsModal', method);
+
+      await expect(page.locator('#shortcutsModal')).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+    });
+  }
+
+  test('shortcuts dialog opened by shortcut returns focus to the page body on close', async ({ page }) => {
+    await page.keyboard.press('Shift+/');
+    await expect(page.locator('#shortcutsModal')).toBeVisible();
+    await expect.poll(() => focusIsInside(page, '#shortcutsModal')).toBe(true);
+
+    await page.keyboard.press('Escape');
+
+    await expect(page.locator('#shortcutsModal')).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true);
+  });
+
+  test('shortcuts dialog groups entries into Global, Cards and Modals', async ({ page }) => {
+    await page.locator('#openShortcutsBtn').click();
+    const list = page.locator('#shortcutsList');
+
+    await expect(list.locator('.shortcut-section-card-title')).toHaveText(['Global', 'Cards', 'Modals']);
+    await expect(list.locator('.shortcut-section-title')).toHaveText(['Task Modal', 'Task Detail', 'Modal']);
+    await expect(list.locator('.shortcut-row').filter({ hasText: 'Save task' }).locator('.shortcut-keys'))
+      .toHaveText('Ctrl+Enter');
+  });
+
   test('import projects appends to current portfolio and projects can be removed from session', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ title: 'Task 1', status: 'backlog' }] }

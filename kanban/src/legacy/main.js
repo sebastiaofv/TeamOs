@@ -3267,7 +3267,6 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
             }
             initializeTheme();
             buildShortcutRegistry();
-            renderShortcutsModalContent();
             updateDocumentTitle();
             setupFileDrop();
             if (!appState.projectWatchListenersBound) {
@@ -3562,12 +3561,7 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
         }
 
         function openShortcutsModal() {
-            renderShortcutsModalContent();
-            document.getElementById('shortcutsModal').classList.add('active');
-        }
-
-        function closeShortcutsModal() {
-            document.getElementById('shortcutsModal').classList.remove('active');
+            openDialog('shortcuts');
         }
 
         function openHelpModal() {
@@ -3893,7 +3887,7 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
             const taskModalOpen = document.getElementById('taskModal').classList.contains('active');
             const detailModalOpen = document.getElementById('taskDetailModal').classList.contains('active');
             const roadmapEntityModalOpen = document.getElementById('roadmapEntityModal').classList.contains('active');
-            const shortcutsModalOpen = document.getElementById('shortcutsModal').classList.contains('active');
+            const shortcutsModalOpen = appState.activeDialog === 'shortcuts';
             const helpModalOpen = appState.activeDialog === 'help';
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
             const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
@@ -3910,12 +3904,6 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
                 isTyping,
                 noModal: !modal
             };
-        }
-
-        function renderShortcutKeys(tokens) {
-            return (tokens || [])
-                .map((token) => `<kbd>${escapeHtml(token)}</kbd>`)
-                .join('<span class="shortcut-plus">+</span>');
         }
 
         function buildShortcutRegistry() {
@@ -4158,60 +4146,10 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
                         closeModal();
                         closeDetailModal();
                         closeRoadmapEntityModal();
-                        closeShortcutsModal();
                         closeDialog();
                     }
                 }
             ];
-        }
-
-        function renderShortcutsModalContent() {
-            const container = document.getElementById('shortcutsList');
-            if (!container) return;
-            if (!appState.ShortcutRegistry || appState.ShortcutRegistry.length === 0) {
-                buildShortcutRegistry();
-            }
-
-            const displayGroups = [
-                { title: 'Global', sections: ['Global'] },
-                { title: 'Cards', sections: ['Cards'] },
-                { title: 'Modals', sections: ['Task Modal', 'Task Detail', 'Modal'] }
-            ];
-
-            const sectionsHtml = displayGroups.map((group) => {
-                const subgroups = group.sections
-                    .map((section) => ({
-                        section,
-                        rows: appState.ShortcutRegistry.filter((entry) => entry.section === section)
-                    }))
-                    .filter((subgroup) => subgroup.rows.length > 0);
-
-                if (subgroups.length === 0) return '';
-
-                const rowsHtml = subgroups.map((subgroup, index) => {
-                    const showSubheading = group.sections.length > 1;
-                    const rows = subgroup.rows.map((entry) => `
-                        <div class="shortcut-row">
-                            <div class="shortcut-keys">${renderShortcutKeys(entry.keys)}</div>
-                            <div class="shortcut-desc">${escapeHtml(entry.description)}</div>
-                        </div>
-                    `).join('');
-
-                    return `
-                        ${showSubheading ? `<div class="shortcut-section-title">${escapeHtml(subgroup.section)}</div>` : ''}
-                        <div class="shortcuts-list">${rows}</div>
-                    `;
-                }).join('');
-
-                return `
-                    <section class="shortcut-section-card" aria-label="${escapeHtml(group.title)} shortcuts">
-                        <h3 class="shortcut-section-card-title">${escapeHtml(group.title)}</h3>
-                        ${rowsHtml}
-                    </section>
-                `;
-            }).join('');
-
-            container.innerHTML = `<div class="shortcut-sections-grid">${sectionsHtml}</div>`;
         }
 
         function dispatchShortcutKeydown(e) {
@@ -4252,8 +4190,6 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
             Refs.portfolioSortSelect = document.getElementById('portfolioSortSelect');
             Refs.taskModal = document.getElementById('taskModal');
             Refs.taskDetailModal = document.getElementById('taskDetailModal');
-            Refs.shortcutsModal = document.getElementById('shortcutsModal');
-            Refs.shortcutsList = document.getElementById('shortcutsList');
             return Refs;
         }
 
@@ -4804,8 +4740,6 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
             document.getElementById('roadmapEntityModalCloseBtn')?.addEventListener('click', closeRoadmapEntityModal);
             document.getElementById('roadmapEntityModalCancelBtn')?.addEventListener('click', closeRoadmapEntityModal);
             document.getElementById('roadmapEntityModalSaveBtn')?.addEventListener('click', saveRoadmapEntity);
-            document.getElementById('shortcutsModalCloseBtn')?.addEventListener('click', closeShortcutsModal);
-            document.getElementById('shortcutsModalFooterCloseBtn')?.addEventListener('click', closeShortcutsModal);
             document.getElementById('undoBtn')?.addEventListener('click', performUndo);
             document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
             document.getElementById('taskTagAddBtn')?.addEventListener('click', addTaskTagFromComposer);
@@ -4850,11 +4784,6 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
             document.getElementById('roadmapEntityModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('roadmapEntityModal')) {
                     closeRoadmapEntityModal();
-                }
-            });
-            document.getElementById('shortcutsModal')?.addEventListener('click', (e) => {
-                if (e.target === document.getElementById('shortcutsModal')) {
-                    closeShortcutsModal();
                 }
             });
             Refs.portfolioBoardsChips?.addEventListener('click', handlePortfolioBoardChipsClick);
