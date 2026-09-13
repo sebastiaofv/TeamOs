@@ -2663,6 +2663,26 @@ test.describe('portfolio-only app', () => {
     await expect(portfolioCard(page, 'Toast task')).toBeVisible();
   });
 
+  test('clicking Undo in the toast keeps the shortcuts dialog open', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Undo under dialog', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    const card = portfolioCard(page, 'Undo under dialog');
+    await card.hover();
+    page.once('dialog', (dialog) => dialog.accept());
+    await card.locator('button[title="Archive"]').click();
+    await expect(page.locator('#undoToast')).toBeVisible();
+
+    await page.locator('#openShortcutsBtn').click();
+    await expect(page.locator('#shortcutsModal')).toBeVisible();
+
+    await page.locator('#undoBtn').click();
+
+    await expect(portfolioCard(page, 'Undo under dialog')).toBeVisible();
+    await expect(page.locator('#shortcutsModal')).toBeVisible();
+  });
+
   test('portfolio filters and URL params persist in portfolio-only mode', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {

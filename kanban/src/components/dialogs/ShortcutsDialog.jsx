@@ -3,6 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useAppState } from '../../bridge/appStore.js';
 import { closeDialog } from '../../actions/dialogs.js';
 import { useReturnFocus } from './useReturnFocus.js';
+import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
 
 const DISPLAY_GROUPS = [
     { title: 'Global', sections: ['Global'] },
@@ -62,10 +63,15 @@ export function ShortcutsDialog() {
     const returnFocus = useReturnFocus();
 
     return (
-        <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeDialog(); }}>
+        <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeDialog('shortcuts'); }}>
             <Dialog.Portal>
                 <Dialog.Overlay className="modal active" id="shortcutsModal">
-                    <Dialog.Content className="modal-content" aria-describedby={undefined} {...returnFocus}>
+                    <Dialog.Content
+                        className="modal-content"
+                        aria-describedby={undefined}
+                        onPointerDownOutside={keepOpenOnUndoToast}
+                        {...returnFocus}
+                    >
                         <div className="modal-header">
                             <Dialog.Title asChild><span className="modal-title">Keyboard Shortcuts</span></Dialog.Title>
                             <Dialog.Close className="modal-close" id="shortcutsModalCloseBtn">&times;</Dialog.Close>

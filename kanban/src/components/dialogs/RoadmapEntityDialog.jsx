@@ -24,7 +24,14 @@ export function RoadmapEntityDialog() {
                         onPointerDownOutside={keepOpenOnUndoToast}
                         {...returnFocus}
                     >
-                        {vm && <RoadmapEntityForm vm={vm} titleRef={titleRef} sprintRef={sprintRef} />}
+                        {vm && (
+                            <RoadmapEntityForm
+                                key={`${vm.kind}:${vm.itemId}:${vm.mode}`}
+                                vm={vm}
+                                titleRef={titleRef}
+                                sprintRef={sprintRef}
+                            />
+                        )}
                     </Dialog.Content>
                 </Dialog.Overlay>
             </Dialog.Portal>

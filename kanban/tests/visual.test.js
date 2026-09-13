@@ -122,7 +122,8 @@ test.describe('2.1a modals and toast', () => {
 
     test(`undo toast after archiving (${theme})`, async ({ page }) => {
       // The toast hides after 5 s. Fake timers flow with real time until paused,
-      // so pause just before archiving: showUndo's timer can never fire.
+      // so pause well after archiving (a full minute of headroom for slow
+      // seeding): showUndo's timer can never fire.
       await page.clock.install({ time: FIXED_TIME });
       await page.setViewportSize({ width: 1280, height: 800 });
       await page.addInitScript((value) => {
@@ -133,7 +134,7 @@ test.describe('2.1a modals and toast', () => {
       await seedPortfolioBoards(page, [
         { id: 'v1', title: 'Launch', hasHandle: true, tasks: [{ id: 1, title: 'Archive me', status: 'backlog' }] }
       ], { selectedBoardId: 'v1' });
-      await page.clock.pauseAt(new Date('2026-02-26T12:00:10Z'));
+      await page.clock.pauseAt(new Date('2026-02-26T12:01:00Z'));
       const card = portfolioCard(page, 'Archive me');
       await card.hover();
       page.once('dialog', (dialog) => dialog.accept());
