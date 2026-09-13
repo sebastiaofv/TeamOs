@@ -13,6 +13,8 @@ import { appState, getPortfolioBoardRecord } from '../state/store.js';
 import { Logger } from '../logger.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
 import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, checkProjectFilesNow, stopProjectFileWatcher, enqueueProjectSave, retryProjectSave, createPortfolioRecord, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
+import { notifyAppStateChanged } from '../bridge/appStore.js';
+import { openDialog, closeDialog } from '../actions/dialogs.js';
         import {
             BOARD_FILE_EXTENSION, TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, TIMELINE_EXTENSION_KEY,
             ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES,
@@ -2172,6 +2174,7 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
             renderPortfolioBulkActions();
             renderPortfolioBoardChips();
             updateUrlState();
+            notifyAppStateChanged();
         }
 
         function canUsePortfolioTaskMutations(boardId) {
@@ -3264,7 +3267,6 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
             }
             initializeTheme();
             buildShortcutRegistry();
-            renderShortcutsModalContent();
             updateDocumentTitle();
             setupFileDrop();
             if (!appState.projectWatchListenersBound) {
@@ -3559,20 +3561,11 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
         }
 
         function openShortcutsModal() {
-            renderShortcutsModalContent();
-            document.getElementById('shortcutsModal').classList.add('active');
-        }
-
-        function closeShortcutsModal() {
-            document.getElementById('shortcutsModal').classList.remove('active');
+            openDialog('shortcuts');
         }
 
         function openHelpModal() {
-            document.getElementById('helpModal').classList.add('active');
-        }
-
-        function closeHelpModal() {
-            document.getElementById('helpModal').classList.remove('active');
+            openDialog('help');
         }
 
         function focusFieldById(fieldId) {
@@ -3894,8 +3887,8 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
             const taskModalOpen = document.getElementById('taskModal').classList.contains('active');
             const detailModalOpen = document.getElementById('taskDetailModal').classList.contains('active');
             const roadmapEntityModalOpen = document.getElementById('roadmapEntityModal').classList.contains('active');
-            const shortcutsModalOpen = document.getElementById('shortcutsModal').classList.contains('active');
-            const helpModalOpen = document.getElementById('helpModal').classList.contains('active');
+            const shortcutsModalOpen = appState.activeDialog === 'shortcuts';
+            const helpModalOpen = appState.activeDialog === 'help';
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
             const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
 
@@ -3911,12 +3904,6 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
                 isTyping,
                 noModal: !modal
             };
-        }
-
-        function renderShortcutKeys(tokens) {
-            return (tokens || [])
-                .map((token) => `<kbd>${escapeHtml(token)}</kbd>`)
-                .join('<span class="shortcut-plus">+</span>');
         }
 
         function buildShortcutRegistry() {
@@ -4159,60 +4146,10 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
                         closeModal();
                         closeDetailModal();
                         closeRoadmapEntityModal();
-                        closeShortcutsModal();
-                        closeHelpModal();
+                        closeDialog();
                     }
                 }
             ];
-        }
-
-        function renderShortcutsModalContent() {
-            const container = document.getElementById('shortcutsList');
-            if (!container) return;
-            if (!appState.ShortcutRegistry || appState.ShortcutRegistry.length === 0) {
-                buildShortcutRegistry();
-            }
-
-            const displayGroups = [
-                { title: 'Global', sections: ['Global'] },
-                { title: 'Cards', sections: ['Cards'] },
-                { title: 'Modals', sections: ['Task Modal', 'Task Detail', 'Modal'] }
-            ];
-
-            const sectionsHtml = displayGroups.map((group) => {
-                const subgroups = group.sections
-                    .map((section) => ({
-                        section,
-                        rows: appState.ShortcutRegistry.filter((entry) => entry.section === section)
-                    }))
-                    .filter((subgroup) => subgroup.rows.length > 0);
-
-                if (subgroups.length === 0) return '';
-
-                const rowsHtml = subgroups.map((subgroup, index) => {
-                    const showSubheading = group.sections.length > 1;
-                    const rows = subgroup.rows.map((entry) => `
-                        <div class="shortcut-row">
-                            <div class="shortcut-keys">${renderShortcutKeys(entry.keys)}</div>
-                            <div class="shortcut-desc">${escapeHtml(entry.description)}</div>
-                        </div>
-                    `).join('');
-
-                    return `
-                        ${showSubheading ? `<div class="shortcut-section-title">${escapeHtml(subgroup.section)}</div>` : ''}
-                        <div class="shortcuts-list">${rows}</div>
-                    `;
-                }).join('');
-
-                return `
-                    <section class="shortcut-section-card" aria-label="${escapeHtml(group.title)} shortcuts">
-                        <h3 class="shortcut-section-card-title">${escapeHtml(group.title)}</h3>
-                        ${rowsHtml}
-                    </section>
-                `;
-            }).join('');
-
-            container.innerHTML = `<div class="shortcut-sections-grid">${sectionsHtml}</div>`;
         }
 
         function dispatchShortcutKeydown(e) {
@@ -4253,9 +4190,6 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
             Refs.portfolioSortSelect = document.getElementById('portfolioSortSelect');
             Refs.taskModal = document.getElementById('taskModal');
             Refs.taskDetailModal = document.getElementById('taskDetailModal');
-            Refs.shortcutsModal = document.getElementById('shortcutsModal');
-            Refs.helpModal = document.getElementById('helpModal');
-            Refs.shortcutsList = document.getElementById('shortcutsList');
             return Refs;
         }
 
@@ -4806,10 +4740,6 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
             document.getElementById('roadmapEntityModalCloseBtn')?.addEventListener('click', closeRoadmapEntityModal);
             document.getElementById('roadmapEntityModalCancelBtn')?.addEventListener('click', closeRoadmapEntityModal);
             document.getElementById('roadmapEntityModalSaveBtn')?.addEventListener('click', saveRoadmapEntity);
-            document.getElementById('shortcutsModalCloseBtn')?.addEventListener('click', closeShortcutsModal);
-            document.getElementById('shortcutsModalFooterCloseBtn')?.addEventListener('click', closeShortcutsModal);
-            document.getElementById('helpModalCloseBtn')?.addEventListener('click', closeHelpModal);
-            document.getElementById('helpModalFooterCloseBtn')?.addEventListener('click', closeHelpModal);
             document.getElementById('undoBtn')?.addEventListener('click', performUndo);
             document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
             document.getElementById('taskTagAddBtn')?.addEventListener('click', addTaskTagFromComposer);
@@ -4854,16 +4784,6 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
             document.getElementById('roadmapEntityModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('roadmapEntityModal')) {
                     closeRoadmapEntityModal();
-                }
-            });
-            document.getElementById('shortcutsModal')?.addEventListener('click', (e) => {
-                if (e.target === document.getElementById('shortcutsModal')) {
-                    closeShortcutsModal();
-                }
-            });
-            document.getElementById('helpModal')?.addEventListener('click', (e) => {
-                if (e.target === document.getElementById('helpModal')) {
-                    closeHelpModal();
                 }
             });
             Refs.portfolioBoardsChips?.addEventListener('click', handlePortfolioBoardChipsClick);

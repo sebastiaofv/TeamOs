@@ -1,6 +1,6 @@
 # Kanban Board
 
-A Kanban app built as a Vite project. It is mid-migration from a single 11,000+ line `kanban.html` file: pure domain logic has been extracted into tested modules under `src/domain/` and `src/persistence/`, while UI and stateful code still lives in `src/legacy/main.js` pending Phase 2.
+A Kanban app built as a Vite project. It is mid-migration from a single 11,000+ line `kanban.html` file: pure domain logic has been extracted into tested modules under `src/domain/` and `src/persistence/`, while UI and stateful code still lives in `src/legacy/main.js`. Phase 2 is in progress: React islands are being mounted beside the legacy UI, and the Shortcuts and Help modals already run on React.
 
 ## What it does
 
@@ -38,7 +38,11 @@ The app is a Vite project (`index.html` + `src/`), split by responsibility:
   - `constants.js` — shared constants.
   - `persistence.js` — pure save-state/queue helpers (not I/O; see `src/persistence/` for that).
 - `src/persistence/fileSystem.js` — File System Access API wrappers. This is the only place that writes to the user's disk; it is kept separate from `src/domain/` because it is I/O, not pure logic.
-- `src/legacy/main.js` — UI rendering, DOM event wiring, drag/drop controllers, and application state. This is a temporary home for everything not yet extracted, pending Phase 2. It exposes nothing on `window`: the Playwright suite drives the app only through the page (DOM, URL, keyboard and pointer input) and test doubles for browser APIs such as File System Access.
+- `src/main.jsx` — the entry. Imports `src/legacy/main.js` (legacy boots as a side effect), then mounts one React root (`src/components/AppIslands.jsx`) into `#reactRoot`. Each ported piece is an island wrapped in `IslandErrorBoundary`.
+- `src/legacy/main.js` — UI rendering, DOM event wiring, drag/drop controllers, and application state not yet ported to `src/components/`. It exposes nothing on `window`: the Playwright suite drives the app only through the page (DOM, URL, keyboard and pointer input) and test doubles for browser APIs such as File System Access.
+- `src/bridge/appStore.js` — version-tick bridge: `appState` stays the source of truth, actions mutate it and call `notifyAppStateChanged()`, and components read it with `useAppState(select)`. Replaced by Zustand slices in Phase 2.7.
+- `src/actions/` — state-changing functions shared by legacy code and components (Phase 2.0: `openDialog` / `closeDialog`).
+- `src/components/` — React components. Ported markup keeps legacy ids and `legacy.css` classes until the Phase 2.8 Tailwind pass. Shortcuts and Help dialogs use Radix Dialog; `src/components/dialogs/useReturnFocus.js` returns focus to the legacy opener on close, since Radix's own focus-return needs a `Dialog.Trigger` and these dialogs are opened by legacy code.
 - `src/styles/legacy.css` — the app's styling, largely unchanged from the original single-file app. It also carries the Tailwind `@tailwind` directives (see below); Tailwind's preflight reset is disabled so this stylesheet keeps working untouched until it is retired in a later phase.
 
 ## Task and schema invariants
@@ -99,8 +103,9 @@ Tailwind CSS is wired into the build (`tailwind.config.js`, `postcss.config.js`)
 
 There are two test suites:
 
-- **Unit tests** (`npm run test:unit`) — Vitest, 821 tests covering the pure functions in `src/domain/` and `src/persistence/`.
-- **End-to-end tests** (`npm test`) — Playwright, 89 black-box tests driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
+- **Unit tests** (`npm run test:unit`) — Vitest, 829 tests covering the pure functions in `src/domain/` and `src/persistence/`, plus `src/bridge/` (version-tick bridge) and `src/actions/` (dialog actions).
+- **End-to-end tests** (`npm test`) — Playwright, 100 black-box tests (plus the 5 visual baselines below, also run under `npm test`) driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
+- **Visual baselines** (`tests/visual.test.js`, part of `npm test`) — Playwright screenshots of UI pieces taken against the legacy implementation before they are ported to React; a port must match them. Baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Phase 2.8 (Tailwind pass) is the only planned update.
 
 ### Prerequisites
 

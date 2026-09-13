@@ -389,6 +389,22 @@ async function installControlledPortfolioWriter(page, { boardId, holdWrites = fa
   }, { boardId, holdWrites, failWrites });
 }
 
+async function focusIsInside(page, selector) {
+  return page.evaluate((sel) => Boolean(document.activeElement?.closest(sel)), selector);
+}
+
+async function closeDialogBy(page, dialogId, method) {
+  if (method === 'Escape') {
+    await page.keyboard.press('Escape');
+  } else if (method === 'close button') {
+    await page.locator(`#${dialogId}CloseBtn`).click();
+  } else if (method === 'footer button') {
+    await page.locator(`#${dialogId}FooterCloseBtn`).click();
+  } else if (method === 'overlay click') {
+    await page.locator(`#${dialogId}`).click({ position: { x: 5, y: 5 } });
+  }
+}
+
 test.describe('portfolio-only app', () => {
   test.beforeEach(async ({ page }) => {
     await gotoApp(page);
@@ -946,6 +962,66 @@ test.describe('portfolio-only app', () => {
     await page.keyboard.press('i');
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Imported Via Shortcut');
     await expect(portfolioCard(page, 'Shortcut import task')).toBeVisible();
+  });
+
+  for (const method of ['Escape', 'close button', 'footer button', 'overlay click']) {
+    test(`help dialog takes focus and returns it to the Help button when closed by ${method}`, async ({ page }) => {
+      const trigger = page.locator('#openHelpBtn');
+      await trigger.click();
+      await expect(page.locator('#helpModal')).toBeVisible();
+      await expect.poll(() => focusIsInside(page, '#helpModal')).toBe(true);
+
+      await closeDialogBy(page, 'helpModal', method);
+
+      await expect(page.locator('#helpModal')).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+    });
+  }
+
+  test('help dialog opened by shortcut returns focus to the page body on close', async ({ page }) => {
+    await page.keyboard.press('h');
+    await expect(page.locator('#helpModal')).toBeVisible();
+    await expect.poll(() => focusIsInside(page, '#helpModal')).toBe(true);
+
+    await page.keyboard.press('Escape');
+
+    await expect(page.locator('#helpModal')).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true);
+  });
+
+  for (const method of ['Escape', 'close button', 'footer button', 'overlay click']) {
+    test(`shortcuts dialog takes focus and returns it to the Shortcuts button when closed by ${method}`, async ({ page }) => {
+      const trigger = page.locator('#openShortcutsBtn');
+      await trigger.click();
+      await expect(page.locator('#shortcutsModal')).toBeVisible();
+      await expect.poll(() => focusIsInside(page, '#shortcutsModal')).toBe(true);
+
+      await closeDialogBy(page, 'shortcutsModal', method);
+
+      await expect(page.locator('#shortcutsModal')).toHaveCount(0);
+      await expect(trigger).toBeFocused();
+    });
+  }
+
+  test('shortcuts dialog opened by shortcut returns focus to the page body on close', async ({ page }) => {
+    await page.keyboard.press('Shift+/');
+    await expect(page.locator('#shortcutsModal')).toBeVisible();
+    await expect.poll(() => focusIsInside(page, '#shortcutsModal')).toBe(true);
+
+    await page.keyboard.press('Escape');
+
+    await expect(page.locator('#shortcutsModal')).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true);
+  });
+
+  test('shortcuts dialog groups entries into Global, Cards and Modals', async ({ page }) => {
+    await page.locator('#openShortcutsBtn').click();
+    const list = page.locator('#shortcutsList');
+
+    await expect(list.locator('.shortcut-section-card-title')).toHaveText(['Global', 'Cards', 'Modals']);
+    await expect(list.locator('.shortcut-section-title')).toHaveText(['Task Modal', 'Task Detail', 'Modal']);
+    await expect(list.locator('.shortcut-row').filter({ hasText: 'Save task' }).locator('.shortcut-keys'))
+      .toHaveText('Ctrl+Enter');
   });
 
   test('import projects appends to current portfolio and projects can be removed from session', async ({ page }) => {

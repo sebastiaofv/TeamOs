@@ -6,7 +6,10 @@ module.exports = defineConfig({
   testIgnore: '**/unit/**',
   timeout: 30_000,
   expect: {
-    timeout: 5_000
+    timeout: 5_000,
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.001
+    }
   },
   use: {
     baseURL: 'http://127.0.0.1:4173',
