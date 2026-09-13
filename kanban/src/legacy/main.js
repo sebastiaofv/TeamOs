@@ -2379,35 +2379,51 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             }
         }
 
+        function buildTaskDetailViewModel(source, taskId, readOnly) {
+            const task = normalizeTask(source.task);
+            const statusMap = Object.fromEntries((source.boardData.board.columns || []).map(col => [col.status, col.title]));
+            const roadmap = getRoadmapExtension(source.boardData);
+            return {
+                readOnly,
+                fields: {
+                    title: task.title || '-',
+                    description: task.description || '-',
+                    assignees: formatAssignees(task.assignees) || '-',
+                    tags: normalizeTags(task.tags).join(', ') || '-',
+                    blocked: task.blocked ? 'Yes' : 'No',
+                    blockerReason: task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-',
+                    priority: task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-',
+                    effort: task.effort || '-',
+                    status: (statusMap[task.status] || task.status) || '-',
+                    createdAt: formatDateTime(task.createdAt),
+                    updatedAt: formatDateTime(task.updatedAt),
+                    dueDate: formatDueDateForUi(task.dueDate) || '-',
+                    phase: getRoadmapItemTitle(roadmap, 'phases', task.phaseId) || '-',
+                    milestone: getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-',
+                    sprint: getRoadmapItemTitle(roadmap, 'sprints', task.sprintId) || '-'
+                },
+                checklist: normalizeChecklist(task.checklist).map((item) => ({ text: item.text, done: Boolean(item.done) })),
+                attachments: getTaskAttachments(source.boardData, taskId)
+                    .map(normalizeAttachmentRecord)
+                    .filter(Boolean)
+                    .map((item) => ({
+                        id: item.id,
+                        name: item.name,
+                        isImage: item.kind === 'image',
+                        dataUrl: item.dataUrl,
+                        subLabel: `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`
+                    }))
+            };
+        }
+
         function openPortfolioTaskDetails(boardId, taskId, options = {}) {
             const source = findPortfolioTaskDetailSource(boardId, taskId, options);
             if (!source) return;
             setSelectedPortfolioCard(boardId, taskId);
-            const task = normalizeTask(source.task);
-            const statusMap = Object.fromEntries((source.boardData.board.columns || []).map(col => [col.status, col.title]));
-            const statusTitle = statusMap[task.status] || task.status;
             const readOnly = options.readOnly === true || !canUsePortfolioTaskMutations(boardId);
-            const roadmap = getRoadmapExtension(source.boardData);
 
             appState.portfolioDetailContext = { boardId, taskId, readOnly };
-            document.getElementById('detailTitle').textContent = task.title || '-';
-            document.getElementById('detailDescription').textContent = task.description || '-';
-            document.getElementById('detailAssignees').textContent = formatAssignees(task.assignees) || '-';
-            document.getElementById('detailTags').textContent = normalizeTags(task.tags).join(', ') || '-';
-            document.getElementById('detailBlocked').textContent = task.blocked ? 'Yes' : 'No';
-            document.getElementById('detailBlockerReason').textContent = task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-';
-            document.getElementById('detailPriority').textContent = task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-';
-            document.getElementById('detailEffort').textContent = task.effort || '-';
-            document.getElementById('detailStatus').textContent = statusTitle || '-';
-            document.getElementById('detailCreatedAt').textContent = formatDateTime(task.createdAt);
-            document.getElementById('detailUpdatedAt').textContent = formatDateTime(task.updatedAt);
-            document.getElementById('detailDueDate').textContent = formatDueDateForUi(task.dueDate) || '-';
-            document.getElementById('detailPhase').textContent = getRoadmapItemTitle(roadmap, 'phases', task.phaseId) || '-';
-            document.getElementById('detailMilestone').textContent = getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-';
-            document.getElementById('detailSprint').textContent = getRoadmapItemTitle(roadmap, 'sprints', task.sprintId) || '-';
-            renderDetailChecklist(task, { readOnly });
-            renderDetailAttachments(getTaskAttachments(source.boardData, taskId));
-            document.getElementById('taskDetailModal').classList.add('active');
+            openDialog('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly));
         }
 
         function editPortfolioTask(boardId, taskId) {
@@ -3076,60 +3092,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             });
         }
 
-        function renderDetailAttachments(attachments) {
-            const container = document.getElementById('detailAttachments');
-            if (!container) return;
-            const items = (Array.isArray(attachments) ? attachments : []).map(normalizeAttachmentRecord).filter(Boolean);
-            container.innerHTML = '';
-
-            if (items.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'detail-attachments-empty';
-                empty.textContent = '-';
-                container.appendChild(empty);
-                return;
-            }
-
-            items.forEach((item) => {
-                const row = document.createElement('div');
-                row.className = 'detail-attachment-item';
-
-                if (item.kind === 'image') {
-                    const img = document.createElement('img');
-                    img.className = 'detail-attachment-thumb';
-                    img.alt = '';
-                    img.src = item.dataUrl;
-                    row.appendChild(img);
-                } else {
-                    const icon = document.createElement('span');
-                    icon.className = 'attachment-editor-icon';
-                    icon.textContent = 'FILE';
-                    row.appendChild(icon);
-                }
-
-                const meta = document.createElement('div');
-                meta.className = 'detail-attachment-meta';
-                const name = document.createElement('div');
-                name.className = 'detail-attachment-name';
-                name.textContent = item.name;
-                const sub = document.createElement('div');
-                sub.className = 'detail-attachment-sub';
-                sub.textContent = `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`;
-                meta.appendChild(name);
-                meta.appendChild(sub);
-                row.appendChild(meta);
-
-                const link = document.createElement('a');
-                link.className = 'detail-attachment-download';
-                link.href = item.dataUrl;
-                link.download = item.name || 'attachment';
-                link.textContent = 'Download';
-                row.appendChild(link);
-
-                container.appendChild(row);
-            });
-        }
-
         function triggerTaskAttachmentsPicker() {
             const input = document.getElementById('taskAttachmentsInput');
             if (!input) return;
@@ -3309,25 +3271,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             appState.portfolioCreateContext = null;
         }
 
-        function renderDetailChecklist(task, options = {}) {
-            const list = document.getElementById('detailChecklist');
-            const checklist = normalizeChecklist(task.checklist);
-            const readOnly = Boolean(options.readOnly);
-
-            if (checklist.length === 0) {
-                list.innerHTML = '<li class="detail-value">-</li>';
-                return;
-            }
-
-            list.innerHTML = checklist.map((item, index) => `
-                <li class="detail-checklist-item ${item.done ? 'done' : ''}">
-                    <input type="checkbox" ${item.done ? 'checked' : ''} ${readOnly ? 'disabled' : ''} data-task-id="${task.id}" data-index="${index}">
-                    <span class="detail-checklist-text">${escapeHtml(item.text)}</span>
-                </li>
-            `).join('');
-        }
-
-        async function toggleChecklistItem(taskId, itemIndex, checked) {
+        async function toggleChecklistItem(itemIndex, checked) {
             if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId && appState.portfolioDetailContext.taskId) {
                 if (appState.portfolioDetailContext.readOnly) {
                     notifyPortfolioMutationUnavailable(appState.portfolioDetailContext.boardId);
@@ -3343,8 +3287,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
         function closeDetailModal() {
-            document.getElementById('taskDetailModal').classList.remove('active');
             appState.portfolioDetailContext = null;
+            closeDialog('taskDetail');
         }
 
         function closeRoadmapEntityModal() {
@@ -3857,7 +3801,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
         function getShortcutModalContext() {
             const taskModalOpen = document.getElementById('taskModal').classList.contains('active');
-            const detailModalOpen = document.getElementById('taskDetailModal').classList.contains('active');
+            const detailModalOpen = appState.activeDialog === 'taskDetail';
             const roadmapEntityModalOpen = appState.activeDialog === 'roadmapEntity';
             const shortcutsModalOpen = appState.activeDialog === 'shortcuts';
             const helpModalOpen = appState.activeDialog === 'help';
@@ -4161,7 +4105,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             Refs.portfolioEffortFilter = document.getElementById('portfolioEffortFilter');
             Refs.portfolioSortSelect = document.getElementById('portfolioSortSelect');
             Refs.taskModal = document.getElementById('taskModal');
-            Refs.taskDetailModal = document.getElementById('taskDetailModal');
             return Refs;
         }
 
@@ -4692,12 +4635,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             removeTaskModalAttachment(button.dataset.attachmentId);
         }
 
-        function handleDetailChecklistChange(event) {
-            const checkbox = event.target.closest('#detailChecklist input[type="checkbox"][data-task-id][data-index]');
-            if (!checkbox) return;
-            toggleChecklistItem(Number(checkbox.dataset.taskId), Number(checkbox.dataset.index), checkbox.checked);
-        }
-
         function bindStaticUiEvents() {
             Refs.themeToggleBtn?.addEventListener('click', toggleTheme);
             document.getElementById('openShortcutsBtn')?.addEventListener('click', openShortcutsModal);
@@ -4707,8 +4644,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             document.getElementById('taskModalCloseBtn')?.addEventListener('click', closeModal);
             document.getElementById('taskModalCancelBtn')?.addEventListener('click', closeModal);
             document.getElementById('taskModalSaveBtn')?.addEventListener('click', saveTask);
-            document.getElementById('taskDetailModalCloseBtn')?.addEventListener('click', closeDetailModal);
-            document.getElementById('taskDetailModalFooterCloseBtn')?.addEventListener('click', closeDetailModal);
             document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
             document.getElementById('taskTagAddBtn')?.addEventListener('click', addTaskTagFromComposer);
             document.getElementById('taskChecklistAddBtn')?.addEventListener('click', addTaskChecklistItemFromComposer);
@@ -4744,11 +4679,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                     closeModal();
                 }
             });
-            document.getElementById('taskDetailModal')?.addEventListener('click', (e) => {
-                if (e.target === document.getElementById('taskDetailModal')) {
-                    closeDetailModal();
-                }
-            });
             Refs.portfolioBoardsChips?.addEventListener('click', handlePortfolioBoardChipsClick);
             Refs.portfolioViewModeToggle?.addEventListener('click', handlePortfolioViewModeToggleClick);
             Refs.portfolioTimelinePanel?.addEventListener('click', handleTimelinePanelClick);
@@ -4773,7 +4703,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             document.getElementById('taskAssigneeItems')?.addEventListener('click', handleTaskAssigneeEditorClick);
             document.getElementById('taskAssigneeItems')?.addEventListener('input', handleTaskAssigneeEditorInput);
             document.getElementById('taskAttachmentsList')?.addEventListener('click', handleTaskAttachmentsEditorClick);
-            document.getElementById('detailChecklist')?.addEventListener('change', handleDetailChecklistChange);
             document.addEventListener('keydown', dispatchShortcutKeydown);
             document.addEventListener('click', handleDocumentClickForSelection);
             document.addEventListener('pointerup', handleTimelineSliderPointerCommit);
@@ -4794,6 +4723,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         // React components call back into legacy behaviour through these seams;
         // see src/actions/legacyHost.js.
         setLegacyHost({
+            closeTaskDetail: closeDetailModal,
+            toggleTaskDetailChecklistItem: toggleChecklistItem,
             closeRoadmapEntity: closeRoadmapEntityModal,
             saveRoadmapEntity,
             performUndo
