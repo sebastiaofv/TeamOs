@@ -63,11 +63,12 @@ export const appState = {
     portfolioCalendarYear: null,
     portfolioCalendarMonth: null,
 
-    // --- Shell: theme, shortcuts, undo ---
+    // --- Shell: theme, shortcuts, undo, dialogs ---
     undoAction: null,
     undoTimer: null,
     activeTheme: 'light',
     ShortcutRegistry: [],
+    activeDialog: null, // null | 'shortcuts' | 'help'
 
     // --- Persistence: save and file-watch state ---
     projectSaveStateById: new Map(),
