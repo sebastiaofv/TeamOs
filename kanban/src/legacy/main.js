@@ -13,6 +13,7 @@ import { appState, getPortfolioBoardRecord } from '../state/store.js';
 import { Logger } from '../logger.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
 import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, checkProjectFilesNow, stopProjectFileWatcher, enqueueProjectSave, retryProjectSave, createPortfolioRecord, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
+import { notifyAppStateChanged } from '../bridge/appStore.js';
         import {
             BOARD_FILE_EXTENSION, TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, TIMELINE_EXTENSION_KEY,
             ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES,
@@ -2172,6 +2173,7 @@ import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primePr
             renderPortfolioBulkActions();
             renderPortfolioBoardChips();
             updateUrlState();
+            notifyAppStateChanged();
         }
 
         function canUsePortfolioTaskMutations(boardId) {
