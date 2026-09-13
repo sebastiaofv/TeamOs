@@ -3574,10 +3574,6 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
             openDialog('help');
         }
 
-        function closeHelpModal() {
-            closeDialog();
-        }
-
         function focusFieldById(fieldId) {
             if (!fieldId) return;
             document.getElementById(fieldId)?.focus();

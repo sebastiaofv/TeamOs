@@ -1,23 +1,11 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { useEffect, useRef } from 'react';
 import { useAppState } from '../../bridge/appStore.js';
 import { closeDialog } from '../../actions/dialogs.js';
+import { useReturnFocus } from './useReturnFocus.js';
 
 export function HelpDialog() {
     const open = useAppState((s) => s.activeDialog === 'help');
-
-    // Radix restores focus to Dialog.Trigger on close, but the trigger here
-    // (#openHelpBtn) is legacy markup outside React, so there is no Trigger
-    // ref to restore to. Capture whatever had focus when the dialog opened
-    // and hand it back ourselves.
-    const triggerRef = useRef(null);
-    const wasOpen = useRef(false);
-    useEffect(() => {
-        if (open && !wasOpen.current) {
-            triggerRef.current = document.activeElement;
-        }
-        wasOpen.current = open;
-    }, [open]);
+    const returnFocus = useReturnFocus();
 
     return (
         <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeDialog(); }}>
@@ -26,10 +14,7 @@ export function HelpDialog() {
                     <Dialog.Content
                         className="modal-content"
                         aria-describedby={undefined}
-                        onCloseAutoFocus={(event) => {
-                            event.preventDefault();
-                            triggerRef.current?.focus();
-                        }}
+                        {...returnFocus}
                     >
                         <div className="modal-header">
                             <Dialog.Title asChild><span className="modal-title">Help</span></Dialog.Title>
