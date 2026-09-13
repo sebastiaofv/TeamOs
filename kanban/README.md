@@ -38,7 +38,7 @@ The app is a Vite project (`index.html` + `src/`), split by responsibility:
   - `constants.js` — shared constants.
   - `persistence.js` — pure save-state/queue helpers (not I/O; see `src/persistence/` for that).
 - `src/persistence/fileSystem.js` — File System Access API wrappers. This is the only place that writes to the user's disk; it is kept separate from `src/domain/` because it is I/O, not pure logic.
-- `src/legacy/main.js` — UI rendering, DOM event wiring, drag/drop controllers, and application state. This is a temporary home for everything not yet extracted, pending Phase 2. It ends with a `window` bridge that exposes selected internals (functions, constants, and state getters) so the existing Playwright suite can keep driving app internals directly during the migration.
+- `src/legacy/main.js` — UI rendering, DOM event wiring, drag/drop controllers, and application state. This is a temporary home for everything not yet extracted, pending Phase 2. It exposes nothing on `window`: the Playwright suite drives the app only through the page (DOM, URL, keyboard and pointer input) and test doubles for browser APIs such as File System Access.
 - `src/styles/legacy.css` — the app's styling, largely unchanged from the original single-file app. It also carries the Tailwind `@tailwind` directives (see below); Tailwind's preflight reset is disabled so this stylesheet keeps working untouched until it is retired in a later phase.
 
 ## Task and schema invariants
@@ -99,8 +99,8 @@ Tailwind CSS is wired into the build (`tailwind.config.js`, `postcss.config.js`)
 
 There are two test suites:
 
-- **Unit tests** (`npm run test:unit`) — Vitest, 820 tests covering the pure functions in `src/domain/` and `src/persistence/`.
-- **End-to-end tests** (`npm test`) — Playwright, 94 tests driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
+- **Unit tests** (`npm run test:unit`) — Vitest, 821 tests covering the pure functions in `src/domain/` and `src/persistence/`.
+- **End-to-end tests** (`npm test`) — Playwright, 89 black-box tests driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
 
 ### Prerequisites
 
