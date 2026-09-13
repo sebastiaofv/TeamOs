@@ -334,51 +334,6 @@
         </div>
     </div>
 
-    <div class="modal" id="roadmapEntityModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title" id="roadmapEntityModalTitle">Roadmap Item</span>
-                <button class="modal-close" id="roadmapEntityModalCloseBtn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="roadmapEntityForm">
-                    <input type="hidden" id="roadmapEntityKind">
-                    <input type="hidden" id="roadmapEntityId">
-                    <div class="form-group hidden" id="roadmapEntityExistingSprintRow">
-                        <label class="required" for="roadmapEntityExistingSprint">Sprint</label>
-                        <select id="roadmapEntityExistingSprint">
-                            <option value="">Select sprint</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="required">Title</label>
-                        <input type="text" id="roadmapEntityTitle" required maxlength="80">
-                    </div>
-                    <div class="roadmap-entity-date-row single" id="roadmapEntitySingleDateRow">
-                        <div class="form-group">
-                            <label class="required" id="roadmapEntityDateLabel">Date</label>
-                            <input type="date" id="roadmapEntityDate">
-                        </div>
-                    </div>
-                    <div class="roadmap-entity-date-row hidden" id="roadmapEntityRangeRow">
-                        <div class="form-group">
-                            <label class="required">Start Date</label>
-                            <input type="date" id="roadmapEntityStartDate">
-                        </div>
-                        <div class="form-group">
-                            <label class="required">End Date</label>
-                            <input type="date" id="roadmapEntityEndDate">
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" id="roadmapEntityModalCancelBtn">Cancel</button>
-                <button class="btn btn-primary" id="roadmapEntityModalSaveBtn">Save Item</button>
-            </div>
-        </div>
-    </div>
-
     <div id="reactRoot"></div>
 
     <script type="module" src="/src/main.jsx"></script>

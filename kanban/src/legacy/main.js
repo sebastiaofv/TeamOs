@@ -761,17 +761,11 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             ].join('');
         }
 
-        function buildRoadmapSprintSelectionOptionMarkup(items, selectedId) {
-            const normalizedSelected = normalizeRoadmapRef(selectedId);
-            return [
-                '<option value="">Select sprint</option>',
-                ...(Array.isArray(items) ? items : []).map((item) => {
-                    const label = formatRoadmapDateRange(item)
-                        ? `${item.title} • ${formatRoadmapDateRange(item)}`
-                        : item.title;
-                    return `<option value="${escapeHtml(item.id)}" ${item.id === normalizedSelected ? 'selected' : ''}>${escapeHtml(label)}</option>`;
-                })
-            ].join('');
+        function buildRoadmapSprintOptions(items) {
+            return (Array.isArray(items) ? items : []).map((item) => {
+                const range = formatRoadmapDateRange(item);
+                return { value: item.id, label: range ? `${item.title} • ${range}` : item.title };
+            });
         }
 
 
@@ -3354,9 +3348,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
         function closeRoadmapEntityModal() {
-            document.getElementById('roadmapEntityModal').classList.remove('active');
-            document.getElementById('roadmapEntityForm').reset();
             appState.roadmapEntityContext = null;
+            closeDialog('roadmapEntity');
         }
 
         function openRoadmapEntityModal(kind, itemId = '', options = {}) {
@@ -3373,67 +3366,50 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
             const items = Array.isArray(roadmap[config.itemsKey]) ? roadmap[config.itemsKey] : [];
             const item = itemId ? items.find((entry) => entry.id === itemId) : null;
+            const mode = options.mode || 'default';
+            const assignExistingMode = mode === 'assign-sprint-from-selection';
 
             appState.roadmapEntityContext = {
                 boardId,
                 kind,
                 itemId: item?.id || '',
-                mode: options.mode || 'default'
+                mode
             };
 
-            document.getElementById('roadmapEntityForm').reset();
-            document.getElementById('roadmapEntityKind').value = kind;
-            document.getElementById('roadmapEntityId').value = item?.id || '';
-            const existingSprintSelect = document.getElementById('roadmapEntityExistingSprint');
-            const existingSprintRow = document.getElementById('roadmapEntityExistingSprintRow');
-            const titleGroup = document.getElementById('roadmapEntityTitle')?.closest('.form-group');
-            const modalTitle = document.getElementById('roadmapEntityModalTitle');
-            const saveButton = document.getElementById('roadmapEntityModalSaveBtn');
-            const assignExistingMode = options.mode === 'assign-sprint-from-selection';
-            modalTitle.textContent = options.mode === 'create-sprint-from-selection'
-                ? 'Create Sprint'
-                : assignExistingMode
-                    ? 'Add to Existing Sprint'
-                    : `${item ? 'Edit' : 'New'} ${config.label}`;
-            saveButton.textContent = assignExistingMode ? 'Add to Sprint' : 'Save Item';
-            document.getElementById('roadmapEntityTitle').value = item?.title || '';
-            document.getElementById('roadmapEntityDateLabel').textContent = config.dateLabel || 'Date';
-            document.getElementById('roadmapEntityDate').value = item?.dueDate || '';
-            document.getElementById('roadmapEntityStartDate').value = item?.startDate || '';
-            document.getElementById('roadmapEntityEndDate').value = item?.endDate || '';
-            if (existingSprintRow) {
-                existingSprintRow.classList.toggle('hidden', !assignExistingMode);
-            }
-            if (existingSprintSelect) {
-                existingSprintSelect.innerHTML = buildRoadmapSprintSelectionOptionMarkup(roadmap.sprints || [], '');
-            }
-            if (titleGroup) {
-                titleGroup.classList.toggle('hidden', assignExistingMode);
-            }
-            document.getElementById('roadmapEntitySingleDateRow').classList.toggle('hidden', assignExistingMode || config.dateMode !== 'single');
-            document.getElementById('roadmapEntityRangeRow').classList.toggle('hidden', assignExistingMode || config.dateMode !== 'range');
-            document.getElementById('roadmapEntityModal').classList.add('active');
-            if (assignExistingMode && existingSprintSelect) {
-                existingSprintSelect.focus();
-            } else {
-                document.getElementById('roadmapEntityTitle').focus();
-            }
+            openDialog('roadmapEntity', {
+                kind,
+                itemId: item?.id || '',
+                mode,
+                heading: mode === 'create-sprint-from-selection'
+                    ? 'Create Sprint'
+                    : assignExistingMode
+                        ? 'Add to Existing Sprint'
+                        : `${item ? 'Edit' : 'New'} ${config.label}`,
+                saveLabel: assignExistingMode ? 'Add to Sprint' : 'Save Item',
+                dateMode: config.dateMode,
+                dateLabel: config.dateLabel || 'Date',
+                showExistingSprint: assignExistingMode,
+                initial: {
+                    title: item?.title || '',
+                    dueDate: item?.dueDate || '',
+                    startDate: item?.startDate || '',
+                    endDate: item?.endDate || ''
+                },
+                sprintOptions: buildRoadmapSprintOptions(roadmap.sprints || []),
+                initialFocus: assignExistingMode ? 'existingSprint' : 'title'
+            });
         }
 
-        function buildRoadmapEntityDraftFromForm() {
-            return {
-                kind: document.getElementById('roadmapEntityKind').value,
-                itemId: normalizeRoadmapRef(document.getElementById('roadmapEntityId').value),
-                title: document.getElementById('roadmapEntityTitle').value.trim(),
-                existingSprintId: normalizeRoadmapRef(document.getElementById('roadmapEntityExistingSprint').value),
-                dueDate: normalizeRoadmapDate(document.getElementById('roadmapEntityDate').value),
-                startDate: normalizeRoadmapDate(document.getElementById('roadmapEntityStartDate').value),
-                endDate: normalizeRoadmapDate(document.getElementById('roadmapEntityEndDate').value)
+        async function saveRoadmapEntity(input = {}) {
+            const draft = {
+                kind: input.kind,
+                itemId: normalizeRoadmapRef(input.itemId),
+                title: String(input.title || '').trim(),
+                existingSprintId: normalizeRoadmapRef(input.existingSprintId),
+                dueDate: normalizeRoadmapDate(input.dueDate),
+                startDate: normalizeRoadmapDate(input.startDate),
+                endDate: normalizeRoadmapDate(input.endDate)
             };
-        }
-
-        async function saveRoadmapEntity() {
-            const draft = buildRoadmapEntityDraftFromForm();
             const context = appState.roadmapEntityContext;
             if (!context?.boardId) return;
             const config = getRoadmapEntityConfig(draft.kind);
@@ -3882,7 +3858,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         function getShortcutModalContext() {
             const taskModalOpen = document.getElementById('taskModal').classList.contains('active');
             const detailModalOpen = document.getElementById('taskDetailModal').classList.contains('active');
-            const roadmapEntityModalOpen = document.getElementById('roadmapEntityModal').classList.contains('active');
+            const roadmapEntityModalOpen = appState.activeDialog === 'roadmapEntity';
             const shortcutsModalOpen = appState.activeDialog === 'shortcuts';
             const helpModalOpen = appState.activeDialog === 'help';
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
@@ -4733,9 +4709,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             document.getElementById('taskModalSaveBtn')?.addEventListener('click', saveTask);
             document.getElementById('taskDetailModalCloseBtn')?.addEventListener('click', closeDetailModal);
             document.getElementById('taskDetailModalFooterCloseBtn')?.addEventListener('click', closeDetailModal);
-            document.getElementById('roadmapEntityModalCloseBtn')?.addEventListener('click', closeRoadmapEntityModal);
-            document.getElementById('roadmapEntityModalCancelBtn')?.addEventListener('click', closeRoadmapEntityModal);
-            document.getElementById('roadmapEntityModalSaveBtn')?.addEventListener('click', saveRoadmapEntity);
             document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
             document.getElementById('taskTagAddBtn')?.addEventListener('click', addTaskTagFromComposer);
             document.getElementById('taskChecklistAddBtn')?.addEventListener('click', addTaskChecklistItemFromComposer);
@@ -4774,11 +4747,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             document.getElementById('taskDetailModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('taskDetailModal')) {
                     closeDetailModal();
-                }
-            });
-            document.getElementById('roadmapEntityModal')?.addEventListener('click', (e) => {
-                if (e.target === document.getElementById('roadmapEntityModal')) {
-                    closeRoadmapEntityModal();
                 }
             });
             Refs.portfolioBoardsChips?.addEventListener('click', handlePortfolioBoardChipsClick);
@@ -4826,6 +4794,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         // React components call back into legacy behaviour through these seams;
         // see src/actions/legacyHost.js.
         setLegacyHost({
+            closeRoadmapEntity: closeRoadmapEntityModal,
+            saveRoadmapEntity,
             performUndo
         });
 

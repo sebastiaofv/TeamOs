@@ -2235,6 +2235,89 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#helpModal')).toBeHidden();
   });
 
+  const ROADMAP_EXTENSION = {
+    roadmap: {
+      version: 1,
+      milestones: [],
+      phases: [],
+      sprints: [{ id: 's1', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
+    }
+  };
+
+  async function openAddMilestone(page) {
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.getByRole('button', { name: 'Add Milestone' }).click();
+    await expect(page.locator('#roadmapEntityModal')).toBeVisible();
+  }
+
+  test('roadmap entity modal focuses the title when adding a milestone', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'alpha', title: 'Alpha', hasHandle: true, tasks: [], extensions: ROADMAP_EXTENSION }
+    ], { selectedBoardId: 'alpha' });
+
+    await openAddMilestone(page);
+
+    await expect(page.locator('#roadmapEntityTitle')).toBeFocused();
+  });
+
+  test('roadmap entity modal focuses the sprint select when adding to an existing sprint', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'alpha',
+        title: 'Alpha',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog' },
+          { id: 2, title: 'Task B', status: 'to-do' }
+        ],
+        extensions: ROADMAP_EXTENSION
+      }
+    ], { selectedBoardId: 'alpha' });
+    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
+    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+
+    await page.getByRole('button', { name: 'Add to Existing Sprint' }).click();
+
+    await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
+    await expect(page.locator('#roadmapEntityExistingSprint')).toBeFocused();
+  });
+
+  for (const method of ['Escape', 'close button', 'cancel button', 'overlay click']) {
+    test(`roadmap entity modal closed by ${method} leaves the page and reopens empty`, async ({ page }) => {
+      await seedPortfolioBoards(page, [
+        { id: 'alpha', title: 'Alpha', hasHandle: true, tasks: [], extensions: ROADMAP_EXTENSION }
+      ], { selectedBoardId: 'alpha' });
+      await openAddMilestone(page);
+      await expect.poll(() => focusIsInside(page, '#roadmapEntityModal')).toBe(true);
+      await page.locator('#roadmapEntityTitle').fill('Unsaved draft');
+
+      await closeDialogBy(page, 'roadmapEntityModal', method);
+
+      await expect(page.locator('#roadmapEntityModal')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Add Milestone' }).click();
+      await expect(page.locator('#roadmapEntityTitle')).toHaveValue('');
+    });
+  }
+
+  test('roadmap entity modal keeps legacy validation for a milestone without a date', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'alpha', title: 'Alpha', hasHandle: true, tasks: [], extensions: ROADMAP_EXTENSION }
+    ], { selectedBoardId: 'alpha' });
+    await openAddMilestone(page);
+    await page.locator('#roadmapEntityTitle').fill('Gamma');
+
+    let alertMessage = '';
+    page.once('dialog', async (dialog) => {
+      alertMessage = dialog.message();
+      await dialog.accept();
+    });
+    await page.locator('#roadmapEntityModalSaveBtn').click();
+
+    await expect.poll(() => alertMessage).toBe('Milestone requires a valid due date.');
+    await expect(page.locator('#roadmapEntityDate')).toBeFocused();
+    await expect(page.locator('#roadmapEntityModal')).toBeVisible();
+  });
+
   test('task attachments save on the task and show in task details', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }
