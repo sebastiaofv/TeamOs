@@ -1,6 +1,7 @@
 import { IslandErrorBoundary } from './IslandErrorBoundary.jsx';
 import { HelpDialog } from './dialogs/HelpDialog.jsx';
 import { ShortcutsDialog } from './dialogs/ShortcutsDialog.jsx';
+import { UndoToast } from './UndoToast.jsx';
 import { closeDialog } from '../actions/dialogs.js';
 
 // The single React root. Each island is wrapped in its own error boundary;
@@ -15,6 +16,9 @@ export function AppIslands() {
             </IslandErrorBoundary>
             <IslandErrorBoundary island="HelpDialog" onError={() => closeDialog('help')}>
                 <HelpDialog />
+            </IslandErrorBoundary>
+            <IslandErrorBoundary island="UndoToast">
+                <UndoToast />
             </IslandErrorBoundary>
         </>
     );

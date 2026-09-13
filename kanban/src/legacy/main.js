@@ -15,6 +15,7 @@ import { BoardRepository } from '../persistence/boardRepository.js';
 import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, checkProjectFilesNow, stopProjectFileWatcher, enqueueProjectSave, retryProjectSave, createPortfolioRecord, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
 import { notifyAppStateChanged } from '../bridge/appStore.js';
 import { openDialog, closeDialog } from '../actions/dialogs.js';
+import { setLegacyHost } from '../actions/legacyHost.js';
         import {
             BOARD_FILE_EXTENSION, TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, TIMELINE_EXTENSION_KEY,
             ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES,
@@ -2652,26 +2653,21 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
         }
 
         function showUndo(message, undoFn) {
-            const toast = document.getElementById('undoToast');
-            const text = document.getElementById('undoToastText');
-            if (!toast || !text) return;
             appState.undoAction = undoFn;
-            text.textContent = message;
-            toast.classList.add('active');
+            appState.undoToast = { message };
+            notifyAppStateChanged();
             if (appState.undoTimer) clearTimeout(appState.undoTimer);
             appState.undoTimer = setTimeout(() => hideUndo(), 5000);
         }
 
         function hideUndo() {
-            const toast = document.getElementById('undoToast');
-            if (toast) {
-                toast.classList.remove('active');
-            }
             if (appState.undoTimer) {
                 clearTimeout(appState.undoTimer);
                 appState.undoTimer = null;
             }
             appState.undoAction = null;
+            appState.undoToast = null;
+            notifyAppStateChanged();
         }
 
         function performUndo() {
@@ -4740,7 +4736,6 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
             document.getElementById('roadmapEntityModalCloseBtn')?.addEventListener('click', closeRoadmapEntityModal);
             document.getElementById('roadmapEntityModalCancelBtn')?.addEventListener('click', closeRoadmapEntityModal);
             document.getElementById('roadmapEntityModalSaveBtn')?.addEventListener('click', saveRoadmapEntity);
-            document.getElementById('undoBtn')?.addEventListener('click', performUndo);
             document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
             document.getElementById('taskTagAddBtn')?.addEventListener('click', addTaskTagFromComposer);
             document.getElementById('taskChecklistAddBtn')?.addEventListener('click', addTaskChecklistItemFromComposer);
@@ -4826,6 +4821,12 @@ import { openDialog, closeDialog } from '../actions/dialogs.js';
         setPersistenceHost({
             onStatusChanged: renderPortfolioBoardChips,
             applySnapshot: applySnapshotToBoardRecord
+        });
+
+        // React components call back into legacy behaviour through these seams;
+        // see src/actions/legacyHost.js.
+        setLegacyHost({
+            performUndo
         });
 
         cacheRefs();

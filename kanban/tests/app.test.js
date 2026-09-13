@@ -2562,6 +2562,24 @@ test.describe('portfolio-only app', () => {
     expect(result.writes.length).toBeGreaterThan(0);
   });
 
+  test('undo toast is removed from the page after clicking Undo', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Toast task', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    const card = portfolioCard(page, 'Toast task');
+    await card.hover();
+    page.once('dialog', (dialog) => dialog.accept());
+    await card.locator('button[title="Archive"]').click();
+    await expect(page.locator('#undoToast')).toBeVisible();
+    await expect(page.locator('#undoToastText')).toHaveText('Task archived');
+
+    await page.locator('#undoBtn').click();
+
+    await expect(page.locator('#undoToast')).toHaveCount(0);
+    await expect(portfolioCard(page, 'Toast task')).toBeVisible();
+  });
+
   test('portfolio filters and URL params persist in portfolio-only mode', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
