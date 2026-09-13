@@ -66,9 +66,11 @@ export const appState = {
     // --- Shell: theme, shortcuts, undo, dialogs ---
     undoAction: null,
     undoTimer: null,
+    undoToast: null, // null | { message }
     activeTheme: 'light',
     ShortcutRegistry: [],
-    activeDialog: null, // null | 'shortcuts' | 'help'
+    activeDialog: null, // null | 'shortcuts' | 'help' | 'taskDetail' | 'roadmapEntity'
+    dialogProps: null, // view model of the open dialog, built by its opener
 
     // --- Persistence: save and file-watch state ---
     projectSaveStateById: new Map(),
