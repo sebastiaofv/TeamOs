@@ -1,11 +1,11 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { useAppState } from '../../bridge/appStore.js';
+import { useAppStore } from '../../state/store.js';
 import { closeDialog } from '../../actions/dialogs.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
 
 export function HelpDialog() {
-    const open = useAppState((s) => s.activeDialog === 'help');
+    const open = useAppStore((s) => s.activeDialog === 'help');
     const returnFocus = useReturnFocus();
 
     return (

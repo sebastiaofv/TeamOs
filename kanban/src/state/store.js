@@ -1,94 +1,40 @@
-// Application state, exported as `appState`.
-//
-// Named `appState` rather than `state` on purpose: the legacy UI file already has
-// 10 local variables called `state` (project save/file records). A bare `state`
-// import is shadowed by those, which produced a temporal-dead-zone
-// ReferenceError the first time this extraction was attempted.
-//
-// These were module-level `let` bindings in the original single-file app. ES
-// module imports are read-only live bindings, so a consumer cannot reassign an
-// imported `let` -- and 24 of these are reassigned. Holding them as properties
-// of one exported object keeps every read and write working exactly as before,
-// which is what let the full Playwright suite stay green through the move.
-//
-// The shape is deliberately Zustand-compatible: a plain object you read from and
-// assign to. Adopting a store library later is a re-wrap, not a redesign.
-//
-// Nothing here is pure logic. Pure logic lives in src/domain/.
+import { create } from 'zustand';
+import { createBoardSlice, createFilesSlice, createPortfolioSlice, createUiSlice } from './slices.js';
 
-export const appState = {
+// Zustand is the source of truth for application state. The proxy below is a
+// short-lived compatibility surface for the persistence and action modules
+// that still use the old `appState.field` spelling while Phase 2.7 moves those
+// functions into hooks and store actions. It forwards reads and top-level
+// writes into the store; nested board mutations are followed by the normal
+// store notification tick.
+export const useAppStore = create((set) => ({
+    ...createPortfolioSlice(),
+    ...createBoardSlice(),
+    ...createUiSlice(),
+    ...createFilesSlice(),
+    version: 0,
+    notify: () => set((state) => ({ version: state.version + 1 }))
+}));
 
-    // --- Portfolio: loaded boards and derived rows ---
-    portfolioBoards: [],
-    nextPortfolioProjectColorSeed: 0,
-    portfolioTasks: [],
-    portfolioVisibleRows: [],
-    selectedPortfolioBoardId: '',
-    selectedPortfolioViewMode: 'board',
-
-    // --- Portfolio: sorting and filters ---
-    portfolioFilters: {
-        search: '',
-        archive: 'active',
-        blocked: 'all',
-        assignee: '',
-        priority: '',
-        effort: ''
+export const appState = new Proxy({}, {
+    get(_target, property) {
+        return useAppStore.getState()[property];
     },
-    portfolioSortKey: 'priority',
-    portfolioSortDir: 'asc',
-
-    // --- Portfolio: editing contexts ---
-    portfolioEditContext: null,
-    portfolioCreateContext: null,
-    portfolioDetailContext: null,
-    roadmapEntityContext: null,
-
-    // --- Portfolio: selection and drag ---
-    portfolioBulkSelectionByBoardId: {},
-    portfolioDragContext: null,
-    selectedPortfolioCardRef: null,
-    hoveredPortfolioCardRef: null,
-    suppressPortfolioCardClickUntil: 0,
-
-    // --- Task modal ---
-    pendingNewTaskStatus: null,
-
-    // --- Timeline view ---
-    portfolioTimelineView: null,
-    portfolioTimelineSelection: { boardId: '', eventIndex: null },
-    portfolioTimelineDragState: { active: false, boardId: '' },
-    portfolioTimelineExpandedByBoardId: {},
-    portfolioTimelineListScrollTopByBoardId: {},
-
-    // --- Roadmap view ---
-    portfolioRoadmapExpandedRowsByBoardId: {},
-
-    // --- Calendar view ---
-    portfolioCalendarView: 'year',
-    portfolioCalendarDisplayMode: 'calendar',
-    portfolioCalendarYear: null,
-    portfolioCalendarMonth: null,
-
-    // --- Shell: theme, shortcuts, undo, dialogs ---
-    undoAction: null,
-    undoTimer: null,
-    undoToast: null, // null | { message }
-    activeTheme: 'light',
-    ShortcutRegistry: [],
-    activeDialog: null, // null | 'shortcuts' | 'help' | 'taskDetail' | 'roadmapEntity' | 'taskEditor'
-    dialogProps: null, // view model of the open dialog, built by its opener
-
-    // --- Persistence: save and file-watch state ---
-    projectSaveStateById: new Map(),
-    projectFileStateById: new Map(),
-    projectWatchTimerId: null,
-    projectWatchRunning: false,
-    projectWatchListenersBound: false,
-};
-
-// Selectors -- derived reads over the state above.
+    set(_target, property, value) {
+        useAppStore.setState({ [property]: value });
+        return true;
+    },
+    has(_target, property) {
+        return Object.prototype.hasOwnProperty.call(useAppStore.getState(), property);
+    },
+    ownKeys() {
+        return Reflect.ownKeys(useAppStore.getState());
+    },
+    getOwnPropertyDescriptor() {
+        return { enumerable: true, configurable: true };
+    }
+});
 
 export function getPortfolioBoardRecord(boardId) {
-    return appState.portfolioBoards.find(board => board.id === boardId) || null;
+    return useAppStore.getState().portfolioBoards.find((board) => board.id === boardId) || null;
 }

@@ -1,13 +1,13 @@
 import { useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useAppState } from '../../bridge/appStore.js';
+import { useAppStore } from '../../state/store.js';
 import { closeRoadmapEntity, saveRoadmapEntity } from '../../actions/legacyHost.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
 
 export function RoadmapEntityDialog() {
-    const open = useAppState((s) => s.activeDialog === 'roadmapEntity');
-    const vm = useAppState((s) => (s.activeDialog === 'roadmapEntity' ? s.dialogProps : null));
+    const open = useAppStore((s) => s.activeDialog === 'roadmapEntity');
+    const vm = useAppStore((s) => (s.activeDialog === 'roadmapEntity' ? s.dialogProps : null));
     const titleRef = useRef(null);
     const sprintRef = useRef(null);
     const returnFocus = useReturnFocus({

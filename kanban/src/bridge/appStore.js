@@ -1,4 +1,6 @@
-// Version-tick bridge between legacy code and React (Phase 2.0 – 2.6).
+// Notification compatibility layer for legacy action modules during the
+// Zustand migration. React components read the store directly; this module is
+// retained for persistence/action code that still calls notifyAppStateChanged.
 //
 // `appState` stays the source of truth and is mutated in place. React cannot
 // detect in-place mutation, so instead of snapshotting state we snapshot a
@@ -9,36 +11,26 @@
 // legacy renders -- and never during a React render. Selectors must be
 // read-only. Replaced by Zustand slices in Phase 2.7.
 //
-// appState is mutated in place, so object references never change across
-// notifies. Select primitives, or treat selected objects as unstable. Never
-// key React.memo, useMemo, useCallback or useEffect dependencies on object
-// references read from appState -- they will go stale. Key on primitives or
-// on getVersion() instead. Every notify re-renders every subscriber; there is
-// no selector-equality bailout. Legacy code that changes visible state
-// outside renderPortfolio() must also call notifyAppStateChanged() before an
-// island relies on that state.
+// Legacy code can still mutate nested board data in place, so it calls
+// notifyAppStateChanged() after those mutations. New code should use Zustand
+// setters/actions directly.
 
-import { useSyncExternalStore } from 'react';
-import { appState } from '../state/store.js';
-
-let version = 0;
-const listeners = new Set();
+import { useAppStore } from '../state/store.js';
 
 export function subscribe(listener) {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
+    return useAppStore.subscribe((state, previousState) => {
+        if (state.version !== previousState.version) listener();
+    });
 }
 
 export function getVersion() {
-    return version;
+    return useAppStore.getState().version;
 }
 
 export function notifyAppStateChanged() {
-    version += 1;
-    listeners.forEach((listener) => listener());
+    useAppStore.getState().notify();
 }
 
 export function useAppState(select) {
-    useSyncExternalStore(subscribe, getVersion);
-    return select(appState);
+    return useAppStore(select);
 }

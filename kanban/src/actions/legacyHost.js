@@ -27,6 +27,9 @@ const host = {
     onPortfolioColumnDragOver: () => {},
     onPortfolioColumnDragLeave: () => {},
     onPortfolioColumnDrop: () => {},
+    newProject: () => {},
+    importProjects: () => {},
+    openPortfolioFromFiles: () => {},
     setPortfolioTimelineSelection: () => {},
     movePortfolioTimelineToLatest: () => {},
     setPortfolioTimelineExpanded: () => {},
@@ -61,6 +64,9 @@ export const onPortfolioTaskDragEnd = event => host.onPortfolioTaskDragEnd(event
 export const onPortfolioColumnDragOver = (event, targetStatus) => host.onPortfolioColumnDragOver(event, targetStatus);
 export const onPortfolioColumnDragLeave = event => host.onPortfolioColumnDragLeave(event);
 export const onPortfolioColumnDrop = (event, targetStatus) => host.onPortfolioColumnDrop(event, targetStatus);
+export const createNewProject = () => host.newProject();
+export const importPortfolioProjects = () => host.importProjects();
+export const openPortfolioFromFiles = files => host.openPortfolioFromFiles(files);
 export const setPortfolioTimelineSelection = (boardId, eventIndex) => host.setPortfolioTimelineSelection(boardId, eventIndex);
 export const movePortfolioTimelineToLatest = boardId => host.movePortfolioTimelineToLatest(boardId);
 export const setPortfolioTimelineExpanded = (boardId, expanded) => host.setPortfolioTimelineExpanded(boardId, expanded);

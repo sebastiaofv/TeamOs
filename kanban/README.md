@@ -1,6 +1,6 @@
 # Kanban Board
 
-A Kanban app built as a Vite project. It is mid-migration from a single 11,000+ line `kanban.html` file: pure domain logic has been extracted into tested modules under `src/domain/` and `src/persistence/`, while UI and stateful code still lives in `src/legacy/main.js`. Phase 2 is in progress: React islands are being mounted beside the legacy UI, and every modal (Shortcuts, Help, task detail, task editor, roadmap entity), the undo toast, portfolio controls, portfolio board, and portfolio timeline now run on React.
+A Kanban app built as a Vite project. It is migrating from a single 11,000+ line `kanban.html` file: pure domain logic lives in tested modules under `src/domain/` and `src/persistence/`, while the remaining mutation and compatibility runtime is being moved out of `src/legacy/main.js`. React now owns every modal (Shortcuts, Help, task detail, task editor, roadmap entity), the undo toast, portfolio controls, board, timeline, roadmap, and calendar views.
 
 ## What it does
 
@@ -40,14 +40,19 @@ The app is a Vite project (`index.html` + `src/`), split by responsibility:
   - `taskDraft.js` — task editor rules: assignee/tag/checklist edits, attachment picking and warnings, and building the draft legacy saves.
 - `src/persistence/fileSystem.js` — File System Access API wrappers. This is the only place that writes to the user's disk; it is kept separate from `src/domain/` because it is I/O, not pure logic.
 - `src/main.jsx` — the entry. Imports `src/legacy/main.js` (legacy boots as a side effect), then mounts one React root (`src/components/AppIslands.jsx`) into `#reactRoot`. Each ported piece is an island wrapped in `IslandErrorBoundary`.
-- `src/legacy/main.js` — UI rendering, DOM event wiring, drag/drop controllers, and application state not yet ported to `src/components/`. It exposes nothing on `window`: the Playwright suite drives the app only through the page (DOM, URL, keyboard and pointer input) and test doubles for browser APIs such as File System Access.
-- `src/bridge/appStore.js` — version-tick bridge: `appState` stays the source of truth, actions mutate it and call `notifyAppStateChanged()`, and components read it with `useAppState(select)`. Replaced by Zustand slices in Phase 2.7.
+- `src/legacy/main.js` — the remaining board mutation, timeline reconstruction, persistence, and delegated interaction compatibility runtime. It exposes nothing on `window`: the Playwright suite drives the app only through the page (DOM, URL, keyboard and pointer input) and test doubles for browser APIs such as File System Access.
+- `src/state/slices.js` and `src/state/store.js` — four Zustand slices (`portfolio`, `board`, `ui`, and `files`) with a temporary top-level compatibility proxy for legacy mutation code. New React code reads the store directly; `src/bridge/appStore.js` remains only as a notification compatibility layer for existing action modules.
+- `src/hooks/useTheme.js` — theme initialization and toggle wiring.
+- `src/hooks/usePortfolioFileIntegration.js` — file-picker/drop wiring plus focus, visibility, and external-file watch lifecycle.
 - `src/actions/` — state-changing functions shared by legacy code and components (`openDialog` / `closeDialog`, and `legacyHost.js` — the seam through which components reach legacy behaviour not yet moved out of `src/legacy/main.js`).
 - `src/components/PortfolioControls.jsx` — React portals for the portfolio toolbar, project chips, view-mode toggle, and bulk-action bar (Phase 2.2); legacy retains board/view rendering and receives control actions through `src/actions/legacyHost.js`.
 - `src/components/PortfolioBoard.jsx` — React portal for portfolio columns, add-task affordances, and task-card markup (Phase 2.3); legacy retains delegated task actions and mutation/persistence logic.
 - `src/components/PortfolioTimeline.jsx` — React portal for the portfolio timeline panel, event list, historical preview controls, and restore affordance (Phase 2.4); legacy retains timeline reconstruction and persistence logic.
+- `src/components/PortfolioRoadmap.jsx` — React portal for roadmap sections, timeline axis, disclosure rows, and read-only linked task cards (Phase 2.5).
+- `src/components/PortfolioCalendar.jsx` — React portal for year/month calendar, roadmap spans, task items, and heatmap modes (Phase 2.6).
 - `src/components/` — React components. Ported markup keeps legacy ids and `legacy.css` classes until the Phase 2.8 Tailwind pass. Shortcuts and Help dialogs use Radix Dialog; `src/components/dialogs/useReturnFocus.js` returns focus to whichever element had it before the dialog opened, but only when closing left focus lost (it fell to `body`) and that element is still in the page, and it can also focus a given field on open via `initialFocus`, since Radix's own focus-return needs a `Dialog.Trigger` and these dialogs are opened by legacy code. The task detail modal, roadmap entity modal and undo toast are React too (Phase 2.1a): legacy builds a display-ready view model and calls `openDialog(name, viewModel)`, and components call back into legacy through `src/actions/legacyHost.js`. The task editor is React as well (Phase 2.1b), but unlike the display-only dialogs it owns its draft: legacy passes initial values and option lists, the assignee, tag, checklist and attachment editors under `src/components/dialogs/taskEditor/` edit the draft using the pure rules in `src/domain/taskDraft.js`, and Save hands the finished draft to legacy `saveTask`, which still validates and saves.
-- `src/styles/legacy.css` — the app's styling, largely unchanged from the original single-file app. It also carries the Tailwind `@tailwind` directives (see below); Tailwind's preflight reset is disabled so this stylesheet keeps working untouched until it is retired in a later phase.
+- `src/styles/tailwind.css` — Tailwind entry point, semantic surface/border/content tokens, and component aliases. Preflight remains disabled for parity.
+- `src/styles/legacy.css` — the current styling contract, retained for the remaining legacy-compatible surfaces while the final component-by-component CSS retirement continues.
 
 ## Task and schema invariants
 
@@ -101,15 +106,15 @@ This starts the Vite dev server.
 
 ## Styling
 
-Tailwind CSS is wired into the build (`tailwind.config.js`, `postcss.config.js`) with `corePlugins.preflight` disabled, so it contributes only utility classes and does not reset or otherwise alter the existing hand-written styles in `src/styles/legacy.css`.
+Tailwind CSS is wired into the build (`tailwind.config.js`, `postcss.config.mjs`) with `corePlugins.preflight` disabled. Semantic tokens map to the existing CSS variables, so migrated components can adopt utilities without changing the established light/dark visual contract.
 
 ## Testing
 
 There are two test suites:
 
-- **Unit tests** (`npm run test:unit`) — Vitest, 869 tests covering the pure functions in `src/domain/` and `src/persistence/`, plus `src/bridge/` (version-tick bridge) and `src/actions/` (dialog and legacy-host actions).
-- **End-to-end tests** (`npm test`) — Playwright, 132 black-box tests (plus the 32 visual baselines below, also run under `npm test`) driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
-- **Visual baselines** (`tests/visual.test.js`, part of `npm test`) — Playwright screenshots of UI pieces taken against the legacy implementation before they are ported to React; a port must match them. Baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Phase 2.8 (Tailwind pass) is the only planned update. Shared seeding helpers live in `tests/support/portfolio.js`.
+- **Unit tests** (`npm run test:unit`) — Vitest, 869 tests covering the pure functions in `src/domain/` and `src/persistence/`, the store notification layer, and shared actions.
+- **End-to-end tests** (`npm test`) — Playwright, 132 black-box tests plus 37 visual baselines driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
+- **Visual baselines** (`tests/visual.test.js`, part of `npm test`) — Playwright screenshots of UI pieces taken before each React port; a port must match them. Baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.js`.
 
 ### Prerequisites
 

@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { flushSync } from 'react-dom';
 import { useLayoutEffect, useRef } from 'react';
-import { useAppState } from '../bridge/appStore.js';
+import { useAppStore } from '../state/store.js';
 import {
     beginPortfolioTimelineSliderDrag,
     movePortfolioTimelineToLatest,
@@ -184,7 +184,7 @@ function PortfolioTimelineView({ view, scrollTopByBoardId }) {
 }
 
 export function PortfolioTimeline() {
-    const state = useAppState((current) => current);
+    const state = useAppStore((current) => current);
     const panel = document.getElementById('portfolioTimelinePanel');
     const view = state.portfolioTimelineView;
     const boardId = view?.boardId || '';

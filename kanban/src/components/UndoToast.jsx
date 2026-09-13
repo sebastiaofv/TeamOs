@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useAppState } from '../bridge/appStore.js';
+import { useAppStore } from '../state/store.js';
 import { performUndo } from '../actions/legacyHost.js';
 
 // Legacy markup and classes, rendered only while a toast is showing. A plain
@@ -7,7 +7,7 @@ import { performUndo } from '../actions/legacyHost.js';
 // aria-live that legacy never had. pointer-events: auto keeps Undo clickable
 // while a Radix modal has set pointer-events: none on body.
 export function UndoToast() {
-    const toast = useAppState((s) => s.undoToast);
+    const toast = useAppStore((s) => s.undoToast);
     if (!toast) return null;
 
     return createPortal(

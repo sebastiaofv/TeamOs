@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import { useAppState } from '../../bridge/appStore.js';
+import { useAppStore } from '../../state/store.js';
 import { closeTaskDetail, toggleTaskDetailChecklistItem } from '../../actions/legacyHost.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
@@ -23,8 +23,8 @@ const FIELD_ROWS = [
 ];
 
 export function TaskDetailDialog() {
-    const open = useAppState((s) => s.activeDialog === 'taskDetail');
-    const vm = useAppState((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps : null));
+    const open = useAppStore((s) => s.activeDialog === 'taskDetail');
+    const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps : null));
     const returnFocus = useReturnFocus();
 
     return (

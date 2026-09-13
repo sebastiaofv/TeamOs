@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useAppState } from '../bridge/appStore.js';
+import { useAppStore } from '../state/store.js';
 import {
     onPortfolioColumnDragLeave,
     onPortfolioColumnDragOver,
@@ -58,7 +58,7 @@ function selectedBulkTaskIds(state, boardId) {
     return new Set((state.portfolioBulkSelectionByBoardId?.[boardId] || []).map((taskId) => Number(taskId)));
 }
 
-function PortfolioTaskCard({ item, state }) {
+export function PortfolioTaskCard({ item, state }) {
     const task = item.task;
     const canMutate = Boolean(item.canMutate) && !item.historical;
     const canDrag = canMutate;
@@ -84,7 +84,7 @@ function PortfolioTaskCard({ item, state }) {
 
     return (
         <div
-            className={`task-card portfolio-task-card${selected ? ' selected' : ''}`}
+            className={`task-card portfolio-task-card surface-card${selected ? ' selected' : ''}`}
             draggable={canDrag}
             data-board-id={item.boardId}
             data-task-id={String(taskId)}
@@ -189,7 +189,7 @@ function PortfolioBoardView({ state }) {
 }
 
 export function PortfolioBoard() {
-    const state = useAppState((current) => current);
+    const state = useAppStore((current) => current);
     const board = document.getElementById('portfolioBoard');
     if (!board) return null;
     return createPortal(<PortfolioBoardView state={state} />, board);

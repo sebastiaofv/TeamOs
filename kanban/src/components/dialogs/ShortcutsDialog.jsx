@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useAppState } from '../../bridge/appStore.js';
+import { useAppStore } from '../../state/store.js';
 import { closeDialog } from '../../actions/dialogs.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
@@ -58,8 +58,8 @@ function ShortcutSections({ registry }) {
 }
 
 export function ShortcutsDialog() {
-    const open = useAppState((s) => s.activeDialog === 'shortcuts');
-    const registry = useAppState((s) => s.ShortcutRegistry);
+    const open = useAppStore((s) => s.activeDialog === 'shortcuts');
+    const registry = useAppStore((s) => s.ShortcutRegistry);
     const returnFocus = useReturnFocus();
 
     return (

@@ -1,7 +1,8 @@
+import '../styles/tailwind.css';
 import '../styles/legacy.css';
-import { isAbortError, formatErrorMessage, isFileDrag, nowIso, escapeRegExp, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, assertRequiredExtension } from '../domain/util.js';
+import { isAbortError, formatErrorMessage, nowIso, escapeRegExp, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, assertRequiredExtension } from '../domain/util.js';
 import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, parseChecklistInput, getBoardTagSuggestions, nextTaskIdForBoard, touchTask, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, slugifyRoadmapEntityId, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
+import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, slugifyRoadmapEntityId, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getVisibleRoadmapDateRange, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
 import { normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, comparePortfolioRows } from '../domain/board.js';
 import { normalizeAttachmentRecord, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatUtcIsoDate, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
@@ -12,7 +13,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 import { appState, getPortfolioBoardRecord } from '../state/store.js';
 import { Logger } from '../logger.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
-import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, checkProjectFilesNow, stopProjectFileWatcher, enqueueProjectSave, retryProjectSave, createPortfolioRecord } from '../persistence/projectFiles.js';
+import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, enqueueProjectSave, retryProjectSave, createPortfolioRecord } from '../persistence/projectFiles.js';
 import { notifyAppStateChanged } from '../bridge/appStore.js';
 import { openDialog, closeDialog } from '../actions/dialogs.js';
 import { setLegacyHost } from '../actions/legacyHost.js';
@@ -20,7 +21,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             BOARD_FILE_EXTENSION, TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, TIMELINE_EXTENSION_KEY,
             ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES,
             ATTACHMENT_TASK_SOFT_TOTAL_BYTES, ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES,
-            PROJECT_FILE_WATCH_INTERVAL_MS, THEME_STORAGE_KEY, CALENDAR_MONTH_NAMES,
+            CALENDAR_MONTH_NAMES,
             CALENDAR_WEEKDAY_NAMES, defaultColumns
         } from '../domain/constants.js';
         const Refs = {};
@@ -43,13 +44,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-
-        function setFileDropActive(active) {
-            const view = document.getElementById('portfolioView');
-            if (view) {
-                view.classList.toggle('file-drop-active', active);
-            }
-        }
 
         function updateUrlState() {
             const params = new URLSearchParams();
@@ -150,20 +144,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-
-
-
-
-
-        function renderRoadmapTodayMarker(range) {
-            const marker = getRoadmapTodayMarker(range);
-            if (!marker || !Number.isFinite(marker.position)) return '';
-            return `
-                <span class="roadmap-today-marker" aria-label="Today (${escapeHtml(marker.iso)})" style="left:${marker.position}%">
-                    <span class="roadmap-today-marker-label">Today</span>
-                </span>
-            `;
-        }
 
 
 
@@ -743,15 +723,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-        function startProjectFileWatcher() {
-            stopProjectFileWatcher();
-            appState.projectWatchTimerId = setInterval(() => {
-                if (document.hidden) return;
-                void checkProjectFilesNow();
-            }, PROJECT_FILE_WATCH_INTERVAL_MS);
-            void checkProjectFilesNow();
-        }
-
 
 
 
@@ -1143,41 +1114,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                 Logger.error('Import from drop failed', error);
                 alert(`Import failed: ${formatErrorMessage(error)}`);
             }
-        }
-
-        function setupFileDrop() {
-            let fileDragDepth = 0;
-
-            window.addEventListener('dragenter', (ev) => {
-                if (!isFileDrag(ev)) return;
-                fileDragDepth += 1;
-                setFileDropActive(true);
-            });
-
-            window.addEventListener('dragover', (ev) => {
-                if (!isFileDrag(ev)) return;
-                ev.preventDefault();
-                setFileDropActive(true);
-            });
-
-            window.addEventListener('dragleave', (ev) => {
-                if (!isFileDrag(ev)) return;
-                fileDragDepth = Math.max(0, fileDragDepth - 1);
-                if (fileDragDepth === 0) {
-                    setFileDropActive(false);
-                }
-            });
-
-            window.addEventListener('drop', (ev) => {
-                if (!isFileDrag(ev)) return;
-                ev.preventDefault();
-                fileDragDepth = 0;
-                setFileDropActive(false);
-                const files = ev.dataTransfer ? ev.dataTransfer.files : null;
-                if (!files || files.length === 0) return;
-
-                openPortfolioFromFiles(files);
-            });
         }
 
         function getFilteredSortedPortfolioRows() {
@@ -1575,10 +1511,39 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                     isExpanded: isPortfolioTimelineExpanded(timelineView.boardRecord.id)
                 }
                 : null;
+            const roadmapBoard = timelineView?.boardRecord
+                || (appState.selectedPortfolioBoardId ? getPortfolioBoardRecord(appState.selectedPortfolioBoardId) : null);
+            const roadmapBoardData = timelineView?.isPreview
+                ? (timelineView.projectedBoard || roadmapBoard?.data || null)
+                : (roadmapBoard?.data || timelineView?.projectedBoard || null);
+            const roadmap = getRoadmapExtension(roadmapBoardData) || createEmptyRoadmapExtension();
+            const roadmapRange = getVisibleRoadmapDateRange(roadmap);
+            appState.portfolioRoadmapView = roadmapBoard
+                ? {
+                    boardId: roadmapBoard.id,
+                    boardTitle: roadmapBoard.title || roadmapBoard.fileName || 'Selected Project',
+                    boardFileName: roadmapBoard.fileName || '',
+                    boardData: roadmapBoardData,
+                    roadmap,
+                    range: roadmapRange,
+                    axisTicks: getRoadmapAxisTicks(roadmapRange),
+                    historical: Boolean(timelineView?.isPreview)
+                }
+                : null;
             const rows = getFilteredSortedPortfolioRows();
             appState.portfolioVisibleRows = rows;
             syncSelectedPortfolioCardWithVisibleRows(rows);
             syncHoveredPortfolioCardWithVisibleRows(rows);
+            const calendarItems = buildPortfolioCalendarItems(rows);
+            ensurePortfolioCalendarState(calendarItems);
+            appState.portfolioCalendarViewModel = {
+                items: calendarItems,
+                aggregate: !appState.selectedPortfolioBoardId,
+                view: appState.portfolioCalendarView,
+                displayMode: appState.portfolioCalendarDisplayMode,
+                year: appState.portfolioCalendarYear,
+                month: appState.portfolioCalendarMonth
+            };
             boardWrap.classList.remove('hidden');
             normalizePortfolioViewModeState();
 
@@ -1590,12 +1555,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             if (boardGrid) boardGrid.classList.toggle('hidden', roadmapActive || calendarActive);
             if (roadmapView) roadmapView.classList.toggle('hidden', !roadmapActive);
             if (calendarView) calendarView.classList.toggle('hidden', !calendarActive);
-
-            if (roadmapActive) {
-                renderPortfolioRoadmapView();
-            } else if (calendarActive) {
-                renderPortfolioCalendarView(rows);
-            }
 
             updateUrlState();
             notifyAppStateChanged();
@@ -2163,65 +2122,12 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-        function readStoredTheme() {
-            try {
-                return normalizeTheme(localStorage.getItem(THEME_STORAGE_KEY));
-            } catch (_) {
-                return 'light';
-            }
-        }
-
-        function persistTheme(theme) {
-            try {
-                localStorage.setItem(THEME_STORAGE_KEY, normalizeTheme(theme));
-            } catch (_) { }
-        }
-
-        function applyTheme(theme, options = {}) {
-            appState.activeTheme = normalizeTheme(theme);
-            document.documentElement.setAttribute('data-theme', appState.activeTheme);
-
-            const label = appState.activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
-            const toggle = Refs.themeToggleBtn || document.getElementById('themeToggleBtn');
-            if (toggle) {
-                toggle.setAttribute('aria-label', label);
-                toggle.setAttribute('title', label);
-                toggle.setAttribute('aria-pressed', appState.activeTheme === 'dark' ? 'true' : 'false');
-            }
-
-            if (options.persist) {
-                persistTheme(appState.activeTheme);
-            }
-        }
-
-        function initializeTheme() {
-            applyTheme(readStoredTheme());
-        }
-
-        function toggleTheme() {
-            applyTheme(appState.activeTheme === 'dark' ? 'light' : 'dark', { persist: true });
-        }
-
         function init() {
             if (typeof cacheRefs === 'function') {
                 cacheRefs();
             }
-            initializeTheme();
             buildShortcutRegistry();
             updateDocumentTitle();
-            setupFileDrop();
-            if (!appState.projectWatchListenersBound) {
-                window.addEventListener('focus', () => {
-                    void checkProjectFilesNow();
-                });
-                document.addEventListener('visibilitychange', () => {
-                    if (!document.hidden) {
-                        void checkProjectFilesNow();
-                    }
-                });
-                appState.projectWatchListenersBound = true;
-            }
-            startProjectFileWatcher();
             applyUrlState();
         }
 
@@ -3243,7 +3149,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                 }
                 if (action === 'toggle-roadmap-row') {
                     togglePortfolioRoadmapRowExpanded(appState.selectedPortfolioBoardId, `${kind}:${itemId}`);
-                    renderPortfolioRoadmapView();
+                    renderPortfolio();
                     return;
                 }
             }
@@ -3271,7 +3177,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             const row = event.target.closest('.roadmap-row[data-roadmap-kind][data-roadmap-id]');
             if (row && appState.selectedPortfolioBoardId) {
                 togglePortfolioRoadmapRowExpanded(appState.selectedPortfolioBoardId, `${row.dataset.roadmapKind}:${row.dataset.roadmapId}`);
-                renderPortfolioRoadmapView();
+                renderPortfolio();
             }
         }
 
@@ -3405,11 +3311,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
         function bindStaticUiEvents() {
-            Refs.themeToggleBtn?.addEventListener('click', toggleTheme);
             document.getElementById('openShortcutsBtn')?.addEventListener('click', openShortcutsModal);
             document.getElementById('openHelpBtn')?.addEventListener('click', openHelpModal);
-            document.getElementById('newProjectBtn')?.addEventListener('click', newProject);
-            document.getElementById('importProjectsBtn')?.addEventListener('click', importProjects);
             Refs.portfolioBoard?.addEventListener('click', handlePortfolioBoardClick);
             Refs.portfolioRoadmapView?.addEventListener('click', handlePortfolioRoadmapViewClick);
             Refs.portfolioCalendarView?.addEventListener('click', handlePortfolioCalendarViewClick);
@@ -3466,6 +3369,9 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             onPortfolioColumnDragOver,
             onPortfolioColumnDragLeave,
             onPortfolioColumnDrop,
+            newProject,
+            importProjects,
+            openPortfolioFromFiles,
             setPortfolioTimelineSelection: (boardId, eventIndex) => setPortfolioTimelineSelection(boardId, eventIndex, {
                 skipTimelinePanel: appState.portfolioTimelineDragState.active
                     && appState.portfolioTimelineDragState.boardId === (boardId || '')

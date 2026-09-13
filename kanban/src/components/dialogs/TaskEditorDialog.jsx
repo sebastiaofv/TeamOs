@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useAppState } from '../../bridge/appStore.js';
+import { useAppStore } from '../../state/store.js';
 import { closeTaskEditor, saveTask } from '../../actions/legacyHost.js';
 import { buildTaskDraft } from '../../domain/taskDraft.js';
 import { useReturnFocus } from './useReturnFocus.js';
@@ -16,8 +16,8 @@ const EFFORT_OPTIONS = [['', 'None'], ['XS', 'XS'], ['S', 'S'], ['M', 'M'], ['L'
 // Legacy opens the editor with a view model; this component owns the draft and
 // hands a finished draft to legacy saveTask, which validates, saves and closes.
 export function TaskEditorDialog() {
-    const open = useAppState((s) => s.activeDialog === 'taskEditor');
-    const vm = useAppState((s) => (s.activeDialog === 'taskEditor' ? s.dialogProps : null));
+    const open = useAppStore((s) => s.activeDialog === 'taskEditor');
+    const vm = useAppStore((s) => (s.activeDialog === 'taskEditor' ? s.dialogProps : null));
     const nameRef = useRef(null);
     const submitRef = useRef(null);
     const returnFocus = useReturnFocus({ initialFocus: nameRef, selectInitial: true });

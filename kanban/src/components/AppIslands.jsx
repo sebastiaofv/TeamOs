@@ -8,6 +8,10 @@ import { UndoToast } from './UndoToast.jsx';
 import { PortfolioControls } from './PortfolioControls.jsx';
 import { PortfolioBoard } from './PortfolioBoard.jsx';
 import { PortfolioTimeline } from './PortfolioTimeline.jsx';
+import { PortfolioRoadmap } from './PortfolioRoadmap.jsx';
+import { PortfolioCalendar } from './PortfolioCalendar.jsx';
+import { PortfolioFileIntegration } from '../hooks/usePortfolioFileIntegration.js';
+import { ThemeIntegration } from '../hooks/useTheme.js';
 import { closeDialog } from '../actions/dialogs.js';
 import { closeRoadmapEntity, closeTaskDetail, closeTaskEditor } from '../actions/legacyHost.js';
 
@@ -18,6 +22,12 @@ import { closeRoadmapEntity, closeTaskDetail, closeTaskEditor } from '../actions
 export function AppIslands() {
     return (
         <>
+            <IslandErrorBoundary island="ThemeIntegration" onError={() => {}}>
+                <ThemeIntegration />
+            </IslandErrorBoundary>
+            <IslandErrorBoundary island="PortfolioFileIntegration" onError={() => {}}>
+                <PortfolioFileIntegration />
+            </IslandErrorBoundary>
             <IslandErrorBoundary island="ShortcutsDialog" onError={() => closeDialog('shortcuts')}>
                 <ShortcutsDialog />
             </IslandErrorBoundary>
@@ -44,6 +54,12 @@ export function AppIslands() {
             </IslandErrorBoundary>
             <IslandErrorBoundary island="PortfolioTimeline" onError={() => {}}>
                 <PortfolioTimeline />
+            </IslandErrorBoundary>
+            <IslandErrorBoundary island="PortfolioRoadmap" onError={() => {}}>
+                <PortfolioRoadmap />
+            </IslandErrorBoundary>
+            <IslandErrorBoundary island="PortfolioCalendar" onError={() => {}}>
+                <PortfolioCalendar />
             </IslandErrorBoundary>
         </>
     );

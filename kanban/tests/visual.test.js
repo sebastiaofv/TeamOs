@@ -150,7 +150,7 @@ test.describe('2.1a modals and toast', () => {
       await seedPortfolioBoards(page, [
         { id: 'v1', title: 'Launch', hasHandle: true, tasks: [], extensions: ROADMAP }
       ], { selectedBoardId: 'v1' });
-      await page.getByRole('button', { name: 'Roadmap' }).click();
+      await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
       await page.getByRole('button', { name: 'Add Milestone' }).click();
       await expect(page.locator('#roadmapEntityModal')).toBeVisible();
       await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('New Milestone');
@@ -496,5 +496,75 @@ test.describe('2.4 timeline panel', () => {
     await page.mouse.move(1, 1);
     await page.evaluate(() => document.activeElement?.blur());
     await expect(page).toHaveScreenshot('portfolio-timeline-preview-light.png', { fullPage: true });
+  });
+});
+
+// 2.5 and 2.6 baselines: roadmap and calendar view surfaces. These snapshots
+// protect the existing CSS contract while the renderers move to React.
+test.describe('2.5 roadmap and 2.6 calendar views', () => {
+  test.use({ locale: 'en-US', timezoneId: 'UTC' });
+
+  for (const theme of ['light', 'dark']) {
+    test(`roadmap with expanded task list (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'roadmap',
+        title: 'Roadmap Project',
+        hasHandle: true,
+        tasks: [{
+          id: 1,
+          title: 'Prepare launch checklist',
+          status: 'backlog',
+          priority: 'high',
+          effort: 'M',
+          phaseId: 'p1',
+          milestoneId: 'm1',
+          sprintId: 's1'
+        }],
+        extensions: ROADMAP
+      }], { selectedBoardId: 'roadmap' });
+      await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+      await page.getByRole('button', { name: 'Show tasks for Build' }).click();
+      await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Prepare launch checklist');
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => document.activeElement?.blur());
+      await expect(page).toHaveScreenshot(`portfolio-roadmap-expanded-${theme}.png`, { fullPage: true });
+    });
+
+    test(`calendar year view (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'calendar',
+        title: 'Calendar Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Due task', status: 'backlog', dueDate: '2026-03-10' }],
+        extensions: ROADMAP
+      }], { selectedBoardId: 'calendar' });
+      await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+      await expect(page.locator('.portfolio-calendar-month-card')).toHaveCount(12);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => document.activeElement?.blur());
+      await expect(page).toHaveScreenshot(`portfolio-calendar-year-${theme}.png`, { fullPage: true });
+    });
+  }
+
+  test('calendar month heatmap view (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [{
+      id: 'calendar-month',
+      title: 'Calendar Month Project',
+      hasHandle: true,
+      tasks: [
+        { id: 1, title: 'Due task A', status: 'backlog', dueDate: '2026-03-10' },
+        { id: 2, title: 'Due task B', status: 'backlog', dueDate: '2026-03-10' }
+      ],
+      extensions: ROADMAP
+    }], { selectedBoardId: 'calendar-month' });
+    await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+    await page.getByRole('button', { name: 'Heat Map' }).click();
+    await page.getByRole('button', { name: 'Open March 2026' }).click();
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => document.activeElement?.blur());
+    await expect(page).toHaveScreenshot('portfolio-calendar-month-heatmap-light.png', { fullPage: true });
   });
 });

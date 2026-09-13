@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useLayoutEffect } from 'react';
-import { useAppState } from '../bridge/appStore.js';
+import { useAppStore } from '../state/store.js';
 import {
     clearPortfolioBulkSelection,
     openAssignSprintFromSelection,
@@ -302,7 +302,7 @@ function PortfolioBulkActions({ state }) {
 }
 
 export function PortfolioControls() {
-    const state = useAppState((current) => current);
+    const state = useAppStore((current) => current);
     const toolbar = document.getElementById('portfolioToolbar');
     const chips = document.getElementById('portfolioBoardsChips');
     const bulkActions = document.getElementById('portfolioBulkActions');

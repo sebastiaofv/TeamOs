@@ -23,6 +23,7 @@
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "zustand": "^5.0.15"
   }
 }
