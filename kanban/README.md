@@ -101,6 +101,7 @@ There are two test suites:
 
 - **Unit tests** (`npm run test:unit`) — Vitest, 821 tests covering the pure functions in `src/domain/` and `src/persistence/`.
 - **End-to-end tests** (`npm test`) — Playwright, 89 black-box tests driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
+- **Visual baselines** (`tests/visual.test.js`, part of `npm test`) — Playwright screenshots of UI pieces taken against the legacy implementation before they are ported to React; a port must match them. Baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Phase 2.8 (Tailwind pass) is the only planned update.
 
 ### Prerequisites
 
