@@ -14,6 +14,7 @@ import { Logger } from '../logger.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
 import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, checkProjectFilesNow, stopProjectFileWatcher, enqueueProjectSave, retryProjectSave, createPortfolioRecord, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
 import { notifyAppStateChanged } from '../bridge/appStore.js';
+import { openDialog, closeDialog } from '../actions/dialogs.js';
         import {
             BOARD_FILE_EXTENSION, TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, TIMELINE_EXTENSION_KEY,
             ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES,
@@ -3570,11 +3571,11 @@ import { notifyAppStateChanged } from '../bridge/appStore.js';
         }
 
         function openHelpModal() {
-            document.getElementById('helpModal').classList.add('active');
+            openDialog('help');
         }
 
         function closeHelpModal() {
-            document.getElementById('helpModal').classList.remove('active');
+            closeDialog();
         }
 
         function focusFieldById(fieldId) {
@@ -3897,7 +3898,7 @@ import { notifyAppStateChanged } from '../bridge/appStore.js';
             const detailModalOpen = document.getElementById('taskDetailModal').classList.contains('active');
             const roadmapEntityModalOpen = document.getElementById('roadmapEntityModal').classList.contains('active');
             const shortcutsModalOpen = document.getElementById('shortcutsModal').classList.contains('active');
-            const helpModalOpen = document.getElementById('helpModal').classList.contains('active');
+            const helpModalOpen = appState.activeDialog === 'help';
             const activeTag = document.activeElement ? document.activeElement.tagName : '';
             const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
 
@@ -4162,7 +4163,7 @@ import { notifyAppStateChanged } from '../bridge/appStore.js';
                         closeDetailModal();
                         closeRoadmapEntityModal();
                         closeShortcutsModal();
-                        closeHelpModal();
+                        closeDialog();
                     }
                 }
             ];
@@ -4256,7 +4257,6 @@ import { notifyAppStateChanged } from '../bridge/appStore.js';
             Refs.taskModal = document.getElementById('taskModal');
             Refs.taskDetailModal = document.getElementById('taskDetailModal');
             Refs.shortcutsModal = document.getElementById('shortcutsModal');
-            Refs.helpModal = document.getElementById('helpModal');
             Refs.shortcutsList = document.getElementById('shortcutsList');
             return Refs;
         }
@@ -4810,8 +4810,6 @@ import { notifyAppStateChanged } from '../bridge/appStore.js';
             document.getElementById('roadmapEntityModalSaveBtn')?.addEventListener('click', saveRoadmapEntity);
             document.getElementById('shortcutsModalCloseBtn')?.addEventListener('click', closeShortcutsModal);
             document.getElementById('shortcutsModalFooterCloseBtn')?.addEventListener('click', closeShortcutsModal);
-            document.getElementById('helpModalCloseBtn')?.addEventListener('click', closeHelpModal);
-            document.getElementById('helpModalFooterCloseBtn')?.addEventListener('click', closeHelpModal);
             document.getElementById('undoBtn')?.addEventListener('click', performUndo);
             document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
             document.getElementById('taskTagAddBtn')?.addEventListener('click', addTaskTagFromComposer);
@@ -4861,11 +4859,6 @@ import { notifyAppStateChanged } from '../bridge/appStore.js';
             document.getElementById('shortcutsModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('shortcutsModal')) {
                     closeShortcutsModal();
-                }
-            });
-            document.getElementById('helpModal')?.addEventListener('click', (e) => {
-                if (e.target === document.getElementById('helpModal')) {
-                    closeHelpModal();
                 }
             });
             Refs.portfolioBoardsChips?.addEventListener('click', handlePortfolioBoardChipsClick);
