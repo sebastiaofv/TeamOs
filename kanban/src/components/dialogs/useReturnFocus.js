@@ -8,9 +8,10 @@ import { useRef } from 'react';
 // already moved focus elsewhere (e.g. into the task editor) keeps it.
 //
 // `initialFocus` is an optional ref; when set, it receives focus on open
-// instead of Radix's default (the first tabbable element).
+// instead of Radix's default (the first tabbable element). With
+// `selectInitial`, its text is selected too.
 // Spread the result onto Dialog.Content.
-export function useReturnFocus({ initialFocus } = {}) {
+export function useReturnFocus({ initialFocus, selectInitial = false } = {}) {
     const returnTargetRef = useRef(null);
     return {
         onOpenAutoFocus: (event) => {
@@ -18,6 +19,7 @@ export function useReturnFocus({ initialFocus } = {}) {
             if (initialFocus?.current) {
                 event.preventDefault();
                 initialFocus.current.focus();
+                if (selectInitial) initialFocus.current.select?.();
             }
         },
         onCloseAutoFocus: (event) => {

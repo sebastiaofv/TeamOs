@@ -2720,6 +2720,47 @@ test.describe('portfolio-only app', () => {
     expect(url.searchParams.get('view')).toBeNull();
   });
 
+  test('React portfolio controls stay synchronized across legacy board rerenders', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'a', title: 'Alpha Project', hasHandle: true, tasks: [{ id: 1, title: 'Alpha task', status: 'backlog' }] },
+      { id: 'b', title: 'Bravo Project', hasHandle: true, tasks: [{ id: 2, title: 'Bravo task', status: 'doing' }] }
+    ]);
+
+    await page.locator('#portfolioSearchInput').fill('task');
+    await page.locator('#portfolioPriorityFilter').selectOption('high');
+    await page.locator('#portfolioBoardsChips .portfolio-chip').filter({ hasText: 'Bravo Project' }).getByRole('button', { name: /Bravo Project/ }).click();
+
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('task');
+    await expect(page.locator('#portfolioPriorityFilter')).toHaveValue('high');
+    await expect(page.locator('#portfolioBoardsChips .portfolio-chip.active')).toContainText('Bravo Project');
+    expect(new URL(page.url()).searchParams.get('pb')).toBeTruthy();
+  });
+
+  test('React board cards follow filtered visible rows and preserve card metadata (2.3)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'a',
+        title: 'Alpha Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Alpha launch', status: 'backlog', tags: ['release'], priority: 'high', effort: 'L' }]
+      },
+      {
+        id: 'b',
+        title: 'Bravo Project',
+        hasHandle: false,
+        tasks: [{ id: 2, title: 'Bravo review', status: 'doing', tags: ['ops'], priority: 'medium', effort: 'M' }]
+      }
+    ]);
+
+    await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(2);
+    await expect(page.locator('#portfolioBoard .portfolio-project-badge')).toHaveCount(2);
+
+    await page.locator('#portfolioSearchInput').fill('Bravo');
+    await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(1);
+    await expect(portfolioCard(page, 'Bravo review')).toContainText('Bravo Project');
+    await expect(portfolioCard(page, 'Bravo review').locator('[data-action="edit-task"]')).toBeDisabled();
+  });
+
   test('reset filters button clears top filters and restores default sort', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
@@ -3680,5 +3721,230 @@ test.describe('portfolio-only app', () => {
 
     expect(result.alphaStatus).toBe('doing');
     expect(result.writes.some((w) => w.boardId === 'a1')).toBe(true);
+  });
+
+  // Phase 2.1b: task editor close, editing and persistence behavior.
+  for (const method of ['Escape', 'close button', 'cancel button', 'overlay click']) {
+    test(`task editor closes by ${method}, leaves the DOM and reopens empty (2.1b)`, async ({ page }) => {
+      await seedPortfolioBoards(page, [
+        { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+      ], { selectedBoardId: 'p1' });
+
+      await page.locator('#portfolio-backlog-column .add-task-card').click();
+      await expect(page.locator('#taskModal')).toBeVisible();
+      await page.locator('#taskName').fill('Draft title');
+      await page.locator('#taskChecklistNewItem').fill('Draft item');
+      await page.locator('#taskChecklistNewItem').press('Enter');
+      await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(1);
+
+      await closeDialogBy(page, 'taskModal', method);
+      await expect(page.locator('#taskModal')).toHaveCount(0);
+
+      await page.locator('#portfolio-backlog-column .add-task-card').click();
+      await expect(page.locator('#modalTitle')).toHaveText('New Task');
+      await expect(page.locator('#taskName')).toHaveValue('');
+      await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(0);
+    });
+  }
+
+  test('Ctrl+Enter in the task editor saves while typing in the description (2.1b)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Saved by keyboard');
+    await page.locator('#taskDescription').click();
+    await page.keyboard.type('Typed description');
+    await page.keyboard.press('Control+Enter');
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await waitForBoardWrites(page);
+    const tasks = await page.evaluate(() => JSON.parse(window.__portfolioDiskByBoardId.p1.text).board.tasks);
+    expect(tasks.map((task) => task.title)).toEqual(['Saved by keyboard']);
+    expect(tasks[0].description).toBe('Typed description');
+  });
+
+  test('checking Blocked focuses the blocker reason and unchecking clears it (2.1b)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskBlocked').check();
+    await expect(page.locator('#taskBlockerReason')).toBeFocused();
+    await page.locator('#taskBlockerReason').fill('Waiting on API');
+
+    await page.locator('#taskBlocked').uncheck();
+    await expect(page.locator('#taskBlockerReasonWrap')).toBeHidden();
+    await page.locator('#taskBlocked').check();
+    await expect(page.locator('#taskBlockerReason')).toHaveValue('');
+  });
+
+  test('checklist editor removes the clicked row after another row was cleared (2.1b)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [{
+          id: 1,
+          title: 'Checklist task',
+          status: 'backlog',
+          checklist: [
+            { text: 'First', done: false },
+            { text: 'Second', done: false },
+            { text: 'Third', done: false }
+          ]
+        }]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await openTaskEditor(page, 'Checklist task');
+    const rows = page.locator('#taskChecklistItems .checklist-editor-row');
+    await rows.nth(0).locator('input[type="text"]').fill('');
+    await rows.nth(1).getByRole('button', { name: 'Remove todo item' }).click();
+    await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await waitForBoardWrites(page);
+    const texts = await page.evaluate(() => (
+      JSON.parse(window.__portfolioDiskByBoardId.p1.text).board.tasks[0].checklist.map((item) => item.text)
+    ));
+    expect(texts).toEqual(['Third']);
+  });
+
+  test('assignee suggestions follow edits to existing assignee rows (2.1b)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog', assignees: ['Alex'] },
+          { id: 2, title: 'Task B', status: 'backlog', assignees: ['Sam'] }
+        ]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await openTaskEditor(page, 'Task A');
+    const suggestions = () => page.evaluate(() => (
+      Array.from(document.querySelectorAll('#taskAssigneeSuggestions option')).map((option) => option.value)
+    ));
+    await expect.poll(suggestions).toEqual(['Sam']);
+
+    await page.locator('#taskAssigneeItems .assignee-editor-row input[type="text"]').fill('Jamie');
+    await expect.poll(suggestions).toEqual(['Alex', 'Sam']);
+  });
+
+  test('removing an attachment clears the attachment picker error (2.1b)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'p1',
+        title: 'Project One',
+        hasHandle: true,
+        tasks: [{
+          id: 1,
+          title: 'Task with file',
+          status: 'backlog',
+          attachments: [{
+            id: 'att_txt',
+            name: 'notes.txt',
+            mime: 'text/plain',
+            sizeBytes: 16,
+            kind: 'file',
+            dataUrl: 'data:text/plain;base64,aGVsbG8gYXR0YWNobWVudA==',
+            createdAt: '2026-02-26T00:00:00.000Z'
+          }]
+        }]
+      }
+    ], { selectedBoardId: 'p1' });
+
+    await openTaskEditor(page, 'Task with file');
+    await page.setInputFiles('#taskAttachmentsInput', {
+      name: 'huge.bin',
+      mimeType: 'application/octet-stream',
+      buffer: Buffer.alloc((10 * 1024 * 1024) + 1)
+    });
+    await expect(page.locator('#taskAttachmentsWarnings')).toContainText('huge.bin exceeds the 10 MB limit.');
+
+    await page.getByRole('button', { name: 'Remove attachment notes.txt' }).click();
+    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(0);
+    await expect(page.locator('#taskAttachmentsWarnings')).toHaveText('');
+  });
+
+  test('clicking Undo while the task editor is open keeps the editor open (2.1b)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Archive me', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    const card = portfolioCard(page, 'Archive me');
+    await card.hover();
+    page.once('dialog', (dialog) => dialog.accept());
+    await card.locator('button[title="Archive"]').click();
+    await expect(page.locator('#undoToast')).toBeVisible();
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.locator('#undoBtn').click();
+
+    await expect(page.locator('#undoToast')).toHaveCount(0);
+    await expect(page.locator('#taskModal')).toBeVisible();
+  });
+
+  test('creating a task from a calendar day prefills the due date (2.1b)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Undated', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.getByRole('button', { name: 'Calendar' }).click();
+    await page.locator('[data-action="open-calendar-month"]').first().click();
+    const dayCell = page.locator('.portfolio-calendar-day-cell[data-action="create-calendar-task"]').first();
+    const dueDate = await dayCell.getAttribute('data-due-date');
+    expect(dueDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    await dayCell.click();
+    await expect(page.locator('#modalTitle')).toHaveText('New Task');
+    await expect(page.locator('#taskDueDate')).toHaveValue(dueDate);
+  });
+
+  test('a new task lists the board tags as suggestions before any tag is added (2.1b)', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Tagged', status: 'backlog', tags: ['bug', 'ui'] }] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => (
+      Array.from(document.querySelectorAll('#taskTagSuggestions option')).map((option) => option.value)
+    ))).toEqual(['bug', 'ui']);
+  });
+
+  test('React timeline panel follows the published historical selection (2.4)', async ({ page }) => {
+    await seedPortfolioBoards(page, [{
+      id: 'timeline-react',
+      title: 'React Timeline',
+      hasHandle: true,
+      tasks: [{ id: 1, title: 'Original title', status: 'backlog' }]
+    }], { selectedBoardId: 'timeline-react' });
+
+    await renameTaskViaEditor(page, 'Original title', 'Phase 1');
+    await renameTaskViaEditor(page, 'Phase 1', 'Phase 2');
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
+
+    await setTimelineSlider(page, 0);
+    const panel = page.locator('#portfolioTimelinePanel');
+    await expect(panel.locator('.timeline-preview-banner.active')).toContainText('Historical preview');
+    await expect(panel.locator('.timeline-summary-row')).toContainText('Event 1 / 3');
+    await expect(panel.locator('.timeline-event-item.active')).toHaveAttribute('data-event-index', '0');
+    await expect(panel.locator('.timeline-event-detail-title')).toHaveText('Baseline snapshot created');
+    await expect(panel.locator('[data-action="timeline-restore"]')).toBeVisible();
+
+    await panel.locator('[data-action="timeline-latest"]').click();
+    await expect(panel.locator('.timeline-preview-banner.active')).toHaveCount(0);
+    await expect(panel.locator('.timeline-summary-row')).toContainText('Event 3 / 3');
+    await expect(panel.locator('.timeline-event-item.active')).toHaveAttribute('data-event-index', '2');
+    await expect(panel.locator('.timeline-event-detail-title')).toHaveText('Task updated: Phase 2');
   });
 });

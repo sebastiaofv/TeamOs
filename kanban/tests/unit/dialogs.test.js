@@ -97,4 +97,17 @@ describe('dialog actions', () => {
     expect(appState.dialogProps).toBe(null);
     expect(listener).toHaveBeenCalledTimes(1);
   });
+
+  it('opens and closes the task editor by name', () => {
+    openDialog('taskEditor', { openId: 1 });
+    expect(appState.activeDialog).toBe('taskEditor');
+    expect(appState.dialogProps).toEqual({ openId: 1 });
+
+    closeDialog('taskDetail');
+    expect(appState.activeDialog).toBe('taskEditor');
+
+    closeDialog('taskEditor');
+    expect(appState.activeDialog).toBe(null);
+    expect(appState.dialogProps).toBe(null);
+  });
 });

@@ -1894,3 +1894,7 @@ git commit -m "docs: document Phase 2.1b task editor and record plan deviations
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
+
+## Deviations
+
+- None.

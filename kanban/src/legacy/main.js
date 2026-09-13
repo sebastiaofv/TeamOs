@@ -1,18 +1,18 @@
 import '../styles/legacy.css';
-import { isAbortError, formatErrorMessage, isFileDrag, nowIso, escapeRegExp, readFileAsDataUrl, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, assertRequiredExtension, portfolioSortSelectValueFromKey } from '../domain/util.js';
-import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, parseChecklistInput, getBoardTagSuggestions, getTaskChecklistDropPlacement, nextTaskIdForBoard, touchTask, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
+import { isAbortError, formatErrorMessage, isFileDrag, nowIso, escapeRegExp, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, normalizeTheme, assertRequiredExtension } from '../domain/util.js';
+import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, parseChecklistInput, getBoardTagSuggestions, nextTaskIdForBoard, touchTask, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
 import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, slugifyRoadmapEntityId, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker, getVisibleRoadmapDateRange, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
 import { normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, comparePortfolioRows } from '../domain/board.js';
-import { attachmentDuplicateKey, classifyAttachmentKind, createAttachmentId, estimateAttachmentDataUrlSizeBytes, normalizeAttachmentRecord, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
+import { normalizeAttachmentRecord, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
 import { comparePortfolioCalendarItems, createUtcDate, formatUtcIsoDate, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
 import { cloneSerializable, getBoardExtensionsObject, createBoardStateSnapshot, serializeBoardDataFromObject } from '../domain/serialize.js';
-import { formatTimelineValue, captureTaskTimelineSnapshot, getBoardTimelineData, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline, appendTimelineEvent, recordBoardRestoreTimelineEvent, recordTaskTimelineEvent } from '../domain/timeline.js';
+import { captureTaskTimelineSnapshot, getBoardTimelineData, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline, appendTimelineEvent, recordBoardRestoreTimelineEvent, recordTaskTimelineEvent } from '../domain/timeline.js';
 import { formatTaskScore } from '../domain/scoring.js';
 import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 import { appState, getPortfolioBoardRecord } from '../state/store.js';
 import { Logger } from '../logger.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
-import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, checkProjectFilesNow, stopProjectFileWatcher, enqueueProjectSave, retryProjectSave, createPortfolioRecord, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
+import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, checkProjectFilesNow, stopProjectFileWatcher, enqueueProjectSave, retryProjectSave, createPortfolioRecord } from '../persistence/projectFiles.js';
 import { notifyAppStateChanged } from '../bridge/appStore.js';
 import { openDialog, closeDialog } from '../actions/dialogs.js';
 import { setLegacyHost } from '../actions/legacyHost.js';
@@ -24,6 +24,14 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             CALENDAR_WEEKDAY_NAMES, defaultColumns
         } from '../domain/constants.js';
         const Refs = {};
+        const DEFAULT_PORTFOLIO_FILTERS = Object.freeze({
+            search: '',
+            archive: 'active',
+            blocked: 'all',
+            assignee: '',
+            priority: '',
+            effort: ''
+        });
 
 
         function readQueryParam(key, fallback = '') {
@@ -46,12 +54,13 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         function updateUrlState() {
             const params = new URLSearchParams();
 
-            const portfolioSearch = document.getElementById('portfolioSearchInput')?.value || '';
-            const portfolioPriority = document.getElementById('portfolioPriorityFilter')?.value || '';
-            const portfolioAssignee = document.getElementById('portfolioAssigneeFilter')?.value || '';
-            const portfolioBlocked = normalizePortfolioBlockedFilter(document.getElementById('portfolioBlockedFilter')?.value || 'all');
-            const portfolioEffort = document.getElementById('portfolioEffortFilter')?.value || '';
-            const portfolioArchive = document.getElementById('portfolioArchiveFilter')?.value || 'active';
+            const filters = { ...DEFAULT_PORTFOLIO_FILTERS, ...(appState.portfolioFilters || {}) };
+            const portfolioSearch = filters.search || '';
+            const portfolioPriority = filters.priority || '';
+            const portfolioAssignee = filters.assignee || '';
+            const portfolioBlocked = normalizePortfolioBlockedFilter(filters.blocked || 'all');
+            const portfolioEffort = filters.effort || '';
+            const portfolioArchive = filters.archive || 'active';
             if (portfolioSearch) params.set('pq', portfolioSearch);
             if (portfolioPriority) params.set('pp', portfolioPriority);
             if (portfolioAssignee) params.set('pu', portfolioAssignee);
@@ -83,28 +92,14 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             const portfolioBoard = readQueryParam('pb', '');
             const portfolioViewMode = readQueryParam('pv', 'board');
 
-            const pSearch = document.getElementById('portfolioSearchInput');
-            const pPriority = document.getElementById('portfolioPriorityFilter');
-            const pAssignee = document.getElementById('portfolioAssigneeFilter');
-            const pBlocked = document.getElementById('portfolioBlockedFilter');
-            const pEffort = document.getElementById('portfolioEffortFilter');
-            const pArchive = document.getElementById('portfolioArchiveFilter');
-            if (pSearch) pSearch.value = portfolioSearch;
-            if (pPriority && ['', 'high', 'medium', 'low'].includes(portfolioPriority)) {
-                pPriority.value = portfolioPriority;
-            }
-            if (pAssignee) {
-                pAssignee.value = portfolioAssignee;
-            }
-            if (pBlocked) {
-                pBlocked.value = normalizePortfolioBlockedFilter(portfolioBlocked);
-            }
-            if (pEffort && ['', ...EFFORT_BUCKETS].includes(portfolioEffort)) {
-                pEffort.value = portfolioEffort;
-            }
-            if (pArchive && ['active', 'all', 'archived'].includes(portfolioArchive)) {
-                pArchive.value = portfolioArchive;
-            }
+            appState.portfolioFilters = {
+                search: portfolioSearch,
+                priority: ['', 'high', 'medium', 'low'].includes(portfolioPriority) ? portfolioPriority : '',
+                assignee: normalizeAssignee(portfolioAssignee),
+                blocked: normalizePortfolioBlockedFilter(portfolioBlocked),
+                effort: ['', ...EFFORT_BUCKETS].includes(portfolioEffort) ? portfolioEffort : '',
+                archive: ['active', 'all', 'archived'].includes(portfolioArchive) ? portfolioArchive : 'active'
+            };
             appState.portfolioSortKey = normalizePortfolioSortKey(portfolioSort);
             appState.portfolioSortDir = normalizePortfolioSortDir(portfolioSortDirParam);
             setSelectedPortfolioBoardId(portfolioBoard);
@@ -139,185 +134,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-        function getTaskAssigneeEditorRowsContainer() {
-            return document.getElementById('taskAssigneeItems');
-        }
 
-        function getTaskAssigneeTextarea() {
-            return document.getElementById('taskAssignee');
-        }
-
-        function readTaskAssigneeEditorItems() {
-            const container = getTaskAssigneeEditorRowsContainer();
-            if (!container) return [];
-            const rows = Array.from(container.querySelectorAll('.assignee-editor-row'));
-            return normalizeAssignees(rows.map((row) => {
-                const textInput = row.querySelector('input[type="text"]');
-                return textInput?.value || '';
-            }));
-        }
-
-        function syncTaskAssigneeTextareaFromEditor() {
-            const textarea = getTaskAssigneeTextarea();
-            if (!textarea) return;
-            textarea.value = assigneesToInput(readTaskAssigneeEditorItems());
-            renderTaskAssigneeSuggestions();
-        }
-
-        function renderTaskAssigneeEditor(items = []) {
-            const container = getTaskAssigneeEditorRowsContainer();
-            if (!container) return;
-            const normalized = normalizeAssignees(items);
-
-            if (normalized.length === 0) {
-                container.innerHTML = '<div class="assignee-editor-empty">No assignees yet.</div>';
-                syncTaskAssigneeTextareaFromEditor();
-                return;
-            }
-
-            container.innerHTML = normalized.map((name, index) => `
-                <div class="assignee-editor-row" data-index="${index}">
-                    <input type="text" value="${escapeHtml(name)}" list="taskAssigneeSuggestions" aria-label="Assignee name" data-index="${index}">
-                    <button type="button" class="assignee-editor-remove" aria-label="Remove assignee" title="Remove" data-index="${index}">×</button>
-                </div>
-            `).join('');
-
-            syncTaskAssigneeTextareaFromEditor();
-        }
-
-        function loadTaskAssigneeEditorFromTextarea() {
-            const textarea = getTaskAssigneeTextarea();
-            renderTaskAssigneeEditor(parseAssigneesInput(textarea?.value || ''));
-            const composer = document.getElementById('taskAssigneeNewItem');
-            if (composer) {
-                composer.value = '';
-            }
-        }
-
-        function updateTaskAssigneeEditor(items) {
-            renderTaskAssigneeEditor(items);
-        }
-
-        function addTaskAssignee(name = '', options = {}) {
-            const trimmed = normalizeAssignee(name);
-            if (!trimmed) return;
-            const items = readTaskAssigneeEditorItems();
-            if (items.some((item) => item.toLowerCase() === trimmed.toLowerCase())) {
-                if (options.focusComposer !== false) {
-                    document.getElementById('taskAssigneeNewItem')?.focus();
-                }
-                return;
-            }
-            items.push(trimmed);
-            updateTaskAssigneeEditor(items);
-
-            if (options.focusComposer !== false) {
-                document.getElementById('taskAssigneeNewItem')?.focus();
-            }
-        }
-
-        function addTaskAssigneeFromComposer() {
-            const composer = document.getElementById('taskAssigneeNewItem');
-            if (!composer) return;
-            const value = composer.value.trim();
-            if (!value) return;
-            addTaskAssignee(value);
-            composer.value = '';
-            syncTaskAssigneeTextareaFromEditor();
-            composer.focus();
-        }
-
-        function updateTaskAssigneeEditorItemText(index, value) {
-            void index;
-            void value;
-            syncTaskAssigneeTextareaFromEditor();
-        }
-
-        function removeTaskAssigneeEditorItem(index) {
-            const items = readTaskAssigneeEditorItems();
-            if (!items[index]) return;
-            items.splice(index, 1);
-            updateTaskAssigneeEditor(items);
-        }
-
-
-        function renderTagEditor(container, tags, suggestions) {
-            const list = container.querySelector('.tag-editor-list');
-            const datalist = document.getElementById('taskTagSuggestions');
-            if (datalist) {
-                datalist.innerHTML = (suggestions || []).map((s) => `<option value="${escapeHtml(s)}"></option>`).join('');
-            }
-            if (!tags || tags.length === 0) {
-                list.innerHTML = '<div class="tag-editor-empty">No tags yet.</div>';
-                const textarea = document.getElementById('taskTags');
-                if (textarea) textarea.value = '[]';
-                return;
-            }
-            list.innerHTML = tags.map((tag, index) => `
-                <div class="tag-editor-row" data-index="${index}">
-                    <span>${escapeHtml(tag)}</span>
-                    <button type="button" class="tag-editor-remove" aria-label="Remove tag" title="Remove" data-index="${index}">&times;</button>
-                </div>
-            `).join('');
-            const textarea = document.getElementById('taskTags');
-            if (textarea) textarea.value = JSON.stringify(tags);
-        }
-
-        function readTagEditorItems() {
-            const container = document.getElementById('taskTagItems');
-            if (!container) return [];
-            const rows = Array.from(container.querySelectorAll('.tag-editor-row'));
-            return rows.map((row) => {
-                const span = row.querySelector('span');
-                return span ? span.textContent.trim().toLowerCase() : '';
-            }).filter(Boolean);
-        }
-
-        function addTaskTagFromComposer() {
-            const input = document.getElementById('taskTagNewItem');
-            const container = document.getElementById('taskTagEditor');
-            const raw = input ? input.value.trim() : '';
-            if (!raw) return;
-            const tag = raw.toLowerCase();
-            if (tag.length > 30) {
-                alert('Tags must be 30 characters or fewer.');
-                return;
-            }
-            const items = readTagEditorItems();
-            if (items.includes(tag)) {
-                alert('This tag is already added.');
-                return;
-            }
-            if (items.length >= 10) {
-                alert('A task can have at most 10 tags.');
-                return;
-            }
-            items.push(tag);
-            const boardData = appState.portfolioEditContext
-                ? getPortfolioBoardRecord(appState.portfolioEditContext.boardId)?.data
-                : (appState.portfolioCreateContext
-                    ? getPortfolioBoardRecord(appState.portfolioCreateContext.boardId)?.data
-                    : currentBoard);
-            renderTagEditor(container, items, getBoardTagSuggestions(boardData));
-            if (input) input.value = '';
-            input?.focus();
-        }
-
-        function handleTagEditorClick(event) {
-            const button = event.target.closest('.tag-editor-remove[data-index]');
-            if (!button) return;
-            const index = Number(button.dataset.index);
-            const container = document.getElementById('taskTagEditor');
-            const items = readTagEditorItems();
-            if (!items[index]) return;
-            items.splice(index, 1);
-            const boardData = appState.portfolioEditContext
-                ? getPortfolioBoardRecord(appState.portfolioEditContext.boardId)?.data
-                : (appState.portfolioCreateContext
-                    ? getPortfolioBoardRecord(appState.portfolioCreateContext.boardId)?.data
-                    : currentBoard);
-            renderTagEditor(container, items, getBoardTagSuggestions(boardData));
-        }
 
 
 
@@ -753,12 +570,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             appState.portfolioRoadmapExpandedRowsByBoardId[boardId] = next;
         }
 
-        function buildRoadmapEntityOptionMarkup(items, selectedId) {
-            const normalizedSelected = normalizeRoadmapRef(selectedId);
-            return [
-                '<option value="">None</option>',
-                ...items.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === normalizedSelected ? 'selected' : ''}>${escapeHtml(item.title)}</option>`)
-            ].join('');
+        function buildRoadmapEntityOptions(items) {
+            return (Array.isArray(items) ? items : []).map((item) => ({ value: item.id, label: item.title }));
         }
 
         function buildRoadmapSprintOptions(items) {
@@ -858,53 +671,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             return state;
         }
 
-
-        function getProjectChipSaveUiState(boardId) {
-            const state = getProjectSaveState(boardId, { create: false });
-            if (!state) return { status: 'idle', text: '', title: '', canRetry: false };
-            if (state.status === 'error') {
-                return {
-                    status: 'error',
-                    text: 'Save failed',
-                    title: state.lastErrorMessage || 'Save failed.',
-                    canRetry: true
-                };
-            }
-            if (state.inFlight) {
-                return { status: 'saving', text: 'Saving', title: 'Saving changes…', canRetry: false };
-            }
-            if (state.watchStatus === 'conflict') {
-                return {
-                    status: 'conflict',
-                    text: 'Conflict',
-                    title: state.watchMessage || 'External changes detected while local edits are unsaved.',
-                    canRetry: false
-                };
-            }
-            if (projectHasUnsavedChanges(boardId)) {
-                return { status: 'dirty', text: 'Unsaved', title: 'Unsaved changes.', canRetry: false };
-            }
-            if (state.watchStatus === 'watch-error') {
-                return {
-                    status: 'warning',
-                    text: 'Watch error',
-                    title: state.watchMessage || 'Could not read project file for external changes.',
-                    canRetry: false
-                };
-            }
-            if (state.watchStatus === 'external') {
-                if (state.watchStatusUntil && Date.now() > state.watchStatusUntil) {
-                    return { status: 'idle', text: '', title: '', canRetry: false };
-                }
-                return {
-                    status: 'external',
-                    text: 'External update',
-                    title: state.watchMessage || 'Project reloaded from disk.',
-                    canRetry: false
-                };
-            }
-            return { status: 'idle', text: '', title: '', canRetry: false };
-        }
 
         function findPortfolioTaskSource(boardId, taskId) {
             const boardRecord = getPortfolioBoardRecord(boardId);
@@ -1086,7 +852,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             appState.portfolioTimelineSelection = { boardId: '', eventIndex: null };
             if (options.keepModals !== true) {
                 closeDetailModal();
-                closeModal();
+                closeTaskEditor();
             }
         }
 
@@ -1107,7 +873,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             const nextIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
             appState.portfolioTimelineSelection = { boardId, eventIndex: nextIndex };
             closeDetailModal();
-            closeModal();
+            closeTaskEditor();
             renderPortfolio(options);
         }
 
@@ -1126,7 +892,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             }
             appState.portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
             closeDetailModal();
-            closeModal();
+            closeTaskEditor();
             renderPortfolio();
         }
 
@@ -1240,7 +1006,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                 (appState.portfolioEditContext && appState.portfolioEditContext.boardId === boardId) ||
                 (appState.portfolioCreateContext && appState.portfolioCreateContext.boardId === boardId)
             ) {
-                closeModal();
+                closeTaskEditor();
             }
         }
 
@@ -1266,49 +1032,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             buildPortfolioTasks();
             renderPortfolio();
             primeProjectFileBaselines(list);
-        }
-
-        function renderPortfolioBoardChips() {
-            const chips = document.getElementById('portfolioBoardsChips');
-            if (!chips) return;
-
-            if (appState.portfolioBoards.length === 0) {
-                chips.innerHTML = '<span class="empty-state-text">No projects loaded</span>';
-                return;
-            }
-
-            const allActiveClass = appState.selectedPortfolioBoardId ? '' : 'active';
-            const allChip = `
-                <span class="portfolio-chip ${allActiveClass}">
-                    <button class="chip-link" type="button" data-action="select-board" data-board-id="">All</button>
-                </span>
-            `;
-
-            const boardChips = appState.portfolioBoards.map(board => {
-                const activeClass = appState.selectedPortfolioBoardId === board.id ? 'active' : '';
-                const color = portfolioProjectColor(board.id);
-                const chipStyle = `--chip-bg:${color.bg};--chip-border:${color.border};--chip-text:${color.text};`;
-                const saveUi = getProjectChipSaveUiState(board.id);
-                const saveStateLabel = saveUi.text
-                    ? `<span class="chip-save-state ${saveUi.status}" title="${escapeHtml(saveUi.title)}"> • ${escapeHtml(saveUi.text)}</span>`
-                    : '';
-                const retryButton = (board.handle && saveUi.canRetry)
-                    ? `<button class="chip-link" type="button" title="Retry save" data-action="retry-save" data-board-id="${escapeHtml(board.id)}">Retry</button>`
-                    : '';
-                return `
-                    <span class="portfolio-chip ${activeClass}" style="${chipStyle}">
-                        <button class="chip-link" type="button" data-action="select-board" data-board-id="${escapeHtml(board.id)}">
-                            ${escapeHtml(board.title || board.fileName)}
-                            ${board.handle ? '' : '<span class="chip-readonly-label"> (Read-only)</span>'}
-                            ${saveStateLabel}
-                        </button>
-                        ${retryButton}
-                        <button class="chip-link chip-link-danger" type="button" aria-label="Remove project" title="Remove project" data-action="remove-board" data-board-id="${escapeHtml(board.id)}">Remove</button>
-                    </span>
-                `;
-            }).join('');
-
-            chips.innerHTML = allChip + boardChips;
         }
 
         function selectPortfolioBoard(boardId) {
@@ -1458,12 +1181,13 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
         function getFilteredSortedPortfolioRows() {
-            const search = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
-            const priorityFilter = document.getElementById('portfolioPriorityFilter')?.value || '';
-            const assigneeFilter = normalizeAssignee(document.getElementById('portfolioAssigneeFilter')?.value || '');
-            const blockedFilter = normalizePortfolioBlockedFilter(document.getElementById('portfolioBlockedFilter')?.value || 'all');
-            const effortFilter = document.getElementById('portfolioEffortFilter')?.value || '';
-            const archiveFilter = document.getElementById('portfolioArchiveFilter')?.value || 'active';
+            const filters = { ...DEFAULT_PORTFOLIO_FILTERS, ...(appState.portfolioFilters || {}) };
+            const search = String(filters.search || '').trim().toLowerCase();
+            const priorityFilter = filters.priority || '';
+            const assigneeFilter = normalizeAssignee(filters.assignee || '');
+            const blockedFilter = normalizePortfolioBlockedFilter(filters.blocked || 'all');
+            const effortFilter = filters.effort || '';
+            const archiveFilter = filters.archive || 'active';
             const sortBy = normalizePortfolioSortKey(appState.portfolioSortKey);
             const sortDir = normalizePortfolioSortDir(appState.portfolioSortDir);
             const timelineView = getSelectedBoardTimelineViewState();
@@ -1502,202 +1226,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             return board.projectColor || createPortfolioProjectColor(board.colorSeed || 0);
         }
 
-
-        function renderTimelineEventChanges(event) {
-            const changeEntries = Object.entries(event?.changes || {});
-            if (changeEntries.length === 0) {
-                if (event?.snapshot) {
-                    return '<div class="timeline-empty">This event stores a full snapshot for replay/restoration.</div>';
-                }
-                return '<div class="timeline-empty">No field diff stored for this event.</div>';
-            }
-
-            return `
-                <div class="timeline-diff-list">
-                    ${changeEntries.map(([field, change]) => `
-                        <div class="timeline-diff-item">
-                            <div class="timeline-diff-field">${escapeHtml(field)}</div>
-                            <div class="timeline-diff-values">
-                                <div class="timeline-diff-box">
-                                    <div class="timeline-diff-label">Before</div>
-                                    <pre class="timeline-diff-value">${escapeHtml(formatTimelineValue(change.before))}</pre>
-                                </div>
-                                <div class="timeline-diff-box">
-                                    <div class="timeline-diff-label">After</div>
-                                    <pre class="timeline-diff-value">${escapeHtml(formatTimelineValue(change.after))}</pre>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        function renderPortfolioTimelinePanel() {
-            const panel = document.getElementById('portfolioTimelinePanel');
-            if (!panel) return;
-
-            cachePortfolioTimelineListScrollPosition(panel);
-            const viewState = getSelectedBoardTimelineViewState();
-            if (!viewState || !viewState.boardRecord) {
-                panel.dataset.boardId = '';
-                panel.classList.remove('active');
-                panel.innerHTML = '';
-                return;
-            }
-
-            const boardTitle = viewState.boardRecord.title || viewState.boardRecord.fileName || 'Selected Project';
-            const isExpanded = isPortfolioTimelineExpanded(viewState.boardRecord.id);
-            const panelClasses = ['timeline-panel', 'active'];
-            if (!isExpanded) {
-                panelClasses.push('collapsed');
-            }
-            if (!viewState.timeline || viewState.timeline.events.length === 0) {
-                panel.dataset.boardId = viewState.boardRecord.id;
-                panel.className = panelClasses.join(' ');
-                panel.innerHTML = `
-                    <div class="timeline-panel-header">
-                        <div>
-                            <div class="timeline-panel-title">Timeline</div>
-                            <div class="timeline-panel-subtitle">${escapeHtml(boardTitle)} does not have tracked events yet. The timeline starts on the first saved change.</div>
-                        </div>
-                    </div>
-                `;
-                return;
-            }
-
-            const timeline = viewState.timeline;
-            const selectedIndex = viewState.selectedIndex;
-            const selectedEvent = viewState.selectedEvent;
-            const latestIndex = timeline.events.length - 1;
-            const latestEvent = timeline.events[latestIndex];
-            const subtitleText = `${boardTitle} has ${timeline.events.length} tracked event${timeline.events.length === 1 ? '' : 's'}. Latest event: ${latestEvent?.summary || 'Unknown event'} at ${formatDateTime(latestEvent?.at || '')}.`;
-            const latestButtonHtml = `<button class="btn" type="button" data-action="timeline-latest" data-board-id="${escapeHtml(viewState.boardRecord.id)}">Latest</button>`;
-            const previewBannerClass = viewState.isPreview ? 'timeline-preview-banner active' : 'timeline-preview-banner';
-            const restoreButtonHtml = viewState.boardRecord.handle
-                ? '<button class="btn btn-primary" type="button" data-action="timeline-restore">Restore this state</button>'
-                : '';
-
-            panel.dataset.boardId = viewState.boardRecord.id;
-            panel.className = panelClasses.join(' ');
-            panel.innerHTML = `
-                <div class="timeline-panel-header">
-                    <div>
-                        <div class="timeline-panel-title">Timeline</div>
-                        <div class="timeline-panel-subtitle">${escapeHtml(subtitleText)}</div>
-                    </div>
-                    <div class="timeline-panel-actions">
-                        <div class="${previewBannerClass}">Historical preview active</div>
-                        <button class="btn timeline-toggle-btn" type="button" data-action="timeline-toggle-expanded" data-board-id="${escapeHtml(viewState.boardRecord.id)}">${isExpanded ? 'Collapse' : 'Expand'}</button>
-                    </div>
-                </div>
-                <div class="timeline-controls">
-                    ${renderPortfolioTimelineSummaryRow(viewState)}
-                    <div class="timeline-slider-row">
-                        <input class="timeline-slider" type="range" min="0" max="${latestIndex}" step="1" value="${selectedIndex}" data-action="timeline-slider" data-board-id="${escapeHtml(viewState.boardRecord.id)}">
-                        ${latestButtonHtml}
-                        ${restoreButtonHtml}
-                    </div>
-                </div>
-                ${renderPortfolioTimelineBody(viewState)}
-            `;
-            restorePortfolioTimelineListScrollPosition(viewState.boardRecord.id, panel);
-        }
-
-        function renderPortfolioTimelineSummaryRow(viewState) {
-            if (!viewState?.boardRecord || !viewState?.timeline || !isPortfolioTimelineExpanded(viewState.boardRecord.id)) return '';
-            return `
-                <div class="timeline-summary-row">
-                    <span class="timeline-pill">${escapeHtml(formatDateTime(viewState.selectedEvent?.at || ''))}</span>
-                    <span class="timeline-pill">Event ${viewState.selectedIndex + 1} / ${viewState.timeline.events.length}</span>
-                    <span class="timeline-pill">${escapeHtml(viewState.selectedEvent?.kind || '')}</span>
-                    ${viewState.boardRecord.handle ? '' : '<span class="timeline-pill">Read-only project</span>'}
-                </div>
-            `;
-        }
-
-        function renderPortfolioTimelineEventItems(viewState) {
-            if (!viewState?.boardRecord || !viewState?.timeline) return '';
-            return viewState.timeline.events.map((event, index) => `
-                <button class="timeline-event-item ${index === viewState.selectedIndex ? 'active' : ''}" type="button" data-action="timeline-select-event" data-board-id="${escapeHtml(viewState.boardRecord.id)}" data-event-index="${index}">
-                    <span class="timeline-event-kind">${escapeHtml(event.kind)}</span>
-                    <span class="timeline-event-summary">${escapeHtml(event.summary)}</span>
-                    <span class="timeline-event-time">${escapeHtml(formatDateTime(event.at))}</span>
-                </button>
-            `).reverse().join('');
-        }
-
-        function renderPortfolioTimelineEventDetail(viewState) {
-            return `
-                <div class="timeline-event-detail">
-                    <div class="timeline-event-detail-title">${escapeHtml(viewState?.selectedEvent?.summary || 'Timeline event')}</div>
-                    ${renderTimelineEventChanges(viewState?.selectedEvent)}
-                </div>
-            `;
-        }
-
-        function renderPortfolioTimelineBody(viewState) {
-            return `
-                <div class="timeline-body">
-                    <div class="timeline-event-list">${renderPortfolioTimelineEventItems(viewState)}</div>
-                    ${renderPortfolioTimelineEventDetail(viewState)}
-                </div>
-            `;
-        }
-
-        function syncPortfolioTimelinePanelSelection(panel = document.getElementById('portfolioTimelinePanel')) {
-            const viewState = getSelectedBoardTimelineViewState();
-            if (!panel || !viewState || !viewState.boardRecord || !viewState.timeline) {
-                renderPortfolioTimelinePanel();
-                return;
-            }
-            if (panel.dataset.boardId !== viewState.boardRecord.id) {
-                renderPortfolioTimelinePanel();
-                return;
-            }
-
-            const previewBanner = panel.querySelector('.timeline-preview-banner');
-            if (previewBanner) {
-                previewBanner.classList.toggle('active', viewState.isPreview);
-            }
-
-            const slider = panel.querySelector('.timeline-slider');
-            if (!slider) {
-                renderPortfolioTimelinePanel();
-                return;
-            }
-            slider.max = String(Math.max(0, viewState.timeline.events.length - 1));
-            slider.value = String(viewState.selectedIndex);
-
-            const controls = panel.querySelector('.timeline-controls');
-            const summaryRow = panel.querySelector('.timeline-summary-row');
-            const shouldShowSummary = isPortfolioTimelineExpanded(viewState.boardRecord.id);
-            if (controls) {
-                if (shouldShowSummary) {
-                    const summaryMarkup = renderPortfolioTimelineSummaryRow(viewState);
-                    if (summaryRow) {
-                        summaryRow.outerHTML = summaryMarkup;
-                    } else {
-                        controls.insertAdjacentHTML('afterbegin', summaryMarkup);
-                    }
-                } else if (summaryRow) {
-                    summaryRow.remove();
-                }
-            }
-
-            const eventList = panel.querySelector('.timeline-event-list');
-            if (eventList) {
-                const scrollTop = eventList.scrollTop;
-                eventList.innerHTML = renderPortfolioTimelineEventItems(viewState);
-                eventList.scrollTop = scrollTop;
-            }
-
-            const eventDetail = panel.querySelector('.timeline-event-detail');
-            if (eventDetail) {
-                eventDetail.outerHTML = renderPortfolioTimelineEventDetail(viewState);
-            }
-        }
-
         async function restorePortfolioTimelineSelection() {
             const viewState = getSelectedBoardTimelineViewState();
             if (!viewState || !viewState.boardRecord || !viewState.projectedBoard) return false;
@@ -1710,7 +1238,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             if (!currentTimeline) return false;
 
             closeDetailModal();
-            closeModal();
+            closeTaskEditor();
 
             const restoredData = createBoardStateSnapshot(viewState.projectedBoard);
             const nextTimeline = cloneSerializable(currentTimeline);
@@ -1733,7 +1261,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             return true;
         }
 
-        function createPortfolioTaskCard(item, searchTerm = '') {
+        function createPortfolioRoadmapTaskCard(item, searchTerm = '') {
             const task = item.task;
             const div = document.createElement('div');
             div.className = 'task-card portfolio-task-card';
@@ -1832,91 +1360,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             return div;
         }
 
-        function renderPortfolioBulkActions() {
-            const actions = document.getElementById('portfolioBulkActions');
-            const summary = document.getElementById('portfolioBulkActionsSummary');
-            const createButton = document.getElementById('portfolioBulkCreateSprintBtn');
-            const assignButton = document.getElementById('portfolioBulkAssignSprintBtn');
-            if (!actions || !summary || !createButton || !assignButton) return;
-
-            const canShow = Boolean(appState.selectedPortfolioBoardId)
-                && appState.selectedPortfolioViewMode === 'board'
-                && canUsePortfolioTaskMutations(appState.selectedPortfolioBoardId);
-            const selectedCount = canShow ? getSelectedPortfolioBulkTaskIds(appState.selectedPortfolioBoardId).length : 0;
-            const showActions = canShow && selectedCount > 0;
-            const roadmap = canShow ? getRoadmapExtension(getPortfolioBoardRecord(appState.selectedPortfolioBoardId)?.data) : null;
-            const hasExistingSprints = Array.isArray(roadmap?.sprints) && roadmap.sprints.length > 0;
-
-            actions.classList.toggle('active', showActions);
-            summary.textContent = `${selectedCount} ${selectedCount === 1 ? 'task' : 'tasks'} selected`;
-            createButton.disabled = selectedCount === 0;
-            assignButton.classList.toggle('hidden', !showActions || !hasExistingSprints);
-            assignButton.disabled = selectedCount === 0 || !hasExistingSprints;
-        }
-
-        function renderPortfolioBoardView(rows) {
-            const boardWrap = document.getElementById('portfolioBoardWrap');
-            const boardGrid = document.getElementById('portfolioBoard');
-            const banner = document.getElementById('portfolioBoardEmptyBanner');
-            if (!boardWrap || !boardGrid || !banner) return;
-            const searchTerm = (document.getElementById('portfolioSearchInput')?.value || '').trim().toLowerCase();
-            const canAddTasks = Boolean(appState.selectedPortfolioBoardId)
-                && isPortfolioBoardMutable(appState.selectedPortfolioBoardId)
-                && !isHistoricalPreviewActiveForBoard(appState.selectedPortfolioBoardId);
-            const buckets = Object.fromEntries(defaultColumns.map(col => [col.status, []]));
-            rows.forEach((item) => {
-                const status = normalizeTaskStatus(item.task.status);
-                if (!buckets[status]) buckets[status] = [];
-                buckets[status].push(item);
-            });
-
-            const hasBoards = appState.portfolioBoards.length > 0;
-            if (!hasBoards) {
-                banner.classList.add('hidden');
-                banner.textContent = '';
-            } else {
-                banner.classList.add('hidden');
-                banner.textContent = '';
-            }
-
-            boardGrid.innerHTML = defaultColumns.map(col => {
-                const items = buckets[col.status] || [];
-                return `
-                    <div class="portfolio-column" data-status="${escapeHtml(col.status)}">
-                        <div class="portfolio-column-header">
-                            <span class="column-title">${escapeHtml(col.title)}</span>
-                            <span class="column-count">${items.length}</span>
-                        </div>
-                        <div class="portfolio-column-body" id="portfolio-${escapeHtml(col.status)}-column"></div>
-                    </div>
-                `;
-            }).join('');
-
-            defaultColumns.forEach((col) => {
-                const node = document.getElementById(`portfolio-${col.status}-column`);
-                if (!node) return;
-                node.dataset.status = col.status;
-                node.addEventListener('dragover', (ev) => onPortfolioColumnDragOver(ev, col.status));
-                node.addEventListener('dragleave', onPortfolioColumnDragLeave);
-                node.addEventListener('drop', (ev) => onPortfolioColumnDrop(ev, col.status));
-                const items = buckets[col.status] || [];
-                if (canAddTasks) {
-                    const addTaskCard = document.createElement('div');
-                    addTaskCard.className = 'add-task-card';
-                    addTaskCard.textContent = '+ Add Task';
-                    addTaskCard.dataset.action = 'add-task';
-                    addTaskCard.dataset.status = col.status;
-                    node.appendChild(addTaskCard);
-                }
-                if (items.length === 0) {
-                    node.insertAdjacentHTML('beforeend', '<div class="empty-state"><span class="empty-state-text">No tasks</span></div>');
-                    return;
-                }
-                items.forEach((item) => node.appendChild(createPortfolioTaskCard(item, searchTerm)));
-            });
-        }
-
-
         function canUsePortfolioViewMode(mode) {
             const normalized = normalizePortfolioViewMode(mode);
             if (normalized === 'calendar') return appState.portfolioBoards.length > 0;
@@ -1924,14 +1367,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             return appState.portfolioBoards.length > 0;
         }
 
-        function renderSelectedBoardViewToggle() {
-            const toggle = document.getElementById('portfolioViewModeToggle');
-            if (!toggle) return;
-
-            const hasBoards = appState.portfolioBoards.length > 0;
-            const hasSelectedBoard = Boolean(appState.selectedPortfolioBoardId);
-            toggle.classList.toggle('hidden', !hasBoards);
-            if (!hasBoards) {
+        function normalizePortfolioViewModeState() {
+            if (appState.portfolioBoards.length === 0) {
                 appState.selectedPortfolioViewMode = 'board';
                 return;
             }
@@ -1940,19 +1377,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             if (!canUsePortfolioViewMode(appState.selectedPortfolioViewMode)) {
                 appState.selectedPortfolioViewMode = 'board';
             }
-            toggle.querySelectorAll('button[data-view-mode]').forEach((button) => {
-                const mode = normalizePortfolioViewMode(button.dataset.viewMode || '');
-                const isVisible = mode === 'roadmap' ? hasSelectedBoard : hasBoards;
-                button.classList.toggle('hidden', !isVisible);
-                if (!isVisible) {
-                    button.classList.remove('active');
-                    button.setAttribute('aria-pressed', 'false');
-                    return;
-                }
-                const isActive = button.dataset.viewMode === appState.selectedPortfolioViewMode;
-                button.classList.toggle('active', isActive);
-                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-            });
         }
 
         function renderRoadmapGridGuides(axisTicks) {
@@ -2092,7 +1516,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                 gutter.setAttribute('aria-hidden', 'true');
                 const track = document.createElement('div');
                 track.className = 'roadmap-task-list-track';
-                track.replaceChildren(...tasks.map((task, taskIndex) => createPortfolioTaskCard({
+                track.replaceChildren(...tasks.map((task, taskIndex) => createPortfolioRoadmapTaskCard({
                     boardIndex: appState.portfolioBoards.findIndex((board) => board.id === boardRecord.id),
                     boardId: boardRecord.id,
                     taskId: task.id,
@@ -2134,20 +1558,29 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             const boardWrap = document.getElementById('portfolioBoardWrap');
             if (!boardWrap) return;
 
+            cachePortfolioTimelineListScrollPosition();
             syncSelectedPortfolioBoardSelection();
-            renderPortfolioAssigneeFilterOptions();
-            renderTaskAssigneeSuggestions();
+            normalizePortfolioFilterState();
+            const timelineView = getSelectedBoardTimelineViewState();
+            appState.portfolioTimelineView = timelineView?.boardRecord
+                ? {
+                    boardId: timelineView.boardRecord.id,
+                    boardTitle: timelineView.boardRecord.title || timelineView.boardRecord.fileName || 'Selected Project',
+                    boardFileName: timelineView.boardRecord.fileName || '',
+                    hasHandle: Boolean(timelineView.boardRecord.handle),
+                    timeline: timelineView.timeline,
+                    selectedIndex: timelineView.selectedIndex,
+                    selectedEvent: timelineView.selectedEvent,
+                    isPreview: timelineView.isPreview,
+                    isExpanded: isPortfolioTimelineExpanded(timelineView.boardRecord.id)
+                }
+                : null;
             const rows = getFilteredSortedPortfolioRows();
+            appState.portfolioVisibleRows = rows;
             syncSelectedPortfolioCardWithVisibleRows(rows);
             syncHoveredPortfolioCardWithVisibleRows(rows);
             boardWrap.classList.remove('hidden');
-            applyPortfolioSortSelect();
-            if (options.skipTimelinePanel !== true) {
-                renderPortfolioTimelinePanel();
-            } else {
-                syncPortfolioTimelinePanelSelection();
-            }
-            renderSelectedBoardViewToggle();
+            normalizePortfolioViewModeState();
 
             const boardGrid = document.getElementById('portfolioBoard');
             const roadmapView = document.getElementById('portfolioRoadmapView');
@@ -2162,12 +1595,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                 renderPortfolioRoadmapView();
             } else if (calendarActive) {
                 renderPortfolioCalendarView(rows);
-            } else {
-                renderPortfolioBoardView(rows);
             }
 
-            renderPortfolioBulkActions();
-            renderPortfolioBoardChips();
             updateUrlState();
             notifyAppStateChanged();
         }
@@ -2356,27 +1785,60 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
 
-        function getTaskModalBoardRecord() {
-            if (appState.portfolioEditContext?.boardId) {
-                return getPortfolioBoardRecord(appState.portfolioEditContext.boardId);
-            }
-            if (appState.portfolioCreateContext?.boardId) {
-                return getPortfolioBoardRecord(appState.portfolioCreateContext.boardId);
-            }
-            return null;
-        }
+        let taskEditorOpenCount = 0;
 
-        function populateTaskRoadmapSelectors(task = {}) {
-            const boardRecord = getTaskModalBoardRecord();
-            const roadmap = getRoadmapExtension(boardRecord?.data) || createEmptyRoadmapExtension();
-            const phaseSelect = document.getElementById('taskPhase');
-            const milestoneSelect = document.getElementById('taskMilestone');
-            if (phaseSelect) {
-                phaseSelect.innerHTML = buildRoadmapEntityOptionMarkup(roadmap.phases, task.phaseId);
-            }
-            if (milestoneSelect) {
-                milestoneSelect.innerHTML = buildRoadmapEntityOptionMarkup(roadmap.milestones, task.milestoneId);
-            }
+        // View model for TaskEditorDialog. `task` is null when creating.
+        function buildTaskEditorViewModel(boardRecord, task, options = {}) {
+            taskEditorOpenCount += 1;
+            const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
+            const phaseOptions = buildRoadmapEntityOptions(roadmap.phases);
+            const milestoneOptions = buildRoadmapEntityOptions(roadmap.milestones);
+            const knownRef = (optionList, value) => {
+                const ref = normalizeRoadmapRef(value);
+                return optionList.some((option) => option.value === ref) ? ref : '';
+            };
+            const normalized = task ? normalizeTask(task) : null;
+            const initial = normalized
+                ? {
+                    title: normalized.title || '',
+                    description: normalized.description || '',
+                    blocked: Boolean(normalized.blocked),
+                    blockerReason: normalized.blocked ? normalizeBlockerReason(normalized.blockerReason) : '',
+                    assignees: parseAssigneesInput(assigneesToInput(normalized.assignees)),
+                    tags: normalizeTags(normalized.tags),
+                    checklist: parseChecklistInput(checklistToInput(normalized.checklist || [])),
+                    attachments: getTaskAttachments(boardRecord.data, options.taskId).map(normalizeAttachmentRecord).filter(Boolean),
+                    dueDate: normalizeDueDate(normalized.dueDate) || '',
+                    priority: normalizePriority(normalized.priority) || '',
+                    effort: normalizeEffort(normalized.effort) || '',
+                    phaseId: knownRef(phaseOptions, normalized.phaseId),
+                    milestoneId: knownRef(milestoneOptions, normalized.milestoneId)
+                }
+                : {
+                    title: '',
+                    description: '',
+                    blocked: false,
+                    blockerReason: '',
+                    assignees: [],
+                    tags: [],
+                    checklist: [],
+                    attachments: [],
+                    dueDate: normalizeDueDate(options.preferredDueDate || '') || '',
+                    priority: '',
+                    effort: '',
+                    phaseId: '',
+                    milestoneId: ''
+                };
+            return {
+                openId: taskEditorOpenCount,
+                heading: normalized ? 'Edit Task' : 'New Task',
+                initial,
+                phaseOptions,
+                milestoneOptions,
+                assigneePool: getTaskAssigneeSuggestions([]),
+                tagSuggestions: getBoardTagSuggestions(boardRecord.data),
+                otherAttachmentBytes: calculateBoardAttachmentBytes(boardRecord.data, { excludeTaskId: normalized ? options.taskId : null })
+            };
         }
 
         function buildTaskDetailViewModel(source, taskId, readOnly) {
@@ -2437,34 +1899,10 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             closeDetailModal();
 
             setSelectedPortfolioCard(boardId, taskId);
-            const task = normalizeTask(source.task);
             appState.portfolioEditContext = { boardId, taskId };
             appState.portfolioCreateContext = null;
-            renderTaskAssigneeSuggestions();
-
-            document.getElementById('taskModal').classList.add('active');
-            document.getElementById('taskForm').reset();
-            document.getElementById('taskId').value = '';
-            document.getElementById('modalTitle').textContent = 'Edit Task';
-            document.getElementById('taskName').value = task.title || '';
-            document.getElementById('taskDescription').value = task.description || '';
-            document.getElementById('taskAssignee').value = assigneesToInput(task.assignees);
-            loadTaskAssigneeEditorFromTextarea();
-            const tagSuggestions = getBoardTagSuggestions(source.boardRecord.data);
-            renderTagEditor(document.getElementById('taskTagEditor'), normalizeTags(task.tags), tagSuggestions);
-            document.getElementById('taskBlocked').checked = Boolean(task.blocked);
-            document.getElementById('taskBlockerReason').value = normalizeBlockerReason(task.blockerReason);
-            syncTaskBlockedReasonVisibility();
-            document.getElementById('taskChecklist').value = checklistToInput(task.checklist || []);
-            loadTaskChecklistEditorFromTextarea();
-            setTaskModalAttachmentDraft(getTaskAttachments(source.boardRecord.data, taskId), { messages: [] });
-            document.getElementById('taskDueDate').value = normalizeDueDate(task.dueDate) || '';
-            document.getElementById('taskPriority').value = normalizePriority(task.priority) || '';
-            document.getElementById('taskEffort').value = normalizeEffort(task.effort) || '';
-            populateTaskRoadmapSelectors(task);
             appState.pendingNewTaskStatus = null;
-
-            focusAndSelectTaskNameInput();
+            openDialog('taskEditor', buildTaskEditorViewModel(source.boardRecord, source.task, { taskId }));
         }
 
         function openPortfolioCreateTaskModal(boardId, preferredStatus, options = {}) {
@@ -2486,27 +1924,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             appState.portfolioCreateContext = { boardId, status };
             appState.portfolioEditContext = null;
             appState.pendingNewTaskStatus = null;
-            renderTaskAssigneeSuggestions();
-
-            document.getElementById('taskModal').classList.add('active');
-            document.getElementById('taskForm').reset();
-            document.getElementById('taskId').value = '';
-            document.getElementById('modalTitle').textContent = 'New Task';
-            document.getElementById('taskAssignee').value = '';
-            loadTaskAssigneeEditorFromTextarea();
-            renderTagEditor(document.getElementById('taskTagEditor'), [], []);
-            document.getElementById('taskBlocked').checked = false;
-            document.getElementById('taskBlockerReason').value = '';
-            syncTaskBlockedReasonVisibility();
-            document.getElementById('taskChecklist').value = '';
-            loadTaskChecklistEditorFromTextarea();
-            resetTaskModalAttachmentDraft();
-            document.getElementById('taskDueDate').value = normalizeDueDate(options.preferredDueDate || '') || '';
-            document.getElementById('taskPriority').value = '';
-            document.getElementById('taskEffort').value = '';
-            populateTaskRoadmapSelectors();
-
-            focusAndSelectTaskNameInput();
+            openDialog('taskEditor', buildTaskEditorViewModel(boardRecord, null, { preferredDueDate: options.preferredDueDate }));
         }
 
         async function togglePortfolioArchiveTask(boardId, taskId) {
@@ -2607,58 +2025,49 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             return values.sort((a, b) => a.localeCompare(b));
         }
 
-        function renderPortfolioAssigneeFilterOptions() {
-            const select = document.getElementById('portfolioAssigneeFilter');
-            if (!select) return;
-            const previousValue = select.value || '';
-            const options = getPortfolioAssigneeNames();
-            const hasPrevious = previousValue && options.some(name => name === previousValue);
-
-            select.innerHTML = `<option value="">All</option>${options.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')
-                }`;
-
-            if (previousValue) {
-                if (hasPrevious) {
-                    select.value = previousValue;
-                } else {
-                    select.value = '';
-                }
+        function normalizePortfolioFilterState() {
+            const current = { ...DEFAULT_PORTFOLIO_FILTERS, ...(appState.portfolioFilters || {}) };
+            const next = {
+                search: String(current.search || ''),
+                archive: ['active', 'all', 'archived'].includes(current.archive) ? current.archive : 'active',
+                blocked: normalizePortfolioBlockedFilter(current.blocked || 'all'),
+                assignee: normalizeAssignee(current.assignee || ''),
+                priority: ['', 'high', 'medium', 'low'].includes(current.priority) ? current.priority : '',
+                effort: ['', ...EFFORT_BUCKETS].includes(current.effort) ? current.effort : ''
+            };
+            if (appState.portfolioBoards.length > 0 && next.assignee && !getPortfolioAssigneeNames().some(name => name === next.assignee)) {
+                next.assignee = '';
+            }
+            if (Object.keys(next).some(key => next[key] !== appState.portfolioFilters?.[key])) {
+                appState.portfolioFilters = next;
             }
         }
 
-        function renderTaskAssigneeSuggestions() {
-            const datalist = document.getElementById('taskAssigneeSuggestions');
-            if (!datalist) return;
-            const options = getTaskAssigneeSuggestions(readTaskAssigneeEditorItems());
-            datalist.innerHTML = options.map(name => `<option value="${escapeHtml(name)}"></option>`).join('');
-        }
-
-
-
-        function handlePortfolioViewModeToggleClick(event) {
-            const button = event.target.closest('button[data-view-mode]');
-            if (!button) return;
-
-            const nextMode = normalizePortfolioViewMode(button.dataset.viewMode || '');
-            if (!canUsePortfolioViewMode(nextMode)) return;
-            if (nextMode === appState.selectedPortfolioViewMode) return;
-            appState.selectedPortfolioViewMode = nextMode;
+        function setPortfolioFilter(name, value) {
+            if (!Object.prototype.hasOwnProperty.call(DEFAULT_PORTFOLIO_FILTERS, name)) return;
+            const next = { ...DEFAULT_PORTFOLIO_FILTERS, ...(appState.portfolioFilters || {}) };
+            if (name === 'search') next.search = String(value ?? '');
+            if (name === 'archive') next.archive = ['active', 'all', 'archived'].includes(value) ? value : 'active';
+            if (name === 'blocked') next.blocked = normalizePortfolioBlockedFilter(value);
+            if (name === 'assignee') next.assignee = normalizeAssignee(value);
+            if (name === 'priority') next.priority = ['', 'high', 'medium', 'low'].includes(value) ? value : '';
+            if (name === 'effort') next.effort = ['', ...EFFORT_BUCKETS].includes(value) ? value : '';
+            appState.portfolioFilters = next;
             renderPortfolio();
         }
 
-
-        function applyPortfolioSortSelect() {
-            const select = document.getElementById('portfolioSortSelect');
-            if (!select) return;
-            select.value = portfolioSortSelectValueFromKey(appState.portfolioSortKey);
-        }
-
-        function onPortfolioSortSelectChange() {
-            const select = document.getElementById('portfolioSortSelect');
-            if (!select) return;
-            const nextKey = select.value === 'name' ? 'task' : normalizePortfolioSortKey(select.value);
+        function setPortfolioSort(value) {
+            const nextKey = value === 'name' ? 'task' : normalizePortfolioSortKey(value);
+            if (nextKey === appState.portfolioSortKey && appState.portfolioSortDir === 'asc') return;
             appState.portfolioSortKey = nextKey;
             appState.portfolioSortDir = 'asc';
+            renderPortfolio();
+        }
+
+        function setPortfolioViewMode(mode) {
+            const nextMode = normalizePortfolioViewMode(mode);
+            if (!canUsePortfolioViewMode(nextMode) || nextMode === appState.selectedPortfolioViewMode) return;
+            appState.selectedPortfolioViewMode = nextMode;
             renderPortfolio();
         }
 
@@ -2709,184 +2118,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-        function getTaskChecklistEditorRowsContainer() {
-            return document.getElementById('taskChecklistItems');
-        }
 
-        function getTaskChecklistTextarea() {
-            return document.getElementById('taskChecklist');
-        }
-
-        function readTaskChecklistEditorItems() {
-            const container = getTaskChecklistEditorRowsContainer();
-            if (!container) return [];
-            const rows = Array.from(container.querySelectorAll('.checklist-editor-row'));
-            return rows
-                .map((row) => {
-                    const textInput = row.querySelector('input[type="text"]');
-                    const checkbox = row.querySelector('input[type="checkbox"]');
-                    const text = (textInput?.value || '').trim();
-                    if (!text) return null;
-                    return { text, done: Boolean(checkbox?.checked) };
-                })
-                .filter(Boolean);
-        }
-
-        function syncTaskChecklistTextareaFromEditor() {
-            const textarea = getTaskChecklistTextarea();
-            if (!textarea) return;
-            textarea.value = checklistToInput(readTaskChecklistEditorItems());
-        }
-
-        function resetTaskChecklistDragState() {
-            appState.taskChecklistDragState = { activeIndex: -1, targetIndex: -1, targetPlacement: '' };
-            const container = getTaskChecklistEditorRowsContainer();
-            if (!container) return;
-            container.querySelectorAll('.checklist-editor-row').forEach((row) => {
-                row.classList.remove('dragging', 'drag-over-before', 'drag-over-after');
-            });
-        }
-
-        function renderTaskChecklistDragState() {
-            const container = getTaskChecklistEditorRowsContainer();
-            if (!container) return;
-            container.querySelectorAll('.checklist-editor-row').forEach((row) => {
-                const rowIndex = Number(row.dataset.index);
-                row.classList.toggle('dragging', rowIndex === appState.taskChecklistDragState.activeIndex);
-                row.classList.toggle(
-                    'drag-over-before',
-                    rowIndex === appState.taskChecklistDragState.targetIndex
-                        && rowIndex !== appState.taskChecklistDragState.activeIndex
-                        && appState.taskChecklistDragState.targetPlacement === 'before'
-                );
-                row.classList.toggle(
-                    'drag-over-after',
-                    rowIndex === appState.taskChecklistDragState.targetIndex
-                        && rowIndex !== appState.taskChecklistDragState.activeIndex
-                        && appState.taskChecklistDragState.targetPlacement === 'after'
-                );
-            });
-        }
-
-
-        function moveTaskChecklistEditorItem(fromIndex, toIndex, placement = 'before') {
-            const items = readTaskChecklistEditorItems();
-            if (!items[fromIndex] || !items[toIndex]) return false;
-            if (fromIndex === toIndex) return false;
-
-            const [movedItem] = items.splice(fromIndex, 1);
-            let insertIndex = toIndex;
-            if (placement === 'after') insertIndex += 1;
-            if (fromIndex < toIndex) insertIndex -= 1;
-            insertIndex = Math.max(0, Math.min(items.length, insertIndex));
-            items.splice(insertIndex, 0, movedItem);
-            updateTaskChecklistEditor(items);
-            return true;
-        }
-
-        function renderTaskChecklistEditor(items = []) {
-            const container = getTaskChecklistEditorRowsContainer();
-            if (!container) return;
-            const normalized = normalizeChecklist(items);
-            resetTaskChecklistDragState();
-
-            if (normalized.length === 0) {
-                container.innerHTML = '<div class="checklist-editor-empty">No todo items yet.</div>';
-                syncTaskChecklistTextareaFromEditor();
-                return;
-            }
-
-            container.innerHTML = normalized.map((item, index) => `
-                <div class="checklist-editor-row ${item.done ? 'done' : ''}" data-index="${index}">
-                    <button type="button" class="checklist-editor-drag-handle" aria-label="Drag to reorder todo item" title="Drag to reorder" data-index="${index}" draggable="true">::</button>
-                    <input type="checkbox" ${item.done ? 'checked' : ''} aria-label="Mark todo as done" data-index="${index}">
-                    <input type="text" value="${escapeHtml(item.text)}" aria-label="Todo item text" data-index="${index}">
-                    <button type="button" class="checklist-editor-remove" aria-label="Remove todo item" title="Remove" data-index="${index}">×</button>
-                </div>
-            `).join('');
-
-            syncTaskChecklistTextareaFromEditor();
-        }
-
-        function loadTaskChecklistEditorFromTextarea() {
-            const textarea = getTaskChecklistTextarea();
-            renderTaskChecklistEditor(parseChecklistInput(textarea?.value || ''));
-            const composer = document.getElementById('taskChecklistNewItem');
-            if (composer) {
-                composer.value = '';
-            }
-        }
-
-        function updateTaskChecklistEditor(items) {
-            renderTaskChecklistEditor(items);
-        }
-
-        function addTaskChecklistItem(text = '', done = false, options = {}) {
-            const trimmed = String(text || '').trim();
-            if (!trimmed) return;
-            const items = readTaskChecklistEditorItems();
-            items.push({ text: trimmed, done: Boolean(done) });
-            updateTaskChecklistEditor(items);
-
-            if (options.focusComposer !== false) {
-                const composer = document.getElementById('taskChecklistNewItem');
-                if (composer) {
-                    composer.focus();
-                }
-            }
-        }
-
-        function addTaskChecklistItemFromComposer() {
-            const composer = document.getElementById('taskChecklistNewItem');
-            if (!composer) return;
-            const value = composer.value.trim();
-            if (!value) return;
-            addTaskChecklistItem(value, false);
-            composer.value = '';
-            syncTaskChecklistTextareaFromEditor();
-            composer.focus();
-        }
-
-        function toggleTaskChecklistEditorItem(index, checked) {
-            const items = readTaskChecklistEditorItems();
-            if (!items[index]) return;
-            items[index].done = Boolean(checked);
-            updateTaskChecklistEditor(items);
-        }
-
-        function updateTaskChecklistEditorItemText(index, value) {
-            void index;
-            void value;
-            syncTaskChecklistTextareaFromEditor();
-        }
-
-        function removeTaskChecklistEditorItem(index) {
-            const items = readTaskChecklistEditorItems();
-            if (!items[index]) return;
-            items.splice(index, 1);
-            updateTaskChecklistEditor(items);
-        }
-
-        function syncTaskBlockedReasonVisibility() {
-            const checkbox = document.getElementById('taskBlocked');
-            const wrap = document.getElementById('taskBlockerReasonWrap');
-            const input = document.getElementById('taskBlockerReason');
-            if (!checkbox || !wrap || !input) return;
-            const blocked = Boolean(checkbox.checked);
-            wrap.classList.toggle('hidden', !blocked);
-            if (!blocked) {
-                input.value = '';
-            }
-        }
-
-        function onTaskBlockedChange() {
-            syncTaskBlockedReasonVisibility();
-            if (document.getElementById('taskBlocked')?.checked) {
-                requestAnimationFrame(() => {
-                    document.getElementById('taskBlockerReason')?.focus();
-                });
-            }
-        }
 
 
 
@@ -2929,249 +2161,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-        function getTaskModalAttachmentsDraft() {
-            return appState.taskModalAttachmentDraft.map(normalizeAttachmentRecord).filter(Boolean);
-        }
-
-        function getTaskModalAttachmentContext() {
-            if (appState.portfolioEditContext && appState.portfolioEditContext.boardId) {
-                const boardRecord = getPortfolioBoardRecord(appState.portfolioEditContext.boardId);
-                return {
-                    boardData: boardRecord ? boardRecord.data : null,
-                    taskId: appState.portfolioEditContext.taskId,
-                    mode: 'portfolio-edit'
-                };
-            }
-            if (appState.portfolioCreateContext && appState.portfolioCreateContext.boardId) {
-                const boardRecord = getPortfolioBoardRecord(appState.portfolioCreateContext.boardId);
-                return {
-                    boardData: boardRecord ? boardRecord.data : null,
-                    taskId: null,
-                    mode: 'portfolio-create'
-                };
-            }
-            return { boardData: null, taskId: null, mode: 'unknown' };
-        }
-
-
-        function getTaskModalAttachmentDerivedMessages() {
-            const draft = getTaskModalAttachmentsDraft();
-            const messages = [];
-            const totalBytes = draft.reduce((sum, item) => sum + Math.max(0, Number(item.sizeBytes) || 0), 0);
-
-            draft.forEach((item) => {
-                if ((Number(item.sizeBytes) || 0) > ATTACHMENT_SOFT_WARN_BYTES) {
-                    messages.push({
-                        type: 'warning',
-                        text: `${item.name} is large (${formatFileSize(item.sizeBytes)}). Embedded files can slow saves.`
-                    });
-                }
-            });
-
-            if (totalBytes > ATTACHMENT_TASK_SOFT_TOTAL_BYTES) {
-                messages.push({
-                    type: 'warning',
-                    text: `This task has ${formatFileSize(totalBytes)} of attachments. Saving may feel slower.`
-                });
-            }
-
-            const ctx = getTaskModalAttachmentContext();
-            if (ctx.boardData) {
-                const existingBytes = calculateBoardAttachmentBytes(ctx.boardData, { excludeTaskId: ctx.taskId });
-                const projectEstimate = existingBytes + totalBytes;
-                if (projectEstimate > ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES) {
-                    messages.push({
-                        type: 'warning',
-                        text: `This project is estimated at ${formatFileSize(projectEstimate)} of embedded attachments.`
-                    });
-                }
-            }
-
-            return messages;
-        }
-
-        function setTaskModalAttachmentDraft(attachments, options = {}) {
-            appState.taskModalAttachmentDraft = (Array.isArray(attachments) ? attachments : [])
-                .map(normalizeAttachmentRecord)
-                .filter(Boolean);
-            appState.taskModalAttachmentMessages = Array.isArray(options.messages) ? options.messages.filter(Boolean) : [];
-            renderTaskAttachmentsEditor();
-        }
-
-        function resetTaskModalAttachmentDraft() {
-            setTaskModalAttachmentDraft([], { messages: [] });
-            const input = document.getElementById('taskAttachmentsInput');
-            if (input) {
-                input.value = '';
-            }
-        }
-
-        function renderTaskAttachmentsEditor() {
-            const listEl = document.getElementById('taskAttachmentsList');
-            const summaryEl = document.getElementById('taskAttachmentsSummary');
-            const warningsEl = document.getElementById('taskAttachmentsWarnings');
-            if (!listEl || !summaryEl || !warningsEl) return;
-
-            const items = getTaskModalAttachmentsDraft();
-            const totalBytes = items.reduce((sum, item) => sum + (Number(item.sizeBytes) || 0), 0);
-            summaryEl.textContent = items.length === 0
-                ? 'No attachments'
-                : `${items.length} / ${ATTACHMENT_MAX_COUNT} • ${formatFileSize(totalBytes)}`;
-
-            const derived = getTaskModalAttachmentDerivedMessages();
-            const allMessages = [...appState.taskModalAttachmentMessages, ...derived];
-            warningsEl.innerHTML = '';
-            allMessages.forEach((msg) => {
-                if (!msg || typeof msg.text !== 'string' || !msg.text.trim()) return;
-                const div = document.createElement('div');
-                div.className = msg.type === 'error' ? 'attachment-editor-error' : 'attachment-editor-warning';
-                div.textContent = msg.text;
-                warningsEl.appendChild(div);
-            });
-
-            listEl.innerHTML = '';
-            if (items.length === 0) {
-                const empty = document.createElement('div');
-                empty.className = 'attachment-editor-empty';
-                empty.textContent = 'No attachments yet.';
-                listEl.appendChild(empty);
-                return;
-            }
-
-            items.forEach((item) => {
-                const row = document.createElement('div');
-                row.className = 'attachment-editor-item';
-
-                if (item.kind === 'image') {
-                    const img = document.createElement('img');
-                    img.className = 'attachment-editor-thumb';
-                    img.alt = '';
-                    img.src = item.dataUrl;
-                    row.appendChild(img);
-                } else {
-                    const icon = document.createElement('span');
-                    icon.className = 'attachment-editor-icon';
-                    icon.textContent = 'FILE';
-                    row.appendChild(icon);
-                }
-
-                const meta = document.createElement('div');
-                meta.className = 'attachment-editor-meta';
-                const name = document.createElement('div');
-                name.className = 'attachment-editor-name';
-                name.textContent = item.name;
-                const sub = document.createElement('div');
-                sub.className = 'attachment-editor-sub';
-                sub.textContent = `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`;
-                meta.appendChild(name);
-                meta.appendChild(sub);
-                row.appendChild(meta);
-
-                const actions = document.createElement('div');
-                actions.className = 'attachment-editor-actions';
-
-                const downloadLink = document.createElement('a');
-                downloadLink.className = 'attachment-editor-download';
-                downloadLink.href = item.dataUrl;
-                downloadLink.download = item.name || 'attachment';
-                downloadLink.textContent = 'Download';
-                actions.appendChild(downloadLink);
-
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'attachment-remove-btn';
-                removeBtn.setAttribute('aria-label', `Remove attachment ${item.name}`);
-                removeBtn.title = 'Remove';
-                removeBtn.textContent = '×';
-                removeBtn.dataset.attachmentId = item.id;
-                actions.appendChild(removeBtn);
-
-                row.appendChild(actions);
-
-                listEl.appendChild(row);
-            });
-        }
-
-        function triggerTaskAttachmentsPicker() {
-            const input = document.getElementById('taskAttachmentsInput');
-            if (!input) return;
-            input.click();
-        }
-
-        function removeTaskModalAttachment(attachmentId) {
-            appState.taskModalAttachmentDraft = getTaskModalAttachmentsDraft().filter(item => item.id !== attachmentId);
-            appState.taskModalAttachmentMessages = [];
-            renderTaskAttachmentsEditor();
-        }
-
-        async function handleTaskAttachmentsInputChange(event) {
-            const input = event?.target;
-            const files = Array.from(input?.files || []);
-            if (input) {
-                input.value = '';
-            }
-            if (files.length === 0) return;
-
-            const next = getTaskModalAttachmentsDraft();
-            const messages = [];
-            const seenAttachmentKeys = new Set(next.map((item) => attachmentDuplicateKey(item)).filter(Boolean));
-
-            for (const file of files) {
-                if (next.length >= ATTACHMENT_MAX_COUNT) {
-                    messages.push({
-                        type: 'error',
-                        text: `Attachment limit reached (${ATTACHMENT_MAX_COUNT} per task).`
-                    });
-                    break;
-                }
-
-                const fileSize = Number(file.size) || 0;
-                if (fileSize > ATTACHMENT_HARD_MAX_BYTES) {
-                    messages.push({
-                        type: 'error',
-                        text: `${file.name} exceeds the ${formatFileSize(ATTACHMENT_HARD_MAX_BYTES)} limit.`
-                    });
-                    continue;
-                }
-
-                const duplicateKey = attachmentDuplicateKey({
-                    name: file.name || 'Attachment',
-                    mime: file.type || '',
-                    sizeBytes: fileSize
-                });
-                if (duplicateKey && seenAttachmentKeys.has(duplicateKey)) {
-                    messages.push({
-                        type: 'warning',
-                        text: `${file.name} is already attached and was skipped.`
-                    });
-                    continue;
-                }
-
-                try {
-                    const dataUrl = await readFileAsDataUrl(file);
-                    const nextAttachment = {
-                        id: createAttachmentId(),
-                        name: file.name || 'Attachment',
-                        mime: file.type || '',
-                        sizeBytes: fileSize || estimateAttachmentDataUrlSizeBytes(dataUrl),
-                        kind: classifyAttachmentKind(file.type, file.name),
-                        dataUrl,
-                        createdAt: nowIso()
-                    };
-                    next.push(nextAttachment);
-                    if (duplicateKey) {
-                        seenAttachmentKeys.add(duplicateKey);
-                    }
-                } catch (error) {
-                    messages.push({
-                        type: 'error',
-                        text: `${file.name}: ${error.message || 'Failed to read file.'}`
-                    });
-                }
-            }
-
-            setTaskModalAttachmentDraft(next, { messages });
-        }
 
 
         function readStoredTheme() {
@@ -3252,23 +2241,13 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             return safeText.replace(regex, '<span class="search-highlight">$1</span>');
         }
 
-        function closeModal() {
-            document.getElementById('taskModal').classList.remove('active');
-            const checklistTextarea = document.getElementById('taskChecklist');
-            if (checklistTextarea) {
-                checklistTextarea.value = '';
-            }
-            renderTaskChecklistEditor([]);
-            resetTaskModalAttachmentDraft();
-            document.getElementById('taskAssignee').value = '';
-            renderTaskAssigneeEditor([]);
-            document.getElementById('taskAssigneeNewItem').value = '';
-            document.getElementById('taskBlocked').checked = false;
-            document.getElementById('taskBlockerReason').value = '';
-            syncTaskBlockedReasonVisibility();
+        // Every close path, React or legacy, goes through here so the edit and
+        // create contexts never outlive the dialog.
+        function closeTaskEditor() {
             appState.pendingNewTaskStatus = null;
             appState.portfolioEditContext = null;
             appState.portfolioCreateContext = null;
+            closeDialog('taskEditor');
         }
 
         async function toggleChecklistItem(itemIndex, checked) {
@@ -3489,34 +2468,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             document.getElementById(fieldId)?.focus();
         }
 
-        function focusAndSelectTaskNameInput() {
-            const taskNameInput = document.getElementById('taskName');
-            if (!taskNameInput) return;
-            taskNameInput.focus();
-            taskNameInput.select();
-        }
-
-        function readTaskDraftFromForm() {
-            syncTaskChecklistTextareaFromEditor();
-            syncTaskAssigneeTextareaFromEditor();
-            return {
-                title: document.getElementById('taskName').value.trim(),
-                description: document.getElementById('taskDescription').value.trim(),
-                assignees: parseAssigneesInput(document.getElementById('taskAssignee').value),
-                tags: readTagEditorItems(),
-                blocked: Boolean(document.getElementById('taskBlocked').checked),
-                blockerReason: normalizeBlockerReason(document.getElementById('taskBlockerReason').value),
-                checklist: parseChecklistInput(document.getElementById('taskChecklist').value),
-                attachments: getTaskModalAttachmentsDraft(),
-                rawDueDate: document.getElementById('taskDueDate').value.trim(),
-                dueDate: normalizeDueDate(document.getElementById('taskDueDate').value),
-                priority: normalizePriority(document.getElementById('taskPriority').value),
-                effort: normalizeEffort(document.getElementById('taskEffort').value),
-                phaseId: normalizeRoadmapRef(document.getElementById('taskPhase').value),
-                milestoneId: normalizeRoadmapRef(document.getElementById('taskMilestone').value)
-            };
-        }
-
         const TaskFormValidator = {
             validate(draft) {
                 if (!draft.title) {
@@ -3533,8 +2484,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                     return {
                         ok: false,
                         message: 'Blocked tasks require a blocker reason.',
-                        focusFieldId: 'taskBlockerReason',
-                        beforeAlert: syncTaskBlockedReasonVisibility
+                        focusFieldId: 'taskBlockerReason'
                     };
                 }
                 if (draft.rawDueDate && !draft.dueDate) {
@@ -3563,14 +2513,10 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-        async function saveTask() {
-            const draft = readTaskDraftFromForm();
+        async function saveTask(draft) {
             const validation = TaskFormValidator.validate(draft);
             if (!validation.ok) {
                 if (validation.silent) return;
-                if (typeof validation.beforeAlert === 'function') {
-                    validation.beforeAlert();
-                }
                 alert(validation.message);
                 focusFieldById(validation.focusFieldId);
                 return;
@@ -3607,7 +2553,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                 setSelectedPortfolioBoardId(boardId, { resetViewModeWhenEmpty: false });
                 buildPortfolioTasks();
                 renderPortfolio();
-                closeModal();
+                closeTaskEditor();
 
                 await enqueueProjectSave(boardRecord);
                 return;
@@ -3623,12 +2569,12 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                     return true;
                 });
                 if (!saved) return;
-                closeModal();
+                closeTaskEditor();
                 appState.pendingNewTaskStatus = null;
                 return;
             }
 
-            closeModal();
+            closeTaskEditor();
             appState.pendingNewTaskStatus = null;
         }
 
@@ -3773,18 +2719,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
         function resetPortfolioViewFiltersAndSort() {
-            const search = document.getElementById('portfolioSearchInput');
-            const archive = document.getElementById('portfolioArchiveFilter');
-            const priority = document.getElementById('portfolioPriorityFilter');
-            const assignee = document.getElementById('portfolioAssigneeFilter');
-            const blocked = document.getElementById('portfolioBlockedFilter');
-            const effort = document.getElementById('portfolioEffortFilter');
-            if (search) search.value = '';
-            if (archive) archive.value = 'active';
-            if (priority) priority.value = '';
-            if (assignee) assignee.value = '';
-            if (blocked) blocked.value = 'all';
-            if (effort) effort.value = '';
+            appState.portfolioFilters = { ...DEFAULT_PORTFOLIO_FILTERS };
             appState.portfolioSortKey = 'priority';
             appState.portfolioSortDir = 'asc';
             renderPortfolio();
@@ -3800,7 +2735,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
         function getShortcutModalContext() {
-            const taskModalOpen = document.getElementById('taskModal').classList.contains('active');
+            const taskModalOpen = appState.activeDialog === 'taskEditor';
             const detailModalOpen = appState.activeDialog === 'taskDetail';
             const roadmapEntityModalOpen = appState.activeDialog === 'roadmapEntity';
             const shortcutsModalOpen = appState.activeDialog === 'shortcuts';
@@ -4022,7 +2957,9 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                     contexts: ['taskModal'],
                     allowWhileTyping: true,
                     match: (e) => (e.ctrlKey || e.metaKey) && !e.altKey && e.key === 'Enter',
-                    handler: () => saveTask()
+                    // TaskEditorDialog owns the draft and handles this key; the
+                    // entry stays so the Shortcuts dialog lists it.
+                    handler: () => {}
                 },
                 {
                     id: 'detail-edit',
@@ -4059,7 +2996,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                     allowWhileTyping: true,
                     match: (e) => e.key === 'Escape',
                     handler: () => {
-                        closeModal();
+                        closeTaskEditor();
                         closeDetailModal();
                         closeRoadmapEntityModal();
                         closeDialog();
@@ -4090,21 +3027,10 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         function cacheRefs() {
             Refs.themeToggleBtn = document.getElementById('themeToggleBtn');
             Refs.portfolioView = document.getElementById('portfolioView');
-            Refs.portfolioViewModeToggle = document.getElementById('portfolioViewModeToggle');
             Refs.portfolioBoard = document.getElementById('portfolioBoard');
             Refs.portfolioRoadmapView = document.getElementById('portfolioRoadmapView');
             Refs.portfolioCalendarView = document.getElementById('portfolioCalendarView');
-            Refs.portfolioBulkActions = document.getElementById('portfolioBulkActions');
-            Refs.portfolioBoardsChips = document.getElementById('portfolioBoardsChips');
             Refs.portfolioTimelinePanel = document.getElementById('portfolioTimelinePanel');
-            Refs.portfolioSearchInput = document.getElementById('portfolioSearchInput');
-            Refs.portfolioArchiveFilter = document.getElementById('portfolioArchiveFilter');
-            Refs.portfolioPriorityFilter = document.getElementById('portfolioPriorityFilter');
-            Refs.portfolioAssigneeFilter = document.getElementById('portfolioAssigneeFilter');
-            Refs.portfolioBlockedFilter = document.getElementById('portfolioBlockedFilter');
-            Refs.portfolioEffortFilter = document.getElementById('portfolioEffortFilter');
-            Refs.portfolioSortSelect = document.getElementById('portfolioSortSelect');
-            Refs.taskModal = document.getElementById('taskModal');
             return Refs;
         }
 
@@ -4238,60 +3164,10 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             }
         }
 
-        function handlePortfolioBoardChipsClick(event) {
-            const button = event.target.closest('button[data-action]');
-            if (!button) return;
-            const boardId = button.dataset.boardId || '';
-            const action = button.dataset.action;
-            if (action === 'select-board') {
-                selectPortfolioBoard(boardId);
-                return;
-            }
-            if (action === 'retry-save') {
-                retryProjectSave(boardId);
-                return;
-            }
-            if (action === 'remove-board') {
-                removeProjectFromPortfolio(boardId);
-            }
-        }
-
-        function handleTimelinePanelClick(event) {
-            const button = event.target.closest('[data-action]');
-            if (!button) return;
-            const boardId = button.dataset.boardId || '';
-            const action = button.dataset.action;
-            if (action === 'timeline-latest') {
-                movePortfolioTimelineToLatest(boardId);
-                return;
-            }
-            if (action === 'timeline-restore') {
-                restorePortfolioTimelineSelection();
-                return;
-            }
-            if (action === 'timeline-select-event') {
-                setPortfolioTimelineSelection(boardId, Number(button.dataset.eventIndex));
-                return;
-            }
-            if (action === 'timeline-toggle-expanded') {
-                togglePortfolioTimelineExpanded(boardId);
-            }
-        }
-
-        function handleTimelinePanelInput(event) {
-            const input = event.target.closest('input[data-action="timeline-slider"]');
-            if (!input) return;
-            setPortfolioTimelineSelection(input.dataset.boardId || '', Number(input.value), {
-                skipTimelinePanel: appState.portfolioTimelineDragState.active && appState.portfolioTimelineDragState.boardId === (input.dataset.boardId || '')
-            });
-        }
-
-        function handleTimelinePanelPointerDown(event) {
-            const input = event.target.closest('input[data-action="timeline-slider"]');
-            if (!input) return;
+        function beginPortfolioTimelineSliderDrag(boardId) {
             appState.portfolioTimelineDragState = {
                 active: true,
-                boardId: input.dataset.boardId || ''
+                boardId: boardId || ''
             };
         }
 
@@ -4302,6 +3178,9 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
         function handlePortfolioBoardClick(event) {
+            if (event.target.closest('.portfolio-task-card-select')) {
+                return;
+            }
             const actionButton = event.target.closest('button[data-action]');
             if (actionButton) {
                 const taskCard = actionButton.closest('.portfolio-task-card');
@@ -4342,13 +3221,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                 return;
             }
             openPortfolioTaskDetails(boardId, taskId);
-        }
-
-        function handlePortfolioBoardChange(event) {
-            const checkbox = event.target.closest('input[data-action="toggle-bulk-task-selection"]');
-            if (!checkbox) return;
-            togglePortfolioTaskBulkSelection(checkbox.dataset.boardId || '', Number(checkbox.dataset.taskId), checkbox.checked);
-            renderPortfolioBulkActions();
         }
 
         function handlePortfolioRoadmapViewClick(event) {
@@ -4497,23 +3369,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             openRoadmapEntityModal('sprints', '', { mode: 'assign-sprint-from-selection' });
         }
 
-        function handlePortfolioBulkActionsClick(event) {
-            const button = event.target.closest('button');
-            if (!button) return;
-            if (button.id === 'portfolioBulkClearBtn') {
-                clearPortfolioBulkSelection(appState.selectedPortfolioBoardId);
-                renderPortfolio();
-                return;
-            }
-            if (button.id === 'portfolioBulkCreateSprintBtn') {
-                openCreateSprintFromSelectionModal();
-                return;
-            }
-            if (button.id === 'portfolioBulkAssignSprintBtn') {
-                openAssignExistingSprintFromSelectionModal();
-            }
-        }
-
         function handlePortfolioBoardPointerOver(event) {
             const taskCard = event.target.closest('.portfolio-task-card');
             if (!taskCard) return;
@@ -4549,160 +3404,19 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             renderPortfolio();
         }
 
-        function handleTaskChecklistEditorClick(event) {
-            const button = event.target.closest('.checklist-editor-remove[data-index]');
-            if (!button) return;
-            removeTaskChecklistEditorItem(Number(button.dataset.index));
-        }
-
-        function handleTaskChecklistEditorInput(event) {
-            const textInput = event.target.closest('.checklist-editor-row input[type="text"][data-index]');
-            if (!textInput) return;
-            updateTaskChecklistEditorItemText(Number(textInput.dataset.index), textInput.value);
-        }
-
-        function handleTaskChecklistEditorChange(event) {
-            const checkbox = event.target.closest('.checklist-editor-row input[type="checkbox"][data-index]');
-            if (!checkbox) return;
-            toggleTaskChecklistEditorItem(Number(checkbox.dataset.index), checkbox.checked);
-        }
-
-        function handleTaskChecklistEditorDragStart(event) {
-            const handle = event.target.closest('.checklist-editor-drag-handle[data-index]');
-            if (!handle) return;
-            const activeIndex = Number(handle.dataset.index);
-            if (!Number.isInteger(activeIndex) || activeIndex < 0) return;
-            appState.taskChecklistDragState = { activeIndex, targetIndex: -1, targetPlacement: '' };
-            if (event.dataTransfer) {
-                event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('text/plain', String(activeIndex));
-            }
-            renderTaskChecklistDragState();
-        }
-
-        function handleTaskChecklistEditorDragOver(event) {
-            if (appState.taskChecklistDragState.activeIndex < 0) return;
-            const row = event.target.closest('.checklist-editor-row[data-index]');
-            if (!row) return;
-            const targetIndex = Number(row.dataset.index);
-            if (!Number.isInteger(targetIndex) || targetIndex < 0) return;
-            event.preventDefault();
-            if (event.dataTransfer) {
-                event.dataTransfer.dropEffect = 'move';
-            }
-            appState.taskChecklistDragState.targetIndex = targetIndex;
-            appState.taskChecklistDragState.targetPlacement = getTaskChecklistDropPlacement(row, event.clientY);
-            renderTaskChecklistDragState();
-        }
-
-        function handleTaskChecklistEditorDrop(event) {
-            if (appState.taskChecklistDragState.activeIndex < 0) return;
-            const row = event.target.closest('.checklist-editor-row[data-index]');
-            if (!row) {
-                resetTaskChecklistDragState();
-                return;
-            }
-            const targetIndex = Number(row.dataset.index);
-            if (!Number.isInteger(targetIndex) || targetIndex < 0) {
-                resetTaskChecklistDragState();
-                return;
-            }
-            event.preventDefault();
-            const placement = getTaskChecklistDropPlacement(row, event.clientY);
-            moveTaskChecklistEditorItem(appState.taskChecklistDragState.activeIndex, targetIndex, placement);
-            resetTaskChecklistDragState();
-        }
-
-        function handleTaskChecklistEditorDragEnd() {
-            resetTaskChecklistDragState();
-        }
-
-        function handleTaskAssigneeEditorClick(event) {
-            const button = event.target.closest('.assignee-editor-remove[data-index]');
-            if (!button) return;
-            removeTaskAssigneeEditorItem(Number(button.dataset.index));
-        }
-
-        function handleTaskAssigneeEditorInput(event) {
-            const textInput = event.target.closest('.assignee-editor-row input[type="text"][data-index]');
-            if (!textInput) return;
-            updateTaskAssigneeEditorItemText(Number(textInput.dataset.index), textInput.value);
-        }
-
-        function handleTaskAttachmentsEditorClick(event) {
-            const button = event.target.closest('.attachment-remove-btn[data-attachment-id]');
-            if (!button) return;
-            removeTaskModalAttachment(button.dataset.attachmentId);
-        }
-
         function bindStaticUiEvents() {
             Refs.themeToggleBtn?.addEventListener('click', toggleTheme);
             document.getElementById('openShortcutsBtn')?.addEventListener('click', openShortcutsModal);
             document.getElementById('openHelpBtn')?.addEventListener('click', openHelpModal);
             document.getElementById('newProjectBtn')?.addEventListener('click', newProject);
             document.getElementById('importProjectsBtn')?.addEventListener('click', importProjects);
-            document.getElementById('taskModalCloseBtn')?.addEventListener('click', closeModal);
-            document.getElementById('taskModalCancelBtn')?.addEventListener('click', closeModal);
-            document.getElementById('taskModalSaveBtn')?.addEventListener('click', saveTask);
-            document.getElementById('taskAssigneeAddBtn')?.addEventListener('click', addTaskAssigneeFromComposer);
-            document.getElementById('taskTagAddBtn')?.addEventListener('click', addTaskTagFromComposer);
-            document.getElementById('taskChecklistAddBtn')?.addEventListener('click', addTaskChecklistItemFromComposer);
-            document.getElementById('taskAttachmentsAddBtn')?.addEventListener('click', triggerTaskAttachmentsPicker);
-            document.getElementById('resetPortfolioFiltersBtn')?.addEventListener('click', resetPortfolioViewFiltersAndSort);
-            document.getElementById('taskBlocked')?.addEventListener('change', onTaskBlockedChange);
-            document.getElementById('portfolioSearchInput')?.addEventListener('input', renderPortfolio);
-            document.getElementById('portfolioArchiveFilter')?.addEventListener('change', renderPortfolio);
-            document.getElementById('portfolioBlockedFilter')?.addEventListener('change', renderPortfolio);
-            document.getElementById('portfolioAssigneeFilter')?.addEventListener('change', renderPortfolio);
-            document.getElementById('portfolioPriorityFilter')?.addEventListener('change', renderPortfolio);
-            document.getElementById('portfolioEffortFilter')?.addEventListener('change', renderPortfolio);
-            document.getElementById('portfolioSortSelect')?.addEventListener('change', onPortfolioSortSelectChange);
-            document.getElementById('taskChecklistNewItem')?.addEventListener('keydown', (e) => {
-                if (e.key !== 'Enter') return;
-                e.preventDefault();
-                addTaskChecklistItemFromComposer();
-            });
-            document.getElementById('taskAssigneeNewItem')?.addEventListener('keydown', (e) => {
-                if (e.key !== 'Enter') return;
-                e.preventDefault();
-                addTaskAssigneeFromComposer();
-            });
-            document.getElementById('taskTagNewItem')?.addEventListener('keydown', (e) => {
-                if (e.key !== 'Enter') return;
-                e.preventDefault();
-                addTaskTagFromComposer();
-            });
-            document.getElementById('taskTagItems')?.addEventListener('click', handleTagEditorClick);
-            document.getElementById('taskAttachmentsInput')?.addEventListener('change', handleTaskAttachmentsInputChange);
-            document.getElementById('taskModal')?.addEventListener('click', (e) => {
-                if (e.target === document.getElementById('taskModal')) {
-                    closeModal();
-                }
-            });
-            Refs.portfolioBoardsChips?.addEventListener('click', handlePortfolioBoardChipsClick);
-            Refs.portfolioViewModeToggle?.addEventListener('click', handlePortfolioViewModeToggleClick);
-            Refs.portfolioTimelinePanel?.addEventListener('click', handleTimelinePanelClick);
-            Refs.portfolioTimelinePanel?.addEventListener('input', handleTimelinePanelInput);
-            Refs.portfolioTimelinePanel?.addEventListener('pointerdown', handleTimelinePanelPointerDown);
             Refs.portfolioBoard?.addEventListener('click', handlePortfolioBoardClick);
-            Refs.portfolioBoard?.addEventListener('change', handlePortfolioBoardChange);
             Refs.portfolioRoadmapView?.addEventListener('click', handlePortfolioRoadmapViewClick);
             Refs.portfolioCalendarView?.addEventListener('click', handlePortfolioCalendarViewClick);
-            Refs.portfolioBulkActions?.addEventListener('click', handlePortfolioBulkActionsClick);
             Refs.portfolioBoard?.addEventListener('pointerover', handlePortfolioBoardPointerOver);
             Refs.portfolioBoard?.addEventListener('pointerout', handlePortfolioBoardPointerOut);
             Refs.portfolioRoadmapView?.addEventListener('pointerover', handlePortfolioBoardPointerOver);
             Refs.portfolioRoadmapView?.addEventListener('pointerout', handlePortfolioBoardPointerOut);
-            document.getElementById('taskChecklistItems')?.addEventListener('click', handleTaskChecklistEditorClick);
-            document.getElementById('taskChecklistItems')?.addEventListener('input', handleTaskChecklistEditorInput);
-            document.getElementById('taskChecklistItems')?.addEventListener('change', handleTaskChecklistEditorChange);
-            document.getElementById('taskChecklistItems')?.addEventListener('dragstart', handleTaskChecklistEditorDragStart);
-            document.getElementById('taskChecklistItems')?.addEventListener('dragover', handleTaskChecklistEditorDragOver);
-            document.getElementById('taskChecklistItems')?.addEventListener('drop', handleTaskChecklistEditorDrop);
-            document.getElementById('taskChecklistItems')?.addEventListener('dragend', handleTaskChecklistEditorDragEnd);
-            document.getElementById('taskAssigneeItems')?.addEventListener('click', handleTaskAssigneeEditorClick);
-            document.getElementById('taskAssigneeItems')?.addEventListener('input', handleTaskAssigneeEditorInput);
-            document.getElementById('taskAttachmentsList')?.addEventListener('click', handleTaskAttachmentsEditorClick);
             document.addEventListener('keydown', dispatchShortcutKeydown);
             document.addEventListener('click', handleDocumentClickForSelection);
             document.addEventListener('pointerup', handleTimelineSliderPointerCommit);
@@ -4716,7 +3430,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         // Persistence calls back into the UI through these two seams; see
         // src/persistence/projectFiles.js.
         setPersistenceHost({
-            onStatusChanged: renderPortfolioBoardChips,
+            onStatusChanged: () => notifyAppStateChanged(),
             applySnapshot: applySnapshotToBoardRecord
         });
 
@@ -4727,7 +3441,39 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             toggleTaskDetailChecklistItem: toggleChecklistItem,
             closeRoadmapEntity: closeRoadmapEntityModal,
             saveRoadmapEntity,
-            performUndo
+            performUndo,
+            closeTaskEditor,
+            saveTask,
+            setPortfolioFilter,
+            setPortfolioSort,
+            setPortfolioViewMode,
+            resetPortfolioFilters: resetPortfolioViewFiltersAndSort,
+            selectPortfolioBoard,
+            removePortfolioBoard: removeProjectFromPortfolio,
+            retryPortfolioSave: retryProjectSave,
+            clearPortfolioBulkSelection: (boardId) => {
+                clearPortfolioBulkSelection(boardId);
+                renderPortfolio();
+            },
+            openCreateSprintFromSelection: () => openCreateSprintFromSelectionModal(),
+            openAssignSprintFromSelection: () => openAssignExistingSprintFromSelectionModal(),
+            togglePortfolioTaskBulkSelection: (boardId, taskId, checked) => {
+                togglePortfolioTaskBulkSelection(boardId, taskId, checked);
+                notifyAppStateChanged();
+            },
+            onPortfolioTaskDragStart,
+            onPortfolioTaskDragEnd,
+            onPortfolioColumnDragOver,
+            onPortfolioColumnDragLeave,
+            onPortfolioColumnDrop,
+            setPortfolioTimelineSelection: (boardId, eventIndex) => setPortfolioTimelineSelection(boardId, eventIndex, {
+                skipTimelinePanel: appState.portfolioTimelineDragState.active
+                    && appState.portfolioTimelineDragState.boardId === (boardId || '')
+            }),
+            movePortfolioTimelineToLatest,
+            setPortfolioTimelineExpanded,
+            restorePortfolioTimelineSelection,
+            beginPortfolioTimelineSliderDrag
         });
 
         cacheRefs();

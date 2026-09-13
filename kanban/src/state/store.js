@@ -22,10 +22,19 @@ export const appState = {
     portfolioBoards: [],
     nextPortfolioProjectColorSeed: 0,
     portfolioTasks: [],
+    portfolioVisibleRows: [],
     selectedPortfolioBoardId: '',
     selectedPortfolioViewMode: 'board',
 
     // --- Portfolio: sorting and filters ---
+    portfolioFilters: {
+        search: '',
+        archive: 'active',
+        blocked: 'all',
+        assignee: '',
+        priority: '',
+        effort: ''
+    },
     portfolioSortKey: 'priority',
     portfolioSortDir: 'asc',
 
@@ -44,11 +53,9 @@ export const appState = {
 
     // --- Task modal ---
     pendingNewTaskStatus: null,
-    taskModalAttachmentDraft: [],
-    taskModalAttachmentMessages: [],
-    taskChecklistDragState: { activeIndex: -1, targetIndex: -1, targetPlacement: '' },
 
     // --- Timeline view ---
+    portfolioTimelineView: null,
     portfolioTimelineSelection: { boardId: '', eventIndex: null },
     portfolioTimelineDragState: { active: false, boardId: '' },
     portfolioTimelineExpandedByBoardId: {},
@@ -69,7 +76,7 @@ export const appState = {
     undoToast: null, // null | { message }
     activeTheme: 'light',
     ShortcutRegistry: [],
-    activeDialog: null, // null | 'shortcuts' | 'help' | 'taskDetail' | 'roadmapEntity'
+    activeDialog: null, // null | 'shortcuts' | 'help' | 'taskDetail' | 'roadmapEntity' | 'taskEditor'
     dialogProps: null, // view model of the open dialog, built by its opener
 
     // --- Persistence: save and file-watch state ---
