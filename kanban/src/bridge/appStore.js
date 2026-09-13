@@ -8,6 +8,15 @@
 // Call notifyAppStateChanged() after mutating state -- from actions and from
 // legacy renders -- and never during a React render. Selectors must be
 // read-only. Replaced by Zustand slices in Phase 2.7.
+//
+// appState is mutated in place, so object references never change across
+// notifies. Select primitives, or treat selected objects as unstable. Never
+// key React.memo, useMemo, useCallback or useEffect dependencies on object
+// references read from appState -- they will go stale. Key on primitives or
+// on getVersion() instead. Every notify re-renders every subscriber; there is
+// no selector-equality bailout. Legacy code that changes visible state
+// outside renderPortfolio() must also call notifyAppStateChanged() before an
+// island relies on that state.
 
 import { useSyncExternalStore } from 'react';
 import { appState } from '../state/store.js';

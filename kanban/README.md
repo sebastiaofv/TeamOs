@@ -1,6 +1,6 @@
 # Kanban Board
 
-A Kanban app built as a Vite project. It is mid-migration from a single 11,000+ line `kanban.html` file: pure domain logic has been extracted into tested modules under `src/domain/` and `src/persistence/`, while UI and stateful code still lives in `src/legacy/main.js` pending Phase 2.
+A Kanban app built as a Vite project. It is mid-migration from a single 11,000+ line `kanban.html` file: pure domain logic has been extracted into tested modules under `src/domain/` and `src/persistence/`, while UI and stateful code still lives in `src/legacy/main.js`. Phase 2 is in progress: React islands are being mounted beside the legacy UI, and the Shortcuts and Help modals already run on React.
 
 ## What it does
 
@@ -103,7 +103,7 @@ Tailwind CSS is wired into the build (`tailwind.config.js`, `postcss.config.js`)
 
 There are two test suites:
 
-- **Unit tests** (`npm run test:unit`) — Vitest, 829 tests covering the pure functions in `src/domain/` and `src/persistence/`.
+- **Unit tests** (`npm run test:unit`) — Vitest, 829 tests covering the pure functions in `src/domain/` and `src/persistence/`, plus `src/bridge/` (version-tick bridge) and `src/actions/` (dialog actions).
 - **End-to-end tests** (`npm test`) — Playwright, 100 black-box tests (plus the 5 visual baselines below, also run under `npm test`) driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
 - **Visual baselines** (`tests/visual.test.js`, part of `npm test`) — Playwright screenshots of UI pieces taken against the legacy implementation before they are ported to React; a port must match them. Baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Phase 2.8 (Tailwind pass) is the only planned update.
 

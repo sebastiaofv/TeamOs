@@ -1175,3 +1175,16 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 | README snapshot policy | 1 |
 | Existing 4 dialog/shortcut e2e tests unchanged and green | 4, 5 |
 | New e2e: focus moves in; 4 close methods remove from DOM and return focus; shortcut-opened returns to body | 4, 5 |
+
+## Deviations and follow-ups (recorded after execution, 2026-09-13)
+
+**Deviations from this plan:**
+- **Focus return.** "Facts" claimed Radix returns focus to the previously focused element. It only returns focus to a `Dialog.Trigger`, and our openers are legacy buttons and shortcuts. Added `src/components/dialogs/useReturnFocus.js`: it captures `document.activeElement` in `onOpenAutoFocus` and restores it in `onCloseAutoFocus` (with `preventDefault`). Both dialogs spread it onto `Dialog.Content`. Every later legacy-opened Radix dialog should use it.
+- **Close delegates deleted.** Tasks 4–5 kept `closeHelpModal()` / `closeShortcutsModal()` as delegates, but the later steps removed all their callers, so they were deleted (user decision). `openHelpModal()` / `openShortcutsModal()` remain.
+
+**Carry into the 2.1 plan (from the final review):**
+- Audit legacy state changes and targeted renders outside `renderPortfolio()` (e.g. the persistence host's `onStatusChanged: renderPortfolioBoardChips`). Add `notifyAppStateChanged()` wherever an island will read that state.
+- `useReturnFocus`: guard `returnTarget.isConnected` and fall back sensibly. Card-level openers are re-rendered by `renderPortfolio` and may be detached by close time.
+- A dialog island that fails to render, or a failed `createRoot`, leaves `appState.activeDialog` set, and the shortcut dispatcher then suppresses global shortcuts. Consider `closeDialog()` from the boundary, or accept and document it.
+- `createRoot(...).render` errors outside a boundary go to React's `onUncaughtError`, not `Logger`. Consider passing `{ onUncaughtError }`.
+- Radix modal side effects are new versus legacy: scroll lock with scrollbar-gap padding, and `aria-hidden` / `pointer-events: none` on the rest of the page. macOS overlay scrollbars hide any layout shift; the baselines are macOS-only.
