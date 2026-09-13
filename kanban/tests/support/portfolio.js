@@ -45,6 +45,7 @@ function buildTaskPayload(task, index) {
     phaseId: Object.hasOwn(task, 'phaseId') ? task.phaseId : undefined,
     milestoneId: Object.hasOwn(task, 'milestoneId') ? task.milestoneId : undefined,
     sprintId: Object.hasOwn(task, 'sprintId') ? task.sprintId : undefined,
+    ...(Array.isArray(task.attachments) ? { attachments: task.attachments } : {}),
     status: task.status || 'backlog'
   };
 }
