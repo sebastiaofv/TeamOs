@@ -144,6 +144,19 @@ test.describe('2.1a modals and toast', () => {
     });
   }
 
+  test('task detail, attachments scrolled into view (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [
+      { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
+    ], { selectedBoardId: 'v1' });
+    await portfolioCard(page, 'Prepare launch checklist').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    // The modal body scrolls; bring the attachment rows into view.
+    await page.locator('#taskDetailModal .modal-body').evaluate((body) => { body.scrollTop = body.scrollHeight; });
+    await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
+    await expect(page).toHaveScreenshot('task-detail-attachments-light.png', { fullPage: true });
+  });
+
   test('task detail, read-only board (light)', async ({ page }) => {
     await gotoVisualApp(page, 'light');
     await seedPortfolioBoards(page, [
