@@ -2,18 +2,20 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useAppState } from '../../bridge/appStore.js';
 import { closeDialog } from '../../actions/dialogs.js';
 import { useReturnFocus } from './useReturnFocus.js';
+import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
 
 export function HelpDialog() {
     const open = useAppState((s) => s.activeDialog === 'help');
     const returnFocus = useReturnFocus();
 
     return (
-        <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeDialog(); }}>
+        <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeDialog('help'); }}>
             <Dialog.Portal>
                 <Dialog.Overlay className="modal active" id="helpModal">
                     <Dialog.Content
                         className="modal-content"
                         aria-describedby={undefined}
+                        onPointerDownOutside={keepOpenOnUndoToast}
                         {...returnFocus}
                     >
                         <div className="modal-header">

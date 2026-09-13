@@ -2,253 +2,21 @@
 
 const { test, expect } = require('@playwright/test');
 
-const FIXED_TIMESTAMP = '2026-02-26T00:00:00.000Z';
-const BOARD_APP_ID = 'teamos-kanban';
-const BOARD_SCHEMA_VERSION = 1;
-const DEFAULT_COLUMNS = [
-  { status: 'backlog', title: 'backlog' },
-  { status: 'to-do', title: 'to-do' },
-  { status: 'doing', title: 'in progress' },
-  { status: 'done', title: 'done' }
-];
-
-function buildDefaultColumns() {
-  return DEFAULT_COLUMNS.map((column) => ({ ...column }));
-}
-
-function buildTaskPayload(task, index) {
-  const assignees = Array.isArray(task.assignees)
-    ? task.assignees.filter((name) => typeof name === 'string' && name.trim())
-    : (typeof task.assignee === 'string' && task.assignee.trim())
-      ? [task.assignee.trim()]
-      : [];
-  return {
-    id: task.id ?? index + 1,
-    title: task.title,
-    description: task.description || '',
-    assignees,
-    tags: Array.isArray(task.tags) ? task.tags : [],
-    blocked: Boolean(task.blocked),
-    blockerReason: task.blocked ? (task.blockerReason || '') : '',
-    checklist: task.checklist || [],
-    archived: Boolean(task.archived),
-    createdAt: task.createdAt || FIXED_TIMESTAMP,
-    updatedAt: task.updatedAt || FIXED_TIMESTAMP,
-    dueDate: task.dueDate || '',
-    priority: Object.hasOwn(task, 'priority') ? task.priority : null,
-    effort: Object.hasOwn(task, 'effort') ? task.effort : null,
-    phaseId: Object.hasOwn(task, 'phaseId') ? task.phaseId : undefined,
-    milestoneId: Object.hasOwn(task, 'milestoneId') ? task.milestoneId : undefined,
-    sprintId: Object.hasOwn(task, 'sprintId') ? task.sprintId : undefined,
-    status: task.status || 'backlog'
-  };
-}
-
-function buildBoardPayload({ title, tasks = [], extensions = {} }) {
-  return {
-    meta: {
-      schemaVersion: BOARD_SCHEMA_VERSION,
-      appId: BOARD_APP_ID,
-      createdAt: FIXED_TIMESTAMP,
-      updatedAt: FIXED_TIMESTAMP
-    },
-    board: {
-      columns: buildDefaultColumns(),
-      tasks: tasks.map(buildTaskPayload),
-      settings: {
-        title,
-        sortMode: 'manual',
-        showArchivedOnly: false,
-        archiveFilter: 'active'
-      }
-    },
-    extensions: JSON.parse(JSON.stringify(extensions))
-  };
-}
-
-async function gotoApp(page) {
-  await page.goto('/');
-  await expect(page.locator('#portfolioView')).toBeVisible();
-  await expect(page.locator('#boardView')).toHaveCount(0);
-}
-
-// Seeds boards the way a user loads them: writable boards through the Import
-// button (with a fake File System Access picker), read-only boards by dropping
-// files on the window. The fake disk below is a double for the browser's file
-// system, not for the app: tests may read it, the app only sees file handles.
-//
-// `board.id` is a test label. The app assigns its own random ids, so the label
-// only keys the fake disk (`window.__portfolioDiskByBoardId[label]`) and write
-// records; the UI is addressed by board title.
-async function seedPortfolioBoards(
-  page,
-  boards,
-  { selectedBoardId = '', sortKey = '' } = {}
-) {
-  const seededBoards = boards.map((board) => ({
-    label: board.id,
-    title: board.title,
-    hasHandle: Boolean(board.hasHandle),
-    fileName: board.fileName || `${board.id}.board.json`,
-    text: JSON.stringify(buildBoardPayload({
-      title: board.title,
-      tasks: board.tasks || [],
-      extensions: board.extensions || {}
-    }), null, 2)
-  }));
-  const writableBoards = seededBoards.filter((board) => board.hasHandle);
-  const readOnlyBoards = seededBoards.filter((board) => !board.hasHandle);
-
-  await page.evaluate((writableBoards) => {
-    window.__portfolioTestWrites = [];
-    window.__portfolioDiskByBoardId = window.__portfolioDiskByBoardId || {};
-    window.__portfolioFileOpensByBoardId = window.__portfolioFileOpensByBoardId || {};
-    window.__portfolioFileReadsByBoardId = window.__portfolioFileReadsByBoardId || {};
-
-    const handles = writableBoards.map((board) => {
-      const label = board.label;
-      window.__portfolioDiskByBoardId[label] = { text: board.text, lastModified: Date.now() };
-      window.__portfolioFileOpensByBoardId[label] = 0;
-      window.__portfolioFileReadsByBoardId[label] = 0;
-
-      async function recordWrite(text) {
-        const serialized = String(text);
-        const ctl = window.__portfolioWriteControl;
-        const controlled = ctl && ctl.boardId === label;
-        let attempt;
-        if (controlled) {
-          ctl.attempts += 1;
-          attempt = ctl.attempts;
-          ctl.active += 1;
-          ctl.maxActive = Math.max(ctl.maxActive, ctl.active);
-        }
-        try {
-          if (controlled && ctl.failRemaining > 0) {
-            ctl.failRemaining -= 1;
-            throw new Error(`Simulated save failure #${attempt}`);
-          }
-          if (controlled && ctl.holdWrites) {
-            await new Promise((resolve) => ctl.pendingResolvers.push(resolve));
-          }
-          window.__portfolioTestWrites.push(controlled
-            ? { boardId: label, text: serialized, attempt }
-            : { boardId: label, text: serialized });
-          const disk = window.__portfolioDiskByBoardId[label];
-          disk.text = serialized;
-          disk.lastModified = Date.now();
-        } finally {
-          if (controlled) ctl.active -= 1;
-        }
-      }
-
-      return {
-        name: board.fileName,
-        async getFile() {
-          window.__portfolioFileOpensByBoardId[label] += 1;
-          const disk = window.__portfolioDiskByBoardId[label];
-          const text = String(disk.text);
-          return {
-            name: board.fileName,
-            size: new Blob([text]).size,
-            lastModified: Number(disk.lastModified) || Date.now(),
-            async text() {
-              window.__portfolioFileReadsByBoardId[label] += 1;
-              return text;
-            }
-          };
-        },
-        async createWritable() {
-          return {
-            write: recordWrite,
-            async close() {}
-          };
-        }
-      };
-    });
-
-    window.showOpenFilePicker = async () => handles;
-  }, writableBoards);
-
-  const chips = page.locator('#portfolioBoardsChips');
-
-  if (writableBoards.length > 0) {
-    await page.locator('#importProjectsBtn').click();
-    for (const board of writableBoards) {
-      await expect(chips).toContainText(board.title);
-    }
-    // Import reads each file once to build the record, then the app reads it
-    // again to take its external-change baseline. Wait for that second read so
-    // a test's later disk mutation is detected as a change, not taken as baseline.
-    await expect.poll(() => page.evaluate((labels) => (
-      labels.every((label) => window.__portfolioFileReadsByBoardId[label] >= 2)
-    ), writableBoards.map((board) => board.label))).toBe(true);
-  }
-
-  if (readOnlyBoards.length > 0) {
-    await page.evaluate((readOnlyBoards) => {
-      const dt = new DataTransfer();
-      readOnlyBoards.forEach((board) => {
-        dt.items.add(new File([board.text], board.fileName, { type: 'application/json' }));
-      });
-      window.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
-    }, readOnlyBoards);
-    for (const board of readOnlyBoards) {
-      await expect(chips).toContainText(board.title);
-    }
-  }
-
-  const selectedBoard = seededBoards.find((board) => board.label === selectedBoardId);
-  if (selectedBoard) {
-    await selectPortfolioBoard(page, selectedBoard.title);
-  } else {
-    await page.locator('#portfolioBoardsChips [data-action="select-board"][data-board-id=""]').click();
-  }
-
-  if (sortKey === 'task') {
-    await page.locator('#portfolioSortSelect').selectOption('name');
-  } else if (sortKey) {
-    await page.locator('#portfolioSortSelect').selectOption(sortKey);
-  }
-}
-
-function escapeForRegExp(text) {
-  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function portfolioBoardChip(page, title) {
-  return page.locator('#portfolioBoardsChips .portfolio-chip').filter({
-    has: page.locator('[data-action="select-board"]', { hasText: new RegExp(`^\\s*${escapeForRegExp(title)}(\\s|$)`) })
-  });
-}
-
-async function selectPortfolioBoard(page, title) {
-  const chip = portfolioBoardChip(page, title);
-  if (!(await chip.evaluate((node) => node.classList.contains('active')))) {
-    await chip.locator('[data-action="select-board"]').click();
-  }
-  await expect(chip).toHaveClass(/\bactive\b/);
-}
-
-// Parsed contents of a seeded board's file on the fake disk: the last write, or
-// the seeded text if the app has not saved yet.
-async function readSavedBoard(page, boardLabel) {
-  const text = await page.evaluate((label) => {
-    const disk = window.__portfolioDiskByBoardId && window.__portfolioDiskByBoardId[label];
-    if (!disk) throw new Error(`Disk state not found for board: ${label}`);
-    return disk.text;
-  }, boardLabel);
-  return JSON.parse(text);
-}
+const {
+  buildBoardPayload,
+  gotoApp,
+  seedPortfolioBoards,
+  selectPortfolioBoard,
+  readSavedBoard,
+  waitForBoardWrites,
+  portfolioCard,
+  focusIsInside,
+  closeDialogBy
+} = require('./support/portfolio');
 
 // Project chips for loaded boards (excludes the "All" chip).
 function portfolioProjectChipButtons(page) {
   return page.locator('#portfolioBoardsChips [data-action="select-board"]:not([data-board-id=""])');
-}
-
-// Waits until the app has written to the fake disk at least `minCount` times
-// since the boards were seeded (or the write control was installed).
-async function waitForBoardWrites(page, minCount = 1) {
-  await expect.poll(() => page.evaluate(() => (window.__portfolioTestWrites || []).length)).toBeGreaterThanOrEqual(minCount);
 }
 
 async function openTaskEditor(page, cardTitle) {
@@ -351,10 +119,6 @@ async function triggerExternalFileCheck(page) {
   await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
 }
 
-function portfolioCard(page, title) {
-  return page.locator('.portfolio-task-card').filter({ hasText: title }).first();
-}
-
 async function portfolioTitlesInColumn(page, status = 'backlog') {
   const titles = await page.locator(`#portfolio-${status}-column .portfolio-task-card .task-title`).allTextContents();
   return titles.map((t) => t.trim());
@@ -387,22 +151,6 @@ async function installControlledPortfolioWriter(page, { boardId, holdWrites = fa
       return false;
     };
   }, { boardId, holdWrites, failWrites });
-}
-
-async function focusIsInside(page, selector) {
-  return page.evaluate((sel) => Boolean(document.activeElement?.closest(sel)), selector);
-}
-
-async function closeDialogBy(page, dialogId, method) {
-  if (method === 'Escape') {
-    await page.keyboard.press('Escape');
-  } else if (method === 'close button') {
-    await page.locator(`#${dialogId}CloseBtn`).click();
-  } else if (method === 'footer button') {
-    await page.locator(`#${dialogId}FooterCloseBtn`).click();
-  } else if (method === 'overlay click') {
-    await page.locator(`#${dialogId}`).click({ position: { x: 5, y: 5 } });
-  }
 }
 
 test.describe('portfolio-only app', () => {
@@ -2487,6 +2235,89 @@ test.describe('portfolio-only app', () => {
     await expect(page.locator('#helpModal')).toBeHidden();
   });
 
+  const ROADMAP_EXTENSION = {
+    roadmap: {
+      version: 1,
+      milestones: [],
+      phases: [],
+      sprints: [{ id: 's1', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
+    }
+  };
+
+  async function openAddMilestone(page) {
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.getByRole('button', { name: 'Add Milestone' }).click();
+    await expect(page.locator('#roadmapEntityModal')).toBeVisible();
+  }
+
+  test('roadmap entity modal focuses the title when adding a milestone', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'alpha', title: 'Alpha', hasHandle: true, tasks: [], extensions: ROADMAP_EXTENSION }
+    ], { selectedBoardId: 'alpha' });
+
+    await openAddMilestone(page);
+
+    await expect(page.locator('#roadmapEntityTitle')).toBeFocused();
+  });
+
+  test('roadmap entity modal focuses the sprint select when adding to an existing sprint', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'alpha',
+        title: 'Alpha',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog' },
+          { id: 2, title: 'Task B', status: 'to-do' }
+        ],
+        extensions: ROADMAP_EXTENSION
+      }
+    ], { selectedBoardId: 'alpha' });
+    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
+    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+
+    await page.getByRole('button', { name: 'Add to Existing Sprint' }).click();
+
+    await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
+    await expect(page.locator('#roadmapEntityExistingSprint')).toBeFocused();
+  });
+
+  for (const method of ['Escape', 'close button', 'cancel button', 'overlay click']) {
+    test(`roadmap entity modal closed by ${method} leaves the page and reopens empty`, async ({ page }) => {
+      await seedPortfolioBoards(page, [
+        { id: 'alpha', title: 'Alpha', hasHandle: true, tasks: [], extensions: ROADMAP_EXTENSION }
+      ], { selectedBoardId: 'alpha' });
+      await openAddMilestone(page);
+      await expect.poll(() => focusIsInside(page, '#roadmapEntityModal')).toBe(true);
+      await page.locator('#roadmapEntityTitle').fill('Unsaved draft');
+
+      await closeDialogBy(page, 'roadmapEntityModal', method);
+
+      await expect(page.locator('#roadmapEntityModal')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Add Milestone' }).click();
+      await expect(page.locator('#roadmapEntityTitle')).toHaveValue('');
+    });
+  }
+
+  test('roadmap entity modal keeps legacy validation for a milestone without a date', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'alpha', title: 'Alpha', hasHandle: true, tasks: [], extensions: ROADMAP_EXTENSION }
+    ], { selectedBoardId: 'alpha' });
+    await openAddMilestone(page);
+    await page.locator('#roadmapEntityTitle').fill('Gamma');
+
+    let alertMessage = '';
+    page.once('dialog', async (dialog) => {
+      alertMessage = dialog.message();
+      await dialog.accept();
+    });
+    await page.locator('#roadmapEntityModalSaveBtn').click();
+
+    await expect.poll(() => alertMessage).toBe('Milestone requires a valid due date.');
+    await expect(page.locator('#roadmapEntityDate')).toBeFocused();
+    await expect(page.locator('#roadmapEntityModal')).toBeVisible();
+  });
+
   test('task attachments save on the task and show in task details', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }
@@ -2814,6 +2645,44 @@ test.describe('portfolio-only app', () => {
     expect(result.writes.length).toBeGreaterThan(0);
   });
 
+  test('undo toast is removed from the page after clicking Undo', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Toast task', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    const card = portfolioCard(page, 'Toast task');
+    await card.hover();
+    page.once('dialog', (dialog) => dialog.accept());
+    await card.locator('button[title="Archive"]').click();
+    await expect(page.locator('#undoToast')).toBeVisible();
+    await expect(page.locator('#undoToastText')).toHaveText('Task archived');
+
+    await page.locator('#undoBtn').click();
+
+    await expect(page.locator('#undoToast')).toHaveCount(0);
+    await expect(portfolioCard(page, 'Toast task')).toBeVisible();
+  });
+
+  test('clicking Undo in the toast keeps the shortcuts dialog open', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Undo under dialog', status: 'backlog' }] }
+    ], { selectedBoardId: 'p1' });
+
+    const card = portfolioCard(page, 'Undo under dialog');
+    await card.hover();
+    page.once('dialog', (dialog) => dialog.accept());
+    await card.locator('button[title="Archive"]').click();
+    await expect(page.locator('#undoToast')).toBeVisible();
+
+    await page.locator('#openShortcutsBtn').click();
+    await expect(page.locator('#shortcutsModal')).toBeVisible();
+
+    await page.locator('#undoBtn').click();
+
+    await expect(portfolioCard(page, 'Undo under dialog')).toBeVisible();
+    await expect(page.locator('#shortcutsModal')).toBeVisible();
+  });
+
   test('portfolio filters and URL params persist in portfolio-only mode', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
@@ -3088,6 +2957,101 @@ test.describe('portfolio-only app', () => {
     await page.keyboard.press('e');
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect(page.locator('#taskDetailModal')).toBeHidden();
+  });
+
+  for (const method of ['Escape', 'close button', 'footer button', 'overlay click']) {
+    test(`task detail modal takes focus and leaves the page when closed by ${method}`, async ({ page }) => {
+      await seedPortfolioBoards(page, [
+        { id: 'd1', title: 'Detail Project', hasHandle: true, tasks: [{ id: 1, title: 'Detail task', status: 'backlog' }] }
+      ], { selectedBoardId: 'd1' });
+
+      await portfolioCard(page, 'Detail task').click();
+      await expect(page.locator('#taskDetailModal')).toBeVisible();
+      await expect.poll(() => focusIsInside(page, '#taskDetailModal')).toBe(true);
+
+      await closeDialogBy(page, 'taskDetailModal', method);
+
+      await expect(page.locator('#taskDetailModal')).toHaveCount(0);
+    });
+  }
+
+  test('closing task detail forgets the task, so a later change does not reopen it', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'd1', title: 'Detail Project', hasHandle: true, tasks: [{ id: 1, title: 'Forget me', status: 'backlog' }] }
+    ], { selectedBoardId: 'd1' });
+    await portfolioCard(page, 'Forget me').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#taskDetailModal')).toBeHidden();
+
+    const card = portfolioCard(page, 'Forget me');
+    await card.hover();
+    page.once('dialog', (dialog) => dialog.accept());
+    await card.locator('button[title="Archive"]').click();
+    await waitForBoardWrites(page);
+
+    await expect(page.locator('#undoToast')).toBeVisible();
+    await expect(page.locator('#taskDetailModal')).toBeHidden();
+  });
+
+  test('toggling a checklist item in task detail saves it and keeps the modal open', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      {
+        id: 'd1',
+        title: 'Detail Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Checklist task', status: 'backlog', checklist: [{ text: 'Step one', done: false }] }]
+      }
+    ], { selectedBoardId: 'd1' });
+    await portfolioCard(page, 'Checklist task').click();
+    const item = page.locator('#detailChecklist .detail-checklist-item').first();
+
+    await item.locator('input[type="checkbox"]').check();
+
+    await expect(item).toHaveClass(/\bdone\b/);
+    await expect(item.locator('input[type="checkbox"]')).toBeChecked();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await waitForBoardWrites(page);
+    await expect.poll(async () => (await readSavedBoard(page, 'd1')).board.tasks[0].checklist[0].done).toBe(true);
+  });
+
+  test('editing from task detail puts focus in the task name with its text selected', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'd1', title: 'Detail Project', hasHandle: true, tasks: [{ id: 1, title: 'Focus target', status: 'backlog' }] }
+    ], { selectedBoardId: 'd1' });
+    await portfolioCard(page, 'Focus target').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+
+    await page.keyboard.press('e');
+
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(page.locator('#taskName')).toBeFocused();
+    const selection = await page.locator('#taskName').evaluate((input) => ({
+      start: input.selectionStart,
+      end: input.selectionEnd,
+      length: input.value.length
+    }));
+    expect(selection).toEqual({ start: 0, end: 'Focus target'.length, length: 'Focus target'.length });
+  });
+
+  test('undo toast works while task detail is open and leaves the modal open', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'd1', title: 'Detail Project', hasHandle: true, tasks: [{ id: 1, title: 'Undo in detail', status: 'backlog' }] }
+    ], { selectedBoardId: 'd1' });
+    await portfolioCard(page, 'Undo in detail').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.keyboard.press('x');
+    await expect(page.locator('#undoToast')).toBeVisible();
+    await waitForBoardWrites(page, 1);
+
+    await page.locator('#undoBtn').click();
+
+    await waitForBoardWrites(page, 2);
+    await expect.poll(async () => (await readSavedBoard(page, 'd1')).board.tasks[0].archived).toBe(false);
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Undo in detail');
   });
 
   test('single-key shortcuts do not fire while typing in task modal inputs', async ({ page }) => {
