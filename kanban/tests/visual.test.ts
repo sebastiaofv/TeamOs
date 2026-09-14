@@ -1,0 +1,571 @@
+import { test, expect, type Page } from '@playwright/test';
+import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse } from './support/portfolio';
+
+// Pixel baselines for pieces being ported to React. They are captured against
+// the legacy implementation first; a port must match them unchanged. Baselines
+// are platform-specific (generated on macOS). Only update them deliberately
+// (`npx playwright test tests/visual.test.ts --update-snapshots`) and review the
+// image diff in the commit.
+
+const FIXED_TIME = '2026-02-26T12:00:00Z';
+
+const ONE_PIXEL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
+
+const ROADMAP = {
+  roadmap: {
+    version: 1,
+    milestones: [{ id: 'm1', title: 'Beta release', dueDate: '2026-03-15' }],
+    phases: [{ id: 'p1', title: 'Build', startDate: '2026-02-01', endDate: '2026-03-31' }],
+    sprints: [{ id: 's1', title: 'Sprint 4', startDate: '2026-03-02', endDate: '2026-03-13' }]
+  }
+};
+
+const FULL_TASK = {
+  id: 1,
+  title: 'Prepare launch checklist',
+  status: 'to-do',
+  description: 'Coordinate the release with support and marketing.',
+  assignees: ['Ana', 'Rui'],
+  tags: ['launch', 'q2'],
+  blocked: true,
+  blockerReason: 'Waiting on legal review',
+  priority: 'high',
+  effort: 'L',
+  dueDate: '2026-03-10',
+  phaseId: 'p1',
+  milestoneId: 'm1',
+  sprintId: 's1',
+  checklist: [
+    { text: 'Draft release notes', done: true },
+    { text: 'Review copy', done: false },
+    { text: 'Schedule announcement', done: true }
+  ],
+  attachments: [
+    { id: 'att_img', name: 'mockup.png', mime: 'image/png', sizeBytes: 68, kind: 'image', dataUrl: ONE_PIXEL_PNG, createdAt: FIXED_TIMESTAMP },
+    { id: 'att_txt', name: 'notes.txt', mime: 'text/plain', sizeBytes: 16, kind: 'file', dataUrl: 'data:text/plain;base64,aGVsbG8gYXR0YWNobWVudA==', createdAt: FIXED_TIMESTAMP }
+  ]
+};
+
+const TIMELINE_BASELINE = buildBoardPayload({
+  title: 'Timeline Project',
+  tasks: [{ id: 1, title: 'Timeline task', status: 'backlog', description: 'Initial timeline description.' }]
+});
+
+const TIMELINE = {
+  timeline: {
+    version: 1,
+    baselineEventId: 'evt_baseline',
+    events: [
+      {
+        id: 'evt_baseline',
+        at: FIXED_TIMESTAMP,
+        kind: 'board.baseline',
+        entityType: 'board',
+        entityId: 'board',
+        summary: 'Baseline snapshot created',
+        snapshot: TIMELINE_BASELINE
+      },
+      {
+        id: 'evt_updated',
+        at: '2026-02-26T01:00:00.000Z',
+        kind: 'task.updated',
+        entityType: 'task',
+        entityId: '1',
+        summary: 'Task updated: Timeline task',
+        changes: {
+          description: {
+            before: 'Initial timeline description.',
+            after: 'Latest timeline description.'
+          }
+        }
+      }
+    ]
+  }
+};
+
+// Dialogs are opened with mouse clicks, never keys: Radix focuses the close
+// button on open, and Chromium only paints a :focus-visible ring for that
+// programmatic focus after keyboard input. Legacy never moved focus.
+async function gotoVisualApp(page: Page, theme: string) {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.clock.setFixedTime(FIXED_TIME);
+  await page.addInitScript((value: string) => {
+    window.localStorage.setItem('teamOsKanbanTheme', value);
+  }, theme);
+  await page.goto('/');
+  await expect(page.locator('#portfolioView')).toBeVisible();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+}
+
+for (const theme of ['light', 'dark']) {
+  test(`shortcuts dialog open (${theme})`, async ({ page }) => {
+    await gotoVisualApp(page, theme);
+    await page.locator('#openShortcutsBtn').click();
+    await expect(page.locator('#shortcutsModal')).toBeVisible();
+    await expect(page.locator('#shortcutsList')).toContainText('Open keyboard shortcuts');
+    await expect(page).toHaveScreenshot(`shortcuts-${theme}.png`, { fullPage: true });
+  });
+
+  test(`help dialog open (${theme})`, async ({ page }) => {
+    await gotoVisualApp(page, theme);
+    await page.locator('#openHelpBtn').click();
+    await expect(page.locator('#helpModal')).toBeVisible();
+    await expect(page.locator('#helpModal')).toContainText('Drag cards between columns');
+    await expect(page).toHaveScreenshot(`help-${theme}.png`, { fullPage: true });
+  });
+}
+
+test('no dialog open after opening and closing one (light)', async ({ page }) => {
+  await gotoVisualApp(page, 'light');
+  await page.locator('#openShortcutsBtn').click();
+  await expect(page.locator('#shortcutsModal')).toBeVisible();
+  await page.locator('#shortcutsModalFooterCloseBtn').click();
+  await expect(page.locator('#shortcutsModal')).toBeHidden();
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await expect(page).toHaveScreenshot('no-dialog-light.png', { fullPage: true });
+});
+
+// 2.1a baselines: task detail, roadmap entity modal, undo toast. Captured
+// against legacy; the React ports must match. formatDateTime uses
+// toLocaleString, so locale and timezone are pinned.
+test.describe('2.1a modals and toast', () => {
+  test.use({ locale: 'en-US', timezoneId: 'UTC' });
+
+  for (const theme of ['light', 'dark']) {
+    test(`task detail, fully populated (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [
+        { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
+      ], { selectedBoardId: 'v1' });
+      await portfolioCard(page, 'Prepare launch checklist').click();
+      await expect(page.locator('#taskDetailModal')).toBeVisible();
+      await expect(page.locator('#detailAttachments')).toContainText('notes.txt');
+      await expect(page).toHaveScreenshot(`task-detail-full-${theme}.png`, { fullPage: true });
+    });
+
+    test(`roadmap entity, new milestone (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [
+        { id: 'v1', title: 'Launch', hasHandle: true, tasks: [], extensions: ROADMAP }
+      ], { selectedBoardId: 'v1' });
+      await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+      await page.getByRole('button', { name: 'Add Milestone' }).click();
+      await expect(page.locator('#roadmapEntityModal')).toBeVisible();
+      await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('New Milestone');
+      await expect(page).toHaveScreenshot(`roadmap-new-milestone-${theme}.png`, { fullPage: true });
+    });
+
+    test(`undo toast after archiving (${theme})`, async ({ page }) => {
+      // The toast hides after 5 s. Fake timers flow with real time until paused,
+      // so pause well after archiving (a full minute of headroom for slow
+      // seeding): showUndo's timer can never fire.
+      await page.clock.install({ time: FIXED_TIME });
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await page.addInitScript((value) => {
+        window.localStorage.setItem('teamOsKanbanTheme', value);
+      }, theme);
+      await page.goto('/');
+      await expect(page.locator('#portfolioView')).toBeVisible();
+      await seedPortfolioBoards(page, [
+        { id: 'v1', title: 'Launch', hasHandle: true, tasks: [{ id: 1, title: 'Archive me', status: 'backlog' }] }
+      ], { selectedBoardId: 'v1' });
+      await page.clock.pauseAt(new Date('2026-02-26T12:01:00Z'));
+      const card = portfolioCard(page, 'Archive me');
+      await card.hover();
+      await card.locator('button[title="Archive"]').click();
+      await answerAppMessage(page, { button: 'Archive' });
+      await expect(page.locator('#undoToast')).toBeVisible();
+      await page.mouse.move(1, 1);
+      await expect(page).toHaveScreenshot(`undo-toast-${theme}.png`, { fullPage: true });
+    });
+  }
+
+  test('task detail, attachments scrolled into view (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [
+      { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
+    ], { selectedBoardId: 'v1' });
+    await portfolioCard(page, 'Prepare launch checklist').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    // The modal body scrolls; bring the attachment rows into view.
+    await page.locator('#taskDetailModal .modal-body').evaluate((body) => { body.scrollTop = body.scrollHeight; });
+    await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
+    await expect(page).toHaveScreenshot('task-detail-attachments-light.png', { fullPage: true });
+  });
+
+  test('task detail, read-only board (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [
+      {
+        id: 'v2',
+        title: 'Archive Board',
+        hasHandle: false,
+        tasks: [{
+          id: 1,
+          title: 'Read-only task',
+          status: 'backlog',
+          checklist: [{ text: 'Locked item', done: true }, { text: 'Another item', done: false }]
+        }]
+      }
+    ], { selectedBoardId: 'v2' });
+    await portfolioCard(page, 'Read-only task').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Read-only task');
+    await expect(page).toHaveScreenshot('task-detail-readonly-light.png', { fullPage: true });
+  });
+
+  test('roadmap entity, edit phase (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [
+      { id: 'v1', title: 'Launch', hasHandle: true, tasks: [], extensions: ROADMAP }
+    ], { selectedBoardId: 'v1' });
+    await page.getByRole('button', { name: 'Roadmap' }).click();
+    await page.getByRole('button', { name: 'Edit Build' }).click();
+    await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Edit Phase');
+    await expect(page.locator('#roadmapEntityStartDate')).toHaveValue('2026-02-01');
+    await expect(page).toHaveScreenshot('roadmap-edit-phase-light.png', { fullPage: true });
+  });
+
+  test('roadmap entity, add to existing sprint (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [
+      {
+        id: 'v1',
+        title: 'Launch',
+        hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Task A', status: 'backlog' },
+          { id: 2, title: 'Task B', status: 'to-do' }
+        ],
+        extensions: ROADMAP
+      }
+    ], { selectedBoardId: 'v1' });
+    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
+    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
+    await page.getByRole('button', { name: 'Add to Existing Sprint' }).click();
+    await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
+    await expect(page).toHaveScreenshot('roadmap-add-to-sprint-light.png', { fullPage: true });
+  });
+});
+
+// 2.1b baselines: the task editor. Captured against legacy; the React port must
+// match. The editor focuses #taskName on open, so focus is dropped and the
+// mouse parked before capture to keep caret, focus ring and hover out of the
+// image.
+test.describe('2.1b task editor', () => {
+  test.use({ locale: 'en-US', timezoneId: 'UTC' });
+
+  async function captureEditor(page: Page, name: string) {
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot(name, { fullPage: true });
+  }
+
+  async function openFullTaskEditor(page: Page, theme: string) {
+    await gotoVisualApp(page, theme);
+    await seedPortfolioBoards(page, [
+      { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
+    ], { selectedBoardId: 'v1' });
+    await portfolioCard(page, 'Prepare launch checklist').locator('[data-action="edit-task"]').click();
+    await expect(page.locator('#modalTitle')).toHaveText('Edit Task');
+    await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(2);
+    await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(3);
+    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(2);
+  }
+
+  for (const theme of ['light', 'dark']) {
+    test(`task editor, new task (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [
+        { id: 'v1', title: 'Launch', hasHandle: true, tasks: [], extensions: ROADMAP }
+      ], { selectedBoardId: 'v1' });
+      await page.locator('#portfolio-backlog-column .add-task-card').click();
+      await expect(page.locator('#modalTitle')).toHaveText('New Task');
+      await captureEditor(page, `task-editor-new-${theme}.png`);
+    });
+
+    test(`task editor, edit populated (${theme})`, async ({ page }) => {
+      await openFullTaskEditor(page, theme);
+      await expect(page.locator('#taskBlockerReason')).toHaveValue('Waiting on legal review');
+      await expect(page.locator('#taskPhase')).toHaveValue('p1');
+      await captureEditor(page, `task-editor-edit-full-${theme}.png`);
+    });
+  }
+
+  test('task editor, attachments and picker error (light)', async ({ page }) => {
+    await openFullTaskEditor(page, 'light');
+    await page.setInputFiles('#taskAttachmentsInput', {
+      name: 'huge.bin',
+      mimeType: 'application/octet-stream',
+      buffer: Buffer.alloc((10 * 1024 * 1024) + 1)
+    });
+    await expect(page.locator('#taskAttachmentsWarnings')).toContainText('huge.bin exceeds the 10 MB limit.');
+    await page.locator('#taskAttachmentsList').scrollIntoViewIfNeeded();
+    await captureEditor(page, 'task-editor-attachments-light.png');
+  });
+
+  test('task editor, checklist mid-drag (light)', async ({ page }) => {
+    await openFullTaskEditor(page, 'light');
+    const rows = page.locator('#taskChecklistItems .checklist-editor-row');
+    await rows.nth(2).scrollIntoViewIfNeeded();
+    // Hold the third item over the top of the first; the rows it passes shift
+    // down to make room. The button stays down, so capture without
+    // captureEditor, which would move the mouse and the drag with it.
+    await dragWithMouse(page, rows.nth(2).locator('.checklist-editor-drag-handle'), rows.nth(0), {
+      targetPosition: { x: 10, y: 2 },
+      release: false
+    });
+    await expect(rows.nth(2)).toHaveClass(/\bdragging\b/);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot('task-editor-checklist-drag-light.png', { fullPage: true });
+  });
+});
+
+// 2.2 baselines: the portfolio toolbar, project chips and bulk actions. These
+// are captured against the legacy DOM before the React controls replace it.
+test.describe('2.2 toolbar and chips', () => {
+  test.use({ locale: 'en-US', timezoneId: 'UTC' });
+
+  async function captureControls(page: Page, name: string) {
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot(name, { fullPage: true });
+  }
+
+  for (const theme of ['light', 'dark']) {
+    test(`toolbar and project chips, all projects (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [
+        { id: 'v1', title: 'Alpha Project', hasHandle: true, tasks: [{ id: 1, title: 'Alpha task', status: 'backlog' }] },
+        { id: 'v2', title: 'Beta Project', hasHandle: false, tasks: [{ id: 2, title: 'Beta task', status: 'doing' }] }
+      ]);
+      await expect(page.locator('#portfolioBoardsChips .portfolio-chip')).toHaveCount(3);
+      await captureControls(page, `toolbar-chips-all-${theme}.png`);
+    });
+  }
+
+  test('selected toolbar with active filters and bulk actions (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [{
+      id: 'v1',
+      title: 'Launch Project',
+      hasHandle: true,
+      tasks: [
+        { id: 1, title: 'Launch target', status: 'backlog', priority: 'high', effort: 'L', blocked: true, blockerReason: 'Review', assignees: ['Ana'] },
+        { id: 2, title: 'Other task', status: 'doing', priority: 'low', effort: 'S' }
+      ]
+    }], { selectedBoardId: 'v1' });
+    await page.locator('#portfolioSearchInput').fill('launch');
+    await page.locator('#portfolioArchiveFilter').selectOption('all');
+    await page.locator('#portfolioBlockedFilter').selectOption('blocked');
+    await page.locator('#portfolioAssigneeFilter').selectOption('Ana');
+    await page.locator('#portfolioPriorityFilter').selectOption('high');
+    await page.locator('#portfolioEffortFilter').selectOption('L');
+    await page.locator('#portfolioSortSelect').selectOption('score');
+    await page.locator('#portfolio-backlog-column input[data-action="toggle-bulk-task-selection"]').check();
+    await expect(page.locator('#portfolioBulkActions')).toBeVisible();
+    await captureControls(page, 'toolbar-selected-bulk-light.png');
+  });
+
+  test('project chip save failure and retry affordance (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [
+      { id: 'v1', title: 'Retry Project', hasHandle: true, tasks: [{ id: 1, title: 'Move me', status: 'backlog' }] }
+    ], { selectedBoardId: 'v1' });
+    await page.evaluate(() => {
+      window.__portfolioTestWrites = [];
+      window.__portfolioWriteControl = {
+        boardId: 'v1',
+        holdWrites: false,
+        failRemaining: 1,
+        attempts: 0,
+        active: 0,
+        maxActive: 0,
+        pendingResolvers: []
+      };
+    });
+    await dragWithMouse(page, portfolioCard(page, 'Move me'), page.locator('#portfolio-doing-column'));
+    const chip = page.locator('#portfolioBoardsChips .portfolio-chip.active');
+    await expect(chip).toContainText('Save failed');
+    await expect(chip.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
+    await captureControls(page, 'toolbar-chip-save-error-light.png');
+  });
+});
+
+// 2.3 baselines: the portfolio board grid and task cards. These are captured
+// against the legacy board renderer before React takes ownership of #portfolioBoard.
+test.describe('2.3 board and cards', () => {
+  test.use({ locale: 'en-US', timezoneId: 'UTC' });
+
+  async function captureBoard(page: Page, name: string) {
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot(name, { fullPage: true });
+  }
+
+  for (const theme of ['light', 'dark']) {
+    test(`all-projects board cards (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [
+        { id: 'v1', title: 'Launch Project', hasHandle: true, tasks: [FULL_TASK] },
+        {
+          id: 'v2',
+          title: 'Operations Project',
+          hasHandle: false,
+          tasks: [{
+            id: 2,
+            title: 'Review operating metrics',
+            status: 'doing',
+            assignees: ['Rui'],
+            tags: ['ops', 'weekly'],
+            priority: 'medium',
+            effort: 'M',
+            dueDate: '2026-03-02'
+          }]
+        }
+      ]);
+      await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(2);
+      await captureBoard(page, `portfolio-board-all-${theme}.png`);
+    });
+
+    test(`selected writable board cards and add-task affordances (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'v1',
+        title: 'Release Project',
+        hasHandle: true,
+        tasks: [
+          {
+            id: 1,
+            title: 'Prepare release handoff',
+            status: 'backlog',
+            assignees: ['Ana', 'Rui'],
+            tags: ['release', 'handoff'],
+            blocked: true,
+            blockerReason: 'Waiting on QA',
+            priority: 'high',
+            effort: 'L',
+            dueDate: '2026-03-04',
+            checklist: [{ text: 'Share notes', done: true }, { text: 'Book review', done: false }]
+          },
+          { id: 2, title: 'Publish notes', status: 'done', priority: 'low', effort: 'S' }
+        ]
+      }], { selectedBoardId: 'v1' });
+      await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(2);
+      await expect(page.locator('#portfolioBoard .add-task-card')).toHaveCount(4);
+      await captureBoard(page, `portfolio-board-selected-${theme}.png`);
+    });
+  }
+});
+
+// 2.4 baselines: the portfolio timeline panel. These are captured against the
+// legacy renderer before React takes ownership of #portfolioTimelinePanel.
+test.describe('2.4 timeline panel', () => {
+  test.use({ locale: 'en-US', timezoneId: 'UTC' });
+
+  async function openTimeline(page: Page, theme: string) {
+    await gotoVisualApp(page, theme);
+    await seedPortfolioBoards(page, [{
+      id: 'timeline',
+      title: 'Timeline Project',
+      hasHandle: true,
+      tasks: [{ id: 1, title: 'Timeline task', status: 'backlog', description: 'Initial timeline description.' }],
+      extensions: TIMELINE
+    }], { selectedBoardId: 'timeline' });
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
+  }
+
+  for (const theme of ['light', 'dark']) {
+    test(`expanded latest timeline (${theme})`, async ({ page }) => {
+      await openTimeline(page, theme);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page.locator('#portfolioTimelinePanel .timeline-event-item.active')).toHaveAttribute('data-event-index', '1');
+      await expect(page).toHaveScreenshot(`portfolio-timeline-latest-${theme}.png`, { fullPage: true });
+    });
+  }
+
+  test('historical timeline preview (light)', async ({ page }) => {
+    await openTimeline(page, 'light');
+    await page.locator('#portfolioTimelinePanel .timeline-slider').evaluate((node) => {
+      (node as HTMLInputElement).value = '0';
+      node.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toContainText('Historical preview');
+    await expect(page.locator('#portfolioTimelinePanel .timeline-event-item.active')).toHaveAttribute('data-event-index', '0');
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot('portfolio-timeline-preview-light.png', { fullPage: true });
+  });
+});
+
+// 2.5 and 2.6 baselines: roadmap and calendar view surfaces. These snapshots
+// protect the existing CSS contract while the renderers move to React.
+test.describe('2.5 roadmap and 2.6 calendar views', () => {
+  test.use({ locale: 'en-US', timezoneId: 'UTC' });
+
+  for (const theme of ['light', 'dark']) {
+    test(`roadmap with expanded task list (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'roadmap',
+        title: 'Roadmap Project',
+        hasHandle: true,
+        tasks: [{
+          id: 1,
+          title: 'Prepare launch checklist',
+          status: 'backlog',
+          priority: 'high',
+          effort: 'M',
+          phaseId: 'p1',
+          milestoneId: 'm1',
+          sprintId: 's1'
+        }],
+        extensions: ROADMAP
+      }], { selectedBoardId: 'roadmap' });
+      await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+      await page.getByRole('button', { name: 'Show tasks for Build' }).click();
+      await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Prepare launch checklist');
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`portfolio-roadmap-expanded-${theme}.png`, { fullPage: true });
+    });
+
+    test(`calendar year view (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'calendar',
+        title: 'Calendar Project',
+        hasHandle: true,
+        tasks: [{ id: 1, title: 'Due task', status: 'backlog', dueDate: '2026-03-10' }],
+        extensions: ROADMAP
+      }], { selectedBoardId: 'calendar' });
+      await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+      await expect(page.locator('.portfolio-calendar-month-card')).toHaveCount(12);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`portfolio-calendar-year-${theme}.png`, { fullPage: true });
+    });
+  }
+
+  test('calendar month heatmap view (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [{
+      id: 'calendar-month',
+      title: 'Calendar Month Project',
+      hasHandle: true,
+      tasks: [
+        { id: 1, title: 'Due task A', status: 'backlog', dueDate: '2026-03-10' },
+        { id: 2, title: 'Due task B', status: 'backlog', dueDate: '2026-03-10' }
+      ],
+      extensions: ROADMAP
+    }], { selectedBoardId: 'calendar-month' });
+    await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+    await page.getByRole('button', { name: 'Heat Map' }).click();
+    await page.getByRole('button', { name: 'Open March 2026' }).click();
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot('portfolio-calendar-month-heatmap-light.png', { fullPage: true });
+  });
+});

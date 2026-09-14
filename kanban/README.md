@@ -1,6 +1,6 @@
 # TeamOS Kanban
 
-A portfolio Kanban app for `*.board.json` project files, built with Vite, React and Zustand. Open several project files at once, work across them in one view, and every change autosaves back to its file.
+A portfolio Kanban app for `*.board.json` project files, built with Vite, React, Zustand and TypeScript. Open several project files at once, work across them in one view, and every change autosaves back to its file.
 
 ## What it does
 
@@ -17,7 +17,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React 
 
 - Uses the File System Access API (Chromium browsers). Projects opened with a file handle autosave on every change; files dropped without a handle are read-only.
 - Open files are watched for external changes: they reload automatically, or prompt when local edits conflict.
-- Board files are strictly validated on import (`*.board.json` extension, `schemaVersion`, `appId`, structure). The rules live in `validateBoardData` (`src/domain/board.js`).
+- Board files are strictly validated on import (`*.board.json` extension, `schemaVersion`, `appId`, structure). The rules live in `validateBoardData` (`src/domain/board.ts`).
 
 ### Task and schema invariants
 
@@ -48,13 +48,14 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 
 ## Project structure
 
+- `src/types.ts` — shared types: the board file format, the normalized domain model (`Task`, `BoardData`, `BoardRecord`, …) and the view models actions hand to components. Unvalidated file input is typed loosely (`TaskInput`, `LooseBoardData`) and becomes the strict types after normalization.
 - `src/domain/` — pure, dependency-free logic (tasks, boards, roadmap, timeline, calendar, attachments, serialization, scoring, task-editor draft rules). Unit-tested with Vitest.
-- `src/persistence/` — board file reading/writing, the save queue and external-change detection. Conflict prompts and reload dialog handling live in `actions/portfolioFiles.js`.
-- `src/state/` — the Zustand store. Immutable writes publish boards and derived portfolio rows together; actions do not trigger manual refreshes.
+- `src/persistence/` — board file reading/writing, the save queue and external-change detection. Conflict prompts and reload dialog handling live in `actions/portfolioFiles.ts`.
+- `src/state/` — the Zustand store; `slices.ts` defines `AppState`. Immutable writes publish boards and derived portfolio rows together; actions do not trigger manual refreshes.
 - `src/selectors/` — view models built from store state.
-- `src/actions/` — task, roadmap, timeline, and board-interaction actions. `boardMutationContext.js` owns the shared draft → history → store → save path; `portfolioMutations.js` assembles the actions. Controls, URL state, files, dialogs, and shortcuts remain separate.
+- `src/actions/` — task, roadmap, timeline, and board-interaction actions. `boardMutationContext.ts` owns the shared draft → history → store → save path; `portfolioMutations.ts` assembles the actions. Controls, URL state, files, dialogs, and shortcuts remain separate.
 - `src/hooks/` — browser integration: theme, keyboard shortcuts and URL state, file drop and file watching. `usePortfolioFileIntegration` starts and stops the polling timer with the app lifecycle.
-- `src/App.jsx` — the app shell: header, view layout, and dialogs. Mounted by `src/main.jsx`.
+- `src/App.tsx` — the app shell: header, view layout, and dialogs. Mounted by `src/main.tsx`.
 - `src/components/` — React views and Radix dialogs. Views subscribe to the state they use; inactive views do not compute or render their contents.
 - `src/styles/` — plain CSS split by feature (`base`, `board`, `calendar`, `roadmap`, `timeline`, `dialogs`, `task-editor`, …). `app.css` imports them in cascade order; `base.css` holds theme variables and shared surfaces, and `theme-dark.css` stays last.
 
@@ -70,14 +71,15 @@ npm run dev
 
 ## Testing
 
-- `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions.
+- `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
+- `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
 - `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if 4174 is already taken.
-- `npm run lint` — ESLint.
+- `npm run lint` — ESLint with `typescript-eslint`.
 
-Visual baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.js`.
+Visual baselines in `tests/visual.test.ts-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.ts --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.ts`; the browser globals they install are declared in `tests/support/testGlobals.d.ts`.
 
 Optional Playwright modes: `npm run test:headed`, `npm run test:ui`, `npm run test:debug`.
 
 ### Pre-commit hook
 
-`npm install` sets up a Husky pre-commit hook (`.husky/pre-commit`, registered at the git root via the `prepare` script). Each commit runs ESLint on staged `.js`/`.jsx`/`.mjs` files (lint-staged, `.lintstagedrc`) and then `npm run test:unit`. Playwright tests are not run by the hook; run `npm test` before pushing UI changes.
+`npm install` sets up a Husky pre-commit hook (`.husky/pre-commit`, registered at the git root via the `prepare` script). Each commit runs ESLint on staged `.ts`/`.tsx`/`.mjs` files (lint-staged, `.lintstagedrc`), then `npm run typecheck` and `npm run test:unit`. Playwright tests are not run by the hook; run `npm test` before pushing UI changes.
