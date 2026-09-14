@@ -17,7 +17,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React 
 
 - Uses the File System Access API (Chromium browsers). Projects opened with a file handle autosave on every change; files dropped without a handle are read-only.
 - Open files are watched for external changes: they reload automatically, or prompt when local edits conflict.
-- Board files are strictly validated on import (`*.board.json` extension, `schemaVersion`, `appId`, structure). See [`docs/board-json-reference.html`](docs/board-json-reference.html) and the example in [`boards/example.board.json`](boards/example.board.json).
+- Board files are strictly validated on import (`*.board.json` extension, `schemaVersion`, `appId`, structure). The rules live in `validateBoardData` (`src/domain/board.js`); see the example in [`boards/example.board.json`](boards/example.board.json).
 
 ### Task and schema invariants
 
@@ -60,7 +60,7 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 
 ## Development
 
-Requires Node.js 18+.
+Requires Node.js 22.12+ or 24+ (Vite 8 and Vitest 5).
 
 ```bash
 npm install
