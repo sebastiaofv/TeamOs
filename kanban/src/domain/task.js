@@ -161,12 +161,6 @@ export function getBoardTagSuggestions(boardData) {
     return Array.from(all).sort();
 }
 
-export function getTaskChecklistDropPlacement(row, clientY) {
-    const rect = row?.getBoundingClientRect?.();
-    if (!rect || !Number.isFinite(rect.top) || !Number.isFinite(rect.height)) return 'after';
-    return clientY < (rect.top + (rect.height / 2)) ? 'before' : 'after';
-}
-
 export function isAcceptedLegacyAssigneeValue(value) {
     return typeof value === 'string'
         || (Array.isArray(value) && value.every((name) => typeof name === 'string'));

@@ -35,7 +35,6 @@ function createActions(overrides = {}) {
     portfolioBulkSelectionByBoardId: {},
     portfolioTimelineSelection: { boardId: '', eventIndex: null },
     portfolioTimelineExpandedByBoardId: {},
-    portfolioDragContext: null,
     portfolioDetailContext: null,
     portfolioEditContext: null,
     portfolioCreateContext: null,

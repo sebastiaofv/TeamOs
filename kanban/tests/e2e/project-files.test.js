@@ -19,7 +19,8 @@ const {
   triggerExternalFileCheck,
   installControlledPortfolioWriter,
   appMessage,
-  answerAppMessage
+  answerAppMessage,
+  dragWithMouse
 } = require('../support/portfolio');
 
 test.describe('project files', () => {
@@ -242,12 +243,12 @@ test.describe('project files', () => {
     const activeChip = page.locator('.portfolio-chip.active');
     const cardIn = (status) => page.locator(`#portfolio-${status}-column .portfolio-task-card`).filter({ hasText: 'Queued task' });
 
-    await cardIn('backlog').dragTo(page.locator('#portfolio-doing-column'));
+    await dragWithMouse(page, cardIn('backlog'), page.locator('#portfolio-doing-column'));
     await expect(cardIn('doing')).toBeVisible();
     // The chip only shows "Saving" from the next status change after a save
     // starts (here, the second drag queueing behind the held write).
 
-    await cardIn('doing').dragTo(page.locator('#portfolio-done-column'));
+    await dragWithMouse(page, cardIn('doing'), page.locator('#portfolio-done-column'));
     await expect(cardIn('done')).toBeVisible();
     await expect(activeChip).toContainText('Saving');
 

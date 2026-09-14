@@ -1,14 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import {
+    DndContext,
+    DragOverlay,
+    MouseSensor,
+    TouchSensor,
+    pointerWithin,
+    useDraggable,
+    useDroppable,
+    useSensor,
+    useSensors
+} from '@dnd-kit/core';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../state/store.js';
 import {
     deletePortfolioTask,
+    dropPortfolioTaskOnColumn,
     editPortfolioTask,
-    onPortfolioColumnDragLeave,
-    onPortfolioColumnDragOver,
-    onPortfolioColumnDrop,
-    onPortfolioTaskDragEnd,
-    onPortfolioTaskDragStart,
+    endPortfolioCardDrag,
     openPortfolioCreateTaskModal,
     openPortfolioTaskDetails,
     setHoveredPortfolioCard,
@@ -48,13 +57,16 @@ function selectedBulkTaskIds(state, boardId) {
     return new Set((state.portfolioBulkSelectionByBoardId?.[boardId] || []).map((taskId) => Number(taskId)));
 }
 
-export function PortfolioTaskCard({ item, state }) {
+// `drag` comes from DraggableTaskCard on the board ({ setNodeRef, listeners,
+// isDragging }); other views pass none. `overlay` renders the copy that
+// follows the pointer while a card is dragged.
+export function PortfolioTaskCard({ item, state, drag = null, overlay = false }) {
     const task = item.task;
     const canMutate = Boolean(item.canMutate) && !item.historical;
     const canDrag = canMutate;
     const taskId = item.taskId ?? task.id;
-    const dragging = state.portfolioDragContext?.boardId === item.boardId
-        && Number(state.portfolioDragContext?.taskId) === Number(taskId);
+    const dragging = Boolean(drag?.isDragging);
+    const dragNodeRef = drag?.setNodeRef;
     const selected = state.selectedPortfolioCardRef
         && state.selectedPortfolioCardRef.boardId === item.boardId
         && Number(state.selectedPortfolioCardRef.taskId) === Number(task.id);
@@ -74,11 +86,15 @@ export function PortfolioTaskCard({ item, state }) {
     const readOnlyTitle = item.historical ? 'Historical preview (read-only)' : 'Read-only (no file handle)';
     const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
     const cardRef = useRef(null);
+    const setCardRef = useCallback((node) => {
+        cardRef.current = node;
+        dragNodeRef?.(node);
+    }, [dragNodeRef]);
 
     // Keyboard selection (J/K) can land on a card outside the scrolled area.
     useEffect(() => {
-        if (selected) cardRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-    }, [selected]);
+        if (selected && !overlay) cardRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    }, [selected, overlay]);
 
     function handleCardClick(event) {
         if (event.target.closest('button, input, label')) return;
@@ -96,22 +112,18 @@ export function PortfolioTaskCard({ item, state }) {
 
     return (
         <div
-            ref={cardRef}
-            className={`task-card portfolio-task-card surface-card${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}`}
-            draggable={canDrag}
+            ref={setCardRef}
+            className={`task-card portfolio-task-card surface-card${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}${overlay ? ' drag-overlay' : ''}`}
+            data-draggable={canDrag ? 'true' : 'false'}
             data-board-id={item.boardId}
             data-task-id={String(taskId)}
             data-status={normalizeTaskStatus(task.status)}
             data-historical={item.historical ? 'true' : 'false'}
-            onClick={handleCardClick}
-            onMouseEnter={() => setHoveredPortfolioCard(item.boardId, taskId)}
-            onMouseLeave={() => setHoveredPortfolioCard(null, null)}
-            onDragStart={canDrag ? (event) => onPortfolioTaskDragStart(event, {
-                boardId: item.boardId,
-                taskId: task.id,
-                status: normalizeTaskStatus(task.status)
-            }) : undefined}
-            onDragEnd={canDrag ? onPortfolioTaskDragEnd : undefined}
+            aria-hidden={overlay ? 'true' : undefined}
+            onClick={overlay ? undefined : handleCardClick}
+            onMouseEnter={overlay ? undefined : () => setHoveredPortfolioCard(item.boardId, taskId)}
+            onMouseLeave={overlay ? undefined : () => setHoveredPortfolioCard(null, null)}
+            {...drag?.listeners}
         >
             <div className="task-header">
                 <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 0, flex: 1 }}>
@@ -157,7 +169,63 @@ export function PortfolioTaskCard({ item, state }) {
     );
 }
 
+const cardDragId = (item) => `${item.boardId}:${item.taskId ?? item.task.id}`;
+
+const draggedTitle = (active) => active?.data.current?.title || 'task';
+const BOARD_DRAG_ANNOUNCEMENTS = {
+    onDragStart: ({ active }) => `Picked up ${draggedTitle(active)}.`,
+    onDragOver: ({ active, over }) => (over
+        ? `${draggedTitle(active)} is over ${over.data.current?.title}.`
+        : `${draggedTitle(active)} is not over a column.`),
+    onDragEnd: ({ active, over }) => (over
+        ? `${draggedTitle(active)} dropped in ${over.data.current?.title}.`
+        : `${draggedTitle(active)} dropped.`),
+    onDragCancel: ({ active }) => `Moving ${draggedTitle(active)} was cancelled.`
+};
+
+function DraggableTaskCard({ item, state }) {
+    const canDrag = Boolean(item.canMutate) && !item.historical;
+    const { setNodeRef, listeners, isDragging } = useDraggable({
+        id: cardDragId(item),
+        data: {
+            boardId: item.boardId,
+            taskId: Number(item.taskId ?? item.task.id),
+            status: normalizeTaskStatus(item.task.status),
+            title: item.task.title
+        },
+        disabled: !canDrag
+    });
+    return <PortfolioTaskCard item={item} state={state} drag={{ setNodeRef, listeners, isDragging }} />;
+}
+
+// Highlights only when the dragged card would change status here.
+function DroppableColumnBody({ column, children }) {
+    const { setNodeRef, isOver, active } = useDroppable({
+        id: `column:${column.status}`,
+        data: { status: column.status, title: column.title }
+    });
+    const highlight = isOver && active?.data.current?.status !== column.status;
+    return (
+        <div
+            ref={setNodeRef}
+            className={`portfolio-column-body${highlight ? ' drag-over' : ''}`}
+            id={`portfolio-${column.status}-column`}
+            data-status={column.status}
+        >
+            {children}
+        </div>
+    );
+}
+
 function PortfolioBoardView({ state }) {
+    const [activeCardId, setActiveCardId] = useState(null);
+    const sensors = useSensors(
+        // A short move before dragging keeps clicks on the card working.
+        useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+        // Touch waits for a brief press, so swiping still scrolls the board.
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+    );
+
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     const buckets = Object.fromEntries(defaultColumns.map((column) => [column.status, []]));
     rows.forEach((item) => {
@@ -165,14 +233,34 @@ function PortfolioBoardView({ state }) {
         if (!buckets[status]) buckets[status] = [];
         buckets[status].push(item);
     });
+    const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
         && Boolean(selectedBoard?.handle)
         && !isBoardInHistoricalPreview(state, state.selectedPortfolioBoardId);
 
+    const finishDrag = () => {
+        setActiveCardId(null);
+        endPortfolioCardDrag();
+    };
+    const onDragEnd = ({ active, over }) => {
+        finishDrag();
+        const card = active.data.current;
+        const targetStatus = over?.data.current?.status;
+        if (!card || !targetStatus || targetStatus === card.status) return;
+        void dropPortfolioTaskOnColumn(card.boardId, card.taskId, targetStatus);
+    };
+
     return (
-        <>
+        <DndContext
+            sensors={sensors}
+            collisionDetection={pointerWithin}
+            accessibility={{ announcements: BOARD_DRAG_ANNOUNCEMENTS }}
+            onDragStart={({ active }) => setActiveCardId(active.id)}
+            onDragEnd={onDragEnd}
+            onDragCancel={finishDrag}
+        >
             {defaultColumns.map((column) => {
                 const items = buckets[column.status] || [];
                 return (
@@ -181,25 +269,25 @@ function PortfolioBoardView({ state }) {
                             <span className="column-title">{column.title}</span>
                             <span className="column-count">{items.length}</span>
                         </div>
-                        <div
-                            className={`portfolio-column-body${state.portfolioDragOverStatus === column.status ? ' drag-over' : ''}`}
-                            id={`portfolio-${column.status}-column`}
-                            data-status={column.status}
-                            onDragOver={(event) => onPortfolioColumnDragOver(event, column.status)}
-                            onDragLeave={onPortfolioColumnDragLeave}
-                            onDrop={(event) => onPortfolioColumnDrop(event, column.status)}
-                        >
+                        <DroppableColumnBody column={column}>
                             {canAddTasks && (
                                 <div className="add-task-card" data-action="add-task" data-status={column.status} onClick={() => openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, column.status)}>+ Add Task</div>
                             )}
                             {items.length === 0
                                 ? <div className="empty-state"><span className="empty-state-text">No tasks</span></div>
-                                : items.map((item) => <PortfolioTaskCard item={item} state={state} key={`${item.boardId}:${item.taskId}`} />)}
-                        </div>
+                                : items.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />)}
+                        </DroppableColumnBody>
                     </div>
                 );
             })}
-        </>
+            {/* In a portal, so the column's scroll area never clips the card being dragged. */}
+            {createPortal(
+                <DragOverlay dropAnimation={null}>
+                    {activeRow && <PortfolioTaskCard item={activeRow} state={state} overlay />}
+                </DragOverlay>,
+                document.body
+            )}
+        </DndContext>
     );
 }
 
@@ -211,10 +299,8 @@ function ConnectedBoard() {
         portfolioBulkSelectionByBoardId: state.portfolioBulkSelectionByBoardId,
         selectedPortfolioCardRef: state.selectedPortfolioCardRef,
         suppressPortfolioCardClickUntil: state.suppressPortfolioCardClickUntil,
-        portfolioDragContext: state.portfolioDragContext,
         portfolioTimelineSelection: state.portfolioTimelineSelection,
         portfolioVisibleRows: state.portfolioVisibleRows,
-        portfolioDragOverStatus: state.portfolioDragOverStatus,
     })));
     return <PortfolioBoardView state={state} />;
 }

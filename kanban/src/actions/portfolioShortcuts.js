@@ -225,6 +225,9 @@ function isTyping() {
 }
 
 export function handleShortcutKeydown(event) {
+    // A key already handled elsewhere (a dialog closing on Escape, a drag being
+    // cancelled) is not also a shortcut.
+    if (event.defaultPrevented) return;
     // An open app message owns the keyboard until it is answered.
     if (getState().appMessage) return;
     const contextName = SHORTCUT_CONTEXT_BY_DIALOG[getState().activeDialog] || 'global';

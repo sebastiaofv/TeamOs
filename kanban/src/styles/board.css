@@ -77,6 +77,19 @@
     background: rgba(58, 124, 246, 0.06);
 }
 
+/* A long press starts a touch drag: keep the browser's callout and text
+   selection out of it. */
+.portfolio-task-card[data-draggable="true"] {
+    -webkit-touch-callout: none;
+    user-select: none;
+}
+
+/* The copy of the card that follows the pointer while dragging. */
+.portfolio-task-card.drag-overlay {
+    cursor: grabbing;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
 .portfolio-task-card {
     cursor: default;
 }

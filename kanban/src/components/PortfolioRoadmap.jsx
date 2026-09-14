@@ -258,7 +258,6 @@ function ConnectedRoadmap() {
         portfolioBulkSelectionByBoardId: state.portfolioBulkSelectionByBoardId,
         selectedPortfolioCardRef: state.selectedPortfolioCardRef,
         suppressPortfolioCardClickUntil: state.suppressPortfolioCardClickUntil,
-        portfolioDragContext: state.portfolioDragContext,
         portfolioTimelineSelection: state.portfolioTimelineSelection,
         portfolioRoadmapExpandedRowsByBoardId: state.portfolioRoadmapExpandedRowsByBoardId,
     })));

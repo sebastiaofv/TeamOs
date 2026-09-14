@@ -19,7 +19,6 @@ import {
   resolveKnownTaskStatus,
   findTaskInBoardData,
   getBoardTagSuggestions,
-  getTaskChecklistDropPlacement,
   isAcceptedLegacyAssigneeValue,
   nextTaskIdForBoard,
   touchTask,
@@ -376,23 +375,6 @@ describe('getBoardTagSuggestions', () => {
 
   it('returns an empty array when there are no tasks', () => {
     expect(getBoardTagSuggestions({})).toEqual([]);
-  });
-});
-
-describe('getTaskChecklistDropPlacement', () => {
-  it('returns "before" when clientY is above the row midpoint', () => {
-    const row = { getBoundingClientRect: () => ({ top: 100, height: 20 }) };
-    expect(getTaskChecklistDropPlacement(row, 105)).toBe('before');
-  });
-
-  it('returns "after" when clientY is below the row midpoint', () => {
-    const row = { getBoundingClientRect: () => ({ top: 100, height: 20 }) };
-    expect(getTaskChecklistDropPlacement(row, 115)).toBe('after');
-  });
-
-  it('returns "after" when the row has no bounding rect available', () => {
-    expect(getTaskChecklistDropPlacement(null, 50)).toBe('after');
-    expect(getTaskChecklistDropPlacement({}, 50)).toBe('after');
   });
 });
 

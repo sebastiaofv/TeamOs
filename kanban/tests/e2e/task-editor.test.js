@@ -11,7 +11,8 @@ const {
   closeDialogBy,
   portfolioProjectChipButtons,
   openTaskEditor,
-  answerAppMessage
+  answerAppMessage,
+  dragWithMouse
 } = require('../support/portfolio');
 
 test.describe('task editor', () => {
@@ -398,7 +399,9 @@ test.describe('task editor', () => {
 
     await expect.poll(checklistTexts).toEqual(['First', 'Second', 'Third']);
 
-    await page.locator('#taskChecklistItems .checklist-editor-row').nth(2).locator('.checklist-editor-drag-handle').dragTo(
+    await dragWithMouse(
+      page,
+      page.locator('#taskChecklistItems .checklist-editor-row').nth(2).locator('.checklist-editor-drag-handle'),
       page.locator('#taskChecklistItems .checklist-editor-row').nth(0),
       { targetPosition: { x: 10, y: 2 } }
     );
@@ -415,6 +418,64 @@ test.describe('task editor', () => {
     });
 
     expect(persistedChecklist).toEqual(['Third', 'First', 'Second']);
+  });
+
+  test.describe('checklist keyboard reordering', () => {
+    test.beforeEach(async ({ page }) => {
+      await seedPortfolioBoards(page, [
+        {
+          id: 'p1',
+          title: 'Project One',
+          hasHandle: true,
+          tasks: [{
+            id: 1,
+            title: 'Checklist task',
+            status: 'backlog',
+            checklist: [
+              { text: 'First', done: false },
+              { text: 'Second', done: false },
+              { text: 'Third', done: false }
+            ]
+          }]
+        }
+      ], { selectedBoardId: 'p1' });
+      await openTaskEditor(page, 'Checklist task');
+    });
+
+    const checklistTexts = (page) => page.locator('#taskChecklistItems .checklist-editor-row input[type="text"]').evaluateAll((nodes) => (
+      nodes.map((node) => node.value)
+    ));
+    const handle = (page, index) => page.locator('#taskChecklistItems .checklist-editor-row').nth(index).locator('.checklist-editor-drag-handle');
+    // Waits for each keyboard step to land before the next key.
+    const announced = (page, text) => expect(page.getByText(text, { exact: true })).toBeAttached();
+
+    test('Space picks an item up, arrow keys move it and Space drops it', async ({ page }) => {
+      await handle(page, 2).focus();
+      await page.keyboard.press('Space');
+      // Picked up. (The pick-up announcement is replaced at once by an "over" one.)
+      await expect(handle(page, 2)).toHaveAttribute('aria-pressed', 'true');
+      await page.keyboard.press('ArrowUp');
+      await announced(page, 'Todo item 3 is over position 2.');
+      await page.keyboard.press('ArrowUp');
+      await announced(page, 'Todo item 3 is over position 1.');
+      await page.keyboard.press('Space');
+
+      await expect.poll(() => checklistTexts(page)).toEqual(['Third', 'First', 'Second']);
+    });
+
+    test('Escape cancels the move and leaves the task editor open', async ({ page }) => {
+      await handle(page, 2).focus();
+      await page.keyboard.press('Space');
+      // Picked up. (The pick-up announcement is replaced at once by an "over" one.)
+      await expect(handle(page, 2)).toHaveAttribute('aria-pressed', 'true');
+      await page.keyboard.press('ArrowUp');
+      await announced(page, 'Todo item 3 is over position 2.');
+      await page.keyboard.press('Escape');
+
+      await announced(page, 'Moving Todo item 3 was cancelled.');
+      await expect(page.locator('#taskModal')).toBeVisible();
+      await expect.poll(() => checklistTexts(page)).toEqual(['First', 'Second', 'Third']);
+    });
   });
 
   test('task modal assigns phase and milestone from roadmap selectors', async ({ page }) => {

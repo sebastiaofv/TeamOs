@@ -5,7 +5,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React 
 ## What it does
 
 - **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
-- **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag and drop between columns, add/edit/archive/delete tasks, undo after archiving.
+- **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag cards between columns with a mouse or by touch (keyboard: `1`–`4`), add/edit/archive/delete tasks, undo after archiving.
 - **Tasks** — title, description, assignees, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
 - **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
 - **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
