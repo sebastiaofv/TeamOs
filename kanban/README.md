@@ -56,7 +56,7 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 - `src/hooks/` — browser integration: theme, keyboard shortcuts and URL state, file drop and file watching. `usePortfolioFileIntegration` starts and stops the polling timer with the app lifecycle.
 - `src/App.jsx` — the app shell: header, view layout, and dialogs. Mounted by `src/main.jsx`.
 - `src/components/` — React views and Radix dialogs. Views subscribe to the state they use; inactive views do not compute or render their contents.
-- `src/styles/app.css` — all styles in one plain CSS file, including shared surfaces and theme variables.
+- `src/styles/` — plain CSS split by feature (`base`, `board`, `calendar`, `roadmap`, `timeline`, `dialogs`, `task-editor`, …). `app.css` imports them in cascade order; `base.css` holds theme variables and shared surfaces, and `theme-dark.css` stays last.
 
 ## Development
 

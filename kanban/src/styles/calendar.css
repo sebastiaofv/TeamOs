@@ -1,0 +1,406 @@
+.portfolio-calendar-shell {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    padding: 16px;
+    overflow: auto;
+    box-sizing: border-box;
+}
+
+.portfolio-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-primary);
+    box-sizing: border-box;
+}
+
+.portfolio-calendar-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.portfolio-calendar-period-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.portfolio-calendar-period {
+    min-width: 110px;
+    padding: 5px 10px;
+    border: 1px solid #cfc8bb;
+    background: #fbfaf7;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4f4a40;
+    text-align: center;
+}
+
+.portfolio-calendar-year {
+    display: grid;
+    gap: 12px;
+}
+
+.portfolio-calendar-quarter {
+    display: block;
+}
+
+.portfolio-calendar-quarter-months {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.portfolio-calendar-month-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 182px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.portfolio-calendar-month-card:hover,
+.portfolio-calendar-month-card:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(0, 102, 204, 0.16);
+    outline: none;
+}
+
+.portfolio-calendar-month-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.portfolio-calendar-month-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.portfolio-calendar-month-count {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.portfolio-calendar-day-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.portfolio-calendar-mini-month-grid {
+    display: grid;
+    gap: 4px;
+}
+
+.portfolio-calendar-mini-weekdays,
+.portfolio-calendar-mini-day-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+}
+
+.portfolio-calendar-mini-weekday {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.portfolio-calendar-mini-day {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 48px;
+    padding: 3px 2px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-primary);
+    box-sizing: border-box;
+}
+
+.portfolio-calendar-mini-day-outside {
+    background: var(--bg-card);
+    color: var(--text-muted);
+}
+
+.portfolio-calendar-mini-day-today {
+    background: #fff9c4;
+    box-shadow: inset 0 0 0 1px rgba(0, 102, 204, 0.2);
+}
+
+.portfolio-calendar-mini-day-number {
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text-secondary);
+    text-align: left;
+}
+
+.portfolio-calendar-mini-day-current .portfolio-calendar-mini-day-number {
+    color: var(--text-primary);
+}
+
+.portfolio-calendar-mini-markers {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.portfolio-calendar-mini-marker {
+    display: block;
+    width: 100%;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(0, 102, 204, 0.38);
+}
+
+.portfolio-calendar-mini-marker-task {
+    background: var(--accent);
+}
+
+.portfolio-calendar-mini-marker-range-end {
+    opacity: 0.68;
+}
+
+.portfolio-calendar-item {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    min-height: 26px;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    font-size: 11px;
+    line-height: 1.25;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+button.portfolio-calendar-item {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    justify-content: flex-start;
+    font-family: inherit;
+}
+
+button.portfolio-calendar-item:hover,
+button.portfolio-calendar-item:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.portfolio-calendar-item-range {
+    border-left-width: 4px;
+}
+
+.portfolio-calendar-item-task {
+    font-weight: 600;
+}
+
+.portfolio-calendar-item-overflow {
+    padding: 0 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.portfolio-calendar-month-grid {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+}
+
+.portfolio-calendar-month-grid-track {
+    min-width: 760px;
+}
+
+.portfolio-calendar-weekdays,
+.portfolio-calendar-week-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.portfolio-calendar-day-grid {
+    display: flex;
+    flex-direction: column;
+}
+
+.portfolio-calendar-weekday {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.portfolio-calendar-week-row {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-primary);
+}
+
+.portfolio-calendar-week-row:last-child {
+    border-bottom: 0;
+}
+
+.portfolio-calendar-roadmap-span {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    min-height: 26px;
+    margin: 0 1px;
+    padding: 4px 6px;
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: #f5efe3;
+    color: #5e4720;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+.portfolio-calendar-roadmap-span-milestone {
+    background: #f0e3c5;
+    border-color: #c99b3f;
+    color: #6b4a12;
+}
+
+.portfolio-calendar-roadmap-span-phase {
+    background: #e7eefc;
+    border-color: #6f91d8;
+    color: #24406d;
+}
+
+.portfolio-calendar-roadmap-span-sprint {
+    background: #ece8df;
+    border-color: #8d7c5d;
+    color: #4d4333;
+}
+
+.portfolio-calendar-roadmap-span-continues-before {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.portfolio-calendar-roadmap-span-continues-after {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.portfolio-calendar-day-cell {
+    min-height: 112px;
+    padding: 8px;
+    border-right: 1px solid var(--border-light);
+    border-bottom: 0;
+    background: var(--bg-primary);
+    overflow: visible;
+}
+
+.portfolio-calendar-day-cell-actionable {
+    cursor: pointer;
+}
+
+.portfolio-calendar-day-cell-actionable:hover,
+.portfolio-calendar-day-cell-actionable:focus-within {
+    background: #fbfaf7;
+    box-shadow: inset 0 0 0 1px rgba(0, 102, 204, 0.12);
+}
+
+.portfolio-calendar-day-cell:nth-child(7n) {
+    border-right: 0;
+}
+
+.portfolio-calendar-day-cell-outside {
+    background: var(--bg-card);
+}
+
+.portfolio-calendar-day-cell-today {
+    background: #fff9c4;
+    box-shadow: inset 0 0 0 2px rgba(0, 102, 204, 0.16);
+}
+
+.portfolio-calendar-day-number {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.portfolio-calendar-day-roadmap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+
+.portfolio-calendar-day-roadmap .portfolio-calendar-roadmap-span {
+    margin: 0;
+}
+
+.portfolio-calendar-day-roadmap .portfolio-calendar-roadmap-span-continues-before {
+    margin-left: -11px;
+    padding-left: 19px;
+}
+
+.portfolio-calendar-day-roadmap .portfolio-calendar-roadmap-span-continues-after {
+    margin-right: -11px;
+    padding-right: 19px;
+}
+
+.portfolio-calendar-day-cell-current .portfolio-calendar-day-number {
+    color: var(--text-primary);
+}
+
+@media (max-width: 900px) {
+    .portfolio-calendar-controls {
+        justify-content: flex-start;
+    }
+
+    .portfolio-calendar-quarter-months {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-calendar-month-grid-track .portfolio-calendar-weekdays,
+    .portfolio-calendar-week-days {
+        grid-template-columns: repeat(7, minmax(96px, 1fr));
+    }
+
+    .portfolio-calendar-week-days .portfolio-calendar-day-cell:nth-child(7n) {
+        border-right: 0;
+    }
+
+}

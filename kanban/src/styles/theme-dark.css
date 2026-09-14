@@ -1,0 +1,164 @@
+:root[data-theme="dark"] .file-drop-overlay {
+    background: rgba(100, 168, 255, 0.14);
+}
+
+:root[data-theme="dark"] .chip-save-state.warning,
+:root[data-theme="dark"] .chip-save-state.conflict {
+    color: #f1c56a;
+}
+
+:root[data-theme="dark"] .portfolio-calendar-period,
+:root[data-theme="dark"] .timeline-toggle-btn {
+    border-color: #5a5041;
+    background: #2c2922;
+    color: #f0dba8;
+}
+
+:root[data-theme="dark"] .portfolio-calendar-month-card:hover,
+:root[data-theme="dark"] .portfolio-calendar-month-card:focus-visible {
+    box-shadow: 0 0 0 1px rgba(100, 168, 255, 0.28);
+}
+
+:root[data-theme="dark"] .portfolio-calendar-mini-day-today,
+:root[data-theme="dark"] .portfolio-calendar-day-cell-today {
+    background: #3a321c;
+    box-shadow: inset 0 0 0 1px rgba(228, 184, 77, 0.45);
+}
+
+:root[data-theme="dark"] .portfolio-calendar-day-cell-actionable:hover,
+:root[data-theme="dark"] .portfolio-calendar-day-cell-actionable:focus-within {
+    background: #242a31;
+    box-shadow: inset 0 0 0 1px rgba(100, 168, 255, 0.22);
+}
+
+:root[data-theme="dark"] .portfolio-calendar-mini-marker {
+    background: rgba(100, 168, 255, 0.46);
+}
+
+:root[data-theme="dark"] .portfolio-calendar-roadmap-span {
+    background: #332c21;
+    border-color: #806642;
+    color: #efd7a2;
+}
+
+:root[data-theme="dark"] .portfolio-calendar-roadmap-span-milestone {
+    background: #3a2f18;
+    border-color: #d7a946;
+    color: #ffe0a1;
+}
+
+:root[data-theme="dark"] .portfolio-calendar-roadmap-span-phase {
+    background: #202f45;
+    border-color: #6798de;
+    color: #c9ddff;
+}
+
+:root[data-theme="dark"] .portfolio-calendar-roadmap-span-sprint {
+    background: #2f2c24;
+    border-color: #b49a63;
+    color: #ead8b6;
+}
+
+:root[data-theme="dark"] .roadmap-row[data-roadmap-id]:hover,
+:root[data-theme="dark"] .portfolio-column-body.drag-over {
+    background: rgba(100, 168, 255, 0.1);
+}
+
+:root[data-theme="dark"] .roadmap-today-marker::before {
+    box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.85);
+}
+
+:root[data-theme="dark"] .roadmap-row-timeline-bar {
+    background: linear-gradient(90deg, #7890a8, #b1c1d1);
+}
+
+:root[data-theme="dark"] .roadmap-row-timeline-point {
+    border-color: rgba(17, 17, 17, 0.9);
+    box-shadow: 0 0 0 1px rgba(100, 168, 255, 0.35);
+}
+
+:root[data-theme="dark"] .timeline-panel,
+:root[data-theme="dark"] .portfolio-bulk-actions {
+    background: #242119;
+}
+
+:root[data-theme="dark"] .timeline-preview-banner {
+    border-color: #806642;
+    background: #3a2f18;
+    color: #ffe0a1;
+}
+
+:root[data-theme="dark"] .timeline-slider {
+    accent-color: #e4b84d;
+}
+
+:root[data-theme="dark"] .timeline-pill,
+:root[data-theme="dark"] .timeline-event-list,
+:root[data-theme="dark"] .timeline-event-detail,
+:root[data-theme="dark"] .timeline-diff-value {
+    background: #1f211f;
+    border-color: #4b463b;
+    color: var(--text-primary);
+}
+
+:root[data-theme="dark"] .timeline-event-item {
+    border-color: #1f211f;
+}
+
+:root[data-theme="dark"] .timeline-event-item:hover {
+    background: #2c2922;
+    border-color: #5a5041;
+}
+
+:root[data-theme="dark"] .timeline-event-item.active,
+:root[data-theme="dark"] .timeline-diff-item {
+    background: #302b20;
+    border-color: #66593d;
+}
+
+:root[data-theme="dark"] .timeline-event-kind,
+:root[data-theme="dark"] .timeline-diff-field {
+    color: #d8bd7b;
+}
+
+:root[data-theme="dark"] .task-card:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.32);
+}
+
+:root[data-theme="dark"] .task-tag-assignee,
+:root[data-theme="dark"] .task-tag-age {
+    background: #22303d;
+    border-color: #3e5267;
+    color: #c7d7e8;
+}
+
+:root[data-theme="dark"] .task-tag-blocked {
+    background: #3c2222;
+    border-color: #6f3a3a;
+    color: #f4b7b7;
+}
+
+:root[data-theme="dark"] .task-tag-score,
+:root[data-theme="dark"] .task-tag-label {
+    background: #303439;
+    border-color: #4a5058;
+    color: #d5dae0;
+}
+
+:root[data-theme="dark"] .task-action-btn.task-action-danger:hover,
+:root[data-theme="dark"] .attachment-editor-error {
+    background: #3c2222;
+    border-color: #7a3b35;
+    color: #ffb3a8;
+}
+
+:root[data-theme="dark"] .attachment-editor-warning {
+    background: #3a2f18;
+    border-color: #806642;
+    color: #ffe0a1;
+}
+
+:root[data-theme="dark"] .search-highlight {
+    background: #5c4912;
+    color: #fff2b6;
+}
