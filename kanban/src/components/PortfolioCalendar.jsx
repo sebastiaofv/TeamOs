@@ -13,14 +13,13 @@ import {
     getPortfolioCalendarTaskCountsByDay,
     getPortfolioCalendarYearHeatStats,
     todayLocalIsoDate,
-    buildPortfolioCalendarRoadmapSpanStyle,
-    buildPortfolioCalendarItemStyle,
     comparePortfolioCalendarDayItems,
     doesPortfolioCalendarItemIntersectMonth,
     doesPortfolioCalendarItemOccurOnDay,
     shouldShowPortfolioCalendarRoadmapLabel
 } from '../domain/calendar.js';
 import { addRoadmapDays } from '../domain/roadmap.js';
+import { createPortfolioProjectColor } from '../domain/board.js';
 import { buildPortfolioCalendarViewModel, isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
 import {
     openPortfolioCreateTaskModal,
@@ -36,18 +35,14 @@ import {
 
 function itemStyle(item, aggregate) {
     if (!aggregate) return undefined;
-    const style = buildPortfolioCalendarItemStyle(item, { aggregate });
-    return style ? {
-        background: item.projectColor?.bg,
-        borderColor: item.projectColor?.border,
-        color: item.projectColor?.text
-    } : undefined;
+    const color = item.projectColor || createPortfolioProjectColor(0);
+    return { background: color.bg, borderColor: color.border, color: color.text };
 }
 
 function miniMarkerStyle(item, aggregate) {
     if (!aggregate) return undefined;
-    const style = buildPortfolioCalendarRoadmapSpanStyle(item, { aggregate });
-    return style ? { background: item.projectColor?.border } : undefined;
+    const color = item.projectColor || createPortfolioProjectColor(0);
+    return { background: color.border };
 }
 
 function CalendarTaskButton({ item, aggregate }) {

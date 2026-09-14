@@ -1,6 +1,5 @@
 import { CALENDAR_MONTH_NAMES } from './constants.js';
 import { compareText, normalizeTimestamp } from './util.js';
-import { createPortfolioProjectColor } from './board.js';
 import { addRoadmapDays, parseRoadmapIsoDate } from './roadmap.js';
 
 export function comparePortfolioCalendarItems(a, b) {
@@ -64,21 +63,6 @@ export function normalizeDueDate(value) {
     if (!value || typeof value !== 'string') return '';
     const trimmed = value.trim();
     return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
-}
-
-export function buildPortfolioCalendarItemStyle(item, options = {}) {
-    const aggregate = Boolean(options.aggregate);
-    const color = item?.projectColor || createPortfolioProjectColor(0);
-    if (!aggregate) {
-        return '';
-    }
-    return `background:${color.bg};border-color:${color.border};color:${color.text};`;
-}
-
-export function buildPortfolioCalendarMiniMarkerStyle(item, options = {}) {
-    if (!options.aggregate) return '';
-    const color = item?.projectColor || createPortfolioProjectColor(0);
-    return `background:${color.border};`;
 }
 
 export function comparePortfolioCalendarDayItems(a, b) {
@@ -200,10 +184,6 @@ export function getPortfolioCalendarYearHeatStats(taskCounts, year) {
 
 export function todayLocalIsoDate() {
     return formatLocalIsoDate(new Date());
-}
-
-export function buildPortfolioCalendarRoadmapSpanStyle(item, options = {}) {
-    return buildPortfolioCalendarItemStyle(item, options);
 }
 
 export function doesPortfolioCalendarItemIntersectMonth(item, year, month) {

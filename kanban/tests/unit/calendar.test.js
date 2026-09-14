@@ -6,9 +6,6 @@ process.env.TZ = 'UTC';
 
 import { describe, it, expect, vi } from 'vitest';
 import {
-  buildPortfolioCalendarItemStyle,
-  buildPortfolioCalendarMiniMarkerStyle,
-  buildPortfolioCalendarRoadmapSpanStyle,
   comparePortfolioCalendarDayItems,
   comparePortfolioCalendarItems,
   comparePortfolioDueDateAsc,
@@ -33,7 +30,6 @@ import {
   shouldShowPortfolioCalendarRoadmapLabel,
   todayLocalIsoDate
 } from '../../src/domain/calendar.js';
-import { createPortfolioProjectColor } from '../../src/domain/board.js';
 
 describe('createUtcDate', () => {
   it('builds a UTC date from year/month/day', () => {
@@ -573,67 +569,6 @@ describe('todayLocalIsoDate', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-});
-
-describe('buildPortfolioCalendarItemStyle', () => {
-  const projectColor = { bg: 'hsl(10 60% 90%)', border: 'hsl(10 50% 70%)', text: 'hsl(10 70% 20%)' };
-
-  it('returns an empty string when options.aggregate is not set', () => {
-    expect(buildPortfolioCalendarItemStyle({ projectColor })).toBe('');
-  });
-
-  it('returns an empty string when options.aggregate is falsy', () => {
-    expect(buildPortfolioCalendarItemStyle({ projectColor }, { aggregate: false })).toBe('');
-  });
-
-  it('builds a background/border/color declaration from the item projectColor when aggregating', () => {
-    const style = buildPortfolioCalendarItemStyle({ projectColor }, { aggregate: true });
-    expect(style).toBe(`background:${projectColor.bg};border-color:${projectColor.border};color:${projectColor.text};`);
-  });
-
-  it('falls back to createPortfolioProjectColor(0) when the item has no projectColor', () => {
-    const fallback = createPortfolioProjectColor(0);
-    const style = buildPortfolioCalendarItemStyle({}, { aggregate: true });
-    expect(style).toBe(`background:${fallback.bg};border-color:${fallback.border};color:${fallback.text};`);
-  });
-});
-
-describe('buildPortfolioCalendarMiniMarkerStyle', () => {
-  const projectColor = { bg: 'hsl(10 60% 90%)', border: 'hsl(10 50% 70%)', text: 'hsl(10 70% 20%)' };
-
-  it('returns an empty string when options.aggregate is not set', () => {
-    expect(buildPortfolioCalendarMiniMarkerStyle({ projectColor })).toBe('');
-  });
-
-  it('builds a background declaration from the item projectColor border when aggregating', () => {
-    const style = buildPortfolioCalendarMiniMarkerStyle({ projectColor }, { aggregate: true });
-    expect(style).toBe(`background:${projectColor.border};`);
-  });
-
-  it('falls back to createPortfolioProjectColor(0) when the item has no projectColor', () => {
-    const fallback = createPortfolioProjectColor(0);
-    const style = buildPortfolioCalendarMiniMarkerStyle({}, { aggregate: true });
-    expect(style).toBe(`background:${fallback.border};`);
-  });
-});
-
-describe('buildPortfolioCalendarRoadmapSpanStyle', () => {
-  // Delegates entirely to buildPortfolioCalendarItemStyle -- same behavior.
-  const projectColor = { bg: 'hsl(10 60% 90%)', border: 'hsl(10 50% 70%)', text: 'hsl(10 70% 20%)' };
-
-  it('returns an empty string when options.aggregate is not set', () => {
-    expect(buildPortfolioCalendarRoadmapSpanStyle({ projectColor })).toBe('');
-  });
-
-  it('builds a background/border/color declaration when aggregating', () => {
-    const style = buildPortfolioCalendarRoadmapSpanStyle({ projectColor }, { aggregate: true });
-    expect(style).toBe(`background:${projectColor.bg};border-color:${projectColor.border};color:${projectColor.text};`);
-  });
-
-  it('falls back to createPortfolioProjectColor(0) when the item has no projectColor', () => {
-    expect(buildPortfolioCalendarRoadmapSpanStyle({}, { aggregate: true }))
-      .toBe(buildPortfolioCalendarItemStyle({}, { aggregate: true }));
   });
 });
 
