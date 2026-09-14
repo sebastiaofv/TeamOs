@@ -1,0 +1,3 @@
+cd kanban
+npx lint-staged
+npm run test:unit

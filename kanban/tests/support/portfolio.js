@@ -1,9 +1,9 @@
 'use strict';
 
-// Shared Playwright harness for the black-box suites (app.test.js and
+// Shared Playwright harness for the black-box suites (tests/e2e/*.test.js and
 // visual.test.js). Board payload builders, seeding through the real Import and
-// drop flows with a fake File System Access disk, and page queries. Not a test
-// file: Playwright only collects *.test.js.
+// drop flows with a fake File System Access disk, page queries, and file-picker
+// and disk mocks. Not a test file: Playwright only collects *.test.js.
 
 const { expect } = require('@playwright/test');
 
@@ -276,6 +276,145 @@ async function closeDialogBy(page, dialogId, method) {
   }
 }
 
+// Project chips for loaded boards (excludes the "All" chip).
+function portfolioProjectChipButtons(page) {
+  return page.locator('#portfolioBoardsChips [data-action="select-board"]:not([data-board-id=""])');
+}
+
+async function openTaskEditor(page, cardTitle) {
+  await portfolioCard(page, cardTitle).locator('[data-action="edit-task"]').click();
+  await expect(page.locator('#taskModal')).toBeVisible();
+}
+
+async function renameTaskViaEditor(page, fromTitle, toTitle) {
+  await openTaskEditor(page, fromTitle);
+  await page.locator('#taskName').fill(toTitle);
+  await page.locator('#taskModal .btn-primary').click();
+  await expect(page.locator('#taskModal')).toBeHidden();
+}
+
+async function setTimelineSlider(page, value) {
+  await page.locator('#portfolioTimelinePanel .timeline-slider').evaluate((node, value) => {
+    node.value = String(value);
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+  }, value);
+}
+
+async function mockNewProjectFlow(page, { promptValue = 'New Project', fileName = 'new-project.json' } = {}) {
+  await page.evaluate(({ promptValue, fileName }) => {
+    window.__newProjectWrites = [];
+    const disk = {
+      text: '',
+      lastModified: Date.now()
+    };
+    window.prompt = () => promptValue;
+    window.showSaveFilePicker = async () => ({
+      name: fileName,
+      async getFile() {
+        const text = String(disk.text || '');
+        const lastModified = Number(disk.lastModified) || Date.now();
+        return {
+          name: fileName,
+          size: new Blob([text]).size,
+          lastModified,
+          async text() {
+            return text;
+          }
+        };
+      },
+      async createWritable() {
+        return {
+          async write(text) {
+            const serialized = String(text);
+            window.__newProjectWrites.push(serialized);
+            disk.text = serialized;
+            disk.lastModified = Date.now();
+          },
+          async close() {}
+        };
+      }
+    });
+  }, { promptValue, fileName });
+}
+
+async function mockImportProjectsPicker(page, payloads) {
+  await page.evaluate((payloads) => {
+    window.showOpenFilePicker = async () => payloads.map((entry) => ({
+      name: entry.fileName,
+      async getFile() {
+        return {
+          name: entry.fileName,
+          async text() {
+            return JSON.stringify(entry.payload);
+          }
+        };
+      }
+    }));
+  }, payloads);
+}
+
+async function mutateExternalBoardFile(page, { boardId, payload, invalidText = null }) {
+  await page.evaluate(({ boardId, payload, invalidText }) => {
+    if (!window.__portfolioDiskByBoardId || !window.__portfolioDiskByBoardId[boardId]) {
+      throw new Error(`Disk state not found for board: ${boardId}`);
+    }
+    const disk = window.__portfolioDiskByBoardId[boardId];
+    const nextText = typeof invalidText === 'string' ? invalidText : JSON.stringify(payload, null, 2);
+    disk.text = nextText;
+    disk.lastModified = (Number(disk.lastModified) || Date.now()) + 1000;
+  }, { boardId, payload, invalidText });
+}
+
+// Runs the app's external-change check the way the browser does: a window
+// focus event. A focus that lands while a check is already running is ignored
+// by the app, so keep re-focusing until every seeded writable file has been
+// opened again, then let the (microtask-only) fake reads settle.
+async function triggerExternalFileCheck(page) {
+  const before = await page.evaluate(() => ({ ...(window.__portfolioFileOpensByBoardId || {}) }));
+  await expect.poll(() => page.evaluate((before) => {
+    const opens = window.__portfolioFileOpensByBoardId || {};
+    const labels = Object.keys(before);
+    if (labels.every((label) => opens[label] > before[label])) return true;
+    window.dispatchEvent(new Event('focus'));
+    return false;
+  }, before), { intervals: [50, 100, 250] }).toBe(true);
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 0)));
+}
+
+async function portfolioTitlesInColumn(page, status = 'backlog') {
+  const titles = await page.locator(`#portfolio-${status}-column .portfolio-task-card .task-title`).allTextContents();
+  return titles.map((t) => t.trim());
+}
+
+// Controls writes to one seeded board's fake file: hold each write until the
+// test releases it, and/or fail the next N writes. Only the fake disk changes;
+// the seeded handle's createWritable() consults this control on every write.
+async function installControlledPortfolioWriter(page, { boardId, holdWrites = false, failWrites = 0 } = {}) {
+  await page.evaluate(({ boardId, holdWrites, failWrites }) => {
+    if (!window.__portfolioDiskByBoardId || !window.__portfolioDiskByBoardId[boardId]) {
+      throw new Error(`Disk state not found for board: ${boardId}`);
+    }
+    window.__portfolioTestWrites = [];
+    window.__portfolioWriteControl = {
+      boardId,
+      holdWrites: Boolean(holdWrites),
+      failRemaining: Math.max(0, Number(failWrites) || 0),
+      attempts: 0,
+      active: 0,
+      maxActive: 0,
+      pendingResolvers: []
+    };
+    window.__releaseNextPortfolioWrite = () => {
+      const next = window.__portfolioWriteControl?.pendingResolvers?.shift();
+      if (typeof next === 'function') {
+        next();
+        return true;
+      }
+      return false;
+    };
+  }, { boardId, holdWrites, failWrites });
+}
+
 module.exports = {
   FIXED_TIMESTAMP,
   buildBoardPayload,
@@ -287,5 +426,15 @@ module.exports = {
   waitForBoardWrites,
   portfolioCard,
   focusIsInside,
-  closeDialogBy
+  closeDialogBy,
+  portfolioProjectChipButtons,
+  openTaskEditor,
+  renameTaskViaEditor,
+  setTimelineSlider,
+  mockNewProjectFlow,
+  mockImportProjectsPicker,
+  mutateExternalBoardFile,
+  triggerExternalFileCheck,
+  portfolioTitlesInColumn,
+  installControlledPortfolioWriter
 };

@@ -10,7 +10,8 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug"
+    "test:debug": "playwright test --debug",
+    "prepare": "cd .. && husky kanban/.husky"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -20,6 +21,8 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^17.12.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
     "vite": "^5.4.21",
     "vitest": "^2.1.9"
   },

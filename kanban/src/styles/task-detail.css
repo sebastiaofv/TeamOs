@@ -1,0 +1,114 @@
+.detail-list {
+    display: grid;
+    gap: 10px;
+}
+
+.detail-item {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 10px;
+    align-items: start;
+}
+
+.detail-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.detail-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.detail-checklist {
+    list-style: none;
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+}
+
+.detail-checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.detail-checklist-item.done .detail-checklist-text {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.detail-attachments {
+    display: grid;
+    gap: 8px;
+}
+
+.detail-attachments-empty {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.detail-attachment-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    border: 1px solid var(--border-light);
+    background: var(--bg-primary);
+    padding: 6px;
+}
+
+.detail-attachment-thumb {
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    object-fit: cover;
+    display: block;
+}
+
+.detail-attachment-meta {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+}
+
+.detail-attachment-name {
+    font-size: 12px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.detail-attachment-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.detail-attachment-download {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 11px;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.detail-attachment-download:hover {
+    background: var(--bg-secondary);
+    border-color: var(--text-secondary);
+}

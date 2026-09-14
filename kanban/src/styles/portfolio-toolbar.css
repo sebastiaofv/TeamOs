@@ -1,0 +1,152 @@
+.portfolio-toolbar {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.portfolio-toolbar-left,
+.portfolio-toolbar-right {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.portfolio-toolbar-left {
+    flex: 1;
+}
+
+.portfolio-chips {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-light);
+    background: var(--bg-primary);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 44px;
+}
+
+.portfolio-chip {
+    border: 1px solid var(--border);
+    background: var(--chip-bg, var(--bg-card));
+    border-color: var(--chip-border, var(--border));
+    color: var(--chip-text, var(--text-secondary));
+    padding: 4px 8px;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 11px;
+}
+
+.portfolio-chip.active {
+    border-color: var(--accent);
+}
+
+.chip-link {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.chip-link:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}
+
+.chip-link-danger {
+    color: var(--priority-high);
+}
+
+.chip-link-danger:hover {
+    color: var(--priority-high);
+}
+
+.chip-readonly-label {
+    font-style: italic;
+}
+
+.chip-save-state {
+    color: var(--text-muted);
+}
+
+.chip-save-state.saving {
+    color: var(--accent);
+}
+
+.chip-save-state.error {
+    color: var(--priority-high);
+}
+
+.chip-save-state.warning {
+    color: #8b5e0a;
+}
+
+.chip-save-state.conflict {
+    color: #a13f10;
+}
+
+.chip-save-state.external {
+    color: var(--accent);
+}
+
+.portfolio-toolbar input,
+.portfolio-toolbar select {
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    font-size: 12px;
+}
+
+.portfolio-toolbar input {
+    padding: 6px 12px;
+}
+
+.portfolio-view-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+}
+
+.portfolio-view-toggle .btn {
+    border: 0;
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.portfolio-view-toggle .btn:last-child {
+    border-right: 0;
+}
+
+.portfolio-view-toggle .btn.active {
+    background: var(--accent);
+    color: white;
+}
+
+.portfolio-roadmap-view {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--bg-primary);
+    gap: 12px;
+    padding: 16px;
+    overflow: auto;
+}
+
+.portfolio-calendar-view {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--bg-primary);
+    gap: 12px;
+    padding: 0;
+    overflow: hidden;
+}
