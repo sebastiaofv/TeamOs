@@ -1,5 +1,4 @@
 // Application entry: loads the styles and mounts the React app.
-import './styles/tailwind.css';
 import './styles/app.css';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.jsx';

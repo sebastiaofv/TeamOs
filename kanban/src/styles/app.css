@@ -1,3 +1,19 @@
+        /* Shared surfaces. Keep these before feature rules so local styles win. */
+        .surface-page {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+
+        .surface-card {
+            background-color: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .surface-border {
+            border-width: 1px;
+            border-color: var(--border);
+        }
+
         * {
             margin: 0;
             padding: 0;
