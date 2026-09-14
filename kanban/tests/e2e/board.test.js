@@ -7,7 +7,8 @@ const {
   seedPortfolioBoards,
   waitForBoardWrites,
   portfolioCard,
-  answerAppMessage
+  answerAppMessage,
+  dragWithMouse
 } = require('../support/portfolio');
 
 test.describe('board', () => {
@@ -329,10 +330,10 @@ test.describe('board', () => {
     const targetColumn = page.locator('#portfolio-doing-column');
 
     await expect(card).toBeVisible();
-    await expect(card).toHaveJSProperty('draggable', true);
+    await expect(card).toHaveAttribute('data-draggable', 'true');
     await expect(card.locator('.task-tag-age')).toContainText('Age');
 
-    await card.dragTo(targetColumn);
+    await dragWithMouse(page, card, targetColumn);
 
     await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Move me' })).toBeVisible();
     await expect(page.locator('#portfolio-backlog-column .portfolio-task-card').filter({ hasText: 'Move me' })).toHaveCount(0);
@@ -349,6 +350,43 @@ test.describe('board', () => {
     expect(result.writes.length).toBeGreaterThan(0);
     expect(result.writes.at(-1).text).toContain('"status": "doing"');
     expect(result.writes.at(-1).text).not.toContain('"statusChangedAt"');
+  });
+
+  test.describe('touch', () => {
+    test.use({ hasTouch: true });
+
+    test('a card can be dragged to another column by touch', async ({ page }) => {
+      await seedPortfolioBoards(page, [
+        { id: 't1', title: 'Touch Project', hasHandle: true, tasks: [{ id: 31, title: 'Touch me', status: 'backlog' }] }
+      ], { selectedBoardId: 't1' });
+
+      const card = page.locator('#portfolio-backlog-column .portfolio-task-card').filter({ hasText: 'Touch me' }).first();
+      const from = await card.boundingBox();
+      const to = await page.locator('#portfolio-done-column').boundingBox();
+      const start = { x: from.x + from.width / 2, y: from.y + from.height / 2 };
+      const end = { x: to.x + to.width / 2, y: to.y + to.height / 2 };
+      // Playwright has no touch-move API; drive Chromium's touch input directly.
+      const cdp = await page.context().newCDPSession(page);
+      const touch = (type, point) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: point ? [point] : [] });
+
+      await touch('touchStart', start);
+      // Hold past the touch sensor's press delay before moving.
+      await page.waitForTimeout(350);
+      for (let step = 1; step <= 10; step += 1) {
+        await touch('touchMove', {
+          x: start.x + ((end.x - start.x) * step) / 10,
+          y: start.y + ((end.y - start.y) * step) / 10
+        });
+      }
+      await touch('touchEnd');
+
+      await expect(page.locator('#portfolio-done-column .portfolio-task-card').filter({ hasText: 'Touch me' })).toBeVisible();
+      await waitForBoardWrites(page);
+      const savedStatus = await page.evaluate(() => (
+        JSON.parse(window.__portfolioDiskByBoardId.t1.text).board.tasks.find((task) => task.id === 31)?.status
+      ));
+      expect(savedStatus).toBe('done');
+    });
   });
 
   test('dragging works in all-projects view for mutable cards', async ({ page }) => {
@@ -371,9 +409,9 @@ test.describe('board', () => {
     const targetColumn = page.locator('#portfolio-doing-column');
 
     await expect(card).toBeVisible();
-    await expect(card).toHaveJSProperty('draggable', true);
+    await expect(card).toHaveAttribute('data-draggable', 'true');
 
-    await card.dragTo(targetColumn);
+    await dragWithMouse(page, card, targetColumn);
 
     await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Drag in all view' })).toBeVisible();
 

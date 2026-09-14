@@ -324,6 +324,32 @@ async function answerAppMessage(page, { button, expectText, input } = {}) {
   await expect(dialog).toHaveCount(0);
 }
 
+// Drags with real mouse events, the way dnd-kit's mouse sensor expects: press,
+// move past the activation distance, glide to the target in steps, release.
+// (Playwright's dragTo moves once, which only activates the drag.)
+// `targetPosition` is relative to the target's top-left corner (default: its
+// centre). With `release: false` the button stays down, e.g. to capture mid-drag.
+async function dragWithMouse(page, source, target, { targetPosition, release = true } = {}) {
+  // Inside a scrolling dialog the source can sit below the fold; pressing where
+  // it would be lands on the backdrop and closes the dialog.
+  await source.scrollIntoViewIfNeeded();
+  const from = await source.boundingBox();
+  const to = await target.boundingBox();
+  const startX = from.x + from.width / 2;
+  const startY = from.y + from.height / 2;
+  const endX = to.x + (targetPosition ? targetPosition.x : to.width / 2);
+  const endY = to.y + (targetPosition ? targetPosition.y : to.height / 2);
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + 8, startY + 8, { steps: 2 });
+  await page.mouse.move(endX, endY, { steps: 10 });
+  if (!release) return;
+  await page.mouse.up();
+  // For 50 ms after a drop dnd-kit swallows clicks, so the drop is not also a
+  // click. Wait on a page timer: it fires after dnd-kit's, so the next click lands.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 60)));
+}
+
 // Fakes the save picker for New Project. The project name prompt still has to
 // be answered with answerAppMessage.
 async function mockNewProjectFlow(page, { fileName = 'new-project.json' } = {}) {
@@ -458,6 +484,7 @@ module.exports = {
   setTimelineSlider,
   appMessage,
   answerAppMessage,
+  dragWithMouse,
   mockNewProjectFlow,
   mockImportProjectsPicker,
   mutateExternalBoardFile,

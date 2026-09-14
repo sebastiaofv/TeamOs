@@ -24,8 +24,6 @@ export function createPortfolioSlice() {
         portfolioDetailContext: null,
         roadmapEntityContext: null,
         portfolioBulkSelectionByBoardId: {},
-        portfolioDragContext: null,
-        portfolioDragOverStatus: '',
         selectedPortfolioCardRef: null,
         hoveredPortfolioCardRef: null,
         suppressPortfolioCardClickUntil: 0,

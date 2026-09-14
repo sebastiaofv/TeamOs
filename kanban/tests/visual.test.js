@@ -1,7 +1,7 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage } = require('./support/portfolio');
+const { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse } = require('./support/portfolio');
 
 // Pixel baselines for pieces being ported to React. They are captured against
 // the legacy implementation first; a port must match them unchanged. Baselines
@@ -310,13 +310,16 @@ test.describe('2.1b task editor', () => {
     await openFullTaskEditor(page, 'light');
     const rows = page.locator('#taskChecklistItems .checklist-editor-row');
     await rows.nth(2).scrollIntoViewIfNeeded();
-    const dataTransfer = await page.evaluateHandle(() => new DataTransfer());
-    await rows.nth(2).locator('.checklist-editor-drag-handle').dispatchEvent('dragstart', { dataTransfer });
-    const box = await rows.nth(0).boundingBox();
-    await rows.nth(0).dispatchEvent('dragover', { dataTransfer, clientX: box.x + 10, clientY: box.y + 2 });
+    // Hold the third item over the top of the first; the rows it passes shift
+    // down to make room. The button stays down, so capture without
+    // captureEditor, which would move the mouse and the drag with it.
+    await dragWithMouse(page, rows.nth(2).locator('.checklist-editor-drag-handle'), rows.nth(0), {
+      targetPosition: { x: 10, y: 2 },
+      release: false
+    });
     await expect(rows.nth(2)).toHaveClass(/\bdragging\b/);
-    await expect(rows.nth(0)).toHaveClass(/\bdrag-over-before\b/);
-    await captureEditor(page, 'task-editor-checklist-drag-light.png');
+    await page.evaluate(() => document.activeElement?.blur());
+    await expect(page).toHaveScreenshot('task-editor-checklist-drag-light.png', { fullPage: true });
   });
 });
 
@@ -383,7 +386,7 @@ test.describe('2.2 toolbar and chips', () => {
         pendingResolvers: []
       };
     });
-    await portfolioCard(page, 'Move me').dragTo(page.locator('#portfolio-doing-column'));
+    await dragWithMouse(page, portfolioCard(page, 'Move me'), page.locator('#portfolio-doing-column'));
     const chip = page.locator('#portfolioBoardsChips .portfolio-chip.active');
     await expect(chip).toContainText('Save failed');
     await expect(chip.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();

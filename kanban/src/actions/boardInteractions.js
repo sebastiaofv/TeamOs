@@ -1,6 +1,5 @@
-// Card selection and drag-and-drop state; React owns the visual classes.
-
-import { normalizeTaskStatus } from '../domain/task.js';
+// Card selection, bulk selection and card drop outcomes. The board component
+// owns the drag gesture itself (dnd-kit) and the visual classes.
 
 import { getPortfolioBulkTaskIds } from '../selectors/portfolioViews.js';
 
@@ -70,93 +69,16 @@ export function createBoardInteractions({ getState, commitState, isPortfolioBoar
         });
     }
 
-    function setPortfolioDragContext(context) {
-        commitState({ portfolioDragContext: context || null });
-    }
-
-    function clearPortfolioColumnDragHighlights() {
-        if (getState().portfolioDragOverStatus) commitState({ portfolioDragOverStatus: '' });
-    }
-
-    function readPortfolioDragContextFromEvent(event) {
-        const current = getState().portfolioDragContext;
-        if (current?.boardId && current?.taskId) return current;
-        const raw = event?.dataTransfer?.getData?.('application/x-kanban-task')
-            || event?.dataTransfer?.getData?.('text/plain');
-        if (!raw) return null;
-        try {
-            const parsed = JSON.parse(raw);
-            return parsed?.boardId && parsed?.taskId ? parsed : null;
-        } catch (_) {
-            return null;
-        }
-    }
-
-    function canDragPortfolioContext(context) {
-        return Boolean(context?.boardId && context?.taskId) && isPortfolioBoardMutable(context.boardId);
-    }
-
-    function onPortfolioTaskDragStart(event, context) {
-        if (!canDragPortfolioContext(context)) {
-            event?.preventDefault?.();
-            return;
-        }
-        setPortfolioDragContext({
-            boardId: context.boardId,
-            taskId: Number(context.taskId),
-            fromStatus: normalizeTaskStatus(context.status)
-        });
-        const payload = JSON.stringify(getState().portfolioDragContext);
-        if (event?.dataTransfer) {
-            event.dataTransfer.effectAllowed = 'move';
-            try {
-                event.dataTransfer.setData('application/x-kanban-task', payload);
-            } catch (_) { }
-            try {
-                event.dataTransfer.setData('text/plain', payload);
-            } catch (_) { }
-        }
-    }
-
-    function onPortfolioTaskDragEnd(event) {
-        setPortfolioDragContext(null);
+    // The click that ends a card drag must not also open the card.
+    function endPortfolioCardDrag() {
         commitState({ suppressPortfolioCardClickUntil: Date.now() + 120 });
-        clearPortfolioColumnDragHighlights();
     }
 
-    function onPortfolioColumnDragOver(event, targetStatus) {
-        const context = readPortfolioDragContextFromEvent(event);
-        if (!canDragPortfolioContext(context)) return;
-        const nextStatus = normalizeTaskStatus(targetStatus);
-        if (normalizeTaskStatus(context.fromStatus) === nextStatus) return;
-        event?.preventDefault?.();
-        if (event?.dataTransfer) event.dataTransfer.dropEffect = 'move';
-        if (getState().portfolioDragOverStatus !== nextStatus) commitState({ portfolioDragOverStatus: nextStatus });
+    async function dropPortfolioTaskOnColumn(boardId, taskId, targetStatus) {
+        if (!boardId || !taskId || !isPortfolioBoardMutable(boardId)) return false;
+        return movePortfolioTaskToStatus(boardId, Number(taskId), targetStatus);
     }
 
-    function onPortfolioColumnDragLeave(event) {
-        const current = event?.currentTarget;
-        if (!current) return;
-        const related = event.relatedTarget;
-        if (related && current.contains(related)) return;
-        clearPortfolioColumnDragHighlights();
-    }
-
-    async function onPortfolioColumnDrop(event, targetStatus) {
-        event?.preventDefault?.();
-        clearPortfolioColumnDragHighlights();
-        const context = readPortfolioDragContextFromEvent(event);
-        if (!canDragPortfolioContext(context)) {
-            clearPortfolioColumnDragHighlights();
-            return;
-        }
-        try {
-            await movePortfolioTaskToStatus(context.boardId, Number(context.taskId), targetStatus);
-        } finally {
-            setPortfolioDragContext(null);
-            clearPortfolioColumnDragHighlights();
-        }
-    }
     return {
         clearPortfolioBulkSelection,
         getSelectedPortfolioBulkTaskIds,
@@ -164,10 +86,7 @@ export function createBoardInteractions({ getState, commitState, isPortfolioBoar
         setSelectedPortfolioCard,
         setHoveredPortfolioCard,
         togglePortfolioTaskBulkSelection,
-        onPortfolioTaskDragStart,
-        onPortfolioTaskDragEnd,
-        onPortfolioColumnDragOver,
-        onPortfolioColumnDragLeave,
-        onPortfolioColumnDrop,
+        endPortfolioCardDrag,
+        dropPortfolioTaskOnColumn,
     };
 }
