@@ -190,7 +190,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
 
         if (context.mode === 'assign-sprint-from-selection') {
             if (!draft.existingSprintId) {
-                return { focusField: 'roadmapEntityExistingSprint' };
+                return { focusField: 'existingSprintId' };
             }
             const changed = await assignSelectionToExistingSprint(context.boardId, draft.existingSprintId);
             if (!changed) return;
@@ -199,15 +199,15 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             return;
         }
         if (!draft.title) {
-            return { focusField: 'roadmapEntityTitle' };
+            return { focusField: 'title' };
         }
         if (config.dateMode === 'single' && !draft.dueDate) {
-            alert(`${config.label} requires a valid due date.`);
-            return { focusField: 'roadmapEntityDate' };
+            await alert(`${config.label} requires a valid due date.`);
+            return { focusField: 'dueDate' };
         }
         if (config.dateMode === 'range' && (!draft.startDate || !draft.endDate)) {
-            alert(`${config.label} requires valid start and end dates.`);
-            return { focusField: 'roadmapEntityStartDate' };
+            await alert(`${config.label} requires valid start and end dates.`);
+            return { focusField: 'startDate' };
         }
         if (context.mode === 'create-sprint-from-selection') {
             const changed = await createSprintFromSelection(context.boardId, draft);
@@ -264,7 +264,12 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
         const item = roadmap[config.itemsKey].find((entry) => entry.id === itemId);
         if (!item) return;
-        if (!confirm(`Delete "${item.title}"? Linked task references will be cleared.`)) return;
+        const confirmed = await confirm(`Delete "${item.title}"? Linked task references will be cleared.`, {
+            title: `Delete ${config.label.toLowerCase()}`,
+            confirmLabel: 'Delete',
+            danger: true
+        });
+        if (!confirmed) return;
 
         await runPortfolioBoardMutation(boardId, (boardData) => {
             const mutableRoadmap = getRoadmapExtensionObject(boardData, { create: true });

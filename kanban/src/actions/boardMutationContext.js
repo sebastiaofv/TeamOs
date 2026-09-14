@@ -10,15 +10,17 @@ import { touchTask } from '../domain/task.js';
 import { isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
 import { enqueueProjectSave, markProjectDirty } from '../persistence/projectFiles.js';
 import { closeDialog, openDialog } from './dialogs.js';
+import { showAlert, showConfirm } from './appMessages.js';
 
+// `alert` and `confirm` return promises (see appMessages.js); await `confirm`.
 export function createBoardMutationContext({
     store = useAppStore,
     enqueueSave = enqueueProjectSave,
     markDirty = markProjectDirty,
     closeDialogFn = closeDialog,
     openDialogFn = openDialog,
-    alert = (message) => window.alert(message),
-    confirm = (message) => window.confirm(message),
+    alert = showAlert,
+    confirm = showConfirm,
     onBoardChanged = () => {}
 } = {}) {
     const getState = store.getState;

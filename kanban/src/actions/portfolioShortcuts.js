@@ -13,6 +13,7 @@ import {
     togglePortfolioArchiveTask
 } from './portfolioMutations.js';
 import { resetPortfolioFilters, selectPortfolioBoard } from './portfolioControls.js';
+import { focusTarget } from './focusTargets.js';
 import { useAppStore } from '../state/store.js';
 
 const getState = () => useAppStore.getState();
@@ -33,11 +34,7 @@ function getShortcutTargetRow(state = getState()) {
         || findVisibleRow(state, state.selectedPortfolioCardRef);
 }
 
-function escapeCssSelectorValue(value) {
-    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(String(value));
-    return String(value).replace(/([\\"])/g, '\\$1');
-}
-
+// The selected card scrolls itself into view (PortfolioTaskCard).
 export function selectAdjacentPortfolioCard(step) {
     const state = getState();
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
@@ -55,19 +52,14 @@ export function selectAdjacentPortfolioCard(step) {
     const row = rows[nextIndex];
     if (!row) return;
     useAppStore.setState({ selectedPortfolioCardRef: { boardId: row.boardId, taskId: Number(row.taskId) } });
-
-    requestAnimationFrame(() => {
-        const selector = `.portfolio-task-card[data-board-id="${escapeCssSelectorValue(row.boardId)}"][data-task-id="${escapeCssSelectorValue(row.taskId)}"]`;
-        document.querySelector(selector)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-    });
 }
 
 export function focusPortfolioSearch() {
-    document.getElementById('portfolioSearchInput')?.focus();
+    focusTarget('portfolioSearch');
 }
 
 export function focusPortfolioSortControl() {
-    document.getElementById('portfolioSortSelect')?.focus();
+    focusTarget('portfolioSort');
 }
 
 export function cyclePortfolioProjectChip(step) {
@@ -233,6 +225,8 @@ function isTyping() {
 }
 
 export function handleShortcutKeydown(event) {
+    // An open app message owns the keyboard until it is answered.
+    if (getState().appMessage) return;
     const contextName = SHORTCUT_CONTEXT_BY_DIALOG[getState().activeDialog] || 'global';
     const typing = isTyping();
     for (const entry of SHORTCUTS) {

@@ -300,14 +300,39 @@ async function setTimelineSlider(page, value) {
   }, value);
 }
 
-async function mockNewProjectFlow(page, { promptValue = 'New Project', fileName = 'new-project.json' } = {}) {
-  await page.evaluate(({ promptValue, fileName }) => {
+// The app message dialog: the in-app alert, confirm and prompt.
+function appMessage(page) {
+  return page.locator('#appMessageModal');
+}
+
+// Answers the open app message by clicking `button` (default: its primary
+// button), after checking its text contains `expectText` and filling `input`
+// into a prompt. Waits for the message to close.
+async function answerAppMessage(page, { button, expectText, input } = {}) {
+  const dialog = appMessage(page);
+  await expect(dialog).toBeVisible();
+  if (expectText !== undefined) {
+    await expect(dialog.locator('#appMessageText')).toContainText(expectText);
+  }
+  if (input !== undefined) {
+    await dialog.locator('#appMessageInput').fill(input);
+  }
+  const target = button
+    ? dialog.getByRole('button', { name: button, exact: true })
+    : dialog.locator('#appMessageConfirmBtn');
+  await target.click();
+  await expect(dialog).toHaveCount(0);
+}
+
+// Fakes the save picker for New Project. The project name prompt still has to
+// be answered with answerAppMessage.
+async function mockNewProjectFlow(page, { fileName = 'new-project.json' } = {}) {
+  await page.evaluate(({ fileName }) => {
     window.__newProjectWrites = [];
     const disk = {
       text: '',
       lastModified: Date.now()
     };
-    window.prompt = () => promptValue;
     window.showSaveFilePicker = async () => ({
       name: fileName,
       async getFile() {
@@ -334,7 +359,7 @@ async function mockNewProjectFlow(page, { promptValue = 'New Project', fileName 
         };
       }
     });
-  }, { promptValue, fileName });
+  }, { fileName });
 }
 
 async function mockImportProjectsPicker(page, payloads) {
@@ -431,6 +456,8 @@ module.exports = {
   openTaskEditor,
   renameTaskViaEditor,
   setTimelineSlider,
+  appMessage,
+  answerAppMessage,
   mockNewProjectFlow,
   mockImportProjectsPicker,
   mutateExternalBoardFile,

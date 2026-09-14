@@ -8,22 +8,11 @@ import { createEmptyProjectData, slugifyColumnName } from '../domain/board.js';
 import { assertRequiredExtension, formatErrorMessage, hasRequiredExtension, isAbortError } from '../domain/util.js';
 import { BoardRepository, writeJsonToFileHandle } from '../persistence/boardRepository.js';
 import { checkProjectFilesNow, createPortfolioRecord } from '../persistence/projectFiles.js';
+import { getPortfolioBoardRecord } from '../state/store.js';
 import { closePortfolioContextsForProject } from './dialogs.js';
+import { showAlert, showChoice, showPrompt } from './appMessages.js';
 import { Logger } from '../logger.js';
 import { appendPortfolioRecords as appendPortfolioRecordsToStore } from './portfolioControls.js';
-
-function defaultAlert(message) {
-    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-        window.alert(message);
-    }
-}
-
-function defaultPrompt(message, defaultValue) {
-    if (typeof window !== 'undefined' && typeof window.prompt === 'function') {
-        return window.prompt(message, defaultValue);
-    }
-    return null;
-}
 
 function getWindow() {
     return typeof window !== 'undefined' ? window : null;
@@ -31,12 +20,14 @@ function getWindow() {
 
 /**
  * Create the browser file actions. The portfolio session callback is injected
- * so importing files cannot mutate DOM state itself.
+ * so importing files cannot mutate DOM state itself. `alert`, `prompt` and
+ * `choose` return promises (see appMessages.js).
  */
 export function createPortfolioFileActions({
     appendPortfolioRecords = appendPortfolioRecordsToStore,
-    alert = defaultAlert,
-    prompt = defaultPrompt,
+    alert = showAlert,
+    prompt = showPrompt,
+    choose = showChoice,
     logger = Logger,
     checkFiles = checkProjectFilesNow,
     closeContexts = closePortfolioContextsForProject,
@@ -47,18 +38,17 @@ export function createPortfolioFileActions({
     function checkPortfolioFiles() {
         return checkFiles({
             onReload: closeContexts,
-            chooseConflict: () => {
-                const answer = prompt(
-                    'Project file changed on disk while this app has unsaved edits.\n' +
-                    'Type "local" to keep local edits and save.\n' +
-                    'Type "reload" to reload from disk and discard unsaved edits.',
-                    'local'
+            chooseConflict: (boardId) => {
+                const title = getPortfolioBoardRecord(boardId)?.title;
+                return choose(
+                    `${title ? `"${title}"` : 'A project file'} changed on disk while this app has unsaved edits.\n` +
+                    'Keep your local edits and save them over the file, or reload from disk and discard them.',
+                    [
+                        { value: 'reload', label: 'Reload from disk' },
+                        { value: 'local', label: 'Keep local edits', primary: true }
+                    ],
+                    { title: 'File changed on disk' }
                 );
-                if (answer === null) return null;
-                const choice = String(answer).trim().toLowerCase();
-                if (['reload', 'r'].includes(choice)) return 'reload';
-                if (['local', 'l', 'keep'].includes(choice)) return 'local';
-                return 'unresolved';
             }
         });
     }
@@ -79,7 +69,7 @@ export function createPortfolioFileActions({
                 .replace(new RegExp(`${BOARD_FILE_EXTENSION.replace('.', '\\.')}$`, 'i'), '')
                 .replace(/[-_]+/g, ' ')
                 .trim() || 'New Project';
-            const requestedName = prompt('Project name:', defaultTitle);
+            const requestedName = await prompt('Project name:', defaultTitle, { title: 'New project', confirmLabel: 'Create' });
             if (requestedName === null) return;
             const title = requestedName.trim();
             if (!title) return;
@@ -115,7 +105,7 @@ export function createPortfolioFileActions({
             const { loaded, errors } = await BoardRepository.importFromHandles(handles);
             appendPortfolioRecords(loaded);
             if (errors.length > 0) {
-                alert(`Some projects were not imported:\n${errors.join('\n')}`);
+                alert(`Some projects were not imported:\n${errors.join('\n')}`, { title: 'Import incomplete' });
             }
         } catch (error) {
             if (!isAbortError(error)) {
@@ -137,7 +127,7 @@ export function createPortfolioFileActions({
             const { loaded, errors } = await BoardRepository.importFromLooseFiles(boardFiles);
             appendPortfolioRecords(loaded);
             if (errors.length > 0) {
-                alert(`Some projects were not imported:\n${errors.join('\n')}`);
+                alert(`Some projects were not imported:\n${errors.join('\n')}`, { title: 'Import incomplete' });
             }
         } catch (error) {
             logger.error('Import from drop failed', error);

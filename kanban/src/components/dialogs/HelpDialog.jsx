@@ -3,6 +3,7 @@ import { useAppStore } from '../../state/store.js';
 import { closeDialog } from '../../actions/dialogs.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
+import { escapeAnswersAppMessage } from './escapeAnswersAppMessage.js';
 
 export function HelpDialog() {
     const open = useAppStore((s) => s.activeDialog === 'help');
@@ -16,6 +17,7 @@ export function HelpDialog() {
                         className="modal-content"
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
+                        onEscapeKeyDown={escapeAnswersAppMessage}
                         {...returnFocus}
                     >
                         <div className="modal-header">

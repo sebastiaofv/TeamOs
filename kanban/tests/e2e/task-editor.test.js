@@ -10,7 +10,8 @@ const {
   portfolioCard,
   closeDialogBy,
   portfolioProjectChipButtons,
-  openTaskEditor
+  openTaskEditor,
+  answerAppMessage
 } = require('../support/portfolio');
 
 test.describe('task editor', () => {
@@ -23,18 +24,13 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.evaluate(() => {
-      window.__lastAlert = '';
-      window.alert = (msg) => { window.__lastAlert = String(msg); };
-    });
-
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Blocked task');
     await page.locator('#taskBlocked').check();
     await page.locator('#taskModal .btn-primary').click();
 
+    await answerAppMessage(page, { expectText: 'Blocked tasks require a blocker reason.' });
     await expect(page.locator('#taskModal')).toBeVisible();
-    expect(await page.evaluate(() => window.__lastAlert)).toBe('Blocked tasks require a blocker reason.');
     await expect(page.locator('#taskBlockerReason')).toBeFocused();
 
     await page.setInputFiles('#taskAttachmentsInput', {
@@ -52,25 +48,16 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.evaluate(() => {
-      window.__lastAlert = '';
-      window.alert = (msg) => { window.__lastAlert = String(msg); };
-    });
-
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Blocked task');
     await page.locator('#taskBlocked').check();
     await page.locator('#taskModal .btn-primary').click();
 
+    await answerAppMessage(page, { expectText: 'Blocked tasks require a blocker reason' });
     await expect(page.locator('#taskModal')).toBeVisible();
 
-    const result = await page.evaluate(() => ({
-      alert: window.__lastAlert,
-      taskCount: JSON.parse(window.__portfolioDiskByBoardId.p1.text).board.tasks.length
-    }));
-
-    expect(result.alert).toContain('Blocked tasks require a blocker reason');
-    expect(result.taskCount).toBe(0);
+    const taskCount = await page.evaluate(() => JSON.parse(window.__portfolioDiskByBoardId.p1.text).board.tasks.length);
+    expect(taskCount).toBe(0);
   });
 
   test('task modal places blocked fields immediately after description', async ({ page }) => {
@@ -270,6 +257,7 @@ test.describe('task editor', () => {
     await page.locator('#taskTagAddBtn').click();
     await page.locator('#taskTagNewItem').fill('bug');
     await page.locator('#taskTagAddBtn').click();
+    await answerAppMessage(page, { expectText: 'This tag is already added.' });
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
@@ -287,11 +275,6 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.evaluate(() => {
-      window.__lastAlert = '';
-      window.alert = (msg) => { window.__lastAlert = String(msg); };
-    });
-
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Limit task');
 
@@ -300,14 +283,12 @@ test.describe('task editor', () => {
       await page.locator('#taskTagAddBtn').click();
     }
 
-    const alertResult = await page.evaluate(() => window.__lastAlert);
-    expect(alertResult).toContain('at most 10 tags');
+    await answerAppMessage(page, { expectText: 'at most 10 tags' });
 
     await page.locator('#taskTagNewItem').fill('a'.repeat(31));
     await page.locator('#taskTagAddBtn').click();
 
-    const lengthAlert = await page.evaluate(() => window.__lastAlert);
-    expect(lengthAlert).toContain('30 characters');
+    await answerAppMessage(page, { expectText: '30 characters' });
   });
 
   test('editing a task preloads and updates tags', async ({ page }) => {
@@ -751,6 +732,27 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskAttachmentsWarnings')).toHaveText('');
   });
 
+  test('Escape answers only the app message and leaves the task editor open', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.locator('#taskName').fill('Blocked task');
+    await page.locator('#taskBlocked').check();
+    await page.locator('#taskModal .btn-primary').click();
+
+    const message = page.locator('#appMessageModal');
+    await expect(message).toBeVisible();
+    await expect(page.locator('#appMessageConfirmBtn')).toBeFocused();
+
+    await page.keyboard.press('Escape');
+
+    await expect(message).toHaveCount(0);
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(page.locator('#taskBlockerReason')).toBeFocused();
+  });
+
   test('clicking Undo while the task editor is open keeps the editor open', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Archive me', status: 'backlog' }] }
@@ -758,8 +760,8 @@ test.describe('task editor', () => {
 
     const card = portfolioCard(page, 'Archive me');
     await card.hover();
-    page.once('dialog', (dialog) => dialog.accept());
     await card.locator('button[title="Archive"]').click();
+    await answerAppMessage(page, { button: 'Archive' });
     await expect(page.locator('#undoToast')).toBeVisible();
 
     await page.locator('#portfolio-backlog-column .add-task-card').click();

@@ -1,0 +1,34 @@
+/* App message dialog: the in-app alert, confirm and prompt. It stacks above
+   other dialogs and below the undo toast. */
+#appMessageModal {
+    z-index: 1100;
+}
+
+#appMessageModal .modal-content {
+    max-width: 420px;
+}
+
+.app-message-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}
+
+.app-message-field {
+    margin: 12px 0 0;
+}
+
+.btn-danger {
+    background: var(--priority-high);
+    color: white;
+    border-color: var(--priority-high);
+}
+
+.btn-danger:hover {
+    background: var(--priority-high);
+    border-color: var(--priority-high);
+    filter: brightness(0.92);
+}

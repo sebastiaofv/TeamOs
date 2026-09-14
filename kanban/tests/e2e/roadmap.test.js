@@ -11,7 +11,8 @@ const {
   portfolioCard,
   focusIsInside,
   closeDialogBy,
-  openTaskEditor
+  openTaskEditor,
+  answerAppMessage
 } = require('../support/portfolio');
 
 test.describe('roadmap', () => {
@@ -159,10 +160,8 @@ test.describe('roadmap', () => {
 
     await expect(page.locator('#portfolioRoadmapView')).toContainText('Beta');
 
-    await page.evaluate(() => {
-      window.confirm = () => true;
-    });
     await page.getByRole('button', { name: 'Delete Alpha' }).click();
+    await answerAppMessage(page, { button: 'Delete', expectText: 'Linked task references will be cleared.' });
 
     await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.at(-1)?.summary || '').toContain('Milestone deleted');
     const board = await readSavedBoard(page, 'alpha');
@@ -868,14 +867,9 @@ test.describe('roadmap', () => {
     await openAddMilestone(page);
     await page.locator('#roadmapEntityTitle').fill('Gamma');
 
-    let alertMessage = '';
-    page.once('dialog', async (dialog) => {
-      alertMessage = dialog.message();
-      await dialog.accept();
-    });
     await page.locator('#roadmapEntityModalSaveBtn').click();
 
-    await expect.poll(() => alertMessage).toBe('Milestone requires a valid due date.');
+    await answerAppMessage(page, { expectText: 'Milestone requires a valid due date.' });
     await expect(page.locator('#roadmapEntityDate')).toBeFocused();
     await expect(page.locator('#roadmapEntityModal')).toBeVisible();
   });

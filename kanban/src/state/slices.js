@@ -51,7 +51,10 @@ export function createUiSlice() {
         undoToast: null,
         activeTheme: 'light',
         activeDialog: null,
-        dialogProps: null
+        dialogProps: null,
+        // The open in-app alert/confirm/prompt (actions/appMessages.js). Kept
+        // apart from activeDialog so it can stack above an open dialog.
+        appMessage: null
     };
 }
 

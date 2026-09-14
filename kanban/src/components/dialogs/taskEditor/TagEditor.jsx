@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { addTag } from '../../../domain/taskDraft.js';
+import { showAlert } from '../../../actions/appMessages.js';
 
 export function TagEditor({ value, onChange, suggestions }) {
     const [composer, setComposer] = useState('');
@@ -8,7 +9,7 @@ export function TagEditor({ value, onChange, suggestions }) {
     const addFromComposer = () => {
         const result = addTag(value, composer);
         if (result.error) {
-            window.alert(result.error);
+            void showAlert(result.error, { title: 'Tag not added' });
             return;
         }
         if (result.items === value) return;
