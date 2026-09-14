@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAppStore } from '../../state/store.js';
-import { closeTaskEditor, saveTask } from '../../actions/legacyHost.js';
+import { closeTaskEditor, saveTask } from '../../actions/portfolioMutations.js';
 import { buildTaskDraft } from '../../domain/taskDraft.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';

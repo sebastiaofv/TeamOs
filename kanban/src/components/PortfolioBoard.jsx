@@ -7,7 +7,7 @@ import {
     onPortfolioTaskDragEnd,
     onPortfolioTaskDragStart,
     togglePortfolioTaskBulkSelection
-} from '../actions/legacyHost.js';
+} from '../actions/portfolioMutations.js';
 import { defaultColumns } from '../domain/constants.js';
 import { createPortfolioProjectColor } from '../domain/board.js';
 import { formatDueDateForUi } from '../domain/calendar.js';

@@ -1,25 +1,56 @@
 import '../styles/tailwind.css';
 import '../styles/legacy.css';
-import { isAbortError, formatErrorMessage, nowIso, escapeRegExp, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, assertRequiredExtension } from '../domain/util.js';
-import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, parseChecklistInput, getBoardTagSuggestions, nextTaskIdForBoard, touchTask, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
-import { createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, slugifyRoadmapEntityId, getRoadmapItemTitle, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
+import { isAbortError, formatErrorMessage, escapeRegExp, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, assertRequiredExtension } from '../domain/util.js';
+import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, parseChecklistInput, getBoardTagSuggestions, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, normalizeTask } from '../domain/task.js';
+import { createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapRef, getRoadmapItemTitle, getRoadmapExtension } from '../domain/roadmap.js';
 import { normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, comparePortfolioRows } from '../domain/board.js';
-import { normalizeAttachmentRecord, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
+import { normalizeAttachmentRecord, calculateBoardAttachmentBytes, getTaskAttachments } from '../domain/attachments.js';
 import { createUtcDate, normalizeDueDate, formatDateTime, formatDueDateForUi } from '../domain/calendar.js';
-import { cloneSerializable, getBoardExtensionsObject, createBoardStateSnapshot, serializeBoardDataFromObject } from '../domain/serialize.js';
-import { captureTaskTimelineSnapshot, getBoardTimelineData, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline, appendTimelineEvent, recordBoardRestoreTimelineEvent, recordTaskTimelineEvent } from '../domain/timeline.js';
+import { createBoardStateSnapshot } from '../domain/serialize.js';
+import { getBoardTimelineData, reconstructBoardStateFromTimeline } from '../domain/timeline.js';
 import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 import { appState, getPortfolioBoardRecord, notifyAppStateChanged } from '../state/store.js';
 import { Logger } from '../logger.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
-import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, enqueueProjectSave, retryProjectSave, createPortfolioRecord } from '../persistence/projectFiles.js';
+import { setPersistenceHost, syncProjectSaveStates, primeProjectFileBaselines, retryProjectSave, createPortfolioRecord } from '../persistence/projectFiles.js';
 import { openDialog, closeDialog } from '../actions/dialogs.js';
 import { setLegacyHost } from '../actions/legacyHost.js';
 import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js';
+import {
+            applySnapshotToBoardRecord,
+            beginPortfolioTimelineSliderDrag,
+            canUsePortfolioTaskMutations,
+            clearPortfolioBulkSelection,
+            clearPortfolioTimelineSelection,
+            closePortfolioContextsForProject,
+            closeRoadmapEntity as closeRoadmapEntityModal,
+            closeTaskDetail as closeDetailModal,
+            closeTaskEditor,
+            configurePortfolioMutationActions,
+            deletePortfolioTask,
+            deleteRoadmapEntity,
+            getSelectedPortfolioBulkTaskIds,
+            handleTimelineSliderPointerCommit,
+            movePortfolioTaskToStatus,
+            movePortfolioTimelineToLatest,
+            notifyPortfolioMutationUnavailable,
+            onPortfolioColumnDragLeave,
+            onPortfolioColumnDragOver,
+            onPortfolioColumnDrop,
+            onPortfolioTaskDragEnd,
+            onPortfolioTaskDragStart,
+            performUndo,
+            restorePortfolioTimelineSelection,
+            saveRoadmapEntity,
+            saveTask,
+            setPortfolioTimelineExpanded,
+            setPortfolioTimelineSelection,
+            togglePortfolioArchiveTask,
+            togglePortfolioTaskBulkSelection,
+            toggleTaskDetailChecklistItem as toggleChecklistItem
+        } from '../actions/portfolioMutations.js';
         import {
-            BOARD_FILE_EXTENSION, TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, TIMELINE_EXTENSION_KEY,
-            ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES,
-            ATTACHMENT_TASK_SOFT_TOTAL_BYTES, ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES,
+            BOARD_FILE_EXTENSION, EFFORT_BUCKETS,
             defaultColumns
         } from '../domain/constants.js';
         const Refs = {};
@@ -183,58 +214,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
 
 
 
-        function getPortfolioBulkSelection(boardId) {
-            return Array.isArray(appState.portfolioBulkSelectionByBoardId[boardId]) ? appState.portfolioBulkSelectionByBoardId[boardId] : [];
-        }
-
-        function isPortfolioTaskBulkSelected(boardId, taskId) {
-            return getPortfolioBulkSelection(boardId).includes(Number(taskId));
-        }
-
-        function clearPortfolioBulkSelection(boardId = '') {
-            if (boardId) {
-                delete appState.portfolioBulkSelectionByBoardId[boardId];
-                return;
-            }
-            appState.portfolioBulkSelectionByBoardId = {};
-        }
-
-        function syncPortfolioBulkSelection(boardId, boardData) {
-            const normalizedBoardId = String(boardId || '');
-            if (!normalizedBoardId) return;
-            const taskIds = new Set(Array.isArray(boardData?.board?.tasks) ? boardData.board.tasks.map((task) => Number(task.id)) : []);
-            const nextIds = getPortfolioBulkSelection(normalizedBoardId).filter((taskId) => taskIds.has(Number(taskId)));
-            if (nextIds.length > 0) {
-                appState.portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
-                return;
-            }
-            delete appState.portfolioBulkSelectionByBoardId[normalizedBoardId];
-        }
-
-        function togglePortfolioTaskBulkSelection(boardId, taskId, checked) {
-            const normalizedBoardId = String(boardId || '');
-            if (!normalizedBoardId) return;
-            const ids = new Set(getPortfolioBulkSelection(normalizedBoardId).map((value) => Number(value)));
-            if (checked) {
-                ids.add(Number(taskId));
-            } else {
-                ids.delete(Number(taskId));
-            }
-            const nextIds = [...ids];
-            if (nextIds.length > 0) {
-                appState.portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
-                return;
-            }
-            delete appState.portfolioBulkSelectionByBoardId[normalizedBoardId];
-        }
-
-        function getSelectedPortfolioBulkTaskIds(boardId) {
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            if (!boardRecord) return [];
-            syncPortfolioBulkSelection(boardId, boardRecord.data);
-            return getPortfolioBulkSelection(boardId);
-        }
-
         function setSelectedPortfolioBoardId(boardId, options = {}) {
             const nextBoardId = boardId || '';
             if (nextBoardId !== appState.selectedPortfolioBoardId) {
@@ -250,24 +229,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
 
 
 
-
-
-        function markProjectDirty(boardId) {
-            const state = getProjectSaveState(boardId);
-            if (!state) return null;
-            state.revision += 1;
-            if (state.inFlight) {
-                state.queued = true;
-            } else if (state.status !== 'error') {
-                state.status = 'dirty';
-            }
-            if (state.watchStatus === 'external' || state.watchStatus === 'conflict') {
-                state.watchStatus = 'idle';
-                state.watchMessage = '';
-                state.watchStatusUntil = 0;
-            }
-            return state;
-        }
 
 
         function findPortfolioTaskSource(boardId, taskId) {
@@ -301,41 +262,11 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             };
         }
 
-        function isPortfolioBoardMutable(boardId) {
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            return Boolean(boardRecord && boardRecord.handle);
-        }
-
-        function isPortfolioTaskMutable(boardId) {
-            return isPortfolioBoardMutable(boardId);
-        }
 
 
 
 
 
-
-
-        function applySnapshotToBoardRecord(boardRecord, parsed, options = {}) {
-            if (!boardRecord || !parsed) return false;
-            const boardId = boardRecord.id;
-            closePortfolioContextsForProject(boardId);
-            const payload = serializeBoardDataFromObject(parsed);
-            boardRecord.data = payload;
-            boardRecord.title = payload.board.settings.title;
-            if (options.discardLocalChanges) {
-                const saveState = getProjectSaveState(boardId, { create: false });
-                if (saveState) {
-                    saveState.revision = saveState.savedRevision;
-                    saveState.status = 'idle';
-                    saveState.lastErrorMessage = '';
-                    saveState.queued = false;
-                }
-            }
-            buildPortfolioTasks();
-            renderPortfolio();
-            return true;
-        }
 
 
 
@@ -427,82 +358,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             return Math.max(0, Math.min(maxIndex, appState.portfolioTimelineSelection.eventIndex));
         }
 
-        function isHistoricalPreviewActiveForBoard(boardId) {
-            if (!boardId) return false;
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            if (!boardRecord) return false;
-            const timeline = getBoardTimelineData(boardRecord.data);
-            if (!timeline || timeline.events.length === 0) return false;
-            const selectedIndex = getTimelineSelectionIndex(boardId, timeline);
-            return Number.isInteger(selectedIndex) && selectedIndex < timeline.events.length - 1;
-        }
-
-        function clearPortfolioTimelineSelection(options = {}) {
-            appState.portfolioTimelineSelection = { boardId: '', eventIndex: null };
-            if (options.keepModals !== true) {
-                closeDetailModal();
-                closeTaskEditor();
-            }
-        }
-
-        function setPortfolioTimelineSelection(boardId, eventIndex, options = {}) {
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            if (!boardRecord) {
-                clearPortfolioTimelineSelection();
-                renderPortfolio();
-                return;
-            }
-            const timeline = getBoardTimelineData(boardRecord.data);
-            if (!timeline || timeline.events.length === 0) {
-                clearPortfolioTimelineSelection();
-                renderPortfolio();
-                return;
-            }
-            const maxIndex = timeline.events.length - 1;
-            const nextIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
-            appState.portfolioTimelineSelection = { boardId, eventIndex: nextIndex };
-            closeDetailModal();
-            closeTaskEditor();
-            renderPortfolio(options);
-        }
-
-        function movePortfolioTimelineToLatest(boardId = appState.selectedPortfolioBoardId) {
-            if (!boardId) {
-                clearPortfolioTimelineSelection();
-                renderPortfolio();
-                return;
-            }
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            const timeline = boardRecord ? getBoardTimelineData(boardRecord.data) : null;
-            if (!timeline || timeline.events.length === 0) {
-                clearPortfolioTimelineSelection();
-                renderPortfolio();
-                return;
-            }
-            appState.portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
-            closeDetailModal();
-            closeTaskEditor();
-            renderPortfolio();
-        }
-
-        function syncPortfolioTimelineSelectionToLatest(boardId, boardData = null) {
-            if (!boardId) return;
-            if (appState.selectedPortfolioBoardId !== boardId && appState.portfolioTimelineSelection.boardId !== boardId) {
-                return;
-            }
-
-            const resolvedBoardData = boardData || getPortfolioBoardRecord(boardId)?.data;
-            const timeline = resolvedBoardData ? getBoardTimelineData(resolvedBoardData) : null;
-            if (!timeline || timeline.events.length === 0) {
-                if (appState.portfolioTimelineSelection.boardId === boardId) {
-                    appState.portfolioTimelineSelection = { boardId: '', eventIndex: null };
-                }
-                return;
-            }
-
-            appState.portfolioTimelineSelection = { boardId, eventIndex: timeline.events.length - 1 };
-        }
-
         function isPortfolioTimelineExpanded(boardId) {
             return Boolean(boardId && appState.portfolioTimelineExpandedByBoardId[boardId] === true);
         }
@@ -523,19 +378,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             if (!Number.isFinite(scrollTop)) return;
             list.scrollTop = scrollTop;
         }
-
-        function setPortfolioTimelineExpanded(boardId, expanded) {
-            if (!boardId) return;
-            appState.portfolioTimelineExpandedByBoardId[boardId] = Boolean(expanded);
-            renderPortfolio();
-        }
-
-        function togglePortfolioTimelineExpanded(boardId = appState.selectedPortfolioBoardId) {
-            if (!boardId) return;
-            setPortfolioTimelineExpanded(boardId, !isPortfolioTimelineExpanded(boardId));
-        }
-
-
 
         function buildPortfolioRowsFromBoardData(boardRecord, boardData, options = {}) {
             if (!boardRecord || !boardData) return [];
@@ -584,19 +426,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
                 isPreview: selectedIndex < timeline.events.length - 1,
                 projectedBoard
             };
-        }
-
-        function closePortfolioContextsForProject(boardId) {
-            if (!boardId) return;
-            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId === boardId) {
-                closeDetailModal();
-            }
-            if (
-                (appState.portfolioEditContext && appState.portfolioEditContext.boardId === boardId) ||
-                (appState.portfolioCreateContext && appState.portfolioCreateContext.boardId === boardId)
-            ) {
-                closeTaskEditor();
-            }
         }
 
         function sortPortfolioBoardsAlphabetically() {
@@ -780,41 +609,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             return board.projectColor || createPortfolioProjectColor(board.colorSeed || 0);
         }
 
-        async function restorePortfolioTimelineSelection() {
-            const viewState = getSelectedBoardTimelineViewState();
-            if (!viewState || !viewState.boardRecord || !viewState.projectedBoard) return false;
-            if (!viewState.boardRecord.handle) {
-                notifyPortfolioMutationUnavailable(viewState.boardRecord.id);
-                return false;
-            }
-
-            const currentTimeline = getBoardTimelineData(viewState.boardRecord.data);
-            if (!currentTimeline) return false;
-
-            closeDetailModal();
-            closeTaskEditor();
-
-            const restoredData = createBoardStateSnapshot(viewState.projectedBoard);
-            const nextTimeline = cloneSerializable(currentTimeline);
-            const extensions = getBoardExtensionsObject(restoredData, { create: true });
-            extensions[TIMELINE_EXTENSION_KEY] = nextTimeline;
-            viewState.boardRecord.data = restoredData;
-            recordBoardRestoreTimelineEvent(viewState.boardRecord.data, viewState.selectedEvent);
-            viewState.boardRecord.title = viewState.boardRecord.data.board.settings.title;
-
-            const refreshedTimeline = getBoardTimelineData(viewState.boardRecord.data);
-            appState.portfolioTimelineSelection = {
-                boardId: viewState.boardRecord.id,
-                eventIndex: Math.max(0, (refreshedTimeline?.events?.length || 1) - 1)
-            };
-
-            markProjectDirty(viewState.boardRecord.id);
-            buildPortfolioTasks();
-            renderPortfolio();
-            await enqueueProjectSave(viewState.boardRecord);
-            return true;
-        }
-
         function canUsePortfolioViewMode(mode) {
             const normalized = normalizePortfolioViewMode(mode);
             if (normalized === 'calendar') return appState.portfolioBoards.length > 0;
@@ -896,189 +690,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
 
             updateUrlState();
             notifyAppStateChanged();
-        }
-
-        function canUsePortfolioTaskMutations(boardId) {
-            return isPortfolioTaskMutable(boardId) && !isHistoricalPreviewActiveForBoard(boardId);
-        }
-
-        function notifyPortfolioReadOnly() {
-            alert('This project is read-only because it was loaded without a file handle.');
-        }
-
-        function notifyTimelinePreviewReadOnly() {
-            alert('Historical preview is read-only. Click Latest to resume editing.');
-        }
-
-        function notifyPortfolioMutationUnavailable(boardId) {
-            if (isHistoricalPreviewActiveForBoard(boardId)) {
-                notifyTimelinePreviewReadOnly();
-                return;
-            }
-            notifyPortfolioReadOnly();
-        }
-
-        async function runPortfolioTaskMutation(boardId, taskId, mutator) {
-            const source = findPortfolioTaskSource(boardId, taskId);
-            if (!source) return false;
-            if (!canUsePortfolioTaskMutations(boardId)) {
-                notifyPortfolioMutationUnavailable(boardId);
-                return false;
-            }
-
-            ensureBoardTimelineBaseline(source.boardRecord.data);
-            const beforeTask = captureTaskTimelineSnapshot(source.boardRecord.data, taskId);
-            let changed = false;
-            try {
-                changed = mutator(source.task, source.boardRecord) !== false;
-            } catch (error) {
-                alert(`Portfolio task update failed: ${error.message}`);
-                return false;
-            }
-
-            if (!changed) return false;
-            touchTask(source.task);
-            recordTaskTimelineEvent(source.boardRecord.data, beforeTask, captureTaskTimelineSnapshot(source.boardRecord.data, taskId));
-            syncPortfolioTimelineSelectionToLatest(boardId, source.boardRecord.data);
-            markProjectDirty(boardId);
-
-            buildPortfolioTasks();
-            renderPortfolio();
-
-            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId === boardId && appState.portfolioDetailContext.taskId === taskId) {
-                openPortfolioTaskDetails(boardId, taskId);
-            }
-
-            await enqueueProjectSave(source.boardRecord);
-
-            return true;
-        }
-
-        async function runPortfolioBoardMutation(boardId, mutator) {
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            if (!boardRecord) return false;
-            if (!canUsePortfolioTaskMutations(boardId)) {
-                notifyPortfolioMutationUnavailable(boardId);
-                return false;
-            }
-
-            ensureBoardTimelineBaseline(boardRecord.data);
-            let changed = false;
-            try {
-                changed = mutator(boardRecord.data, boardRecord) !== false;
-            } catch (error) {
-                alert(`Portfolio update failed: ${error.message}`);
-                return false;
-            }
-            if (!changed) return false;
-
-            syncPortfolioTimelineSelectionToLatest(boardId, boardRecord.data);
-            markProjectDirty(boardId);
-            buildPortfolioTasks();
-            renderPortfolio();
-
-            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId === boardId) {
-                openPortfolioTaskDetails(boardId, appState.portfolioDetailContext.taskId);
-            }
-
-            await enqueueProjectSave(boardRecord);
-            return true;
-        }
-
-        function createSprintFromSelection(boardId, draft) {
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            if (!boardRecord) return false;
-            const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
-            if (selectedTaskIds.length === 0) return false;
-            const sprintConfig = getRoadmapEntityConfig('sprints');
-            if (!sprintConfig) return false;
-
-            return runPortfolioBoardMutation(boardId, (boardData) => {
-                const roadmap = getRoadmapExtensionObject(boardData, { create: true });
-                const items = roadmap[sprintConfig.itemsKey];
-                const nextSprint = {
-                    id: slugifyRoadmapEntityId(draft.title, items),
-                    title: draft.title,
-                    startDate: draft.startDate,
-                    endDate: draft.endDate
-                };
-                const taskIdSet = new Set(selectedTaskIds.map((taskId) => Number(taskId)));
-                let assignedCount = 0;
-                const timestamp = nowIso();
-
-                boardData.board.tasks.forEach((task) => {
-                    if (!taskIdSet.has(Number(task?.id))) return;
-                    assignedCount += 1;
-                    task.sprintId = nextSprint.id;
-                    task.updatedAt = timestamp;
-                });
-
-                if (assignedCount === 0) {
-                    return false;
-                }
-
-                items.push(nextSprint);
-                appendTimelineEvent(boardData, {
-                    kind: 'roadmap.bulk-assigned',
-                    entityType: 'board',
-                    entityId: 'board',
-                    summary: `Sprint created from ${assignedCount} selected ${assignedCount === 1 ? 'task' : 'tasks'}: ${nextSprint.title}`,
-                    meta: {
-                        roadmapKind: 'sprints',
-                        roadmapItemId: nextSprint.id,
-                        action: 'create-from-selection',
-                        sprint: cloneSerializable(nextSprint),
-                        taskIds: [...taskIdSet]
-                    }
-                });
-                return true;
-            });
-        }
-
-        function assignSelectionToExistingSprint(boardId, sprintId) {
-            const boardRecord = getPortfolioBoardRecord(boardId);
-            if (!boardRecord) return false;
-            const normalizedSprintId = normalizeRoadmapRef(sprintId);
-            const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
-            if (!normalizedSprintId || selectedTaskIds.length === 0) return false;
-
-            return runPortfolioBoardMutation(boardId, (boardData) => {
-                const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
-                const sprint = Array.isArray(roadmap.sprints)
-                    ? roadmap.sprints.find((entry) => entry.id === normalizedSprintId)
-                    : null;
-                if (!sprint) return false;
-
-                const taskIdSet = new Set(selectedTaskIds.map((taskId) => Number(taskId)));
-                let assignedCount = 0;
-                const timestamp = nowIso();
-
-                boardData.board.tasks.forEach((task) => {
-                    if (!taskIdSet.has(Number(task?.id))) return;
-                    assignedCount += 1;
-                    task.sprintId = sprint.id;
-                    task.updatedAt = timestamp;
-                });
-
-                if (assignedCount === 0) {
-                    return false;
-                }
-
-                appendTimelineEvent(boardData, {
-                    kind: 'roadmap.bulk-assigned',
-                    entityType: 'board',
-                    entityId: 'board',
-                    summary: `Added ${assignedCount} selected ${assignedCount === 1 ? 'task' : 'tasks'} to sprint: ${sprint.title}`,
-                    meta: {
-                        roadmapKind: 'sprints',
-                        roadmapItemId: sprint.id,
-                        action: 'assign-existing',
-                        sprint: cloneSerializable(sprint),
-                        taskIds: [...taskIdSet]
-                    }
-                });
-                return true;
-            });
         }
 
 
@@ -1224,68 +835,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             openDialog('taskEditor', buildTaskEditorViewModel(boardRecord, null, { preferredDueDate: options.preferredDueDate }));
         }
 
-        async function togglePortfolioArchiveTask(boardId, taskId) {
-            const source = findPortfolioTaskSource(boardId, taskId);
-            if (!source) return;
-            const wasArchived = Boolean(source.task.archived);
-            if (!wasArchived) {
-                const title = String(source.task.title || '').trim() || 'this task';
-                const confirmed = window.confirm(`Archive "${title}"?`);
-                if (!confirmed) return;
-            }
-
-            const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
-                task.archived = !task.archived;
-                return true;
-            });
-            if (!changed) return;
-
-            if (!wasArchived) {
-                showUndo('Task archived', async () => {
-                    await runPortfolioTaskMutation(boardId, taskId, (task) => {
-                        if (!task.archived) return false;
-                        task.archived = false;
-                        return true;
-                    });
-                });
-            }
-        }
-
-        async function deletePortfolioTask(boardId, taskId) {
-            const source = findPortfolioTaskSource(boardId, taskId);
-            if (!source) return;
-            if (!canUsePortfolioTaskMutations(boardId)) {
-                notifyPortfolioMutationUnavailable(boardId);
-                return;
-            }
-
-            const title = String(source.task.title || '').trim() || 'this task';
-            const confirmed = window.confirm(`Delete "${title}" permanently? This cannot be undone.`);
-            if (!confirmed) return;
-
-            const beforeTask = captureTaskTimelineSnapshot(source.boardRecord.data, taskId);
-            ensureBoardTimelineBaseline(source.boardRecord.data);
-            source.boardRecord.data.board.tasks.splice(source.taskIndex, 1);
-            removeLegacyTaskAttachmentsFromExtensions(source.boardRecord.data, taskId);
-            recordTaskTimelineEvent(source.boardRecord.data, beforeTask, null);
-            syncPortfolioTimelineSelectionToLatest(boardId, source.boardRecord.data);
-            markProjectDirty(boardId);
-
-            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId === boardId && appState.portfolioDetailContext.taskId === taskId) {
-                closeDetailModal();
-            }
-            if (appState.selectedPortfolioCardRef && appState.selectedPortfolioCardRef.boardId === boardId && Number(appState.selectedPortfolioCardRef.taskId) === Number(taskId)) {
-                appState.selectedPortfolioCardRef = null;
-            }
-            if (appState.hoveredPortfolioCardRef && appState.hoveredPortfolioCardRef.boardId === boardId && Number(appState.hoveredPortfolioCardRef.taskId) === Number(taskId)) {
-                appState.hoveredPortfolioCardRef = null;
-            }
-
-            buildPortfolioTasks();
-            renderPortfolio();
-            await enqueueProjectSave(source.boardRecord);
-        }
-
 
         function getPortfolioAssigneeNames() {
             const seen = new Set();
@@ -1367,35 +916,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             appState.selectedPortfolioViewMode = nextMode;
             renderPortfolio();
         }
-
-        function showUndo(message, undoFn) {
-            appState.undoAction = undoFn;
-            appState.undoToast = { message };
-            notifyAppStateChanged();
-            if (appState.undoTimer) clearTimeout(appState.undoTimer);
-            appState.undoTimer = setTimeout(() => hideUndo(), 5000);
-        }
-
-        function hideUndo() {
-            if (appState.undoTimer) {
-                clearTimeout(appState.undoTimer);
-                appState.undoTimer = null;
-            }
-            appState.undoAction = null;
-            appState.undoToast = null;
-            notifyAppStateChanged();
-        }
-
-        function performUndo() {
-            if (!appState.undoAction) return;
-            const fn = appState.undoAction;
-            hideUndo();
-            fn();
-        }
-
-
-
-
 
 
 
@@ -1485,40 +1005,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             return safeText.replace(regex, '<span class="search-highlight">$1</span>');
         }
 
-        // Every close path, React or legacy, goes through here so the edit and
-        // create contexts never outlive the dialog.
-        function closeTaskEditor() {
-            appState.pendingNewTaskStatus = null;
-            appState.portfolioEditContext = null;
-            appState.portfolioCreateContext = null;
-            closeDialog('taskEditor');
-        }
-
-        async function toggleChecklistItem(itemIndex, checked) {
-            if (appState.portfolioDetailContext && appState.portfolioDetailContext.boardId && appState.portfolioDetailContext.taskId) {
-                if (appState.portfolioDetailContext.readOnly) {
-                    notifyPortfolioMutationUnavailable(appState.portfolioDetailContext.boardId);
-                    return;
-                }
-                await runPortfolioTaskMutation(appState.portfolioDetailContext.boardId, appState.portfolioDetailContext.taskId, (task) => {
-                    if (!Array.isArray(task.checklist) || !task.checklist[itemIndex]) return false;
-                    task.checklist[itemIndex].done = checked;
-                    return true;
-                });
-                return;
-            }
-        }
-
-        function closeDetailModal() {
-            appState.portfolioDetailContext = null;
-            closeDialog('taskDetail');
-        }
-
-        function closeRoadmapEntityModal() {
-            appState.roadmapEntityContext = null;
-            closeDialog('roadmapEntity');
-        }
-
         function openRoadmapEntityModal(kind, itemId = '', options = {}) {
             const boardId = appState.selectedPortfolioBoardId;
             const boardRecord = boardId ? getPortfolioBoardRecord(boardId) : null;
@@ -1567,138 +1053,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             });
         }
 
-        async function saveRoadmapEntity(input = {}) {
-            const draft = {
-                kind: input.kind,
-                itemId: normalizeRoadmapRef(input.itemId),
-                title: String(input.title || '').trim(),
-                existingSprintId: normalizeRoadmapRef(input.existingSprintId),
-                dueDate: normalizeRoadmapDate(input.dueDate),
-                startDate: normalizeRoadmapDate(input.startDate),
-                endDate: normalizeRoadmapDate(input.endDate)
-            };
-            const context = appState.roadmapEntityContext;
-            if (!context?.boardId) return;
-            const config = getRoadmapEntityConfig(draft.kind);
-            if (!config) return;
-            if (context.mode === 'assign-sprint-from-selection') {
-                if (!draft.existingSprintId) {
-                    document.getElementById('roadmapEntityExistingSprint').focus();
-                    return;
-                }
-                const changed = await assignSelectionToExistingSprint(context.boardId, draft.existingSprintId);
-                if (!changed) return;
-                closeRoadmapEntityModal();
-                clearPortfolioBulkSelection(context.boardId);
-                renderPortfolio();
-                return;
-            }
-            if (!draft.title) {
-                document.getElementById('roadmapEntityTitle').focus();
-                return;
-            }
-            if (config.dateMode === 'single' && !draft.dueDate) {
-                alert(`${config.label} requires a valid due date.`);
-                document.getElementById('roadmapEntityDate').focus();
-                return;
-            }
-            if (config.dateMode === 'range' && (!draft.startDate || !draft.endDate)) {
-                alert(`${config.label} requires valid start and end dates.`);
-                document.getElementById('roadmapEntityStartDate').focus();
-                return;
-            }
-            if (context.mode === 'create-sprint-from-selection') {
-                const changed = await createSprintFromSelection(context.boardId, draft);
-                if (!changed) return;
-                closeRoadmapEntityModal();
-                clearPortfolioBulkSelection(context.boardId);
-                renderPortfolio();
-                return;
-            }
-
-            const changed = await runPortfolioBoardMutation(context.boardId, (boardData) => {
-                const roadmap = getRoadmapExtensionObject(boardData, { create: true });
-                const items = roadmap[config.itemsKey];
-                const index = draft.itemId ? items.findIndex((item) => item.id === draft.itemId) : -1;
-                const nextId = draft.itemId || slugifyRoadmapEntityId(draft.title, items);
-                const previousItem = index >= 0 ? items[index] : null;
-                const nextItem = config.dateMode === 'single'
-                    ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
-                    : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
-
-                if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) {
-                    return false;
-                }
-
-                if (index >= 0) {
-                    items[index] = nextItem;
-                } else {
-                    items.push(nextItem);
-                }
-
-                appendTimelineEvent(boardData, {
-                    kind: 'roadmap.updated',
-                    entityType: 'board',
-                    entityId: 'board',
-                    summary: `${config.label} ${index >= 0 ? 'updated' : 'created'}: ${nextItem.title}`,
-                    snapshot: createBoardStateSnapshot(boardData),
-                    meta: {
-                        roadmapKind: draft.kind,
-                        roadmapItemId: nextItem.id,
-                        action: index >= 0 ? 'update' : 'create'
-                    }
-                });
-                return true;
-            });
-
-            if (!changed) return;
-            closeRoadmapEntityModal();
-        }
-
-        async function deleteRoadmapEntity(kind, itemId) {
-            const boardId = appState.selectedPortfolioBoardId;
-            const boardRecord = boardId ? getPortfolioBoardRecord(boardId) : null;
-            const config = getRoadmapEntityConfig(kind);
-            if (!boardRecord || !config) return;
-            if (!canUsePortfolioTaskMutations(boardId)) {
-                notifyPortfolioMutationUnavailable(boardId);
-                return;
-            }
-
-            const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
-            const item = roadmap[config.itemsKey].find((entry) => entry.id === itemId);
-            if (!item) return;
-            const confirmed = window.confirm(`Delete "${item.title}"? Linked task references will be cleared.`);
-            if (!confirmed) return;
-
-            await runPortfolioBoardMutation(boardId, (boardData) => {
-                const mutableRoadmap = getRoadmapExtensionObject(boardData, { create: true });
-                const items = mutableRoadmap[config.itemsKey];
-                const index = items.findIndex((entry) => entry.id === itemId);
-                if (index === -1) return false;
-                const [removed] = items.splice(index, 1);
-                const tasks = Array.isArray(boardData.board?.tasks) ? boardData.board.tasks : [];
-                tasks.forEach((task) => {
-                    if (normalizeRoadmapRef(task[config.taskField]) !== removed.id) return;
-                    task[config.taskField] = '';
-                    touchTask(task);
-                });
-                appendTimelineEvent(boardData, {
-                    kind: 'roadmap.updated',
-                    entityType: 'board',
-                    entityId: 'board',
-                    summary: `${config.label} deleted: ${removed.title}`,
-                    snapshot: createBoardStateSnapshot(boardData),
-                    meta: {
-                        roadmapKind: kind,
-                        roadmapItemId: removed.id,
-                        action: 'delete'
-                    }
-                });
-                return true;
-            });
-        }
-
         function openShortcutsModal() {
             openDialog('shortcuts');
         }
@@ -1710,116 +1064,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
         function focusFieldById(fieldId) {
             if (!fieldId) return;
             document.getElementById(fieldId)?.focus();
-        }
-
-        const TaskFormValidator = {
-            validate(draft) {
-                if (!draft.title) {
-                    return { ok: false, silent: true };
-                }
-                if (draft.title.length > TASK_TITLE_MAX_LENGTH) {
-                    return {
-                        ok: false,
-                        message: `Task title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer.`,
-                        focusFieldId: 'taskName'
-                    };
-                }
-                if (draft.blocked && !draft.blockerReason) {
-                    return {
-                        ok: false,
-                        message: 'Blocked tasks require a blocker reason.',
-                        focusFieldId: 'taskBlockerReason'
-                    };
-                }
-                if (draft.rawDueDate && !draft.dueDate) {
-                    return {
-                        ok: false,
-                        message: 'Due date must be a valid date.',
-                        focusFieldId: 'taskDueDate'
-                    };
-                }
-                if (draft.attachments.length > ATTACHMENT_MAX_COUNT) {
-                    return {
-                        ok: false,
-                        message: `Tasks can have up to ${ATTACHMENT_MAX_COUNT} attachments.`
-                    };
-                }
-                if (draft.attachments.some(item => (Number(item.sizeBytes) || 0) > ATTACHMENT_HARD_MAX_BYTES)) {
-                    return {
-                        ok: false,
-                        message: `Attachments must be ${formatFileSize(ATTACHMENT_HARD_MAX_BYTES)} or smaller.`
-                    };
-                }
-                return { ok: true };
-            }
-        };
-
-
-
-
-        async function saveTask(draft) {
-            const validation = TaskFormValidator.validate(draft);
-            if (!validation.ok) {
-                if (validation.silent) return;
-                alert(validation.message);
-                focusFieldById(validation.focusFieldId);
-                return;
-            }
-            const commonFields = buildTaskFieldsFromDraft(draft);
-
-            if (appState.portfolioCreateContext && appState.portfolioCreateContext.boardId) {
-                const { boardId } = appState.portfolioCreateContext;
-                const boardRecord = getPortfolioBoardRecord(boardId);
-                if (!boardRecord) return;
-                if (!canUsePortfolioTaskMutations(boardId)) {
-                    notifyPortfolioMutationUnavailable(boardId);
-                    return;
-                }
-
-                const now = nowIso();
-                const nextId = nextTaskIdForBoard(boardRecord);
-                const status = resolveCreateTaskStatus(boardRecord, appState.portfolioCreateContext.status);
-
-                ensureBoardTimelineBaseline(boardRecord.data);
-                boardRecord.data.board.tasks.push({
-                    id: nextId,
-                    ...commonFields,
-                    archived: false,
-                    createdAt: now,
-                    updatedAt: now,
-                    status
-                });
-                setTaskAttachments(boardRecord.data, nextId, draft.attachments);
-                recordTaskTimelineEvent(boardRecord.data, null, captureTaskTimelineSnapshot(boardRecord.data, nextId));
-                syncPortfolioTimelineSelectionToLatest(boardId, boardRecord.data);
-                markProjectDirty(boardId);
-
-                setSelectedPortfolioBoardId(boardId, { resetViewModeWhenEmpty: false });
-                buildPortfolioTasks();
-                renderPortfolio();
-                closeTaskEditor();
-
-                await enqueueProjectSave(boardRecord);
-                return;
-            }
-
-            if (appState.portfolioEditContext && appState.portfolioEditContext.boardId && appState.portfolioEditContext.taskId) {
-                const { boardId, taskId } = appState.portfolioEditContext;
-                const saved = await runPortfolioTaskMutation(boardId, taskId, (task, boardRecord) => {
-                    Object.assign(task, commonFields);
-                    if (boardRecord && boardRecord.data) {
-                        setTaskAttachments(boardRecord.data, taskId, draft.attachments);
-                    }
-                    return true;
-                });
-                if (!saved) return;
-                closeTaskEditor();
-                appState.pendingNewTaskStatus = null;
-                return;
-            }
-
-            closeTaskEditor();
-            appState.pendingNewTaskStatus = null;
         }
 
         function isSelectedPortfolioCard(boardId, taskId) {
@@ -2278,149 +1522,6 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             return Refs;
         }
 
-        function setPortfolioDragContext(ctx) {
-            appState.portfolioDragContext = ctx || null;
-        }
-
-        async function movePortfolioTaskToStatus(boardId, taskId, targetStatus) {
-            if (!boardId || !taskId) return false;
-            if (!isPortfolioBoardMutable(boardId)) return false;
-
-            const source = findPortfolioTaskSource(boardId, taskId);
-            if (!source) return false;
-
-            const normalizedTargetStatus = normalizeTaskStatus(targetStatus);
-            const validStatuses = new Set(
-                (source.boardRecord.data.board.columns || defaultColumns).map(col => normalizeTaskStatus(col.status))
-            );
-            if (!validStatuses.has(normalizedTargetStatus)) return false;
-            if (normalizeTaskStatus(source.task.status) === normalizedTargetStatus) return false;
-
-            const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
-                if (normalizeTaskStatus(task.status) === normalizedTargetStatus) return false;
-                task.status = normalizedTargetStatus;
-                return true;
-            });
-            return Boolean(changed);
-        }
-
-        function clearPortfolioColumnDragHighlights() {
-            const root = Refs.portfolioBoard || document.getElementById('portfolioBoard');
-            if (!root) return;
-            root.querySelectorAll('.portfolio-column-body.drag-over').forEach((node) => {
-                node.classList.remove('drag-over');
-            });
-        }
-
-        function readPortfolioDragContextFromEvent(ev) {
-            if (appState.portfolioDragContext && appState.portfolioDragContext.boardId && appState.portfolioDragContext.taskId) {
-                return appState.portfolioDragContext;
-            }
-            const raw = ev?.dataTransfer?.getData?.('application/x-kanban-task') || ev?.dataTransfer?.getData?.('text/plain');
-            if (!raw) return null;
-            try {
-                const parsed = JSON.parse(raw);
-                if (!parsed || !parsed.boardId || !parsed.taskId) return null;
-                return parsed;
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function canDragPortfolioContext(ctx) {
-            if (!ctx || !ctx.boardId || !ctx.taskId) return false;
-            return isPortfolioBoardMutable(ctx.boardId);
-        }
-
-        function onPortfolioTaskDragStart(ev, ctx) {
-            if (!canDragPortfolioContext(ctx)) {
-                ev.preventDefault();
-                return;
-            }
-            setPortfolioDragContext({
-                boardId: ctx.boardId,
-                taskId: Number(ctx.taskId),
-                fromStatus: normalizeTaskStatus(ctx.status)
-            });
-            const payload = JSON.stringify(appState.portfolioDragContext);
-            if (ev.dataTransfer) {
-                ev.dataTransfer.effectAllowed = 'move';
-                try {
-                    ev.dataTransfer.setData('application/x-kanban-task', payload);
-                } catch (_) { }
-                try {
-                    ev.dataTransfer.setData('text/plain', payload);
-                } catch (_) { }
-            }
-            if (ev.currentTarget && ev.currentTarget.classList) {
-                ev.currentTarget.classList.add('dragging');
-            }
-        }
-
-        function onPortfolioTaskDragEnd(ev) {
-            setPortfolioDragContext(null);
-            appState.suppressPortfolioCardClickUntil = Date.now() + 120;
-            if (ev.currentTarget && ev.currentTarget.classList) {
-                ev.currentTarget.classList.remove('dragging');
-            }
-            clearPortfolioColumnDragHighlights();
-        }
-
-        function onPortfolioColumnDragOver(ev, targetStatus) {
-            const ctx = readPortfolioDragContextFromEvent(ev);
-            if (!canDragPortfolioContext(ctx)) return;
-            const nextStatus = normalizeTaskStatus(targetStatus);
-            if (normalizeTaskStatus(ctx.fromStatus) === nextStatus) return;
-            ev.preventDefault();
-            if (ev.dataTransfer) {
-                ev.dataTransfer.dropEffect = 'move';
-            }
-            if (ev.currentTarget && ev.currentTarget.classList) {
-                ev.currentTarget.classList.add('drag-over');
-            }
-        }
-
-        function onPortfolioColumnDragLeave(ev) {
-            const current = ev.currentTarget;
-            if (!current || !current.classList) return;
-            const related = ev.relatedTarget;
-            if (related && current.contains(related)) return;
-            current.classList.remove('drag-over');
-        }
-
-        async function onPortfolioColumnDrop(ev, targetStatus) {
-            ev.preventDefault();
-            const current = ev.currentTarget;
-            if (current && current.classList) {
-                current.classList.remove('drag-over');
-            }
-            const ctx = readPortfolioDragContextFromEvent(ev);
-            if (!canDragPortfolioContext(ctx)) {
-                clearPortfolioColumnDragHighlights();
-                return;
-            }
-
-            try {
-                await movePortfolioTaskToStatus(ctx.boardId, Number(ctx.taskId), targetStatus);
-            } finally {
-                setPortfolioDragContext(null);
-                clearPortfolioColumnDragHighlights();
-            }
-        }
-
-        function beginPortfolioTimelineSliderDrag(boardId) {
-            appState.portfolioTimelineDragState = {
-                active: true,
-                boardId: boardId || ''
-            };
-        }
-
-        function handleTimelineSliderPointerCommit() {
-            if (!appState.portfolioTimelineDragState.active) return;
-            appState.portfolioTimelineDragState = { active: false, boardId: '' };
-            renderPortfolio();
-        }
-
         function handlePortfolioBoardClick(event) {
             if (event.target.closest('.portfolio-task-card-select')) {
                 return;
@@ -2669,8 +1770,17 @@ import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js'
             });
         }
 
-        // Persistence calls back into the runtime only when an external file
-        // snapshot must replace a board; status changes notify Zustand directly.
+        // Configure the store-backed mutation module with the two legacy
+        // derived-state callbacks it still needs while the board view remains
+        // hosted in this runtime. React action callers use the same instance.
+        configurePortfolioMutationActions({
+            buildPortfolioTasks,
+            renderPortfolio,
+            openPortfolioTaskDetails
+        });
+
+        // Persistence calls back into the mutation module only when an
+        // external file snapshot must replace a board.
         setPersistenceHost({
             applySnapshot: applySnapshotToBoardRecord
         });

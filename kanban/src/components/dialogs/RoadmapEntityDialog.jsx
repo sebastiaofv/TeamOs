@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAppStore } from '../../state/store.js';
-import { closeRoadmapEntity, saveRoadmapEntity } from '../../actions/legacyHost.js';
+import { closeRoadmapEntity, saveRoadmapEntity } from '../../actions/portfolioMutations.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
 

@@ -13,7 +13,7 @@ import { PortfolioCalendar } from './PortfolioCalendar.jsx';
 import { PortfolioFileIntegration } from '../hooks/usePortfolioFileIntegration.js';
 import { ThemeIntegration } from '../hooks/useTheme.js';
 import { closeDialog } from '../actions/dialogs.js';
-import { closeRoadmapEntity, closeTaskDetail, closeTaskEditor } from '../actions/legacyHost.js';
+import { closeRoadmapEntity, closeTaskDetail, closeTaskEditor } from '../actions/portfolioMutations.js';
 
 // The single React root. Each island is wrapped in its own error boundary;
 // `onError` clears the island's state if it fails to render. Dialogs portal to

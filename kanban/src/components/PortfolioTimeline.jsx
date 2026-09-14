@@ -8,7 +8,7 @@ import {
     restorePortfolioTimelineSelection,
     setPortfolioTimelineExpanded,
     setPortfolioTimelineSelection
-} from '../actions/legacyHost.js';
+} from '../actions/portfolioMutations.js';
 import { formatDateTime } from '../domain/calendar.js';
 import { formatTimelineValue } from '../domain/timeline.js';
 

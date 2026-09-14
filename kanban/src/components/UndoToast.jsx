@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../state/store.js';
-import { performUndo } from '../actions/legacyHost.js';
+import { performUndo } from '../actions/portfolioMutations.js';
 
 // Legacy markup and classes, rendered only while a toast is showing. A plain
 // component rather than Radix Toast, which would add swipe, a viewport and

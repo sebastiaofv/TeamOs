@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAppStore } from '../../state/store.js';
-import { closeTaskDetail, toggleTaskDetailChecklistItem } from '../../actions/legacyHost.js';
+import { closeTaskDetail, toggleTaskDetailChecklistItem } from '../../actions/portfolioMutations.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
 

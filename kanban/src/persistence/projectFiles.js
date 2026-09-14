@@ -43,6 +43,26 @@ export function getProjectSaveState(boardId, options = {}) {
     return state;
 }
 
+// Mark a board dirty at the persistence seam so mutation modules do not need
+// to know how revisions, queued saves, or external-watch badges are tracked.
+export function markProjectDirty(boardId) {
+    const state = getProjectSaveState(boardId);
+    if (!state) return null;
+    state.revision += 1;
+    if (state.inFlight) {
+        state.queued = true;
+    } else if (state.status !== 'error') {
+        state.status = 'dirty';
+    }
+    if (state.watchStatus === 'external' || state.watchStatus === 'conflict') {
+        state.watchStatus = 'idle';
+        state.watchMessage = '';
+        state.watchStatusUntil = 0;
+    }
+    notifyProjectStatusChanged();
+    return state;
+}
+
 function getProjectFileState(boardId, options = {}) {
     if (!boardId) return null;
     const createIfMissing = options.create !== false;
