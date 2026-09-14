@@ -17,12 +17,9 @@ import {
     retryProjectSave,
     syncProjectSaveStates
 } from '../persistence/projectFiles.js';
-import { notifyAppStateChanged, useAppStore } from '../state/store.js';
-import { refreshPortfolioState } from '../state/portfolioViewState.js';
+import { useAppStore } from '../state/store.js';
 import { updatePortfolioUrlState } from './portfolioNavigation.js';
 import { buildPortfolioCalendarViewModel, getPortfolioBulkTaskIds } from '../selectors/portfolioViews.js';
-
-const noop = () => {};
 
 /**
  * Create the actions that control the portfolio shell.
@@ -32,7 +29,6 @@ const noop = () => {};
  */
 export function createPortfolioControlActions({
     store = useAppStore,
-    notify = store === useAppStore ? notifyAppStateChanged : noop,
     updateUrlState = null,
     primeProjectFiles = primeProjectFileBaselines,
     closePortfolioContextsForProject = defaultClosePortfolioContextsForProject,
@@ -47,13 +43,8 @@ export function createPortfolioControlActions({
         ? updateUrlState
         : () => updatePortfolioUrlState(undefined, getState());
 
-    function refreshViews() {
-        refreshPortfolioState({ store, notify });
-    }
-
     function commitState(partial) {
         store.setState(partial);
-        notify();
     }
 
     function clearBulkSelectionState(boardId = '') {
@@ -69,7 +60,6 @@ export function createPortfolioControlActions({
 
     function clearPortfolioBulkSelection(boardId = '') {
         clearBulkSelectionState(boardId);
-        refreshViews();
     }
 
     function setSelectedPortfolioBoardId(boardId, options = {}) {
@@ -83,7 +73,6 @@ export function createPortfolioControlActions({
             partial.selectedPortfolioViewMode = 'board';
         }
         commitState(partial);
-        refreshPortfolioState({ store, notify });
     }
 
     function appendPortfolioRecords(records, options = {}) {
@@ -114,7 +103,7 @@ export function createPortfolioControlActions({
         }
         commitState(partial);
         syncProjectSaveStates(store);
-        refreshViews();
+
         void primeProjectFiles(list);
     }
 
@@ -126,7 +115,7 @@ export function createPortfolioControlActions({
         setSelectedPortfolioBoardId(boardId, {
             resetViewModeWhenEmpty: !(!boardId && state.selectedPortfolioViewMode === 'calendar')
         });
-        refreshViews();
+
         syncUrlState();
     }
 
@@ -165,7 +154,6 @@ export function createPortfolioControlActions({
         }
 
         commitState(partial);
-        refreshViews();
     }
 
     function setPortfolioFilter(name, value) {
@@ -173,7 +161,7 @@ export function createPortfolioControlActions({
         const next = { ...DEFAULT_PORTFOLIO_FILTERS, ...(getState().portfolioFilters || {}) };
         next[name] = normalizePortfolioFilterValue(name, value);
         commitState({ portfolioFilters: next });
-        refreshViews();
+
         syncUrlState();
     }
 
@@ -182,7 +170,7 @@ export function createPortfolioControlActions({
         const nextKey = value === 'name' ? 'task' : normalizePortfolioSortKey(value);
         if (nextKey === state.portfolioSortKey && state.portfolioSortDir === 'asc') return;
         commitState({ portfolioSortKey: nextKey, portfolioSortDir: 'asc' });
-        refreshViews();
+
         syncUrlState();
     }
 
@@ -199,7 +187,7 @@ export function createPortfolioControlActions({
         const nextMode = normalizePortfolioViewMode(mode);
         if (!canUsePortfolioViewMode(nextMode) || nextMode === state.selectedPortfolioViewMode) return;
         commitState({ selectedPortfolioViewMode: nextMode });
-        refreshViews();
+
         syncUrlState();
     }
 
@@ -209,7 +197,7 @@ export function createPortfolioControlActions({
             portfolioSortKey: 'priority',
             portfolioSortDir: 'asc'
         });
-        refreshViews();
+
         syncUrlState();
     }
 
@@ -236,13 +224,11 @@ export function createPortfolioControlActions({
             portfolioCalendarMonth: Number(month),
             portfolioCalendarView: 'month'
         });
-        refreshViews();
     }
 
     function setPortfolioCalendarView(view) {
         if (!['year', 'month'].includes(view)) return;
         commitState({ portfolioCalendarView: view });
-        refreshViews();
     }
 
     function togglePortfolioCalendarDisplayMode() {
@@ -251,7 +237,6 @@ export function createPortfolioControlActions({
                 ? 'calendar'
                 : 'heatmap'
         });
-        refreshViews();
     }
 
     function shiftPortfolioCalendarMonth(step) {
@@ -269,9 +254,7 @@ export function createPortfolioControlActions({
     function shiftPortfolioCalendarYear(step) {
         const model = buildPortfolioCalendarViewModel(getState());
         commitState({ portfolioCalendarYear: model.year + Number(step || 0) });
-        refreshViews();
     }
-
     return {
         appendPortfolioRecords,
         canUsePortfolioViewMode,

@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../state/store.js';
 import {
     clearPortfolioBulkSelection,
@@ -17,7 +18,6 @@ import { normalizePortfolioViewMode, createPortfolioProjectColor } from '../doma
 import { DEFAULT_PORTFOLIO_FILTERS } from '../domain/portfolioFilters.js';
 import { portfolioSortSelectValueFromKey } from '../domain/util.js';
 import { normalizeAssignee, taskAssignees } from '../domain/task.js';
-import { getProjectSaveState, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
 
 function getFilters(state) {
@@ -39,8 +39,7 @@ function getAssigneeNames(tasks) {
     return values.sort((a, b) => a.localeCompare(b));
 }
 
-function getChipSaveUiState(boardId) {
-    const saveState = getProjectSaveState(boardId, { create: false });
+function getChipSaveUiState(saveState) {
     if (!saveState) return { status: 'idle', text: '', title: '', canRetry: false };
     if (saveState.status === 'error') {
         return {
@@ -50,7 +49,7 @@ function getChipSaveUiState(boardId) {
             canRetry: true
         };
     }
-    if (saveState.inFlight) {
+    if (saveState.status === 'saving') {
         return { status: 'saving', text: 'Saving', title: 'Saving changes…', canRetry: false };
     }
     if (saveState.watchStatus === 'conflict') {
@@ -61,7 +60,7 @@ function getChipSaveUiState(boardId) {
             canRetry: false
         };
     }
-    if (projectHasUnsavedChanges(boardId)) {
+    if (saveState.revision > saveState.savedRevision) {
         return { status: 'dirty', text: 'Unsaved', title: 'Unsaved changes.', canRetry: false };
     }
     if (saveState.watchStatus === 'watch-error') {
@@ -218,7 +217,7 @@ function ChipList({ state }) {
             </span>
             {state.portfolioBoards.map((board) => {
                 const color = getBoardColor(board);
-        const saveUi = getChipSaveUiState(board.id);
+                const saveUi = getChipSaveUiState(state.projectSaveStateById.get(board.id));
                 return (
                     <span
                         className={`portfolio-chip${state.selectedPortfolioBoardId === board.id ? ' active' : ''}`}
@@ -242,7 +241,14 @@ function ChipList({ state }) {
 }
 
 export function PortfolioToolbar() {
-    const state = useAppStore((current) => current);
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        portfolioTasks: state.portfolioTasks,
+        portfolioFilters: state.portfolioFilters,
+        portfolioSortKey: state.portfolioSortKey,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        selectedPortfolioViewMode: state.selectedPortfolioViewMode,
+    })));
     return (
         <div className="portfolio-toolbar" id="portfolioToolbar">
             <ToolbarContent state={state} />
@@ -251,7 +257,11 @@ export function PortfolioToolbar() {
 }
 
 export function PortfolioChips() {
-    const state = useAppStore((current) => current);
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        projectSaveStateById: state.projectSaveStateById,
+    })));
     return (
         <div className="portfolio-chips" id="portfolioBoardsChips">
             <ChipList state={state} />
@@ -260,7 +270,13 @@ export function PortfolioChips() {
 }
 
 export function PortfolioBulkActions() {
-    const state = useAppStore((current) => current);
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        selectedPortfolioViewMode: state.selectedPortfolioViewMode,
+        portfolioBulkSelectionByBoardId: state.portfolioBulkSelectionByBoardId,
+        portfolioTimelineSelection: state.portfolioTimelineSelection,
+    })));
     const { boardId, selectedCount, showActions, hasExistingSprints } = getBulkViewModel(state);
 
     return (

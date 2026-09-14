@@ -1,7 +1,3 @@
-// Derived portfolio state is a store transition, not a rendering callback.
-// Keeping this boundary here lets actions and React components share the same
-// view state without depending on a boot-time renderer.
-
 import {
     createPortfolioProjectColor,
     normalizePortfolioViewMode,
@@ -13,10 +9,10 @@ import {
     getFilteredSortedPortfolioRows,
     normalizePortfolioFilters
 } from '../selectors/portfolioViews.js';
-import { notifyAppStateChanged, useAppStore } from './store.js';
 
 function syncPortfolioProjectColors(state) {
-    const boards = Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : [];
+    const original = Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : [];
+    const boards = original.map((board) => ({ ...board }));
     const usedSeeds = new Set();
     let nextSeed = 0;
 
@@ -59,7 +55,11 @@ function syncPortfolioProjectColors(state) {
             usedColorKeys.add(key);
         });
 
-    return nextSeed;
+    return boards.map((board, index) => (
+        board.colorSeed === original[index].colorSeed
+        && portfolioProjectColorKey(board.projectColor) === portfolioProjectColorKey(original[index].projectColor || {})
+            ? original[index] : board
+    ));
 }
 
 function normalizeSelection(state) {
@@ -74,43 +74,43 @@ function normalizeSelection(state) {
     return { selectedBoardId, viewMode };
 }
 
-export function buildPortfolioDerivedState(state) {
-    const portfolioTasks = buildPortfolioTasks(state);
-    const normalizedState = {
-        ...state,
-        portfolioTasks,
-        portfolioFilters: normalizePortfolioFilters({ ...state, portfolioTasks })
-    };
+export function buildPortfolioDerivedState(state, previous = {}) {
+    const changed = (...keys) => keys.some((key) => state[key] !== previous[key]);
+    const portfolioTasks = changed('portfolioBoards') ? buildPortfolioTasks(state) : previous.portfolioTasks;
+    const filters = changed('portfolioBoards', 'portfolioFilters')
+        ? normalizePortfolioFilters({ ...state, portfolioTasks }) : previous.portfolioFilters;
+    const portfolioFilters = previous.portfolioFilters
+        && Object.keys(filters).every((key) => filters[key] === previous.portfolioFilters[key])
+        ? previous.portfolioFilters : filters;
+    const normalized = { ...state, portfolioTasks, portfolioFilters };
     return {
         portfolioTasks,
-        portfolioVisibleRows: getFilteredSortedPortfolioRows(normalizedState),
-        portfolioTimelineView: buildPortfolioTimelineViewModel(normalizedState),
-        portfolioFilters: normalizedState.portfolioFilters
+        portfolioFilters,
+        portfolioVisibleRows: changed('portfolioBoards', 'selectedPortfolioBoardId', 'portfolioFilters',
+            'portfolioSortKey', 'portfolioSortDir', 'portfolioTimelineSelection')
+            ? getFilteredSortedPortfolioRows(normalized) : previous.portfolioVisibleRows,
+        portfolioTimelineView: changed('portfolioBoards', 'selectedPortfolioBoardId',
+            'portfolioTimelineSelection', 'portfolioTimelineExpandedByBoardId')
+            ? buildPortfolioTimelineViewModel(normalized) : previous.portfolioTimelineView
     };
 }
 
-export function refreshPortfolioState({ store = useAppStore, notify = store === useAppStore ? notifyAppStateChanged : () => {} } = {}) {
-    const state = store.getState();
-    const { selectedBoardId, viewMode } = normalizeSelection(state);
-    const nextState = {
-        ...state,
-        selectedPortfolioBoardId: selectedBoardId,
-        selectedPortfolioViewMode: viewMode
-    };
-    const next = buildPortfolioDerivedState(nextState);
-    const nextSeed = syncPortfolioProjectColors(state);
-
-    store.setState({
-        portfolioBoards: Array.isArray(state.portfolioBoards) ? [...state.portfolioBoards] : [],
-        nextPortfolioProjectColorSeed: nextSeed,
-        selectedPortfolioBoardId: selectedBoardId,
-        selectedPortfolioViewMode: viewMode,
-        ...next
-    });
-    notify();
-    return {
-        ...next,
-        selectedPortfolioBoardId: selectedBoardId,
-        selectedPortfolioViewMode: viewMode
-    };
+// Derived fields are published atomically with their inputs. Unrelated UI or
+// save-status changes retain the existing projections and board identities.
+export function derivePortfolioState(state, previous = {}) {
+    const boardsChanged = state.portfolioBoards !== previous.portfolioBoards;
+    const portfolioBoards = boardsChanged ? syncPortfolioProjectColors(state) : state.portfolioBoards;
+    const next = { ...state, portfolioBoards };
+    const { selectedBoardId, viewMode } = normalizeSelection(next);
+    next.selectedPortfolioBoardId = selectedBoardId;
+    next.selectedPortfolioViewMode = viewMode;
+    const inputs = [
+        'portfolioBoards', 'selectedPortfolioBoardId', 'portfolioFilters',
+        'portfolioSortKey', 'portfolioSortDir', 'portfolioTimelineSelection',
+        'portfolioTimelineExpandedByBoardId'
+    ];
+    if (inputs.some((key) => next[key] !== previous[key])) {
+        Object.assign(next, buildPortfolioDerivedState(next, previous));
+    }
+    return next;
 }

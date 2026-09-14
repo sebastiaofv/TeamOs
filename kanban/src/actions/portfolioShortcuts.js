@@ -13,7 +13,7 @@ import {
     togglePortfolioArchiveTask
 } from './portfolioMutations.js';
 import { resetPortfolioFilters, selectPortfolioBoard } from './portfolioControls.js';
-import { notifyAppStateChanged, useAppStore } from '../state/store.js';
+import { useAppStore } from '../state/store.js';
 
 const getState = () => useAppStore.getState();
 
@@ -43,7 +43,6 @@ export function selectAdjacentPortfolioCard(step) {
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     if (rows.length === 0) {
         useAppStore.setState({ selectedPortfolioCardRef: null });
-        notifyAppStateChanged();
         return;
     }
 
@@ -56,7 +55,7 @@ export function selectAdjacentPortfolioCard(step) {
     const row = rows[nextIndex];
     if (!row) return;
     useAppStore.setState({ selectedPortfolioCardRef: { boardId: row.boardId, taskId: Number(row.taskId) } });
-    notifyAppStateChanged();
+
     requestAnimationFrame(() => {
         const selector = `.portfolio-task-card[data-board-id="${escapeCssSelectorValue(row.boardId)}"][data-task-id="${escapeCssSelectorValue(row.taskId)}"]`;
         document.querySelector(selector)?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });

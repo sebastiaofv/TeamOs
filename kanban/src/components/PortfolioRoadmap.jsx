@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../state/store.js';
 import { PortfolioTaskCard } from './PortfolioBoard.jsx';
 import {
@@ -249,12 +250,26 @@ function PortfolioRoadmapView({ view, state }) {
     );
 }
 
-export function PortfolioRoadmap({ hidden }) {
-    const state = useAppStore((current) => current);
+function ConnectedRoadmap() {
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        portfolioFilters: state.portfolioFilters,
+        portfolioBulkSelectionByBoardId: state.portfolioBulkSelectionByBoardId,
+        selectedPortfolioCardRef: state.selectedPortfolioCardRef,
+        suppressPortfolioCardClickUntil: state.suppressPortfolioCardClickUntil,
+        portfolioDragContext: state.portfolioDragContext,
+        portfolioTimelineSelection: state.portfolioTimelineSelection,
+        portfolioRoadmapExpandedRowsByBoardId: state.portfolioRoadmapExpandedRowsByBoardId,
+    })));
     const view = buildPortfolioRoadmapView(state);
+    return view ? <PortfolioRoadmapView view={view} state={state} /> : null;
+}
+
+export function PortfolioRoadmap({ hidden }) {
     return (
         <div className={`portfolio-roadmap-view${hidden ? ' hidden' : ''}`} id="portfolioRoadmapView">
-            {view && <PortfolioRoadmapView view={view} state={state} />}
+            {!hidden && <ConnectedRoadmap />}
         </div>
     );
 }

@@ -241,7 +241,7 @@ describe('buildAttachmentWarnings', () => {
 });
 
 describe('buildTaskDraft', () => {
-  it('trims and normalises every field the way the legacy form reader did', () => {
+  it('normalises structured fields without splitting an assignee name', () => {
     const draft = buildTaskDraft({
       title: '  Ship it  ',
       description: '  Notes ',
@@ -261,7 +261,7 @@ describe('buildTaskDraft', () => {
     expect(draft).toEqual({
       title: 'Ship it',
       description: 'Notes',
-      assignees: ['Alex', 'Sam', 'Jo'],
+      assignees: ['Alex', 'Sam, Jo'],
       tags: ['bug', 'ui'],
       blocked: true,
       blockerReason: 'API down',
@@ -274,6 +274,19 @@ describe('buildTaskDraft', () => {
       phaseId: 'p1',
       milestoneId: ''
     });
+  });
+
+  it('preserves checklist line breaks as one item and leaves the form untouched', () => {
+    const form = {
+      title: 'Task', assignees: ['Doe, Jane'], tags: [], attachments: [],
+      checklist: [{ text: 'First line\nSecond line', done: true }]
+    };
+    const draft = buildTaskDraft(form);
+    expect(draft.assignees).toEqual(['Doe, Jane']);
+    expect(draft.checklist).toEqual(form.checklist);
+    expect(draft.checklist).not.toBe(form.checklist);
+    draft.checklist[0].done = false;
+    expect(form.checklist[0].done).toBe(true);
   });
 
   it('keeps an invalid raw due date so validation can reject it', () => {

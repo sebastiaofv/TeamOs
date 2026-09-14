@@ -5,7 +5,6 @@ describe('createProjectSaveState', () => {
   it('returns the exact expected shape and key set', () => {
     expect(createProjectSaveState()).toEqual({
       status: 'idle',
-      inFlight: null,
       queued: false,
       lastErrorMessage: '',
       lastSavedAt: '',
@@ -23,9 +22,9 @@ describe('createProjectSaveState', () => {
     expect(state.watchStatus).toBe('idle');
   });
 
-  it('defaults inFlight to null and queued to false', () => {
+  it('keeps asynchronous work outside render state', () => {
     const state = createProjectSaveState();
-    expect(state.inFlight).toBeNull();
+    expect(state).not.toHaveProperty('inFlight');
     expect(state.queued).toBe(false);
   });
 

@@ -877,6 +877,19 @@ test.describe('portfolio-only app', () => {
     expect(result.alerts[0]).toContain('invalid.board.json');
   });
 
+  test('search highlights literal title text without changing escaped characters', async ({ page }) => {
+    const title = 'R&D <amp> "quoted"';
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project', hasHandle: true, tasks: [{ id: 1, title, status: 'backlog' }] }
+    ]);
+    const renderedTitle = page.locator('#portfolioBoard .task-title');
+    for (const term of ['&', 'amp', '<', '"']) {
+      await page.locator('#portfolioSearchInput').fill(term);
+      await expect(renderedTitle).toHaveText(title);
+      await expect(renderedTitle.locator('.search-highlight')).toHaveText(term === '"' ? ['"', '"'] : [term]);
+    }
+  });
+
   test('selected mutable project can create tasks directly from portfolio columns and auto-saves', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }

@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../state/store.js';
 import { CALENDAR_MONTH_NAMES, CALENDAR_WEEKDAY_NAMES } from '../domain/constants.js';
 import {
@@ -330,12 +331,25 @@ function PortfolioCalendarView({ model, state }) {
     );
 }
 
-export function PortfolioCalendar({ hidden }) {
-    const state = useAppStore((current) => current);
+function ConnectedCalendar() {
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        portfolioTimelineSelection: state.portfolioTimelineSelection,
+        portfolioVisibleRows: state.portfolioVisibleRows,
+        portfolioCalendarYear: state.portfolioCalendarYear,
+        portfolioCalendarMonth: state.portfolioCalendarMonth,
+        portfolioCalendarView: state.portfolioCalendarView,
+        portfolioCalendarDisplayMode: state.portfolioCalendarDisplayMode,
+    })));
     const model = buildPortfolioCalendarViewModel(state);
+    return <PortfolioCalendarView model={model} state={state} />;
+}
+
+export function PortfolioCalendar({ hidden }) {
     return (
         <div className={`portfolio-calendar-view${hidden ? ' hidden' : ''}`} id="portfolioCalendarView">
-            <PortfolioCalendarView model={model} state={state} />
+            {!hidden && <ConnectedCalendar />}
         </div>
     );
 }

@@ -1,4 +1,3 @@
-import { normalizeAssignees, normalizeChecklist } from './task.js';
 import { normalizePortfolioSortKey } from './board.js';
 
 export function isAbortError(error) {
@@ -48,16 +47,6 @@ export function formatFileSize(bytes) {
     if (value < 1024) return `${Math.round(value)} B`;
     if (value < 1024 * 1024) return `${(value / 1024).toFixed(value >= 10 * 1024 ? 0 : 1)} KB`;
     return `${(value / (1024 * 1024)).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
-}
-
-export function assigneesToInput(value) {
-    return normalizeAssignees(value).join('\n');
-}
-
-export function checklistToInput(checklist) {
-    return normalizeChecklist(checklist)
-        .map(item => `${item.done ? '[x]' : '[ ]'} ${item.text}`)
-        .join('\n');
 }
 
 export function hasRequiredExtension(fileName, extension) {

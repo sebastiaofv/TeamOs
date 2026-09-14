@@ -50,12 +50,12 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 
 - `src/domain/` — pure, dependency-free logic (tasks, boards, roadmap, timeline, calendar, attachments, serialization, scoring, task-editor draft rules). Unit-tested with Vitest.
 - `src/persistence/` — board file reading/writing, the save queue and external-change watching.
-- `src/state/` — the Zustand store and the derived portfolio state.
+- `src/state/` — the Zustand store. Immutable writes publish boards and derived portfolio rows together; actions do not trigger manual refreshes.
 - `src/selectors/` — view models built from store state.
-- `src/actions/` — state-changing functions (mutations, controls, navigation/URL state, files, dialogs, shortcuts).
+- `src/actions/` — task, roadmap, timeline, and board-interaction actions. `boardMutationContext.js` owns the shared draft → history → store → save path; `portfolioMutations.js` assembles the actions. Controls, URL state, files, dialogs, and shortcuts remain separate.
 - `src/hooks/` — browser integration: theme, keyboard shortcuts and URL state, file picker/drop and file watching.
 - `src/App.jsx` — the app shell: header, view layout, and dialogs. Mounted by `src/main.jsx`.
-- `src/components/` — React views and Radix dialogs.
+- `src/components/` — React views and Radix dialogs. Views subscribe to the state they use; inactive views do not compute or render their contents.
 - `src/styles/` — `app.css` (the visual language) and the Tailwind entry (`preflight` disabled; semantic tokens map to the CSS variables).
 
 ## Development

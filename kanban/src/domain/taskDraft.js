@@ -10,7 +10,7 @@ import {
     ATTACHMENT_TASK_SOFT_TOTAL_BYTES,
     ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES
 } from './constants.js';
-import { assigneesToInput, checklistToInput, formatFileSize, nowIso, readFileAsDataUrl } from './util.js';
+import { formatFileSize, nowIso, readFileAsDataUrl } from './util.js';
 import {
     attachmentDuplicateKey,
     classifyAttachmentKind,
@@ -23,8 +23,8 @@ import {
     normalizeBlockerReason,
     normalizeEffort,
     normalizePriority,
-    parseAssigneesInput,
-    parseChecklistInput
+    normalizeAssignees,
+    normalizeChecklist
 } from './task.js';
 import { normalizeDueDate } from './calendar.js';
 import { normalizeRoadmapRef } from './roadmap.js';
@@ -158,17 +158,16 @@ export function buildAttachmentWarnings(attachments, otherAttachmentBytes) {
     return messages;
 }
 
-// Same shape and normalisation as the original form reader, including its
-// round-trip of assignees and checklist items through their text encodings.
+// Normalize the structured React draft without a lossy text conversion.
 export function buildTaskDraft(form) {
     return {
         title: String(form.title ?? '').trim(),
         description: String(form.description ?? '').trim(),
-        assignees: parseAssigneesInput(assigneesToInput(form.assignees)),
+        assignees: normalizeAssignees(form.assignees),
         tags: form.tags.map((tag) => String(tag).trim().toLowerCase()).filter(Boolean),
         blocked: Boolean(form.blocked),
         blockerReason: normalizeBlockerReason(form.blockerReason),
-        checklist: parseChecklistInput(checklistToInput(form.checklist)),
+        checklist: normalizeChecklist(form.checklist),
         attachments: form.attachments.map(normalizeAttachmentRecord).filter(Boolean),
         rawDueDate: String(form.dueDate ?? '').trim(),
         dueDate: normalizeDueDate(form.dueDate),

@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../state/store.js';
 import {
     deletePortfolioTask,
@@ -28,20 +29,13 @@ import { formatTaskScore } from '../domain/scoring.js';
 import { escapeRegExp } from '../domain/util.js';
 import { isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
 
-function escapeHtml(value) {
-    return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-function highlightSearchMatch(text, searchTerm) {
-    const safeText = escapeHtml(text || '');
+function HighlightedTitle({ text = '', searchTerm }) {
     const term = String(searchTerm || '').trim();
-    if (!term) return safeText;
-    const regex = new RegExp(`(${escapeRegExp(term)})`, 'ig');
-    return safeText.replace(regex, '<span class="search-highlight">$1</span>');
+    if (!term) return text;
+    const parts = String(text).split(new RegExp(`(${escapeRegExp(term)})`, 'ig'));
+    return parts.map((part, index) => index % 2
+        ? <span className="search-highlight" key={index}>{part}</span>
+        : part);
 }
 
 function getBoardColor(state, boardId) {
@@ -58,6 +52,8 @@ export function PortfolioTaskCard({ item, state }) {
     const canMutate = Boolean(item.canMutate) && !item.historical;
     const canDrag = canMutate;
     const taskId = item.taskId ?? task.id;
+    const dragging = state.portfolioDragContext?.boardId === item.boardId
+        && Number(state.portfolioDragContext?.taskId) === Number(taskId);
     const selected = state.selectedPortfolioCardRef
         && state.selectedPortfolioCardRef.boardId === item.boardId
         && Number(state.selectedPortfolioCardRef.taskId) === Number(task.id);
@@ -93,7 +89,7 @@ export function PortfolioTaskCard({ item, state }) {
 
     return (
         <div
-            className={`task-card portfolio-task-card surface-card${selected ? ' selected' : ''}`}
+            className={`task-card portfolio-task-card surface-card${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}`}
             draggable={canDrag}
             data-board-id={item.boardId}
             data-task-id={String(taskId)}
@@ -124,10 +120,9 @@ export function PortfolioTaskCard({ item, state }) {
                             <span className="portfolio-task-card-select-label">Select {task.title || `Task ${task.id}`}</span>
                         </label>
                     )}
-                    <span
-                        className="task-title"
-                        dangerouslySetInnerHTML={{ __html: highlightSearchMatch(task.title || '', searchTerm) }}
-                    />
+                    <span className="task-title">
+                        <HighlightedTitle text={task.title || ''} searchTerm={searchTerm} />
+                    </span>
                 </div>
                 <div className="task-actions">
                     <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? 'Edit' : readOnlyTitle} data-action="edit-task" onClick={() => editPortfolioTask(item.boardId, taskId)}>&#9998;</button>
@@ -179,7 +174,7 @@ function PortfolioBoardView({ state }) {
                             <span className="column-count">{items.length}</span>
                         </div>
                         <div
-                            className="portfolio-column-body"
+                            className={`portfolio-column-body${state.portfolioDragOverStatus === column.status ? ' drag-over' : ''}`}
                             id={`portfolio-${column.status}-column`}
                             data-status={column.status}
                             onDragOver={(event) => onPortfolioColumnDragOver(event, column.status)}
@@ -200,11 +195,26 @@ function PortfolioBoardView({ state }) {
     );
 }
 
+function ConnectedBoard() {
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        portfolioFilters: state.portfolioFilters,
+        portfolioBulkSelectionByBoardId: state.portfolioBulkSelectionByBoardId,
+        selectedPortfolioCardRef: state.selectedPortfolioCardRef,
+        suppressPortfolioCardClickUntil: state.suppressPortfolioCardClickUntil,
+        portfolioDragContext: state.portfolioDragContext,
+        portfolioTimelineSelection: state.portfolioTimelineSelection,
+        portfolioVisibleRows: state.portfolioVisibleRows,
+        portfolioDragOverStatus: state.portfolioDragOverStatus,
+    })));
+    return <PortfolioBoardView state={state} />;
+}
+
 export function PortfolioBoard({ hidden }) {
-    const state = useAppStore((current) => current);
     return (
         <div className={`portfolio-board-grid${hidden ? ' hidden' : ''}`} id="portfolioBoard">
-            <PortfolioBoardView state={state} />
+            {!hidden && <ConnectedBoard />}
         </div>
     );
 }

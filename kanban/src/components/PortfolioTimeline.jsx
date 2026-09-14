@@ -1,7 +1,6 @@
 import { flushSync } from 'react-dom';
 import { useAppStore } from '../state/store.js';
 import {
-    beginPortfolioTimelineSliderDrag,
     movePortfolioTimelineToLatest,
     restorePortfolioTimelineSelection,
     setPortfolioTimelineExpanded,
@@ -134,7 +133,6 @@ function PortfolioTimelineView({ view }) {
                         value={view.selectedIndex}
                         data-action="timeline-slider"
                         data-board-id={view.boardId}
-                        onPointerDown={() => beginPortfolioTimelineSliderDrag(view.boardId)}
                         onInput={(event) => commitTimelineSelection(view.boardId, Number(event.currentTarget.value))}
                     />
                     <button
@@ -172,8 +170,7 @@ function PortfolioTimelineView({ view }) {
 }
 
 export function PortfolioTimeline() {
-    const state = useAppStore((current) => current);
-    const view = state.portfolioTimelineView;
+    const view = useAppStore((state) => state.portfolioTimelineView);
     const boardId = view?.boardId || '';
     const className = boardId
         ? `timeline-panel active${view.isExpanded ? '' : ' collapsed'}`

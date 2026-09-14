@@ -1,17 +1,7 @@
+import { createAppStore as createStore } from '../../src/state/store.js';
 import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board.js';
 import { createPortfolioControlActions } from '../../src/actions/portfolioControls.js';
-
-function createStore(initial) {
-    let state = initial;
-    return {
-        getState: () => state,
-        setState: (partial) => {
-            const next = typeof partial === 'function' ? partial(state) : partial;
-            state = { ...state, ...next };
-        }
-    };
-}
 
 function createBoard(id, title, options = {}) {
     const data = createEmptyProjectData(title);
@@ -67,7 +57,7 @@ function createActions(overrides = {}) {
         portfolioSortDir: 'asc'
     };
     const store = createStore(state);
-    const notify = vi.fn();
+
     const updateUrlState = vi.fn();
     const primeProjectFiles = vi.fn();
     const clearTimeline = vi.fn();
@@ -75,7 +65,7 @@ function createActions(overrides = {}) {
     const forgetFileState = vi.fn();
     const actions = createPortfolioControlActions({
         store,
-        notify,
+
         updateUrlState,
         primeProjectFiles,
         clearPortfolioTimelineSelection: clearTimeline,
@@ -86,7 +76,7 @@ function createActions(overrides = {}) {
     return {
         actions,
         store,
-        notify,
+
         updateUrlState,
         primeProjectFiles,
         clearTimeline,

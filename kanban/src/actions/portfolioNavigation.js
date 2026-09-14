@@ -8,8 +8,7 @@ import {
 } from '../domain/board.js';
 import { normalizePortfolioBlockedFilter } from '../domain/task.js';
 import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterSet } from '../domain/portfolioFilters.js';
-import { notifyAppStateChanged, useAppStore } from '../state/store.js';
-import { refreshPortfolioState } from '../state/portfolioViewState.js';
+import { useAppStore } from '../state/store.js';
 
 function getDefaultWindow() {
     return typeof window !== 'undefined' ? window : null;
@@ -54,7 +53,7 @@ export function updatePortfolioUrlState(windowRef = getDefaultWindow(), state = 
     }
 }
 
-export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDefaultWindow(), notify = store === useAppStore ? notifyAppStateChanged : () => {} } = {}) {
+export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDefaultWindow() } = {}) {
     if (!windowRef?.location) return;
     const portfolioSort = readQueryParam('ps', 'priority', windowRef);
     const portfolioSortDir = readQueryParam('pd', 'asc', windowRef);
@@ -75,6 +74,6 @@ export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDef
         selectedPortfolioBoardId: portfolioBoard,
         selectedPortfolioViewMode: normalizePortfolioViewMode(portfolioViewMode)
     });
-    refreshPortfolioState({ store, notify });
+
     updatePortfolioUrlState(windowRef, store.getState());
 }

@@ -57,7 +57,10 @@ function TaskEditorForm({ vm, nameRef, submitRef }) {
 
     const update = (field, fieldValue) => setForm((current) => ({ ...current, [field]: fieldValue }));
     const bind = (field) => ({ value: form[field], onChange: (event) => update(field, event.target.value) });
-    const submit = () => saveTask(buildTaskDraft(form));
+    const submit = async () => {
+        const result = await saveTask(buildTaskDraft(form));
+        if (result?.focusField) document.getElementById(result.focusField)?.focus();
+    };
 
     useLayoutEffect(() => {
         submitRef.current = submit;

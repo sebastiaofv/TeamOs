@@ -99,7 +99,10 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }) {
                 <button
                     className="btn btn-primary"
                     id="roadmapEntityModalSaveBtn"
-                    onClick={() => saveRoadmapEntity({ kind: vm.kind, itemId: vm.itemId, ...draft })}
+                    onClick={async () => {
+                        const result = await saveRoadmapEntity({ kind: vm.kind, itemId: vm.itemId, ...draft });
+                        if (result?.focusField) document.getElementById(result.focusField)?.focus();
+                    }}
                 >
                     {vm.saveLabel}
                 </button>

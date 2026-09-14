@@ -25,6 +25,7 @@ export function createPortfolioSlice() {
         roadmapEntityContext: null,
         portfolioBulkSelectionByBoardId: {},
         portfolioDragContext: null,
+        portfolioDragOverStatus: '',
         selectedPortfolioCardRef: null,
         hoveredPortfolioCardRef: null,
         suppressPortfolioCardClickUntil: 0,
@@ -40,7 +41,6 @@ export function createBoardSlice() {
     return {
         portfolioTimelineView: null,
         portfolioTimelineSelection: { boardId: '', eventIndex: null },
-        portfolioTimelineDragState: { active: false, boardId: '' },
         portfolioTimelineExpandedByBoardId: {}
     };
 }

@@ -1,10 +1,7 @@
 import { useLayoutEffect } from 'react';
 import { applyPortfolioUrlState } from '../actions/portfolioNavigation.js';
 import { handleShortcutKeydown } from '../actions/portfolioShortcuts.js';
-import {
-    handleTimelineSliderPointerCommit,
-    setSelectedPortfolioCard
-} from '../actions/portfolioMutations.js';
+import { setSelectedPortfolioCard } from '../actions/portfolioMutations.js';
 import { useAppStore } from '../state/store.js';
 
 function clearSelectionWhenClickingOutsideCards(event) {
@@ -15,7 +12,7 @@ function clearSelectionWhenClickingOutsideCards(event) {
 }
 
 // Document-level runtime: URL state, keyboard shortcuts, clearing the card
-// selection on outside clicks, and ending timeline slider drags.
+// selection on outside clicks.
 export function usePortfolioRuntime() {
     useLayoutEffect(() => {
         applyPortfolioUrlState();
@@ -24,15 +21,11 @@ export function usePortfolioRuntime() {
 
         document.addEventListener('keydown', handleShortcutKeydown);
         document.addEventListener('click', clearSelectionWhenClickingOutsideCards);
-        document.addEventListener('pointerup', handleTimelineSliderPointerCommit);
-        document.addEventListener('pointercancel', handleTimelineSliderPointerCommit);
         window.addEventListener('popstate', handlePopState);
 
         return () => {
             document.removeEventListener('keydown', handleShortcutKeydown);
             document.removeEventListener('click', clearSelectionWhenClickingOutsideCards);
-            document.removeEventListener('pointerup', handleTimelineSliderPointerCommit);
-            document.removeEventListener('pointercancel', handleTimelineSliderPointerCommit);
             window.removeEventListener('popstate', handlePopState);
         };
     }, []);

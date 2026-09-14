@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { subscribeToVersion as subscribe, useAppStore } from '../../src/state/store.js';
+import { useAppStore } from '../../src/state/store.js';
 import { openDialog, closeDialog } from '../../src/actions/dialogs.js';
 
 describe('dialog actions', () => {
@@ -12,7 +12,7 @@ describe('dialog actions', () => {
 
   function listen() {
     const listener = vi.fn();
-    unsubscribe = subscribe(listener);
+    unsubscribe = useAppStore.subscribe(listener);
     return listener;
   }
 
