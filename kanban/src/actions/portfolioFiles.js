@@ -10,6 +10,7 @@ import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
 import { createPortfolioRecord } from '../persistence/projectFiles.js';
 import { Logger } from '../logger.js';
+import { appendPortfolioRecords as appendPortfolioRecordsToStore } from './portfolioControls.js';
 
 const noop = () => {};
 
@@ -32,10 +33,10 @@ function getWindow() {
 
 /**
  * Create the browser file actions. The portfolio session callback is injected
- * so importing files cannot reach a legacy object or mutate DOM state itself.
+ * so importing files cannot mutate DOM state itself.
  */
 export function createPortfolioFileActions({
-    appendPortfolioRecords = noop,
+    appendPortfolioRecords = appendPortfolioRecordsToStore,
     alert = defaultAlert,
     prompt = defaultPrompt,
     logger = Logger,
@@ -142,4 +143,3 @@ export function configurePortfolioFileActions(options = {}) {
 export const createNewProject = (...args) => activeActions.createNewProject(...args);
 export const importPortfolioProjects = (...args) => activeActions.importPortfolioProjects(...args);
 export const openPortfolioFromFiles = (...args) => activeActions.openPortfolioFromFiles(...args);
-

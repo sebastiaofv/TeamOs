@@ -1,8 +1,8 @@
 import { Component } from 'react';
 import { Logger } from '../logger.js';
 
-// A render error in one island is logged and that island renders nothing; the
-// legacy app and every other island keep working. `onError` clears the failed
+// A render error in one island is logged and that island renders nothing; every
+// other island keeps working. `onError` clears the failed
 // island's app state (e.g. closes its dialog so shortcuts are not left
 // suppressed). It runs in a microtask, outside React's commit phase, because
 // closing a dialog commits with flushSync.

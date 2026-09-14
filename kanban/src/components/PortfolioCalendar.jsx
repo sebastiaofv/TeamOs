@@ -23,6 +23,17 @@ import {
 import { addRoadmapDays } from '../domain/roadmap.js';
 import { getBoardTimelineData } from '../domain/timeline.js';
 import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js';
+import {
+    openPortfolioCreateTaskModal,
+    openPortfolioTaskDetailsForCalendar
+} from '../actions/portfolioMutations.js';
+import {
+    setPortfolioCalendarPeriod,
+    setPortfolioCalendarView,
+    shiftPortfolioCalendarMonth,
+    shiftPortfolioCalendarYear,
+    togglePortfolioCalendarDisplayMode
+} from '../actions/portfolioControls.js';
 
 function itemStyle(item, aggregate) {
     if (!aggregate) return undefined;
@@ -54,6 +65,10 @@ function CalendarTaskButton({ item, aggregate }) {
             data-calendar-item-title={item?.title || ''}
             style={itemStyle(item, aggregate)}
             title={title}
+            onClick={(event) => {
+                event.stopPropagation();
+                openPortfolioTaskDetailsForCalendar(item?.boardId || '', item?.taskId);
+            }}
         >
             {title}
         </button>
@@ -159,6 +174,7 @@ function CalendarYearView({ items, aggregate, heatmap, year }) {
                                         data-year={year}
                                         data-month={month}
                                         aria-label={`Open ${getUtcMonthLabel(year, month)}`}
+                                        onClick={() => setPortfolioCalendarPeriod(year, month)}
                                         key={month}
                                     >
                                         <div className="portfolio-calendar-month-card-header">
@@ -247,6 +263,9 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state }) {
                                                 data-action={canCreateTasks && inCurrentMonth ? 'create-calendar-task' : undefined}
                                                 data-due-date={canCreateTasks && inCurrentMonth ? isoDate : undefined}
                                                 style={style}
+                                                onClick={canCreateTasks && inCurrentMonth
+                                                    ? () => openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, '', { preferredDueDate: isoDate })
+                                                    : undefined}
                                                 key={isoDate}
                                             >
                                                 <div className="portfolio-calendar-day-number">{date.getUTCDate()}</div>
@@ -281,24 +300,30 @@ function PortfolioCalendarView({ model, state }) {
         <>
             <div className="portfolio-calendar-header">
                 <div className="portfolio-calendar-controls">
-                    {view === 'month' && <button className="btn" type="button" data-action="calendar-back-to-year" aria-label="Back to year">Back to year</button>}
+                    {view === 'month' && <button className="btn" type="button" data-action="calendar-back-to-year" aria-label="Back to year" onClick={() => setPortfolioCalendarView('year')}>Back to year</button>}
                     <button
                         className="btn"
                         type="button"
                         data-action={view === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}
                         aria-label={view === 'month' ? 'Previous month' : 'Previous year'}
+                        onClick={() => view === 'month'
+                            ? shiftPortfolioCalendarMonth(-1)
+                            : shiftPortfolioCalendarYear(-1)}
                     >
                         Prev
                     </button>
                     <div className="portfolio-calendar-period-group">
                         <div className="portfolio-calendar-period">{periodLabel}</div>
-                        <button className="btn" type="button" data-action="calendar-toggle-mode">{toggleLabel}</button>
+                        <button className="btn" type="button" data-action="calendar-toggle-mode" onClick={() => togglePortfolioCalendarDisplayMode()}>{toggleLabel}</button>
                     </div>
                     <button
                         className="btn"
                         type="button"
                         data-action={view === 'month' ? 'calendar-next-month' : 'calendar-next-year'}
                         aria-label={view === 'month' ? 'Next month' : 'Next year'}
+                        onClick={() => view === 'month'
+                            ? shiftPortfolioCalendarMonth(1)
+                            : shiftPortfolioCalendarYear(1)}
                     >
                         Next
                     </button>

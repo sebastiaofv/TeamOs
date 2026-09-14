@@ -1,4 +1,10 @@
-import { createPortfolioProjectColor } from '../domain/board.js';
+import {
+    comparePortfolioRows,
+    createPortfolioProjectColor,
+    normalizePortfolioSortDir,
+    normalizePortfolioSortKey
+} from '../domain/board.js';
+import { EFFORT_BUCKETS } from '../domain/constants.js';
 import {
     comparePortfolioCalendarItems,
     normalizeDueDate
@@ -16,10 +22,151 @@ import {
     getBoardTimelineData,
     reconstructBoardStateFromTimeline
 } from '../domain/timeline.js';
+import {
+    normalizeAssignee,
+    normalizePortfolioBlockedFilter,
+    normalizeTask,
+    taskHasAssignee
+} from '../domain/task.js';
+import { createBoardStateSnapshot } from '../domain/serialize.js';
+
+export const DEFAULT_PORTFOLIO_FILTERS = Object.freeze({
+    search: '',
+    archive: 'active',
+    blocked: 'all',
+    assignee: '',
+    priority: '',
+    effort: ''
+});
 
 function getBoardRecord(state, boardId) {
     return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : [])
         .find((board) => board?.id === boardId) || null;
+}
+
+function getBoardStatusMap(boardData) {
+    return Object.fromEntries(
+        (boardData?.board?.columns || []).map((column) => [column.status, column.title])
+    );
+}
+
+export function buildPortfolioTasks(state) {
+    return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : []).flatMap((board, boardIndex) => {
+        if (!board?.data?.board) return [];
+        const statusMap = getBoardStatusMap(board.data);
+        return (board.data.board.tasks || []).map((task, taskIndex) => ({
+            boardIndex,
+            boardId: board.id,
+            taskId: task.id,
+            taskIndex,
+            boardTitle: board.title,
+            boardFileName: board.fileName,
+            columnTitle: statusMap[task.status] || task.status,
+            canMutate: Boolean(board.handle),
+            task: normalizeTask(task)
+        }));
+    });
+}
+
+export function buildPortfolioRowsFromBoardData(state, boardRecord, boardData, options = {}) {
+    if (!boardRecord || !boardData) return [];
+    const normalizedBoard = createBoardStateSnapshot(boardData);
+    const statusMap = getBoardStatusMap(normalizedBoard);
+    const canMutate = Boolean(boardRecord.handle) && options.canMutate !== false;
+    const historical = Boolean(options.historical);
+    return (normalizedBoard.board.tasks || []).map((task, taskIndex) => ({
+        boardIndex: (state?.portfolioBoards || []).findIndex((board) => board.id === boardRecord.id),
+        boardId: boardRecord.id,
+        taskId: task.id,
+        taskIndex,
+        boardTitle: boardRecord.title,
+        boardFileName: boardRecord.fileName,
+        columnTitle: statusMap[task.status] || task.status,
+        canMutate,
+        historical,
+        task: normalizeTask(task)
+    }));
+}
+
+function normalizePortfolioFilterValue(name, value) {
+    if (name === 'search') return String(value || '');
+    if (name === 'archive') return ['active', 'all', 'archived'].includes(value) ? value : 'active';
+    if (name === 'blocked') return normalizePortfolioBlockedFilter(value || 'all');
+    if (name === 'assignee') return normalizeAssignee(value || '');
+    if (name === 'priority') return ['', 'high', 'medium', 'low'].includes(value) ? value : '';
+    if (name === 'effort') return ['', ...EFFORT_BUCKETS].includes(value) ? value : '';
+    return DEFAULT_PORTFOLIO_FILTERS[name];
+}
+
+export function normalizePortfolioFilters(state) {
+    const current = { ...DEFAULT_PORTFOLIO_FILTERS, ...(state?.portfolioFilters || {}) };
+    const next = Object.fromEntries(
+        Object.keys(DEFAULT_PORTFOLIO_FILTERS).map((key) => [key, normalizePortfolioFilterValue(key, current[key])])
+    );
+    if ((state?.portfolioBoards || []).length > 0 && next.assignee) {
+        const names = new Set(
+            (state?.portfolioTasks || buildPortfolioTasks(state))
+                .flatMap((item) => item?.task?.assignees || [])
+                .map((name) => normalizeAssignee(name))
+                .filter(Boolean)
+        );
+        if (![...names].some((name) => name.toLowerCase() === next.assignee.toLowerCase())) {
+            next.assignee = '';
+        }
+    }
+    return next;
+}
+
+export function getFilteredSortedPortfolioRows(state, options = {}) {
+    const filters = { ...DEFAULT_PORTFOLIO_FILTERS, ...(state?.portfolioFilters || {}) };
+    const search = String(filters.search || '').trim().toLowerCase();
+    const priorityFilter = filters.priority || '';
+    const assigneeFilter = normalizeAssignee(filters.assignee || '');
+    const blockedFilter = normalizePortfolioBlockedFilter(filters.blocked || 'all');
+    const effortFilter = filters.effort || '';
+    const archiveFilter = filters.archive || 'active';
+    const sortBy = normalizePortfolioSortKey(state?.portfolioSortKey);
+    const sortDir = normalizePortfolioSortDir(state?.portfolioSortDir);
+    const timelineView = getSelectedPortfolioTimelineView(state);
+    const sourceRows = options.sourceRows
+        || ((timelineView?.isPreview && timelineView.projectedBoard)
+            ? buildPortfolioRowsFromBoardData(state, timelineView.boardRecord, timelineView.projectedBoard, {
+                canMutate: false,
+                historical: true
+            })
+            : (Array.isArray(state?.portfolioTasks) ? state.portfolioTasks : buildPortfolioTasks(state)));
+
+    return sourceRows
+        .filter((item) => {
+            const task = item.task;
+            if (state?.selectedPortfolioBoardId && item.boardId !== state.selectedPortfolioBoardId) return false;
+            if (archiveFilter === 'active' && task.archived) return false;
+            if (archiveFilter === 'archived' && !task.archived) return false;
+            if (priorityFilter && task.priority !== priorityFilter) return false;
+            if (assigneeFilter && !taskHasAssignee(task, assigneeFilter)) return false;
+            if (blockedFilter === 'blocked' && !task.blocked) return false;
+            if (blockedFilter === 'unblocked' && task.blocked) return false;
+            if (effortFilter && task.effort !== effortFilter) return false;
+            if (search && !String(task.title || '').toLowerCase().includes(search)) return false;
+            return true;
+        })
+        .sort((a, b) => comparePortfolioRows(a, b, sortBy, sortDir));
+}
+
+export function buildPortfolioTimelineViewModel(state) {
+    const timelineView = getSelectedPortfolioTimelineView(state);
+    if (!timelineView?.boardRecord) return null;
+    return {
+        boardId: timelineView.boardRecord.id,
+        boardTitle: timelineView.boardRecord.title || timelineView.boardRecord.fileName || 'Selected Project',
+        boardFileName: timelineView.boardRecord.fileName || '',
+        hasHandle: Boolean(timelineView.boardRecord.handle),
+        timeline: timelineView.timeline,
+        selectedIndex: timelineView.selectedIndex,
+        selectedEvent: timelineView.selectedEvent,
+        isPreview: timelineView.isPreview,
+        isExpanded: state?.portfolioTimelineExpandedByBoardId?.[timelineView.boardRecord.id] === true
+    };
 }
 
 function getTimelineSelectionIndex(state, boardId, timeline) {

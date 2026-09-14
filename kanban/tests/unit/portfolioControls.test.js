@@ -69,8 +69,6 @@ function createActions(overrides = {}) {
     };
     const store = createStore(state);
     const notify = vi.fn();
-    const buildPortfolioTasks = vi.fn();
-    const renderPortfolio = vi.fn();
     const updateUrlState = vi.fn();
     const primeProjectFiles = vi.fn();
     const clearTimeline = vi.fn();
@@ -78,8 +76,6 @@ function createActions(overrides = {}) {
     const actions = createPortfolioControlActions({
         store,
         notify,
-        buildPortfolioTasks,
-        renderPortfolio,
         updateUrlState,
         primeProjectFiles,
         clearPortfolioTimelineSelection: clearTimeline,
@@ -90,8 +86,6 @@ function createActions(overrides = {}) {
         actions,
         store,
         notify,
-        buildPortfolioTasks,
-        renderPortfolio,
         updateUrlState,
         primeProjectFiles,
         clearTimeline,
@@ -101,7 +95,7 @@ function createActions(overrides = {}) {
 
 describe('portfolio control actions', () => {
     it('normalizes filters, sort, view mode, and reset state through the store', () => {
-        const { actions, store, renderPortfolio } = createActions();
+        const { actions, store } = createActions();
         store.setState({ portfolioBoards: [createBoard('p1', 'Project')] });
 
         actions.setPortfolioFilter('blocked', 'unexpected');
@@ -126,19 +120,19 @@ describe('portfolio control actions', () => {
         });
         expect(store.getState().portfolioSortKey).toBe('priority');
         expect(store.getState().portfolioSortDir).toBe('asc');
-        expect(renderPortfolio).toHaveBeenCalled();
+        expect(store.getState().portfolioVisibleRows).toHaveLength(1);
     });
 
     it('owns board ordering, selection, and removal cleanup', () => {
         const first = createBoard('p1', 'Zeta');
         const second = createBoard('p2', 'Alpha');
-        const { actions, store, buildPortfolioTasks, primeProjectFiles, clearTimeline, closeContexts } = createActions();
+        const { actions, store, primeProjectFiles, clearTimeline, closeContexts } = createActions();
 
         actions.appendPortfolioRecords([first, second], { selectBoardId: 'p1' });
 
         expect(store.getState().portfolioBoards.map((board) => board.id)).toEqual(['p2', 'p1']);
         expect(store.getState().selectedPortfolioBoardId).toBe('p1');
-        expect(buildPortfolioTasks).toHaveBeenCalledTimes(1);
+        expect(store.getState().portfolioTasks).toHaveLength(2);
         expect(primeProjectFiles).toHaveBeenCalledWith([first, second]);
 
         store.setState({

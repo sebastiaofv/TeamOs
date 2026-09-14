@@ -72,9 +72,6 @@ function createActions(overrides = {}) {
     enqueueSave,
     getSaveState: vi.fn(() => null),
     closeDialogFn: vi.fn(),
-    buildPortfolioTasks: vi.fn(),
-    renderPortfolio: vi.fn(),
-    openPortfolioTaskDetails: vi.fn(),
     confirm: vi.fn(() => true),
     alert: vi.fn(),
     ...overrides
@@ -98,7 +95,7 @@ describe('portfolio mutation actions', () => {
     expect(enqueueSave).toHaveBeenCalledWith(board);
   });
 
-  it('moves a task without going through the legacy host', async () => {
+  it('moves a task through the store-backed mutation action', async () => {
     const { actions, store } = createActions();
 
     await expect(actions.movePortfolioTaskToStatus('p1', 1, 'doing')).resolves.toBe(true);

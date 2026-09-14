@@ -1,5 +1,5 @@
-// The state is split by ownership so the app can move behavior out of the
-// compatibility host without changing the persisted board model.
+// The state is split by ownership so view behavior can stay separate from the
+// persisted board model.
 
 export function createPortfolioSlice() {
     return {

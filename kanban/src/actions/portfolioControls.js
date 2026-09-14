@@ -1,8 +1,7 @@
 // Store-backed portfolio controls and project-session actions.
 //
 // The module owns the state transitions behind toolbar filters, project chips,
-// bulk controls, and board selection. The legacy runtime only supplies the
-// callbacks needed to rebuild its derived rows and repaint its containers.
+// bulk controls, board selection, and calendar navigation.
 
 import { EFFORT_BUCKETS } from '../domain/constants.js';
 import { normalizeAssignee, normalizePortfolioBlockedFilter } from '../domain/task.js';
@@ -10,10 +9,14 @@ import { normalizePortfolioSortKey, normalizePortfolioViewMode } from '../domain
 import { getRoadmapExtension } from '../domain/roadmap.js';
 import {
     closePortfolioContextsForProject as defaultClosePortfolioContextsForProject,
-    clearPortfolioTimelineSelection as defaultClearPortfolioTimelineSelection
+    clearPortfolioTimelineSelection as defaultClearPortfolioTimelineSelection,
+    openRoadmapEntityModal as defaultOpenRoadmapEntityModal
 } from './portfolioMutations.js';
-import { retryProjectSave, primeProjectFileBaselines } from '../persistence/projectFiles.js';
+import { retryProjectSave, primeProjectFileBaselines, syncProjectSaveStates } from '../persistence/projectFiles.js';
 import { notifyAppStateChanged, useAppStore } from '../state/store.js';
+import { refreshPortfolioState } from '../state/portfolioViewState.js';
+import { updatePortfolioUrlState } from './portfolioNavigation.js';
+import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js';
 
 export const DEFAULT_PORTFOLIO_FILTERS = Object.freeze({
     search: '',
@@ -39,24 +42,28 @@ function normalizeFilterValue(name, value) {
 /**
  * Create the actions that control the portfolio shell.
  *
- * `renderPortfolio` and `updateUrlState` are deliberately the only runtime
- * callbacks required for the stateful controls. They are view adapters, not a
- * general-purpose host, so the actions remain usable from React and tests.
+ * Browser-facing collaborators remain injectable for isolated consumers. The
+ * application uses the store-owned derived-state transition by default.
  */
 export function createPortfolioControlActions({
     store = useAppStore,
     notify = store === useAppStore ? notifyAppStateChanged : noop,
-    buildPortfolioTasks = noop,
-    renderPortfolio = noop,
-    updateUrlState = noop,
+    updateUrlState = null,
     primeProjectFiles = primeProjectFileBaselines,
     closePortfolioContextsForProject = defaultClosePortfolioContextsForProject,
     clearPortfolioTimelineSelection = defaultClearPortfolioTimelineSelection,
-    openCreateSprintModal = noop,
-    openAssignSprintModal = noop,
+    openCreateSprintModal = (boardId) => defaultOpenRoadmapEntityModal('sprints', '', { mode: 'create-sprint-from-selection', boardId }),
+    openAssignSprintModal = (boardId) => defaultOpenRoadmapEntityModal('sprints', '', { mode: 'assign-sprint-from-selection', boardId }),
     retrySave = retryProjectSave
 } = {}) {
     const getState = () => store.getState();
+    const syncUrlState = typeof updateUrlState === 'function'
+        ? updateUrlState
+        : () => updatePortfolioUrlState(undefined, getState());
+
+    function refreshViews() {
+        refreshPortfolioState({ store, notify });
+    }
 
     function commitState(partial) {
         store.setState(partial);
@@ -76,7 +83,7 @@ export function createPortfolioControlActions({
 
     function clearPortfolioBulkSelection(boardId = '') {
         clearBulkSelectionState(boardId);
-        renderPortfolio();
+        refreshViews();
     }
 
     function setSelectedPortfolioBoardId(boardId, options = {}) {
@@ -90,6 +97,7 @@ export function createPortfolioControlActions({
             partial.selectedPortfolioViewMode = 'board';
         }
         commitState(partial);
+        refreshPortfolioState({ store, notify });
     }
 
     function appendPortfolioRecords(records, options = {}) {
@@ -119,8 +127,8 @@ export function createPortfolioControlActions({
             partial.portfolioBulkSelectionByBoardId = {};
         }
         commitState(partial);
-        buildPortfolioTasks();
-        renderPortfolio();
+        syncProjectSaveStates(store);
+        refreshViews();
         void primeProjectFiles(list);
     }
 
@@ -132,8 +140,8 @@ export function createPortfolioControlActions({
         setSelectedPortfolioBoardId(boardId, {
             resetViewModeWhenEmpty: !(!boardId && state.selectedPortfolioViewMode === 'calendar')
         });
-        renderPortfolio();
-        updateUrlState();
+        refreshViews();
+        syncUrlState();
     }
 
     function removePortfolioBoard(boardId) {
@@ -173,8 +181,7 @@ export function createPortfolioControlActions({
         }
 
         commitState(partial);
-        buildPortfolioTasks();
-        renderPortfolio();
+        refreshViews();
     }
 
     function setPortfolioFilter(name, value) {
@@ -182,7 +189,8 @@ export function createPortfolioControlActions({
         const next = { ...DEFAULT_PORTFOLIO_FILTERS, ...(getState().portfolioFilters || {}) };
         next[name] = normalizeFilterValue(name, value);
         commitState({ portfolioFilters: next });
-        renderPortfolio();
+        refreshViews();
+        syncUrlState();
     }
 
     function setPortfolioSort(value) {
@@ -190,7 +198,8 @@ export function createPortfolioControlActions({
         const nextKey = value === 'name' ? 'task' : normalizePortfolioSortKey(value);
         if (nextKey === state.portfolioSortKey && state.portfolioSortDir === 'asc') return;
         commitState({ portfolioSortKey: nextKey, portfolioSortDir: 'asc' });
-        renderPortfolio();
+        refreshViews();
+        syncUrlState();
     }
 
     function canUsePortfolioViewMode(mode) {
@@ -206,7 +215,8 @@ export function createPortfolioControlActions({
         const nextMode = normalizePortfolioViewMode(mode);
         if (!canUsePortfolioViewMode(nextMode) || nextMode === state.selectedPortfolioViewMode) return;
         commitState({ selectedPortfolioViewMode: nextMode });
-        renderPortfolio();
+        refreshViews();
+        syncUrlState();
     }
 
     function resetPortfolioFilters() {
@@ -215,7 +225,8 @@ export function createPortfolioControlActions({
             portfolioSortKey: 'priority',
             portfolioSortDir: 'asc'
         });
-        renderPortfolio();
+        refreshViews();
+        syncUrlState();
     }
 
     function getSelectedPortfolioBulkTaskIds(boardId = getState().selectedPortfolioBoardId) {
@@ -244,6 +255,48 @@ export function createPortfolioControlActions({
         return retrySave(boardId);
     }
 
+    function setPortfolioCalendarPeriod(year, month) {
+        commitState({
+            portfolioCalendarYear: Number(year),
+            portfolioCalendarMonth: Number(month),
+            portfolioCalendarView: 'month'
+        });
+        refreshViews();
+    }
+
+    function setPortfolioCalendarView(view) {
+        if (!['year', 'month'].includes(view)) return;
+        commitState({ portfolioCalendarView: view });
+        refreshViews();
+    }
+
+    function togglePortfolioCalendarDisplayMode() {
+        commitState({
+            portfolioCalendarDisplayMode: getState().portfolioCalendarDisplayMode === 'heatmap'
+                ? 'calendar'
+                : 'heatmap'
+        });
+        refreshViews();
+    }
+
+    function shiftPortfolioCalendarMonth(step) {
+        const state = getState();
+        const currentYear = Number.isInteger(state.portfolioCalendarYear)
+            ? state.portfolioCalendarYear
+            : new Date().getUTCFullYear();
+        const currentMonth = Number.isInteger(state.portfolioCalendarMonth)
+            ? state.portfolioCalendarMonth
+            : new Date().getUTCMonth();
+        const next = new Date(Date.UTC(currentYear, currentMonth + Number(step || 0), 1));
+        setPortfolioCalendarPeriod(next.getUTCFullYear(), next.getUTCMonth());
+    }
+
+    function shiftPortfolioCalendarYear(step) {
+        const model = buildPortfolioCalendarViewModel(getState());
+        commitState({ portfolioCalendarYear: model.year + Number(step || 0) });
+        refreshViews();
+    }
+
     return {
         appendPortfolioRecords,
         canUsePortfolioViewMode,
@@ -255,10 +308,15 @@ export function createPortfolioControlActions({
         resetPortfolioFilters,
         retryPortfolioSave,
         selectPortfolioBoard,
+        setPortfolioCalendarPeriod,
+        setPortfolioCalendarView,
         setPortfolioFilter,
         setPortfolioSort,
         setPortfolioViewMode,
-        setSelectedPortfolioBoardId
+        setSelectedPortfolioBoardId,
+        shiftPortfolioCalendarMonth,
+        shiftPortfolioCalendarYear,
+        togglePortfolioCalendarDisplayMode
     };
 }
 
@@ -279,7 +337,12 @@ export const removePortfolioBoard = (...args) => activeActions.removePortfolioBo
 export const resetPortfolioFilters = (...args) => activeActions.resetPortfolioFilters(...args);
 export const retryPortfolioSave = (...args) => activeActions.retryPortfolioSave(...args);
 export const selectPortfolioBoard = (...args) => activeActions.selectPortfolioBoard(...args);
+export const setPortfolioCalendarPeriod = (...args) => activeActions.setPortfolioCalendarPeriod(...args);
+export const setPortfolioCalendarView = (...args) => activeActions.setPortfolioCalendarView(...args);
 export const setPortfolioFilter = (...args) => activeActions.setPortfolioFilter(...args);
 export const setPortfolioSort = (...args) => activeActions.setPortfolioSort(...args);
 export const setPortfolioViewMode = (...args) => activeActions.setPortfolioViewMode(...args);
 export const setSelectedPortfolioBoardId = (...args) => activeActions.setSelectedPortfolioBoardId(...args);
+export const shiftPortfolioCalendarMonth = (...args) => activeActions.shiftPortfolioCalendarMonth(...args);
+export const shiftPortfolioCalendarYear = (...args) => activeActions.shiftPortfolioCalendarYear(...args);
+export const togglePortfolioCalendarDisplayMode = (...args) => activeActions.togglePortfolioCalendarDisplayMode(...args);

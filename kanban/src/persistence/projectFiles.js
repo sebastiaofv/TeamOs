@@ -1,10 +1,8 @@
 // Project file persistence: save queueing, save/watch status, and detection of
 // external changes made to a board file outside the app.
 //
-// This layer owns no DOM. Save/watch status is part of the Zustand store, so
-// status changes notify the store directly. Applying an externally-read board
-// snapshot remains the only UI callback because it needs portfolio-specific
-// context cleanup and view rebuilding.
+// This layer owns no DOM. Save/watch status and externally-reloaded board
+// snapshots are applied directly to the Zustand store.
 
 import { useAppStore, getPortfolioBoardRecord, notifyAppStateChanged } from '../state/store.js';
 import { PROJECT_FILE_EXTERNAL_BADGE_MS, PROJECT_FILE_CONFLICT_SUPPRESS_MS } from '../domain/constants.js';
@@ -14,23 +12,49 @@ import { formatErrorMessage, nowIso } from '../domain/util.js';
 import { createProjectSaveState } from '../domain/persistence.js';
 import { BoardRepository } from './boardRepository.js';
 import { Logger } from '../logger.js';
-
-// The snapshot seam is registered by the app runtime; the default keeps this
-// module usable from tests without a document.
-const host = {
-    // Called with a board record and a snapshot read from disk, to apply that
-    // snapshot to app state and re-render. Persistence detects the external
-    // change; deciding how to surface it is the UI's job.
-    applySnapshot: () => {}
-};
-
-/** Register the UI implementations for the seams above. */
-export function setPersistenceHost(impl = {}) {
-    if (typeof impl.applySnapshot === 'function') host.applySnapshot = impl.applySnapshot;
-}
+import { refreshPortfolioState } from '../state/portfolioViewState.js';
 
 const notifyProjectStatusChanged = () => notifyAppStateChanged();
-const applySnapshotToBoardRecord = (...args) => host.applySnapshot(...args);
+
+function closePortfolioContextsForProject(boardId) {
+    if (!boardId) return;
+    const state = useAppStore.getState();
+    const matchesDetail = state.portfolioDetailContext?.boardId === boardId;
+    const matchesEditor = state.portfolioEditContext?.boardId === boardId
+        || state.portfolioCreateContext?.boardId === boardId;
+    const activeDialogMatches = (matchesDetail && state.activeDialog === 'taskDetail')
+        || (matchesEditor && state.activeDialog === 'taskEditor');
+    if (!matchesDetail && !matchesEditor) return;
+
+    useAppStore.setState({
+        portfolioDetailContext: matchesDetail ? null : state.portfolioDetailContext,
+        portfolioEditContext: matchesEditor ? null : state.portfolioEditContext,
+        portfolioCreateContext: matchesEditor ? null : state.portfolioCreateContext,
+        pendingNewTaskStatus: matchesEditor ? null : state.pendingNewTaskStatus,
+        ...(activeDialogMatches ? { activeDialog: null, dialogProps: null } : {})
+    });
+    notifyProjectStatusChanged();
+}
+
+export function applySnapshotToBoardRecord(boardRecord, parsed, options = {}) {
+    if (!boardRecord || !parsed) return false;
+    const boardId = boardRecord.id;
+    closePortfolioContextsForProject(boardId);
+    const payload = serializeBoardDataFromObject(parsed);
+    boardRecord.data = payload;
+    boardRecord.title = payload.board.settings.title;
+    if (options.discardLocalChanges) {
+        const saveState = getProjectSaveState(boardId, { create: false });
+        if (saveState) {
+            saveState.revision = saveState.savedRevision;
+            saveState.status = 'idle';
+            saveState.lastErrorMessage = '';
+            saveState.queued = false;
+        }
+    }
+    refreshPortfolioState();
+    return true;
+}
 
 export function getProjectSaveState(boardId, options = {}) {
     if (!boardId) return null;
@@ -95,23 +119,33 @@ function clearProjectWatchStatus(boardId, options = {}) {
     setProjectWatchStatus(boardId, 'idle', '', options);
 }
 
-export function syncProjectSaveStates() {
+export function syncProjectSaveStates(store = useAppStore) {
+    const current = store.getState();
+    const saveStates = current.projectSaveStateById instanceof Map
+        ? current.projectSaveStateById
+        : new Map();
+    const fileStates = current.projectFileStateById instanceof Map
+        ? current.projectFileStateById
+        : new Map();
     const activeIds = new Set();
-    useAppStore.getState().portfolioBoards.forEach((board) => {
+    (current.portfolioBoards || []).forEach((board) => {
         if (!board || !board.id) return;
         activeIds.add(board.id);
-        getProjectSaveState(board.id);
+        if (!saveStates.has(board.id)) saveStates.set(board.id, createProjectSaveState());
     });
-    Array.from(useAppStore.getState().projectSaveStateById.keys()).forEach((boardId) => {
+    Array.from(saveStates.keys()).forEach((boardId) => {
         if (!activeIds.has(boardId)) {
-            useAppStore.getState().projectSaveStateById.delete(boardId);
+            saveStates.delete(boardId);
         }
     });
-    Array.from(useAppStore.getState().projectFileStateById.keys()).forEach((boardId) => {
+    Array.from(fileStates.keys()).forEach((boardId) => {
         if (!activeIds.has(boardId)) {
-            useAppStore.getState().projectFileStateById.delete(boardId);
+            fileStates.delete(boardId);
         }
     });
+    if (saveStates !== current.projectSaveStateById || fileStates !== current.projectFileStateById) {
+        store.setState({ projectSaveStateById: saveStates, projectFileStateById: fileStates });
+    }
 }
 
 async function refreshProjectFileBaseline(boardRecord, options = {}) {

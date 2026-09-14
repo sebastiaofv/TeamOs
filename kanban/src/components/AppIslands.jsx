@@ -12,16 +12,21 @@ import { PortfolioRoadmap } from './PortfolioRoadmap.jsx';
 import { PortfolioCalendar } from './PortfolioCalendar.jsx';
 import { PortfolioFileIntegration } from '../hooks/usePortfolioFileIntegration.js';
 import { ThemeIntegration } from '../hooks/useTheme.js';
+import { PortfolioRuntime, PortfolioViewVisibility } from '../hooks/usePortfolioRuntime.js';
 import { closeDialog } from '../actions/dialogs.js';
 import { closeRoadmapEntity, closeTaskDetail, closeTaskEditor } from '../actions/portfolioMutations.js';
 
 // The single React root. Each island is wrapped in its own error boundary;
-// `onError` clears the island's state if it fails to render. Dialogs portal to
-// document.body; later islands use createPortal into the legacy containers
-// they replace.
+// `onError` clears the island's state if it fails to render.
 export function AppIslands() {
     return (
         <>
+            <IslandErrorBoundary island="PortfolioRuntime" onError={() => {}}>
+                <PortfolioRuntime />
+            </IslandErrorBoundary>
+            <IslandErrorBoundary island="PortfolioViewVisibility" onError={() => {}}>
+                <PortfolioViewVisibility />
+            </IslandErrorBoundary>
             <IslandErrorBoundary island="ThemeIntegration" onError={() => {}}>
                 <ThemeIntegration />
             </IslandErrorBoundary>

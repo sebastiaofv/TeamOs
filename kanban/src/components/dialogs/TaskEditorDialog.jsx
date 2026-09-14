@@ -13,8 +13,8 @@ import { AttachmentsEditor } from './taskEditor/AttachmentsEditor.jsx';
 const PRIORITY_OPTIONS = [['', 'None'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low']];
 const EFFORT_OPTIONS = [['', 'None'], ['XS', 'XS'], ['S', 'S'], ['M', 'M'], ['L', 'L'], ['XL', 'XL']];
 
-// Legacy opens the editor with a view model; this component owns the draft and
-// hands a finished draft to legacy saveTask, which validates, saves and closes.
+// The mutation action opens the editor with a view model; this component owns
+// the draft and hands a finished draft to the store-backed save action.
 export function TaskEditorDialog() {
     const open = useAppStore((s) => s.activeDialog === 'taskEditor');
     const vm = useAppStore((s) => (s.activeDialog === 'taskEditor' ? s.dialogProps : null));
@@ -22,8 +22,8 @@ export function TaskEditorDialog() {
     const submitRef = useRef(null);
     const returnFocus = useReturnFocus({ initialFocus: nameRef, selectInitial: true });
 
-    // Ctrl/Cmd+Enter saves from anywhere in the dialog. The legacy shortcut
-    // registry still lists it, with a no-op handler.
+    // Ctrl/Cmd+Enter saves from anywhere in the dialog. The global shortcut
+    // registry reserves this key combination for the editor.
     const onKeyDown = (event) => {
         if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key !== 'Enter') return;
         event.preventDefault();

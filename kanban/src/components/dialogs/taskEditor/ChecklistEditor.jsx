@@ -4,7 +4,7 @@ import { addChecklistItem, moveChecklistItem } from '../../../domain/taskDraft.j
 
 const IDLE_DRAG = { activeIndex: -1, targetIndex: -1, placement: '' };
 
-// Native HTML5 drag, as in legacy; dnd-kit replaces it in Phase 2.4.
+// Native HTML5 drag keeps checklist reordering lightweight and dependency-free.
 export function ChecklistEditor({ value, onChange }) {
     const [composer, setComposer] = useState('');
     const [drag, setDrag] = useState(IDLE_DRAG);

@@ -1,6 +1,5 @@
-// Store-backed portfolio mutations. The legacy runtime supplies only the
-// callbacks needed to rebuild its derived view state; all persisted changes
-// and transient mutation state live behind this module's interface.
+// Store-backed portfolio mutations. Persisted changes, transient state, and
+// dialog transitions all live behind this module's interface.
 
 import {
     ATTACHMENT_HARD_MAX_BYTES,
@@ -11,23 +10,37 @@ import {
 } from '../domain/constants.js';
 import {
     buildTaskFieldsFromDraft,
+    formatAssignees,
     nextTaskIdForBoard,
+    normalizeAssignee,
+    normalizeAssignees,
     normalizeBlockerReason,
+    normalizeChecklist,
+    normalizeEffort,
+    normalizePriority,
+    normalizeTags,
+    getBoardTagSuggestions,
+    normalizeTask,
+    parseAssigneesInput,
+    parseChecklistInput,
     normalizeTaskStatus,
     resolveCreateTaskStatus,
+    taskAssignees,
     touchTask
 } from '../domain/task.js';
 import {
     createEmptyRoadmapExtension,
+    formatRoadmapDateRange,
     getRoadmapEntityConfig,
     getRoadmapExtension,
     getRoadmapExtensionObject,
+    getRoadmapItemTitle,
     normalizeRoadmapDate,
     normalizeRoadmapRef,
     slugifyRoadmapEntityId
 } from '../domain/roadmap.js';
-import { removeLegacyTaskAttachmentsFromExtensions, setTaskAttachments } from '../domain/attachments.js';
-import { cloneSerializable, createBoardStateSnapshot, getBoardExtensionsObject, serializeBoardDataFromObject } from '../domain/serialize.js';
+import { calculateBoardAttachmentBytes, getTaskAttachments, normalizeAttachmentRecord, removeLegacyTaskAttachmentsFromExtensions, setTaskAttachments } from '../domain/attachments.js';
+import { cloneSerializable, createBoardStateSnapshot, getBoardExtensionsObject } from '../domain/serialize.js';
 import {
     appendTimelineEvent,
     captureTaskTimelineSnapshot,
@@ -37,10 +50,13 @@ import {
     recordTaskTimelineEvent,
     reconstructBoardStateFromTimeline
 } from '../domain/timeline.js';
-import { formatFileSize, nowIso } from '../domain/util.js';
+import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '../domain/calendar.js';
+import { assigneesToInput, checklistToInput, formatFileSize, nowIso } from '../domain/util.js';
 import { enqueueProjectSave, getProjectSaveState, markProjectDirty } from '../persistence/projectFiles.js';
-import { closeDialog } from './dialogs.js';
+import { closeDialog, openDialog } from './dialogs.js';
 import { notifyAppStateChanged, useAppStore } from '../state/store.js';
+import { getSelectedPortfolioTimelineView } from '../selectors/portfolioViews.js';
+import { refreshPortfolioState } from '../state/portfolioViewState.js';
 
 const noop = () => {};
 
@@ -66,16 +82,12 @@ function defaultFocusField(fieldId) {
  * Create the portfolio mutation module.
  *
  * The interface is intentionally small: the module owns state, persistence,
- * validation, timeline bookkeeping, and mutation guards. The runtime only
- * provides callbacks for rebuilding derived rows, repainting legacy containers,
- * and reopening a task detail view that is already visible.
+ * validation, timeline bookkeeping, mutation guards, and dialog transitions.
  */
 export function createPortfolioMutationActions({
     store = useAppStore,
     notify = store === useAppStore ? notifyAppStateChanged : noop,
-    buildPortfolioTasks = noop,
-    renderPortfolio = noop,
-    openPortfolioTaskDetails = noop,
+    refresh = (options) => refreshPortfolioState({ store, notify, ...options }),
     enqueueSave = enqueueProjectSave,
     markDirty = markProjectDirty,
     getSaveState = getProjectSaveState,
@@ -85,6 +97,10 @@ export function createPortfolioMutationActions({
     focusField = defaultFocusField
 } = {}) {
     const getState = () => store.getState();
+
+    function refreshViews(options = {}) {
+        refresh({ store, ...options });
+    }
 
     function notifyStateChanged() {
         notify();
@@ -185,6 +201,261 @@ export function createPortfolioMutationActions({
         };
     }
 
+    function findPortfolioTaskDetailSource(boardId, taskId, options = {}) {
+        const boardRecord = getBoardRecord(boardId);
+        if (!boardRecord) return null;
+        const sourceBoardData = options.boardData
+            ? createBoardStateSnapshot(options.boardData)
+            : boardRecord.data;
+        const tasks = sourceBoardData?.board?.tasks;
+        if (!Array.isArray(tasks)) return null;
+        const normalizedTaskId = Number(taskId);
+        const taskIndex = tasks.findIndex((task) => Number(task?.id) === normalizedTaskId);
+        if (taskIndex < 0) return null;
+        return {
+            boardRecord,
+            boardData: sourceBoardData,
+            task: tasks[taskIndex],
+            taskIndex
+        };
+    }
+
+    function setSelectedPortfolioCard(boardId, taskId) {
+        commitState({
+            selectedPortfolioCardRef: boardId && taskId !== null && taskId !== undefined
+                ? { boardId, taskId: Number(taskId) }
+                : null
+        });
+    }
+
+    function setHoveredPortfolioCard(boardId, taskId) {
+        commitState({
+            hoveredPortfolioCardRef: boardId && taskId !== null && taskId !== undefined
+                ? { boardId, taskId: Number(taskId) }
+                : null
+        });
+    }
+
+    function buildRoadmapEntityOptions(items) {
+        return (Array.isArray(items) ? items : []).map((item) => ({
+            value: item.id,
+            label: item.title
+        }));
+    }
+
+    function buildRoadmapSprintOptions(items) {
+        return (Array.isArray(items) ? items : []).map((item) => {
+            const range = formatRoadmapDateRange(item);
+            return { value: item.id, label: range ? `${item.title} • ${range}` : item.title };
+        });
+    }
+
+    function getTaskAssigneeSuggestions(excludeNames = []) {
+        const seen = new Set();
+        const excluded = new Set(normalizeAssignees(excludeNames).map((name) => name.toLowerCase()));
+        const values = [];
+        const addName = (value) => {
+            const name = normalizeAssignee(value);
+            if (!name || excluded.has(name.toLowerCase()) || seen.has(name.toLowerCase())) return;
+            seen.add(name.toLowerCase());
+            values.push(name);
+        };
+        (getState().portfolioTasks || []).forEach((item) => taskAssignees(item?.task).forEach(addName));
+        return values.sort((a, b) => a.localeCompare(b));
+    }
+
+    let taskEditorOpenCount = 0;
+
+    function buildTaskEditorViewModel(boardRecord, task, options = {}) {
+        taskEditorOpenCount += 1;
+        const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
+        const phaseOptions = buildRoadmapEntityOptions(roadmap.phases);
+        const milestoneOptions = buildRoadmapEntityOptions(roadmap.milestones);
+        const knownRef = (optionList, value) => {
+            const ref = normalizeRoadmapRef(value);
+            return optionList.some((option) => option.value === ref) ? ref : '';
+        };
+        const normalized = task ? normalizeTask(task) : null;
+        const initial = normalized
+            ? {
+                title: normalized.title || '',
+                description: normalized.description || '',
+                blocked: Boolean(normalized.blocked),
+                blockerReason: normalized.blocked ? normalizeBlockerReason(normalized.blockerReason) : '',
+                assignees: parseAssigneesInput(assigneesToInput(normalized.assignees)),
+                tags: normalizeTags(normalized.tags),
+                checklist: parseChecklistInput(checklistToInput(normalized.checklist || [])),
+                attachments: getTaskAttachments(boardRecord.data, options.taskId)
+                    .map(normalizeAttachmentRecord)
+                    .filter(Boolean),
+                dueDate: normalizeDueDate(normalized.dueDate) || '',
+                priority: normalizePriority(normalized.priority) || '',
+                effort: normalizeEffort(normalized.effort) || '',
+                phaseId: knownRef(phaseOptions, normalized.phaseId),
+                milestoneId: knownRef(milestoneOptions, normalized.milestoneId)
+            }
+            : {
+                title: '',
+                description: '',
+                blocked: false,
+                blockerReason: '',
+                assignees: [],
+                tags: [],
+                checklist: [],
+                attachments: [],
+                dueDate: normalizeDueDate(options.preferredDueDate || '') || '',
+                priority: '',
+                effort: '',
+                phaseId: '',
+                milestoneId: ''
+            };
+        return {
+            openId: taskEditorOpenCount,
+            heading: normalized ? 'Edit Task' : 'New Task',
+            initial,
+            phaseOptions,
+            milestoneOptions,
+            assigneePool: getTaskAssigneeSuggestions([]),
+            tagSuggestions: getBoardTagSuggestions(boardRecord.data),
+            otherAttachmentBytes: calculateBoardAttachmentBytes(boardRecord.data, {
+                excludeTaskId: normalized ? options.taskId : null
+            })
+        };
+    }
+
+    function buildTaskDetailViewModel(source, taskId, readOnly) {
+        const task = normalizeTask(source.task);
+        const statusMap = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
+        const roadmap = getRoadmapExtension(source.boardData);
+        return {
+            readOnly,
+            fields: {
+                title: task.title || '-',
+                description: task.description || '-',
+                assignees: formatAssignees(task.assignees) || '-',
+                tags: normalizeTags(task.tags).join(', ') || '-',
+                blocked: task.blocked ? 'Yes' : 'No',
+                blockerReason: task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-',
+                priority: task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-',
+                effort: task.effort || '-',
+                status: (statusMap[task.status] || task.status) || '-',
+                createdAt: formatDateTime(task.createdAt),
+                updatedAt: formatDateTime(task.updatedAt),
+                dueDate: formatDueDateForUi(task.dueDate) || '-',
+                phase: getRoadmapItemTitle(roadmap, 'phases', task.phaseId) || '-',
+                milestone: getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-',
+                sprint: getRoadmapItemTitle(roadmap, 'sprints', task.sprintId) || '-'
+            },
+            checklist: normalizeChecklist(task.checklist)
+                .map((item) => ({ text: item.text, done: Boolean(item.done) })),
+            attachments: getTaskAttachments(source.boardData, taskId)
+                .map(normalizeAttachmentRecord)
+                .filter(Boolean)
+                .map((item) => ({
+                    id: item.id,
+                    name: item.name,
+                    isImage: item.kind === 'image',
+                    dataUrl: item.dataUrl,
+                    subLabel: `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`
+                }))
+        };
+    }
+
+    function openPortfolioTaskDetails(boardId, taskId, options = {}) {
+        const source = findPortfolioTaskDetailSource(boardId, taskId, options);
+        if (!source) return;
+        setSelectedPortfolioCard(boardId, taskId);
+        const readOnly = options.readOnly === true || !canUsePortfolioTaskMutations(boardId);
+        commitState({ portfolioDetailContext: { boardId, taskId, readOnly } });
+        openDialog('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly));
+    }
+
+    function reopenTaskDetails(boardId, taskId, options = {}) {
+        openPortfolioTaskDetails(boardId, taskId, options);
+    }
+
+    function editPortfolioTask(boardId, taskId) {
+        const source = findPortfolioTaskSource(boardId, taskId);
+        if (!source) return;
+        if (!canUsePortfolioTaskMutations(boardId)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return;
+        }
+        closeTaskDetail();
+        setSelectedPortfolioCard(boardId, taskId);
+        commitState({
+            portfolioEditContext: { boardId, taskId },
+            portfolioCreateContext: null,
+            pendingNewTaskStatus: null
+        });
+        openDialog('taskEditor', buildTaskEditorViewModel(source.boardRecord, source.task, { taskId }));
+    }
+
+    function openPortfolioCreateTaskModal(boardId, preferredStatus, options = {}) {
+        const boardRecord = getBoardRecord(boardId);
+        if (!boardRecord) return;
+        if (!canUsePortfolioTaskMutations(boardId)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return;
+        }
+        closeTaskDetail();
+        const allowedStatuses = new Set((boardRecord.data.board.columns || []).map((column) => normalizeTaskStatus(column.status)));
+        const fallbackStatus = normalizeTaskStatus((boardRecord.data.board.columns || [defaultColumns[0]])[0]?.status);
+        const status = allowedStatuses.has(normalizeTaskStatus(preferredStatus))
+            ? normalizeTaskStatus(preferredStatus)
+            : fallbackStatus;
+        commitState({
+            portfolioCreateContext: { boardId, status },
+            portfolioEditContext: null,
+            pendingNewTaskStatus: null
+        });
+        openDialog('taskEditor', buildTaskEditorViewModel(boardRecord, null, {
+            preferredDueDate: options.preferredDueDate
+        }));
+    }
+
+    function openRoadmapEntityModal(kind, itemId = '', options = {}) {
+        const boardId = options.boardId || getState().selectedPortfolioBoardId;
+        const boardRecord = boardId ? getBoardRecord(boardId) : null;
+        if (!boardRecord) return;
+        if (!canUsePortfolioTaskMutations(boardId)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return;
+        }
+        const config = getRoadmapEntityConfig(kind);
+        if (!config) return;
+        const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
+        const items = Array.isArray(roadmap[config.itemsKey]) ? roadmap[config.itemsKey] : [];
+        const item = itemId ? items.find((entry) => entry.id === itemId) : null;
+        const mode = options.mode || 'default';
+        const assignExistingMode = mode === 'assign-sprint-from-selection';
+        commitState({
+            roadmapEntityContext: { boardId, kind, itemId: item?.id || '', mode }
+        });
+        openDialog('roadmapEntity', {
+            kind,
+            itemId: item?.id || '',
+            mode,
+            heading: mode === 'create-sprint-from-selection'
+                ? 'Create Sprint'
+                : assignExistingMode
+                    ? 'Add to Existing Sprint'
+                    : `${item ? 'Edit' : 'New'} ${config.label}`,
+            saveLabel: assignExistingMode ? 'Add to Sprint' : 'Save Item',
+            dateMode: config.dateMode,
+            dateLabel: config.dateLabel || 'Date',
+            showExistingSprint: assignExistingMode,
+            initial: {
+                title: item?.title || '',
+                dueDate: item?.dueDate || '',
+                startDate: item?.startDate || '',
+                endDate: item?.endDate || ''
+            },
+            sprintOptions: buildRoadmapSprintOptions(roadmap.sprints || []),
+            initialFocus: assignExistingMode ? 'existingSprint' : 'title'
+        });
+    }
+
     function isPortfolioBoardMutable(boardId) {
         return Boolean(getBoardRecord(boardId)?.handle);
     }
@@ -274,7 +545,7 @@ export function createPortfolioMutationActions({
         const timeline = getBoardTimelineData(boardRecord?.data);
         if (!boardRecord || !timeline || timeline.events.length === 0) {
             clearPortfolioTimelineSelection();
-            renderPortfolio();
+            refreshViews();
             return;
         }
 
@@ -283,27 +554,27 @@ export function createPortfolioMutationActions({
         commitState({ portfolioTimelineSelection: { boardId, eventIndex: nextIndex } });
         closeTaskDetail();
         closeTaskEditor();
-        renderPortfolio(options);
+        refreshViews(options);
     }
 
     function movePortfolioTimelineToLatest(boardId = getState().selectedPortfolioBoardId) {
         if (!boardId) {
             clearPortfolioTimelineSelection();
-            renderPortfolio();
+            refreshViews();
             return;
         }
         const boardRecord = getBoardRecord(boardId);
         const timeline = getBoardTimelineData(boardRecord?.data);
         if (!timeline || timeline.events.length === 0) {
             clearPortfolioTimelineSelection();
-            renderPortfolio();
+            refreshViews();
             return;
         }
 
         commitState({ portfolioTimelineSelection: { boardId, eventIndex: timeline.events.length - 1 } });
         closeTaskDetail();
         closeTaskEditor();
-        renderPortfolio();
+        refreshViews();
     }
 
     function syncPortfolioTimelineSelectionToLatest(boardId, boardData = null) {
@@ -329,7 +600,7 @@ export function createPortfolioMutationActions({
         if (!boardId) return;
         getState().portfolioTimelineExpandedByBoardId[boardId] = Boolean(expanded);
         notifyStateChanged();
-        renderPortfolio();
+        refreshViews();
     }
 
     function togglePortfolioTimelineExpanded(boardId = getState().selectedPortfolioBoardId) {
@@ -338,6 +609,33 @@ export function createPortfolioMutationActions({
             boardId,
             getState().portfolioTimelineExpandedByBoardId[boardId] !== true
         );
+    }
+
+    function togglePortfolioRoadmapRowExpanded(boardId, key) {
+        if (!boardId || !key) return;
+        const expandedRows = getState().portfolioRoadmapExpandedRowsByBoardId?.[boardId] || {};
+        const nextRows = { ...expandedRows, [key]: !expandedRows[key] };
+        commitState({
+            portfolioRoadmapExpandedRowsByBoardId: {
+                ...(getState().portfolioRoadmapExpandedRowsByBoardId || {}),
+                [boardId]: nextRows
+            }
+        });
+        refreshViews();
+    }
+
+    function openPortfolioTaskDetailsForCalendar(boardId, taskId) {
+        const timelineView = getState().selectedPortfolioBoardId === boardId
+            ? getSelectedPortfolioTimelineView(getState())
+            : null;
+        if (timelineView?.isPreview) {
+            openPortfolioTaskDetails(boardId, taskId, {
+                boardData: timelineView.projectedBoard || null,
+                readOnly: true
+            });
+            return;
+        }
+        openPortfolioTaskDetails(boardId, taskId);
     }
 
     function getSelectedBoardTimelineViewState() {
@@ -400,30 +698,8 @@ export function createPortfolioMutationActions({
         });
 
         markDirty(viewState.boardRecord.id);
-        buildPortfolioTasks();
-        renderPortfolio();
+        refreshViews();
         await enqueueSave(viewState.boardRecord);
-        return true;
-    }
-
-    function applySnapshotToBoardRecord(boardRecord, parsed, options = {}) {
-        if (!boardRecord || !parsed) return false;
-        const boardId = boardRecord.id;
-        closePortfolioContextsForProject(boardId);
-        const payload = serializeBoardDataFromObject(parsed);
-        boardRecord.data = payload;
-        boardRecord.title = payload.board.settings.title;
-        if (options.discardLocalChanges) {
-            const saveState = getSaveState(boardId, { create: false });
-            if (saveState) {
-                saveState.revision = saveState.savedRevision;
-                saveState.status = 'idle';
-                saveState.lastErrorMessage = '';
-                saveState.queued = false;
-            }
-        }
-        buildPortfolioTasks();
-        renderPortfolio();
         return true;
     }
 
@@ -454,15 +730,14 @@ export function createPortfolioMutationActions({
         );
         syncPortfolioTimelineSelectionToLatest(boardId, source.boardRecord.data);
         markDirty(boardId);
-        buildPortfolioTasks();
-        renderPortfolio();
+        refreshViews();
 
         const detailContext = getState().portfolioDetailContext;
         if (
             detailContext?.boardId === boardId
             && Number(detailContext.taskId) === Number(taskId)
         ) {
-            openPortfolioTaskDetails(boardId, taskId);
+            reopenTaskDetails(boardId, taskId);
         }
 
         await enqueueSave(source.boardRecord);
@@ -489,12 +764,11 @@ export function createPortfolioMutationActions({
 
         syncPortfolioTimelineSelectionToLatest(boardId, boardRecord.data);
         markDirty(boardId);
-        buildPortfolioTasks();
-        renderPortfolio();
+        refreshViews();
 
         const detailContext = getState().portfolioDetailContext;
         if (detailContext?.boardId === boardId) {
-            openPortfolioTaskDetails(boardId, detailContext.taskId);
+            reopenTaskDetails(boardId, detailContext.taskId);
         }
 
         await enqueueSave(boardRecord);
@@ -564,8 +838,7 @@ export function createPortfolioMutationActions({
             commitState({ hoveredPortfolioCardRef: null });
         }
 
-        buildPortfolioTasks();
-        renderPortfolio();
+        refreshViews();
         await enqueueSave(source.boardRecord);
     }
 
@@ -648,8 +921,7 @@ export function createPortfolioMutationActions({
             markDirty(boardId);
 
             setSelectedPortfolioBoardId(boardId, { resetViewModeWhenEmpty: false });
-            buildPortfolioTasks();
-            renderPortfolio();
+            refreshViews();
             closeTaskEditor();
             await enqueueSave(boardRecord);
             return;
@@ -799,7 +1071,7 @@ export function createPortfolioMutationActions({
             if (!changed) return;
             closeRoadmapEntity();
             clearPortfolioBulkSelection(context.boardId);
-            renderPortfolio();
+            refreshViews();
             return;
         }
         if (!draft.title) {
@@ -821,7 +1093,7 @@ export function createPortfolioMutationActions({
             if (!changed) return;
             closeRoadmapEntity();
             clearPortfolioBulkSelection(context.boardId);
-            renderPortfolio();
+            refreshViews();
             return;
         }
 
@@ -1022,7 +1294,7 @@ export function createPortfolioMutationActions({
     function handleTimelineSliderPointerCommit() {
         if (!getState().portfolioTimelineDragState.active) return;
         commitState({ portfolioTimelineDragState: { active: false, boardId: '' } });
-        renderPortfolio();
+        refreshViews();
     }
 
     function showUndo(message, undoFn) {
@@ -1047,7 +1319,6 @@ export function createPortfolioMutationActions({
     }
 
     return {
-        applySnapshotToBoardRecord,
         assignSelectionToExistingSprint,
         beginPortfolioTimelineSliderDrag,
         canUsePortfolioTaskMutations,
@@ -1060,11 +1331,16 @@ export function createPortfolioMutationActions({
         createSprintFromSelection,
         deletePortfolioTask,
         deleteRoadmapEntity,
+        editPortfolioTask,
         getSelectedPortfolioBulkTaskIds,
         handleTimelineSliderPointerCommit,
         movePortfolioTaskToStatus,
         movePortfolioTimelineToLatest,
         notifyPortfolioMutationUnavailable,
+        openPortfolioCreateTaskModal,
+        openPortfolioTaskDetails,
+        openPortfolioTaskDetailsForCalendar,
+        openRoadmapEntityModal,
         onPortfolioColumnDragLeave,
         onPortfolioColumnDragOver,
         onPortfolioColumnDrop,
@@ -1079,9 +1355,12 @@ export function createPortfolioMutationActions({
         showUndo,
         syncPortfolioTimelineSelectionToLatest,
         togglePortfolioArchiveTask,
+        togglePortfolioRoadmapRowExpanded,
         togglePortfolioTaskBulkSelection,
         togglePortfolioTimelineExpanded,
-        toggleTaskDetailChecklistItem
+        toggleTaskDetailChecklistItem,
+        setHoveredPortfolioCard,
+        setSelectedPortfolioCard
     };
 }
 
@@ -1092,7 +1371,6 @@ export function configurePortfolioMutationActions(options = {}) {
     return activeActions;
 }
 
-export const applySnapshotToBoardRecord = (...args) => activeActions.applySnapshotToBoardRecord(...args);
 export const assignSelectionToExistingSprint = (...args) => activeActions.assignSelectionToExistingSprint(...args);
 export const beginPortfolioTimelineSliderDrag = (...args) => activeActions.beginPortfolioTimelineSliderDrag(...args);
 export const canUsePortfolioTaskMutations = (...args) => activeActions.canUsePortfolioTaskMutations(...args);
@@ -1105,11 +1383,16 @@ export const closeTaskEditor = (...args) => activeActions.closeTaskEditor(...arg
 export const createSprintFromSelection = (...args) => activeActions.createSprintFromSelection(...args);
 export const deletePortfolioTask = (...args) => activeActions.deletePortfolioTask(...args);
 export const deleteRoadmapEntity = (...args) => activeActions.deleteRoadmapEntity(...args);
+export const editPortfolioTask = (...args) => activeActions.editPortfolioTask(...args);
 export const getSelectedPortfolioBulkTaskIds = (...args) => activeActions.getSelectedPortfolioBulkTaskIds(...args);
 export const handleTimelineSliderPointerCommit = (...args) => activeActions.handleTimelineSliderPointerCommit(...args);
 export const movePortfolioTaskToStatus = (...args) => activeActions.movePortfolioTaskToStatus(...args);
 export const movePortfolioTimelineToLatest = (...args) => activeActions.movePortfolioTimelineToLatest(...args);
 export const notifyPortfolioMutationUnavailable = (...args) => activeActions.notifyPortfolioMutationUnavailable(...args);
+export const openPortfolioCreateTaskModal = (...args) => activeActions.openPortfolioCreateTaskModal(...args);
+export const openPortfolioTaskDetails = (...args) => activeActions.openPortfolioTaskDetails(...args);
+export const openPortfolioTaskDetailsForCalendar = (...args) => activeActions.openPortfolioTaskDetailsForCalendar(...args);
+export const openRoadmapEntityModal = (...args) => activeActions.openRoadmapEntityModal(...args);
 export const onPortfolioColumnDragLeave = (...args) => activeActions.onPortfolioColumnDragLeave(...args);
 export const onPortfolioColumnDragOver = (...args) => activeActions.onPortfolioColumnDragOver(...args);
 export const onPortfolioColumnDrop = (...args) => activeActions.onPortfolioColumnDrop(...args);
@@ -1124,6 +1407,9 @@ export const setPortfolioTimelineSelection = (...args) => activeActions.setPortf
 export const showUndo = (...args) => activeActions.showUndo(...args);
 export const syncPortfolioTimelineSelectionToLatest = (...args) => activeActions.syncPortfolioTimelineSelectionToLatest(...args);
 export const togglePortfolioArchiveTask = (...args) => activeActions.togglePortfolioArchiveTask(...args);
+export const togglePortfolioRoadmapRowExpanded = (...args) => activeActions.togglePortfolioRoadmapRowExpanded(...args);
 export const togglePortfolioTaskBulkSelection = (...args) => activeActions.togglePortfolioTaskBulkSelection(...args);
 export const togglePortfolioTimelineExpanded = (...args) => activeActions.togglePortfolioTimelineExpanded(...args);
 export const toggleTaskDetailChecklistItem = (...args) => activeActions.toggleTaskDetailChecklistItem(...args);
+export const setHoveredPortfolioCard = (...args) => activeActions.setHoveredPortfolioCard(...args);
+export const setSelectedPortfolioCard = (...args) => activeActions.setSelectedPortfolioCard(...args);

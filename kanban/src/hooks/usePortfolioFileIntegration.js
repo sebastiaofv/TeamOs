@@ -16,7 +16,7 @@ function setFileDropActive(active) {
 // Owns the browser integration that cannot be expressed as declarative JSX:
 // file-picker buttons, loose-file drops, focus/visibility checks, and the
 // polling watcher. The persistence module remains DOM-free and reports changes
-// through its registered host callbacks.
+// through the store.
 export function usePortfolioFileIntegration() {
     useEffect(() => {
         const newProjectButton = document.getElementById('newProjectBtn');

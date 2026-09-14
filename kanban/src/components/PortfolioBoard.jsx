@@ -1,11 +1,18 @@
 import { createPortal } from 'react-dom';
 import { useAppStore } from '../state/store.js';
 import {
+    deletePortfolioTask,
+    editPortfolioTask,
     onPortfolioColumnDragLeave,
     onPortfolioColumnDragOver,
     onPortfolioColumnDrop,
     onPortfolioTaskDragEnd,
     onPortfolioTaskDragStart,
+    openPortfolioCreateTaskModal,
+    openPortfolioTaskDetails,
+    setHoveredPortfolioCard,
+    setSelectedPortfolioCard,
+    togglePortfolioArchiveTask,
     togglePortfolioTaskBulkSelection
 } from '../actions/portfolioMutations.js';
 import { defaultColumns } from '../domain/constants.js';
@@ -82,6 +89,20 @@ export function PortfolioTaskCard({ item, state }) {
     const readOnlyTitle = item.historical ? 'Historical preview (read-only)' : 'Read-only (no file handle)';
     const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
 
+    function handleCardClick(event) {
+        if (event.target.closest('button, input, label')) return;
+        if (Date.now() < state.suppressPortfolioCardClickUntil) return;
+        setSelectedPortfolioCard(item.boardId, taskId);
+        if (!item.historical) {
+            openPortfolioTaskDetails(item.boardId, taskId);
+        } else if (item.boardData) {
+            openPortfolioTaskDetails(item.boardId, taskId, {
+                boardData: item.boardData,
+                readOnly: true
+            });
+        }
+    }
+
     return (
         <div
             className={`task-card portfolio-task-card surface-card${selected ? ' selected' : ''}`}
@@ -90,6 +111,9 @@ export function PortfolioTaskCard({ item, state }) {
             data-task-id={String(taskId)}
             data-status={normalizeTaskStatus(task.status)}
             data-historical={item.historical ? 'true' : 'false'}
+            onClick={handleCardClick}
+            onMouseEnter={() => setHoveredPortfolioCard(item.boardId, taskId)}
+            onMouseLeave={() => setHoveredPortfolioCard(null, null)}
             onDragStart={canDrag ? (event) => onPortfolioTaskDragStart(event, {
                 boardId: item.boardId,
                 taskId: task.id,
@@ -118,9 +142,9 @@ export function PortfolioTaskCard({ item, state }) {
                     />
                 </div>
                 <div className="task-actions">
-                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? 'Edit' : readOnlyTitle} data-action="edit-task">&#9998;</button>
-                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task">{task.archived ? '↶' : '🗄️'}</button>
-                    <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? 'Delete' : readOnlyTitle} aria-label={canMutate ? 'Delete' : readOnlyTitle} data-action="delete-task">🗑️</button>
+                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? 'Edit' : readOnlyTitle} data-action="edit-task" onClick={() => editPortfolioTask(item.boardId, taskId)}>&#9998;</button>
+                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task" onClick={() => togglePortfolioArchiveTask(item.boardId, taskId)}>{task.archived ? '↶' : '🗄️'}</button>
+                    <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? 'Delete' : readOnlyTitle} aria-label={canMutate ? 'Delete' : readOnlyTitle} data-action="delete-task" onClick={() => deletePortfolioTask(item.boardId, taskId)}>🗑️</button>
                 </div>
             </div>
             {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
@@ -175,7 +199,7 @@ function PortfolioBoardView({ state }) {
                             onDrop={(event) => onPortfolioColumnDrop(event, column.status)}
                         >
                             {canAddTasks && (
-                                <div className="add-task-card" data-action="add-task" data-status={column.status}>+ Add Task</div>
+                                <div className="add-task-card" data-action="add-task" data-status={column.status} onClick={() => openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, column.status)}>+ Add Task</div>
                             )}
                             {items.length === 0
                                 ? <div className="empty-state"><span className="empty-state-text">No tasks</span></div>

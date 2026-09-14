@@ -1,6 +1,7 @@
 // Editing rules for the task editor draft (Phase 2.1b). Pure: no DOM, no app
-// state. The editor components call these; legacy saveTask receives the result
-// of buildTaskDraft. Messages and limits reproduce the legacy editor exactly.
+// state. The editor components call these and pass the result of buildTaskDraft
+// to the store-backed save action. Messages and limits preserve the established
+// editor behavior.
 
 import {
     ATTACHMENT_MAX_COUNT,
@@ -157,7 +158,7 @@ export function buildAttachmentWarnings(attachments, otherAttachmentBytes) {
     return messages;
 }
 
-// Same shape and normalisation as legacy readTaskDraftFromForm, including its
+// Same shape and normalisation as the original form reader, including its
 // round-trip of assignees and checklist items through their text encodings.
 export function buildTaskDraft(form) {
     return {

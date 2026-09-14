@@ -1,5 +1,5 @@
-// Dialog actions, shared by legacy code and React components. Plain module
-// functions -- never exposed on window.
+// Dialog actions shared by React components and browser integrations. Plain
+// module functions -- never exposed on window.
 
 import { flushSync } from 'react-dom';
 import { notifyAppStateChanged, useAppStore } from '../state/store.js';
@@ -12,8 +12,8 @@ export function openDialog(name, props = null) {
 }
 
 // Closes the open dialog, or only `name` when given. Commits synchronously:
-// legacy code often moves focus right after closing a dialog (e.g. into the
-// task editor), and Radix's focus trap must already be unmounted by then.
+// browser integrations often move focus right after closing a dialog (e.g. into
+// the task editor), and Radix's focus trap must already be unmounted by then.
 // Never call this during a React render or lifecycle method.
 export function closeDialog(name) {
     const { activeDialog } = useAppStore.getState();
