@@ -7,7 +7,8 @@ import { BOARD_FILE_EXTENSION } from '../domain/constants.js';
 import { createEmptyProjectData, slugifyColumnName } from '../domain/board.js';
 import { assertRequiredExtension, formatErrorMessage, hasRequiredExtension, isAbortError } from '../domain/util.js';
 import { BoardRepository, writeJsonToFileHandle } from '../persistence/boardRepository.js';
-import { createPortfolioRecord } from '../persistence/projectFiles.js';
+import { checkProjectFilesNow, createPortfolioRecord } from '../persistence/projectFiles.js';
+import { closePortfolioContextsForProject } from './dialogs.js';
 import { Logger } from '../logger.js';
 import { appendPortfolioRecords as appendPortfolioRecordsToStore } from './portfolioControls.js';
 
@@ -37,9 +38,30 @@ export function createPortfolioFileActions({
     alert = defaultAlert,
     prompt = defaultPrompt,
     logger = Logger,
+    checkFiles = checkProjectFilesNow,
+    closeContexts = closePortfolioContextsForProject,
     windowRef = null
 } = {}) {
     const getBrowserWindow = () => windowRef || getWindow();
+
+    function checkPortfolioFiles() {
+        return checkFiles({
+            onReload: closeContexts,
+            chooseConflict: () => {
+                const answer = prompt(
+                    'Project file changed on disk while this app has unsaved edits.\n' +
+                    'Type "local" to keep local edits and save.\n' +
+                    'Type "reload" to reload from disk and discard unsaved edits.',
+                    'local'
+                );
+                if (answer === null) return null;
+                const choice = String(answer).trim().toLowerCase();
+                if (['reload', 'r'].includes(choice)) return 'reload';
+                if (['local', 'l', 'keep'].includes(choice)) return 'local';
+                return 'unresolved';
+            }
+        });
+    }
 
     async function createNewProject() {
         try {
@@ -124,6 +146,7 @@ export function createPortfolioFileActions({
     }
 
     return {
+        checkPortfolioFiles,
         createNewProject,
         importPortfolioProjects,
         openPortfolioFromFiles
@@ -135,3 +158,5 @@ const activeActions = createPortfolioFileActions();
 export const createNewProject = (...args) => activeActions.createNewProject(...args);
 export const importPortfolioProjects = (...args) => activeActions.importPortfolioProjects(...args);
 export const openPortfolioFromFiles = (...args) => activeActions.openPortfolioFromFiles(...args);
+
+export const checkPortfolioFiles = (...args) => activeActions.checkPortfolioFiles(...args);

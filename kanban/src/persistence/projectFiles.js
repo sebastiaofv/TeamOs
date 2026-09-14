@@ -1,31 +1,27 @@
 // Project file persistence: save queueing, save/watch status, and detection of
 // external changes made to a board file outside the app.
 //
-// This layer owns no DOM. Save/watch status and externally-reloaded board
-// snapshots are applied directly to the Zustand store.
+// This layer owns file I/O and save/watch state. The file actions provide
+// conflict choices and close dialogs; the React hook schedules checks.
 
 import { useAppStore, getPortfolioBoardRecord } from '../state/store.js';
 import {
     PROJECT_FILE_CONFLICT_SUPPRESS_MS,
-    PROJECT_FILE_EXTERNAL_BADGE_MS,
-    PROJECT_FILE_WATCH_INTERVAL_MS
+    PROJECT_FILE_EXTERNAL_BADGE_MS
 } from '../domain/constants.js';
 import { nextPortfolioProjectId } from '../domain/board.js';
 import { serializeBoardDataFromObject } from '../domain/serialize.js';
 import { formatErrorMessage, nowIso } from '../domain/util.js';
 import { BoardRepository } from './boardRepository.js';
 import { Logger } from '../logger.js';
-import { closePortfolioContextsForProject } from '../actions/dialogs.js';
 
 // Watcher bookkeeping never renders, so it stays out of the store.
 const fileStateById = new Map();
-let watchTimerId = null;
 let watchRunning = false;
 
 export function createProjectSaveState() {
     return {
         status: 'idle',
-        queued: false,
         lastErrorMessage: '',
         lastSavedAt: '',
         revision: 0,
@@ -39,7 +35,6 @@ export function createProjectSaveState() {
 export function applySnapshotToBoardRecord(boardRecord, parsed, options = {}) {
     if (!boardRecord || !parsed) return false;
     const boardId = boardRecord.id;
-    closePortfolioContextsForProject(boardId);
     const payload = serializeBoardDataFromObject(parsed);
     useAppStore.setState((state) => ({
         portfolioBoards: state.portfolioBoards.map((board) => board.id === boardId
@@ -48,7 +43,7 @@ export function applySnapshotToBoardRecord(boardRecord, parsed, options = {}) {
     if (options.discardLocalChanges) {
         const saveState = getProjectSaveState(boardId, { create: false });
         if (saveState) updateProjectSaveState(boardId, {
-            revision: saveState.savedRevision, status: 'idle', lastErrorMessage: '', queued: false
+            revision: saveState.savedRevision, status: 'idle', lastErrorMessage: ''
         });
     }
     return true;
@@ -76,7 +71,6 @@ export function markProjectDirty(boardId) {
     const saving = Boolean(getProjectFileState(boardId).inFlight);
     return updateProjectSaveState(boardId, {
         revision: state.revision + 1,
-        queued: saving,
         status: saving ? 'saving' : state.status === 'error' ? 'error' : 'dirty',
         ...(['external', 'conflict'].includes(state.watchStatus)
             ? { watchStatus: 'idle', watchMessage: '', watchStatusUntil: 0 } : {})
@@ -157,7 +151,7 @@ async function refreshProjectFileBaseline(boardRecord, options = {}) {
             state.suppressedUntilMs = 0;
         }
         if (options.clearWatchError !== false) {
-            clearProjectWatchStatus(boardId, { render: false });
+            clearProjectWatchStatus(boardId);
         }
         return snapshot;
     } catch (error) {
@@ -182,7 +176,7 @@ export async function primeProjectFileBaselines(records) {
     }
 }
 
-async function checkProjectFileForExternalChanges(boardRecord) {
+async function checkProjectFileForExternalChanges(boardRecord, callbacks) {
     if (!boardRecord || !boardRecord.id || !boardRecord.handle) return false;
     const boardId = boardRecord.id;
     const fileState = getProjectFileState(boardId);
@@ -205,12 +199,12 @@ async function checkProjectFileForExternalChanges(boardRecord) {
         fileState.lastTextHash = snapshot.fileMeta.textHash;
 
         if (!previousHash) {
-            clearProjectWatchStatus(boardId, { render: false });
+            clearProjectWatchStatus(boardId);
             return false;
         }
 
         if (previousHash === snapshot.fileMeta.textHash) {
-            clearProjectWatchStatus(boardId, { render: false });
+            clearProjectWatchStatus(boardId);
             return false;
         }
 
@@ -223,9 +217,10 @@ async function checkProjectFileForExternalChanges(boardRecord) {
                 );
                 return true;
             }
-            return resolveExternalChangeConflict(boardRecord, snapshot, fileState);
+            return await resolveExternalChangeConflict(boardRecord, snapshot, fileState, callbacks);
         }
 
+        callbacks.onReload(boardId);
         applySnapshotToBoardRecord(boardRecord, snapshot.parsed);
         setProjectWatchStatus(
             boardId,
@@ -246,32 +241,19 @@ async function checkProjectFileForExternalChanges(boardRecord) {
     }
 }
 
-export async function checkProjectFilesNow() {
+// The caller owns user interaction. Persistence only consumes a canonical
+// conflict choice (local/reload/null/unresolved) and reports impending reloads.
+export async function checkProjectFilesNow({ chooseConflict = () => null, onReload = () => {} } = {}) {
     if (watchRunning) return false;
     watchRunning = true;
     try {
         const boards = useAppStore.getState().portfolioBoards.filter(board => board && board.handle);
         for (const board of boards) {
-            await checkProjectFileForExternalChanges(board);
+            await checkProjectFileForExternalChanges(board, { chooseConflict, onReload });
         }
         return true;
     } finally {
         watchRunning = false;
-    }
-}
-
-export function startProjectFileWatcher() {
-    stopProjectFileWatcher();
-    watchTimerId = setInterval(() => {
-        if (document.hidden) return;
-        void checkProjectFilesNow();
-    }, PROJECT_FILE_WATCH_INTERVAL_MS);
-}
-
-export function stopProjectFileWatcher() {
-    if (watchTimerId) {
-        clearInterval(watchTimerId);
-        watchTimerId = null;
     }
 }
 
@@ -280,7 +262,6 @@ export async function enqueueProjectSave(boardRecord) {
     const boardId = boardRecord.id;
     const runtime = getProjectFileState(boardId);
     if (runtime.inFlight) {
-        updateProjectSaveState(boardId, { queued: true });
         return runtime.inFlight;
     }
     // Read the current immutable record on each iteration: edits made during a
@@ -311,11 +292,11 @@ export async function enqueueProjectSave(boardRecord) {
                 if (!state) return false;
                 updateProjectSaveState(boardId, {
                     savedRevision: Math.max(state.savedRevision, targetRevision),
-                    lastSavedAt: nowIso(), queued: state.revision > targetRevision
+                    lastSavedAt: nowIso()
                 });
             }
             if (getProjectSaveState(boardId, { create: false })) {
-                updateProjectSaveState(boardId, { status: 'idle', queued: false, lastErrorMessage: '' });
+                updateProjectSaveState(boardId, { status: 'idle', lastErrorMessage: '' });
             }
             return true;
         } finally {
@@ -349,7 +330,7 @@ export function createPortfolioRecord({ handle = null, fileName = '', data }) {
     };
 }
 
-async function resolveExternalChangeConflict(boardRecord, snapshot, fileState) {
+async function resolveExternalChangeConflict(boardRecord, snapshot, fileState, { chooseConflict, onReload }) {
     const boardId = boardRecord.id;
     setProjectWatchStatus(
         boardId,
@@ -357,20 +338,15 @@ async function resolveExternalChangeConflict(boardRecord, snapshot, fileState) {
         'External file updates detected while this project has unsaved local edits.'
     );
 
-    const answer = window.prompt(
-        'Project file changed on disk while this app has unsaved edits.\n' +
-        'Type "local" to keep local edits and save.\n' +
-        'Type "reload" to reload from disk and discard unsaved edits.',
-        'local'
-    );
+    const choice = await chooseConflict(boardId);
 
-    if (answer === null) {
+    if (choice === null) {
         fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
         return false;
     }
 
-    const choice = String(answer).trim().toLowerCase();
-    if (choice === 'reload' || choice === 'r') {
+    if (choice === 'reload') {
+        onReload(boardId);
         applySnapshotToBoardRecord(boardRecord, snapshot.parsed, { discardLocalChanges: true });
         setProjectWatchStatus(
             boardId,
@@ -381,7 +357,7 @@ async function resolveExternalChangeConflict(boardRecord, snapshot, fileState) {
         return true;
     }
 
-    if (choice === 'local' || choice === 'l' || choice === 'keep') {
+    if (choice === 'local') {
         const saved = await enqueueProjectSave(boardRecord);
         if (!saved) {
             fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;

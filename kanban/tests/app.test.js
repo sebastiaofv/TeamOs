@@ -3555,6 +3555,9 @@ test.describe('portfolio-only app', () => {
       }
     ], { selectedBoardId: 'e1' });
 
+    await portfolioCard(page, 'Original title').locator('.task-title').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+
     await mutateExternalBoardFile(page, {
       boardId: 'e1',
       payload: buildBoardPayload({
@@ -3564,6 +3567,7 @@ test.describe('portfolio-only app', () => {
     });
     await triggerExternalFileCheck(page);
 
+    await expect(page.locator('#taskDetailModal')).toBeHidden();
     await expect(portfolioCard(page, 'Changed on disk')).toBeVisible();
     await expect(page.locator('.portfolio-chip.active')).toContainText('External update');
 

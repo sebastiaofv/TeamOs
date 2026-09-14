@@ -3,6 +3,25 @@ import { createEmptyProjectData } from '../../src/domain/board.js';
 import { createPortfolioFileActions } from '../../src/actions/portfolioFiles.js';
 
 describe('portfolio file actions', () => {
+    it.each([
+        ['local', 'local'],
+        [' KEEP ', 'local'],
+        ['l', 'local'],
+        ['reload', 'reload'],
+        [' R ', 'reload'],
+        [null, null],
+        ['later', 'unresolved']
+    ])('turns conflict response %s into the persistence choice %s', async (answer, choice) => {
+        const prompt = vi.fn(() => answer);
+        const actions = createPortfolioFileActions({
+            prompt,
+            checkFiles: ({ chooseConflict }) => chooseConflict('p1')
+        });
+
+        expect(await actions.checkPortfolioFiles()).toBe(choice);
+        expect(prompt).toHaveBeenCalledWith(expect.stringContaining('unsaved edits'), 'local');
+    });
+
     it('creates a project file and sends its record to the portfolio session', async () => {
         const write = vi.fn();
         const close = vi.fn();

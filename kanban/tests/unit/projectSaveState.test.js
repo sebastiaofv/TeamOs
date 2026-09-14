@@ -5,7 +5,6 @@ describe('createProjectSaveState', () => {
   it('returns the exact expected shape and key set', () => {
     expect(createProjectSaveState()).toEqual({
       status: 'idle',
-      queued: false,
       lastErrorMessage: '',
       lastSavedAt: '',
       revision: 0,
@@ -25,7 +24,7 @@ describe('createProjectSaveState', () => {
   it('keeps asynchronous work outside render state', () => {
     const state = createProjectSaveState();
     expect(state).not.toHaveProperty('inFlight');
-    expect(state.queued).toBe(false);
+    expect(state).not.toHaveProperty('queued');
   });
 
   it('defaults revision counters to 0', () => {

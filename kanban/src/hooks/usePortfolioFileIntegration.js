@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isFileDrag } from '../domain/util.js';
-import { checkProjectFilesNow, startProjectFileWatcher, stopProjectFileWatcher } from '../persistence/projectFiles.js';
-import { openPortfolioFromFiles } from '../actions/portfolioFiles.js';
+import { PROJECT_FILE_WATCH_INTERVAL_MS } from '../domain/constants.js';
+import { checkPortfolioFiles, openPortfolioFromFiles } from '../actions/portfolioFiles.js';
 
 // Window-level file integration: loose-file drops, focus/visibility checks and
 // the polling watcher for external file changes. Returns whether a file is
@@ -35,9 +35,9 @@ export function usePortfolioFileIntegration() {
             const files = event.dataTransfer?.files;
             if (files?.length) void openPortfolioFromFiles(files);
         };
-        const handleFocus = () => { void checkProjectFilesNow(); };
+        const handleFocus = () => { void checkPortfolioFiles(); };
         const handleVisibilityChange = () => {
-            if (!document.hidden) void checkProjectFilesNow();
+            if (!document.hidden) void checkPortfolioFiles();
         };
 
         window.addEventListener('dragenter', handleDragEnter);
@@ -47,8 +47,10 @@ export function usePortfolioFileIntegration() {
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        startProjectFileWatcher();
-        void checkProjectFilesNow();
+        const watchTimerId = setInterval(() => {
+            if (!document.hidden) void checkPortfolioFiles();
+        }, PROJECT_FILE_WATCH_INTERVAL_MS);
+        void checkPortfolioFiles();
 
         return () => {
             window.removeEventListener('dragenter', handleDragEnter);
@@ -57,7 +59,7 @@ export function usePortfolioFileIntegration() {
             window.removeEventListener('drop', handleDrop);
             window.removeEventListener('focus', handleFocus);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
-            stopProjectFileWatcher();
+            clearInterval(watchTimerId);
         };
     }, []);
 
