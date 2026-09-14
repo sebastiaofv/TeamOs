@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { appState } from '../../src/state/store.js';
-import { subscribeToVersion as subscribe } from '../../src/state/store.js';
+import { subscribeToVersion as subscribe, useAppStore } from '../../src/state/store.js';
 import { openDialog, closeDialog } from '../../src/actions/dialogs.js';
 
 describe('dialog actions', () => {
@@ -8,8 +7,7 @@ describe('dialog actions', () => {
 
   afterEach(() => {
     unsubscribe();
-    appState.activeDialog = null;
-    appState.dialogProps = null;
+    useAppStore.setState({ activeDialog: null, dialogProps: null });
   });
 
   function listen() {
@@ -19,8 +17,8 @@ describe('dialog actions', () => {
   }
 
   it('starts with no dialog open and no props', () => {
-    expect(appState.activeDialog).toBe(null);
-    expect(appState.dialogProps).toBe(null);
+    expect(useAppStore.getState().activeDialog).toBe(null);
+    expect(useAppStore.getState().dialogProps).toBe(null);
   });
 
   it('openDialog sets activeDialog and notifies', () => {
@@ -28,22 +26,22 @@ describe('dialog actions', () => {
 
     openDialog('help');
 
-    expect(appState.activeDialog).toBe('help');
+    expect(useAppStore.getState().activeDialog).toBe('help');
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
   it('openDialog stores the view model as dialogProps', () => {
     openDialog('taskDetail', { readOnly: true });
 
-    expect(appState.dialogProps).toEqual({ readOnly: true });
+    expect(useAppStore.getState().dialogProps).toEqual({ readOnly: true });
   });
 
   it('openDialog without props clears stale dialogProps', () => {
-    appState.dialogProps = { stale: true };
+    useAppStore.setState({ dialogProps: { stale: true } });
 
     openDialog('help');
 
-    expect(appState.dialogProps).toBe(null);
+    expect(useAppStore.getState().dialogProps).toBe(null);
   });
 
   it('re-opening the open dialog replaces its props and notifies', () => {
@@ -52,8 +50,8 @@ describe('dialog actions', () => {
 
     openDialog('taskDetail', { version: 2 });
 
-    expect(appState.activeDialog).toBe('taskDetail');
-    expect(appState.dialogProps).toEqual({ version: 2 });
+    expect(useAppStore.getState().activeDialog).toBe('taskDetail');
+    expect(useAppStore.getState().dialogProps).toEqual({ version: 2 });
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
@@ -63,8 +61,8 @@ describe('dialog actions', () => {
 
     closeDialog();
 
-    expect(appState.activeDialog).toBe(null);
-    expect(appState.dialogProps).toBe(null);
+    expect(useAppStore.getState().activeDialog).toBe(null);
+    expect(useAppStore.getState().dialogProps).toBe(null);
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
@@ -73,7 +71,7 @@ describe('dialog actions', () => {
 
     closeDialog();
 
-    expect(appState.activeDialog).toBe(null);
+    expect(useAppStore.getState().activeDialog).toBe(null);
     expect(listener).not.toHaveBeenCalled();
   });
 
@@ -83,7 +81,7 @@ describe('dialog actions', () => {
 
     closeDialog('taskDetail');
 
-    expect(appState.activeDialog).toBe('help');
+    expect(useAppStore.getState().activeDialog).toBe('help');
     expect(listener).not.toHaveBeenCalled();
   });
 
@@ -93,21 +91,21 @@ describe('dialog actions', () => {
 
     closeDialog('taskDetail');
 
-    expect(appState.activeDialog).toBe(null);
-    expect(appState.dialogProps).toBe(null);
+    expect(useAppStore.getState().activeDialog).toBe(null);
+    expect(useAppStore.getState().dialogProps).toBe(null);
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
   it('opens and closes the task editor by name', () => {
     openDialog('taskEditor', { openId: 1 });
-    expect(appState.activeDialog).toBe('taskEditor');
-    expect(appState.dialogProps).toEqual({ openId: 1 });
+    expect(useAppStore.getState().activeDialog).toBe('taskEditor');
+    expect(useAppStore.getState().dialogProps).toEqual({ openId: 1 });
 
     closeDialog('taskDetail');
-    expect(appState.activeDialog).toBe('taskEditor');
+    expect(useAppStore.getState().activeDialog).toBe('taskEditor');
 
     closeDialog('taskEditor');
-    expect(appState.activeDialog).toBe(null);
-    expect(appState.dialogProps).toBe(null);
+    expect(useAppStore.getState().activeDialog).toBe(null);
+    expect(useAppStore.getState().dialogProps).toBe(null);
   });
 });

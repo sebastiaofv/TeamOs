@@ -6,7 +6,7 @@ import {
     createNewProject,
     importPortfolioProjects,
     openPortfolioFromFiles
-} from '../actions/legacyHost.js';
+} from '../actions/portfolioFiles.js';
 import { useAppStore } from '../state/store.js';
 
 function setFileDropActive(active) {

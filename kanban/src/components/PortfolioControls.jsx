@@ -12,7 +12,7 @@ import {
     setPortfolioFilter,
     setPortfolioSort,
     setPortfolioViewMode
-} from '../actions/legacyHost.js';
+} from '../actions/portfolioControls.js';
 import { getRoadmapExtension } from '../domain/roadmap.js';
 import { getBoardTimelineData } from '../domain/timeline.js';
 import { EFFORT_BUCKETS } from '../domain/constants.js';
