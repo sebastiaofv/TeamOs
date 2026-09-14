@@ -77,3 +77,7 @@ npm run dev
 Visual baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.js`.
 
 Optional Playwright modes: `npm run test:headed`, `npm run test:ui`, `npm run test:debug`.
+
+### Pre-commit hook
+
+`npm install` sets up a Husky pre-commit hook (`.husky/pre-commit`, registered at the git root via the `prepare` script). Each commit runs ESLint on staged `.js`/`.jsx`/`.mjs` files (lint-staged, `.lintstagedrc`) and then `npm run test:unit`. Playwright tests are not run by the hook; run `npm test` before pushing UI changes.
