@@ -3,6 +3,7 @@ import { useAppStore } from '../../state/store.js';
 import { closeTaskDetail, toggleTaskDetailChecklistItem } from '../../actions/portfolioMutations.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
+import { escapeAnswersAppMessage } from './escapeAnswersAppMessage.js';
 
 const FIELD_ROWS = [
     { label: 'Title', id: 'detailTitle', key: 'title' },
@@ -35,6 +36,7 @@ export function TaskDetailDialog() {
                         className="modal-content"
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
+                        onEscapeKeyDown={escapeAnswersAppMessage}
                         {...returnFocus}
                     >
                         <div className="modal-header">

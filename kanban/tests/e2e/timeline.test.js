@@ -10,7 +10,8 @@ const {
   portfolioCard,
   openTaskEditor,
   renameTaskViaEditor,
-  setTimelineSlider
+  setTimelineSlider,
+  answerAppMessage
 } = require('../support/portfolio');
 
 test.describe('timeline', () => {
@@ -96,10 +97,8 @@ test.describe('timeline', () => {
     await page.locator('#roadmapEntityTitle').fill('Beta Renamed');
     await page.getByRole('button', { name: 'Save Item' }).click();
 
-    await page.evaluate(() => {
-      window.confirm = () => true;
-    });
     await page.getByRole('button', { name: 'Delete Alpha' }).click();
+    await answerAppMessage(page, { button: 'Delete' });
 
     await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.map((event) => event.kind))
       .toEqual(['board.baseline', 'roadmap.updated', 'roadmap.updated', 'roadmap.updated']);

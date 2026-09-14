@@ -19,6 +19,7 @@ import { DEFAULT_PORTFOLIO_FILTERS } from '../domain/portfolioFilters.js';
 import { portfolioSortSelectValueFromKey } from '../domain/util.js';
 import { normalizeAssignee, taskAssignees } from '../domain/task.js';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
+import { useFocusTarget } from '../hooks/useFocusTarget.js';
 
 function getFilters(state) {
     return { ...DEFAULT_PORTFOLIO_FILTERS, ...(state.portfolioFilters || {}) };
@@ -113,6 +114,8 @@ function ToolbarContent({ state }) {
     const hasBoards = state.portfolioBoards.length > 0;
     const hasSelectedBoard = Boolean(state.selectedPortfolioBoardId);
     const viewMode = normalizePortfolioViewMode(state.selectedPortfolioViewMode);
+    const searchRef = useFocusTarget('portfolioSearch');
+    const sortRef = useFocusTarget('portfolioSort');
 
     return (
         <>
@@ -121,6 +124,7 @@ function ToolbarContent({ state }) {
                     <input
                         type="text"
                         id="portfolioSearchInput"
+                        ref={searchRef}
                         placeholder="Search tasks..."
                         value={filters.search}
                         onChange={(event) => setPortfolioFilter('search', event.target.value)}
@@ -167,7 +171,7 @@ function ToolbarContent({ state }) {
                 </div>
                 <div className="filter-group">
                     <label>Sort:</label>
-                    <select id="portfolioSortSelect" value={sortValue} onChange={(event) => setPortfolioSort(event.target.value)}>
+                    <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => setPortfolioSort(event.target.value)}>
                         <option value="name">Name</option>
                         <option value="priority">Priority</option>
                         <option value="effort">Effort</option>

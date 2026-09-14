@@ -6,7 +6,8 @@ const {
   gotoApp,
   seedPortfolioBoards,
   waitForBoardWrites,
-  portfolioCard
+  portfolioCard,
+  answerAppMessage
 } = require('../support/portfolio');
 
 test.describe('board', () => {
@@ -70,8 +71,8 @@ test.describe('board', () => {
     const card = portfolioCard(page, 'Delete me');
     await card.hover();
 
-    page.once('dialog', (dialog) => dialog.accept());
     await card.getByRole('button', { name: 'Delete' }).click();
+    await answerAppMessage(page, { button: 'Delete', expectText: 'Delete "Delete me" permanently?' });
 
     await expect(portfolioCard(page, 'Delete me')).toHaveCount(0);
 
@@ -92,13 +93,10 @@ test.describe('board', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Keep me', status: 'backlog' }] }
     ], { selectedBoardId: 'p1' });
 
-    await page.evaluate(() => {
-      window.confirm = () => false;
-    });
-
     const card = portfolioCard(page, 'Keep me');
     await card.hover();
     await card.getByRole('button', { name: 'Delete' }).click();
+    await answerAppMessage(page, { button: 'Cancel' });
 
     await expect(portfolioCard(page, 'Keep me')).toBeVisible();
 
@@ -119,12 +117,8 @@ test.describe('board', () => {
     const card = portfolioCard(page, 'Archive me');
     await card.hover();
 
-    let dialogMessage = '';
-    page.once('dialog', async (dialog) => {
-      dialogMessage = dialog.message();
-      await dialog.accept();
-    });
     await card.locator('button[title="Archive"]').click();
+    await answerAppMessage(page, { button: 'Archive', expectText: 'Archive "Archive me"?' });
 
     await expect(portfolioCard(page, 'Archive me')).toHaveCount(0);
 
@@ -134,7 +128,6 @@ test.describe('board', () => {
       writes: window.__portfolioTestWrites || []
     }));
 
-    expect(dialogMessage).toContain('Archive "Archive me"?');
     expect(result.archived).toBe(true);
     expect(result.writes.length).toBeGreaterThan(0);
   });
@@ -144,13 +137,10 @@ test.describe('board', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Keep archive', status: 'backlog', archived: false }] }
     ], { selectedBoardId: 'p1' });
 
-    await page.evaluate(() => {
-      window.confirm = () => false;
-    });
-
     const card = portfolioCard(page, 'Keep archive');
     await card.hover();
     await card.locator('button[title="Archive"]').click();
+    await answerAppMessage(page, { button: 'Cancel' });
 
     await expect(portfolioCard(page, 'Keep archive')).toBeVisible();
 
@@ -170,8 +160,8 @@ test.describe('board', () => {
 
     const card = portfolioCard(page, 'Undo me');
     await card.hover();
-    page.once('dialog', (dialog) => dialog.accept());
     await card.locator('button[title="Archive"]').click();
+    await answerAppMessage(page, { button: 'Archive' });
 
     await expect(portfolioCard(page, 'Undo me')).toHaveCount(0);
     await expect(page.locator('#undoToast')).toHaveClass(/active/);
@@ -197,8 +187,8 @@ test.describe('board', () => {
 
     const card = portfolioCard(page, 'Toast task');
     await card.hover();
-    page.once('dialog', (dialog) => dialog.accept());
     await card.locator('button[title="Archive"]').click();
+    await answerAppMessage(page, { button: 'Archive' });
     await expect(page.locator('#undoToast')).toBeVisible();
     await expect(page.locator('#undoToastText')).toHaveText('Task archived');
 
@@ -215,8 +205,8 @@ test.describe('board', () => {
 
     const card = portfolioCard(page, 'Undo under dialog');
     await card.hover();
-    page.once('dialog', (dialog) => dialog.accept());
     await card.locator('button[title="Archive"]').click();
+    await answerAppMessage(page, { button: 'Archive' });
     await expect(page.locator('#undoToast')).toBeVisible();
 
     await page.locator('#openShortcutsBtn').click();

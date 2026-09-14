@@ -5,6 +5,7 @@ import { closeTaskEditor, saveTask } from '../../actions/portfolioMutations.js';
 import { buildTaskDraft } from '../../domain/taskDraft.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
+import { escapeAnswersAppMessage } from './escapeAnswersAppMessage.js';
 import { AssigneeEditor } from './taskEditor/AssigneeEditor.jsx';
 import { TagEditor } from './taskEditor/TagEditor.jsx';
 import { ChecklistEditor } from './taskEditor/ChecklistEditor.jsx';
@@ -38,6 +39,7 @@ export function TaskEditorDialog() {
                         className="modal-content"
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
+                        onEscapeKeyDown={escapeAnswersAppMessage}
                         onKeyDown={onKeyDown}
                         {...returnFocus}
                     >
@@ -54,12 +56,15 @@ export function TaskEditorDialog() {
 function TaskEditorForm({ vm, nameRef, submitRef }) {
     const [form, setForm] = useState(() => ({ ...vm.initial }));
     const blockerReasonRef = useRef(null);
+    const dueDateRef = useRef(null);
+    // Fields saveTask can send focus back to after a failed validation.
+    const fieldRefs = { title: nameRef, blockerReason: blockerReasonRef, dueDate: dueDateRef };
 
     const update = (field, fieldValue) => setForm((current) => ({ ...current, [field]: fieldValue }));
     const bind = (field) => ({ value: form[field], onChange: (event) => update(field, event.target.value) });
     const submit = async () => {
         const result = await saveTask(buildTaskDraft(form));
-        if (result?.focusField) document.getElementById(result.focusField)?.focus();
+        fieldRefs[result?.focusField]?.current?.focus();
     };
 
     useLayoutEffect(() => {
@@ -130,7 +135,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }) {
                     </div>
                     <div className="form-group">
                         <label>Due Date</label>
-                        <input type="date" id="taskDueDate" {...bind('dueDate')} />
+                        <input type="date" id="taskDueDate" ref={dueDateRef} {...bind('dueDate')} />
                     </div>
                     <div className="form-row">
                         <div className="form-group">

@@ -259,7 +259,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const wasArchived = Boolean(source.task.archived);
         if (!wasArchived) {
             const title = String(source.task.title || '').trim() || 'this task';
-            if (!confirm(`Archive "${title}"?`)) return;
+            if (!(await confirm(`Archive "${title}"?`, { title: 'Archive task', confirmLabel: 'Archive' }))) return;
         }
 
         const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
@@ -286,7 +286,12 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
 
         const title = String(source.task.title || '').trim() || 'this task';
-        if (!confirm(`Delete "${title}" permanently? This cannot be undone.`)) return;
+        const confirmed = await confirm(`Delete "${title}" permanently? This cannot be undone.`, {
+            title: 'Delete task',
+            confirmLabel: 'Delete',
+            danger: true
+        });
+        if (!confirmed) return;
 
         const state = getState();
         if (
@@ -328,21 +333,21 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             return {
                 ok: false,
                 message: `Task title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer.`,
-                focusFieldId: 'taskName'
+                focusField: 'title'
             };
         }
         if (draft.blocked && !draft.blockerReason) {
             return {
                 ok: false,
                 message: 'Blocked tasks require a blocker reason.',
-                focusFieldId: 'taskBlockerReason'
+                focusField: 'blockerReason'
             };
         }
         if (draft.rawDueDate && !draft.dueDate) {
             return {
                 ok: false,
                 message: 'Due date must be a valid date.',
-                focusFieldId: 'taskDueDate'
+                focusField: 'dueDate'
             };
         }
         if (attachments.length > ATTACHMENT_MAX_COUNT) {
@@ -364,8 +369,8 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const validation = validateTaskDraft(draft);
         if (!validation.ok) {
             if (validation.silent) return;
-            alert(validation.message);
-            return { focusField: validation.focusFieldId };
+            await alert(validation.message);
+            return { focusField: validation.focusField };
         }
         const commonFields = buildTaskFieldsFromDraft(draft);
         const state = getState();

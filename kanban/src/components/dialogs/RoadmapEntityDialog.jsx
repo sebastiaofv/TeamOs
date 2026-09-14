@@ -4,6 +4,7 @@ import { useAppStore } from '../../state/store.js';
 import { closeRoadmapEntity, saveRoadmapEntity } from '../../actions/portfolioMutations.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
+import { escapeAnswersAppMessage } from './escapeAnswersAppMessage.js';
 
 export function RoadmapEntityDialog() {
     const open = useAppStore((s) => s.activeDialog === 'roadmapEntity');
@@ -22,6 +23,7 @@ export function RoadmapEntityDialog() {
                         className="modal-content"
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
+                        onEscapeKeyDown={escapeAnswersAppMessage}
                         {...returnFocus}
                     >
                         {vm && (
@@ -43,6 +45,10 @@ export function RoadmapEntityDialog() {
 // always starts from the view model's initial values.
 function RoadmapEntityForm({ vm, titleRef, sprintRef }) {
     const [draft, setDraft] = useState(() => ({ ...vm.initial, existingSprintId: '' }));
+    const dueDateRef = useRef(null);
+    const startDateRef = useRef(null);
+    // Fields saveRoadmapEntity can send focus back to after a failed validation.
+    const fieldRefs = { existingSprintId: sprintRef, title: titleRef, dueDate: dueDateRef, startDate: startDateRef };
     const bind = (field) => ({
         value: draft[field],
         onChange: (event) => setDraft((current) => ({ ...current, [field]: event.target.value }))
@@ -79,13 +85,13 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }) {
                     <div className={`roadmap-entity-date-row single${hideSingleDate ? ' hidden' : ''}`} id="roadmapEntitySingleDateRow">
                         <div className="form-group">
                             <label className="required" id="roadmapEntityDateLabel">{vm.dateLabel}</label>
-                            <input type="date" id="roadmapEntityDate" {...bind('dueDate')} />
+                            <input type="date" id="roadmapEntityDate" ref={dueDateRef} {...bind('dueDate')} />
                         </div>
                     </div>
                     <div className={`roadmap-entity-date-row${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
                         <div className="form-group">
                             <label className="required">Start Date</label>
-                            <input type="date" id="roadmapEntityStartDate" {...bind('startDate')} />
+                            <input type="date" id="roadmapEntityStartDate" ref={startDateRef} {...bind('startDate')} />
                         </div>
                         <div className="form-group">
                             <label className="required">End Date</label>
@@ -101,7 +107,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }) {
                     id="roadmapEntityModalSaveBtn"
                     onClick={async () => {
                         const result = await saveRoadmapEntity({ kind: vm.kind, itemId: vm.itemId, ...draft });
-                        if (result?.focusField) document.getElementById(result.focusField)?.focus();
+                        fieldRefs[result?.focusField]?.current?.focus();
                     }}
                 >
                     {vm.saveLabel}

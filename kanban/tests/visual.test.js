@@ -1,7 +1,7 @@
 'use strict';
 
 const { test, expect } = require('@playwright/test');
-const { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload } = require('./support/portfolio');
+const { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage } = require('./support/portfolio');
 
 // Pixel baselines for pieces being ported to React. They are captured against
 // the legacy implementation first; a port must match them unchanged. Baselines
@@ -174,8 +174,8 @@ test.describe('2.1a modals and toast', () => {
       await page.clock.pauseAt(new Date('2026-02-26T12:01:00Z'));
       const card = portfolioCard(page, 'Archive me');
       await card.hover();
-      page.once('dialog', (dialog) => dialog.accept());
       await card.locator('button[title="Archive"]').click();
+      await answerAppMessage(page, { button: 'Archive' });
       await expect(page.locator('#undoToast')).toBeVisible();
       await page.mouse.move(1, 1);
       await expect(page).toHaveScreenshot(`undo-toast-${theme}.png`, { fullPage: true });

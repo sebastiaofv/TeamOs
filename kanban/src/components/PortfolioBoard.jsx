@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '../state/store.js';
 import {
@@ -72,6 +73,12 @@ export function PortfolioTaskCard({ item, state }) {
     const statusAge = formatTaskStatusAge(task);
     const readOnlyTitle = item.historical ? 'Historical preview (read-only)' : 'Read-only (no file handle)';
     const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
+    const cardRef = useRef(null);
+
+    // Keyboard selection (J/K) can land on a card outside the scrolled area.
+    useEffect(() => {
+        if (selected) cardRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    }, [selected]);
 
     function handleCardClick(event) {
         if (event.target.closest('button, input, label')) return;
@@ -89,6 +96,7 @@ export function PortfolioTaskCard({ item, state }) {
 
     return (
         <div
+            ref={cardRef}
             className={`task-card portfolio-task-card surface-card${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}`}
             draggable={canDrag}
             data-board-id={item.boardId}

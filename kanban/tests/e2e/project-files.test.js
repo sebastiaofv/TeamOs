@@ -17,7 +17,9 @@ const {
   mockImportProjectsPicker,
   mutateExternalBoardFile,
   triggerExternalFileCheck,
-  installControlledPortfolioWriter
+  installControlledPortfolioWriter,
+  appMessage,
+  answerAppMessage
 } = require('../support/portfolio');
 
 test.describe('project files', () => {
@@ -26,9 +28,10 @@ test.describe('project files', () => {
   });
 
   test('new project flow creates and selects a project', async ({ page }) => {
-    await mockNewProjectFlow(page, { promptValue: 'Project Alpha', fileName: 'project-alpha.json' });
+    await mockNewProjectFlow(page, { fileName: 'project-alpha.json' });
 
     await page.locator('#newProjectBtn').click();
+    await answerAppMessage(page, { expectText: 'Project name:', input: 'Project Alpha' });
 
     await expect(page.locator('.portfolio-chip.active')).toContainText('Project Alpha');
     await expect(page.locator('#portfolio-backlog-column .add-task-card')).toBeVisible();
@@ -46,9 +49,10 @@ test.describe('project files', () => {
   });
 
   test('new project flow aborts cleanly if name prompt is canceled after file picker', async ({ page }) => {
-    await mockNewProjectFlow(page, { promptValue: null, fileName: 'canceled.json' });
+    await mockNewProjectFlow(page, { fileName: 'canceled.json' });
 
     await page.locator('#newProjectBtn').click();
+    await answerAppMessage(page, { button: 'Cancel' });
 
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
 
@@ -117,11 +121,6 @@ test.describe('project files', () => {
   });
 
   test('import projects partially succeeds and reports invalid files', async ({ page }) => {
-    await page.evaluate(() => {
-      window.__alerts = [];
-      window.alert = (msg) => { window.__alerts.push(String(msg)); };
-    });
-
     await mockImportProjectsPicker(page, [
       {
         fileName: 'valid.board.json',
@@ -151,18 +150,14 @@ test.describe('project files', () => {
 
     await page.locator('#importProjectsBtn').click();
 
+    await expect(appMessage(page).locator('#appMessageText')).toContainText('invalid.board.json');
+    await answerAppMessage(page, { expectText: 'Some projects were not imported' });
+
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Valid Project');
     await expect(portfolioCard(page, 'Valid task')).toBeVisible();
 
     await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
     await expect(portfolioProjectChipButtons(page)).toContainText('Valid Project');
-    const result = await page.evaluate(() => ({
-      alerts: window.__alerts || []
-    }));
-
-    expect(result.alerts.length).toBe(1);
-    expect(result.alerts[0]).toContain('Some projects were not imported');
-    expect(result.alerts[0]).toContain('invalid.board.json');
   });
 
   test('drag and drop import loads project files and clears the overlay state', async ({ page }) => {
@@ -298,10 +293,6 @@ test.describe('project files', () => {
       }
     ], { selectedBoardId: 'r1' });
 
-    await page.evaluate(() => {
-      window.__alerts = [];
-      window.alert = (msg) => window.__alerts.push(String(msg));
-    });
     await installControlledPortfolioWriter(page, { boardId: 'r1', holdWrites: false, failWrites: 1 });
 
     await renameTaskViaEditor(page, 'Retry task', 'Retry task edited');
@@ -310,12 +301,9 @@ test.describe('project files', () => {
     await expect(activeChip).toContainText('Save failed');
     await expect(activeChip.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
 
-    const beforeRetry = await page.evaluate(() => ({
-      alerts: window.__alerts || [],
-      writes: window.__portfolioTestWrites || []
-    }));
-    expect(beforeRetry.alerts).toEqual([]);
-    expect(beforeRetry.writes).toHaveLength(0);
+    await expect(appMessage(page)).toHaveCount(0);
+    const writesBeforeRetry = await page.evaluate(() => window.__portfolioTestWrites || []);
+    expect(writesBeforeRetry).toHaveLength(0);
 
     await activeChip.getByRole('button', { name: 'Retry', exact: true }).click();
 
@@ -327,14 +315,13 @@ test.describe('project files', () => {
       const writes = window.__portfolioTestWrites || [];
       return {
         writesCount: writes.length,
-        lastPayloadHasEdit: writes[writes.length - 1]?.text.includes('Retry task edited') || false,
-        alerts: window.__alerts || []
+        lastPayloadHasEdit: writes[writes.length - 1]?.text.includes('Retry task edited') || false
       };
     });
 
     expect(afterRetry.writesCount).toBe(1);
     expect(afterRetry.lastPayloadHasEdit).toBe(true);
-    expect(afterRetry.alerts).toEqual([]);
+    await expect(appMessage(page)).toHaveCount(0);
   });
 
   test('external disk change reloads board when there are no unsaved local edits', async ({ page }) => {
@@ -381,14 +368,6 @@ test.describe('project files', () => {
     const activeChip = page.locator('.portfolio-chip.active');
     await expect(activeChip).toContainText('Save failed');
 
-    await page.evaluate(() => {
-      window.__conflictPrompts = [];
-      window.prompt = (message, initialValue) => {
-        window.__conflictPrompts.push({ message: String(message), initialValue: String(initialValue || '') });
-        return 'local';
-      };
-    });
-
     await mutateExternalBoardFile(page, {
       boardId: 'c1',
       payload: buildBoardPayload({
@@ -397,6 +376,7 @@ test.describe('project files', () => {
       })
     });
     await triggerExternalFileCheck(page);
+    await answerAppMessage(page, { button: 'Keep local edits', expectText: 'unsaved edits' });
 
     await expect.poll(async () => (await page.evaluate(() => (window.__portfolioTestWrites || []).length))).toBe(1);
     await expect(page.locator('#portfolio-backlog-column .portfolio-task-card').filter({ hasText: 'Local unsaved edit' })).toBeVisible();
@@ -404,8 +384,6 @@ test.describe('project files', () => {
     // (Checking the chip's whole text would match the board title "Conflict Local".)
     await expect(activeChip.locator('.chip-save-state')).toHaveCount(0);
 
-    const promptCount = await page.evaluate(() => (window.__conflictPrompts || []).length);
-    expect(promptCount).toBeGreaterThan(0);
     const saved = await readSavedBoard(page, 'c1');
     expect(saved.board.tasks.find((task) => task.id === 1)).toMatchObject({ title: 'Local unsaved edit', status: 'backlog' });
   });
@@ -425,10 +403,6 @@ test.describe('project files', () => {
     const activeChip = page.locator('.portfolio-chip.active');
     await expect(activeChip).toContainText('Save failed');
 
-    await page.evaluate(() => {
-      window.prompt = () => 'reload';
-    });
-
     await mutateExternalBoardFile(page, {
       boardId: 'c2',
       payload: buildBoardPayload({
@@ -437,6 +411,7 @@ test.describe('project files', () => {
       })
     });
     await triggerExternalFileCheck(page);
+    await answerAppMessage(page, { button: 'Reload from disk', expectText: '"Conflict Reload" changed on disk' });
 
     await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Disk wins title' })).toBeVisible();
     await expect(portfolioCard(page, 'Local edited title')).toHaveCount(0);

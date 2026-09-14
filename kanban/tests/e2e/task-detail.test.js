@@ -9,7 +9,8 @@ const {
   waitForBoardWrites,
   portfolioCard,
   focusIsInside,
-  closeDialogBy
+  closeDialogBy,
+  answerAppMessage
 } = require('../support/portfolio');
 
 test.describe('task detail', () => {
@@ -131,8 +132,8 @@ test.describe('task detail', () => {
 
     const card = portfolioCard(page, 'Forget me');
     await card.hover();
-    page.once('dialog', (dialog) => dialog.accept());
     await card.locator('button[title="Archive"]').click();
+    await answerAppMessage(page, { button: 'Archive' });
     await waitForBoardWrites(page);
 
     await expect(page.locator('#undoToast')).toBeVisible();
@@ -186,8 +187,8 @@ test.describe('task detail', () => {
     await portfolioCard(page, 'Undo in detail').click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
 
-    page.once('dialog', (dialog) => dialog.accept());
     await page.keyboard.press('x');
+    await answerAppMessage(page, { button: 'Archive' });
     await expect(page.locator('#undoToast')).toBeVisible();
     await waitForBoardWrites(page, 1);
 

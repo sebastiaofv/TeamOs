@@ -5,6 +5,7 @@ import { closeDialog } from '../../actions/dialogs.js';
 import { SHORTCUTS } from '../../actions/portfolioShortcuts.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
+import { escapeAnswersAppMessage } from './escapeAnswersAppMessage.js';
 
 const DISPLAY_GROUPS = [
     { title: 'Global', sections: ['Global'] },
@@ -70,6 +71,7 @@ export function ShortcutsDialog() {
                         className="modal-content"
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
+                        onEscapeKeyDown={escapeAnswersAppMessage}
                         {...returnFocus}
                     >
                         <div className="modal-header">

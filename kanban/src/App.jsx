@@ -4,6 +4,7 @@ import { ShortcutsDialog } from './components/dialogs/ShortcutsDialog.jsx';
 import { RoadmapEntityDialog } from './components/dialogs/RoadmapEntityDialog.jsx';
 import { TaskDetailDialog } from './components/dialogs/TaskDetailDialog.jsx';
 import { TaskEditorDialog } from './components/dialogs/TaskEditorDialog.jsx';
+import { AppMessageDialog } from './components/dialogs/AppMessageDialog.jsx';
 import { UndoToast } from './components/UndoToast.jsx';
 import { PortfolioBulkActions, PortfolioChips, PortfolioToolbar } from './components/PortfolioControls.jsx';
 import { PortfolioBoard } from './components/PortfolioBoard.jsx';
@@ -14,6 +15,7 @@ import { usePortfolioRuntime } from './hooks/usePortfolioRuntime.js';
 import { useTheme } from './hooks/useTheme.js';
 import { usePortfolioFileIntegration } from './hooks/usePortfolioFileIntegration.js';
 import { closeDialog, openDialog } from './actions/dialogs.js';
+import { cancelAppMessages } from './actions/appMessages.js';
 import { createNewProject, importPortfolioProjects } from './actions/portfolioFiles.js';
 import { closeRoadmapEntity, closeTaskDetail, closeTaskEditor } from './actions/portfolioMutations.js';
 import { useAppStore } from './state/store.js';
@@ -21,6 +23,7 @@ import { useAppStore } from './state/store.js';
 // A dialog that fails to render is closed so keyboard shortcuts are not left
 // suppressed by a dialog nobody can see.
 function closeAllDialogs() {
+    cancelAppMessages();
     closeTaskEditor();
     closeTaskDetail();
     closeRoadmapEntity();
@@ -100,6 +103,7 @@ export function App() {
                 <TaskDetailDialog />
                 <RoadmapEntityDialog />
                 <TaskEditorDialog />
+                <AppMessageDialog />
                 <UndoToast />
             </ErrorBoundary>
         </>
