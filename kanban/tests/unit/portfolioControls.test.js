@@ -55,7 +55,6 @@ function createActions(overrides = {}) {
         selectedPortfolioCardRef: null,
         hoveredPortfolioCardRef: null,
         projectSaveStateById: new Map(),
-        projectFileStateById: new Map(),
         portfolioFilters: {
             search: '',
             archive: 'active',
@@ -73,6 +72,7 @@ function createActions(overrides = {}) {
     const primeProjectFiles = vi.fn();
     const clearTimeline = vi.fn();
     const closeContexts = vi.fn();
+    const forgetFileState = vi.fn();
     const actions = createPortfolioControlActions({
         store,
         notify,
@@ -80,6 +80,7 @@ function createActions(overrides = {}) {
         primeProjectFiles,
         clearPortfolioTimelineSelection: clearTimeline,
         closePortfolioContextsForProject: closeContexts,
+        forgetFileState,
         ...overrides
     });
     return {
@@ -89,7 +90,8 @@ function createActions(overrides = {}) {
         updateUrlState,
         primeProjectFiles,
         clearTimeline,
-        closeContexts
+        closeContexts,
+        forgetFileState
     };
 }
 
@@ -126,7 +128,7 @@ describe('portfolio control actions', () => {
     it('owns board ordering, selection, and removal cleanup', () => {
         const first = createBoard('p1', 'Zeta');
         const second = createBoard('p2', 'Alpha');
-        const { actions, store, primeProjectFiles, clearTimeline, closeContexts } = createActions();
+        const { actions, store, primeProjectFiles, clearTimeline, closeContexts, forgetFileState } = createActions();
 
         actions.appendPortfolioRecords([first, second], { selectBoardId: 'p1' });
 
@@ -140,8 +142,7 @@ describe('portfolio control actions', () => {
             selectedPortfolioCardRef: { boardId: 'p1', taskId: 1 },
             hoveredPortfolioCardRef: { boardId: 'p1', taskId: 1 },
             portfolioTimelineSelection: { boardId: 'p1', eventIndex: 0 },
-            projectSaveStateById: new Map([['p1', {}]]),
-            projectFileStateById: new Map([['p1', {}]])
+            projectSaveStateById: new Map([['p1', {}]])
         });
 
         actions.removePortfolioBoard('p1');
@@ -152,7 +153,7 @@ describe('portfolio control actions', () => {
         expect(store.getState().selectedPortfolioCardRef).toBe(null);
         expect(store.getState().hoveredPortfolioCardRef).toBe(null);
         expect(store.getState().projectSaveStateById.has('p1')).toBe(false);
-        expect(store.getState().projectFileStateById.has('p1')).toBe(false);
+        expect(forgetFileState).toHaveBeenCalledWith('p1');
         expect(clearTimeline).toHaveBeenCalledWith();
         expect(closeContexts).toHaveBeenCalledWith('p1');
     });

@@ -24,3 +24,22 @@ export function closeDialog(name) {
         notifyAppStateChanged();
     });
 }
+
+// Closes the task detail and task editor when they belong to `boardId`, e.g.
+// because the project was removed or reloaded from disk.
+export function closePortfolioContextsForProject(boardId) {
+    if (!boardId) return;
+    const state = useAppStore.getState();
+    const matchesDetail = state.portfolioDetailContext?.boardId === boardId;
+    const matchesEditor = state.portfolioEditContext?.boardId === boardId
+        || state.portfolioCreateContext?.boardId === boardId;
+    if (!matchesDetail && !matchesEditor) return;
+
+    useAppStore.setState({
+        ...(matchesDetail ? { portfolioDetailContext: null } : {}),
+        ...(matchesEditor ? { portfolioEditContext: null, portfolioCreateContext: null } : {})
+    });
+    notifyAppStateChanged();
+    if (matchesDetail) closeDialog('taskDetail');
+    if (matchesEditor) closeDialog('taskEditor');
+}

@@ -1,13 +1,11 @@
 import { useEffect } from 'react';
-import { PROJECT_FILE_WATCH_INTERVAL_MS } from '../domain/constants.js';
 import { isFileDrag } from '../domain/util.js';
-import { checkProjectFilesNow, stopProjectFileWatcher } from '../persistence/projectFiles.js';
+import { checkProjectFilesNow, startProjectFileWatcher, stopProjectFileWatcher } from '../persistence/projectFiles.js';
 import {
     createNewProject,
     importPortfolioProjects,
     openPortfolioFromFiles
 } from '../actions/portfolioFiles.js';
-import { useAppStore } from '../state/store.js';
 
 function setFileDropActive(active) {
     document.getElementById('portfolioView')?.classList.toggle('file-drop-active', active);
@@ -62,10 +60,7 @@ export function usePortfolioFileIntegration() {
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        useAppStore.getState().projectWatchTimerId = window.setInterval(() => {
-            if (document.hidden) return;
-            void checkProjectFilesNow();
-        }, PROJECT_FILE_WATCH_INTERVAL_MS);
+        startProjectFileWatcher();
         void checkProjectFilesNow();
 
         return () => {

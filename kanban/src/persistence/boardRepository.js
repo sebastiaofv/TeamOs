@@ -6,8 +6,13 @@ import { BOARD_FILE_EXTENSION } from '../domain/constants.js';
 import { validateBoardData } from '../domain/board.js';
 import { serializeBoardDataFromObject, hashTextContent } from '../domain/serialize.js';
 import { assertRequiredExtension, formatErrorMessage } from '../domain/util.js';
-import { writeJsonToFileHandle } from './fileSystem.js';
 import { createPortfolioRecord } from './projectFiles.js';
+
+export async function writeJsonToFileHandle(fileHandle, data) {
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+}
 
 export const BoardRepository = {
     serialize(boardData) {

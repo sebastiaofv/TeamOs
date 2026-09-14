@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board.js';
 import { createPortfolioMutationActions } from '../../src/actions/portfolioMutations.js';
+import { getPortfolioBulkTaskIds } from '../../src/selectors/portfolioViews.js';
 
 function createStore(initial) {
   let state = initial;
@@ -55,10 +56,8 @@ function createActions(overrides = {}) {
     hoveredPortfolioCardRef: null,
     suppressPortfolioCardClickUntil: 0,
     undoAction: null,
-    undoTimer: null,
     undoToast: null,
-    projectSaveStateById: new Map(),
-    projectFileStateById: new Map()
+    projectSaveStateById: new Map()
   };
   const store = createStore(state);
   const notify = vi.fn();
@@ -105,7 +104,7 @@ describe('portfolio mutation actions', () => {
   it('owns bulk selection state and task creation', async () => {
     const { actions, store } = createActions();
     actions.togglePortfolioTaskBulkSelection('p1', 1, true);
-    expect(actions.getSelectedPortfolioBulkTaskIds('p1')).toEqual([1]);
+    expect(getPortfolioBulkTaskIds(store.getState(), 'p1')).toEqual([1]);
 
     store.setState({ portfolioCreateContext: { boardId: 'p1', status: 'backlog' } });
     await actions.saveTask({

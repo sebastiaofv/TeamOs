@@ -48,10 +48,8 @@ export function createBoardSlice() {
 export function createUiSlice() {
     return {
         undoAction: null,
-        undoTimer: null,
         undoToast: null,
         activeTheme: 'light',
-        ShortcutRegistry: [],
         activeDialog: null,
         dialogProps: null
     };
@@ -59,9 +57,6 @@ export function createUiSlice() {
 
 export function createFilesSlice() {
     return {
-        projectSaveStateById: new Map(),
-        projectFileStateById: new Map(),
-        projectWatchTimerId: null,
-        projectWatchRunning: false
+        projectSaveStateById: new Map()
     };
 }

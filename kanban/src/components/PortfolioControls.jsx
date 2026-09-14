@@ -14,21 +14,13 @@ import {
     setPortfolioViewMode
 } from '../actions/portfolioControls.js';
 import { getRoadmapExtension } from '../domain/roadmap.js';
-import { getBoardTimelineData } from '../domain/timeline.js';
 import { EFFORT_BUCKETS } from '../domain/constants.js';
 import { normalizePortfolioViewMode, createPortfolioProjectColor } from '../domain/board.js';
+import { DEFAULT_PORTFOLIO_FILTERS } from '../domain/portfolioFilters.js';
 import { portfolioSortSelectValueFromKey } from '../domain/util.js';
 import { normalizeAssignee, taskAssignees } from '../domain/task.js';
 import { getProjectSaveState, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
-
-const DEFAULT_PORTFOLIO_FILTERS = {
-    search: '',
-    archive: 'active',
-    blocked: 'all',
-    assignee: '',
-    priority: '',
-    effort: ''
-};
+import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
 
 function getFilters(state) {
     return { ...DEFAULT_PORTFOLIO_FILTERS, ...(state.portfolioFilters || {}) };
@@ -100,28 +92,14 @@ function getBoardColor(board) {
     return board?.projectColor || createPortfolioProjectColor(board?.colorSeed || 0);
 }
 
-function isHistoricalPreview(state, boardId) {
-    const board = state.portfolioBoards.find((record) => record.id === boardId);
-    const timeline = getBoardTimelineData(board?.data);
-    if (!timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) return false;
-    const selection = state.portfolioTimelineSelection || {};
-    const selectedIndex = selection.boardId === boardId && Number.isInteger(selection.eventIndex)
-        ? Math.max(0, Math.min(timeline.events.length - 1, selection.eventIndex))
-        : timeline.events.length - 1;
-    return selectedIndex < timeline.events.length - 1;
-}
-
 function getBulkViewModel(state) {
     const boardId = state.selectedPortfolioBoardId || '';
     const board = state.portfolioBoards.find((record) => record.id === boardId) || null;
     const canShow = Boolean(boardId)
         && state.selectedPortfolioViewMode === 'board'
         && Boolean(board?.handle)
-        && !isHistoricalPreview(state, boardId);
-    const taskIds = new Set((board?.data?.board?.tasks || []).map((task) => Number(task.id)));
-    const selectedIds = canShow
-        ? (state.portfolioBulkSelectionByBoardId?.[boardId] || []).filter((taskId) => taskIds.has(Number(taskId)))
-        : [];
+        && !isBoardInHistoricalPreview(state, boardId);
+    const selectedIds = canShow ? getPortfolioBulkTaskIds(state, boardId) : [];
     const roadmap = canShow ? getRoadmapExtension(board?.data) : null;
     return {
         boardId,

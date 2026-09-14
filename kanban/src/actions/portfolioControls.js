@@ -3,41 +3,26 @@
 // The module owns the state transitions behind toolbar filters, project chips,
 // bulk controls, board selection, and calendar navigation.
 
-import { EFFORT_BUCKETS } from '../domain/constants.js';
-import { normalizeAssignee, normalizePortfolioBlockedFilter } from '../domain/task.js';
 import { normalizePortfolioSortKey, normalizePortfolioViewMode } from '../domain/board.js';
+import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterValue } from '../domain/portfolioFilters.js';
 import { getRoadmapExtension } from '../domain/roadmap.js';
 import {
-    closePortfolioContextsForProject as defaultClosePortfolioContextsForProject,
     clearPortfolioTimelineSelection as defaultClearPortfolioTimelineSelection,
     openRoadmapEntityModal as defaultOpenRoadmapEntityModal
 } from './portfolioMutations.js';
-import { retryProjectSave, primeProjectFileBaselines, syncProjectSaveStates } from '../persistence/projectFiles.js';
+import { closePortfolioContextsForProject as defaultClosePortfolioContextsForProject } from './dialogs.js';
+import {
+    forgetProjectFileState,
+    primeProjectFileBaselines,
+    retryProjectSave,
+    syncProjectSaveStates
+} from '../persistence/projectFiles.js';
 import { notifyAppStateChanged, useAppStore } from '../state/store.js';
 import { refreshPortfolioState } from '../state/portfolioViewState.js';
 import { updatePortfolioUrlState } from './portfolioNavigation.js';
-import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js';
-
-export const DEFAULT_PORTFOLIO_FILTERS = Object.freeze({
-    search: '',
-    archive: 'active',
-    blocked: 'all',
-    assignee: '',
-    priority: '',
-    effort: ''
-});
+import { buildPortfolioCalendarViewModel, getPortfolioBulkTaskIds } from '../selectors/portfolioViews.js';
 
 const noop = () => {};
-
-function normalizeFilterValue(name, value) {
-    if (name === 'search') return String(value ?? '');
-    if (name === 'archive') return ['active', 'all', 'archived'].includes(value) ? value : 'active';
-    if (name === 'blocked') return normalizePortfolioBlockedFilter(value);
-    if (name === 'assignee') return normalizeAssignee(value);
-    if (name === 'priority') return ['', 'high', 'medium', 'low'].includes(value) ? value : '';
-    if (name === 'effort') return ['', ...EFFORT_BUCKETS].includes(value) ? value : '';
-    return undefined;
-}
 
 /**
  * Create the actions that control the portfolio shell.
@@ -54,7 +39,8 @@ export function createPortfolioControlActions({
     clearPortfolioTimelineSelection = defaultClearPortfolioTimelineSelection,
     openCreateSprintModal = (boardId) => defaultOpenRoadmapEntityModal('sprints', '', { mode: 'create-sprint-from-selection', boardId }),
     openAssignSprintModal = (boardId) => defaultOpenRoadmapEntityModal('sprints', '', { mode: 'assign-sprint-from-selection', boardId }),
-    retrySave = retryProjectSave
+    retrySave = retryProjectSave,
+    forgetFileState = forgetProjectFileState
 } = {}) {
     const getState = () => store.getState();
     const syncUrlState = typeof updateUrlState === 'function'
@@ -157,15 +143,13 @@ export function createPortfolioControlActions({
         const portfolioBulkSelectionByBoardId = { ...(state.portfolioBulkSelectionByBoardId || {}) };
         delete portfolioBulkSelectionByBoardId[boardId];
         const projectSaveStateById = new Map(state.projectSaveStateById || []);
-        const projectFileStateById = new Map(state.projectFileStateById || []);
         projectSaveStateById.delete(boardId);
-        projectFileStateById.delete(boardId);
+        forgetFileState(boardId);
 
         const partial = {
             portfolioBoards: state.portfolioBoards.filter((board) => board.id !== boardId),
             portfolioBulkSelectionByBoardId,
-            projectSaveStateById,
-            projectFileStateById
+            projectSaveStateById
         };
         if (state.selectedPortfolioCardRef?.boardId === boardId) {
             partial.selectedPortfolioCardRef = null;
@@ -187,7 +171,7 @@ export function createPortfolioControlActions({
     function setPortfolioFilter(name, value) {
         if (!Object.prototype.hasOwnProperty.call(DEFAULT_PORTFOLIO_FILTERS, name)) return;
         const next = { ...DEFAULT_PORTFOLIO_FILTERS, ...(getState().portfolioFilters || {}) };
-        next[name] = normalizeFilterValue(name, value);
+        next[name] = normalizePortfolioFilterValue(name, value);
         commitState({ portfolioFilters: next });
         refreshViews();
         syncUrlState();
@@ -229,22 +213,13 @@ export function createPortfolioControlActions({
         syncUrlState();
     }
 
-    function getSelectedPortfolioBulkTaskIds(boardId = getState().selectedPortfolioBoardId) {
-        const state = getState();
-        const board = state.portfolioBoards.find((record) => record.id === boardId);
-        if (!board) return [];
-        const taskIds = new Set((board.data?.board?.tasks || []).map((task) => Number(task.id)));
-        return (state.portfolioBulkSelectionByBoardId?.[boardId] || [])
-            .filter((taskId) => taskIds.has(Number(taskId)));
-    }
-
     function openCreateSprintFromSelection(boardId = getState().selectedPortfolioBoardId) {
-        if (!boardId || getSelectedPortfolioBulkTaskIds(boardId).length === 0) return;
+        if (!boardId || getPortfolioBulkTaskIds(getState(), boardId).length === 0) return;
         return openCreateSprintModal(boardId);
     }
 
     function openAssignSprintFromSelection(boardId = getState().selectedPortfolioBoardId) {
-        if (!boardId || getSelectedPortfolioBulkTaskIds(boardId).length === 0) return;
+        if (!boardId || getPortfolioBulkTaskIds(getState(), boardId).length === 0) return;
         const board = getState().portfolioBoards.find((record) => record.id === boardId);
         const sprints = getRoadmapExtension(board?.data)?.sprints;
         if (!Array.isArray(sprints) || sprints.length === 0) return;
@@ -301,7 +276,6 @@ export function createPortfolioControlActions({
         appendPortfolioRecords,
         canUsePortfolioViewMode,
         clearPortfolioBulkSelection,
-        getSelectedPortfolioBulkTaskIds,
         openAssignSprintFromSelection,
         openCreateSprintFromSelection,
         removePortfolioBoard,
@@ -325,7 +299,6 @@ const activeActions = createPortfolioControlActions();
 export const appendPortfolioRecords = (...args) => activeActions.appendPortfolioRecords(...args);
 export const canUsePortfolioViewMode = (...args) => activeActions.canUsePortfolioViewMode(...args);
 export const clearPortfolioBulkSelection = (...args) => activeActions.clearPortfolioBulkSelection(...args);
-export const getSelectedPortfolioBulkTaskIds = (...args) => activeActions.getSelectedPortfolioBulkTaskIds(...args);
 export const openAssignSprintFromSelection = (...args) => activeActions.openAssignSprintFromSelection(...args);
 export const openCreateSprintFromSelection = (...args) => activeActions.openCreateSprintFromSelection(...args);
 export const removePortfolioBoard = (...args) => activeActions.removePortfolioBoard(...args);

@@ -6,8 +6,7 @@
 import { BOARD_FILE_EXTENSION } from '../domain/constants.js';
 import { createEmptyProjectData, slugifyColumnName } from '../domain/board.js';
 import { assertRequiredExtension, formatErrorMessage, hasRequiredExtension, isAbortError } from '../domain/util.js';
-import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
-import { BoardRepository } from '../persistence/boardRepository.js';
+import { BoardRepository, writeJsonToFileHandle } from '../persistence/boardRepository.js';
 import { createPortfolioRecord } from '../persistence/projectFiles.js';
 import { Logger } from '../logger.js';
 import { appendPortfolioRecords as appendPortfolioRecordsToStore } from './portfolioControls.js';
