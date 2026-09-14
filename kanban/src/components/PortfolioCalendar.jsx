@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom';
 import { useAppStore } from '../state/store.js';
 import { CALENDAR_MONTH_NAMES, CALENDAR_WEEKDAY_NAMES } from '../domain/constants.js';
 import {
@@ -331,10 +330,12 @@ function PortfolioCalendarView({ model, state }) {
     );
 }
 
-export function PortfolioCalendar() {
+export function PortfolioCalendar({ hidden }) {
     const state = useAppStore((current) => current);
-    const target = document.getElementById('portfolioCalendarView');
     const model = buildPortfolioCalendarViewModel(state);
-    if (!target) return null;
-    return createPortal(<PortfolioCalendarView model={model} state={state} />, target);
+    return (
+        <div className={`portfolio-calendar-view${hidden ? ' hidden' : ''}`} id="portfolioCalendarView">
+            <PortfolioCalendarView model={model} state={state} />
+        </div>
+    );
 }

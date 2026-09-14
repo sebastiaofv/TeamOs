@@ -1,13 +1,12 @@
-// Application entry. Styling is loaded here; runtime behavior is mounted by
-// AppIslands so initialization follows the same React lifecycle as the views.
+// Application entry: loads the styles and mounts the React app.
 import './styles/tailwind.css';
 import './styles/app.css';
 import { createRoot } from 'react-dom/client';
-import { AppIslands } from './components/AppIslands.jsx';
-import { Logger } from './logger.js';
+import { App } from './App.jsx';
+import { ErrorBoundary } from './components/ErrorBoundary.jsx';
 
-try {
-    createRoot(document.getElementById('reactRoot')).render(<AppIslands />);
-} catch (error) {
-    Logger.error('React root failed to mount', error);
-}
+createRoot(document.getElementById('root')).render(
+    <ErrorBoundary name="App">
+        <App />
+    </ErrorBoundary>
+);

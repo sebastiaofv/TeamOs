@@ -1,5 +1,3 @@
-import { createPortal } from 'react-dom';
-import { useLayoutEffect } from 'react';
 import { useAppStore } from '../state/store.js';
 import {
     clearPortfolioBulkSelection,
@@ -109,7 +107,7 @@ function getBulkViewModel(state) {
     };
 }
 
-function PortfolioToolbar({ state }) {
+function ToolbarContent({ state }) {
     const filters = getFilters(state);
     const assignees = getAssigneeNames(state.portfolioTasks);
     const sortValue = portfolioSortSelectValueFromKey(state.portfolioSortKey);
@@ -208,7 +206,7 @@ function PortfolioToolbar({ state }) {
     );
 }
 
-function PortfolioChips({ state }) {
+function ChipList({ state }) {
     if (state.portfolioBoards.length === 0) {
         return <span className="empty-state-text">No projects loaded</span>;
     }
@@ -243,18 +241,30 @@ function PortfolioChips({ state }) {
     );
 }
 
-function PortfolioBulkActions({ state }) {
+export function PortfolioToolbar() {
+    const state = useAppStore((current) => current);
+    return (
+        <div className="portfolio-toolbar" id="portfolioToolbar">
+            <ToolbarContent state={state} />
+        </div>
+    );
+}
+
+export function PortfolioChips() {
+    const state = useAppStore((current) => current);
+    return (
+        <div className="portfolio-chips" id="portfolioBoardsChips">
+            <ChipList state={state} />
+        </div>
+    );
+}
+
+export function PortfolioBulkActions() {
+    const state = useAppStore((current) => current);
     const { boardId, selectedCount, showActions, hasExistingSprints } = getBulkViewModel(state);
 
-    useLayoutEffect(() => {
-        const actions = document.getElementById('portfolioBulkActions');
-        if (!actions) return undefined;
-        actions.classList.toggle('active', showActions);
-        return () => actions.classList.remove('active');
-    }, [showActions]);
-
     return (
-        <>
+        <div className={`portfolio-bulk-actions${showActions ? ' active' : ''}`} id="portfolioBulkActions">
             <div className="portfolio-bulk-actions-summary" id="portfolioBulkActionsSummary">
                 {selectedCount} {selectedCount === 1 ? 'task' : 'tasks'} selected
             </div>
@@ -275,22 +285,6 @@ function PortfolioBulkActions({ state }) {
                     onClick={() => openCreateSprintFromSelection(boardId)}
                 >Create Sprint</button>
             </div>
-        </>
-    );
-}
-
-export function PortfolioControls() {
-    const state = useAppStore((current) => current);
-    const toolbar = document.getElementById('portfolioToolbar');
-    const chips = document.getElementById('portfolioBoardsChips');
-    const bulkActions = document.getElementById('portfolioBulkActions');
-    if (!toolbar || !chips || !bulkActions) return null;
-
-    return (
-        <>
-            {createPortal(<PortfolioToolbar state={state} />, toolbar)}
-            {createPortal(<PortfolioChips state={state} />, chips)}
-            {createPortal(<PortfolioBulkActions state={state} />, bulkActions)}
-        </>
+        </div>
     );
 }

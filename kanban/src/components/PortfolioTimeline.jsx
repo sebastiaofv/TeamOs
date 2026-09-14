@@ -1,6 +1,4 @@
-import { createPortal } from 'react-dom';
 import { flushSync } from 'react-dom';
-import { useLayoutEffect } from 'react';
 import { useAppStore } from '../state/store.js';
 import {
     beginPortfolioTimelineSliderDrag,
@@ -175,24 +173,15 @@ function PortfolioTimelineView({ view }) {
 
 export function PortfolioTimeline() {
     const state = useAppStore((current) => current);
-    const panel = document.getElementById('portfolioTimelinePanel');
     const view = state.portfolioTimelineView;
     const boardId = view?.boardId || '';
-    const isExpanded = Boolean(view?.isExpanded);
+    const className = boardId
+        ? `timeline-panel active${view.isExpanded ? '' : ' collapsed'}`
+        : 'timeline-panel';
 
-    useLayoutEffect(() => {
-        if (!panel) return;
-        panel.dataset.boardId = boardId;
-        panel.className = boardId
-            ? `timeline-panel active${isExpanded ? '' : ' collapsed'}`
-            : 'timeline-panel';
-    }, [panel, boardId, isExpanded]);
-
-    if (!panel) return null;
-    return createPortal(
-        view
-            ? <PortfolioTimelineView view={view} />
-            : null,
-        panel
+    return (
+        <div className={className} id="portfolioTimelinePanel" data-board-id={boardId}>
+            {view && <PortfolioTimelineView view={view} />}
+        </div>
     );
 }

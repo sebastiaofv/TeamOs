@@ -65,6 +65,11 @@
             overflow: hidden;
         }
 
+        /* The React root takes no box, so the header and view stay flex children of body. */
+        #root {
+            display: contents;
+        }
+
         input,
         select,
         textarea {
@@ -1588,14 +1593,6 @@
             background: rgba(58, 124, 246, 0.06);
         }
 
-        .portfolio-empty-banner {
-            margin: 12px 16px 0;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            background: var(--bg-primary);
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
 
         .portfolio-task-card {
             cursor: default;

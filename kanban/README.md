@@ -54,7 +54,8 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 - `src/selectors/` — view models built from store state.
 - `src/actions/` — state-changing functions (mutations, controls, navigation/URL state, files, dialogs, shortcuts).
 - `src/hooks/` — browser integration: theme, keyboard shortcuts and URL state, file picker/drop and file watching.
-- `src/components/` — React views and Radix dialogs, mounted from `src/main.jsx`.
+- `src/App.jsx` — the app shell: header, view layout, and dialogs. Mounted by `src/main.jsx`.
+- `src/components/` — React views and Radix dialogs.
 - `src/styles/` — `app.css` (the visual language) and the Tailwind entry (`preflight` disabled; semantic tokens map to the CSS variables).
 
 ## Development

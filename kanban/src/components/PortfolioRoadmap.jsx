@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom';
 import { useAppStore } from '../state/store.js';
 import { PortfolioTaskCard } from './PortfolioBoard.jsx';
 import {
@@ -250,10 +249,12 @@ function PortfolioRoadmapView({ view, state }) {
     );
 }
 
-export function PortfolioRoadmap() {
+export function PortfolioRoadmap({ hidden }) {
     const state = useAppStore((current) => current);
-    const target = document.getElementById('portfolioRoadmapView');
     const view = buildPortfolioRoadmapView(state);
-    if (!target || !view) return null;
-    return createPortal(<PortfolioRoadmapView view={view} state={state} />, target);
+    return (
+        <div className={`portfolio-roadmap-view${hidden ? ' hidden' : ''}`} id="portfolioRoadmapView">
+            {view && <PortfolioRoadmapView view={view} state={state} />}
+        </div>
+    );
 }

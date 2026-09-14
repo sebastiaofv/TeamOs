@@ -9,50 +9,7 @@
 </head>
 
 <body>
-    <div class="header">
-        <div class="app-title">TeamOS → Kanban</div>
-        <div class="header-actions">
-            <button class="btn icon-btn theme-toggle-btn" id="themeToggleBtn" type="button" aria-label="Switch to dark mode" title="Switch to dark mode" aria-pressed="false">
-                <svg class="theme-toggle-icon theme-toggle-icon-light" aria-hidden="true" viewBox="0 0 24 24">
-                    <path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.8 6.8 0 0 0 9.8 9.8Z"></path>
-                </svg>
-                <svg class="theme-toggle-icon theme-toggle-icon-dark" aria-hidden="true" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="4"></circle>
-                    <path d="M12 2v2"></path>
-                    <path d="M12 20v2"></path>
-                    <path d="m4.93 4.93 1.41 1.41"></path>
-                    <path d="m17.66 17.66 1.41 1.41"></path>
-                    <path d="M2 12h2"></path>
-                    <path d="M20 12h2"></path>
-                    <path d="m6.34 17.66-1.41 1.41"></path>
-                    <path d="m19.07 4.93-1.41 1.41"></path>
-                </svg>
-            </button>
-            <button class="btn" id="openShortcutsBtn">Shortcuts</button>
-            <button class="btn" id="openHelpBtn">Help</button>
-            <button class="btn" id="importProjectsBtn">Import Projects</button>
-            <button class="btn btn-primary" id="newProjectBtn">+ New Project</button>
-        </div>
-    </div>
-
-    <div class="view" id="portfolioView">
-        <div class="view-main">
-            <div class="portfolio-toolbar" id="portfolioToolbar"></div>
-            <div class="portfolio-chips" id="portfolioBoardsChips"></div>
-            <div class="portfolio-board-wrap" id="portfolioBoardWrap">
-                <div class="timeline-panel" id="portfolioTimelinePanel"></div>
-                <div class="portfolio-empty-banner hidden" id="portfolioBoardEmptyBanner"></div>
-                <div class="portfolio-bulk-actions" id="portfolioBulkActions"></div>
-                <div class="portfolio-board-grid" id="portfolioBoard"></div>
-                <div class="portfolio-roadmap-view hidden" id="portfolioRoadmapView"></div>
-                <div class="portfolio-calendar-view hidden" id="portfolioCalendarView"></div>
-            </div>
-        </div>
-        <div class="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">Drop project files to import</div>
-    </div>
-
-    <div id="reactRoot"></div>
-
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
 </body>
 

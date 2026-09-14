@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom';
 import { useAppStore } from '../state/store.js';
 import {
     deletePortfolioTask,
@@ -201,9 +200,11 @@ function PortfolioBoardView({ state }) {
     );
 }
 
-export function PortfolioBoard() {
+export function PortfolioBoard({ hidden }) {
     const state = useAppStore((current) => current);
-    const board = document.getElementById('portfolioBoard');
-    if (!board) return null;
-    return createPortal(<PortfolioBoardView state={state} />, board);
+    return (
+        <div className={`portfolio-board-grid${hidden ? ' hidden' : ''}`} id="portfolioBoard">
+            <PortfolioBoardView state={state} />
+        </div>
+    );
 }
