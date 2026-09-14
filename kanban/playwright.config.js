@@ -1,5 +1,9 @@
 const { defineConfig } = require('@playwright/test');
 
+// Not the dev server's 4173, so a running `npm run dev` is never mistaken for
+// the build under test.
+const PORT = 4174;
+
 module.exports = defineConfig({
   testDir: './tests',
   testMatch: '**/*.test.js',
@@ -12,16 +16,17 @@ module.exports = defineConfig({
     }
   },
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: `http://127.0.0.1:${PORT}`,
     headless: true,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
   webServer: {
-    // Build first so the suite never runs against a stale dist/.
-    command: 'npm run build && npm run preview',
-    port: 4173,
-    reuseExistingServer: true,
+    // Build first and never reuse a server, so the suite always runs against a
+    // fresh dist/.
+    command: `npm run build && npm run preview -- --port ${PORT}`,
+    port: PORT,
+    reuseExistingServer: false,
     timeout: 60_000
   }
 });

@@ -71,7 +71,7 @@ npm run dev
 ## Testing
 
 - `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions.
-- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` before running.
+- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if 4174 is already taken.
 - `npm run lint` — ESLint.
 
 Visual baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.js`.
