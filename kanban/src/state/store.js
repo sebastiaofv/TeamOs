@@ -16,6 +16,23 @@ export const useAppStore = create((set) => ({
     notify: () => set((state) => ({ version: state.version + 1 }))
 }));
 
+// Nested board records are still mutated by the persistence/mutation runtime.
+// These small store-level helpers keep those mutations observable without a
+// separate bridge module; new code should prefer Zustand setters/actions.
+export function notifyAppStateChanged() {
+    useAppStore.getState().notify();
+}
+
+export function subscribeToVersion(listener) {
+    return useAppStore.subscribe((state, previousState) => {
+        if (state.version !== previousState.version) listener();
+    });
+}
+
+export function getStoreVersion() {
+    return useAppStore.getState().version;
+}
+
 export const appState = new Proxy({}, {
     get(_target, property) {
         return useAppStore.getState()[property];

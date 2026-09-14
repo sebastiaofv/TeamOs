@@ -7,7 +7,7 @@ import {
     importPortfolioProjects,
     openPortfolioFromFiles
 } from '../actions/legacyHost.js';
-import { appState } from '../state/store.js';
+import { useAppStore } from '../state/store.js';
 
 function setFileDropActive(active) {
     document.getElementById('portfolioView')?.classList.toggle('file-drop-active', active);
@@ -62,11 +62,11 @@ export function usePortfolioFileIntegration() {
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        appState.projectWatchTimerId = window.setInterval(() => {
+        useAppStore.getState().projectWatchTimerId = window.setInterval(() => {
             if (document.hidden) return;
             void checkProjectFilesNow();
         }, PROJECT_FILE_WATCH_INTERVAL_MS);
-        appState.projectWatchListenersBound = true;
+        useAppStore.getState().projectWatchListenersBound = true;
         void checkProjectFilesNow();
 
         return () => {
@@ -79,7 +79,7 @@ export function usePortfolioFileIntegration() {
             window.removeEventListener('focus', handleFocus);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             stopProjectFileWatcher();
-            appState.projectWatchListenersBound = false;
+            useAppStore.getState().projectWatchListenersBound = false;
             setFileDropActive(false);
         };
     }, []);

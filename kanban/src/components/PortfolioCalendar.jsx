@@ -22,6 +22,7 @@ import {
 } from '../domain/calendar.js';
 import { addRoadmapDays } from '../domain/roadmap.js';
 import { getBoardTimelineData } from '../domain/timeline.js';
+import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js';
 
 function itemStyle(item, aggregate) {
     if (!aggregate) return undefined;
@@ -320,7 +321,7 @@ function PortfolioCalendarView({ model, state }) {
 export function PortfolioCalendar() {
     const state = useAppStore((current) => current);
     const target = document.getElementById('portfolioCalendarView');
-    const model = state.portfolioCalendarViewModel;
-    if (!target || !model) return null;
+    const model = buildPortfolioCalendarViewModel(state);
+    if (!target) return null;
     return createPortal(<PortfolioCalendarView model={model} state={state} />, target);
 }

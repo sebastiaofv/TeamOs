@@ -2,27 +2,25 @@ import '../styles/tailwind.css';
 import '../styles/legacy.css';
 import { isAbortError, formatErrorMessage, nowIso, escapeRegExp, formatFileSize, assigneesToInput, checklistToInput, hasRequiredExtension, assertRequiredExtension } from '../domain/util.js';
 import { normalizeAssignee, normalizeAssignees, parseAssigneesInput, formatAssignees, taskAssignees, taskHasAssignee, normalizeTags, buildTaskFieldsFromDraft, normalizeBlockerReason, normalizeChecklist, normalizeEffort, normalizePortfolioBlockedFilter, normalizePriority, parseChecklistInput, getBoardTagSuggestions, nextTaskIdForBoard, touchTask, isTaskOverdue, normalizeTaskStatus, formatTaskStatusAge, resolveCreateTaskStatus, normalizeTask } from '../domain/task.js';
-import { addRoadmapDays, createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, slugifyRoadmapEntityId, getRoadmapItemDateBounds, getRoadmapItemTitle, getRoadmapTaskFieldTasks, compareRoadmapItemsByDate, getRoadmapAxisTicks, getRoadmapTimelinePlacement, getVisibleRoadmapDateRange, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
+import { createEmptyRoadmapExtension, formatRoadmapDateRange, getRoadmapEntityConfig, normalizeRoadmapDate, normalizeRoadmapRef, slugifyRoadmapEntityId, getRoadmapItemTitle, getRoadmapExtension, getRoadmapExtensionObject } from '../domain/roadmap.js';
 import { normalizePortfolioSortDir, normalizePortfolioSortKey, normalizePortfolioViewMode, portfolioProjectColorKey, slugifyColumnName, createPortfolioProjectColor, createEmptyProjectData, comparePortfolioRows } from '../domain/board.js';
 import { normalizeAttachmentRecord, removeLegacyTaskAttachmentsFromExtensions, calculateBoardAttachmentBytes, getTaskAttachments, setTaskAttachments } from '../domain/attachments.js';
-import { comparePortfolioCalendarItems, createUtcDate, formatUtcIsoDate, getPortfolioCalendarHeatColor, getPortfolioCalendarItemLabel, getUtcMonthLabel, normalizeDueDate, buildPortfolioCalendarItemStyle, buildPortfolioCalendarMiniMarkerStyle, comparePortfolioCalendarDayItems, doesPortfolioCalendarItemOccurOnDay, formatDateTime, formatDueDateForUi, getPortfolioCalendarMiniDayMarkers, getPortfolioCalendarMiniMonthCellCount, getPortfolioCalendarMonthHeatStats, getPortfolioCalendarTaskCountsByDay, getPortfolioCalendarYearHeatStats, todayLocalIsoDate, buildPortfolioCalendarRoadmapSpanStyle, doesPortfolioCalendarItemIntersectMonth, shouldShowPortfolioCalendarRoadmapLabel } from '../domain/calendar.js';
+import { createUtcDate, normalizeDueDate, formatDateTime, formatDueDateForUi } from '../domain/calendar.js';
 import { cloneSerializable, getBoardExtensionsObject, createBoardStateSnapshot, serializeBoardDataFromObject } from '../domain/serialize.js';
 import { captureTaskTimelineSnapshot, getBoardTimelineData, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline, appendTimelineEvent, recordBoardRestoreTimelineEvent, recordTaskTimelineEvent } from '../domain/timeline.js';
-import { formatTaskScore } from '../domain/scoring.js';
 import { writeJsonToFileHandle } from '../persistence/fileSystem.js';
-import { appState, getPortfolioBoardRecord } from '../state/store.js';
+import { appState, getPortfolioBoardRecord, notifyAppStateChanged } from '../state/store.js';
 import { Logger } from '../logger.js';
 import { BoardRepository } from '../persistence/boardRepository.js';
 import { setPersistenceHost, getProjectSaveState, syncProjectSaveStates, primeProjectFileBaselines, enqueueProjectSave, retryProjectSave, createPortfolioRecord } from '../persistence/projectFiles.js';
-import { notifyAppStateChanged } from '../bridge/appStore.js';
 import { openDialog, closeDialog } from '../actions/dialogs.js';
 import { setLegacyHost } from '../actions/legacyHost.js';
+import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js';
         import {
             BOARD_FILE_EXTENSION, TASK_TITLE_MAX_LENGTH, EFFORT_BUCKETS, TIMELINE_EXTENSION_KEY,
             ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_SOFT_WARN_BYTES,
             ATTACHMENT_TASK_SOFT_TOTAL_BYTES, ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES,
-            CALENDAR_MONTH_NAMES,
-            CALENDAR_WEEKDAY_NAMES, defaultColumns
+            defaultColumns
         } from '../domain/constants.js';
         const Refs = {};
         const DEFAULT_PORTFOLIO_FILTERS = Object.freeze({
@@ -149,387 +147,7 @@ import { setLegacyHost } from '../actions/legacyHost.js';
 
 
 
-        function normalizePortfolioCalendarYear(items) {
-            const years = (Array.isArray(items) ? items : [])
-                .flatMap((item) => [item?.bounds?.start?.getUTCFullYear(), item?.bounds?.end?.getUTCFullYear()])
-                .filter(Number.isFinite);
-            const fallbackYear = years.length > 0 ? Math.min(...years) : new Date().getUTCFullYear();
-            if (!Number.isInteger(appState.portfolioCalendarYear)) {
-                appState.portfolioCalendarYear = fallbackYear;
-            }
-        }
 
-        function normalizePortfolioCalendarMonth(items) {
-            const defaultDate = (Array.isArray(items) ? items : []).find((item) => item?.bounds?.start)?.bounds?.start || new Date();
-            if (!Number.isInteger(appState.portfolioCalendarMonth) || appState.portfolioCalendarMonth < 0 || appState.portfolioCalendarMonth > 11) {
-                appState.portfolioCalendarMonth = defaultDate.getUTCMonth();
-            }
-        }
-
-        function ensurePortfolioCalendarState(items) {
-            if (!['year', 'month'].includes(appState.portfolioCalendarView)) {
-                appState.portfolioCalendarView = 'year';
-            }
-            if (!['calendar', 'heatmap'].includes(appState.portfolioCalendarDisplayMode)) {
-                appState.portfolioCalendarDisplayMode = 'calendar';
-            }
-            normalizePortfolioCalendarYear(items);
-            normalizePortfolioCalendarMonth(items);
-        }
-
-        function getPortfolioCalendarBoardSources() {
-            if (appState.selectedPortfolioBoardId) {
-                const viewState = getSelectedBoardTimelineViewState();
-                const boardRecord = viewState?.boardRecord || getPortfolioBoardRecord(appState.selectedPortfolioBoardId);
-                const boardData = viewState?.isPreview
-                    ? (viewState.projectedBoard || boardRecord?.data || null)
-                    : (boardRecord?.data || viewState?.projectedBoard || null);
-                return boardRecord && boardData ? [{
-                    boardRecord,
-                    boardData,
-                    historical: Boolean(viewState?.isPreview)
-                }] : [];
-            }
-            return appState.portfolioBoards
-                .filter((board) => board?.data)
-                .map((boardRecord) => ({
-                    boardRecord,
-                    boardData: boardRecord.data,
-                    historical: false
-                }));
-        }
-
-        function createPortfolioCalendarItem(input) {
-            const bounds = getRoadmapItemDateBounds(input) || null;
-            if (!bounds) return null;
-            const boardTitle = input.boardTitle || input.boardFileName || 'Project';
-            return {
-                id: input.id,
-                kind: input.kind,
-                boardId: input.boardId,
-                boardTitle,
-                title: input.title || '',
-                subtitle: input.subtitle || '',
-                taskId: input.taskId || null,
-                roadmapKind: input.roadmapKind || '',
-                projectColor: portfolioProjectColor(input.boardId),
-                historical: Boolean(input.historical),
-                isRange: bounds.start.getTime() !== bounds.end.getTime(),
-                bounds
-            };
-        }
-
-
-
-
-
-        function buildPortfolioCalendarItems(rows) {
-            const items = [];
-            const visibleRows = Array.isArray(rows) ? rows : [];
-
-            visibleRows.forEach((row) => {
-                const dueDate = normalizeDueDate(row?.task?.dueDate);
-                if (!dueDate) return;
-                const item = createPortfolioCalendarItem({
-                    id: `task:${row.boardId}:${row.taskId}`,
-                    kind: 'task',
-                    boardId: row.boardId,
-                    boardTitle: row.boardTitle,
-                    boardFileName: row.boardFileName,
-                    title: row.task?.title || `Task ${row.taskId}`,
-                    subtitle: dueDate,
-                    taskId: row.taskId,
-                    dueDate,
-                    historical: Boolean(row.historical)
-                });
-                if (item) items.push(item);
-            });
-
-            getPortfolioCalendarBoardSources().forEach(({ boardRecord, boardData, historical }) => {
-                const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
-                ['milestones', 'phases', 'sprints'].forEach((kind) => {
-                    const config = getRoadmapEntityConfig(kind);
-                    const records = Array.isArray(roadmap?.[kind]) ? roadmap[kind] : [];
-                    records.forEach((entry) => {
-                        const item = createPortfolioCalendarItem({
-                            id: `${kind}:${boardRecord.id}:${entry.id}`,
-                            kind: config?.singular || kind,
-                            roadmapKind: kind,
-                            boardId: boardRecord.id,
-                            boardTitle: boardRecord.title,
-                            boardFileName: boardRecord.fileName,
-                            title: entry.title || '',
-                            subtitle: formatRoadmapDateRange(entry),
-                            dueDate: entry.dueDate,
-                            startDate: entry.startDate,
-                            endDate: entry.endDate,
-                            historical
-                        });
-                        if (item) items.push(item);
-                    });
-                });
-            });
-
-            return items.sort(comparePortfolioCalendarItems);
-        }
-
-
-
-
-        function renderPortfolioCalendarTaskButton(item, options = {}) {
-            const classes = ['portfolio-calendar-item', 'portfolio-calendar-item-task'];
-            if (item?.isRange) classes.push('portfolio-calendar-item-range');
-            const style = buildPortfolioCalendarItemStyle(item, options);
-            const title = getPortfolioCalendarItemLabel(item);
-            return `
-                <button
-                    class="${classes.join(' ')}"
-                    type="button"
-                    data-action="open-calendar-task"
-                    data-board-id="${escapeHtml(item?.boardId || '')}"
-                    data-task-id="${escapeHtml(String(item?.taskId || ''))}"
-                    data-calendar-item-title="${escapeHtml(item?.title || '')}"
-                    style="${style}"
-                    title="${escapeHtml(title)}"
-                >${escapeHtml(title)}</button>
-            `;
-        }
-
-
-
-
-        function renderPortfolioCalendarDayRoadmapItem(item, date, options = {}) {
-            if (!item) return '';
-            const classes = ['portfolio-calendar-roadmap-span'];
-            if (item?.kind) classes.push(`portfolio-calendar-roadmap-span-${item.kind}`);
-            if (item?.isRange && item.bounds.start < date) classes.push('portfolio-calendar-roadmap-span-continues-before');
-            if (item?.isRange && item.bounds.end > date) classes.push('portfolio-calendar-roadmap-span-continues-after');
-            const style = buildPortfolioCalendarRoadmapSpanStyle(item, options);
-            const title = getPortfolioCalendarItemLabel(item);
-            const content = shouldShowPortfolioCalendarRoadmapLabel(item, date)
-                ? escapeHtml(title)
-                : '&nbsp;';
-            return `
-                <div
-                    class="${classes.join(' ')}"
-                    data-calendar-roadmap-title="${escapeHtml(item?.title || '')}"
-                    data-calendar-roadmap-kind="${escapeHtml(item?.kind || '')}"
-                    style="${style}"
-                    title="${escapeHtml(title)}"
-                >${content}</div>
-            `;
-        }
-
-        function renderPortfolioCalendarMiniMonth(items, year, month, options = {}) {
-            const firstOfMonth = createUtcDate(year, month, 1);
-            const leadingDays = firstOfMonth.getUTCDay();
-            const gridStart = addRoadmapDays(firstOfMonth, -leadingDays);
-            const cellCount = getPortfolioCalendarMiniMonthCellCount(year, month);
-            const dayMarkup = Array.from({ length: cellCount }, (_, index) => {
-                const date = addRoadmapDays(gridStart, index);
-                const isoDate = formatUtcIsoDate(date);
-                const inCurrentMonth = date.getUTCMonth() === month;
-                const markers = inCurrentMonth
-                    ? getPortfolioCalendarMiniDayMarkers(items.filter((item) => doesPortfolioCalendarItemOccurOnDay(item, isoDate)), isoDate)
-                    : [];
-                const classes = ['portfolio-calendar-mini-day'];
-                if (inCurrentMonth) classes.push('portfolio-calendar-mini-day-current');
-                else classes.push('portfolio-calendar-mini-day-outside');
-                if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-mini-day-today');
-                const taskCount = inCurrentMonth && options.taskCounts instanceof Map
-                    ? (options.taskCounts.get(isoDate) || 0)
-                    : 0;
-                const heatStyle = options.heatmap && inCurrentMonth
-                    ? `background:${getPortfolioCalendarHeatColor(taskCount, options.heatStats)};`
-                    : '';
-
-                return `
-                    <div class="${classes.join(' ')}" data-calendar-mini-day="${escapeHtml(isoDate)}" ${heatStyle ? `style="${heatStyle}"` : ''}>
-                        <div class="portfolio-calendar-mini-day-number">${date.getUTCDate()}</div>
-                        <div class="portfolio-calendar-mini-markers">
-                            ${markers.map((marker) => {
-                                const markerClasses = ['portfolio-calendar-mini-marker'];
-                                if (marker.kind === 'task') markerClasses.push('portfolio-calendar-mini-marker-task');
-                                if (marker.kind === 'range-end') markerClasses.push('portfolio-calendar-mini-marker-range-end');
-                                return `<span class="${markerClasses.join(' ')}" style="${buildPortfolioCalendarMiniMarkerStyle(marker.item, options)}" title="${escapeHtml(marker.item.title || '')}"></span>`;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            return `
-                <div class="portfolio-calendar-mini-month-grid">
-                    <div class="portfolio-calendar-mini-weekdays">
-                        ${CALENDAR_WEEKDAY_NAMES.map((name) => `<div class="portfolio-calendar-mini-weekday">${escapeHtml(name.charAt(0))}</div>`).join('')}
-                    </div>
-                    <div class="portfolio-calendar-mini-day-grid">
-                        ${dayMarkup}
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderPortfolioCalendarYearView(items, options = {}) {
-            const year = appState.portfolioCalendarYear;
-            const heatmap = Boolean(options.heatmap);
-            const taskCounts = heatmap ? getPortfolioCalendarTaskCountsByDay(items) : null;
-            const heatStats = heatmap ? getPortfolioCalendarYearHeatStats(taskCounts, year) : null;
-            const quarterMarkup = Array.from({ length: 4 }, (_, quarterIndex) => {
-                const baseMonth = quarterIndex * 3;
-                const monthButtons = Array.from({ length: 3 }, (_, monthOffset) => {
-                    const month = baseMonth + monthOffset;
-                    const monthItems = items.filter((item) => doesPortfolioCalendarItemIntersectMonth(item, year, month));
-                    return `
-                        <button
-                            class="portfolio-calendar-month-card"
-                            type="button"
-                            data-action="open-calendar-month"
-                            data-year="${year}"
-                            data-month="${month}"
-                            aria-label="Open ${escapeHtml(getUtcMonthLabel(year, month))}"
-                        >
-                            <div class="portfolio-calendar-month-card-header">
-                                <span class="portfolio-calendar-month-name">${escapeHtml(CALENDAR_MONTH_NAMES[month])}</span>
-                                <span class="portfolio-calendar-month-count">${monthItems.length} item${monthItems.length === 1 ? '' : 's'}</span>
-                            </div>
-                            ${renderPortfolioCalendarMiniMonth(monthItems, year, month, {
-                                aggregate: options.aggregate,
-                                heatmap,
-                                taskCounts,
-                                heatStats
-                            })}
-                        </button>
-                    `;
-                }).join('');
-
-                return `
-                    <section class="portfolio-calendar-quarter">
-                        <div class="portfolio-calendar-quarter-months">${monthButtons}</div>
-                    </section>
-                `;
-            }).join('');
-
-            return `
-                <div class="portfolio-calendar-year">
-                    ${quarterMarkup}
-                </div>
-            `;
-        }
-
-        function renderPortfolioCalendarMonthView(items, options = {}) {
-            const year = appState.portfolioCalendarYear;
-            const month = appState.portfolioCalendarMonth;
-            const firstOfMonth = createUtcDate(year, month, 1);
-            const leadingDays = firstOfMonth.getUTCDay();
-            const gridStart = addRoadmapDays(firstOfMonth, -leadingDays);
-            const heatmap = Boolean(options.heatmap);
-            const taskCounts = heatmap ? getPortfolioCalendarTaskCountsByDay(items) : null;
-            const heatStats = heatmap ? getPortfolioCalendarMonthHeatStats(taskCounts, year, month) : null;
-            const canCreateTasks = Boolean(appState.selectedPortfolioBoardId) && canUsePortfolioTaskMutations(appState.selectedPortfolioBoardId);
-            const weekMarkup = Array.from({ length: 6 }, (_, weekIndex) => {
-                const weekStart = addRoadmapDays(gridStart, weekIndex * 7);
-                const weekStartIso = formatUtcIsoDate(weekStart);
-                const cellMarkup = Array.from({ length: 7 }, (_, dayIndex) => {
-                    const date = addRoadmapDays(weekStart, dayIndex);
-                    const isoDate = formatUtcIsoDate(date);
-                    const dayItems = items
-                        .filter((item) => doesPortfolioCalendarItemOccurOnDay(item, isoDate))
-                        .sort(comparePortfolioCalendarDayItems);
-                    const visibleItems = dayItems.slice(0, 4);
-                    const roadmapItems = visibleItems.filter((item) => item?.kind !== 'task');
-                    const taskItems = visibleItems.filter((item) => item?.kind === 'task');
-                    const overflow = Math.max(0, dayItems.length - visibleItems.length);
-                    const classes = ['portfolio-calendar-day-cell'];
-                    const inCurrentMonth = date.getUTCMonth() === month;
-                    if (inCurrentMonth) classes.push('portfolio-calendar-day-cell-current');
-                    else classes.push('portfolio-calendar-day-cell-outside');
-                    if (isoDate === todayLocalIsoDate()) classes.push('portfolio-calendar-day-cell-today');
-                    if (canCreateTasks && inCurrentMonth) classes.push('portfolio-calendar-day-cell-actionable');
-                    const taskCount = inCurrentMonth && taskCounts instanceof Map
-                        ? (taskCounts.get(isoDate) || 0)
-                        : 0;
-                    const heatStyle = heatmap && inCurrentMonth
-                        ? `background:${getPortfolioCalendarHeatColor(taskCount, heatStats)};`
-                        : '';
-                    return `
-                        <div
-                            class="${classes.join(' ')}"
-                            data-calendar-day="${escapeHtml(isoDate)}"
-                            ${heatStyle ? `style="${heatStyle}"` : ''}
-                        ${canCreateTasks && inCurrentMonth ? `data-action="create-calendar-task" data-due-date="${escapeHtml(isoDate)}"` : ''}
-                    >
-                        <div class="portfolio-calendar-day-number">${date.getUTCDate()}</div>
-                        ${roadmapItems.length > 0 ? `
-                            <div class="portfolio-calendar-day-roadmap">
-                                ${roadmapItems.map((item) => renderPortfolioCalendarDayRoadmapItem(item, date, { aggregate: options.aggregate })).join('')}
-                            </div>
-                        ` : ''}
-                        <div class="portfolio-calendar-day-items">
-                                ${taskItems.map((item) => renderPortfolioCalendarTaskButton(item, { aggregate: options.aggregate })).join('')}
-                                ${overflow > 0 ? `<div class="portfolio-calendar-item-overflow">+${overflow} more</div>` : ''}
-                        </div>
-                    </div>
-                `;
-                }).join('');
-
-                return `
-                    <div class="portfolio-calendar-week-row" data-calendar-week-start="${escapeHtml(weekStartIso)}">
-                        <div class="portfolio-calendar-week-days">
-                            ${cellMarkup}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            return `
-                <div class="portfolio-calendar-month-grid">
-                    <div class="portfolio-calendar-month-grid-track">
-                        <div class="portfolio-calendar-weekdays">
-                            ${CALENDAR_WEEKDAY_NAMES.map((name) => `<div class="portfolio-calendar-weekday">${escapeHtml(name)}</div>`).join('')}
-                        </div>
-                        <div class="portfolio-calendar-day-grid">
-                            ${weekMarkup}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderPortfolioCalendarView(rows) {
-            const calendarViewNode = document.getElementById('portfolioCalendarView');
-            if (!calendarViewNode) return;
-
-            const items = buildPortfolioCalendarItems(rows);
-            const aggregate = !appState.selectedPortfolioBoardId;
-            ensurePortfolioCalendarState(items);
-            const heatmap = appState.portfolioCalendarDisplayMode === 'heatmap';
-
-            const periodLabel = appState.portfolioCalendarView === 'month'
-                ? getUtcMonthLabel(appState.portfolioCalendarYear, appState.portfolioCalendarMonth)
-                : String(appState.portfolioCalendarYear);
-            const bodyMarkup = appState.portfolioCalendarView === 'month'
-                ? renderPortfolioCalendarMonthView(items, { aggregate, heatmap })
-                : renderPortfolioCalendarYearView(items, { aggregate, heatmap });
-            const toggleLabel = appState.portfolioCalendarDisplayMode === 'heatmap' ? 'Calendar' : 'Heat Map';
-
-            calendarViewNode.innerHTML = `
-                <div class="portfolio-calendar-header">
-                    <div class="portfolio-calendar-controls">
-                        ${appState.portfolioCalendarView === 'month' ? '<button class="btn" type="button" data-action="calendar-back-to-year" aria-label="Back to year">Back to year</button>' : ''}
-                        <button class="btn" type="button" data-action="${appState.portfolioCalendarView === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}" aria-label="${appState.portfolioCalendarView === 'month' ? 'Previous month' : 'Previous year'}">Prev</button>
-                        <div class="portfolio-calendar-period-group">
-                            <div class="portfolio-calendar-period">${escapeHtml(periodLabel)}</div>
-                            <button class="btn" type="button" data-action="calendar-toggle-mode">${escapeHtml(toggleLabel)}</button>
-                        </div>
-                        <button class="btn" type="button" data-action="${appState.portfolioCalendarView === 'month' ? 'calendar-next-month' : 'calendar-next-year'}" aria-label="${appState.portfolioCalendarView === 'month' ? 'Next month' : 'Next year'}">Next</button>
-                    </div>
-                </div>
-                <div class="portfolio-calendar-shell" data-calendar-scope="${aggregate ? 'aggregate' : 'selected'}" data-calendar-view="${escapeHtml(appState.portfolioCalendarView)}" data-calendar-display-mode="${appState.portfolioCalendarDisplayMode}">
-                    ${bodyMarkup}
-                </div>
-            `;
-        }
 
         function getPortfolioRoadmapExpandedRows(boardId) {
             if (!boardId) return {};
@@ -1197,105 +815,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             return true;
         }
 
-        function createPortfolioRoadmapTaskCard(item, searchTerm = '') {
-            const task = item.task;
-            const div = document.createElement('div');
-            div.className = 'task-card portfolio-task-card';
-            if (isSelectedPortfolioCard(item.boardId, task.id)) {
-                div.classList.add('selected');
-            }
-            const canMutate = Boolean(item.canMutate) && !item.historical;
-            const canDrag = canMutate;
-            div.draggable = canDrag;
-            div.dataset.boardId = item.boardId;
-            div.dataset.taskId = String(item.taskId ?? task.id);
-            div.dataset.status = normalizeTaskStatus(task.status);
-            div.dataset.historical = item.historical ? 'true' : 'false';
-            if (canDrag) {
-                div.addEventListener('dragstart', (ev) => {
-                    onPortfolioTaskDragStart(ev, {
-                        boardId: item.boardId,
-                        taskId: task.id,
-                        status: normalizeTaskStatus(task.status)
-                    });
-                });
-                div.addEventListener('dragend', (ev) => {
-                    onPortfolioTaskDragEnd(ev);
-                });
-            }
-
-            const priority = normalizePriority(task.priority);
-            const effort = normalizeEffort(task.effort);
-            const score = formatTaskScore(task);
-            const highlightedTitle = highlightSearchMatch(task.title || '', searchTerm);
-            const projectLabel = item.boardTitle || item.boardFileName || 'Project';
-            const showProjectBadge = !appState.selectedPortfolioBoardId;
-            const color = portfolioProjectColor(item.boardId);
-            const badgeStyle = `background:${color.bg};border-color:${color.border};color:${color.text};`;
-            const editButtonLabel = '&#9998;';
-            const archiveButtonLabel = task.archived ? '&#8634;' : '&#128452;&#65038;';
-            const deleteButtonLabel = '&#128465;&#65038;';
-            const archiveButtonTitle = task.archived ? 'Restore' : 'Archive';
-            const readOnlyTitle = item.historical ? 'Historical preview (read-only)' : 'Read-only (no file handle)';
-            const assignees = taskAssignees(task);
-            const statusAge = formatTaskStatusAge(task);
-            const showBulkSelect = Boolean(appState.selectedPortfolioBoardId)
-                && appState.selectedPortfolioBoardId === item.boardId
-                && canMutate;
-            const metaParts = [
-                showProjectBadge ? `<span class="portfolio-project-badge" style="${badgeStyle}" title="${escapeHtml(projectLabel)}">${escapeHtml(projectLabel)}</span>` : '',
-                ...assignees.map((name) => `<span class="task-tag task-tag-assignee" title="Assignee">${escapeHtml(name)}</span>`),
-                ...normalizeTags(task.tags).map((tag) => `<span class="task-tag task-tag-label">${escapeHtml(tag)}</span>`),
-                task.blocked ? '<span class="task-tag task-tag-blocked" title="Blocked">Blocked</span>' : '',
-                statusAge ? `<span class="task-tag task-tag-age" title="Time in current status">${escapeHtml(statusAge)}</span>` : '',
-                isTaskOverdue(task) ? '<span class="task-tag" title="Overdue"><span class="due-dot"></span>Overdue</span>' : '',
-                priority ? `<span class="task-tag"><span class="priority-dot priority-${task.priority}"></span>${task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span>` : '',
-                effort ? `<span class="task-tag" title="Effort"><span class="effort-dot effort-${effort.toLowerCase()}"></span>${escapeHtml(effort)}</span>` : '',
-                score !== '-' ? `<span class="task-tag task-tag-score" title="Score (Priority / Effort)">Score ${score}</span>` : '',
-                task.dueDate ? `<span class="task-tag">${escapeHtml(formatDueDateForUi(task.dueDate))}</span>` : '',
-                task.checklist && task.checklist.length ? `<span class="task-tag">${task.checklist.filter(entry => entry.done).length}/${task.checklist.length} done</span>` : ''
-            ].filter(Boolean);
-            const taskMetaHtml = metaParts.length ? `<div class="task-meta">${metaParts.join('')}</div>` : '';
-            const bulkSelectHtml = showBulkSelect
-                ? `
-                    <label class="portfolio-task-card-select">
-                        <input
-                            type="checkbox"
-                            data-action="toggle-bulk-task-selection"
-                            data-board-id="${escapeHtml(item.boardId)}"
-                            data-task-id="${escapeHtml(String(item.taskId ?? task.id))}"
-                            ${isPortfolioTaskBulkSelected(item.boardId, task.id) ? 'checked' : ''}
-                        >
-                        <span class="portfolio-task-card-select-label">Select ${escapeHtml(task.title || `Task ${task.id}`)}</span>
-                    </label>
-                `
-                : '';
-
-            div.innerHTML = `
-                <div class="task-header">
-                    <div style="display:flex;align-items:flex-start;min-width:0;flex:1;">
-                        ${bulkSelectHtml}
-                        <span class="task-title">${highlightedTitle}</span>
-                    </div>
-                    <div class="task-actions">
-                        <button class="task-action-btn" type="button" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Edit' : readOnlyTitle}" data-action="edit-task">${editButtonLabel}</button>
-                        <button class="task-action-btn" type="button" ${canMutate ? '' : 'disabled'} title="${canMutate ? archiveButtonTitle : readOnlyTitle}" data-action="archive-task">${archiveButtonLabel}</button>
-                        <button class="task-action-btn task-action-danger" type="button" ${canMutate ? '' : 'disabled'} title="${canMutate ? 'Delete' : readOnlyTitle}" aria-label="${canMutate ? 'Delete' : readOnlyTitle}" data-action="delete-task">${deleteButtonLabel}</button>
-                    </div>
-                </div>
-                ${taskMetaHtml}
-            `;
-
-            const bulkCheckbox = div.querySelector('input[data-action="toggle-bulk-task-selection"]');
-            if (bulkCheckbox) {
-                bulkCheckbox.addEventListener('click', (event) => {
-                    event.stopPropagation();
-                });
-            }
-
-            return div;
-        }
-
         function canUsePortfolioViewMode(mode) {
             const normalized = normalizePortfolioViewMode(mode);
             if (normalized === 'calendar') return appState.portfolioBoards.length > 0;
@@ -1313,158 +832,6 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             if (!canUsePortfolioViewMode(appState.selectedPortfolioViewMode)) {
                 appState.selectedPortfolioViewMode = 'board';
             }
-        }
-
-        function renderRoadmapGridGuides(axisTicks) {
-            const ticks = Array.isArray(axisTicks) ? axisTicks : [];
-            return ticks
-                .filter((tick) => Number.isFinite(tick?.position) && tick.position > 0 && tick.position < 100)
-                .map((tick) => `<span class="roadmap-grid-guide" aria-hidden="true" style="left:${tick.position}%"></span>`)
-                .join('');
-        }
-
-        function renderRoadmapSection(boardData, boardId, kind, items, range, axisTicks) {
-            const config = getRoadmapEntityConfig(kind);
-            if (!config) return '';
-            const sortedItems = Array.isArray(items) ? [...items].sort(compareRoadmapItemsByDate) : [];
-            const hasItems = sortedItems.length > 0;
-            const guideMarkup = renderRoadmapGridGuides(axisTicks);
-            const taskCountLabel = (item) => {
-                const count = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id).length;
-                return count === 1 ? '1 linked task' : `${count} linked tasks`;
-            };
-            const rowMarkup = hasItems
-                ? sortedItems.map((item) => {
-                    const placement = getRoadmapTimelinePlacement(item, range);
-                    const expandKey = `${config.singular}:${item.id}`;
-                    const expanded = isPortfolioRoadmapRowExpanded(boardId, expandKey);
-                    return `
-                    <div
-                        class="roadmap-row"
-                        data-roadmap-kind="${config.singular}"
-                        data-roadmap-id="${escapeHtml(item.id)}"
-                        aria-expanded="${expanded ? 'true' : 'false'}"
-                    >
-                        <div class="roadmap-row-main">
-                            <div class="roadmap-row-labels">
-                                <div class="roadmap-row-actions">
-                                    <button class="roadmap-action-btn" type="button" aria-label="Edit ${escapeHtml(item.title)}" title="Edit" data-action="edit-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#9998;</button>
-                                    <button class="roadmap-action-btn" type="button" aria-label="Delete ${escapeHtml(item.title)}" title="Delete" data-action="delete-roadmap-item" data-roadmap-kind="${kind}" data-roadmap-id="${escapeHtml(item.id)}">&#128465;</button>
-                                </div>
-                                <h3 class="roadmap-row-title">${escapeHtml(item.title)}</h3>
-                                <div class="roadmap-row-meta">${escapeHtml(formatRoadmapDateRange(item) || 'No dates')}</div>
-                                <div class="roadmap-row-usage">
-                                    <span>${taskCountLabel(item)}</span>
-                                    <button
-                                        class="roadmap-disclosure-btn"
-                                        type="button"
-                                        aria-expanded="${expanded ? 'true' : 'false'}"
-                                        aria-label="${expanded ? 'Hide tasks for' : 'Show tasks for'} ${escapeHtml(item.title)}"
-                                        data-action="toggle-roadmap-row"
-                                        data-roadmap-kind="${config.singular}"
-                                        data-roadmap-id="${escapeHtml(item.id)}"
-                                    >${expanded ? 'Hide tasks' : 'Show tasks'}</button>
-                                </div>
-                            </div>
-                            <div class="roadmap-row-track">
-                                ${guideMarkup}
-                                ${config.dateMode === 'single'
-                                    ? `
-                                        <div class="roadmap-row-timeline-stem" style="left:${placement?.point ?? 50}%"></div>
-                                        <div class="roadmap-row-timeline-point" style="left:${placement?.point ?? 50}%"></div>
-                                    `
-                                    : `<div class="roadmap-row-timeline-bar" style="left:${placement?.left ?? 0}%;width:${placement?.width ?? 0}%"></div>`}
-                            </div>
-                        </div>
-                        <div class="roadmap-expand-icon">${expanded ? 'Collapse' : 'Expand'}</div>
-                        ${expanded
-                            ? `<div class="roadmap-task-list" data-roadmap-task-list="${config.singular}:${escapeHtml(item.id)}"></div>`
-                            : ''}
-                    </div>
-                `;
-                }).join('')
-                : `<div class="roadmap-empty">No ${config.singular}s yet. Use the add button to create the first ${config.singular}.</div>`;
-
-            return `
-                <section class="roadmap-section" data-roadmap-kind="${kind}">
-                    <div class="roadmap-section-header">
-                        <div>
-                            <h3 class="roadmap-section-title">${config.label}s</h3>
-                            <div class="roadmap-section-subtitle">Assigned ${config.singular}s on the shared roadmap.</div>
-                        </div>
-                        <button class="roadmap-section-btn" type="button" aria-label="Add ${config.label}" data-action="add-roadmap-item" data-roadmap-kind="${kind}">+ ${config.label}</button>
-                    </div>
-                    <div class="roadmap-list">${rowMarkup}</div>
-                </section>
-            `;
-        }
-
-        function renderPortfolioRoadmapView() {
-            const roadmapView = document.getElementById('portfolioRoadmapView');
-            if (!roadmapView) return;
-
-            const viewState = getSelectedBoardTimelineViewState();
-            const board = viewState?.boardRecord || (appState.selectedPortfolioBoardId ? getPortfolioBoardRecord(appState.selectedPortfolioBoardId) : null);
-            const boardData = viewState?.isPreview ? (viewState.projectedBoard || board?.data || null) : (board?.data || viewState?.projectedBoard || null);
-            const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
-            const range = getVisibleRoadmapDateRange(roadmap);
-            const axisTicks = getRoadmapAxisTicks(range);
-            roadmapView.innerHTML = `
-                <div class="portfolio-roadmap-timeline">
-                    <div class="roadmap-axis-shell">
-                        <div class="roadmap-axis-label">Timeline</div>
-                        <div class="roadmap-axis" data-roadmap-axis="shared">
-                            <div class="roadmap-axis-line">${renderRoadmapGridGuides(axisTicks)}${renderRoadmapTodayMarker(range)}</div>
-                            <div class="roadmap-axis-ticks">
-                                ${axisTicks.map((tick) => `<div class="roadmap-axis-tick" style="left:${tick.position}%">${escapeHtml(tick.label)}</div>`).join('')}
-                            </div>
-                        </div>
-                    </div>
-                    ${renderRoadmapSection(boardData, board?.id || '', 'milestones', roadmap.milestones, range, axisTicks)}
-                    ${renderRoadmapSection(boardData, board?.id || '', 'phases', roadmap.phases, range, axisTicks)}
-                    ${renderRoadmapSection(boardData, board?.id || '', 'sprints', roadmap.sprints, range, axisTicks)}
-                </div>
-            `;
-            if (board && boardData) {
-                populatePortfolioRoadmapTaskLists(board, boardData, { historical: Boolean(viewState?.isPreview) });
-            }
-        }
-
-        function populatePortfolioRoadmapTaskLists(boardRecord, boardData, options = {}) {
-            if (!boardRecord || !boardData) return;
-            document.querySelectorAll('#portfolioRoadmapView [data-roadmap-task-list]').forEach((container) => {
-                const descriptor = container.getAttribute('data-roadmap-task-list') || '';
-                const [singularKind, itemId] = descriptor.split(':');
-                const config = getRoadmapEntityConfig(`${singularKind}s`);
-                if (!config || !itemId) return;
-                const tasks = getRoadmapTaskFieldTasks(boardData, config.taskField, itemId);
-                if (tasks.length === 0) {
-                    container.innerHTML = `
-                        <div class="roadmap-task-list-gutter" aria-hidden="true"></div>
-                        <div class="roadmap-task-list-track">
-                            <div class="roadmap-task-empty">No tasks assigned.</div>
-                        </div>
-                    `;
-                    return;
-                }
-                const gutter = document.createElement('div');
-                gutter.className = 'roadmap-task-list-gutter';
-                gutter.setAttribute('aria-hidden', 'true');
-                const track = document.createElement('div');
-                track.className = 'roadmap-task-list-track';
-                track.replaceChildren(...tasks.map((task, taskIndex) => createPortfolioRoadmapTaskCard({
-                    boardIndex: appState.portfolioBoards.findIndex((board) => board.id === boardRecord.id),
-                    boardId: boardRecord.id,
-                    taskId: task.id,
-                    taskIndex,
-                    boardTitle: boardRecord.title,
-                    boardFileName: boardRecord.fileName,
-                    canMutate: false,
-                    historical: Boolean(options.historical),
-                    task: normalizeTask(task)
-                })));
-                container.replaceChildren(gutter, track);
-            });
         }
 
         function syncSelectedPortfolioBoardSelection() {
@@ -1511,39 +878,10 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                     isExpanded: isPortfolioTimelineExpanded(timelineView.boardRecord.id)
                 }
                 : null;
-            const roadmapBoard = timelineView?.boardRecord
-                || (appState.selectedPortfolioBoardId ? getPortfolioBoardRecord(appState.selectedPortfolioBoardId) : null);
-            const roadmapBoardData = timelineView?.isPreview
-                ? (timelineView.projectedBoard || roadmapBoard?.data || null)
-                : (roadmapBoard?.data || timelineView?.projectedBoard || null);
-            const roadmap = getRoadmapExtension(roadmapBoardData) || createEmptyRoadmapExtension();
-            const roadmapRange = getVisibleRoadmapDateRange(roadmap);
-            appState.portfolioRoadmapView = roadmapBoard
-                ? {
-                    boardId: roadmapBoard.id,
-                    boardTitle: roadmapBoard.title || roadmapBoard.fileName || 'Selected Project',
-                    boardFileName: roadmapBoard.fileName || '',
-                    boardData: roadmapBoardData,
-                    roadmap,
-                    range: roadmapRange,
-                    axisTicks: getRoadmapAxisTicks(roadmapRange),
-                    historical: Boolean(timelineView?.isPreview)
-                }
-                : null;
             const rows = getFilteredSortedPortfolioRows();
             appState.portfolioVisibleRows = rows;
             syncSelectedPortfolioCardWithVisibleRows(rows);
             syncHoveredPortfolioCardWithVisibleRows(rows);
-            const calendarItems = buildPortfolioCalendarItems(rows);
-            ensurePortfolioCalendarState(calendarItems);
-            appState.portfolioCalendarViewModel = {
-                items: calendarItems,
-                aggregate: !appState.selectedPortfolioBoardId,
-                view: appState.portfolioCalendarView,
-                displayMode: appState.portfolioCalendarDisplayMode,
-                year: appState.portfolioCalendarYear,
-                month: appState.portfolioCalendarMonth
-            };
             boardWrap.classList.remove('hidden');
             normalizePortfolioViewModeState();
 
@@ -3182,7 +2520,8 @@ import { setLegacyHost } from '../actions/legacyHost.js';
         }
 
         function shiftPortfolioCalendarMonth(step) {
-            const current = createUtcDate(appState.portfolioCalendarYear, appState.portfolioCalendarMonth, 1);
+            const period = buildPortfolioCalendarViewModel(appState);
+            const current = createUtcDate(period.year, period.month, 1);
             const next = createUtcDate(current.getUTCFullYear(), current.getUTCMonth() + step, 1);
             appState.portfolioCalendarYear = next.getUTCFullYear();
             appState.portfolioCalendarMonth = next.getUTCMonth();
@@ -3223,12 +2562,12 @@ import { setLegacyHost } from '../actions/legacyHost.js';
                     return;
                 }
                 if (action === 'calendar-prev-year') {
-                    appState.portfolioCalendarYear -= 1;
+                    appState.portfolioCalendarYear = buildPortfolioCalendarViewModel(appState).year - 1;
                     renderPortfolio();
                     return;
                 }
                 if (action === 'calendar-next-year') {
-                    appState.portfolioCalendarYear += 1;
+                    appState.portfolioCalendarYear = buildPortfolioCalendarViewModel(appState).year + 1;
                     renderPortfolio();
                     return;
                 }
@@ -3330,10 +2669,9 @@ import { setLegacyHost } from '../actions/legacyHost.js';
             });
         }
 
-        // Persistence calls back into the UI through these two seams; see
-        // src/persistence/projectFiles.js.
+        // Persistence calls back into the runtime only when an external file
+        // snapshot must replace a board; status changes notify Zustand directly.
         setPersistenceHost({
-            onStatusChanged: () => notifyAppStateChanged(),
             applySnapshot: applySnapshotToBoardRecord
         });
 

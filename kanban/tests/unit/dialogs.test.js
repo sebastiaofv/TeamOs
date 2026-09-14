@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { appState } from '../../src/state/store.js';
-import { subscribe } from '../../src/bridge/appStore.js';
+import { subscribeToVersion as subscribe } from '../../src/state/store.js';
 import { openDialog, closeDialog } from '../../src/actions/dialogs.js';
 
 describe('dialog actions', () => {

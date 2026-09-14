@@ -2,14 +2,12 @@
 // functions -- never exposed on window.
 
 import { flushSync } from 'react-dom';
-import { appState } from '../state/store.js';
-import { notifyAppStateChanged } from '../bridge/appStore.js';
+import { notifyAppStateChanged, useAppStore } from '../state/store.js';
 
 // Opens `name` with an optional view model. Re-opening the dialog that is
 // already open replaces its props; the Radix root stays mounted.
 export function openDialog(name, props = null) {
-    appState.activeDialog = name;
-    appState.dialogProps = props;
+    useAppStore.setState({ activeDialog: name, dialogProps: props });
     notifyAppStateChanged();
 }
 
@@ -18,9 +16,11 @@ export function openDialog(name, props = null) {
 // task editor), and Radix's focus trap must already be unmounted by then.
 // Never call this during a React render or lifecycle method.
 export function closeDialog(name) {
-    if (appState.activeDialog === null) return;
-    if (name !== undefined && appState.activeDialog !== name) return;
-    appState.activeDialog = null;
-    appState.dialogProps = null;
-    flushSync(() => notifyAppStateChanged());
+    const { activeDialog } = useAppStore.getState();
+    if (activeDialog === null) return;
+    if (name !== undefined && activeDialog !== name) return;
+    flushSync(() => {
+        useAppStore.setState({ activeDialog: null, dialogProps: null });
+        notifyAppStateChanged();
+    });
 }

@@ -1,13 +1,12 @@
 // Project file persistence: save queueing, save/watch status, and detection of
 // external changes made to a board file outside the app.
 //
-// This layer owns no DOM. Four of these functions need the project chips
-// re-rendered after a status change, which is a UI concern, so they call a
-// registered notifier instead of importing a render function. src/legacy/main.js
-// registers the real one at startup; until then it is a no-op, which keeps this
-// module usable from tests without a document.
+// This layer owns no DOM. Save/watch status is part of the Zustand store, so
+// status changes notify the store directly. Applying an externally-read board
+// snapshot remains the only UI callback because it needs portfolio-specific
+// context cleanup and view rebuilding.
 
-import { appState, getPortfolioBoardRecord } from '../state/store.js';
+import { useAppStore, getPortfolioBoardRecord, notifyAppStateChanged } from '../state/store.js';
 import { PROJECT_FILE_EXTERNAL_BADGE_MS, PROJECT_FILE_CONFLICT_SUPPRESS_MS } from '../domain/constants.js';
 import { nextPortfolioProjectId } from '../domain/board.js';
 import { serializeBoardDataFromObject } from '../domain/serialize.js';
@@ -16,13 +15,9 @@ import { createProjectSaveState } from '../domain/persistence.js';
 import { BoardRepository } from './boardRepository.js';
 import { Logger } from '../logger.js';
 
-// The two seams where persistence has to hand control back to the UI. The host
-// supplies real implementations; the defaults are no-ops so this module can be
-// exercised without a document.
+// The snapshot seam is registered by the app runtime; the default keeps this
+// module usable from tests without a document.
 const host = {
-    // Called when a board's save or watch status changes and the project chips
-    // need to reflect it.
-    onStatusChanged: () => {},
     // Called with a board record and a snapshot read from disk, to apply that
     // snapshot to app state and re-render. Persistence detects the external
     // change; deciding how to surface it is the UI's job.
@@ -31,21 +26,19 @@ const host = {
 
 /** Register the UI implementations for the seams above. */
 export function setPersistenceHost(impl = {}) {
-    for (const key of Object.keys(host)) {
-        if (typeof impl[key] === 'function') host[key] = impl[key];
-    }
+    if (typeof impl.applySnapshot === 'function') host.applySnapshot = impl.applySnapshot;
 }
 
-const notifyProjectStatusChanged = (...args) => host.onStatusChanged(...args);
+const notifyProjectStatusChanged = () => notifyAppStateChanged();
 const applySnapshotToBoardRecord = (...args) => host.applySnapshot(...args);
 
 export function getProjectSaveState(boardId, options = {}) {
     if (!boardId) return null;
     const createIfMissing = options.create !== false;
-    let state = appState.projectSaveStateById.get(boardId) || null;
+    let state = useAppStore.getState().projectSaveStateById.get(boardId) || null;
     if (!state && createIfMissing) {
         state = createProjectSaveState();
-        appState.projectSaveStateById.set(boardId, state);
+        useAppStore.getState().projectSaveStateById.set(boardId, state);
     }
     return state;
 }
@@ -53,7 +46,7 @@ export function getProjectSaveState(boardId, options = {}) {
 function getProjectFileState(boardId, options = {}) {
     if (!boardId) return null;
     const createIfMissing = options.create !== false;
-    let state = appState.projectFileStateById.get(boardId) || null;
+    let state = useAppStore.getState().projectFileStateById.get(boardId) || null;
     if (!state && createIfMissing) {
         state = {
             lastModified: 0,
@@ -62,7 +55,7 @@ function getProjectFileState(boardId, options = {}) {
             checking: false,
             suppressedUntilMs: 0
         };
-        appState.projectFileStateById.set(boardId, state);
+        useAppStore.getState().projectFileStateById.set(boardId, state);
     }
     return state;
 }
@@ -84,19 +77,19 @@ function clearProjectWatchStatus(boardId, options = {}) {
 
 export function syncProjectSaveStates() {
     const activeIds = new Set();
-    appState.portfolioBoards.forEach((board) => {
+    useAppStore.getState().portfolioBoards.forEach((board) => {
         if (!board || !board.id) return;
         activeIds.add(board.id);
         getProjectSaveState(board.id);
     });
-    Array.from(appState.projectSaveStateById.keys()).forEach((boardId) => {
+    Array.from(useAppStore.getState().projectSaveStateById.keys()).forEach((boardId) => {
         if (!activeIds.has(boardId)) {
-            appState.projectSaveStateById.delete(boardId);
+            useAppStore.getState().projectSaveStateById.delete(boardId);
         }
     });
-    Array.from(appState.projectFileStateById.keys()).forEach((boardId) => {
+    Array.from(useAppStore.getState().projectFileStateById.keys()).forEach((boardId) => {
         if (!activeIds.has(boardId)) {
-            appState.projectFileStateById.delete(boardId);
+            useAppStore.getState().projectFileStateById.delete(boardId);
         }
     });
 }
@@ -208,23 +201,23 @@ async function checkProjectFileForExternalChanges(boardRecord) {
 }
 
 export async function checkProjectFilesNow() {
-    if (appState.projectWatchRunning) return false;
-    appState.projectWatchRunning = true;
+    if (useAppStore.getState().projectWatchRunning) return false;
+    useAppStore.getState().projectWatchRunning = true;
     try {
-        const boards = appState.portfolioBoards.filter(board => board && board.handle);
+        const boards = useAppStore.getState().portfolioBoards.filter(board => board && board.handle);
         for (const board of boards) {
             await checkProjectFileForExternalChanges(board);
         }
         return true;
     } finally {
-        appState.projectWatchRunning = false;
+        useAppStore.getState().projectWatchRunning = false;
     }
 }
 
 export function stopProjectFileWatcher() {
-    if (appState.projectWatchTimerId) {
-        clearInterval(appState.projectWatchTimerId);
-        appState.projectWatchTimerId = null;
+    if (useAppStore.getState().projectWatchTimerId) {
+        clearInterval(useAppStore.getState().projectWatchTimerId);
+        useAppStore.getState().projectWatchTimerId = null;
     }
 }
 
@@ -309,7 +302,7 @@ export function createPortfolioRecord({ handle = null, fileName = '', data }) {
     const payload = serializeBoardDataFromObject(data);
     return {
         id: nextPortfolioProjectId(),
-        colorSeed: appState.nextPortfolioProjectColorSeed++,
+        colorSeed: useAppStore.getState().nextPortfolioProjectColorSeed++,
         handle,
         fileName,
         title: payload.board.settings.title,

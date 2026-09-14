@@ -10,6 +10,7 @@ import {
     getRoadmapTodayMarker
 } from '../domain/roadmap.js';
 import { normalizeTask } from '../domain/task.js';
+import { buildPortfolioRoadmapView } from '../selectors/portfolioViews.js';
 
 function RoadmapTaskList({ tasks, descriptor, boardRecord, historical, state }) {
     const boardIndex = state.portfolioBoards.findIndex((board) => board.id === boardRecord.id);
@@ -233,7 +234,7 @@ function PortfolioRoadmapView({ view, state }) {
 export function PortfolioRoadmap() {
     const state = useAppStore((current) => current);
     const target = document.getElementById('portfolioRoadmapView');
-    const view = state.portfolioRoadmapView;
+    const view = buildPortfolioRoadmapView(state);
     if (!target || !view) return null;
     return createPortal(<PortfolioRoadmapView view={view} state={state} />, target);
 }

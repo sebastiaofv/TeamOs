@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { subscribe, getVersion, notifyAppStateChanged } from '../../src/bridge/appStore.js';
+import { getStoreVersion, notifyAppStateChanged, subscribeToVersion } from '../../src/state/store.js';
 
 describe('appStore version tick', () => {
   it('delivers a notification to a subscribed listener', () => {
     const listener = vi.fn();
-    const unsubscribe = subscribe(listener);
+    const unsubscribe = subscribeToVersion(listener);
 
     notifyAppStateChanged();
 
@@ -13,17 +13,17 @@ describe('appStore version tick', () => {
   });
 
   it('increments the version by one per notify', () => {
-    const before = getVersion();
+    const before = getStoreVersion();
 
     notifyAppStateChanged();
     notifyAppStateChanged();
 
-    expect(getVersion()).toBe(before + 2);
+    expect(getStoreVersion()).toBe(before + 2);
   });
 
   it('stops delivering after unsubscribe', () => {
     const listener = vi.fn();
-    const unsubscribe = subscribe(listener);
+    const unsubscribe = subscribeToVersion(listener);
 
     unsubscribe();
     notifyAppStateChanged();
@@ -34,8 +34,8 @@ describe('appStore version tick', () => {
   it('notifies every subscriber', () => {
     const first = vi.fn();
     const second = vi.fn();
-    const unsubscribeFirst = subscribe(first);
-    const unsubscribeSecond = subscribe(second);
+    const unsubscribeFirst = subscribeToVersion(first);
+    const unsubscribeSecond = subscribeToVersion(second);
 
     notifyAppStateChanged();
 
