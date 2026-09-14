@@ -47,15 +47,18 @@ import {
     ensureBoardTimelineBaseline,
     getBoardTimelineData,
     recordBoardRestoreTimelineEvent,
-    recordTaskTimelineEvent,
-    reconstructBoardStateFromTimeline
+    recordTaskTimelineEvent
 } from '../domain/timeline.js';
 import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '../domain/calendar.js';
 import { assigneesToInput, checklistToInput, formatFileSize, nowIso } from '../domain/util.js';
 import { enqueueProjectSave, getProjectSaveState, markProjectDirty } from '../persistence/projectFiles.js';
 import { closeDialog, openDialog } from './dialogs.js';
 import { notifyAppStateChanged, useAppStore } from '../state/store.js';
-import { getSelectedPortfolioTimelineView } from '../selectors/portfolioViews.js';
+import {
+    getPortfolioBulkTaskIds,
+    getSelectedPortfolioTimelineView,
+    isBoardInHistoricalPreview
+} from '../selectors/portfolioViews.js';
 import { refreshPortfolioState } from '../state/portfolioViewState.js';
 
 const noop = () => {};
@@ -115,62 +118,39 @@ export function createPortfolioMutationActions({
         return getState().portfolioBoards.find((board) => board?.id === boardId) || null;
     }
 
-    function getPortfolioBulkSelection(boardId) {
-        const selection = getState().portfolioBulkSelectionByBoardId?.[boardId];
-        return Array.isArray(selection) ? selection : [];
+    function setBulkSelection(boardId, taskIds) {
+        const next = { ...(getState().portfolioBulkSelectionByBoardId || {}) };
+        if (taskIds.length > 0) {
+            next[boardId] = taskIds;
+        } else {
+            delete next[boardId];
+        }
+        commitState({ portfolioBulkSelectionByBoardId: next });
     }
 
     function clearPortfolioBulkSelection(boardId = '') {
-        const state = getState();
         if (boardId) {
-            delete state.portfolioBulkSelectionByBoardId[boardId];
+            setBulkSelection(boardId, []);
         } else {
-            state.portfolioBulkSelectionByBoardId = {};
+            commitState({ portfolioBulkSelectionByBoardId: {} });
         }
-        notifyStateChanged();
-    }
-
-    function syncPortfolioBulkSelection(boardId, boardData) {
-        const normalizedBoardId = String(boardId || '');
-        if (!normalizedBoardId) return;
-        const taskIds = new Set(
-            Array.isArray(boardData?.board?.tasks)
-                ? boardData.board.tasks.map((task) => Number(task.id))
-                : []
-        );
-        const nextIds = getPortfolioBulkSelection(normalizedBoardId)
-            .filter((taskId) => taskIds.has(Number(taskId)));
-        if (nextIds.length > 0) {
-            getState().portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
-        } else {
-            delete getState().portfolioBulkSelectionByBoardId[normalizedBoardId];
-        }
-        notifyStateChanged();
     }
 
     function togglePortfolioTaskBulkSelection(boardId, taskId, checked) {
         const normalizedBoardId = String(boardId || '');
         if (!normalizedBoardId) return;
-        const ids = new Set(getPortfolioBulkSelection(normalizedBoardId).map((value) => Number(value)));
+        const selection = getState().portfolioBulkSelectionByBoardId?.[normalizedBoardId] || [];
+        const ids = new Set(selection.map((value) => Number(value)));
         if (checked) {
             ids.add(Number(taskId));
         } else {
             ids.delete(Number(taskId));
         }
-        const nextIds = [...ids];
-        if (nextIds.length > 0) {
-            getState().portfolioBulkSelectionByBoardId[normalizedBoardId] = nextIds;
-        } else {
-            delete getState().portfolioBulkSelectionByBoardId[normalizedBoardId];
-        }
-        notifyStateChanged();
+        setBulkSelection(normalizedBoardId, [...ids]);
     }
 
     function getSelectedPortfolioBulkTaskIds(boardId) {
-        const boardRecord = getBoardRecord(boardId);
-        if (!boardRecord) return [];
-        syncPortfolioBulkSelection(boardId, boardRecord.data);
-        return getPortfolioBulkSelection(boardId);
+        return getPortfolioBulkTaskIds(getState(), boardId);
     }
 
     function setSelectedPortfolioBoardId(boardId, options = {}) {
@@ -385,8 +365,7 @@ export function createPortfolioMutationActions({
         setSelectedPortfolioCard(boardId, taskId);
         commitState({
             portfolioEditContext: { boardId, taskId },
-            portfolioCreateContext: null,
-            pendingNewTaskStatus: null
+            portfolioCreateContext: null
         });
         openDialog('taskEditor', buildTaskEditorViewModel(source.boardRecord, source.task, { taskId }));
     }
@@ -406,8 +385,7 @@ export function createPortfolioMutationActions({
             : fallbackStatus;
         commitState({
             portfolioCreateContext: { boardId, status },
-            portfolioEditContext: null,
-            pendingNewTaskStatus: null
+            portfolioEditContext: null
         });
         openDialog('taskEditor', buildTaskEditorViewModel(boardRecord, null, {
             preferredDueDate: options.preferredDueDate
@@ -460,27 +438,8 @@ export function createPortfolioMutationActions({
         return Boolean(getBoardRecord(boardId)?.handle);
     }
 
-    function getTimelineSelectionIndex(boardId, timeline) {
-        if (!boardId || !timeline?.events?.length) return null;
-        const maxIndex = timeline.events.length - 1;
-        const selection = getState().portfolioTimelineSelection || {};
-        if (selection.boardId !== boardId || !Number.isInteger(selection.eventIndex)) {
-            return maxIndex;
-        }
-        return Math.max(0, Math.min(maxIndex, selection.eventIndex));
-    }
-
-    function isHistoricalPreviewActiveForBoard(boardId) {
-        if (!boardId) return false;
-        const boardRecord = getBoardRecord(boardId);
-        const timeline = getBoardTimelineData(boardRecord?.data);
-        if (!timeline || timeline.events.length === 0) return false;
-        const selectedIndex = getTimelineSelectionIndex(boardId, timeline);
-        return Number.isInteger(selectedIndex) && selectedIndex < timeline.events.length - 1;
-    }
-
     function canUsePortfolioTaskMutations(boardId) {
-        return isPortfolioBoardMutable(boardId) && !isHistoricalPreviewActiveForBoard(boardId);
+        return isPortfolioBoardMutable(boardId) && !isBoardInHistoricalPreview(getState(), boardId);
     }
 
     function notifyPortfolioReadOnly() {
@@ -492,7 +451,7 @@ export function createPortfolioMutationActions({
     }
 
     function notifyPortfolioMutationUnavailable(boardId) {
-        if (isHistoricalPreviewActiveForBoard(boardId)) {
+        if (isBoardInHistoricalPreview(getState(), boardId)) {
             notifyTimelinePreviewReadOnly();
             return;
         }
@@ -501,7 +460,6 @@ export function createPortfolioMutationActions({
 
     function closeTaskEditor() {
         commitState({
-            pendingNewTaskStatus: null,
             portfolioEditContext: null,
             portfolioCreateContext: null
         });
@@ -516,20 +474,6 @@ export function createPortfolioMutationActions({
     function closeRoadmapEntity() {
         commitState({ roadmapEntityContext: null });
         closeDialogFn('roadmapEntity');
-    }
-
-    function closePortfolioContextsForProject(boardId) {
-        if (!boardId) return;
-        const state = getState();
-        if (state.portfolioDetailContext?.boardId === boardId) {
-            closeTaskDetail();
-        }
-        if (
-            state.portfolioEditContext?.boardId === boardId
-            || state.portfolioCreateContext?.boardId === boardId
-        ) {
-            closeTaskEditor();
-        }
     }
 
     function clearPortfolioTimelineSelection(options = {}) {
@@ -638,37 +582,8 @@ export function createPortfolioMutationActions({
         openPortfolioTaskDetails(boardId, taskId);
     }
 
-    function getSelectedBoardTimelineViewState() {
-        const state = getState();
-        const boardId = state.selectedPortfolioBoardId;
-        if (!boardId) return null;
-        const boardRecord = getBoardRecord(boardId);
-        if (!boardRecord) return null;
-        const timeline = getBoardTimelineData(boardRecord.data);
-        if (!timeline || timeline.events.length === 0) {
-            return {
-                boardRecord,
-                timeline: null,
-                selectedIndex: null,
-                selectedEvent: null,
-                isPreview: false,
-                projectedBoard: null
-            };
-        }
-
-        const selectedIndex = getTimelineSelectionIndex(boardId, timeline);
-        return {
-            boardRecord,
-            timeline,
-            selectedIndex,
-            selectedEvent: timeline.events[selectedIndex] || null,
-            isPreview: selectedIndex < timeline.events.length - 1,
-            projectedBoard: reconstructBoardStateFromTimeline(boardRecord.data, selectedIndex)
-        };
-    }
-
     async function restorePortfolioTimelineSelection() {
-        const viewState = getSelectedBoardTimelineViewState();
+        const viewState = getSelectedPortfolioTimelineView(getState());
         if (!viewState?.boardRecord || !viewState.projectedBoard) return false;
         if (!viewState.boardRecord.handle) {
             notifyPortfolioMutationUnavailable(viewState.boardRecord.id);
@@ -1297,18 +1212,19 @@ export function createPortfolioMutationActions({
         refreshViews();
     }
 
+    // The timer never affects rendering, so it lives here rather than in the store.
+    let undoTimer = null;
+
     function showUndo(message, undoFn) {
-        const previousTimer = getState().undoTimer;
-        if (previousTimer) clearTimeout(previousTimer);
-        commitState({ undoAction: undoFn, undoToast: { message }, undoTimer: null });
-        const timer = setTimeout(() => hideUndo(), 5000);
-        commitState({ undoTimer: timer });
+        if (undoTimer) clearTimeout(undoTimer);
+        commitState({ undoAction: undoFn, undoToast: { message } });
+        undoTimer = setTimeout(() => hideUndo(), 5000);
     }
 
     function hideUndo() {
-        const timer = getState().undoTimer;
-        if (timer) clearTimeout(timer);
-        commitState({ undoTimer: null, undoAction: null, undoToast: null });
+        if (undoTimer) clearTimeout(undoTimer);
+        undoTimer = null;
+        commitState({ undoAction: null, undoToast: null });
     }
 
     function performUndo() {
@@ -1322,9 +1238,7 @@ export function createPortfolioMutationActions({
         assignSelectionToExistingSprint,
         beginPortfolioTimelineSliderDrag,
         canUsePortfolioTaskMutations,
-        clearPortfolioBulkSelection,
         clearPortfolioTimelineSelection,
-        closePortfolioContextsForProject,
         closeRoadmapEntity,
         closeTaskDetail,
         closeTaskEditor,
@@ -1332,7 +1246,6 @@ export function createPortfolioMutationActions({
         deletePortfolioTask,
         deleteRoadmapEntity,
         editPortfolioTask,
-        getSelectedPortfolioBulkTaskIds,
         handleTimelineSliderPointerCommit,
         movePortfolioTaskToStatus,
         movePortfolioTimelineToLatest,
@@ -1364,19 +1277,12 @@ export function createPortfolioMutationActions({
     };
 }
 
-let activeActions = createPortfolioMutationActions();
-
-export function configurePortfolioMutationActions(options = {}) {
-    activeActions = createPortfolioMutationActions(options);
-    return activeActions;
-}
+const activeActions = createPortfolioMutationActions();
 
 export const assignSelectionToExistingSprint = (...args) => activeActions.assignSelectionToExistingSprint(...args);
 export const beginPortfolioTimelineSliderDrag = (...args) => activeActions.beginPortfolioTimelineSliderDrag(...args);
 export const canUsePortfolioTaskMutations = (...args) => activeActions.canUsePortfolioTaskMutations(...args);
-export const clearPortfolioBulkSelection = (...args) => activeActions.clearPortfolioBulkSelection(...args);
 export const clearPortfolioTimelineSelection = (...args) => activeActions.clearPortfolioTimelineSelection(...args);
-export const closePortfolioContextsForProject = (...args) => activeActions.closePortfolioContextsForProject(...args);
 export const closeRoadmapEntity = (...args) => activeActions.closeRoadmapEntity(...args);
 export const closeTaskDetail = (...args) => activeActions.closeTaskDetail(...args);
 export const closeTaskEditor = (...args) => activeActions.closeTaskEditor(...args);
@@ -1384,7 +1290,6 @@ export const createSprintFromSelection = (...args) => activeActions.createSprint
 export const deletePortfolioTask = (...args) => activeActions.deletePortfolioTask(...args);
 export const deleteRoadmapEntity = (...args) => activeActions.deleteRoadmapEntity(...args);
 export const editPortfolioTask = (...args) => activeActions.editPortfolioTask(...args);
-export const getSelectedPortfolioBulkTaskIds = (...args) => activeActions.getSelectedPortfolioBulkTaskIds(...args);
 export const handleTimelineSliderPointerCommit = (...args) => activeActions.handleTimelineSliderPointerCommit(...args);
 export const movePortfolioTaskToStatus = (...args) => activeActions.movePortfolioTaskToStatus(...args);
 export const movePortfolioTimelineToLatest = (...args) => activeActions.movePortfolioTimelineToLatest(...args);

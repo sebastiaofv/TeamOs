@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom';
 import { useAppStore } from '../state/store.js';
 import { CALENDAR_MONTH_NAMES, CALENDAR_WEEKDAY_NAMES } from '../domain/constants.js';
 import {
@@ -21,8 +20,7 @@ import {
     shouldShowPortfolioCalendarRoadmapLabel
 } from '../domain/calendar.js';
 import { addRoadmapDays } from '../domain/roadmap.js';
-import { getBoardTimelineData } from '../domain/timeline.js';
-import { buildPortfolioCalendarViewModel } from '../selectors/portfolioViews.js';
+import { buildPortfolioCalendarViewModel, isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
 import {
     openPortfolioCreateTaskModal,
     openPortfolioTaskDetailsForCalendar
@@ -201,17 +199,6 @@ function CalendarYearView({ items, aggregate, heatmap, year }) {
     );
 }
 
-function isHistoricalPreview(state, boardId) {
-    const board = state.portfolioBoards.find((record) => record.id === boardId);
-    const timeline = getBoardTimelineData(board?.data);
-    if (!timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) return false;
-    const selection = state.portfolioTimelineSelection || {};
-    const selectedIndex = selection.boardId === boardId && Number.isInteger(selection.eventIndex)
-        ? Math.max(0, Math.min(timeline.events.length - 1, selection.eventIndex))
-        : timeline.events.length - 1;
-    return selectedIndex < timeline.events.length - 1;
-}
-
 function CalendarMonthView({ items, aggregate, heatmap, year, month, state }) {
     const firstOfMonth = createUtcDate(year, month, 1);
     const leadingDays = firstOfMonth.getUTCDay();
@@ -221,7 +208,7 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state }) {
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
     const canCreateTasks = Boolean(state.selectedPortfolioBoardId)
         && Boolean(selectedBoard?.handle)
-        && !isHistoricalPreview(state, state.selectedPortfolioBoardId);
+        && !isBoardInHistoricalPreview(state, state.selectedPortfolioBoardId);
 
     return (
         <div className="portfolio-calendar-month-grid surface-card surface-border">
@@ -343,10 +330,12 @@ function PortfolioCalendarView({ model, state }) {
     );
 }
 
-export function PortfolioCalendar() {
+export function PortfolioCalendar({ hidden }) {
     const state = useAppStore((current) => current);
-    const target = document.getElementById('portfolioCalendarView');
     const model = buildPortfolioCalendarViewModel(state);
-    if (!target) return null;
-    return createPortal(<PortfolioCalendarView model={model} state={state} />, target);
+    return (
+        <div className={`portfolio-calendar-view${hidden ? ' hidden' : ''}`} id="portfolioCalendarView">
+            <PortfolioCalendarView model={model} state={state} />
+        </div>
+    );
 }

@@ -18,9 +18,10 @@ module.exports = defineConfig({
     screenshot: 'only-on-failure'
   },
   webServer: {
-    command: 'npm run preview',
+    // Build first so the suite never runs against a stale dist/.
+    command: 'npm run build && npm run preview',
     port: 4173,
     reuseExistingServer: true,
-    timeout: 30_000
+    timeout: 60_000
   }
 });

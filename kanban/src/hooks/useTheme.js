@@ -15,13 +15,6 @@ function applyTheme(theme, persist = false) {
     const activeTheme = normalizeTheme(theme);
     useAppStore.setState({ activeTheme });
     document.documentElement.setAttribute('data-theme', activeTheme);
-    const label = activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
-    const toggle = document.getElementById('themeToggleBtn');
-    if (toggle) {
-        toggle.setAttribute('aria-label', label);
-        toggle.setAttribute('title', label);
-        toggle.setAttribute('aria-pressed', activeTheme === 'dark' ? 'true' : 'false');
-    }
     if (persist) {
         try {
             localStorage.setItem(THEME_STORAGE_KEY, activeTheme);
@@ -29,20 +22,14 @@ function applyTheme(theme, persist = false) {
     }
 }
 
+// Applies the stored theme on mount and returns the active theme plus a toggle.
 export function useTheme() {
+    const theme = useAppStore((state) => state.activeTheme);
+
     useLayoutEffect(() => {
         applyTheme(readStoredTheme());
-        const toggle = document.getElementById('themeToggleBtn');
-        const handleToggle = () => {
-            const current = useAppStore.getState().activeTheme;
-            applyTheme(current === 'dark' ? 'light' : 'dark', true);
-        };
-        toggle?.addEventListener('click', handleToggle);
-        return () => toggle?.removeEventListener('click', handleToggle);
     }, []);
-}
 
-export function ThemeIntegration() {
-    useTheme();
-    return null;
+    const toggleTheme = () => applyTheme(theme === 'dark' ? 'light' : 'dark', true);
+    return { theme, toggleTheme };
 }

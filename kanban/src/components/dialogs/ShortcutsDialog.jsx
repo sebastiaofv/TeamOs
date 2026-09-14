@@ -2,6 +2,7 @@ import { Fragment } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAppStore } from '../../state/store.js';
 import { closeDialog } from '../../actions/dialogs.js';
+import { SHORTCUTS } from '../../actions/portfolioShortcuts.js';
 import { useReturnFocus } from './useReturnFocus.js';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast.js';
 
@@ -59,7 +60,6 @@ function ShortcutSections({ registry }) {
 
 export function ShortcutsDialog() {
     const open = useAppStore((s) => s.activeDialog === 'shortcuts');
-    const registry = useAppStore((s) => s.ShortcutRegistry);
     const returnFocus = useReturnFocus();
 
     return (
@@ -78,7 +78,7 @@ export function ShortcutsDialog() {
                         </div>
                         <div className="modal-body">
                             <div className="shortcuts-list" id="shortcutsList">
-                                <ShortcutSections registry={registry} />
+                                <ShortcutSections registry={SHORTCUTS} />
                             </div>
                         </div>
                         <div className="modal-footer">

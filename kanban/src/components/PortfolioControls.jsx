@@ -1,5 +1,3 @@
-import { createPortal } from 'react-dom';
-import { useLayoutEffect } from 'react';
 import { useAppStore } from '../state/store.js';
 import {
     clearPortfolioBulkSelection,
@@ -14,21 +12,13 @@ import {
     setPortfolioViewMode
 } from '../actions/portfolioControls.js';
 import { getRoadmapExtension } from '../domain/roadmap.js';
-import { getBoardTimelineData } from '../domain/timeline.js';
 import { EFFORT_BUCKETS } from '../domain/constants.js';
 import { normalizePortfolioViewMode, createPortfolioProjectColor } from '../domain/board.js';
+import { DEFAULT_PORTFOLIO_FILTERS } from '../domain/portfolioFilters.js';
 import { portfolioSortSelectValueFromKey } from '../domain/util.js';
 import { normalizeAssignee, taskAssignees } from '../domain/task.js';
 import { getProjectSaveState, projectHasUnsavedChanges } from '../persistence/projectFiles.js';
-
-const DEFAULT_PORTFOLIO_FILTERS = {
-    search: '',
-    archive: 'active',
-    blocked: 'all',
-    assignee: '',
-    priority: '',
-    effort: ''
-};
+import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
 
 function getFilters(state) {
     return { ...DEFAULT_PORTFOLIO_FILTERS, ...(state.portfolioFilters || {}) };
@@ -100,28 +90,14 @@ function getBoardColor(board) {
     return board?.projectColor || createPortfolioProjectColor(board?.colorSeed || 0);
 }
 
-function isHistoricalPreview(state, boardId) {
-    const board = state.portfolioBoards.find((record) => record.id === boardId);
-    const timeline = getBoardTimelineData(board?.data);
-    if (!timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) return false;
-    const selection = state.portfolioTimelineSelection || {};
-    const selectedIndex = selection.boardId === boardId && Number.isInteger(selection.eventIndex)
-        ? Math.max(0, Math.min(timeline.events.length - 1, selection.eventIndex))
-        : timeline.events.length - 1;
-    return selectedIndex < timeline.events.length - 1;
-}
-
 function getBulkViewModel(state) {
     const boardId = state.selectedPortfolioBoardId || '';
     const board = state.portfolioBoards.find((record) => record.id === boardId) || null;
     const canShow = Boolean(boardId)
         && state.selectedPortfolioViewMode === 'board'
         && Boolean(board?.handle)
-        && !isHistoricalPreview(state, boardId);
-    const taskIds = new Set((board?.data?.board?.tasks || []).map((task) => Number(task.id)));
-    const selectedIds = canShow
-        ? (state.portfolioBulkSelectionByBoardId?.[boardId] || []).filter((taskId) => taskIds.has(Number(taskId)))
-        : [];
+        && !isBoardInHistoricalPreview(state, boardId);
+    const selectedIds = canShow ? getPortfolioBulkTaskIds(state, boardId) : [];
     const roadmap = canShow ? getRoadmapExtension(board?.data) : null;
     return {
         boardId,
@@ -131,7 +107,7 @@ function getBulkViewModel(state) {
     };
 }
 
-function PortfolioToolbar({ state }) {
+function ToolbarContent({ state }) {
     const filters = getFilters(state);
     const assignees = getAssigneeNames(state.portfolioTasks);
     const sortValue = portfolioSortSelectValueFromKey(state.portfolioSortKey);
@@ -230,7 +206,7 @@ function PortfolioToolbar({ state }) {
     );
 }
 
-function PortfolioChips({ state }) {
+function ChipList({ state }) {
     if (state.portfolioBoards.length === 0) {
         return <span className="empty-state-text">No projects loaded</span>;
     }
@@ -265,18 +241,30 @@ function PortfolioChips({ state }) {
     );
 }
 
-function PortfolioBulkActions({ state }) {
+export function PortfolioToolbar() {
+    const state = useAppStore((current) => current);
+    return (
+        <div className="portfolio-toolbar" id="portfolioToolbar">
+            <ToolbarContent state={state} />
+        </div>
+    );
+}
+
+export function PortfolioChips() {
+    const state = useAppStore((current) => current);
+    return (
+        <div className="portfolio-chips" id="portfolioBoardsChips">
+            <ChipList state={state} />
+        </div>
+    );
+}
+
+export function PortfolioBulkActions() {
+    const state = useAppStore((current) => current);
     const { boardId, selectedCount, showActions, hasExistingSprints } = getBulkViewModel(state);
 
-    useLayoutEffect(() => {
-        const actions = document.getElementById('portfolioBulkActions');
-        if (!actions) return undefined;
-        actions.classList.toggle('active', showActions);
-        return () => actions.classList.remove('active');
-    }, [showActions]);
-
     return (
-        <>
+        <div className={`portfolio-bulk-actions${showActions ? ' active' : ''}`} id="portfolioBulkActions">
             <div className="portfolio-bulk-actions-summary" id="portfolioBulkActionsSummary">
                 {selectedCount} {selectedCount === 1 ? 'task' : 'tasks'} selected
             </div>
@@ -297,22 +285,6 @@ function PortfolioBulkActions({ state }) {
                     onClick={() => openCreateSprintFromSelection(boardId)}
                 >Create Sprint</button>
             </div>
-        </>
-    );
-}
-
-export function PortfolioControls() {
-    const state = useAppStore((current) => current);
-    const toolbar = document.getElementById('portfolioToolbar');
-    const chips = document.getElementById('portfolioBoardsChips');
-    const bulkActions = document.getElementById('portfolioBulkActions');
-    if (!toolbar || !chips || !bulkActions) return null;
-
-    return (
-        <>
-            {createPortal(<PortfolioToolbar state={state} />, toolbar)}
-            {createPortal(<PortfolioChips state={state} />, chips)}
-            {createPortal(<PortfolioBulkActions state={state} />, bulkActions)}
-        </>
+        </div>
     );
 }

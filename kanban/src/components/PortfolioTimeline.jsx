@@ -1,6 +1,4 @@
-import { createPortal } from 'react-dom';
 import { flushSync } from 'react-dom';
-import { useLayoutEffect, useRef } from 'react';
 import { useAppStore } from '../state/store.js';
 import {
     beginPortfolioTimelineSliderDrag,
@@ -75,19 +73,9 @@ function TimelineEventList({ view }) {
     );
 }
 
-function PortfolioTimelineView({ view, scrollTopByBoardId }) {
-    const eventListRef = useRef(null);
+function PortfolioTimelineView({ view }) {
     const timeline = view.timeline;
     const isExpanded = Boolean(view.isExpanded);
-
-    useLayoutEffect(() => {
-        const list = eventListRef.current;
-        if (!list) return;
-        const scrollTop = scrollTopByBoardId?.[view.boardId];
-        if (Number.isFinite(scrollTop)) {
-            list.scrollTop = scrollTop;
-        }
-    }, [view.boardId, view.selectedIndex, timeline?.events?.length, isExpanded, scrollTopByBoardId]);
 
     if (!timeline || timeline.events.length === 0) {
         return (
@@ -171,7 +159,7 @@ function PortfolioTimelineView({ view, scrollTopByBoardId }) {
                 </div>
             </div>
             <div className="timeline-body">
-                <div ref={eventListRef} className="timeline-event-list">
+                <div className="timeline-event-list">
                     <TimelineEventList view={view} />
                 </div>
                 <div className="timeline-event-detail">
@@ -185,24 +173,15 @@ function PortfolioTimelineView({ view, scrollTopByBoardId }) {
 
 export function PortfolioTimeline() {
     const state = useAppStore((current) => current);
-    const panel = document.getElementById('portfolioTimelinePanel');
     const view = state.portfolioTimelineView;
     const boardId = view?.boardId || '';
-    const isExpanded = Boolean(view?.isExpanded);
+    const className = boardId
+        ? `timeline-panel active${view.isExpanded ? '' : ' collapsed'}`
+        : 'timeline-panel';
 
-    useLayoutEffect(() => {
-        if (!panel) return;
-        panel.dataset.boardId = boardId;
-        panel.className = boardId
-            ? `timeline-panel active${isExpanded ? '' : ' collapsed'}`
-            : 'timeline-panel';
-    }, [panel, boardId, isExpanded]);
-
-    if (!panel) return null;
-    return createPortal(
-        view
-            ? <PortfolioTimelineView view={view} scrollTopByBoardId={state.portfolioTimelineListScrollTopByBoardId} />
-            : null,
-        panel
+    return (
+        <div className={className} id="portfolioTimelinePanel" data-board-id={boardId}>
+            {view && <PortfolioTimelineView view={view} />}
+        </div>
     );
 }

@@ -1,16 +1,15 @@
 // URL state for the portfolio shell. This module only translates between the
 // address bar and the store; React is responsible for rendering the result.
 
-import { EFFORT_BUCKETS } from '../domain/constants.js';
 import {
     normalizePortfolioSortDir,
     normalizePortfolioSortKey,
     normalizePortfolioViewMode
 } from '../domain/board.js';
-import { normalizeAssignee, normalizePortfolioBlockedFilter } from '../domain/task.js';
+import { normalizePortfolioBlockedFilter } from '../domain/task.js';
+import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterSet } from '../domain/portfolioFilters.js';
 import { notifyAppStateChanged, useAppStore } from '../state/store.js';
 import { refreshPortfolioState } from '../state/portfolioViewState.js';
-import { DEFAULT_PORTFOLIO_FILTERS } from '../selectors/portfolioViews.js';
 
 function getDefaultWindow() {
     return typeof window !== 'undefined' ? window : null;
@@ -57,26 +56,20 @@ export function updatePortfolioUrlState(windowRef = getDefaultWindow(), state = 
 
 export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDefaultWindow(), notify = store === useAppStore ? notifyAppStateChanged : () => {} } = {}) {
     if (!windowRef?.location) return;
-    const portfolioSearch = readQueryParam('pq', '', windowRef);
-    const portfolioPriority = readQueryParam('pp', '', windowRef);
-    const portfolioAssignee = readQueryParam('pu', '', windowRef);
-    const portfolioBlocked = readQueryParam('pbk', 'all', windowRef);
-    const portfolioEffort = readQueryParam('pe', '', windowRef);
-    const portfolioArchive = readQueryParam('pa', 'active', windowRef);
     const portfolioSort = readQueryParam('ps', 'priority', windowRef);
     const portfolioSortDir = readQueryParam('pd', 'asc', windowRef);
     const portfolioBoard = readQueryParam('pb', '', windowRef);
     const portfolioViewMode = readQueryParam('pv', 'board', windowRef);
 
     store.setState({
-        portfolioFilters: {
-            search: portfolioSearch,
-            priority: ['', 'high', 'medium', 'low'].includes(portfolioPriority) ? portfolioPriority : '',
-            assignee: normalizeAssignee(portfolioAssignee),
-            blocked: normalizePortfolioBlockedFilter(portfolioBlocked),
-            effort: ['', ...EFFORT_BUCKETS].includes(portfolioEffort) ? portfolioEffort : '',
-            archive: ['active', 'all', 'archived'].includes(portfolioArchive) ? portfolioArchive : 'active'
-        },
+        portfolioFilters: normalizePortfolioFilterSet({
+            search: readQueryParam('pq', '', windowRef),
+            priority: readQueryParam('pp', '', windowRef),
+            assignee: readQueryParam('pu', '', windowRef),
+            blocked: readQueryParam('pbk', 'all', windowRef),
+            effort: readQueryParam('pe', '', windowRef),
+            archive: readQueryParam('pa', 'active', windowRef)
+        }),
         portfolioSortKey: normalizePortfolioSortKey(portfolioSort),
         portfolioSortDir: normalizePortfolioSortDir(portfolioSortDir),
         selectedPortfolioBoardId: portfolioBoard,

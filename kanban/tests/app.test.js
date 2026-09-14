@@ -2487,7 +2487,7 @@ test.describe('portfolio-only app', () => {
 
     await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
     await expect(page.locator('.portfolio-chip.active')).toContainText('Read Only (Read-only)');
-    await expect(portfolioCard(page, 'RO Task').locator('button[title=\"Read-only (no file handle)\"]')).toHaveCount(3);
+    await expect(portfolioCard(page, 'RO Task').locator('button[title="Read-only (no file handle)"]')).toHaveCount(3);
   });
 
   test('read-only task detail keyboard shortcuts do not open edit or mutate', async ({ page }) => {

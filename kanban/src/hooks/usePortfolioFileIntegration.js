@@ -1,30 +1,17 @@
-import { useEffect } from 'react';
-import { PROJECT_FILE_WATCH_INTERVAL_MS } from '../domain/constants.js';
+import { useEffect, useState } from 'react';
 import { isFileDrag } from '../domain/util.js';
-import { checkProjectFilesNow, stopProjectFileWatcher } from '../persistence/projectFiles.js';
-import {
-    createNewProject,
-    importPortfolioProjects,
-    openPortfolioFromFiles
-} from '../actions/portfolioFiles.js';
-import { useAppStore } from '../state/store.js';
+import { checkProjectFilesNow, startProjectFileWatcher, stopProjectFileWatcher } from '../persistence/projectFiles.js';
+import { openPortfolioFromFiles } from '../actions/portfolioFiles.js';
 
-function setFileDropActive(active) {
-    document.getElementById('portfolioView')?.classList.toggle('file-drop-active', active);
-}
-
-// Owns the browser integration that cannot be expressed as declarative JSX:
-// file-picker buttons, loose-file drops, focus/visibility checks, and the
-// polling watcher. The persistence module remains DOM-free and reports changes
-// through the store.
+// Window-level file integration: loose-file drops, focus/visibility checks and
+// the polling watcher for external file changes. Returns whether a file is
+// currently being dragged over the window.
 export function usePortfolioFileIntegration() {
+    const [fileDropActive, setFileDropActive] = useState(false);
+
     useEffect(() => {
-        const newProjectButton = document.getElementById('newProjectBtn');
-        const importButton = document.getElementById('importProjectsBtn');
         let fileDragDepth = 0;
 
-        const handleNewProject = () => { void createNewProject(); };
-        const handleImport = () => { void importPortfolioProjects(); };
         const handleDragEnter = (event) => {
             if (!isFileDrag(event)) return;
             fileDragDepth += 1;
@@ -53,8 +40,6 @@ export function usePortfolioFileIntegration() {
             if (!document.hidden) void checkProjectFilesNow();
         };
 
-        newProjectButton?.addEventListener('click', handleNewProject);
-        importButton?.addEventListener('click', handleImport);
         window.addEventListener('dragenter', handleDragEnter);
         window.addEventListener('dragover', handleDragOver);
         window.addEventListener('dragleave', handleDragLeave);
@@ -62,16 +47,10 @@ export function usePortfolioFileIntegration() {
         window.addEventListener('focus', handleFocus);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        useAppStore.getState().projectWatchTimerId = window.setInterval(() => {
-            if (document.hidden) return;
-            void checkProjectFilesNow();
-        }, PROJECT_FILE_WATCH_INTERVAL_MS);
-        useAppStore.getState().projectWatchListenersBound = true;
+        startProjectFileWatcher();
         void checkProjectFilesNow();
 
         return () => {
-            newProjectButton?.removeEventListener('click', handleNewProject);
-            importButton?.removeEventListener('click', handleImport);
             window.removeEventListener('dragenter', handleDragEnter);
             window.removeEventListener('dragover', handleDragOver);
             window.removeEventListener('dragleave', handleDragLeave);
@@ -79,13 +58,8 @@ export function usePortfolioFileIntegration() {
             window.removeEventListener('focus', handleFocus);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             stopProjectFileWatcher();
-            useAppStore.getState().projectWatchListenersBound = false;
-            setFileDropActive(false);
         };
     }, []);
-}
 
-export function PortfolioFileIntegration() {
-    usePortfolioFileIntegration();
-    return null;
+    return fileDropActive;
 }

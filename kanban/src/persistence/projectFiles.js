@@ -5,35 +5,39 @@
 // snapshots are applied directly to the Zustand store.
 
 import { useAppStore, getPortfolioBoardRecord, notifyAppStateChanged } from '../state/store.js';
-import { PROJECT_FILE_EXTERNAL_BADGE_MS, PROJECT_FILE_CONFLICT_SUPPRESS_MS } from '../domain/constants.js';
+import {
+    PROJECT_FILE_CONFLICT_SUPPRESS_MS,
+    PROJECT_FILE_EXTERNAL_BADGE_MS,
+    PROJECT_FILE_WATCH_INTERVAL_MS
+} from '../domain/constants.js';
 import { nextPortfolioProjectId } from '../domain/board.js';
 import { serializeBoardDataFromObject } from '../domain/serialize.js';
 import { formatErrorMessage, nowIso } from '../domain/util.js';
-import { createProjectSaveState } from '../domain/persistence.js';
 import { BoardRepository } from './boardRepository.js';
 import { Logger } from '../logger.js';
 import { refreshPortfolioState } from '../state/portfolioViewState.js';
+import { closePortfolioContextsForProject } from '../actions/dialogs.js';
 
 const notifyProjectStatusChanged = () => notifyAppStateChanged();
 
-function closePortfolioContextsForProject(boardId) {
-    if (!boardId) return;
-    const state = useAppStore.getState();
-    const matchesDetail = state.portfolioDetailContext?.boardId === boardId;
-    const matchesEditor = state.portfolioEditContext?.boardId === boardId
-        || state.portfolioCreateContext?.boardId === boardId;
-    const activeDialogMatches = (matchesDetail && state.activeDialog === 'taskDetail')
-        || (matchesEditor && state.activeDialog === 'taskEditor');
-    if (!matchesDetail && !matchesEditor) return;
+// Watcher bookkeeping never renders, so it stays out of the store.
+const fileStateById = new Map();
+let watchTimerId = null;
+let watchRunning = false;
 
-    useAppStore.setState({
-        portfolioDetailContext: matchesDetail ? null : state.portfolioDetailContext,
-        portfolioEditContext: matchesEditor ? null : state.portfolioEditContext,
-        portfolioCreateContext: matchesEditor ? null : state.portfolioCreateContext,
-        pendingNewTaskStatus: matchesEditor ? null : state.pendingNewTaskStatus,
-        ...(activeDialogMatches ? { activeDialog: null, dialogProps: null } : {})
-    });
-    notifyProjectStatusChanged();
+export function createProjectSaveState() {
+    return {
+        status: 'idle',
+        inFlight: null,
+        queued: false,
+        lastErrorMessage: '',
+        lastSavedAt: '',
+        revision: 0,
+        savedRevision: 0,
+        watchStatus: 'idle',
+        watchMessage: '',
+        watchStatusUntil: 0
+    };
 }
 
 export function applySnapshotToBoardRecord(boardRecord, parsed, options = {}) {
@@ -90,7 +94,7 @@ export function markProjectDirty(boardId) {
 function getProjectFileState(boardId, options = {}) {
     if (!boardId) return null;
     const createIfMissing = options.create !== false;
-    let state = useAppStore.getState().projectFileStateById.get(boardId) || null;
+    let state = fileStateById.get(boardId) || null;
     if (!state && createIfMissing) {
         state = {
             lastModified: 0,
@@ -99,9 +103,13 @@ function getProjectFileState(boardId, options = {}) {
             checking: false,
             suppressedUntilMs: 0
         };
-        useAppStore.getState().projectFileStateById.set(boardId, state);
+        fileStateById.set(boardId, state);
     }
     return state;
+}
+
+export function forgetProjectFileState(boardId) {
+    fileStateById.delete(boardId);
 }
 
 function setProjectWatchStatus(boardId, status = 'idle', message = '', options = {}) {
@@ -124,9 +132,6 @@ export function syncProjectSaveStates(store = useAppStore) {
     const saveStates = current.projectSaveStateById instanceof Map
         ? current.projectSaveStateById
         : new Map();
-    const fileStates = current.projectFileStateById instanceof Map
-        ? current.projectFileStateById
-        : new Map();
     const activeIds = new Set();
     (current.portfolioBoards || []).forEach((board) => {
         if (!board || !board.id) return;
@@ -138,13 +143,13 @@ export function syncProjectSaveStates(store = useAppStore) {
             saveStates.delete(boardId);
         }
     });
-    Array.from(fileStates.keys()).forEach((boardId) => {
+    Array.from(fileStateById.keys()).forEach((boardId) => {
         if (!activeIds.has(boardId)) {
-            fileStates.delete(boardId);
+            fileStateById.delete(boardId);
         }
     });
-    if (saveStates !== current.projectSaveStateById || fileStates !== current.projectFileStateById) {
-        store.setState({ projectSaveStateById: saveStates, projectFileStateById: fileStates });
+    if (saveStates !== current.projectSaveStateById) {
+        store.setState({ projectSaveStateById: saveStates });
     }
 }
 
@@ -255,8 +260,8 @@ async function checkProjectFileForExternalChanges(boardRecord) {
 }
 
 export async function checkProjectFilesNow() {
-    if (useAppStore.getState().projectWatchRunning) return false;
-    useAppStore.getState().projectWatchRunning = true;
+    if (watchRunning) return false;
+    watchRunning = true;
     try {
         const boards = useAppStore.getState().portfolioBoards.filter(board => board && board.handle);
         for (const board of boards) {
@@ -264,14 +269,22 @@ export async function checkProjectFilesNow() {
         }
         return true;
     } finally {
-        useAppStore.getState().projectWatchRunning = false;
+        watchRunning = false;
     }
 }
 
+export function startProjectFileWatcher() {
+    stopProjectFileWatcher();
+    watchTimerId = setInterval(() => {
+        if (document.hidden) return;
+        void checkProjectFilesNow();
+    }, PROJECT_FILE_WATCH_INTERVAL_MS);
+}
+
 export function stopProjectFileWatcher() {
-    if (useAppStore.getState().projectWatchTimerId) {
-        clearInterval(useAppStore.getState().projectWatchTimerId);
-        useAppStore.getState().projectWatchTimerId = null;
+    if (watchTimerId) {
+        clearInterval(watchTimerId);
+        watchTimerId = null;
     }
 }
 

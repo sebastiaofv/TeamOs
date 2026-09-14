@@ -1,143 +1,79 @@
-# Kanban Board
+# TeamOS Kanban
 
-A Kanban app built as a Vite project. It is migrating from a single 11,000+ line `kanban.html` file: pure domain logic lives in tested modules under `src/domain/` and `src/persistence/`, while React owns the application shell, dialogs, controls, board, timeline, roadmap, and calendar views.
+A portfolio Kanban app for `*.board.json` project files, built with Vite, React and Zustand. Open several project files at once, work across them in one view, and every change autosaves back to its file.
 
 ## What it does
 
-- Create and manage tasks across columns (drag and drop).
-- Fixed workflow columns: `backlog`, `to-do`, `in progress`, `done`.
-- Add tasks inline from each column (`+ Add Task` card opens modal).
-- Task details modal with:
-  - description
-  - checklist/subtasks
-  - due date
-  - activity timestamps (created/updated)
-- Archive/restore tasks and toggle archived view.
-- Sort tasks manually, by due date, by effort, or by score.
-- Undo toast for key actions (archive, move).
-- Search with yellow text highlighting (titles).
+- **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
+- **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag and drop between columns, add/edit/archive/delete tasks, undo after archiving.
+- **Tasks** — title, description, assignees, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
+- **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
+- **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
+- **Calendar view** — year and month calendars with tasks and roadmap spans, plus a heatmap mode.
+- **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
+- **Light and dark theme.**
 
 ## Data and persistence
 
-- In-memory state during the current session (no `localStorage` persistence).
-- File System Access API integration (Chromium):
-  - Open board
-  - Save / Save As board
-  - New board from template
-- Strict board schema validation (versioned JSON format).
+- Uses the File System Access API (Chromium browsers). Projects opened with a file handle autosave on every change; files dropped without a handle are read-only.
+- Open files are watched for external changes: they reload automatically, or prompt when local edits conflict.
+- Board files are strictly validated on import (`*.board.json` extension, `schemaVersion`, `appId`, structure). See [`docs/board-json-reference.html`](docs/board-json-reference.html) and the example in [`boards/example.board.json`](boards/example.board.json).
 
-## Internal architecture
+### Task and schema invariants
 
-The app is a Vite project (`index.html` + `src/`), split by responsibility:
-
-- `src/domain/` — pure, dependency-free logic, unit-tested with Vitest. 12 modules:
-  - `task.js`, `board.js`, `calendar.js`, `roadmap.js`, `timeline.js`, `attachments.js` — feature-specific normalization, validation, and selectors.
-  - `serialize.js` — board parsing/validation/serialization.
-  - `scoring.js` — priority/effort score calculation.
-  - `util.js` — shared helpers.
-  - `constants.js` — shared constants.
-  - `persistence.js` — pure save-state/queue helpers (not I/O; see `src/persistence/` for that).
-  - `taskDraft.js` — task editor rules: assignee/tag/checklist edits, attachment picking and warnings, and building store-ready task saves.
-- `src/persistence/fileSystem.js` — File System Access API wrappers. This is the only place that writes to the user's disk; it is kept separate from `src/domain/` because it is I/O, not pure logic.
-- `src/main.jsx` — the entry. Loads the shared styles and mounts one React root (`src/components/AppIslands.jsx`) into `#reactRoot`. Each surface is an island wrapped in `IslandErrorBoundary`.
-- `src/state/slices.js`, `src/state/store.js`, and `src/state/portfolioViewState.js` — four Zustand slices (`portfolio`, `board`, `ui`, and `files`) plus the store-owned derived portfolio state transition. Components and actions read and write the same store.
-- `src/hooks/useTheme.js` — theme initialization and toggle wiring.
-- `src/hooks/usePortfolioFileIntegration.js` — file-picker/drop wiring plus focus, visibility, and external-file watch lifecycle.
-- `src/hooks/usePortfolioRuntime.js` — URL initialization, keyboard shortcuts, header actions, and timeline pointer lifecycle.
-- `src/actions/` — state-changing functions for dialogs, portfolio mutations, controls, navigation, files, and keyboard shortcuts. They write through Zustand and use the persistence modules for disk I/O.
-- `src/components/PortfolioControls.jsx` — React portals for the portfolio toolbar, project chips, view-mode toggle, and bulk-action bar (Phase 2.2); actions are store-backed.
-- `src/components/PortfolioBoard.jsx` — React portal for portfolio columns, add-task affordances, and task-card markup (Phase 2.3).
-- `src/components/PortfolioTimeline.jsx` — React portal for the portfolio timeline panel, event list, historical preview controls, and restore affordance (Phase 2.4).
-- `src/components/PortfolioRoadmap.jsx` — React portal for roadmap sections, timeline axis, disclosure rows, and read-only linked task cards (Phase 2.5).
-- `src/components/PortfolioCalendar.jsx` — React portal for year/month calendar, roadmap spans, task items, and heatmap modes (Phase 2.6).
-- `src/components/` — React components. Ported markup keeps the established ids and CSS classes until the Phase 2.8 Tailwind pass. Shortcuts and Help dialogs use Radix Dialog; `src/components/dialogs/useReturnFocus.js` returns focus to whichever element had it before the dialog opened, but only when closing left focus lost (it fell to `body`) and that element is still in the page, and it can also focus a given field on open via `initialFocus`. The task detail modal, roadmap entity modal, undo toast, and task editor use direct store-backed mutation actions; the editor owns its draft while `src/domain/taskDraft.js` supplies the pure editing rules.
-- `src/styles/tailwind.css` — Tailwind entry point, semantic surface/border/content tokens, and component aliases. Preflight remains disabled for parity.
-- `src/styles/app.css` — the current styling contract for the established visual language while the final component-by-component Tailwind pass continues.
-
-## Task and schema invariants
-
-- Task titles are required and capped at `80` characters.
-- Task assignees are stored as an `assignees` string array on save; older single `assignee` strings still import.
+- Task titles are required and capped at 80 characters.
+- Assignees are saved as an `assignees` array; older single `assignee` strings still import.
 - Blocked tasks require `blockerReason`.
-- Attachments are capped per task and validated by hard size limit.
-- `schemaVersion` and `appId` are strictly validated on import.
-- Serialization normalizes tasks/columns/timestamps before save.
-
-## Attachments policy
-
-- Embedded `dataUrl` attachments remain supported for existing board files.
-- Soft warnings are shown for large attachment payloads.
-- Hard limits prevent oversized files from being added.
-- Older extension-based attachment storage is cleaned during serialization.
-
-## File extensions (required)
-
-- Board files: `*.board.json`
-
-The app validates both extension and JSON structure on open/upload.
-
-## Portfolio view
-
-- Aggregate tasks across multiple loaded board files.
-- Filters and sorting (including score = priority / effort).
-- Quick switch from portfolio rows/chips to a specific loaded board.
+- Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
+- Serialization normalizes tasks, columns and timestamps before save.
 
 ## Keyboard shortcuts
 
-- Use the `Shortcuts` button in the header to view the in-app shortcut reference modal.
-- `/` focus search
-- `N` new task modal (board mode)
-- `E` edit selected task (board mode)
-- `Ctrl+S` / `Cmd+S` save current document (board or portfolio)
-- `Ctrl+Shift+C` / `Cmd+Shift+C` save as current document (board or portfolio)
+The **Shortcuts** button (or `?`) shows the full reference in the app.
 
-## Example files
+| Keys | Action |
+|---|---|
+| `/` | Focus search |
+| `N` / `I` | New project / import projects |
+| `H` | Help |
+| `R` | Reset filters and sort |
+| `S` | Focus sort control |
+| `[` / `]` | Previous / next project chip |
+| `J` / `K` | Select next / previous card |
+| `Enter` | Open hovered or selected card |
+| `E` / `X` | Edit / archive-restore hovered or selected card |
+| `1`–`4` | Move card to backlog / to-do / in progress / done |
+| `Ctrl/Cmd+Enter` | Save task (in the task editor) |
+| `Esc` | Close dialog |
 
-- `boards/example.board.json` (example board)
+## Project structure
 
-## Run
+- `src/domain/` — pure, dependency-free logic (tasks, boards, roadmap, timeline, calendar, attachments, serialization, scoring, task-editor draft rules). Unit-tested with Vitest.
+- `src/persistence/` — board file reading/writing, the save queue and external-change watching.
+- `src/state/` — the Zustand store and the derived portfolio state.
+- `src/selectors/` — view models built from store state.
+- `src/actions/` — state-changing functions (mutations, controls, navigation/URL state, files, dialogs, shortcuts).
+- `src/hooks/` — browser integration: theme, keyboard shortcuts and URL state, file picker/drop and file watching.
+- `src/App.jsx` — the app shell: header, view layout, and dialogs. Mounted by `src/main.jsx`.
+- `src/components/` — React views and Radix dialogs.
+- `src/styles/` — `app.css` (the visual language) and the Tailwind entry (`preflight` disabled; semantic tokens map to the CSS variables).
 
-```bash
-npm install
-npm run dev
-```
+## Development
 
-This starts the Vite dev server.
-
-## Styling
-
-Tailwind CSS is wired into the build (`tailwind.config.js`, `postcss.config.mjs`) with `corePlugins.preflight` disabled. Semantic tokens map to the existing CSS variables, so migrated components can adopt utilities without changing the established light/dark visual contract.
-
-## Testing
-
-There are two test suites:
-
-- **Unit tests** (`npm run test:unit`) — Vitest, 876 tests covering the pure functions in `src/domain/` and `src/persistence/`, the store notification layer, and shared actions.
-- **End-to-end tests** (`npm test`) — Playwright, 169 black-box and visual tests driving the built app in a real browser via `npm run preview`. Playwright serves the production build from `dist/`, so **run `npm run build` before `npm test`** or the suite will exercise stale (or missing) output.
-- **Visual baselines** (`tests/visual.test.js`, part of `npm test`) — Playwright screenshots of UI pieces taken before each React port; a port must match them. Baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.js`.
-
-### Prerequisites
-
-- Node.js 18+ (recommended)
-
-### Install
+Requires Node.js 18+.
 
 ```bash
 npm install
 npx playwright install
+npm run dev
 ```
 
-### Run tests
+## Testing
 
-```bash
-npm run test:unit
-npm run build && npm test
-```
+- `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions.
+- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` before running.
+- `npm run lint` — ESLint.
 
-Optional Playwright modes:
+Visual baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.js`.
 
-```bash
-npm run test:headed
-npm run test:ui
-npm run test:debug
-```
+Optional Playwright modes: `npm run test:headed`, `npm run test:ui`, `npm run test:debug`.

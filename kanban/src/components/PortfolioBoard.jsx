@@ -1,4 +1,3 @@
-import { createPortal } from 'react-dom';
 import { useAppStore } from '../state/store.js';
 import {
     deletePortfolioTask,
@@ -27,7 +26,7 @@ import {
 import { isTaskOverdue, formatTaskStatusAge, normalizeTaskStatus } from '../domain/task.js';
 import { formatTaskScore } from '../domain/scoring.js';
 import { escapeRegExp } from '../domain/util.js';
-import { getBoardTimelineData } from '../domain/timeline.js';
+import { isBoardInHistoricalPreview } from '../selectors/portfolioViews.js';
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -48,17 +47,6 @@ function highlightSearchMatch(text, searchTerm) {
 function getBoardColor(state, boardId) {
     const board = state.portfolioBoards.find((record) => record.id === boardId);
     return board?.projectColor || createPortfolioProjectColor(board?.colorSeed || 0);
-}
-
-function isHistoricalPreview(state, boardId) {
-    const board = state.portfolioBoards.find((record) => record.id === boardId);
-    const timeline = getBoardTimelineData(board?.data);
-    if (!timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) return false;
-    const selection = state.portfolioTimelineSelection || {};
-    const selectedIndex = selection.boardId === boardId && Number.isInteger(selection.eventIndex)
-        ? Math.max(0, Math.min(timeline.events.length - 1, selection.eventIndex))
-        : timeline.events.length - 1;
-    return selectedIndex < timeline.events.length - 1;
 }
 
 function selectedBulkTaskIds(state, boardId) {
@@ -178,7 +166,7 @@ function PortfolioBoardView({ state }) {
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
         && Boolean(selectedBoard?.handle)
-        && !isHistoricalPreview(state, state.selectedPortfolioBoardId);
+        && !isBoardInHistoricalPreview(state, state.selectedPortfolioBoardId);
 
     return (
         <>
@@ -212,9 +200,11 @@ function PortfolioBoardView({ state }) {
     );
 }
 
-export function PortfolioBoard() {
+export function PortfolioBoard({ hidden }) {
     const state = useAppStore((current) => current);
-    const board = document.getElementById('portfolioBoard');
-    if (!board) return null;
-    return createPortal(<PortfolioBoardView state={state} />, board);
+    return (
+        <div className={`portfolio-board-grid${hidden ? ' hidden' : ''}`} id="portfolioBoard">
+            <PortfolioBoardView state={state} />
+        </div>
+    );
 }

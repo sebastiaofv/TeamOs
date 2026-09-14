@@ -4,7 +4,6 @@ import {
     normalizePortfolioSortDir,
     normalizePortfolioSortKey
 } from '../domain/board.js';
-import { EFFORT_BUCKETS } from '../domain/constants.js';
 import {
     comparePortfolioCalendarItems,
     normalizeDueDate
@@ -29,15 +28,7 @@ import {
     taskHasAssignee
 } from '../domain/task.js';
 import { createBoardStateSnapshot } from '../domain/serialize.js';
-
-export const DEFAULT_PORTFOLIO_FILTERS = Object.freeze({
-    search: '',
-    archive: 'active',
-    blocked: 'all',
-    assignee: '',
-    priority: '',
-    effort: ''
-});
+import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterSet } from '../domain/portfolioFilters.js';
 
 function getBoardRecord(state, boardId) {
     return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : [])
@@ -88,21 +79,10 @@ export function buildPortfolioRowsFromBoardData(state, boardRecord, boardData, o
     }));
 }
 
-function normalizePortfolioFilterValue(name, value) {
-    if (name === 'search') return String(value || '');
-    if (name === 'archive') return ['active', 'all', 'archived'].includes(value) ? value : 'active';
-    if (name === 'blocked') return normalizePortfolioBlockedFilter(value || 'all');
-    if (name === 'assignee') return normalizeAssignee(value || '');
-    if (name === 'priority') return ['', 'high', 'medium', 'low'].includes(value) ? value : '';
-    if (name === 'effort') return ['', ...EFFORT_BUCKETS].includes(value) ? value : '';
-    return DEFAULT_PORTFOLIO_FILTERS[name];
-}
-
+// Normalized filters for the current state; an assignee filter that matches no
+// loaded task is dropped.
 export function normalizePortfolioFilters(state) {
-    const current = { ...DEFAULT_PORTFOLIO_FILTERS, ...(state?.portfolioFilters || {}) };
-    const next = Object.fromEntries(
-        Object.keys(DEFAULT_PORTFOLIO_FILTERS).map((key) => [key, normalizePortfolioFilterValue(key, current[key])])
-    );
+    const next = normalizePortfolioFilterSet(state?.portfolioFilters);
     if ((state?.portfolioBoards || []).length > 0 && next.assignee) {
         const names = new Set(
             (state?.portfolioTasks || buildPortfolioTasks(state))
@@ -177,6 +157,24 @@ function getTimelineSelectionIndex(state, boardId, timeline) {
         return maxIndex;
     }
     return Math.max(0, Math.min(maxIndex, selection.eventIndex));
+}
+
+// True while the board's timeline is scrubbed back to an earlier event, which
+// makes the board read-only.
+export function isBoardInHistoricalPreview(state, boardId) {
+    if (!boardId) return false;
+    const timeline = getBoardTimelineData(getBoardRecord(state, boardId)?.data);
+    if (!timeline || timeline.events.length === 0) return false;
+    return getTimelineSelectionIndex(state, boardId, timeline) < timeline.events.length - 1;
+}
+
+// Bulk-selected task ids for a board, ignoring ids whose task no longer exists.
+export function getPortfolioBulkTaskIds(state, boardId) {
+    const board = getBoardRecord(state, boardId);
+    if (!board) return [];
+    const taskIds = new Set((board.data?.board?.tasks || []).map((task) => Number(task.id)));
+    return (state?.portfolioBulkSelectionByBoardId?.[boardId] || [])
+        .filter((taskId) => taskIds.has(Number(taskId)));
 }
 
 export function getSelectedPortfolioTimelineView(state) {

@@ -65,6 +65,11 @@
             overflow: hidden;
         }
 
+        /* The React root takes no box, so the header and view stay flex children of body. */
+        #root {
+            display: contents;
+        }
+
         input,
         select,
         textarea {
@@ -97,28 +102,6 @@
             font-weight: 600;
             letter-spacing: 0.5px;
             text-transform: uppercase;
-        }
-
-        .header-title-group {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .title-rename-btn {
-            width: 22px;
-            height: 22px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 11px;
-            line-height: 1;
-        }
-
-        .title-rename-btn:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
         }
 
         .header-actions {
@@ -204,37 +187,9 @@
             justify-content: space-between;
         }
 
-        .board-toolbar-left,
-        .board-toolbar-right {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .board-toolbar-left {
-            flex: 1;
-            min-width: 0;
-        }
-
         .search-box {
             flex: 1;
             max-width: 300px;
-        }
-
-        .board-title-inline {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            white-space: nowrap;
-        }
-
-        .board-title-inline h1 {
-            font-size: 16px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            margin: 0;
         }
 
         .search-box input {
@@ -268,23 +223,6 @@
             font-size: 12px;
             background: var(--bg-card);
             cursor: pointer;
-        }
-
-        .save-status {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
-            min-width: 62px;
-            text-align: right;
-        }
-
-        .save-status.saving {
-            color: var(--accent);
-        }
-
-        .save-status.error {
-            color: var(--priority-high);
         }
 
         .hidden {
@@ -679,14 +617,6 @@
             opacity: 0.68;
         }
 
-        .portfolio-calendar-empty {
-            padding: 8px 10px;
-            border: 1px dashed var(--border);
-            background: var(--bg-primary);
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-
         .portfolio-calendar-item {
             display: flex;
             align-items: center;
@@ -915,18 +845,6 @@
                 border-right: 0;
             }
 
-        }
-
-        .portfolio-roadmap-shell {
-            width: 100%;
-            border: 1px dashed var(--border);
-            background: var(--bg-card);
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 24px;
-            overflow: auto;
         }
 
         .portfolio-roadmap-timeline {
@@ -1332,12 +1250,6 @@
             }
         }
 
-        .portfolio-table-wrap {
-            overflow: auto;
-            flex: 1;
-            background: var(--bg-card);
-        }
-
         .portfolio-board-wrap {
             flex: 1;
             min-height: 0;
@@ -1421,14 +1333,6 @@
         .timeline-slider {
             width: 100%;
             accent-color: #b9770e;
-        }
-
-        .timeline-meta {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            color: var(--text-muted);
-            font-size: 11px;
         }
 
         .timeline-pill {
@@ -1689,14 +1593,6 @@
             background: rgba(58, 124, 246, 0.06);
         }
 
-        .portfolio-empty-banner {
-            margin: 12px 16px 0;
-            padding: 10px 12px;
-            border: 1px solid var(--border);
-            background: var(--bg-primary);
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
 
         .portfolio-task-card {
             cursor: default;
@@ -1747,60 +1643,6 @@
             max-width: 100%;
         }
 
-        .portfolio-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        .portfolio-table th,
-        .portfolio-table td {
-            border-bottom: 1px solid var(--border-light);
-            padding: 8px 10px;
-            text-align: left;
-            vertical-align: top;
-        }
-
-        .portfolio-table th {
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            color: var(--text-secondary);
-            background: var(--bg-secondary);
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-
-        .portfolio-sort-btn {
-            appearance: none;
-            background: none;
-            border: 0;
-            color: inherit;
-            cursor: pointer;
-            font: inherit;
-            letter-spacing: inherit;
-            padding: 0;
-            text-transform: inherit;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .portfolio-sort-btn:hover {
-            color: var(--text-primary);
-        }
-
-        .portfolio-sort-btn.active {
-            color: var(--text-primary);
-        }
-
-        .portfolio-sort-indicator {
-            min-width: 10px;
-            display: inline-block;
-            text-align: center;
-        }
-
-
         .column {
             background: var(--bg-primary);
             display: flex;
@@ -1833,50 +1675,6 @@
             background: var(--bg-card);
             padding: 2px 8px;
             border: 1px solid var(--border);
-        }
-
-        .column-header-main {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .column-header-actions {
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .column-delete-btn {
-            width: 22px;
-            height: 22px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 14px;
-            line-height: 1;
-        }
-
-        .column-delete-btn:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-        }
-
-        .column-rename-btn {
-            width: 22px;
-            height: 22px;
-            border: 1px solid var(--border);
-            background: var(--bg-card);
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 11px;
-            line-height: 1;
-            margin-right: 4px;
-        }
-
-        .column-rename-btn:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
         }
 
         .column-body {
