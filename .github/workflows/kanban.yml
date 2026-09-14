@@ -1,0 +1,81 @@
+name: Kanban
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'kanban/**'
+      - '.github/workflows/kanban.yml'
+  pull_request:
+    paths:
+      - 'kanban/**'
+      - '.github/workflows/kanban.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: kanban-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: kanban
+
+jobs:
+  checks:
+    name: Lint, unit tests and end-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: kanban/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:unit
+      - run: npx playwright install --with-deps chromium
+
+      # Visual baselines are macOS-specific, so this job runs only app.test.js.
+      - run: npx playwright test tests/app.test.js
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-e2e
+          path: |
+            kanban/playwright-report/
+            kanban/test-results/
+          retention-days: 7
+
+  visual:
+    name: Visual tests (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 20
+    # Baselines were captured on a local Mac; runner font rendering may differ.
+    # Non-blocking until the suite has proven stable on GitHub's macOS runners.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: kanban/package-lock.json
+
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npx playwright test tests/visual.test.js
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-visual
+          path: |
+            kanban/playwright-report/
+            kanban/test-results/
+          retention-days: 7

@@ -77,3 +77,7 @@ npm run dev
 Visual baselines in `tests/visual.test.js-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.js --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.js`.
 
 Optional Playwright modes: `npm run test:headed`, `npm run test:ui`, `npm run test:debug`.
+
+### CI
+
+[`.github/workflows/kanban.yml`](../.github/workflows/kanban.yml) runs on pushes to `main` and on pull requests that touch `kanban/`. The `checks` job (Ubuntu) runs lint, unit tests and `tests/app.test.js`. The `visual` job runs `tests/visual.test.js` on macOS and is non-blocking until the baselines prove stable on GitHub's runners. When a job fails, its test results are uploaded as an artifact.
