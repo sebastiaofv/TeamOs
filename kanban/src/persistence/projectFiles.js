@@ -30,7 +30,6 @@ function closePortfolioContextsForProject(boardId) {
         portfolioDetailContext: matchesDetail ? null : state.portfolioDetailContext,
         portfolioEditContext: matchesEditor ? null : state.portfolioEditContext,
         portfolioCreateContext: matchesEditor ? null : state.portfolioCreateContext,
-        pendingNewTaskStatus: matchesEditor ? null : state.pendingNewTaskStatus,
         ...(activeDialogMatches ? { activeDialog: null, dialogProps: null } : {})
     });
     notifyProjectStatusChanged();

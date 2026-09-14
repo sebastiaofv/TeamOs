@@ -385,8 +385,7 @@ export function createPortfolioMutationActions({
         setSelectedPortfolioCard(boardId, taskId);
         commitState({
             portfolioEditContext: { boardId, taskId },
-            portfolioCreateContext: null,
-            pendingNewTaskStatus: null
+            portfolioCreateContext: null
         });
         openDialog('taskEditor', buildTaskEditorViewModel(source.boardRecord, source.task, { taskId }));
     }
@@ -406,8 +405,7 @@ export function createPortfolioMutationActions({
             : fallbackStatus;
         commitState({
             portfolioCreateContext: { boardId, status },
-            portfolioEditContext: null,
-            pendingNewTaskStatus: null
+            portfolioEditContext: null
         });
         openDialog('taskEditor', buildTaskEditorViewModel(boardRecord, null, {
             preferredDueDate: options.preferredDueDate
@@ -501,7 +499,6 @@ export function createPortfolioMutationActions({
 
     function closeTaskEditor() {
         commitState({
-            pendingNewTaskStatus: null,
             portfolioEditContext: null,
             portfolioCreateContext: null
         });
@@ -1364,12 +1361,7 @@ export function createPortfolioMutationActions({
     };
 }
 
-let activeActions = createPortfolioMutationActions();
-
-export function configurePortfolioMutationActions(options = {}) {
-    activeActions = createPortfolioMutationActions(options);
-    return activeActions;
-}
+const activeActions = createPortfolioMutationActions();
 
 export const assignSelectionToExistingSprint = (...args) => activeActions.assignSelectionToExistingSprint(...args);
 export const beginPortfolioTimelineSliderDrag = (...args) => activeActions.beginPortfolioTimelineSliderDrag(...args);

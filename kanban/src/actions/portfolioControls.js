@@ -320,12 +320,7 @@ export function createPortfolioControlActions({
     };
 }
 
-let activeActions = createPortfolioControlActions();
-
-export function configurePortfolioControlActions(options = {}) {
-    activeActions = createPortfolioControlActions(options);
-    return activeActions;
-}
+const activeActions = createPortfolioControlActions();
 
 export const appendPortfolioRecords = (...args) => activeActions.appendPortfolioRecords(...args);
 export const canUsePortfolioViewMode = (...args) => activeActions.canUsePortfolioViewMode(...args);

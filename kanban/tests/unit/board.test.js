@@ -16,7 +16,6 @@ import {
   slugifyColumnName
 } from '../../src/domain/board.js';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, TASK_TITLE_MAX_LENGTH } from '../../src/domain/constants.js';
-import { hasExactKeys } from '../../src/domain/util.js';
 
 
 describe('createPortfolioProjectColor', () => {

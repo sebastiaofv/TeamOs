@@ -7,21 +7,9 @@ function sameCard(left, right) {
         && Number(left.taskId) === Number(right.taskId);
 }
 
-function getSelectedPortfolioRow(state) {
-    return (state.portfolioVisibleRows || []).find((row) => sameCard(row, state.selectedPortfolioCardRef)) || null;
-}
-
-function getHoveredPortfolioRow(state) {
-    return (state.portfolioVisibleRows || []).find((row) => sameCard(row, state.hoveredPortfolioCardRef)) || null;
-}
-
 function escapeCssSelectorValue(value) {
     if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(String(value));
     return String(value).replace(/([\\"])/g, '\\$1');
-}
-
-export function getShortcutTargetPortfolioRow(state = useAppStore.getState()) {
-    return getHoveredPortfolioRow(state) || getSelectedPortfolioRow(state);
 }
 
 export function selectAdjacentPortfolioCard(step) {

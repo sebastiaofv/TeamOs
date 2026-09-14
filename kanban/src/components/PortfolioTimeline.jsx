@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { flushSync } from 'react-dom';
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect } from 'react';
 import { useAppStore } from '../state/store.js';
 import {
     beginPortfolioTimelineSliderDrag,
@@ -75,19 +75,9 @@ function TimelineEventList({ view }) {
     );
 }
 
-function PortfolioTimelineView({ view, scrollTopByBoardId }) {
-    const eventListRef = useRef(null);
+function PortfolioTimelineView({ view }) {
     const timeline = view.timeline;
     const isExpanded = Boolean(view.isExpanded);
-
-    useLayoutEffect(() => {
-        const list = eventListRef.current;
-        if (!list) return;
-        const scrollTop = scrollTopByBoardId?.[view.boardId];
-        if (Number.isFinite(scrollTop)) {
-            list.scrollTop = scrollTop;
-        }
-    }, [view.boardId, view.selectedIndex, timeline?.events?.length, isExpanded, scrollTopByBoardId]);
 
     if (!timeline || timeline.events.length === 0) {
         return (
@@ -171,7 +161,7 @@ function PortfolioTimelineView({ view, scrollTopByBoardId }) {
                 </div>
             </div>
             <div className="timeline-body">
-                <div ref={eventListRef} className="timeline-event-list">
+                <div className="timeline-event-list">
                     <TimelineEventList view={view} />
                 </div>
                 <div className="timeline-event-detail">
@@ -201,7 +191,7 @@ export function PortfolioTimeline() {
     if (!panel) return null;
     return createPortal(
         view
-            ? <PortfolioTimelineView view={view} scrollTopByBoardId={state.portfolioTimelineListScrollTopByBoardId} />
+            ? <PortfolioTimelineView view={view} />
             : null,
         panel
     );

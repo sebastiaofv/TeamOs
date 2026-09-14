@@ -38,12 +38,10 @@ export function createPortfolioSlice() {
 
 export function createBoardSlice() {
     return {
-        pendingNewTaskStatus: null,
         portfolioTimelineView: null,
         portfolioTimelineSelection: { boardId: '', eventIndex: null },
         portfolioTimelineDragState: { active: false, boardId: '' },
-        portfolioTimelineExpandedByBoardId: {},
-        portfolioTimelineListScrollTopByBoardId: {}
+        portfolioTimelineExpandedByBoardId: {}
     };
 }
 
@@ -64,7 +62,6 @@ export function createFilesSlice() {
         projectSaveStateById: new Map(),
         projectFileStateById: new Map(),
         projectWatchTimerId: null,
-        projectWatchRunning: false,
-        projectWatchListenersBound: false
+        projectWatchRunning: false
     };
 }

@@ -54,7 +54,6 @@ function createActions(overrides = {}) {
     selectedPortfolioCardRef: null,
     hoveredPortfolioCardRef: null,
     suppressPortfolioCardClickUntil: 0,
-    pendingNewTaskStatus: null,
     undoAction: null,
     undoTimer: null,
     undoToast: null,

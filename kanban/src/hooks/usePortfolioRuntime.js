@@ -25,10 +25,7 @@ import {
     setSelectedPortfolioCard,
     togglePortfolioArchiveTask
 } from '../actions/portfolioMutations.js';
-import {
-    resetPortfolioFilters,
-    selectPortfolioBoard
-} from '../actions/portfolioControls.js';
+import { resetPortfolioFilters } from '../actions/portfolioControls.js';
 import { notifyAppStateChanged, useAppStore } from '../state/store.js';
 import { applyPortfolioViewVisibility } from './portfolioViewVisibility.js';
 

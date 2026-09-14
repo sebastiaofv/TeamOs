@@ -66,7 +66,6 @@ export function usePortfolioFileIntegration() {
             if (document.hidden) return;
             void checkProjectFilesNow();
         }, PROJECT_FILE_WATCH_INTERVAL_MS);
-        useAppStore.getState().projectWatchListenersBound = true;
         void checkProjectFilesNow();
 
         return () => {
@@ -79,7 +78,6 @@ export function usePortfolioFileIntegration() {
             window.removeEventListener('focus', handleFocus);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             stopProjectFileWatcher();
-            useAppStore.getState().projectWatchListenersBound = false;
             setFileDropActive(false);
         };
     }, []);
