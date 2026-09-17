@@ -7,7 +7,7 @@ import { BOARD_FILE_EXTENSION } from '../domain/constants';
 import { validateBoardData } from '../domain/board';
 import { serializeBoardDataFromObject, hashTextContent } from '../domain/serialize';
 import { assertRequiredExtension, formatErrorMessage } from '../domain/util';
-import { createPortfolioRecord } from './projectFiles';
+import { createPortfolioRecord } from './portfolioRecord';
 
 export type BoardFileMeta = { lastModified: number; size: number; textHash: string };
 export type BoardSnapshot = { parsed: BoardData; fileMeta: BoardFileMeta };

@@ -11,7 +11,7 @@ import {
     ATTACHMENT_TASK_SOFT_TOTAL_BYTES,
     ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES
 } from './constants';
-import { formatFileSize, nowIso, readFileAsDataUrl } from './util';
+import { formatFileSize, nowIso } from './util';
 import {
     attachmentDuplicateKey,
     classifyAttachmentKind,
@@ -34,7 +34,7 @@ const TAG_MAX_LENGTH = 30;
 const TAG_MAX_COUNT = 10;
 
 // A file chosen in the attachment picker.
-export type PickedFile = Pick<File, 'name' | 'size' | 'type'>;
+export type PickedFile = { name: string; size: number; type: string };
 
 export type AddTagResult = { items: string[]; error?: undefined } | { error: string; items?: undefined };
 
@@ -80,14 +80,14 @@ export function moveChecklistItem<T>(items: T[], from: number, to: number, place
 }
 
 export async function mergePickedAttachments(existing: readonly unknown[], files: Iterable<PickedFile>, {
-    readFile = (file: PickedFile) => readFileAsDataUrl(file as File),
+    readFile,
     now = nowIso,
     createId = createAttachmentId
 }: {
-    readFile?: (file: PickedFile) => Promise<string>;
+    readFile: (file: PickedFile) => Promise<string>;
     now?: () => string;
     createId?: () => string;
-} = {}): Promise<{ attachments: Attachment[]; messages: DraftMessage[] }> {
+}): Promise<{ attachments: Attachment[]; messages: DraftMessage[] }> {
     const next = normalizeAttachmentList(existing);
     const messages: DraftMessage[] = [];
     const seenKeys = new Set(next.map((item) => attachmentDuplicateKey(item)).filter(Boolean));

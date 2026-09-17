@@ -1,5 +1,4 @@
 import type { Theme } from '../types';
-import { normalizePortfolioSortKey } from './board';
 
 // A non-null, non-array object.
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -15,13 +14,17 @@ export function formatErrorMessage(error: unknown, fallback = 'Unexpected error.
     return message ? String(message) : fallback;
 }
 
-export function isFileDrag(ev: DragEvent): boolean {
-    if (!ev.dataTransfer) return false;
-    return Array.from(ev.dataTransfer.types || []).includes('Files');
-}
-
 export function nowIso(): string {
     return new Date().toISOString();
+}
+
+export function todayLocalIsoDate(): string {
+    const date = new Date();
+    if (Number.isNaN(date.getTime())) return '';
+    const yyyy = String(date.getFullYear());
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 }
 
 export function compareText(a: unknown, b: unknown): number {
@@ -37,15 +40,6 @@ export function hasExactKeys<K extends string>(obj: unknown, expectedKeys: reado
 
 export function escapeRegExp(text: string): string {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-export function readFileAsDataUrl(file: Blob): Promise<string> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(reader.error || new Error('File read failed.'));
-        reader.readAsDataURL(file);
-    });
 }
 
 export function formatFileSize(bytes: unknown): string {
@@ -73,11 +67,4 @@ export function assertRequiredExtension(fileName: unknown, extension: string, la
     if (!hasRequiredExtension(fileName, extension)) {
         throw new Error(`${label} must use ${extension} extension.`);
     }
-}
-
-export function portfolioSortSelectValueFromKey(sortKey: unknown): 'name' | 'priority' | 'effort' | 'score' {
-    const key = normalizePortfolioSortKey(sortKey);
-    if (key === 'task') return 'name';
-    if (key === 'priority' || key === 'effort' || key === 'score') return key;
-    return 'priority';
 }

@@ -1,35 +1,16 @@
-import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData, TeamOsExtensions } from '../types';
-import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, DEFAULT_BOARD_TITLE, ROADMAP_EXTENSION_KEY, TEAMOS_EXTENSIONS_KEY, TIMELINE_EXTENSION_KEY, defaultColumns } from './constants';
+import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData } from '../types';
+import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, DEFAULT_BOARD_TITLE, ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, defaultColumns } from './constants';
 import { getLegacyTaskAttachmentsFromExtensions, stripLegacyTaskAttachmentsFromExtensions } from './attachments';
 import { normalizeColumns } from './board';
 import { normalizeRoadmapExtension } from './roadmap';
 import { normalizeTask } from './task';
-import { normalizeTimelineExtension } from './timeline';
+import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
+export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
+export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
 type LooseMeta = Partial<Record<keyof BoardMeta, unknown>>;
 type LooseBoard = NonNullable<LooseBoardData['board']>;
-
-export function areSerializableValuesEqual(a: unknown, b: unknown): boolean {
-    return JSON.stringify(a) === JSON.stringify(b);
-}
-
-export function cloneSerializable<T>(value: T): T {
-    if (value === undefined) return undefined as T;
-    return JSON.parse(JSON.stringify(value));
-}
-
-export function getBoardExtensionsObject(boardData: LooseBoardData, options: { create: true }): BoardExtensions;
-export function getBoardExtensionsObject(boardData: LooseBoardData | null | undefined, options?: { create?: boolean }): BoardExtensions | null;
-export function getBoardExtensionsObject(boardData: LooseBoardData | null | undefined, options: { create?: boolean } = {}): BoardExtensions | null {
-    const create = Boolean(options.create);
-    if (!boardData || typeof boardData !== 'object' || Array.isArray(boardData)) return null;
-    if (!boardData.extensions || typeof boardData.extensions !== 'object' || Array.isArray(boardData.extensions)) {
-        if (!create) return null;
-        boardData.extensions = {};
-    }
-    return boardData.extensions as BoardExtensions;
-}
 
 export function hashTextContent(text: unknown): string {
     const value = String(text ?? '');
@@ -39,20 +20,6 @@ export function hashTextContent(text: unknown): string {
         hash = Math.imul(hash, 16777619);
     }
     return `h${(hash >>> 0).toString(16)}`;
-}
-
-export function getTeamOsExtensionsObject(boardData: LooseBoardData | null | undefined, options: { create?: boolean } = {}): TeamOsExtensions | null {
-    const create = Boolean(options.create);
-    const extensions = getBoardExtensionsObject(boardData, { create });
-    if (!extensions) return null;
-    const teamOs = extensions[TEAMOS_EXTENSIONS_KEY];
-    if (!teamOs || typeof teamOs !== 'object' || Array.isArray(teamOs)) {
-        if (!create) return null;
-        const created = {};
-        extensions[TEAMOS_EXTENSIONS_KEY] = created;
-        return created;
-    }
-    return teamOs;
 }
 
 export function normalizeBoardExtensionsValue(extensionsValue: unknown, options: { includeTimeline?: boolean } = {}): BoardExtensions {

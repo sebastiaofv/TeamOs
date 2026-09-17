@@ -11,10 +11,11 @@ import type {
     TaskStatus
 } from '../types';
 import { defaultColumns, isEffort } from './constants';
-import { nowIso, normalizeTimestamp } from './util';
-import { normalizeDueDate, todayLocalIsoDate } from './calendar';
+import { nowIso, normalizeTimestamp, todayLocalIsoDate } from './util';
+import { normalizeDueDate } from './calendar';
 import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
+export { findTaskInBoardData } from './boardData';
 
 type BoardRecordLike = { data?: BoardData } | null | undefined;
 
@@ -154,14 +155,6 @@ export function resolveKnownTaskStatus(status: unknown): TaskStatus | null {
     if (raw === 'doing' || raw === 'inprogress' || raw === 'in-progress') return 'doing';
     if (raw === 'done' || raw === 'concluid') return 'done';
     return null;
-}
-
-export function findTaskInBoardData(boardData: LooseBoardData | null | undefined, taskId: unknown): Task | null {
-    if (taskId === null || taskId === undefined || taskId === '') return null;
-    const taskIdNum = Number(taskId);
-    const taskList = boardData?.board?.tasks;
-    if (!Array.isArray(taskList)) return null;
-    return taskList.find((task) => task && Number(task.id) === taskIdNum) || null;
 }
 
 export function getBoardTagSuggestions(boardData: LooseBoardData | null | undefined): string[] {

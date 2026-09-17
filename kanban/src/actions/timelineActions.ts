@@ -4,7 +4,9 @@ import type { BoardMutationContext } from './boardMutationContext';
 import type { TaskActions } from './taskActions';
 import { TIMELINE_EXTENSION_KEY } from '../domain/constants';
 
-import { cloneSerializable, createBoardStateSnapshot, getBoardExtensionsObject } from '../domain/serialize';
+import { createBoardStateSnapshot } from '../domain/serialize';
+import { getBoardExtensionsObject } from '../domain/extensions';
+import { cloneSerializable } from '../domain/serializable';
 import { getBoardTimelineData, recordBoardRestoreTimelineEvent } from '../domain/timeline';
 
 import { getSelectedPortfolioTimelineView } from '../selectors/portfolioViews';

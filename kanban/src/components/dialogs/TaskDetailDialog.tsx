@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import type { TaskDetailFields, TaskDetailViewModel } from '../../types';
 import { useAppStore } from '../../state/store';
-import { closeTaskDetail, toggleTaskDetailChecklistItem } from '../../actions/portfolioMutations';
+import { usePortfolioActions } from '../../application/PortfolioActionsContext';
 import { useReturnFocus } from './useReturnFocus';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from './escapeAnswersAppMessage';
@@ -25,6 +25,7 @@ const FIELD_ROWS: { label: string; id: string; key: keyof TaskDetailFields }[] =
 ];
 
 export function TaskDetailDialog() {
+    const { closeTaskDetail, toggleTaskDetailChecklistItem } = usePortfolioActions();
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
     const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
     const returnFocus = useReturnFocus();
@@ -45,7 +46,7 @@ export function TaskDetailDialog() {
                             <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn">&times;</Dialog.Close>
                         </div>
                         <div className="modal-body">
-                            {vm && <TaskDetailList vm={vm} />}
+                            {vm && <TaskDetailList vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
                         </div>
                         <div className="modal-footer">
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">Close</Dialog.Close>
@@ -57,7 +58,10 @@ export function TaskDetailDialog() {
     );
 }
 
-function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
+function TaskDetailList({ vm, onToggleChecklistItem }: {
+    vm: TaskDetailViewModel;
+    onToggleChecklistItem: (itemIndex: number, checked: boolean) => unknown;
+}) {
     return (
         <div className="detail-list">
             {FIELD_ROWS.map((row) => (
@@ -77,7 +81,7 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
                                     type="checkbox"
                                     checked={item.done}
                                     disabled={vm.readOnly}
-                                    onChange={(event) => toggleTaskDetailChecklistItem(index, event.target.checked)}
+                                    onChange={(event) => onToggleChecklistItem(index, event.target.checked)}
                                 />
                                 <span className="detail-checklist-text">{item.text}</span>
                             </li>

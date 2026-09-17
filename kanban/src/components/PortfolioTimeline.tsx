@@ -1,17 +1,17 @@
 import { flushSync } from 'react-dom';
 import type { PortfolioTimelineViewModel, TimelineEvent } from '../types';
 import { useAppStore } from '../state/store';
-import {
-    movePortfolioTimelineToLatest,
-    restorePortfolioTimelineSelection,
-    setPortfolioTimelineExpanded,
-    setPortfolioTimelineSelection
-} from '../actions/portfolioMutations';
+import { usePortfolioActions } from '../application/PortfolioActionsContext';
+import type { PortfolioMutationActions } from '../actions/portfolioMutations';
 import { formatDateTime } from '../domain/calendar';
 import { formatTimelineValue } from '../domain/timeline';
 
-function commitTimelineSelection(boardId: string, eventIndex: number) {
-    flushSync(() => setPortfolioTimelineSelection(boardId, eventIndex));
+function commitTimelineSelection(
+    setSelection: PortfolioMutationActions['setPortfolioTimelineSelection'],
+    boardId: string,
+    eventIndex: number
+) {
+    flushSync(() => setSelection(boardId, eventIndex));
 }
 
 function TimelineEventChanges({ event }: { event: TimelineEvent | null }) {
@@ -47,7 +47,10 @@ function TimelineEventChanges({ event }: { event: TimelineEvent | null }) {
     );
 }
 
-function TimelineEventList({ view }: { view: PortfolioTimelineViewModel }) {
+function TimelineEventList({ view, onSelect }: {
+    view: PortfolioTimelineViewModel;
+    onSelect: (boardId: string, eventIndex: number) => void;
+}) {
     const events = Array.isArray(view.timeline?.events) ? view.timeline.events : [];
     return (
         <>
@@ -61,7 +64,7 @@ function TimelineEventList({ view }: { view: PortfolioTimelineViewModel }) {
                         data-board-id={view.boardId}
                         data-event-index={index}
                         key={event.id || `${view.boardId}:${index}`}
-                        onClick={() => commitTimelineSelection(view.boardId, index)}
+                        onClick={() => onSelect(view.boardId, index)}
                     >
                         <span className="timeline-event-kind">{event.kind}</span>
                         <span className="timeline-event-summary">{event.summary}</span>
@@ -73,7 +76,10 @@ function TimelineEventList({ view }: { view: PortfolioTimelineViewModel }) {
     );
 }
 
-function PortfolioTimelineView({ view }: { view: PortfolioTimelineViewModel }) {
+function PortfolioTimelineView({ view, actions }: {
+    view: PortfolioTimelineViewModel;
+    actions: PortfolioMutationActions;
+}) {
     const timeline = view.timeline;
     const isExpanded = Boolean(view.isExpanded);
 
@@ -111,7 +117,7 @@ function PortfolioTimelineView({ view }: { view: PortfolioTimelineViewModel }) {
                         type="button"
                         data-action="timeline-toggle-expanded"
                         data-board-id={view.boardId}
-                        onClick={() => setPortfolioTimelineExpanded(view.boardId, !isExpanded)}
+                        onClick={() => actions.setPortfolioTimelineExpanded(view.boardId, !isExpanded)}
                     >
                         {isExpanded ? 'Collapse' : 'Expand'}
                     </button>
@@ -136,14 +142,18 @@ function PortfolioTimelineView({ view }: { view: PortfolioTimelineViewModel }) {
                         value={selectedIndex}
                         data-action="timeline-slider"
                         data-board-id={view.boardId}
-                        onInput={(event) => commitTimelineSelection(view.boardId, Number(event.currentTarget.value))}
+                        onInput={(event) => commitTimelineSelection(
+                            actions.setPortfolioTimelineSelection,
+                            view.boardId,
+                            Number(event.currentTarget.value)
+                        )}
                     />
                     <button
                         className="btn"
                         type="button"
                         data-action="timeline-latest"
                         data-board-id={view.boardId}
-                        onClick={() => movePortfolioTimelineToLatest(view.boardId)}
+                        onClick={() => actions.movePortfolioTimelineToLatest(view.boardId)}
                     >
                         Latest
                     </button>
@@ -152,7 +162,7 @@ function PortfolioTimelineView({ view }: { view: PortfolioTimelineViewModel }) {
                             className="btn btn-primary"
                             type="button"
                             data-action="timeline-restore"
-                            onClick={() => restorePortfolioTimelineSelection()}
+                            onClick={() => actions.restorePortfolioTimelineSelection()}
                         >
                             Restore this state
                         </button>
@@ -161,7 +171,14 @@ function PortfolioTimelineView({ view }: { view: PortfolioTimelineViewModel }) {
             </div>
             <div className="timeline-body">
                 <div className="timeline-event-list">
-                    <TimelineEventList view={view} />
+                    <TimelineEventList
+                        view={view}
+                        onSelect={(boardId, eventIndex) => commitTimelineSelection(
+                            actions.setPortfolioTimelineSelection,
+                            boardId,
+                            eventIndex
+                        )}
+                    />
                 </div>
                 <div className="timeline-event-detail">
                     <div className="timeline-event-detail-title">{selectedEvent?.summary || 'Timeline event'}</div>
@@ -173,6 +190,7 @@ function PortfolioTimelineView({ view }: { view: PortfolioTimelineViewModel }) {
 }
 
 export function PortfolioTimeline() {
+    const actions = usePortfolioActions();
     const view = useAppStore((state) => state.portfolioTimelineView);
     const boardId = view?.boardId || '';
     const className = boardId
@@ -181,7 +199,7 @@ export function PortfolioTimeline() {
 
     return (
         <div className={className} id="portfolioTimelinePanel" data-board-id={boardId}>
-            {view && <PortfolioTimelineView view={view} />}
+            {view && <PortfolioTimelineView view={view} actions={actions} />}
         </div>
     );
 }

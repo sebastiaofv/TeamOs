@@ -1,8 +1,8 @@
 import type { Attachment, AttachmentKind, LooseBoardData, TaskInput } from '../types';
 import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_COUNT } from './constants';
 import { isRecord, normalizeTimestamp, nowIso } from './util';
-import { getTeamOsExtensionsObject, getBoardExtensionsObject } from './serialize';
-import { findTaskInBoardData } from './task';
+import { getTeamOsExtensionsObject, getBoardExtensionsObject } from './extensions';
+import { findTaskInBoardData } from './boardData';
 
 const isAttachment = (item: Attachment | null): item is Attachment => item !== null;
 
@@ -31,6 +31,18 @@ export function createAttachmentId(): string {
     return `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function utf8ByteLength(value: string): number {
+    let bytes = 0;
+    for (const character of value) {
+        const codePoint = character.codePointAt(0) || 0;
+        if (codePoint <= 0x7f) bytes += 1;
+        else if (codePoint <= 0x7ff) bytes += 2;
+        else if (codePoint <= 0xffff) bytes += 3;
+        else bytes += 4;
+    }
+    return bytes;
+}
+
 export function estimateAttachmentDataUrlSizeBytes(dataUrl: unknown): number {
     if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) return 0;
     const commaIndex = dataUrl.indexOf(',');
@@ -44,7 +56,7 @@ export function estimateAttachmentDataUrlSizeBytes(dataUrl: unknown): number {
         return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
     }
     try {
-        return new Blob([decodeURIComponent(payload)]).size;
+        return utf8ByteLength(decodeURIComponent(payload));
     } catch (_) {
         return payload.length;
     }

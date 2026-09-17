@@ -1,64 +1,32 @@
 // Task editing, details, validation, and undo.
 
-import type {
-    BoardData,
-    BoardRecord,
-    RoadmapItem,
-    SelectOption,
-    Task,
-    TaskDetailViewModel,
-    TaskDraft,
-    TaskEditorFields,
-    TaskEditorViewModel
-} from '../types';
+import type { Task, TaskDraft } from '../types';
 import type { BoardMutationContext } from './boardMutationContext';
 import type { BoardInteractions } from './boardInteractions';
-import { ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_MAX_COUNT, TASK_TITLE_MAX_LENGTH, defaultColumns } from '../domain/constants';
+import { defaultColumns } from '../domain/constants';
 import {
     buildTaskFieldsFromDraft,
-    formatAssignees,
     nextTaskIdForBoard,
-    normalizeAssignee,
-    normalizeAssignees,
-    normalizeBlockerReason,
-    normalizeChecklist,
-    normalizeEffort,
-    normalizePriority,
-    normalizeTags,
-    getBoardTagSuggestions,
-    normalizeTask,
     normalizeTaskStatus,
-    resolveCreateTaskStatus,
-    taskAssignees,
+    resolveCreateTaskStatus
 } from '../domain/task';
 import {
-    createEmptyRoadmapExtension,
-    getRoadmapExtension,
-    getRoadmapItemTitle,
-    normalizeRoadmapRef,
-} from '../domain/roadmap';
-import {
-    calculateBoardAttachmentBytes,
-    getTaskAttachments,
-    normalizeAttachmentList,
     removeLegacyTaskAttachmentsFromExtensions,
     setTaskAttachments,
 } from '../domain/attachments';
-import { createBoardStateSnapshot } from '../domain/serialize';
 import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '../domain/timeline';
-import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '../domain/calendar';
-import { formatFileSize, nowIso } from '../domain/util';
+import { nowIso } from '../domain/util';
 
 import { getSelectedPortfolioTimelineView } from '../selectors/portfolioViews';
+import {
+    buildTaskEditorViewModel,
+    buildTaskDetailViewModel,
+    findPortfolioTaskDetailSource,
+    validateTaskDraft,
+    type TaskFocusField
+} from './taskViewModels';
 
-export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
-
-type TaskDetailSource = { boardRecord: BoardRecord; boardData: BoardData; task: Task; taskIndex: number };
-
-type TaskDraftValidation =
-    | { ok: true }
-    | { ok: false; silent: true }
-    | { ok: false; silent?: false; message: string; focusField?: TaskFocusField };
+export type { TaskFocusField } from './taskViewModels';
 
 export function createTaskActions({ getState, commitState, getBoardRecord, findPortfolioTaskSource, canUsePortfolioTaskMutations,
     notifyPortfolioMutationUnavailable, isPortfolioBoardMutable, runPortfolioBoardMutation, runPortfolioTaskMutation,
@@ -67,143 +35,8 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     let taskEditorOpenCount = 0;
     let undoTimer: ReturnType<typeof setTimeout> | null = null;
 
-    function findPortfolioTaskDetailSource(boardId: string, taskId: unknown, options: { boardData?: unknown } = {}): TaskDetailSource | null {
-        const boardRecord = getBoardRecord(boardId);
-        if (!boardRecord) return null;
-        const sourceBoardData = options.boardData
-            ? createBoardStateSnapshot(options.boardData)
-            : boardRecord.data;
-        const tasks = sourceBoardData?.board?.tasks;
-        if (!Array.isArray(tasks)) return null;
-        const normalizedTaskId = Number(taskId);
-        const taskIndex = tasks.findIndex((task) => Number(task?.id) === normalizedTaskId);
-        if (taskIndex < 0) return null;
-        return {
-            boardRecord,
-            boardData: sourceBoardData,
-            task: tasks[taskIndex],
-            taskIndex
-        };
-    }
-
-    function buildRoadmapEntityOptions(items: RoadmapItem[] | null | undefined): SelectOption[] {
-        return (Array.isArray(items) ? items : []).map((item) => ({
-            value: item.id,
-            label: item.title
-        }));
-    }
-
-    function getTaskAssigneeSuggestions(excludeNames: string[] = []): string[] {
-        const seen = new Set<string>();
-        const excluded = new Set(normalizeAssignees(excludeNames).map((name) => name.toLowerCase()));
-        const values: string[] = [];
-        const addName = (value: unknown) => {
-            const name = normalizeAssignee(value);
-            if (!name || excluded.has(name.toLowerCase()) || seen.has(name.toLowerCase())) return;
-            seen.add(name.toLowerCase());
-            values.push(name);
-        };
-        (getState().portfolioTasks || []).forEach((item) => taskAssignees(item?.task).forEach(addName));
-        return values.sort((a, b) => a.localeCompare(b));
-    }
-
-    function buildTaskEditorViewModel(
-        boardRecord: BoardRecord,
-        task: Task | null,
-        options: { taskId?: unknown; preferredDueDate?: string } = {}
-    ): TaskEditorViewModel {
-        taskEditorOpenCount += 1;
-        const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
-        const phaseOptions = buildRoadmapEntityOptions(roadmap.phases);
-        const milestoneOptions = buildRoadmapEntityOptions(roadmap.milestones);
-        const knownRef = (optionList: SelectOption[], value: unknown) => {
-            const ref = normalizeRoadmapRef(value);
-            return optionList.some((option) => option.value === ref) ? ref : '';
-        };
-        const normalized = task ? normalizeTask(task) : null;
-        const initial: TaskEditorFields = normalized
-            ? {
-                title: normalized.title || '',
-                description: normalized.description || '',
-                blocked: Boolean(normalized.blocked),
-                blockerReason: normalized.blocked ? normalizeBlockerReason(normalized.blockerReason) : '',
-                assignees: normalizeAssignees(normalized.assignees),
-                tags: normalizeTags(normalized.tags),
-                checklist: normalizeChecklist(normalized.checklist),
-                attachments: normalizeAttachmentList(getTaskAttachments(boardRecord.data, options.taskId)),
-                dueDate: normalizeDueDate(normalized.dueDate) || '',
-                priority: normalizePriority(normalized.priority) || '',
-                effort: normalizeEffort(normalized.effort) || '',
-                phaseId: knownRef(phaseOptions, normalized.phaseId),
-                milestoneId: knownRef(milestoneOptions, normalized.milestoneId)
-            }
-            : {
-                title: '',
-                description: '',
-                blocked: false,
-                blockerReason: '',
-                assignees: [],
-                tags: [],
-                checklist: [],
-                attachments: [],
-                dueDate: normalizeDueDate(options.preferredDueDate || '') || '',
-                priority: '',
-                effort: '',
-                phaseId: '',
-                milestoneId: ''
-            };
-        return {
-            openId: taskEditorOpenCount,
-            heading: normalized ? 'Edit Task' : 'New Task',
-            initial,
-            phaseOptions,
-            milestoneOptions,
-            assigneePool: getTaskAssigneeSuggestions([]),
-            tagSuggestions: getBoardTagSuggestions(boardRecord.data),
-            otherAttachmentBytes: calculateBoardAttachmentBytes(boardRecord.data, {
-                excludeTaskId: normalized ? options.taskId : null
-            })
-        };
-    }
-
-    function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean): TaskDetailViewModel {
-        const task = normalizeTask(source.task);
-        const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
-        const roadmap = getRoadmapExtension(source.boardData);
-        return {
-            readOnly,
-            fields: {
-                title: task.title || '-',
-                description: task.description || '-',
-                assignees: formatAssignees(task.assignees) || '-',
-                tags: normalizeTags(task.tags).join(', ') || '-',
-                blocked: task.blocked ? 'Yes' : 'No',
-                blockerReason: task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-',
-                priority: task.priority ? (task.priority.charAt(0).toUpperCase() + task.priority.slice(1)) : '-',
-                effort: task.effort || '-',
-                status: (statusMap[task.status] || task.status) || '-',
-                createdAt: formatDateTime(task.createdAt),
-                updatedAt: formatDateTime(task.updatedAt),
-                dueDate: formatDueDateForUi(task.dueDate) || '-',
-                phase: getRoadmapItemTitle(roadmap, 'phases', task.phaseId) || '-',
-                milestone: getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-',
-                sprint: getRoadmapItemTitle(roadmap, 'sprints', task.sprintId) || '-'
-            },
-            checklist: normalizeChecklist(task.checklist)
-                .map((item) => ({ text: item.text, done: Boolean(item.done) })),
-            attachments: normalizeAttachmentList(getTaskAttachments(source.boardData, taskId))
-                .map((item) => ({
-                    id: item.id,
-                    name: item.name,
-                    isImage: item.kind === 'image',
-                    dataUrl: item.dataUrl,
-                    subLabel: `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`
-                }))
-        };
-    }
-
     function openPortfolioTaskDetails(boardId: string, taskId: number, options: { boardData?: unknown; readOnly?: boolean } = {}) {
-        const source = findPortfolioTaskDetailSource(boardId, taskId, options);
+        const source = findPortfolioTaskDetailSource(getBoardRecord, boardId, taskId, options);
         if (!source) return;
         setSelectedPortfolioCard(boardId, taskId);
         const readOnly = options.readOnly === true || !canUsePortfolioTaskMutations(boardId);
@@ -224,7 +57,13 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             portfolioEditContext: { boardId, taskId },
             portfolioCreateContext: null
         });
-        openDialogFn('taskEditor', buildTaskEditorViewModel(source.boardRecord, source.task, { taskId }));
+        openDialogFn('taskEditor', buildTaskEditorViewModel(
+            source.boardRecord,
+            source.task,
+            getState().portfolioTasks,
+            ++taskEditorOpenCount,
+            { taskId }
+        ));
     }
 
     function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string } = {}) {
@@ -244,9 +83,13 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             portfolioCreateContext: { boardId, status },
             portfolioEditContext: null
         });
-        openDialogFn('taskEditor', buildTaskEditorViewModel(boardRecord, null, {
-            preferredDueDate: options.preferredDueDate
-        }));
+        openDialogFn('taskEditor', buildTaskEditorViewModel(
+            boardRecord,
+            null,
+            getState().portfolioTasks,
+            ++taskEditorOpenCount,
+            { preferredDueDate: options.preferredDueDate }
+        ));
     }
 
     function closeTaskEditor() {
@@ -345,47 +188,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             recordTaskTimelineEvent(data, before, null);
             return true;
         });
-    }
-
-    function validateTaskDraft(draft: TaskDraft | null | undefined): TaskDraftValidation {
-        const attachments = Array.isArray(draft?.attachments) ? draft.attachments : [];
-        if (!draft?.title) {
-            return { ok: false, silent: true };
-        }
-        if (draft.title.length > TASK_TITLE_MAX_LENGTH) {
-            return {
-                ok: false,
-                message: `Task title must be ${TASK_TITLE_MAX_LENGTH} characters or fewer.`,
-                focusField: 'title'
-            };
-        }
-        if (draft.blocked && !draft.blockerReason) {
-            return {
-                ok: false,
-                message: 'Blocked tasks require a blocker reason.',
-                focusField: 'blockerReason'
-            };
-        }
-        if (draft.rawDueDate && !draft.dueDate) {
-            return {
-                ok: false,
-                message: 'Due date must be a valid date.',
-                focusField: 'dueDate'
-            };
-        }
-        if (attachments.length > ATTACHMENT_MAX_COUNT) {
-            return {
-                ok: false,
-                message: `Tasks can have up to ${ATTACHMENT_MAX_COUNT} attachments.`
-            };
-        }
-        if (attachments.some((item) => (Number(item.sizeBytes) || 0) > ATTACHMENT_HARD_MAX_BYTES)) {
-            return {
-                ok: false,
-                message: `Attachments must be ${formatFileSize(ATTACHMENT_HARD_MAX_BYTES)} or smaller.`
-            };
-        }
-        return { ok: true };
     }
 
     async function saveTask(draft: TaskDraft): Promise<{ focusField?: TaskFocusField } | undefined> {

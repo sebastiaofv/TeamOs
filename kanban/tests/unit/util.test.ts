@@ -1,21 +1,18 @@
-import { fromPartial } from '@total-typescript/shoehorn';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   isAbortError,
   formatErrorMessage,
-  isFileDrag,
   nowIso,
   compareText,
   hasExactKeys,
   escapeRegExp,
-  readFileAsDataUrl,
   formatFileSize,
   hasRequiredExtension,
   normalizeTheme,
   normalizeTimestamp,
-  assertRequiredExtension,
-  portfolioSortSelectValueFromKey
+  assertRequiredExtension
 } from '../../src/domain/util';
+import { portfolioSortSelectValueFromKey } from '../../src/domain/board';
 
 describe('isAbortError', () => {
   it('detects an AbortError by name', () => {
@@ -50,24 +47,6 @@ describe('formatErrorMessage', () => {
 
   it('stringifies a non-string message', () => {
     expect(formatErrorMessage({ message: 404 })).toBe('404');
-  });
-});
-
-describe('isFileDrag', () => {
-  it('returns true when dataTransfer.types includes "Files"', () => {
-    expect(isFileDrag(fromPartial({ dataTransfer: fromPartial({ types: ['Files', 'text/plain'] }) }))).toBe(true);
-  });
-
-  it('returns false when dataTransfer is missing', () => {
-    expect(isFileDrag(fromPartial({}))).toBe(false);
-  });
-
-  it('returns false when types does not include "Files"', () => {
-    expect(isFileDrag(fromPartial({ dataTransfer: fromPartial({ types: ['text/plain'] }) }))).toBe(false);
-  });
-
-  it('returns false when dataTransfer.types is missing', () => {
-    expect(isFileDrag(fromPartial({ dataTransfer: fromPartial({}) }))).toBe(false);
   });
 });
 
@@ -150,53 +129,6 @@ describe('escapeRegExp', () => {
     // rather than silently matching anyway.
     const re = new RegExp(`^${escaped}$`, 'u');
     expect(re.test(raw)).toBe(true);
-  });
-});
-
-describe('readFileAsDataUrl', () => {
-  const originalFileReader = globalThis.FileReader;
-
-  afterEach(() => {
-    globalThis.FileReader = originalFileReader;
-  });
-
-  it('resolves with the data URL on a successful read', async () => {
-    class FakeFileReader {
-      [key: string]: any;
-      readAsDataURL() {
-        this.result = 'data:text/plain;base64,aGVsbG8=';
-        this.onload?.();
-      }
-    }
-    (globalThis.FileReader as any) = FakeFileReader;
-
-    await expect(readFileAsDataUrl(fromPartial({}))).resolves.toBe('data:text/plain;base64,aGVsbG8=');
-  });
-
-  it('rejects with the reader error on a failed read', async () => {
-    const readError = new Error('boom');
-    class FakeFileReader {
-      [key: string]: any;
-      readAsDataURL() {
-        this.error = readError;
-        this.onerror?.();
-      }
-    }
-    (globalThis.FileReader as any) = FakeFileReader;
-
-    await expect(readFileAsDataUrl(fromPartial({}))).rejects.toBe(readError);
-  });
-
-  it('rejects with a generic error when the reader reports none', async () => {
-    class FakeFileReader {
-      [key: string]: any;
-      readAsDataURL() {
-        this.onerror?.();
-      }
-    }
-    (globalThis.FileReader as any) = FakeFileReader;
-
-    await expect(readFileAsDataUrl(fromPartial({}))).rejects.toThrow('File read failed.');
   });
 });
 

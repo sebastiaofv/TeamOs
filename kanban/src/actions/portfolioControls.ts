@@ -14,10 +14,10 @@ import {
 import { closePortfolioContextsForProject as defaultClosePortfolioContextsForProject } from './dialogs';
 import {
     forgetProjectFileState,
-    primeProjectFileBaselines,
     retryProjectSave,
     syncProjectSaveStates
 } from '../persistence/projectFiles';
+import { primeProjectFileBaselines } from '../persistence/projectFileWatcher';
 import { useAppStore, type AppState, type AppStore } from '../state/store';
 import { updatePortfolioUrlState } from './portfolioNavigation';
 import { buildPortfolioCalendarViewModel, getPortfolioBulkTaskIds } from '../selectors/portfolioViews';

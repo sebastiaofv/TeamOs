@@ -155,8 +155,12 @@ describe('estimateAttachmentDataUrlSizeBytes', () => {
     expect(estimateAttachmentDataUrlSizeBytes('data:text/plain;BASE64,QQ==')).toBe(1);
   });
 
-  it('falls back to Blob size for a non-base64 (URL-encoded) data URL', () => {
+  it('computes UTF-8 byte size for a non-base64 (URL-encoded) data URL', () => {
     expect(estimateAttachmentDataUrlSizeBytes('data:text/plain,Hello%20World')).toBe(11);
+  });
+
+  it('counts multibyte characters using their UTF-8 byte size', () => {
+    expect(estimateAttachmentDataUrlSizeBytes('data:text/plain,%E2%9C%93')).toBe(3);
   });
 
   it('falls back to raw payload length when decodeURIComponent throws', () => {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { isFileDrag } from '../domain/util';
+import { isFileDrag } from '../adapters/browser/fileDrop';
 import { PROJECT_FILE_WATCH_INTERVAL_MS } from '../domain/constants';
 import { checkPortfolioFiles, openPortfolioFromFiles } from '../actions/portfolioFiles';
 

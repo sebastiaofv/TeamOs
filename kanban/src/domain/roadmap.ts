@@ -10,9 +10,8 @@ import type {
     Task
 } from '../types';
 import { ROADMAP_VERSION, ROADMAP_EXTENSION_KEY } from './constants';
-import { todayLocalIsoDate } from './calendar';
-import { hasExactKeys, isRecord } from './util';
-import { getBoardExtensionsObject } from './serialize';
+import { getBoardExtensionsObject } from './extensions';
+import { hasExactKeys, isRecord, todayLocalIsoDate } from './util';
 
 type RoadmapItemLike = Partial<RoadmapItem> | null | undefined;
 type RangeLike = Partial<RoadmapRange> | null | undefined;

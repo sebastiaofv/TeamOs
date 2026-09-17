@@ -18,6 +18,14 @@ export function createPortfolioMutationActions(options: BoardMutationOptions = {
     return { ...tasks, ...roadmap, ...timeline, ...interactions };
 }
 
+export type PortfolioMutationActions = ReturnType<typeof createPortfolioMutationActions>;
+
+const activeActions: PortfolioMutationActions = createPortfolioMutationActions();
+
+export function getPortfolioMutationActions(): PortfolioMutationActions {
+    return activeActions;
+}
+
 export const {
     setSelectedPortfolioCard,
     setHoveredPortfolioCard,
@@ -46,4 +54,4 @@ export const {
     movePortfolioTimelineToLatest,
     setPortfolioTimelineExpanded,
     restorePortfolioTimelineSelection,
-} = createPortfolioMutationActions();
+} = activeActions;

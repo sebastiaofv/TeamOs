@@ -16,9 +16,8 @@ import {
 } from '../actions/portfolioControls';
 import { getRoadmapExtension } from '../domain/roadmap';
 import { EFFORT_BUCKETS } from '../domain/constants';
-import { normalizePortfolioViewMode, createPortfolioProjectColor } from '../domain/board';
+import { normalizePortfolioViewMode, createPortfolioProjectColor, portfolioSortSelectValueFromKey } from '../domain/board';
 import { DEFAULT_PORTFOLIO_FILTERS } from '../domain/portfolioFilters';
-import { portfolioSortSelectValueFromKey } from '../domain/util';
 import { normalizeAssignee, taskAssignees } from '../domain/task';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '../selectors/portfolioViews';
 import { useFocusTarget } from '../hooks/useFocusTarget';

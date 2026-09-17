@@ -14,7 +14,7 @@ import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, ROADMAP_EXTENSION_KEY,
 import { comparePortfolioDueDateAsc } from './calendar';
 import { normalizeRoadmapExtension } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
-import { normalizeTimelineExtension } from './timeline';
+import { normalizeTimelineExtension } from './timelineSchema';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -72,6 +72,13 @@ export function normalizePortfolioSortKey(value: unknown): PortfolioSortKey {
     return (PORTFOLIO_SORT_KEYS as readonly unknown[]).includes(value)
         ? value as PortfolioSortKey
         : 'priority';
+}
+
+export function portfolioSortSelectValueFromKey(sortKey: unknown): 'name' | 'priority' | 'effort' | 'score' {
+    const key = normalizePortfolioSortKey(sortKey);
+    if (key === 'task') return 'name';
+    if (key === 'priority' || key === 'effort' || key === 'score') return key;
+    return 'priority';
 }
 
 export function normalizePortfolioViewMode(value: unknown): PortfolioViewMode {

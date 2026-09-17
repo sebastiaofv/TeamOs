@@ -5,15 +5,7 @@ import type { CardRef, DialogName, PortfolioRow, TaskStatus } from '../types';
 import type { DetailContext } from '../state/slices';
 import { createNewProject, importPortfolioProjects } from './portfolioFiles';
 import { closeDialog, openDialog } from './dialogs';
-import {
-    closeRoadmapEntity,
-    closeTaskDetail,
-    closeTaskEditor,
-    editPortfolioTask,
-    movePortfolioTaskToStatus,
-    openPortfolioTaskDetails,
-    togglePortfolioArchiveTask
-} from './portfolioMutations';
+import { getPortfolioMutationActions, type PortfolioMutationActions } from './portfolioMutations';
 import { resetPortfolioFilters, selectPortfolioBoard } from './portfolioControls';
 import { focusTarget } from './focusTargets';
 import { useAppStore, type AppState } from '../state/store';
@@ -114,7 +106,8 @@ const MOVE_SHORTCUTS: [string, TaskStatus, string][] = [
     ['4', 'done', 'Done']
 ];
 
-export const SHORTCUTS: Shortcut[] = [
+export function createPortfolioShortcuts(actions: PortfolioMutationActions = getPortfolioMutationActions()): Shortcut[] {
+    return [
     {
         id: 'focus-search', section: 'Global', keys: ['/'], description: 'Focus project search', contexts: ['global'],
         match: (event) => noModifiers(event) && !event.shiftKey && event.key === '/',
@@ -174,19 +167,19 @@ export const SHORTCUTS: Shortcut[] = [
         id: 'card-open', section: 'Cards', keys: ['Enter'], description: 'Open hovered or selected card details', contexts: ['global'],
         match: (event) => noModifiers(event) && event.key === 'Enter',
         when: () => Boolean(getShortcutTargetRow() && !getShortcutTargetRow()?.historical),
-        handler: withTargetRow((row) => openPortfolioTaskDetails(row.boardId, row.taskId))
+        handler: withTargetRow((row) => actions.openPortfolioTaskDetails(row.boardId, row.taskId))
     },
     {
         id: 'card-edit', section: 'Cards', keys: ['E'], description: 'Edit hovered or selected card', contexts: ['global'],
         match: (event) => noModifiers(event) && isKey(event, 'e'),
         when: canMutateTargetRow,
-        handler: withTargetRow((row) => editPortfolioTask(row.boardId, row.taskId))
+        handler: withTargetRow((row) => actions.editPortfolioTask(row.boardId, row.taskId))
     },
     {
         id: 'card-archive', section: 'Cards', keys: ['X'], description: 'Archive/restore hovered or selected card', contexts: ['global'],
         match: (event) => noModifiers(event) && isKey(event, 'x'),
         when: canMutateTargetRow,
-        handler: withTargetRow((row) => { void togglePortfolioArchiveTask(row.boardId, row.taskId); })
+        handler: withTargetRow((row) => { void actions.togglePortfolioArchiveTask(row.boardId, row.taskId); })
     },
     ...MOVE_SHORTCUTS.map(([key, status, label]): Shortcut => ({
         id: `move-${status}`,
@@ -196,7 +189,7 @@ export const SHORTCUTS: Shortcut[] = [
         contexts: ['global'],
         match: (event) => noModifiers(event) && event.key === key,
         when: canMutateTargetRow,
-        handler: withTargetRow((row) => { void movePortfolioTaskToStatus(row.boardId, row.taskId, status); })
+        handler: withTargetRow((row) => { void actions.movePortfolioTaskToStatus(row.boardId, row.taskId, status); })
     })),
     {
         // Listed for reference; the task editor handles Ctrl/Cmd+Enter itself.
@@ -208,26 +201,29 @@ export const SHORTCUTS: Shortcut[] = [
         id: 'detail-edit', section: 'Task Detail', keys: ['E'], description: 'Edit open task', contexts: ['detailModal'],
         match: (event) => noModifiers(event) && isKey(event, 'e'),
         when: canEditOpenDetail,
-        handler: withOpenDetail((context) => editPortfolioTask(context.boardId, context.taskId))
+        handler: withOpenDetail((context) => actions.editPortfolioTask(context.boardId, context.taskId))
     },
     {
         id: 'detail-archive', section: 'Task Detail', keys: ['X'], description: 'Archive/restore open task', contexts: ['detailModal'],
         match: (event) => noModifiers(event) && isKey(event, 'x'),
         when: canEditOpenDetail,
-        handler: withOpenDetail((context) => { void togglePortfolioArchiveTask(context.boardId, context.taskId); })
+        handler: withOpenDetail((context) => { void actions.togglePortfolioArchiveTask(context.boardId, context.taskId); })
     },
     {
         id: 'close-modal', section: 'Modal', keys: ['Esc'], description: 'Close open modal',
         contexts: ['taskModal', 'detailModal', 'roadmapEntityModal', 'shortcutsModal', 'helpModal'], allowWhileTyping: true,
         match: (event) => event.key === 'Escape',
         handler: () => {
-            closeTaskEditor();
-            closeTaskDetail();
-            closeRoadmapEntity();
+            actions.closeTaskEditor();
+            actions.closeTaskDetail();
+            actions.closeRoadmapEntity();
             closeDialog();
         }
     }
-];
+    ];
+}
+
+export const SHORTCUTS: Shortcut[] = createPortfolioShortcuts();
 
 const SHORTCUT_CONTEXT_BY_DIALOG: Record<DialogName, ShortcutContext> = {
     taskEditor: 'taskModal',
@@ -242,7 +238,7 @@ function isTyping(): boolean {
     return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
 }
 
-export function handleShortcutKeydown(event: KeyboardEvent): void {
+export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMutationActions = getPortfolioMutationActions()): void {
     // A key already handled elsewhere (a dialog closing on Escape, a drag being
     // cancelled) is not also a shortcut.
     if (event.defaultPrevented) return;
@@ -251,7 +247,10 @@ export function handleShortcutKeydown(event: KeyboardEvent): void {
     const activeDialog = getState().activeDialog;
     const contextName = (activeDialog && SHORTCUT_CONTEXT_BY_DIALOG[activeDialog]) || 'global';
     const typing = isTyping();
-    for (const entry of SHORTCUTS) {
+    const shortcuts = actions === getPortfolioMutationActions()
+        ? SHORTCUTS
+        : createPortfolioShortcuts(actions);
+    for (const entry of shortcuts) {
         if (!entry.contexts.includes(contextName)) continue;
         if (typing && !entry.allowWhileTyping) continue;
         if (!entry.match(event)) continue;

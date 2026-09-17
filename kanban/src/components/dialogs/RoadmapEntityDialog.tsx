@@ -2,7 +2,7 @@ import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { RoadmapEntityDates, RoadmapEntityViewModel } from '../../types';
 import { useAppStore } from '../../state/store';
-import { closeRoadmapEntity, saveRoadmapEntity } from '../../actions/portfolioMutations';
+import { usePortfolioActions } from '../../application/PortfolioActionsContext';
 import type { RoadmapFocusField } from '../../actions/roadmapActions';
 import { useReturnFocus } from './useReturnFocus';
 import { keepOpenOnUndoToast } from './keepOpenOnUndoToast';
@@ -11,6 +11,7 @@ import { escapeAnswersAppMessage } from './escapeAnswersAppMessage';
 type RoadmapEntityFormDraft = RoadmapEntityDates & { existingSprintId: string };
 
 export function RoadmapEntityDialog() {
+    const { closeRoadmapEntity } = usePortfolioActions();
     const open = useAppStore((s) => s.activeDialog === 'roadmapEntity');
     const vm = useAppStore((s) => (s.activeDialog === 'roadmapEntity' ? s.dialogProps as RoadmapEntityViewModel : null));
     const titleRef = useRef<HTMLInputElement>(null);
@@ -52,6 +53,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     titleRef: RefObject<HTMLInputElement | null>;
     sprintRef: RefObject<HTMLSelectElement | null>;
 }) {
+    const { saveRoadmapEntity } = usePortfolioActions();
     const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '' }));
     const dueDateRef = useRef<HTMLInputElement>(null);
     const startDateRef = useRef<HTMLInputElement>(null);

@@ -18,16 +18,17 @@ import { usePortfolioFileIntegration } from './hooks/usePortfolioFileIntegration
 import { closeDialog, openDialog } from './actions/dialogs';
 import { cancelAppMessages } from './actions/appMessages';
 import { createNewProject, importPortfolioProjects } from './actions/portfolioFiles';
-import { closeRoadmapEntity, closeTaskDetail, closeTaskEditor } from './actions/portfolioMutations';
+import type { PortfolioMutationActions } from './actions/portfolioMutations';
+import { PortfolioActionsProvider, usePortfolioActions } from './application/PortfolioActionsContext';
 import { useAppStore } from './state/store';
 
 // A dialog that fails to render is closed so keyboard shortcuts are not left
 // suppressed by a dialog nobody can see.
-function closeAllDialogs() {
+function closeAllDialogs(actions: Pick<PortfolioMutationActions, 'closeTaskEditor' | 'closeTaskDetail' | 'closeRoadmapEntity'>) {
     cancelAppMessages();
-    closeTaskEditor();
-    closeTaskDetail();
-    closeRoadmapEntity();
+    actions.closeTaskEditor();
+    actions.closeTaskDetail();
+    actions.closeRoadmapEntity();
     closeDialog();
 }
 
@@ -70,7 +71,8 @@ function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleTheme: () =
     );
 }
 
-export function App() {
+function AppContent() {
+    const actions = usePortfolioActions();
     usePortfolioRuntime();
     const { theme, toggleTheme } = useTheme();
     const fileDropActive = usePortfolioFileIntegration();
@@ -98,7 +100,7 @@ export function App() {
                 </div>
                 <div className="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">Drop project files to import</div>
             </div>
-            <ErrorBoundary name="Dialogs" onError={closeAllDialogs}>
+            <ErrorBoundary name="Dialogs" onError={() => closeAllDialogs(actions)}>
                 <ShortcutsDialog />
                 <HelpDialog />
                 <TaskDetailDialog />
@@ -108,5 +110,13 @@ export function App() {
                 <UndoToast />
             </ErrorBoundary>
         </>
+    );
+}
+
+export function App() {
+    return (
+        <PortfolioActionsProvider>
+            <AppContent />
+        </PortfolioActionsProvider>
     );
 }

@@ -3,6 +3,8 @@ import { CALENDAR_MONTH_NAMES } from './constants';
 import { compareText, normalizeTimestamp } from './util';
 import { addRoadmapDays, parseRoadmapIsoDate } from './roadmap';
 
+export { todayLocalIsoDate } from './util';
+
 type CalendarItemLike = PortfolioCalendarItem | null | undefined;
 
 export type CalendarMiniDayMarker = {
@@ -188,10 +190,6 @@ export function getPortfolioCalendarYearHeatStats(taskCounts: unknown, year: num
         return { min: 0, max: 0 };
     }
     return { min, max };
-}
-
-export function todayLocalIsoDate(): string {
-    return formatLocalIsoDate(new Date());
 }
 
 export function doesPortfolioCalendarItemIntersectMonth(item: CalendarItemLike, year: number, month: number): boolean {

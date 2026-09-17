@@ -10,7 +10,8 @@ import type {
     Task
 } from '../types';
 import { useAppStore, type AppState } from '../state/store';
-import { PortfolioTaskCard, type TaskCardState } from './PortfolioBoard';
+import { PortfolioTaskCard, type TaskCardState } from './PortfolioTaskCard';
+import { usePortfolioActions } from '../application/PortfolioActionsContext';
 import {
     compareRoadmapItemsByDate,
     formatRoadmapDateRange,
@@ -21,11 +22,6 @@ import {
 } from '../domain/roadmap';
 import { normalizeTask } from '../domain/task';
 import { buildPortfolioRoadmapView } from '../selectors/portfolioViews';
-import {
-    deleteRoadmapEntity,
-    openRoadmapEntityModal,
-    togglePortfolioRoadmapRowExpanded
-} from '../actions/portfolioMutations';
 
 type RoadmapState = TaskCardState & Pick<AppState, 'portfolioRoadmapExpandedRowsByBoardId'>;
 
@@ -86,6 +82,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
     axisTicks: RoadmapTick[];
     state: RoadmapState;
 }) {
+    const actions = usePortfolioActions();
     const config = getRoadmapEntityConfig(kind);
     if (!config) return null;
     const sortedItems = Array.isArray(items) ? [...items].sort(compareRoadmapItemsByDate) : [];
@@ -109,7 +106,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                 const target = event.target as Element;
                 if (target.closest('button, .roadmap-task-list')) return;
                 const row = target.closest<HTMLElement>('.roadmap-row[data-roadmap-kind][data-roadmap-id]');
-                if (row) togglePortfolioRoadmapRowExpanded(boardId, `${row.dataset.roadmapKind}:${row.dataset.roadmapId}`);
+                if (row) actions.togglePortfolioRoadmapRowExpanded(boardId, `${row.dataset.roadmapKind}:${row.dataset.roadmapId}`);
             }}
         >
             <div className="roadmap-section-header">
@@ -123,7 +120,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                     aria-label={`Add ${config.label}`}
                     data-action="add-roadmap-item"
                     data-roadmap-kind={kind}
-                    onClick={() => openRoadmapEntityModal(kind)}
+                    onClick={() => actions.openRoadmapEntityModal(kind)}
                 >
                     + {config.label}
                 </button>
@@ -155,7 +152,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 data-action="edit-roadmap-item"
                                                 data-roadmap-kind={kind}
                                                 data-roadmap-id={item.id}
-                                                onClick={() => openRoadmapEntityModal(kind, item.id)}
+                                                onClick={() => actions.openRoadmapEntityModal(kind, item.id)}
                                             >
                                                 {'✎'}
                                             </button>
@@ -167,7 +164,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 data-action="delete-roadmap-item"
                                                 data-roadmap-kind={kind}
                                                 data-roadmap-id={item.id}
-                                                onClick={() => deleteRoadmapEntity(kind, item.id)}
+                                                onClick={() => actions.deleteRoadmapEntity(kind, item.id)}
                                             >
                                                 {String.fromCodePoint(128465)}
                                             </button>
@@ -184,7 +181,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 data-action="toggle-roadmap-row"
                                                 data-roadmap-kind={config.singular}
                                                 data-roadmap-id={item.id}
-                                                onClick={() => togglePortfolioRoadmapRowExpanded(boardId, `${config.singular}:${item.id}`)}
+                                                onClick={() => actions.togglePortfolioRoadmapRowExpanded(boardId, `${config.singular}:${item.id}`)}
                                             >
                                                 {expanded ? 'Hide tasks' : 'Show tasks'}
                                             </button>

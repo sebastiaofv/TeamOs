@@ -3,6 +3,7 @@ import type { Attachment, DraftMessage } from '../../../types';
 import { ATTACHMENT_MAX_COUNT } from '../../../domain/constants';
 import { formatFileSize } from '../../../domain/util';
 import { buildAttachmentWarnings, mergePickedAttachments } from '../../../domain/taskDraft';
+import { readFileAsDataUrl } from '../../../adapters/browser/fileReader';
 
 export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
     value: Attachment[];
@@ -23,7 +24,7 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
         const files = Array.from(input.files || []);
         input.value = '';
         if (files.length === 0) return;
-        const result = await mergePickedAttachments(value, files);
+        const result = await mergePickedAttachments(value, files, { readFile: readFileAsDataUrl });
         // The dialog may have closed while files were being read.
         if (!mountedRef.current) return;
         onChange(result.attachments);
