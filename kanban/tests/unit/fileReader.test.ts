@@ -1,6 +1,6 @@
 import { fromPartial } from '@total-typescript/shoehorn';
 import { describe, it, expect, afterEach } from 'vitest';
-import { readFileAsDataUrl } from '../../src/adapters/browser/fileReader';
+import { readFileAsDataUrl } from '../../src/infrastructure/browser/fileReader';
 
 describe('readFileAsDataUrl', () => {
   const originalFileReader = globalThis.FileReader;

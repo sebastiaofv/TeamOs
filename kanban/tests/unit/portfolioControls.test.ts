@@ -1,8 +1,8 @@
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
-import { createAppStore as createStore } from '../../src/state/store';
+import { createAppStore as createStore } from '../../src/features/portfolio/state/store';
 import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
-import { createPortfolioControlActions } from '../../src/actions/portfolioControls';
+import { createPortfolioControlActions } from '../../src/features/portfolio/commands/portfolioControls';
 
 function createBoard(id: string, title: string, options: { sprints?: any[]; handle?: any } = {}) {
     const data = createEmptyProjectData(title);

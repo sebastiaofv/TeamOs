@@ -1,7 +1,7 @@
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
 import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
-import { createPortfolioFileActions } from '../../src/actions/portfolioFiles';
+import { createPortfolioFileActions } from '../../src/features/portfolio/projects/projectCommands';
 
 describe('portfolio file actions', () => {
     it.each(['local', 'reload', null])('hands the conflict choice %s to persistence', async (choice) => {

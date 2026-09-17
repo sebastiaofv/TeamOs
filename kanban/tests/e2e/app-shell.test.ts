@@ -56,6 +56,33 @@ test.describe('app shell', () => {
     expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanTheme'))).toBe('light');
   });
 
+  test('language toggle switches and persists Portuguese', async ({ page }) => {
+    const toggle = page.locator('#languageToggleBtn');
+
+    await expect(toggle).toHaveText('EN');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.locator('#openHelpBtn')).toHaveText('Help');
+
+    await toggle.click();
+
+    await expect(toggle).toHaveText('PT');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
+    await expect(page.locator('#openHelpBtn')).toHaveText('Ajuda');
+    await expect(page.locator('#openShortcutsBtn')).toHaveText('Atalhos');
+    expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanLanguage'))).toBe('pt');
+
+    await page.reload();
+
+    await expect(page.locator('#languageToggleBtn')).toHaveText('PT');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
+    await expect(page.locator('#openHelpBtn')).toHaveText('Ajuda');
+
+    await page.locator('#languageToggleBtn').click();
+    await expect(page.locator('#languageToggleBtn')).toHaveText('EN');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanLanguage'))).toBe('en');
+  });
+
   test('app shell does not create a page scrollbar on load', async ({ page }) => {
     const metrics = await page.evaluate(() => ({
       viewportHeight: window.innerHeight,

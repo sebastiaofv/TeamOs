@@ -1,6 +1,6 @@
 import { fromPartial } from '@total-typescript/shoehorn';
 import { describe, it, expect } from 'vitest';
-import { isFileDrag } from '../../src/adapters/browser/fileDrop';
+import { isFileDrag } from '../../src/infrastructure/browser/fileDrop';
 
 describe('isFileDrag', () => {
   it('returns true when dataTransfer.types includes "Files"', () => {

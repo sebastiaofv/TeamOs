@@ -1,4 +1,5 @@
-import type { HeatStats, PortfolioCalendarItem, PortfolioRow } from '../types';
+import type { HeatStats } from './types';
+import type { PortfolioCalendarItem, PortfolioRow } from '@/features/portfolio/types';
 import { CALENDAR_MONTH_NAMES } from './constants';
 import { compareText, normalizeTimestamp } from './util';
 import { addRoadmapDays, parseRoadmapIsoDate } from './roadmap';
@@ -98,10 +99,10 @@ export function doesPortfolioCalendarItemOccurOnDay(item: CalendarItemLike, isoD
     return bounds.start <= day && bounds.end >= day;
 }
 
-export function formatDateTime(value: unknown): string {
+export function formatDateTime(value: unknown, locale?: string): string {
     const ts = normalizeTimestamp(value);
     if (!ts) return '-';
-    return new Date(ts).toLocaleString();
+    return new Date(ts).toLocaleString(locale);
 }
 
 export function formatDueDateForUi(value: unknown): string {

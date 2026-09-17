@@ -1,4 +1,4 @@
-import type { LooseBoardData, Task } from '../types';
+import type { LooseBoardData, Task } from './types';
 
 export function findTaskInBoardData(boardData: LooseBoardData | null | undefined, taskId: unknown): Task | null {
     if (taskId === null || taskId === undefined || taskId === '') return null;

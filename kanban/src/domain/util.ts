@@ -1,4 +1,4 @@
-import type { Theme } from '../types';
+import type { Theme } from '@/shared/types/ui';
 
 // A non-null, non-array object.
 export function isRecord(value: unknown): value is Record<string, unknown> {

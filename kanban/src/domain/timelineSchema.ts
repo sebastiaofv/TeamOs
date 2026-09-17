@@ -4,7 +4,7 @@ import type {
     TimelineEventMeta,
     TimelineExtension,
     TimelineSnapshot
-} from '../types';
+} from './types';
 import { TIMELINE_VERSION } from './constants';
 import { cloneSerializable } from './serializable';
 import { isRecord, normalizeTimestamp } from './util';

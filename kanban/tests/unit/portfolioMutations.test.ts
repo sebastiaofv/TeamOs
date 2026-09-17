@@ -1,10 +1,10 @@
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
-import { createBoardMutationContext } from '../../src/actions/boardMutationContext';
-import { createAppStore as createStore } from '../../src/state/store';
+import { createBoardMutationContext } from '../../src/features/portfolio/commands/mutationContext';
+import { createAppStore as createStore } from '../../src/features/portfolio/state/store';
 import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
-import { createPortfolioMutationActions } from '../../src/actions/portfolioMutations';
-import { getPortfolioBulkTaskIds } from '../../src/selectors/portfolioViews';
+import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
+import { getPortfolioBulkTaskIds } from '../../src/features/portfolio/queries';
 
 function createBoard() {
   const data = createEmptyProjectData('Project');

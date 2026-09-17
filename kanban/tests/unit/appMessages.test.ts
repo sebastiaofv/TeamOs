@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { useAppStore } from '../../src/state/store';
+import { useAppStore } from '../../src/features/portfolio/state/store';
 import {
   cancelAppMessages,
   resolveAppMessage,
@@ -7,7 +7,7 @@ import {
   showChoice,
   showConfirm,
   showPrompt
-} from '../../src/actions/appMessages';
+} from '../../src/app/overlays/appMessages';
 
 const openMessage = () => useAppStore.getState().appMessage;
 const answerWith = (label: string) => {

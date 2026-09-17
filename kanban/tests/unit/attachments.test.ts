@@ -253,7 +253,7 @@ describe('normalizeAttachmentRecord', () => {
   // normalizeAttachmentRecord does not enforce ATTACHMENT_HARD_MAX_BYTES at
   // all -- that limit is only checked at the call sites that accept new
   // attachments (picker validation in src/domain/taskDraft.ts and the save
-  // check in src/actions/taskActions.ts), not inside normalization itself. A record already
+  // check in src/features/portfolio/commands/taskCommands.ts), not inside normalization itself. A record already
   // carrying an oversized sizeBytes is passed through unchanged.
   it('does not clamp or reject a sizeBytes that exceeds ATTACHMENT_HARD_MAX_BYTES', () => {
     const oversized = ATTACHMENT_HARD_MAX_BYTES + 1000;

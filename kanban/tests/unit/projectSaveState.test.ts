@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createProjectSaveState } from '../../src/persistence/projectFiles';
+import { createProjectSaveState } from '../../src/infrastructure/persistence/projectFiles';
 
 describe('createProjectSaveState', () => {
   it('returns the exact expected shape and key set', () => {

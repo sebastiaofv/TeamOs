@@ -1,7 +1,7 @@
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
 import { ensureBoardTimelineBaseline } from '../../src/domain/timeline';
 import { describe, it, expect, vi } from 'vitest';
-import { createAppStore } from '../../src/state/store';
+import { createAppStore } from '../../src/features/portfolio/state/store';
 import { createEmptyProjectData } from '../../src/domain/board';
 
 function board(id: string, title: string) {

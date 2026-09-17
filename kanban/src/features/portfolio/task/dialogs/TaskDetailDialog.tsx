@@ -1,0 +1,115 @@
+import * as Dialog from '@radix-ui/react-dialog';
+import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
+import { useAppStore } from '@/features/portfolio/state/store';
+import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
+import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
+import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
+import { useI18n, type TranslationKey } from '@/shared/i18n';
+
+const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
+    { label: 'task.title', id: 'detailTitle', key: 'title' },
+    { label: 'task.description', id: 'detailDescription', key: 'description' },
+    { label: 'task.assignees', id: 'detailAssignees', key: 'assignees' },
+    { label: 'task.tags', id: 'detailTags', key: 'tags' },
+    { label: 'task.blocked', id: 'detailBlocked', key: 'blocked' },
+    { label: 'task.blocker', id: 'detailBlockerReason', key: 'blockerReason' },
+    { label: 'task.priority', id: 'detailPriority', key: 'priority' },
+    { label: 'task.effort', id: 'detailEffort', key: 'effort' },
+    { label: 'task.status', id: 'detailStatus', key: 'status' },
+    { label: 'task.created', id: 'detailCreatedAt', key: 'createdAt' },
+    { label: 'task.updated', id: 'detailUpdatedAt', key: 'updatedAt' },
+    { label: 'task.due', id: 'detailDueDate', key: 'dueDate' },
+    { label: 'task.phase', id: 'detailPhase', key: 'phase' },
+    { label: 'task.milestone', id: 'detailMilestone', key: 'milestone' },
+    { label: 'task.sprint', id: 'detailSprint', key: 'sprint' }
+];
+
+export function TaskDetailDialog() {
+    const { closeTaskDetail, toggleTaskDetailChecklistItem } = usePortfolioActions();
+    const open = useAppStore((s) => s.activeDialog === 'taskDetail');
+    const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
+    const returnFocus = useReturnFocus();
+    const { t } = useI18n();
+
+    return (
+        <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeTaskDetail(); }}>
+            <Dialog.Portal>
+                <Dialog.Overlay className="modal active" id="taskDetailModal">
+                    <Dialog.Content
+                        className="modal-content"
+                        aria-describedby={undefined}
+                        onPointerDownOutside={keepOpenOnUndoToast}
+                        onEscapeKeyDown={escapeAnswersAppMessage}
+                        {...returnFocus}
+                    >
+                        <div className="modal-header">
+                            <Dialog.Title asChild><span className="modal-title">{t('task.details')}</span></Dialog.Title>
+                            <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn">&times;</Dialog.Close>
+                        </div>
+                        <div className="modal-body">
+                            {vm && <TaskDetailList vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
+                        </div>
+                        <div className="modal-footer">
+                            <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>
+                        </div>
+                    </Dialog.Content>
+                </Dialog.Overlay>
+            </Dialog.Portal>
+        </Dialog.Root>
+    );
+}
+
+function TaskDetailList({ vm, onToggleChecklistItem }: {
+    vm: TaskDetailViewModel;
+    onToggleChecklistItem: (itemIndex: number, checked: boolean) => unknown;
+}) {
+    const { t } = useI18n();
+    return (
+        <div className="detail-list">
+            {FIELD_ROWS.map((row) => (
+                <div className="detail-item" key={row.id}>
+                    <span className="detail-label">{t(row.label)}</span>
+                    <span className="detail-value" id={row.id}>{vm.fields[row.key]}</span>
+                </div>
+            ))}
+            <div className="detail-item">
+                <span className="detail-label">{t('task.todoList')}</span>
+                <ul className="detail-checklist" id="detailChecklist">
+                    {vm.checklist.length === 0
+                        ? <li className="detail-value">-</li>
+                        : vm.checklist.map((item, index) => (
+                            <li className={`detail-checklist-item ${item.done ? 'done' : ''}`} key={index}>
+                                <input
+                                    type="checkbox"
+                                    checked={item.done}
+                                    disabled={vm.readOnly}
+                                    onChange={(event) => onToggleChecklistItem(index, event.target.checked)}
+                                />
+                                <span className="detail-checklist-text">{item.text}</span>
+                            </li>
+                        ))}
+                </ul>
+            </div>
+            <div className="detail-item">
+                <span className="detail-label">{t('task.attachments')}</span>
+                <div className="detail-attachments" id="detailAttachments">
+                    {vm.attachments.length === 0
+                        ? <div className="detail-attachments-empty">-</div>
+                        : vm.attachments.map((item) => (
+                            <div className="detail-attachment-item" key={item.id}>
+                                {item.isImage
+                                    ? <img className="detail-attachment-thumb" alt="" src={item.dataUrl} />
+                                    : <span className="attachment-editor-icon">{t('common.file')}</span>}
+                                <div className="detail-attachment-meta">
+                                    <div className="detail-attachment-name">{item.name}</div>
+                                    <div className="detail-attachment-sub">{item.subLabel}</div>
+                                </div>
+                                <a className="detail-attachment-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
+                            </div>
+                        ))}
+                </div>
+            </div>
+        </div>
+    );
+}

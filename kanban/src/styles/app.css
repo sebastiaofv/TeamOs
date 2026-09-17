@@ -1,15 +1,15 @@
 /* Imported in cascade order: later files override earlier ones. base.css holds
    theme variables and shared surfaces; theme-dark.css must stay last. */
-@import './base.css';
-@import './portfolio-toolbar.css';
-@import './calendar.css';
-@import './roadmap.css';
-@import './timeline.css';
-@import './board.css';
-@import './dialogs.css';
-@import './app-message.css';
-@import './task-editor.css';
-@import './shortcuts-help.css';
-@import './undo-toast.css';
-@import './task-detail.css';
-@import './theme-dark.css';
+@import './foundation/base.css';
+@import './portfolio/portfolio-toolbar.css';
+@import './portfolio/calendar.css';
+@import './portfolio/roadmap.css';
+@import './portfolio/timeline.css';
+@import './portfolio/board.css';
+@import './overlays/dialogs.css';
+@import './overlays/app-message.css';
+@import './portfolio/task-editor.css';
+@import './overlays/shortcuts-help.css';
+@import './portfolio/undo-toast.css';
+@import './portfolio/task-detail.css';
+@import './foundation/theme-dark.css';

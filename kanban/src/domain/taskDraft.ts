@@ -3,7 +3,7 @@
 // to the store-backed save action. Messages and limits preserve the established
 // editor behavior.
 
-import type { Attachment, ChecklistItem, DraftMessage, TaskDraft, TaskEditorFields } from '../types';
+import type { Attachment, ChecklistItem, DraftMessage, TaskDraft, TaskEditorFields } from './types';
 import {
     ATTACHMENT_MAX_COUNT,
     ATTACHMENT_HARD_MAX_BYTES,
@@ -29,6 +29,7 @@ import {
 } from './task';
 import { normalizeDueDate } from './calendar';
 import { normalizeRoadmapRef } from './roadmap';
+import { translateCurrent } from '@/shared/i18n';
 
 const TAG_MAX_LENGTH = 30;
 const TAG_MAX_COUNT = 10;
@@ -55,9 +56,9 @@ export function availableAssigneeSuggestions(pool: string[], items: string[]): s
 export function addTag(items: string[], raw: unknown): AddTagResult {
     const tag = String(raw ?? '').trim().toLowerCase();
     if (!tag) return { items };
-    if (tag.length > TAG_MAX_LENGTH) return { error: 'Tags must be 30 characters or fewer.' };
-    if (items.includes(tag)) return { error: 'This tag is already added.' };
-    if (items.length >= TAG_MAX_COUNT) return { error: 'A task can have at most 10 tags.' };
+    if (tag.length > TAG_MAX_LENGTH) return { error: translateCurrent('messages.tagLength') };
+    if (items.includes(tag)) return { error: translateCurrent('messages.tagDuplicate') };
+    if (items.length >= TAG_MAX_COUNT) return { error: translateCurrent('messages.tagLimit') };
     return { items: [...items, tag] };
 }
 
@@ -94,13 +95,13 @@ export async function mergePickedAttachments(existing: readonly unknown[], files
 
     for (const file of files) {
         if (next.length >= ATTACHMENT_MAX_COUNT) {
-            messages.push({ type: 'error', text: `Attachment limit reached (${ATTACHMENT_MAX_COUNT} per task).` });
+            messages.push({ type: 'error', text: translateCurrent('messages.attachmentLimit', { count: ATTACHMENT_MAX_COUNT }) });
             break;
         }
 
         const fileSize = Number(file.size) || 0;
         if (fileSize > ATTACHMENT_HARD_MAX_BYTES) {
-            messages.push({ type: 'error', text: `${file.name} exceeds the ${formatFileSize(ATTACHMENT_HARD_MAX_BYTES)} limit.` });
+            messages.push({ type: 'error', text: translateCurrent('messages.attachmentTooLarge', { name: file.name, size: formatFileSize(ATTACHMENT_HARD_MAX_BYTES) }) });
             continue;
         }
 
@@ -110,7 +111,7 @@ export async function mergePickedAttachments(existing: readonly unknown[], files
             sizeBytes: fileSize
         });
         if (duplicateKey && seenKeys.has(duplicateKey)) {
-            messages.push({ type: 'warning', text: `${file.name} is already attached and was skipped.` });
+            messages.push({ type: 'warning', text: translateCurrent('messages.attachmentDuplicate', { name: file.name }) });
             continue;
         }
 
@@ -127,7 +128,7 @@ export async function mergePickedAttachments(existing: readonly unknown[], files
             });
             if (duplicateKey) seenKeys.add(duplicateKey);
         } catch (error) {
-            messages.push({ type: 'error', text: `${file.name}: ${(error as Error).message || 'Failed to read file.'}` });
+            messages.push({ type: 'error', text: translateCurrent('messages.attachmentReadFailed', { name: file.name, error: (error as Error).message || 'Failed to read file.' }) });
         }
     }
 
@@ -143,7 +144,7 @@ export function buildAttachmentWarnings(attachments: readonly unknown[], otherAt
         if ((Number(item.sizeBytes) || 0) > ATTACHMENT_SOFT_WARN_BYTES) {
             messages.push({
                 type: 'warning',
-                text: `${item.name} is large (${formatFileSize(item.sizeBytes)}). Embedded files can slow saves.`
+                text: translateCurrent('messages.attachmentLarge', { name: item.name, size: formatFileSize(item.sizeBytes) })
             });
         }
     });
@@ -151,7 +152,7 @@ export function buildAttachmentWarnings(attachments: readonly unknown[], otherAt
     if (totalBytes > ATTACHMENT_TASK_SOFT_TOTAL_BYTES) {
         messages.push({
             type: 'warning',
-            text: `This task has ${formatFileSize(totalBytes)} of attachments. Saving may feel slower.`
+            text: translateCurrent('messages.taskAttachmentTotal', { size: formatFileSize(totalBytes) })
         });
     }
 
@@ -160,7 +161,7 @@ export function buildAttachmentWarnings(attachments: readonly unknown[], otherAt
         if (projectEstimate > ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES) {
             messages.push({
                 type: 'warning',
-                text: `This project is estimated at ${formatFileSize(projectEstimate)} of embedded attachments.`
+                text: translateCurrent('messages.projectAttachmentTotal', { size: formatFileSize(projectEstimate) })
             });
         }
     }

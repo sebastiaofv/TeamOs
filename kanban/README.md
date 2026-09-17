@@ -48,16 +48,16 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 
 ## Project structure
 
-- `src/types.ts` — shared types: the board file format, the normalized domain model (`Task`, `BoardData`, `BoardRecord`, …) and the view models actions hand to components. Unvalidated file input is typed loosely (`TaskInput`, `LooseBoardData`) and becomes the strict types after normalization.
-- `src/domain/` — pure, dependency-free logic (tasks, boards, roadmap, timeline, calendar, attachments, serialization, scoring, task-editor draft rules). Unit-tested with Vitest.
-- `src/persistence/` — board file reading/writing, the save queue and external-change detection. Conflict prompts and reload dialog handling live in `actions/portfolioFiles.ts`.
-- `src/state/` — the Zustand store; `slices.ts` defines `AppState`. Immutable writes publish boards and derived portfolio rows together; actions do not trigger manual refreshes.
-- `src/selectors/` — view models built from store state.
-- `src/actions/` — task, roadmap, timeline, and board-interaction actions. `boardMutationContext.ts` owns the shared draft → history → store → save path; `portfolioMutations.ts` assembles the actions. Controls, URL state, files, dialogs, and shortcuts remain separate.
-- `src/hooks/` — browser integration: theme, keyboard shortcuts and URL state, file drop and file watching. `usePortfolioFileIntegration` starts and stops the polling timer with the app lifecycle.
-- `src/App.tsx` — the app shell: header, view layout, and dialogs. Mounted by `src/main.tsx`.
-- `src/components/` — React views and Radix dialogs. Views subscribe to the state they use; inactive views do not compute or render their contents.
-- `src/styles/` — plain CSS split by feature (`base`, `board`, `calendar`, `roadmap`, `timeline`, `dialogs`, `task-editor`, …). `app.css` imports them in cascade order; `base.css` holds theme variables and shared surfaces, and `theme-dark.css` stays last.
+The detailed dependency and folder guide is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+The short version is:
+
+- `src/app/` — bootstrapping, the root composition, providers, and app-wide overlays.
+- `src/domain/` — pure board, task, roadmap, timeline, calendar, attachment, serialization, and scoring rules.
+- `src/features/portfolio/` — the portfolio feature, organized by responsibility: views, commands, queries, state, project operations, and lifecycle hooks.
+- `src/infrastructure/` — browser adapters, persistence/repository code, file watching, and logging.
+- `src/shared/` — reusable UI helpers and small shared types.
+- `src/styles/` — CSS grouped into `foundation/`, `portfolio/`, and `overlays/`; `app.css` is the cascade manifest.
+- `src/types.ts` — a temporary compatibility facade. New code should import canonical types from `domain`, `features/portfolio`, `infrastructure/browser`, `app`, or `shared`.
 
 ## Development
 

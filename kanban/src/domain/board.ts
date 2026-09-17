@@ -1,13 +1,10 @@
 import type {
     BoardColumn,
     BoardData,
-    PortfolioRow,
-    PortfolioSortKey,
-    PortfolioViewMode,
     ProjectColor,
-    SortDir,
     TaskStatus
-} from '../types';
+} from './types';
+import type { PortfolioRow, PortfolioSortKey, PortfolioViewMode, SortDir } from '@/features/portfolio/types';
 import { compareText, hasExactKeys, normalizeTimestamp, nowIso } from './util';
 import { isAcceptedLegacyAssigneeValue, normalizeBlockerReason, normalizeTaskStatus, resolveKnownTaskStatus } from './task';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, ROADMAP_EXTENSION_KEY, TASK_TITLE_MAX_LENGTH, TIMELINE_EXTENSION_KEY, defaultColumns, isArchiveFilter, isEffort } from './constants';

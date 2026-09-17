@@ -1,7 +1,7 @@
 // Portfolio toolbar filters: the defaults and the rules for accepting a value.
 // Used by the controls, the URL state, and the filtered-rows selector.
 
-import type { PortfolioFilters } from '../types';
+import type { PortfolioFilters } from '@/features/portfolio/types';
 import { EFFORT_BUCKETS, isArchiveFilter } from './constants';
 import { normalizeAssignee, normalizePortfolioBlockedFilter } from './task';
 

@@ -1,5 +1,4 @@
 import type {
-    BlockedFilter,
     BoardData,
     ChecklistItem,
     Effort,
@@ -9,7 +8,8 @@ import type {
     TaskDraft,
     TaskInput,
     TaskStatus
-} from '../types';
+} from './types';
+import type { BlockedFilter } from '@/features/portfolio/types';
 import { defaultColumns, isEffort } from './constants';
 import { nowIso, normalizeTimestamp, todayLocalIsoDate } from './util';
 import { normalizeDueDate } from './calendar';

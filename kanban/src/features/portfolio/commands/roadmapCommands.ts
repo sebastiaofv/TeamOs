@@ -1,0 +1,350 @@
+// Roadmap editing, sprint assignment, and row expansion.
+
+import type { RoadmapItem, RoadmapKind } from '@/domain/types';
+import type { RoadmapEntityMode, SelectOption } from '@/features/portfolio/types';
+import type { BoardMutationContext } from './mutationContext';
+import type { BoardInteractions } from './boardCommands';
+import { touchTask } from '@/domain/task';
+import {
+    createEmptyRoadmapExtension,
+    formatRoadmapDateRange,
+    getRoadmapEntityConfig,
+    getRoadmapExtension,
+    getRoadmapExtensionObject,
+    normalizeRoadmapDate,
+    normalizeRoadmapRef,
+    slugifyRoadmapEntityId,
+} from '@/domain/roadmap';
+
+import { cloneSerializable, createBoardStateSnapshot } from '@/domain/serialize';
+import { appendTimelineEvent } from '@/domain/timeline';
+
+import { nowIso } from '@/domain/util';
+import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+
+export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate';
+
+export type RoadmapEntityInput = Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate', unknown>>;
+
+type RoadmapEntityDraft = {
+    kind: unknown;
+    itemId: string;
+    title: string;
+    existingSprintId: string;
+    dueDate: string;
+    startDate: string;
+    endDate: string;
+};
+
+export function createRoadmapActions({ getState, commitState, getBoardRecord, canUsePortfolioTaskMutations,
+    notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, alert, confirm, closeDialogFn, openDialogFn }: BoardMutationContext,
+{ getSelectedPortfolioBulkTaskIds, clearPortfolioBulkSelection }: Pick<BoardInteractions, 'getSelectedPortfolioBulkTaskIds' | 'clearPortfolioBulkSelection'>) {
+    const getRoadmapLabel = (kind: RoadmapKind): string => kind === 'milestones'
+        ? translateCurrent('roadmap.milestone')
+        : kind === 'phases'
+            ? translateCurrent('roadmap.phase')
+            : translateCurrent('roadmap.sprint');
+
+    function buildRoadmapSprintOptions(items: RoadmapItem[] | null | undefined): SelectOption[] {
+        return (Array.isArray(items) ? items : []).map((item) => {
+            const range = formatRoadmapDateRange(item, getCurrentLanguage());
+            return { value: item.id, label: range ? `${item.title} • ${range}` : item.title };
+        });
+    }
+
+    function openRoadmapEntityModal(kind: RoadmapKind, itemId = '', options: { boardId?: string; mode?: RoadmapEntityMode } = {}) {
+        const boardId = options.boardId || getState().selectedPortfolioBoardId;
+        const boardRecord = boardId ? getBoardRecord(boardId) : null;
+        if (!boardRecord) return;
+        if (!canUsePortfolioTaskMutations(boardId)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return;
+        }
+        const config = getRoadmapEntityConfig(kind);
+        if (!config) return;
+        const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
+        const items = Array.isArray(roadmap[config.itemsKey]) ? roadmap[config.itemsKey] : [];
+        const item = itemId ? items.find((entry) => entry.id === itemId) : null;
+        const mode = options.mode || 'default';
+        const assignExistingMode = mode === 'assign-sprint-from-selection';
+        commitState({
+            roadmapEntityContext: { boardId, kind, itemId: item?.id || '', mode }
+        });
+        openDialogFn('roadmapEntity', {
+            kind,
+            itemId: item?.id || '',
+            mode,
+            heading: mode === 'create-sprint-from-selection'
+                ? translateCurrent('toolbar.createSprint')
+                : assignExistingMode
+                    ? translateCurrent('toolbar.addToExistingSprint')
+                    : `${item ? translateCurrent('common.edit') : translateCurrent('common.new')} ${getRoadmapLabel(kind)}`,
+            saveLabel: assignExistingMode ? translateCurrent('roadmapDialog.addToSprint') : translateCurrent('roadmapDialog.saveItem'),
+            dateMode: config.dateMode,
+            dateLabel: config.dateMode === 'single' ? translateCurrent('roadmapDialog.dueDate') : (config.dateLabel || ''),
+            showExistingSprint: assignExistingMode,
+            initial: {
+                title: item?.title || '',
+                dueDate: item?.dueDate || '',
+                startDate: item?.startDate || '',
+                endDate: item?.endDate || ''
+            },
+            sprintOptions: buildRoadmapSprintOptions(roadmap.sprints || []),
+            initialFocus: assignExistingMode ? 'existingSprint' : 'title'
+        });
+    }
+
+    function closeRoadmapEntity() {
+        commitState({ roadmapEntityContext: null });
+        closeDialogFn('roadmapEntity');
+    }
+
+    function togglePortfolioRoadmapRowExpanded(boardId: string, key: string) {
+        if (!boardId || !key) return;
+        const expandedRows = getState().portfolioRoadmapExpandedRowsByBoardId?.[boardId] || {};
+        const nextRows = { ...expandedRows, [key]: !expandedRows[key] };
+        commitState({
+            portfolioRoadmapExpandedRowsByBoardId: {
+                ...(getState().portfolioRoadmapExpandedRowsByBoardId || {}),
+                [boardId]: nextRows
+            }
+        });
+    }
+
+    function createSprintFromSelection(boardId: string, draft: RoadmapEntityDraft): Promise<boolean> | false {
+        const boardRecord = getBoardRecord(boardId);
+        if (!boardRecord) return false;
+        const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
+        if (selectedTaskIds.length === 0) return false;
+        const sprintConfig = getRoadmapEntityConfig('sprints');
+        if (!sprintConfig) return false;
+        return runPortfolioBoardMutation(boardId, (boardData) => {
+            const roadmap = getRoadmapExtensionObject(boardData, { create: true });
+            const items = roadmap[sprintConfig.itemsKey];
+            const nextSprint: RoadmapItem = {
+                id: slugifyRoadmapEntityId(draft.title, items),
+                title: draft.title,
+                startDate: draft.startDate,
+                endDate: draft.endDate
+            };
+            const taskIdSet = new Set(selectedTaskIds.map((taskId) => Number(taskId)));
+            let assignedCount = 0;
+            const timestamp = nowIso();
+
+            boardData.board.tasks.forEach((task) => {
+                if (!taskIdSet.has(Number(task?.id))) return;
+                assignedCount += 1;
+                task.sprintId = nextSprint.id;
+                task.updatedAt = timestamp;
+            });
+            if (assignedCount === 0) return false;
+
+            items.push(nextSprint);
+            appendTimelineEvent(boardData, {
+                kind: 'roadmap.bulk-assigned',
+                entityType: 'board',
+                entityId: 'board',
+                summary: translateCurrent('roadmap.sprintCreatedSummary', {
+                    count: assignedCount,
+                    tasks: assignedCount === 1 ? translateCurrent('common.task') : translateCurrent('common.tasks'),
+                    title: nextSprint.title
+                }),
+                meta: {
+                    roadmapKind: 'sprints',
+                    roadmapItemId: nextSprint.id,
+                    action: 'create-from-selection',
+                    sprint: cloneSerializable(nextSprint),
+                    taskIds: [...taskIdSet]
+                }
+            });
+            return true;
+        });
+    }
+
+    function assignSelectionToExistingSprint(boardId: string, sprintId: unknown): Promise<boolean> | false {
+        const boardRecord = getBoardRecord(boardId);
+        if (!boardRecord) return false;
+        const normalizedSprintId = normalizeRoadmapRef(sprintId);
+        const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
+        if (!normalizedSprintId || selectedTaskIds.length === 0) return false;
+        return runPortfolioBoardMutation(boardId, (boardData) => {
+            const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
+            const sprint = Array.isArray(roadmap.sprints)
+                ? roadmap.sprints.find((entry) => entry.id === normalizedSprintId)
+                : null;
+            if (!sprint) return false;
+
+            const taskIdSet = new Set(selectedTaskIds.map((taskId) => Number(taskId)));
+            let assignedCount = 0;
+            const timestamp = nowIso();
+            boardData.board.tasks.forEach((task) => {
+                if (!taskIdSet.has(Number(task?.id))) return;
+                assignedCount += 1;
+                task.sprintId = sprint.id;
+                task.updatedAt = timestamp;
+            });
+            if (assignedCount === 0) return false;
+
+            appendTimelineEvent(boardData, {
+                kind: 'roadmap.bulk-assigned',
+                entityType: 'board',
+                entityId: 'board',
+                summary: translateCurrent('roadmap.sprintAssignedSummary', {
+                    count: assignedCount,
+                    tasks: assignedCount === 1 ? translateCurrent('common.task') : translateCurrent('common.tasks'),
+                    title: sprint.title
+                }),
+                meta: {
+                    roadmapKind: 'sprints',
+                    roadmapItemId: sprint.id,
+                    action: 'assign-existing',
+                    sprint: cloneSerializable(sprint),
+                    taskIds: [...taskIdSet]
+                }
+            });
+            return true;
+        });
+    }
+
+    async function saveRoadmapEntity(input: RoadmapEntityInput = {}): Promise<{ focusField: RoadmapFocusField } | undefined> {
+        const draft: RoadmapEntityDraft = {
+            kind: input.kind,
+            itemId: normalizeRoadmapRef(input.itemId),
+            title: String(input.title || '').trim(),
+            existingSprintId: normalizeRoadmapRef(input.existingSprintId),
+            dueDate: normalizeRoadmapDate(input.dueDate),
+            startDate: normalizeRoadmapDate(input.startDate),
+            endDate: normalizeRoadmapDate(input.endDate)
+        };
+        const context = getState().roadmapEntityContext;
+        if (!context?.boardId) return;
+        const config = getRoadmapEntityConfig(draft.kind);
+        if (!config) return;
+
+        if (context.mode === 'assign-sprint-from-selection') {
+            if (!draft.existingSprintId) {
+                return { focusField: 'existingSprintId' };
+            }
+            const changed = await assignSelectionToExistingSprint(context.boardId, draft.existingSprintId);
+            if (!changed) return;
+            closeRoadmapEntity();
+            clearPortfolioBulkSelection(context.boardId);
+            return;
+        }
+        if (!draft.title) {
+            return { focusField: 'title' };
+        }
+        if (config.dateMode === 'single' && !draft.dueDate) {
+            await alert(translateCurrent('roadmap.dateRequiredSingle', { label: getRoadmapLabel(context.kind) }));
+            return { focusField: 'dueDate' };
+        }
+        if (config.dateMode === 'range' && (!draft.startDate || !draft.endDate)) {
+            await alert(translateCurrent('roadmap.dateRequiredRange', { label: getRoadmapLabel(context.kind) }));
+            return { focusField: 'startDate' };
+        }
+        if (context.mode === 'create-sprint-from-selection') {
+            const changed = await createSprintFromSelection(context.boardId, draft);
+            if (!changed) return;
+            closeRoadmapEntity();
+            clearPortfolioBulkSelection(context.boardId);
+            return;
+        }
+
+        const changed = await runPortfolioBoardMutation(context.boardId, (boardData) => {
+            const roadmap = getRoadmapExtensionObject(boardData, { create: true });
+            const items = roadmap[config.itemsKey];
+            const index = draft.itemId ? items.findIndex((item) => item.id === draft.itemId) : -1;
+            const nextId = draft.itemId || slugifyRoadmapEntityId(draft.title, items);
+            const previousItem = index >= 0 ? items[index] : null;
+            const nextItem: RoadmapItem = config.dateMode === 'single'
+                ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
+                : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
+            if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) return false;
+
+            if (index >= 0) {
+                items[index] = nextItem;
+            } else {
+                items.push(nextItem);
+            }
+
+            appendTimelineEvent(boardData, {
+                kind: 'roadmap.updated',
+                entityType: 'board',
+                entityId: 'board',
+                summary: translateCurrent('roadmap.entityUpdatedSummary', {
+                    label: getRoadmapLabel(context.kind),
+                    action: index >= 0 ? translateCurrent('roadmap.updated') : translateCurrent('roadmap.created'),
+                    title: nextItem.title
+                }),
+                snapshot: createBoardStateSnapshot(boardData),
+                meta: {
+                    roadmapKind: draft.kind,
+                    roadmapItemId: nextItem.id,
+                    action: index >= 0 ? 'update' : 'create'
+                }
+            });
+            return true;
+        });
+        if (changed) closeRoadmapEntity();
+    }
+
+    async function deleteRoadmapEntity(kind: RoadmapKind, itemId: string) {
+        const boardId = getState().selectedPortfolioBoardId;
+        const boardRecord = boardId ? getBoardRecord(boardId) : null;
+        const config = getRoadmapEntityConfig(kind);
+        if (!boardRecord || !config) return;
+        if (!canUsePortfolioTaskMutations(boardId)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return;
+        }
+
+        const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
+        const item = roadmap[config.itemsKey].find((entry) => entry.id === itemId);
+        if (!item) return;
+        const label = getRoadmapLabel(kind);
+        const confirmed = await confirm(translateCurrent('roadmap.deleteQuestion', { title: item.title }), {
+            title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
+            confirmLabel: translateCurrent('common.delete'),
+            danger: true
+        });
+        if (!confirmed) return;
+
+        await runPortfolioBoardMutation(boardId, (boardData) => {
+            const mutableRoadmap = getRoadmapExtensionObject(boardData, { create: true });
+            const items = mutableRoadmap[config.itemsKey];
+            const index = items.findIndex((entry) => entry.id === itemId);
+            if (index === -1) return false;
+            const [removed] = items.splice(index, 1);
+            const tasks = Array.isArray(boardData.board?.tasks) ? boardData.board.tasks : [];
+            tasks.forEach((task) => {
+                if (normalizeRoadmapRef(task[config.taskField]) !== removed.id) return;
+                task[config.taskField] = '';
+                touchTask(task);
+            });
+            appendTimelineEvent(boardData, {
+                kind: 'roadmap.updated',
+                entityType: 'board',
+                entityId: 'board',
+                summary: translateCurrent('roadmap.entityUpdatedSummary', {
+                    label,
+                    action: translateCurrent('roadmap.deleted'),
+                    title: removed.title
+                }),
+                snapshot: createBoardStateSnapshot(boardData),
+                meta: {
+                    roadmapKind: kind,
+                    roadmapItemId: removed.id,
+                    action: 'delete'
+                }
+            });
+            return true;
+        });
+    }
+    return {
+        openRoadmapEntityModal,
+        closeRoadmapEntity,
+        togglePortfolioRoadmapRowExpanded,
+        saveRoadmapEntity,
+        deleteRoadmapEntity,
+    };
+}

@@ -7,7 +7,7 @@ import type {
     TimelineEvent,
     TimelineEventInput,
     TimelineExtension
-} from '../types';
+} from './types';
 import { ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION } from './constants';
 import { getTaskAttachments } from './attachments';
 import { createBoardStateSnapshot } from './serialize';

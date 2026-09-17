@@ -1,7 +1,7 @@
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { useAppStore } from '../../src/state/store';
-import { openDialog, closeDialog } from '../../src/actions/dialogs';
+import { useAppStore } from '../../src/features/portfolio/state/store';
+import { openDialog, closeDialog } from '../../src/app/overlays/dialogs';
 
 describe('dialog actions', () => {
   let unsubscribe = () => {};

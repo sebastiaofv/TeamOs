@@ -1,0 +1,337 @@
+import type { CSSProperties } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import type { BoardRecord, PortfolioFilters, PortfolioRow, ProjectSaveState } from '@/features/portfolio/types';
+import { useAppStore, type AppState } from '@/features/portfolio/state/store';
+import {
+    clearPortfolioBulkSelection,
+    openAssignSprintFromSelection,
+    openCreateSprintFromSelection,
+    removePortfolioBoard,
+    resetPortfolioFilters,
+    retryPortfolioSave,
+    selectPortfolioBoard,
+    setPortfolioFilter,
+    setPortfolioSort,
+    setPortfolioViewMode
+} from '@/features/portfolio/commands/portfolioControls';
+import { getRoadmapExtension } from '@/domain/roadmap';
+import { EFFORT_BUCKETS } from '@/domain/constants';
+import { normalizePortfolioViewMode, createPortfolioProjectColor, portfolioSortSelectValueFromKey } from '@/domain/board';
+import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
+import { normalizeAssignee, taskAssignees } from '@/domain/task';
+import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/portfolio/queries';
+import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
+import { useI18n } from '@/shared/i18n';
+
+type ToolbarState = Pick<AppState,
+    | 'portfolioBoards'
+    | 'portfolioTasks'
+    | 'portfolioFilters'
+    | 'portfolioSortKey'
+    | 'selectedPortfolioBoardId'
+    | 'selectedPortfolioViewMode'
+>;
+type ChipState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'projectSaveStateById'>;
+type BulkState = Pick<AppState,
+    | 'portfolioBoards'
+    | 'selectedPortfolioBoardId'
+    | 'selectedPortfolioViewMode'
+    | 'portfolioBulkSelectionByBoardId'
+    | 'portfolioTimelineSelection'
+>;
+
+type ChipSaveUi = { status: string; text: string; title: string; canRetry: boolean };
+type Translate = ReturnType<typeof useI18n>['t'];
+
+function getFilters(state: Pick<AppState, 'portfolioFilters'>): PortfolioFilters {
+    return { ...DEFAULT_PORTFOLIO_FILTERS, ...(state.portfolioFilters || {}) };
+}
+
+function getAssigneeNames(tasks: PortfolioRow[]): string[] {
+    const seen = new Set<string>();
+    const values: string[] = [];
+    (Array.isArray(tasks) ? tasks : []).forEach((item) => {
+        taskAssignees(item?.task).forEach((value) => {
+            const name = normalizeAssignee(value);
+            const key = name.toLowerCase();
+            if (!name || seen.has(key)) return;
+            seen.add(key);
+            values.push(name);
+        });
+    });
+    return values.sort((a, b) => a.localeCompare(b));
+}
+
+function getChipSaveUiState(saveState: ProjectSaveState | undefined, t: Translate): ChipSaveUi {
+    if (!saveState) return { status: 'idle', text: '', title: '', canRetry: false };
+    if (saveState.status === 'error') {
+        return {
+            status: 'error',
+            text: t('toolbar.saveFailed'),
+            title: saveState.lastErrorMessage || t('toolbar.saveFailedPeriod'),
+            canRetry: true
+        };
+    }
+    if (saveState.status === 'saving') {
+        return { status: 'saving', text: t('toolbar.saving'), title: t('toolbar.savingChanges'), canRetry: false };
+    }
+    if (saveState.watchStatus === 'conflict') {
+        return {
+            status: 'conflict',
+            text: t('toolbar.conflict'),
+            title: saveState.watchMessage || t('toolbar.externalChanges'),
+            canRetry: false
+        };
+    }
+    if (saveState.revision > saveState.savedRevision) {
+        return { status: 'dirty', text: t('toolbar.unsaved'), title: t('toolbar.unsavedChanges'), canRetry: false };
+    }
+    if (saveState.watchStatus === 'watch-error') {
+        return {
+            status: 'warning',
+            text: t('toolbar.watchError'),
+            title: saveState.watchMessage || t('toolbar.watchErrorDescription'),
+            canRetry: false
+        };
+    }
+    if (saveState.watchStatus === 'external') {
+        if (saveState.watchStatusUntil && Date.now() > saveState.watchStatusUntil) {
+            return { status: 'idle', text: '', title: '', canRetry: false };
+        }
+        return {
+            status: 'external',
+            text: t('toolbar.externalUpdate'),
+            title: saveState.watchMessage || t('toolbar.projectReloaded'),
+            canRetry: false
+        };
+    }
+    return { status: 'idle', text: '', title: '', canRetry: false };
+}
+
+function getBoardColor(board: BoardRecord | null | undefined) {
+    return board?.projectColor || createPortfolioProjectColor(board?.colorSeed || 0);
+}
+
+function getBulkViewModel(state: BulkState) {
+    const boardId = state.selectedPortfolioBoardId || '';
+    const board = state.portfolioBoards.find((record) => record.id === boardId) || null;
+    const canShow = Boolean(boardId)
+        && state.selectedPortfolioViewMode === 'board'
+        && Boolean(board?.handle)
+        && !isBoardInHistoricalPreview(state, boardId);
+    const selectedIds = canShow ? getPortfolioBulkTaskIds(state, boardId) : [];
+    const roadmap = canShow ? getRoadmapExtension(board?.data) : null;
+    return {
+        boardId,
+        selectedCount: selectedIds.length,
+        showActions: canShow && selectedIds.length > 0,
+        hasExistingSprints: Array.isArray(roadmap?.sprints) && roadmap.sprints.length > 0
+    };
+}
+
+function ToolbarContent({ state }: { state: ToolbarState }) {
+    const { t } = useI18n();
+    const filters = getFilters(state);
+    const assignees = getAssigneeNames(state.portfolioTasks);
+    const sortValue = portfolioSortSelectValueFromKey(state.portfolioSortKey);
+    const hasBoards = state.portfolioBoards.length > 0;
+    const hasSelectedBoard = Boolean(state.selectedPortfolioBoardId);
+    const viewMode = normalizePortfolioViewMode(state.selectedPortfolioViewMode);
+    const searchRef = useFocusTarget<HTMLInputElement>('portfolioSearch');
+    const sortRef = useFocusTarget<HTMLSelectElement>('portfolioSort');
+
+    return (
+        <>
+            <div className="portfolio-toolbar-left">
+                <div className="search-box">
+                    <input
+                        type="text"
+                        id="portfolioSearchInput"
+                        ref={searchRef}
+                        placeholder={t('toolbar.searchTasks')}
+                        value={filters.search}
+                        onChange={(event) => setPortfolioFilter('search', event.target.value)}
+                    />
+                </div>
+                <div className="filter-group">
+                    <label>{t('toolbar.archive')}</label>
+                    <select id="portfolioArchiveFilter" value={filters.archive} onChange={(event) => setPortfolioFilter('archive', event.target.value)}>
+                        <option value="active">{t('toolbar.activeOnly')}</option>
+                        <option value="all">{t('toolbar.activeAndArchived')}</option>
+                        <option value="archived">{t('toolbar.archivedOnly')}</option>
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <label>{t('toolbar.blocked')}</label>
+                    <select id="portfolioBlockedFilter" value={filters.blocked} onChange={(event) => setPortfolioFilter('blocked', event.target.value)}>
+                        <option value="all">{t('common.all')}</option>
+                        <option value="blocked">{t('toolbar.blockedOnly')}</option>
+                        <option value="unblocked">{t('toolbar.unblockedOnly')}</option>
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <label>{t('toolbar.assignee')}</label>
+                    <select id="portfolioAssigneeFilter" value={filters.assignee} onChange={(event) => setPortfolioFilter('assignee', event.target.value)}>
+                        <option value="">{t('common.all')}</option>
+                        {assignees.map((name) => <option key={name} value={name}>{name}</option>)}
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <label>{t('toolbar.priority')}</label>
+                    <select id="portfolioPriorityFilter" value={filters.priority} onChange={(event) => setPortfolioFilter('priority', event.target.value)}>
+                        <option value="">{t('common.all')}</option>
+                        <option value="high">{t('toolbar.high')}</option>
+                        <option value="medium">{t('toolbar.medium')}</option>
+                        <option value="low">{t('toolbar.low')}</option>
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <label>{t('toolbar.effort')}</label>
+                    <select id="portfolioEffortFilter" value={filters.effort} onChange={(event) => setPortfolioFilter('effort', event.target.value)}>
+                        <option value="">{t('common.all')}</option>
+                        {EFFORT_BUCKETS.map((effort) => <option key={effort} value={effort}>{effort}</option>)}
+                    </select>
+                </div>
+                <div className="filter-group">
+                    <label>{t('toolbar.sort')}</label>
+                    <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => setPortfolioSort(event.target.value)}>
+                        <option value="name">{t('toolbar.name')}</option>
+                        <option value="priority">{t('toolbar.priority').replace(':', '')}</option>
+                        <option value="effort">{t('toolbar.effort').replace(':', '')}</option>
+                        <option value="score">{t('toolbar.score')}</option>
+                    </select>
+                </div>
+            </div>
+            <div className="portfolio-toolbar-right">
+                <div className={`portfolio-view-toggle${hasBoards ? '' : ' hidden'}`} id="portfolioViewModeToggle" aria-label={t('toolbar.selectedProjectViewMode')}>
+                    <button
+                        className={`btn${viewMode === 'board' ? ' active' : ''}`}
+                        type="button"
+                        data-view-mode="board"
+                        aria-pressed={viewMode === 'board'}
+                        onClick={() => setPortfolioViewMode('board')}
+                    >{t('toolbar.board')}</button>
+                    <button
+                        className={`btn${viewMode === 'roadmap' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`}
+                        type="button"
+                        data-view-mode="roadmap"
+                        aria-pressed={viewMode === 'roadmap'}
+                        onClick={() => setPortfolioViewMode('roadmap')}
+                    >{t('toolbar.roadmap')}</button>
+                    <button
+                        className={`btn${viewMode === 'calendar' ? ' active' : ''}`}
+                        type="button"
+                        data-view-mode="calendar"
+                        aria-pressed={viewMode === 'calendar'}
+                        onClick={() => setPortfolioViewMode('calendar')}
+                    >{t('toolbar.calendar')}</button>
+                </div>
+                <button className="btn" id="resetPortfolioFiltersBtn" type="button" onClick={() => resetPortfolioFilters()}>{t('toolbar.resetFilters')}</button>
+            </div>
+        </>
+    );
+}
+
+function ChipList({ state }: { state: ChipState }) {
+    const { t } = useI18n();
+    if (state.portfolioBoards.length === 0) {
+        return <span className="empty-state-text">{t('toolbar.noProjectsLoaded')}</span>;
+    }
+
+    return (
+        <>
+            <span className={`portfolio-chip${state.selectedPortfolioBoardId ? '' : ' active'}`}>
+                <button className="chip-link" type="button" data-action="select-board" data-board-id="" onClick={() => selectPortfolioBoard('')}>{t('common.all')}</button>
+            </span>
+            {state.portfolioBoards.map((board) => {
+                const color = getBoardColor(board);
+                const saveUi = getChipSaveUiState(state.projectSaveStateById.get(board.id), t);
+                return (
+                    <span
+                        className={`portfolio-chip${state.selectedPortfolioBoardId === board.id ? ' active' : ''}`}
+                        style={{ '--chip-bg': color.bg, '--chip-border': color.border, '--chip-text': color.text } as CSSProperties}
+                        key={board.id}
+                    >
+                        <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} onClick={() => selectPortfolioBoard(board.id)}>
+                            {board.title || board.fileName}
+                            {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
+                            {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
+                        </button>
+                        {board.handle && saveUi.canRetry && (
+                            <button className="chip-link" type="button" title={t('toolbar.retrySave')} data-action="retry-save" data-board-id={board.id} onClick={() => retryPortfolioSave(board.id)}>{t('common.retry')}</button>
+                        )}
+                        <button className="chip-link chip-link-danger" type="button" aria-label={t('toolbar.removeProject')} title={t('toolbar.removeProject')} data-action="remove-board" data-board-id={board.id} onClick={() => removePortfolioBoard(board.id)}>{t('common.remove')}</button>
+                    </span>
+                );
+            })}
+        </>
+    );
+}
+
+export function PortfolioToolbar() {
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        portfolioTasks: state.portfolioTasks,
+        portfolioFilters: state.portfolioFilters,
+        portfolioSortKey: state.portfolioSortKey,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        selectedPortfolioViewMode: state.selectedPortfolioViewMode,
+    })));
+    return (
+        <div className="portfolio-toolbar" id="portfolioToolbar">
+            <ToolbarContent state={state} />
+        </div>
+    );
+}
+
+export function PortfolioChips() {
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        projectSaveStateById: state.projectSaveStateById,
+    })));
+    return (
+        <div className="portfolio-chips" id="portfolioBoardsChips">
+            <ChipList state={state} />
+        </div>
+    );
+}
+
+export function PortfolioBulkActions() {
+    const state = useAppStore(useShallow((state) => ({
+        portfolioBoards: state.portfolioBoards,
+        selectedPortfolioBoardId: state.selectedPortfolioBoardId,
+        selectedPortfolioViewMode: state.selectedPortfolioViewMode,
+        portfolioBulkSelectionByBoardId: state.portfolioBulkSelectionByBoardId,
+        portfolioTimelineSelection: state.portfolioTimelineSelection,
+    })));
+    const { boardId, selectedCount, showActions, hasExistingSprints } = getBulkViewModel(state);
+    const { t } = useI18n();
+
+    return (
+        <div className={`portfolio-bulk-actions${showActions ? ' active' : ''}`} id="portfolioBulkActions">
+            <div className="portfolio-bulk-actions-summary" id="portfolioBulkActionsSummary">
+                {selectedCount === 1
+                    ? t('toolbar.tasksSelected', { count: selectedCount })
+                    : t('toolbar.tasksSelectedPlural', { count: selectedCount })}
+            </div>
+            <div className="portfolio-bulk-actions-buttons">
+                <button className="btn" type="button" id="portfolioBulkClearBtn" onClick={() => clearPortfolioBulkSelection(boardId)}>{t('common.clear')}</button>
+                <button
+                    className={`btn${showActions && hasExistingSprints ? '' : ' hidden'}`}
+                    type="button"
+                    id="portfolioBulkAssignSprintBtn"
+                    disabled={selectedCount === 0 || !hasExistingSprints}
+                    onClick={() => openAssignSprintFromSelection(boardId)}
+                >{t('toolbar.addToExistingSprint')}</button>
+                <button
+                    className="btn btn-primary"
+                    type="button"
+                    id="portfolioBulkCreateSprintBtn"
+                    disabled={selectedCount === 0}
+                    onClick={() => openCreateSprintFromSelection(boardId)}
+                >{t('toolbar.createSprint')}</button>
+            </div>
+        </div>
+    );
+}

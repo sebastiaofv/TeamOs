@@ -1,4 +1,5 @@
-import type { ArchiveFilter, BoardColumn, Effort } from '../types';
+import type { BoardColumn, Effort } from './types';
+import type { ArchiveFilter } from '@/features/portfolio/types';
 
 export const BOARD_SCHEMA_VERSION = 1;
 export const BOARD_APP_ID = 'teamos-kanban';
@@ -23,6 +24,7 @@ export const PROJECT_FILE_WATCH_INTERVAL_MS = 4000;
 export const PROJECT_FILE_CONFLICT_SUPPRESS_MS = 15000;
 export const PROJECT_FILE_EXTERNAL_BADGE_MS = 5000;
 export const THEME_STORAGE_KEY = 'teamOsKanbanTheme';
+export const LANGUAGE_STORAGE_KEY = 'teamOsKanbanLanguage';
 export const DEBUG_LOGS_ENABLED = false;
 export const CALENDAR_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 export const CALENDAR_WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

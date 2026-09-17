@@ -1,4 +1,4 @@
-import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData } from '../types';
+import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData } from './types';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, DEFAULT_BOARD_TITLE, ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, defaultColumns } from './constants';
 import { getLegacyTaskAttachmentsFromExtensions, stripLegacyTaskAttachmentsFromExtensions } from './attachments';
 import { normalizeColumns } from './board';

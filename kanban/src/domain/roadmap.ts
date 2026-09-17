@@ -8,10 +8,11 @@ import type {
     RoadmapRange,
     RoadmapTick,
     Task
-} from '../types';
+} from './types';
 import { ROADMAP_VERSION, ROADMAP_EXTENSION_KEY } from './constants';
 import { getBoardExtensionsObject } from './extensions';
 import { hasExactKeys, isRecord, todayLocalIsoDate } from './util';
+import type { Language } from '@/shared/types/ui';
 
 type RoadmapItemLike = Partial<RoadmapItem> | null | undefined;
 type RangeLike = Partial<RoadmapRange> | null | undefined;
@@ -43,16 +44,20 @@ export function createEmptyRoadmapExtension(): RoadmapExtension {
     };
 }
 
-export function formatRoadmapAxisDate(date: unknown): string {
+export function formatRoadmapAxisDate(date: unknown, language: Language = 'en'): string {
     if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-    const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.getUTCMonth()];
+    const month = (language === 'pt'
+        ? ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'])[date.getUTCMonth()];
     return `${month} ${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
-export function formatRoadmapDateRange(item: RoadmapItemLike): string {
+export function formatRoadmapDateRange(item: RoadmapItemLike, language: Language = 'en'): string {
     if (!item || typeof item !== 'object') return '';
-    if (item.dueDate) return `Due ${item.dueDate}`;
-    if (item.startDate && item.endDate) return `${item.startDate} to ${item.endDate}`;
+    if (item.dueDate) return language === 'pt' ? `Prazo ${item.dueDate}` : `Due ${item.dueDate}`;
+    if (item.startDate && item.endDate) return language === 'pt'
+        ? `${item.startDate} a ${item.endDate}`
+        : `${item.startDate} to ${item.endDate}`;
     return '';
 }
 
@@ -222,7 +227,7 @@ export function compareRoadmapItemsByDate(a: RoadmapItemLike, b: RoadmapItemLike
     return String(a?.title || '').localeCompare(String(b?.title || ''));
 }
 
-export function getRoadmapAxisTicks(range: RangeLike): RoadmapTick[] {
+export function getRoadmapAxisTicks(range: RangeLike, language: Language = 'en'): RoadmapTick[] {
     if (!range?.start || !range?.end) return [];
     const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
     const tickCount = Math.min(5, totalDays + 1);
@@ -230,7 +235,7 @@ export function getRoadmapAxisTicks(range: RangeLike): RoadmapTick[] {
     for (let index = 0; index < tickCount; index += 1) {
         const offsetDays = Math.round((totalDays * index) / Math.max(1, tickCount - 1));
         const date = addRoadmapDays(range.start, offsetDays);
-        const label = formatRoadmapAxisDate(date);
+        const label = formatRoadmapAxisDate(date, language);
         if (ticks.some((tick) => tick.label === label)) continue;
         ticks.push({
             label,

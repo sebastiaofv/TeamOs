@@ -1,4 +1,4 @@
-import type { BoardExtensions, LooseBoardData, TeamOsExtensions } from '../types';
+import type { BoardExtensions, LooseBoardData, TeamOsExtensions } from './types';
 import { TEAMOS_EXTENSIONS_KEY } from './constants';
 
 export function getBoardExtensionsObject(boardData: LooseBoardData, options: { create: true }): BoardExtensions;

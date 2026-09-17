@@ -1,4 +1,4 @@
-import type { Attachment, AttachmentKind, LooseBoardData, TaskInput } from '../types';
+import type { Attachment, AttachmentKind, LooseBoardData, TaskInput } from './types';
 import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_COUNT } from './constants';
 import { isRecord, normalizeTimestamp, nowIso } from './util';
 import { getTeamOsExtensionsObject, getBoardExtensionsObject } from './extensions';
