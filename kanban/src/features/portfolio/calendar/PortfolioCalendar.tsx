@@ -24,33 +24,37 @@ function PortfolioCalendarView({ model, state }: { model: PortfolioCalendarViewM
         <>
             <div className="portfolio-calendar-header">
                 <div className="portfolio-calendar-controls">
-                    {view === 'month' && <button className="btn" type="button" data-action="calendar-back-to-year" aria-label={t('calendar.backToYear')} onClick={() => setPortfolioCalendarView('year')}>{t('calendar.backToYear')}</button>}
-                    <button
-                        className="btn"
-                        type="button"
-                        data-action={view === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}
-                        aria-label={view === 'month' ? t('calendar.previousMonth') : t('calendar.previousYear')}
-                        onClick={() => view === 'month'
-                            ? shiftPortfolioCalendarMonth(-1)
-                            : shiftPortfolioCalendarYear(-1)}
-                    >
-                        {t('calendar.prev')}
-                    </button>
+                    <div className="portfolio-calendar-navigation portfolio-calendar-navigation-previous">
+                        {view === 'month' && <button className="btn" type="button" data-action="calendar-back-to-year" aria-label={t('calendar.backToYear')} onClick={() => setPortfolioCalendarView('year')}>{t('calendar.backToYear')}</button>}
+                        <button
+                            className="btn"
+                            type="button"
+                            data-action={view === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}
+                            aria-label={view === 'month' ? t('calendar.previousMonth') : t('calendar.previousYear')}
+                            onClick={() => view === 'month'
+                                ? shiftPortfolioCalendarMonth(-1)
+                                : shiftPortfolioCalendarYear(-1)}
+                        >
+                            {t('calendar.prev')}
+                        </button>
+                    </div>
                     <div className="portfolio-calendar-period-group">
                         <div className="portfolio-calendar-period">{periodLabel}</div>
                         <button className="btn" type="button" data-action="calendar-toggle-mode" onClick={() => togglePortfolioCalendarDisplayMode()}>{toggleLabel}</button>
                     </div>
-                    <button
-                        className="btn"
-                        type="button"
-                        data-action={view === 'month' ? 'calendar-next-month' : 'calendar-next-year'}
-                        aria-label={view === 'month' ? t('calendar.nextMonth') : t('calendar.nextYear')}
-                        onClick={() => view === 'month'
-                            ? shiftPortfolioCalendarMonth(1)
-                            : shiftPortfolioCalendarYear(1)}
-                    >
-                        {t('calendar.next')}
-                    </button>
+                    <div className="portfolio-calendar-navigation portfolio-calendar-navigation-next">
+                        <button
+                            className="btn"
+                            type="button"
+                            data-action={view === 'month' ? 'calendar-next-month' : 'calendar-next-year'}
+                            aria-label={view === 'month' ? t('calendar.nextMonth') : t('calendar.nextYear')}
+                            onClick={() => view === 'month'
+                                ? shiftPortfolioCalendarMonth(1)
+                                : shiftPortfolioCalendarYear(1)}
+                        >
+                            {t('calendar.next')}
+                        </button>
+                    </div>
                 </div>
             </div>
             <CalendarGrid

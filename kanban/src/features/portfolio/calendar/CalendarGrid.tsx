@@ -240,6 +240,7 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
     const firstOfMonth = createUtcDate(year, month, 1);
     const leadingDays = firstOfMonth.getUTCDay();
     const gridStart = addRoadmapDays(firstOfMonth, -leadingDays);
+    const weekCount = getPortfolioCalendarMiniMonthCellCount(year, month) / 7;
     const taskCounts = heatmap ? getPortfolioCalendarTaskCountsByDay(items) : null;
     const heatStats = heatmap ? getPortfolioCalendarMonthHeatStats(taskCounts, year, month) : null;
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
@@ -257,7 +258,7 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
                     })}
                 </div>
                 <div className="portfolio-calendar-day-grid">
-                    {Array.from({ length: 6 }, (_, weekIndex) => {
+                    {Array.from({ length: weekCount }, (_, weekIndex) => {
                         const weekStart = addRoadmapDays(gridStart, weekIndex * 7);
                         const weekStartIso = formatUtcIsoDate(weekStart);
                         return (

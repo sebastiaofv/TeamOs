@@ -22,12 +22,22 @@
 }
 
 .portfolio-calendar-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.portfolio-calendar-navigation {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    width: 100%;
+    min-width: 0;
+}
+
+.portfolio-calendar-navigation-next {
+    justify-content: flex-end;
 }
 
 .portfolio-calendar-period-group {
@@ -386,10 +396,6 @@ button.portfolio-calendar-item:focus-visible {
 }
 
 @media (max-width: 900px) {
-    .portfolio-calendar-controls {
-        justify-content: flex-start;
-    }
-
     .portfolio-calendar-quarter-months {
         grid-template-columns: 1fr;
     }

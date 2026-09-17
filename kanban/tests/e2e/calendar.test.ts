@@ -386,4 +386,68 @@ test.describe('calendar', () => {
     await expect(page.locator('#modalTitle')).toHaveText('New Task');
     await expect(page.locator('#taskDueDate')).toHaveValue(dueDate!);
   });
+
+  test('month calendar renders only the weeks needed by each month', async ({ page }) => {
+    await seedPortfolioBoards(page, [{
+      id: 'calendar-weeks',
+      title: 'Calendar Weeks',
+      hasHandle: true,
+      tasks: [
+        { id: 1, title: 'February task', status: 'backlog', dueDate: '2026-02-03' },
+        { id: 2, title: 'April task', status: 'backlog', dueDate: '2026-04-03' }
+      ]
+    }], { selectedBoardId: 'calendar-weeks' });
+
+    await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+    const calendarShell = page.locator('.portfolio-calendar-shell');
+
+    await page.getByRole('button', { name: 'Open February 2026' }).click();
+    await expect(calendarShell).toHaveAttribute('data-calendar-view', 'month');
+    await expect(calendarShell.locator('.portfolio-calendar-week-row')).toHaveCount(4);
+    await expect(calendarShell.locator('.portfolio-calendar-day-cell')).toHaveCount(28);
+    await expect(calendarShell.locator('.portfolio-calendar-day-cell').first()).toHaveAttribute('data-calendar-day', '2026-02-01');
+    await expect(calendarShell.locator('.portfolio-calendar-day-cell').last()).toHaveAttribute('data-calendar-day', '2026-02-28');
+
+    await page.getByRole('button', { name: 'Back to year' }).click();
+    await page.getByRole('button', { name: 'Open April 2026' }).click();
+    await expect(calendarShell).toHaveAttribute('data-calendar-view', 'month');
+    await expect(calendarShell.locator('.portfolio-calendar-week-row')).toHaveCount(5);
+    await expect(calendarShell.locator('.portfolio-calendar-day-cell')).toHaveCount(35);
+    await expect(calendarShell.locator('.portfolio-calendar-day-cell').first()).toHaveAttribute('data-calendar-day', '2026-03-29');
+    await expect(calendarShell.locator('.portfolio-calendar-day-cell').last()).toHaveAttribute('data-calendar-day', '2026-05-02');
+  });
+
+  test('month calendar keeps the period controls centered', async ({ page }) => {
+    await seedPortfolioBoards(page, [{
+      id: 'calendar-layout',
+      title: 'Layout Project',
+      hasHandle: true,
+      tasks: [{ id: 1, title: 'April task', status: 'backlog', dueDate: '2026-04-03' }]
+    }], { selectedBoardId: 'calendar-layout' });
+
+    await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+    await page.getByRole('button', { name: 'Open April 2026' }).click();
+
+    const metrics = await page.evaluate(() => {
+      const controls = document.querySelector('.portfolio-calendar-controls')?.getBoundingClientRect();
+      const period = document.querySelector('.portfolio-calendar-period-group')?.getBoundingClientRect();
+      const back = document.querySelector('[data-action="calendar-back-to-year"]')?.getBoundingClientRect();
+      const previous = document.querySelector('[data-action="calendar-prev-month"]')?.getBoundingClientRect();
+      const next = document.querySelector('[data-action="calendar-next-month"]')?.getBoundingClientRect();
+      if (!controls || !period || !back || !previous || !next) return null;
+      return {
+        controlsCenter: controls.left + controls.width / 2,
+        periodCenter: period.left + period.width / 2,
+        backLeft: back.left,
+        previousLeft: previous.left,
+        nextRight: next.right,
+        controlsRight: controls.right
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    expect(Math.abs(metrics!.periodCenter - metrics!.controlsCenter), JSON.stringify(metrics)).toBeLessThan(1);
+    expect(metrics!.backLeft).toBeLessThan(metrics!.previousLeft);
+    expect(Math.abs(metrics!.nextRight - metrics!.controlsRight)).toBeLessThan(1);
+  });
 });
