@@ -69,6 +69,15 @@ npx playwright install
 npm run dev
 ```
 
+For a serverless build that can be opened directly in a Chromium-based browser, run:
+
+```bash
+npm run build:standalone
+open dist-standalone/index.html
+```
+
+This produces one self-contained HTML file. The regular `npm run build` continues to generate the normal `dist/` bundle.
+
 ## Testing
 
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
