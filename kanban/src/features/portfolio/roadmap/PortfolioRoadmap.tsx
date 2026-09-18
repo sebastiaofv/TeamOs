@@ -33,7 +33,7 @@ function RoadmapTaskList({ tasks, descriptor, boardRecord, boardData, historical
     const boardIndex = state.portfolioBoards.findIndex((board) => board.id === boardRecord.id);
     if (tasks.length === 0) {
         return (
-            <div className="roadmap-task-list" data-roadmap-task-list={descriptor}>
+            <div className="roadmap-task-list" data-roadmap-task-list={descriptor} id={`roadmap-tasks-${descriptor.replace(/[:\s]/g, '-')}`}>
                 <div className="roadmap-task-list-gutter" aria-hidden="true" />
                 <div className="roadmap-task-list-track">
                         <div className="roadmap-task-empty">{t('roadmap.noTasksAssigned')}</div>
@@ -43,7 +43,7 @@ function RoadmapTaskList({ tasks, descriptor, boardRecord, boardData, historical
     }
 
     return (
-        <div className="roadmap-task-list" data-roadmap-task-list={descriptor}>
+        <div className="roadmap-task-list" data-roadmap-task-list={descriptor} id={`roadmap-tasks-${descriptor.replace(/[:\s]/g, '-')}`}>
             <div className="roadmap-task-list-gutter" aria-hidden="true" />
             <div className="roadmap-task-list-track">
                 {tasks.map((task, taskIndex) => (
@@ -102,6 +102,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
         <section
             className="roadmap-section"
             data-roadmap-kind={kind}
+            aria-labelledby={`roadmap-${boardId}-${kind}-heading`}
             onClick={(event) => {
                 const target = event.target as Element;
                 if (target.closest('button, .roadmap-task-list')) return;
@@ -111,7 +112,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
         >
             <div className="roadmap-section-header">
                 <div>
-                    <h3 className="roadmap-section-title">{pluralLabel}</h3>
+                    <h3 className="roadmap-section-title" id={`roadmap-${boardId}-${kind}-heading`}>{pluralLabel}</h3>
                     <div className="roadmap-section-subtitle">{t('roadmap.assigned', { label })}</div>
                 </div>
                 <button
@@ -133,12 +134,22 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                         const expanded = Boolean(expandedRows[expandKey]);
                         const placement = getRoadmapTimelinePlacement(item, range);
                         const tasks = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id);
+                        const rowId = `roadmap-row-${config.singular}-${item.id}`;
+                        const taskListId = `roadmap-tasks-${config.singular}-${item.id}`;
                         return (
                             <div
+                                id={rowId}
                                 className="roadmap-row"
                                 data-roadmap-kind={config.singular}
                                 data-roadmap-id={item.id}
-                                aria-expanded={expanded ? 'true' : 'false'}
+                                tabIndex={0}
+                                role="group"
+                                aria-labelledby={`${rowId}-title`}
+                                onKeyDown={(event) => {
+                                    if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+                                    event.preventDefault();
+                                    actions.togglePortfolioRoadmapRowExpanded(boardId, expandKey);
+                                }}
                                 key={item.id}
                             >
                                 <div className="roadmap-row-main">
@@ -169,7 +180,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 {String.fromCodePoint(128465)}
                                             </button>
                                         </div>
-                                        <h3 className="roadmap-row-title">{item.title}</h3>
+                                        <h4 className="roadmap-row-title" id={`${rowId}-title`}>{item.title}</h4>
                                         <div className="roadmap-row-meta">{formatRoadmapDateRange(item, language) || t('common.noDates')}</div>
                                         <div className="roadmap-row-usage">
                                                 <span>{tasks.length === 1 ? t('roadmap.linkedTask') : t('roadmap.linkedTasks', { count: tasks.length })}</span>
@@ -177,6 +188,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 className="roadmap-disclosure-btn"
                                                 type="button"
                                                 aria-expanded={expanded ? 'true' : 'false'}
+                                                aria-controls={taskListId}
                                                 aria-label={expanded ? t('roadmap.hideTasksFor', { title: item.title }) : t('roadmap.showTasksFor', { title: item.title })}
                                                 data-action="toggle-roadmap-row"
                                                 data-roadmap-kind={config.singular}

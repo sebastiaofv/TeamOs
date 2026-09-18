@@ -4,8 +4,9 @@ import { nextPortfolioProjectId } from '@/domain/board';
 import { serializeBoardDataFromObject } from '@/domain/serialize';
 import { useAppStore } from '@/features/portfolio/state/store';
 
-export function createPortfolioRecord({ handle = null, fileName = '', data }: {
+export function createPortfolioRecord({ handle = null, sourceKey = '', fileName = '', data }: {
     handle?: BoardFileHandle | null;
+    sourceKey?: string;
     fileName?: string;
     data: unknown;
 }): BoardRecord {
@@ -16,6 +17,7 @@ export function createPortfolioRecord({ handle = null, fileName = '', data }: {
         id: nextPortfolioProjectId(),
         colorSeed,
         handle,
+        ...(sourceKey ? { sourceKey } : {}),
         fileName,
         title: payload.board.settings.title,
         data: payload

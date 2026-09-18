@@ -24,7 +24,7 @@ export function HelpDialog() {
                     >
                         <div className="modal-header">
                             <Dialog.Title asChild><span className="modal-title">{t('help.title')}</span></Dialog.Title>
-                            <Dialog.Close className="modal-close" id="helpModalCloseBtn">&times;</Dialog.Close>
+                            <Dialog.Close className="modal-close" id="helpModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                         </div>
                         <div className="modal-body">
                             <div className="help-manual">

@@ -228,21 +228,21 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                 setTaskAttachments(data, nextId, draft.attachments);
                 recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, nextId));
                 return true;
-            }, { onCommitted: closeTaskEditor });
+            }, { onMutated: closeTaskEditor });
             return;
         }
 
-        if (state.portfolioEditContext?.boardId && state.portfolioEditContext?.taskId) {
+        if (state.portfolioEditContext?.boardId
+            && state.portfolioEditContext.taskId !== null
+            && state.portfolioEditContext.taskId !== undefined) {
             const { boardId, taskId } = state.portfolioEditContext;
-            const saved = await runPortfolioTaskMutation(boardId, taskId, (task, boardRecord) => {
+            await runPortfolioTaskMutation(boardId, taskId, (task, boardRecord) => {
                 Object.assign(task, commonFields);
                 if (boardRecord?.data) {
                     setTaskAttachments(boardRecord.data, taskId, draft.attachments);
                 }
                 return true;
-            });
-            if (!saved) return;
-            closeTaskEditor();
+            }, { onMutated: closeTaskEditor });
             return;
         }
 
@@ -251,7 +251,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
     function toggleTaskDetailChecklistItem(itemIndex: number, checked: boolean) {
         const context = getState().portfolioDetailContext;
-        if (!context?.boardId || !context?.taskId) return;
+        if (!context?.boardId || context.taskId === null || context.taskId === undefined) return;
         if (context.readOnly) {
             notifyPortfolioMutationUnavailable(context.boardId);
             return;
@@ -264,7 +264,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     }
 
     async function movePortfolioTaskToStatus(boardId: string, taskId: number, targetStatus: unknown): Promise<boolean> {
-        if (!boardId || !taskId || !isPortfolioBoardMutable(boardId)) return false;
+        if (!boardId || taskId === null || taskId === undefined || !isPortfolioBoardMutable(boardId)) return false;
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return false;
         const normalizedTargetStatus = normalizeTaskStatus(targetStatus);

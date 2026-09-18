@@ -9,7 +9,7 @@ import { compareText, hasExactKeys, normalizeTimestamp, nowIso } from './util';
 import { isAcceptedLegacyAssigneeValue, normalizeBlockerReason, normalizeTaskStatus, resolveKnownTaskStatus } from './task';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, ROADMAP_EXTENSION_KEY, TASK_TITLE_MAX_LENGTH, TIMELINE_EXTENSION_KEY, defaultColumns, isArchiveFilter, isEffort } from './constants';
 import { comparePortfolioDueDateAsc } from './calendar';
-import { normalizeRoadmapExtension } from './roadmap';
+import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
 
@@ -283,6 +283,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         statuses.add(col.status);
     });
 
+    const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
         const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
@@ -295,6 +296,13 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if (typeof task.id !== 'number' || !Number.isFinite(task.id)) {
             throw new Error('Task id must be a number.');
         }
+        if (!Number.isSafeInteger(task.id) || task.id <= 0) {
+            throw new Error('Task id must be a positive safe integer.');
+        }
+        if (taskIds.has(task.id)) {
+            throw new Error('Task ids must be unique.');
+        }
+        taskIds.add(task.id);
         if (typeof task.title !== 'string' || !task.title.trim()) {
             throw new Error('Task title must be a non-empty string.');
         }
@@ -319,7 +327,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if ('statusChangedAt' in task && !normalizeTimestamp(task.statusChangedAt)) {
             throw new Error('Task statusChangedAt must be a valid timestamp.');
         }
-        if (typeof task.dueDate !== 'string' || (task.dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))) {
+        if (typeof task.dueDate !== 'string' || (task.dueDate && !parseRoadmapIsoDate(task.dueDate))) {
             throw new Error('Task dueDate must be YYYY-MM-DD or empty.');
         }
         if (task.priority !== null && !['high', 'medium', 'low'].includes(task.priority)) {

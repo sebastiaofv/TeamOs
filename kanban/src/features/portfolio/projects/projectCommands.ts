@@ -21,7 +21,7 @@ import { translateCurrent } from '@/shared/i18n';
 type PickerWindow = Pick<Window, 'showSaveFilePicker' | 'showOpenFilePicker'>;
 
 export type PortfolioFileOptions = {
-    appendPortfolioRecords?: (records: BoardRecord[], options?: { selectBoardId?: string }) => void;
+    appendPortfolioRecords?: (records: BoardRecord[], options?: { selectBoardId?: string }) => void | Promise<void>;
     alert?: (text: string, options?: { title?: string }) => unknown;
     prompt?: (text: string, defaultValue?: unknown, options?: PromptOptions) => Promise<string | null>;
     choose?: (text: string, choices: readonly Choice<string>[], options?: { title?: string }) => unknown;
@@ -104,7 +104,7 @@ export function createPortfolioFileActions({
                 fileName: handle.name || `${suggestedStem}${BOARD_FILE_EXTENSION}`,
                 data
             });
-            appendPortfolioRecords([record], { selectBoardId: record.id });
+            await appendPortfolioRecords([record], { selectBoardId: record.id });
         } catch (error) {
             if (!isAbortError(error)) {
                 logger.error('New project failed', error);
@@ -125,7 +125,7 @@ export function createPortfolioFileActions({
             });
 
             const { loaded, errors } = await BoardRepository.importFromHandles(handles);
-            appendPortfolioRecords(loaded);
+            await appendPortfolioRecords(loaded);
             if (errors.length > 0) {
                 alert(translateCurrent('projects.someNotImported', { errors: errors.join('\n') }), { title: translateCurrent('projects.importIncomplete') });
             }
@@ -147,7 +147,7 @@ export function createPortfolioFileActions({
             }
 
             const { loaded, errors } = await BoardRepository.importFromLooseFiles(boardFiles);
-            appendPortfolioRecords(loaded);
+            await appendPortfolioRecords(loaded);
             if (errors.length > 0) {
                 alert(translateCurrent('projects.someNotImported', { errors: errors.join('\n') }), { title: translateCurrent('projects.importIncomplete') });
             }

@@ -13,6 +13,7 @@ import {
     getRoadmapExtensionObject,
     normalizeRoadmapDate,
     normalizeRoadmapRef,
+    parseRoadmapIsoDate,
     slugifyRoadmapEntityId,
 } from '@/domain/roadmap';
 
@@ -22,7 +23,7 @@ import { appendTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 
-export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate';
+export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate' | 'endDate';
 
 export type RoadmapEntityInput = Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate', unknown>>;
 
@@ -241,6 +242,14 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (config.dateMode === 'range' && (!draft.startDate || !draft.endDate)) {
             await alert(translateCurrent('roadmap.dateRequiredRange', { label: getRoadmapLabel(context.kind) }));
             return { focusField: 'startDate' };
+        }
+        if (config.dateMode === 'range') {
+            const start = parseRoadmapIsoDate(draft.startDate);
+            const end = parseRoadmapIsoDate(draft.endDate);
+            if (!start || !end || start > end) {
+                await alert(translateCurrent('roadmap.dateOrderInvalid'));
+                return { focusField: 'endDate' };
+            }
         }
         if (context.mode === 'create-sprint-from-selection') {
             const changed = await createSprintFromSelection(context.boardId, draft);

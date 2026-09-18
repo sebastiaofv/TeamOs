@@ -70,7 +70,7 @@ export function createBoardMutationContext({
     async function runPortfolioBoardMutation(
         boardId: string,
         mutator: BoardMutator,
-        { allowHistorical = false, onCommitted = () => {} }: { allowHistorical?: boolean; onCommitted?: () => void } = {}
+        { allowHistorical = false, onMutated = () => {}, onCommitted = () => {} }: { allowHistorical?: boolean; onMutated?: () => void; onCommitted?: () => void } = {}
     ): Promise<boolean> {
         const current = getBoardRecord(boardId);
         if (!current) return false;
@@ -96,12 +96,19 @@ export function createBoardMutationContext({
         });
         markDirty(boardId);
         onBoardChanged(boardId);
+        onMutated();
+        const saved = Boolean(await enqueueSave(getBoardRecord(boardId)));
+        if (!saved) return false;
         onCommitted();
-        await enqueueSave(getBoardRecord(boardId));
         return true;
     }
 
-    function runPortfolioTaskMutation(boardId: string, taskId: unknown, mutator: TaskMutator): Promise<boolean> | false {
+    function runPortfolioTaskMutation(
+        boardId: string,
+        taskId: unknown,
+        mutator: TaskMutator,
+        options: { allowHistorical?: boolean; onMutated?: () => void; onCommitted?: () => void } = {}
+    ): Promise<boolean> | false {
         if (!findPortfolioTaskSource(boardId, taskId)) return false;
         return runPortfolioBoardMutation(boardId, (data, draft) => {
             const task = data.board.tasks.find((entry) => Number(entry.id) === Number(taskId)) as Task;
@@ -110,7 +117,7 @@ export function createBoardMutationContext({
             touchTask(task);
             recordTaskTimelineEvent(data, before, captureTaskTimelineSnapshot(data, taskId));
             return true;
-        });
+        }, options);
     }
     return {
         getState, commitState, getBoardRecord, findPortfolioTaskSource,

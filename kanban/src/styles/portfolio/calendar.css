@@ -90,7 +90,8 @@
 .portfolio-calendar-month-card:focus-visible {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px rgba(0, 102, 204, 0.16);
-    outline: none;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
 }
 
 .portfolio-calendar-month-card-header {
@@ -233,10 +234,32 @@ button.portfolio-calendar-item:focus-visible {
 }
 
 .portfolio-calendar-item-overflow {
-    padding: 0 2px;
+    appearance: none;
+    width: 100%;
+    min-height: 32px;
+    border: 1px dashed var(--border);
+    background: var(--bg-card);
+    padding: 4px 6px;
     font-size: 11px;
     font-weight: 600;
     color: var(--text-muted);
+    text-align: left;
+    cursor: pointer;
+}
+
+.portfolio-calendar-item-overflow:hover,
+.portfolio-calendar-item-overflow:focus-visible {
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+
+.portfolio-calendar-legend {
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 12px;
 }
 
 .portfolio-calendar-month-grid {
@@ -364,9 +387,30 @@ button.portfolio-calendar-item:focus-visible {
 }
 
 .portfolio-calendar-day-number {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
     font-size: 12px;
     font-weight: 700;
     color: var(--text-secondary);
+}
+
+.portfolio-calendar-create-day {
+    appearance: none;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.portfolio-calendar-create-day:hover {
+    border-color: var(--accent);
+    background: var(--bg-secondary);
 }
 
 .portfolio-calendar-day-roadmap {

@@ -27,6 +27,25 @@ export type Shortcut = {
 
 const getState = () => useAppStore.getState();
 
+export const SINGLE_KEY_SHORTCUTS_STORAGE_KEY = 'teamOs.singleKeyShortcuts';
+
+export function areSingleKeyShortcutsEnabled(): boolean {
+    try {
+        return localStorage.getItem(SINGLE_KEY_SHORTCUTS_STORAGE_KEY) !== 'false';
+    } catch (_) {
+        return true;
+    }
+}
+
+export function setSingleKeyShortcutsEnabled(enabled: boolean): void {
+    try {
+        localStorage.setItem(SINGLE_KEY_SHORTCUTS_STORAGE_KEY, String(enabled));
+        window.dispatchEvent(new Event('teamOs:shortcut-preference-changed'));
+    } catch (_) {
+        // Preference storage is optional; the runtime can still use shortcuts.
+    }
+}
+
 function sameCard(left: CardRef | null | undefined, right: CardRef | null | undefined): boolean {
     return Boolean(left && right)
         && left!.boardId === right!.boardId
@@ -236,7 +255,13 @@ const SHORTCUT_CONTEXT_BY_DIALOG: Record<DialogName, ShortcutContext> = {
 
 function isTyping(): boolean {
     const tagName = document.activeElement?.tagName || '';
-    return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+    return tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT'
+        || document.activeElement?.getAttribute('contenteditable') === 'true';
+}
+
+function isSingleKeyShortcut(entry: Shortcut): boolean {
+    const key = entry.keys[0] || '';
+    return entry.keys.length === 1 && key.length === 1;
 }
 
 export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMutationActions = getPortfolioMutationActions()): void {
@@ -253,6 +278,7 @@ export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMu
         : createPortfolioShortcuts(actions);
     for (const entry of shortcuts) {
         if (!entry.contexts.includes(contextName)) continue;
+        if (contextName === 'global' && !areSingleKeyShortcutsEnabled() && isSingleKeyShortcut(entry)) continue;
         if (typing && !entry.allowWhileTyping) continue;
         if (!entry.match(event)) continue;
         if (entry.when && !entry.when()) continue;

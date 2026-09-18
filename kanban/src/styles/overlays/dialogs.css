@@ -9,6 +9,7 @@
     z-index: 1000;
     align-items: center;
     justify-content: center;
+    padding: 12px;
 }
 
 .modal.active {
@@ -21,6 +22,8 @@
     max-width: 480px;
     border: 1px solid var(--border);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-height: calc(100vh - 24px);
+    overflow: auto;
 }
 
 .modal-header {
@@ -39,8 +42,8 @@
 }
 
 .modal-close {
-    width: 24px;
-    height: 24px;
+    width: 40px;
+    height: 40px;
     border: 1px solid var(--border);
     background: var(--bg-card);
     cursor: pointer;
@@ -94,6 +97,8 @@
 .form-group select:focus,
 .form-group textarea:focus {
     border-color: var(--accent);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
 }
 
 .form-group textarea {
@@ -177,4 +182,23 @@
 
 #helpModal .modal-content {
     max-width: 700px;
+}
+
+@media (max-width: 600px) {
+    .modal-content,
+    #shortcutsModal .modal-content {
+        width: 100%;
+        max-width: none;
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding-inline: 14px;
+    }
+
+    .form-row,
+    .roadmap-entity-date-row {
+        grid-template-columns: 1fr;
+    }
 }

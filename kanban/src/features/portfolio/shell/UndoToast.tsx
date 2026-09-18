@@ -14,9 +14,9 @@ export function UndoToast() {
     if (!toast) return null;
 
     return createPortal(
-        <div className="undo-toast active" id="undoToast" style={{ pointerEvents: 'auto' }}>
+        <div className="undo-toast active" id="undoToast" role="status" aria-live="polite" aria-atomic="true" style={{ pointerEvents: 'auto' }}>
             <span className="undo-toast-text" id="undoToastText">{toast.message}</span>
-            <button className="btn" id="undoBtn" onClick={() => performUndo()}>{t('common.undo')}</button>
+            <button className="btn" id="undoBtn" type="button" onClick={() => performUndo()}>{t('common.undo')}</button>
         </div>,
         document.body
     );

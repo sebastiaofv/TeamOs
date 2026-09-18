@@ -1,8 +1,8 @@
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { closeDialog } from './dialogs';
-import { SHORTCUTS, type Shortcut } from '@/features/portfolio/commands/portfolioShortcuts';
+import { areSingleKeyShortcutsEnabled, setSingleKeyShortcutsEnabled, SHORTCUTS, type Shortcut } from '@/features/portfolio/commands/portfolioShortcuts';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
@@ -61,6 +61,13 @@ export function ShortcutsDialog() {
     const open = useAppStore((s) => s.activeDialog === 'shortcuts');
     const returnFocus = useReturnFocus();
     const { t } = useI18n();
+    const [singleKeyShortcutsEnabled, setShortcutsEnabled] = useState(() => areSingleKeyShortcutsEnabled());
+    useEffect(() => {
+        if (!open) return undefined;
+        const refresh = () => setShortcutsEnabled(areSingleKeyShortcutsEnabled());
+        window.addEventListener('teamOs:shortcut-preference-changed', refresh);
+        return () => window.removeEventListener('teamOs:shortcut-preference-changed', refresh);
+    }, [open]);
     const localizedShortcuts = SHORTCUTS.map((entry) => {
         const description = entry.id.startsWith('move-')
             ? t('shortcuts.cardMove', {
@@ -120,9 +127,24 @@ export function ShortcutsDialog() {
                     >
                         <div className="modal-header">
                             <Dialog.Title asChild><span className="modal-title">{t('shortcuts.title')}</span></Dialog.Title>
-                            <Dialog.Close className="modal-close" id="shortcutsModalCloseBtn">&times;</Dialog.Close>
+                            <Dialog.Close className="modal-close" id="shortcutsModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                         </div>
                         <div className="modal-body">
+                            <div className="shortcut-preference">
+                                <label htmlFor="singleKeyShortcutsEnabled">
+                                    <input
+                                        id="singleKeyShortcutsEnabled"
+                                        type="checkbox"
+                                        checked={singleKeyShortcutsEnabled}
+                                        onChange={(event) => {
+                                            setShortcutsEnabled(event.target.checked);
+                                            setSingleKeyShortcutsEnabled(event.target.checked);
+                                        }}
+                                    />
+                                    <span>{t('shortcuts.enable')}</span>
+                                </label>
+                                <p id="singleKeyShortcutsDescription">{t('shortcuts.enableDescription')}</p>
+                            </div>
                             <div className="shortcuts-list" id="shortcutsList">
                                 <ShortcutSections registry={localizedShortcuts} groups={groups} />
                             </div>

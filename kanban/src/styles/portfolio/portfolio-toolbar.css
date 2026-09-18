@@ -18,6 +18,7 @@
 
 .portfolio-toolbar-left {
     flex: 1;
+    min-width: 0;
 }
 
 .portfolio-chips {
@@ -48,12 +49,17 @@
 }
 
 .chip-link {
+    min-height: 32px;
+    min-width: 32px;
     border: none;
     background: transparent;
     color: inherit;
     font-size: 11px;
     cursor: pointer;
-    padding: 0;
+    padding: 4px 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .chip-link:hover {
@@ -126,7 +132,41 @@
 
 .portfolio-view-toggle .btn.active {
     background: var(--accent);
-    color: white;
+    color: var(--accent-contrast);
+}
+
+.portfolio-toolbar .search-box {
+    min-width: min(220px, 100%);
+}
+
+.portfolio-toolbar select {
+    min-height: 32px;
+}
+
+@media (max-width: 760px) {
+    .portfolio-toolbar {
+        align-items: stretch;
+        padding: 10px 12px;
+    }
+
+    .portfolio-toolbar-left,
+    .portfolio-toolbar-right {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .portfolio-toolbar-left .search-box {
+        flex: 1 1 100%;
+        max-width: none;
+    }
+
+    .portfolio-toolbar-right {
+        justify-content: space-between;
+    }
+
+    .portfolio-chips {
+        padding-inline: 12px;
+    }
 }
 
 .portfolio-roadmap-view {

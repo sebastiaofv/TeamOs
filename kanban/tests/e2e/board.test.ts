@@ -14,6 +14,19 @@ test.describe('board', () => {
     await gotoApp(page);
   });
 
+  test('localizes board column headings', async ({ page }) => {
+    await seedPortfolioBoards(page, [
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+    ], { selectedBoardId: 'p1' });
+
+    await page.locator('#languageToggleBtn').click();
+
+    await expect(page.locator('.portfolio-column[data-status="backlog"] .column-title')).toHaveText('Backlog');
+    await expect(page.locator('.portfolio-column[data-status="to-do"] .column-title')).toHaveText('A fazer');
+    await expect(page.locator('.portfolio-column[data-status="doing"] .column-title')).toHaveText('Em curso');
+    await expect(page.locator('.portfolio-column[data-status="done"] .column-title')).toHaveText('Concluído');
+  });
+
   test('selected mutable project can create tasks directly from portfolio columns and auto-saves', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }

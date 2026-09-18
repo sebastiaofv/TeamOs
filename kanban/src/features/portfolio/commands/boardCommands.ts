@@ -81,7 +81,7 @@ export function createBoardInteractions(
     }
 
     function dropPortfolioTaskOnColumn(boardId: string, taskId: unknown, targetStatus: unknown): Promise<boolean> | false {
-        if (!boardId || !taskId || !isPortfolioBoardMutable(boardId)) return false;
+        if (!boardId || taskId === null || taskId === undefined || !isPortfolioBoardMutable(boardId)) return false;
         return movePortfolioTaskToStatus(boardId, Number(taskId), targetStatus);
     }
 

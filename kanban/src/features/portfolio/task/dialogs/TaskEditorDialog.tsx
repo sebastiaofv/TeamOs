@@ -103,27 +103,27 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                 <Dialog.Title asChild>
                     <span className="modal-title" id="modalTitle">{vm.heading}</span>
                 </Dialog.Title>
-                <Dialog.Close className="modal-close" id="taskModalCloseBtn">&times;</Dialog.Close>
+                <Dialog.Close className="modal-close" id="taskModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
             </div>
             <div className="modal-body">
-                <form id="taskForm" onSubmit={(event) => event.preventDefault()}>
+                <form id="taskForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                     <div className="form-group">
-                        <label className="required">{t('task.taskName')}</label>
+                        <label className="required" htmlFor="taskName">{t('task.taskName')}</label>
                         <input type="text" id="taskName" ref={nameRef} required maxLength={80} {...bind('title')} />
                     </div>
                     <div className="form-group">
-                        <label>{t('task.description')}</label>
+                        <label htmlFor="taskDescription">{t('task.description')}</label>
                         <textarea id="taskDescription" {...bind('description')} />
                     </div>
                     <div className="form-group">
-                        <label>{t('task.blocked')}</label>
+                        <label htmlFor="taskBlocked">{t('task.blocked')}</label>
                         <div className="form-checkbox-row">
                             <input type="checkbox" id="taskBlocked" checked={form.blocked} onChange={onBlockedChange} />
                             <span>{t('task.markBlocked')}</span>
                         </div>
                     </div>
                     <div className={`form-group${form.blocked ? '' : ' hidden'}`} id="taskBlockerReasonWrap">
-                        <label className="required">{t('task.blocker')}</label>
+                        <label className="required" htmlFor="taskBlockerReason">{t('task.blocker')}</label>
                         <textarea
                             id="taskBlockerReason"
                             placeholder={t('task.blockerPlaceholder')}
@@ -132,19 +132,19 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         />
                     </div>
                     <div className="form-group">
-                        <label>{t('task.assignees')}</label>
+                        <label id="taskAssigneesLabel">{t('task.assignees')}</label>
                         <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool} />
                     </div>
                     <div className="form-group">
-                        <label>{t('task.tags')}</label>
+                        <label id="taskTagsLabel">{t('task.tags')}</label>
                         <TagEditor value={form.tags} onChange={(next) => update('tags', next)} suggestions={vm.tagSuggestions} />
                     </div>
                     <div className="form-group">
-                        <label>{t('task.todoList')}</label>
+                        <label id="taskTodoListLabel">{t('task.todoList')}</label>
                         <ChecklistEditor value={form.checklist} onChange={(next) => update('checklist', next)} />
                     </div>
                     <div className="form-group">
-                        <label>{t('task.attachments')}</label>
+                        <label id="taskAttachmentsLabel">{t('task.attachments')}</label>
                         <AttachmentsEditor
                             value={form.attachments}
                             onChange={(next) => update('attachments', next)}
@@ -152,18 +152,18 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         />
                     </div>
                     <div className="form-group">
-                        <label>{t('task.due')}</label>
+                        <label htmlFor="taskDueDate">{t('task.due')}</label>
                         <input type="date" id="taskDueDate" ref={dueDateRef} {...bind('dueDate')} />
                     </div>
                     <div className="form-row">
                         <div className="form-group">
-                            <label>{t('task.priority')}</label>
+                            <label htmlFor="taskPriority">{t('task.priority')}</label>
                             <select id="taskPriority" {...bind('priority')}>
                                 {PRIORITY_OPTIONS.map(([optionValue, label]) => <option key={label} value={optionValue}>{label === 'None' ? t('common.none') : label === 'High' ? t('toolbar.high') : label === 'Medium' ? t('toolbar.medium') : label === 'Low' ? t('toolbar.low') : label}</option>)}
                             </select>
                         </div>
                         <div className="form-group">
-                            <label>{t('task.effort')}</label>
+                            <label htmlFor="taskEffort">{t('task.effort')}</label>
                             <select id="taskEffort" {...bind('effort')}>
                                 {EFFORT_OPTIONS.map(([optionValue, label]) => <option key={label} value={optionValue}>{label === 'None' ? t('common.none') : label}</option>)}
                             </select>
@@ -171,14 +171,14 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                     </div>
                     <div className="form-row">
                         <div className="form-group">
-                            <label>{t('task.phase')}</label>
+                            <label htmlFor="taskPhase">{t('task.phase')}</label>
                             <select id="taskPhase" {...bind('phaseId')}>
                                 <option value="">{t('common.none')}</option>
                                 {vm.phaseOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                             </select>
                         </div>
                         <div className="form-group">
-                            <label>{t('task.milestone')}</label>
+                            <label htmlFor="taskMilestone">{t('task.milestone')}</label>
                             <select id="taskMilestone" {...bind('milestoneId')}>
                                 <option value="">{t('common.none')}</option>
                                 {vm.milestoneOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}

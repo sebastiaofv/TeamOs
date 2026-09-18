@@ -6,5 +6,5 @@ export type BoardFileHandle = {
     name: string;
     getFile(): Promise<BoardFile>;
     createWritable(): Promise<BoardWritable>;
+    isSameEntry?(other: unknown): Promise<boolean>;
 };
-

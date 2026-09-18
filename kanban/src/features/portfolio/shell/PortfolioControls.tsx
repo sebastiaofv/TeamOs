@@ -30,6 +30,7 @@ type ToolbarState = Pick<AppState,
     | 'portfolioSortKey'
     | 'selectedPortfolioBoardId'
     | 'selectedPortfolioViewMode'
+    | 'portfolioVisibleRows'
 >;
 type ChipState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'projectSaveStateById'>;
 type BulkState = Pick<AppState,
@@ -144,6 +145,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
         <>
             <div className="portfolio-toolbar-left">
                 <div className="search-box">
+                    <label className="sr-only" htmlFor="portfolioSearchInput">{t('toolbar.searchLabel')}</label>
                     <input
                         type="text"
                         id="portfolioSearchInput"
@@ -154,7 +156,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                     />
                 </div>
                 <div className="filter-group">
-                    <label>{t('toolbar.archive')}</label>
+                    <label htmlFor="portfolioArchiveFilter">{t('toolbar.archive')}</label>
                     <select id="portfolioArchiveFilter" value={filters.archive} onChange={(event) => setPortfolioFilter('archive', event.target.value)}>
                         <option value="active">{t('toolbar.activeOnly')}</option>
                         <option value="all">{t('toolbar.activeAndArchived')}</option>
@@ -162,7 +164,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>{t('toolbar.blocked')}</label>
+                    <label htmlFor="portfolioBlockedFilter">{t('toolbar.blocked')}</label>
                     <select id="portfolioBlockedFilter" value={filters.blocked} onChange={(event) => setPortfolioFilter('blocked', event.target.value)}>
                         <option value="all">{t('common.all')}</option>
                         <option value="blocked">{t('toolbar.blockedOnly')}</option>
@@ -170,14 +172,14 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>{t('toolbar.assignee')}</label>
+                    <label htmlFor="portfolioAssigneeFilter">{t('toolbar.assignee')}</label>
                     <select id="portfolioAssigneeFilter" value={filters.assignee} onChange={(event) => setPortfolioFilter('assignee', event.target.value)}>
                         <option value="">{t('common.all')}</option>
                         {assignees.map((name) => <option key={name} value={name}>{name}</option>)}
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>{t('toolbar.priority')}</label>
+                    <label htmlFor="portfolioPriorityFilter">{t('toolbar.priority')}</label>
                     <select id="portfolioPriorityFilter" value={filters.priority} onChange={(event) => setPortfolioFilter('priority', event.target.value)}>
                         <option value="">{t('common.all')}</option>
                         <option value="high">{t('toolbar.high')}</option>
@@ -186,14 +188,14 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>{t('toolbar.effort')}</label>
+                    <label htmlFor="portfolioEffortFilter">{t('toolbar.effort')}</label>
                     <select id="portfolioEffortFilter" value={filters.effort} onChange={(event) => setPortfolioFilter('effort', event.target.value)}>
                         <option value="">{t('common.all')}</option>
                         {EFFORT_BUCKETS.map((effort) => <option key={effort} value={effort}>{effort}</option>)}
                     </select>
                 </div>
                 <div className="filter-group">
-                    <label>{t('toolbar.sort')}</label>
+                    <label htmlFor="portfolioSortSelect">{t('toolbar.sort')}</label>
                     <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => setPortfolioSort(event.target.value)}>
                         <option value="name">{t('toolbar.name')}</option>
                         <option value="priority">{t('toolbar.priority').replace(':', '')}</option>
@@ -203,7 +205,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                 </div>
             </div>
             <div className="portfolio-toolbar-right">
-                <div className={`portfolio-view-toggle${hasBoards ? '' : ' hidden'}`} id="portfolioViewModeToggle" aria-label={t('toolbar.selectedProjectViewMode')}>
+                <div className={`portfolio-view-toggle${hasBoards ? '' : ' hidden'}`} id="portfolioViewModeToggle" role="group" aria-label={t('toolbar.selectedProjectViewMode')}>
                     <button
                         className={`btn${viewMode === 'board' ? ' active' : ''}`}
                         type="button"
@@ -241,7 +243,7 @@ function ChipList({ state }: { state: ChipState }) {
     return (
         <>
             <span className={`portfolio-chip${state.selectedPortfolioBoardId ? '' : ' active'}`}>
-                <button className="chip-link" type="button" data-action="select-board" data-board-id="" onClick={() => selectPortfolioBoard('')}>{t('common.all')}</button>
+                <button className="chip-link" type="button" data-action="select-board" data-board-id="" aria-pressed={!state.selectedPortfolioBoardId} onClick={() => selectPortfolioBoard('')}>{t('common.all')}</button>
             </span>
             {state.portfolioBoards.map((board) => {
                 const color = getBoardColor(board);
@@ -252,7 +254,7 @@ function ChipList({ state }: { state: ChipState }) {
                         style={{ '--chip-bg': color.bg, '--chip-border': color.border, '--chip-text': color.text } as CSSProperties}
                         key={board.id}
                     >
-                        <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} onClick={() => selectPortfolioBoard(board.id)}>
+                        <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={() => selectPortfolioBoard(board.id)}>
                             {board.title || board.fileName}
                             {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
                             {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
@@ -276,11 +278,17 @@ export function PortfolioToolbar() {
         portfolioSortKey: state.portfolioSortKey,
         selectedPortfolioBoardId: state.selectedPortfolioBoardId,
         selectedPortfolioViewMode: state.selectedPortfolioViewMode,
+        portfolioVisibleRows: state.portfolioVisibleRows,
     })));
+    const { t } = useI18n();
     return (
-        <div className="portfolio-toolbar" id="portfolioToolbar">
+        <section className="portfolio-toolbar" id="portfolioToolbar" aria-labelledby="portfolioToolbarTitle">
+            <h2 className="sr-only" id="portfolioToolbarTitle">{t('toolbar.filters')}</h2>
             <ToolbarContent state={state} />
-        </div>
+            <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
+            </span>
+        </section>
     );
 }
 
@@ -290,10 +298,11 @@ export function PortfolioChips() {
         selectedPortfolioBoardId: state.selectedPortfolioBoardId,
         projectSaveStateById: state.projectSaveStateById,
     })));
+    const { t } = useI18n();
     return (
-        <div className="portfolio-chips" id="portfolioBoardsChips">
+        <nav className="portfolio-chips" id="portfolioBoardsChips" aria-label={t('toolbar.projectSelection')}>
             <ChipList state={state} />
-        </div>
+        </nav>
     );
 }
 
@@ -310,7 +319,7 @@ export function PortfolioBulkActions() {
 
     return (
         <div className={`portfolio-bulk-actions${showActions ? ' active' : ''}`} id="portfolioBulkActions">
-            <div className="portfolio-bulk-actions-summary" id="portfolioBulkActionsSummary">
+            <div className="portfolio-bulk-actions-summary" id="portfolioBulkActionsSummary" role="status" aria-live="polite" aria-atomic="true">
                 {selectedCount === 1
                     ? t('toolbar.tasksSelected', { count: selectedCount })
                     : t('toolbar.tasksSelectedPlural', { count: selectedCount })}

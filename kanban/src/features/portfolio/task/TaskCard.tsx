@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type MouseEvent } from 'react';
+import { useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import type { useDraggable } from '@dnd-kit/core';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -32,6 +32,7 @@ export type TaskCardState = Pick<AppState,
 export type CardDrag = {
     setNodeRef: (node: HTMLElement | null) => void;
     listeners: ReturnType<typeof useDraggable>['listeners'];
+    attributes: ReturnType<typeof useDraggable>['attributes'];
     isDragging: boolean;
 };
 
@@ -89,8 +90,8 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     const localizedStatusAge = statusAge ? t('task.age', { value: statusAge.replace(/^Age\s*/, '') }) : '';
     const readOnlyTitle = item.historical ? t('task.readOnlyHistorical') : t('task.readOnlyNoHandle');
     const archiveButtonTitle = task.archived ? t('common.restore') : t('common.archive');
-    const cardRef = useRef<HTMLDivElement | null>(null);
-    const setCardRef = useCallback((node: HTMLDivElement | null) => {
+    const cardRef = useRef<HTMLElement | null>(null);
+    const setCardRef = useCallback((node: HTMLElement | null) => {
         cardRef.current = node;
         dragNodeRef?.(node);
     }, [dragNodeRef]);
@@ -100,9 +101,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
         if (selected && !overlay) cardRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
     }, [selected, overlay]);
 
-    function handleCardClick(event: MouseEvent<HTMLDivElement>) {
-        if ((event.target as Element).closest('button, input, label')) return;
-        if (Date.now() < state.suppressPortfolioCardClickUntil) return;
+    function openDetails() {
         actions.setSelectedPortfolioCard(item.boardId, taskId);
         if (!item.historical) {
             actions.openPortfolioTaskDetails(item.boardId, taskId);
@@ -114,8 +113,26 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
         }
     }
 
+    function handleCardClick(event: MouseEvent<HTMLElement>) {
+        if ((event.target as Element).closest('button, input, label')) return;
+        if (Date.now() < state.suppressPortfolioCardClickUntil) return;
+        event.currentTarget.focus({ preventScroll: true });
+        openDetails();
+    }
+
+    function handleCardKeyDown(event: KeyboardEvent<HTMLElement>) {
+        if (event.target !== event.currentTarget || event.defaultPrevented) return;
+        // Space is reserved for dnd-kit when this card can be moved. Enter
+        // remains a predictable way to open details from the card itself.
+        if (event.key === 'Enter' || (event.key === ' ' && !canDrag)) {
+            event.preventDefault();
+            event.stopPropagation();
+            openDetails();
+        }
+    }
+
     return (
-        <div
+        <article
             ref={setCardRef}
             className={`task-card portfolio-task-card surface-card${selected ? ' selected' : ''}${dragging ? ' dragging' : ''}${overlay ? ' drag-overlay' : ''}`}
             data-draggable={canDrag ? 'true' : 'false'}
@@ -123,10 +140,15 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
             data-task-id={String(taskId)}
             data-status={normalizeTaskStatus(task.status)}
             data-historical={item.historical ? 'true' : 'false'}
+            role="group"
+            tabIndex={overlay ? -1 : 0}
+            aria-labelledby={`portfolio-task-title-${item.boardId}-${taskId}`}
             aria-hidden={overlay ? 'true' : undefined}
             onClick={overlay ? undefined : handleCardClick}
+            onKeyDown={overlay ? undefined : handleCardKeyDown}
             onMouseEnter={overlay ? undefined : () => actions.setHoveredPortfolioCard(item.boardId, taskId)}
             onMouseLeave={overlay ? undefined : () => actions.setHoveredPortfolioCard(null, null)}
+            {...(drag && canDrag ? drag.attributes : {})}
             {...drag?.listeners}
         >
             <div className="task-header">
@@ -144,14 +166,14 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                             <span className="portfolio-task-card-select-label">{t('task.select', { title: task.title || `Task ${task.id}` })}</span>
                         </label>
                     )}
-                    <span className="task-title">
+                    <span className="task-title" id={`portfolio-task-title-${item.boardId}-${taskId}`}>
                         <HighlightedTitle text={task.title || ''} searchTerm={searchTerm} />
                     </span>
                 </div>
                 <div className="task-actions">
-                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? t('task.editAction') : readOnlyTitle} data-action="edit-task" onClick={() => actions.editPortfolioTask(item.boardId, taskId)}>&#9998;</button>
-                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task" onClick={() => actions.togglePortfolioArchiveTask(item.boardId, taskId)}>{task.archived ? '↶' : '🗄️'}</button>
-                    <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}>🗑️</button>
+                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? t('task.editAction') : readOnlyTitle} aria-label={canMutate ? t('task.editAction') : readOnlyTitle} data-action="edit-task" onClick={() => actions.editPortfolioTask(item.boardId, taskId)}>&#9998;</button>
+                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} aria-label={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task" onClick={() => actions.togglePortfolioArchiveTask(item.boardId, taskId)}><span aria-hidden="true">{task.archived ? '↶' : '🗄️'}</span></button>
+                    <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}><span aria-hidden="true">🗑️</span></button>
                 </div>
             </div>
             {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
@@ -169,6 +191,6 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     {task.checklist?.length > 0 && <span className="task-tag">{t('task.doneCount', { done: task.checklist.filter((entry) => entry.done).length, total: task.checklist.length })}</span>}
                 </div>
             )}
-        </div>
+        </article>
     );
 }

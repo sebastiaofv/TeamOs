@@ -3,6 +3,35 @@
     gap: 6px;
 }
 
+.shortcut-preference {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+}
+
+.shortcut-preference label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.shortcut-preference input {
+    width: 18px;
+    height: 18px;
+}
+
+.shortcut-preference p {
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
 .shortcut-section-title {
     margin-top: 8px;
     font-size: 11px;

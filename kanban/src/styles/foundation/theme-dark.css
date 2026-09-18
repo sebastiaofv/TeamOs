@@ -82,6 +82,11 @@
     background: #242119;
 }
 
+:root[data-theme="dark"] .portfolio-read-only-notice {
+    background: #3a2f18;
+    color: #ffe0a1;
+}
+
 :root[data-theme="dark"] .timeline-preview-banner {
     border-color: #806642;
     background: #3a2f18;

@@ -45,7 +45,7 @@ export function TaskDetailDialog() {
                     >
                         <div className="modal-header">
                             <Dialog.Title asChild><span className="modal-title">{t('task.details')}</span></Dialog.Title>
-                            <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn">&times;</Dialog.Close>
+                            <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                         </div>
                         <div className="modal-body">
                             {vm && <TaskDetailList vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
@@ -66,34 +66,37 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
 }) {
     const { t } = useI18n();
     return (
-        <div className="detail-list">
+        <dl className="detail-list">
             {FIELD_ROWS.map((row) => (
                 <div className="detail-item" key={row.id}>
-                    <span className="detail-label">{t(row.label)}</span>
-                    <span className="detail-value" id={row.id}>{vm.fields[row.key]}</span>
+                    <dt className="detail-label">{t(row.label)}</dt>
+                    <dd className="detail-value" id={row.id}>{vm.fields[row.key]}</dd>
                 </div>
             ))}
             <div className="detail-item">
-                <span className="detail-label">{t('task.todoList')}</span>
+                <dt className="detail-label">{t('task.todoList')}</dt>
                 <ul className="detail-checklist" id="detailChecklist">
                     {vm.checklist.length === 0
                         ? <li className="detail-value">-</li>
                         : vm.checklist.map((item, index) => (
                             <li className={`detail-checklist-item ${item.done ? 'done' : ''}`} key={index}>
-                                <input
-                                    type="checkbox"
-                                    checked={item.done}
-                                    disabled={vm.readOnly}
-                                    onChange={(event) => onToggleChecklistItem(index, event.target.checked)}
-                                />
-                                <span className="detail-checklist-text">{item.text}</span>
+                                <label className="detail-checklist-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={item.done}
+                                        disabled={vm.readOnly}
+                                        aria-label={t('editor.todoItem', { index: index + 1 })}
+                                        onChange={(event) => onToggleChecklistItem(index, event.target.checked)}
+                                    />
+                                    <span className="detail-checklist-text">{item.text}</span>
+                                </label>
                             </li>
                         ))}
                 </ul>
             </div>
             <div className="detail-item">
-                <span className="detail-label">{t('task.attachments')}</span>
-                <div className="detail-attachments" id="detailAttachments">
+                <dt className="detail-label">{t('task.attachments')}</dt>
+                <dd className="detail-attachments" id="detailAttachments">
                     {vm.attachments.length === 0
                         ? <div className="detail-attachments-empty">-</div>
                         : vm.attachments.map((item) => (
@@ -108,8 +111,8 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
                                 <a className="detail-attachment-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
                             </div>
                         ))}
-                </div>
+                </dd>
             </div>
-        </div>
+        </dl>
     );
 }

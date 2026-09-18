@@ -22,7 +22,7 @@ function PortfolioCalendarView({ model, state }: { model: PortfolioCalendarViewM
     const toggleLabel = heatmap ? t('toolbar.calendar') : t('calendar.heatMap');
     return (
         <>
-            <div className="portfolio-calendar-header">
+            <header className="portfolio-calendar-header" aria-labelledby="portfolioCalendarPeriod">
                 <div className="portfolio-calendar-controls">
                     <div className="portfolio-calendar-navigation portfolio-calendar-navigation-previous">
                         {view === 'month' && <button className="btn" type="button" data-action="calendar-back-to-year" aria-label={t('calendar.backToYear')} onClick={() => setPortfolioCalendarView('year')}>{t('calendar.backToYear')}</button>}
@@ -39,8 +39,8 @@ function PortfolioCalendarView({ model, state }: { model: PortfolioCalendarViewM
                         </button>
                     </div>
                     <div className="portfolio-calendar-period-group">
-                        <div className="portfolio-calendar-period">{periodLabel}</div>
-                        <button className="btn" type="button" data-action="calendar-toggle-mode" onClick={() => togglePortfolioCalendarDisplayMode()}>{toggleLabel}</button>
+                        <h2 className="portfolio-calendar-period" id="portfolioCalendarPeriod" aria-live="polite">{periodLabel}</h2>
+                        <button className="btn" type="button" data-action="calendar-toggle-mode" aria-pressed={heatmap} aria-label={heatmap ? t('calendar.showCalendar') : t('calendar.showHeatMap')} onClick={() => togglePortfolioCalendarDisplayMode()}>{toggleLabel}</button>
                     </div>
                     <div className="portfolio-calendar-navigation portfolio-calendar-navigation-next">
                         <button
@@ -56,7 +56,7 @@ function PortfolioCalendarView({ model, state }: { model: PortfolioCalendarViewM
                         </button>
                     </div>
                 </div>
-            </div>
+            </header>
             <CalendarGrid
                 model={model}
                 state={state}

@@ -10,6 +10,44 @@
     display: none;
 }
 
+.portfolio-empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-card);
+}
+
+.portfolio-empty-state h2 {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.portfolio-empty-state p {
+    color: var(--text-secondary);
+    max-width: 620px;
+}
+
+.portfolio-empty-state-actions {
+    display: flex;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.portfolio-read-only-notice {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: baseline;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    background: #fff8e1;
+    color: #5c4718;
+    font-size: 12px;
+}
+
 .portfolio-bulk-actions {
     display: none;
     align-items: center;
@@ -184,12 +222,17 @@
 }
 
 .add-task-card {
+    appearance: none;
+    width: 100%;
     background: var(--bg-card);
     border: 1px dashed var(--border);
     color: var(--text-secondary);
     padding: 10px 12px;
     margin-bottom: 8px;
     cursor: pointer;
+    min-height: 40px;
+    text-align: left;
+    font-family: inherit;
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
@@ -212,6 +255,12 @@
 .task-card:hover {
     border-color: var(--text-secondary);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.task-card:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-color: var(--accent);
 }
 
 .task-card.dragging {
@@ -252,9 +301,13 @@
     opacity: 1;
 }
 
+.task-card:focus-within .task-actions {
+    opacity: 1;
+}
+
 .task-action-btn {
-    width: 20px;
-    height: 20px;
+    width: 32px;
+    height: 32px;
     border: 1px solid var(--border);
     background: var(--bg-card);
     cursor: pointer;
@@ -263,6 +316,34 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+@media (max-width: 760px) {
+    .portfolio-board-grid {
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+
+    .portfolio-column {
+        min-width: min(86vw, 340px);
+    }
+
+    .portfolio-empty-state {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .portfolio-empty-state-actions {
+        flex-wrap: wrap;
+    }
+
+    .portfolio-read-only-notice {
+        padding-inline: 12px;
+    }
+
+    .task-actions {
+        opacity: 1;
+    }
 }
 
 .task-action-btn:hover {

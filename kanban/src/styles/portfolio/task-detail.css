@@ -41,6 +41,13 @@
     color: var(--text-primary);
 }
 
+.detail-checklist-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+}
+
 .detail-checklist-item.done .detail-checklist-text {
     text-decoration: line-through;
     color: var(--text-muted);

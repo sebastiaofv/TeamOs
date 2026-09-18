@@ -26,7 +26,7 @@ export function TagEditor({ value, onChange, suggestions }: {
 
     return (
         <>
-            <div className="tag-editor" id="taskTagEditor">
+            <div className="tag-editor" id="taskTagEditor" aria-labelledby="taskTagsLabel">
                 <div className="tag-editor-list" id="taskTagItems">
                     {value.length === 0 ? (
                         <div className="tag-editor-empty">{t('editor.noTags')}</div>
@@ -50,6 +50,7 @@ export function TagEditor({ value, onChange, suggestions }: {
                     <input
                         type="text"
                         id="taskTagNewItem"
+                        aria-label={t('editor.addTagPlaceholder')}
                         list="taskTagSuggestions"
                         placeholder={t('editor.addTagPlaceholder')}
                         ref={composerRef}

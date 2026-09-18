@@ -278,7 +278,15 @@ test.describe('calendar', () => {
     expect(calendarItemMetrics!.roadmapLineHeight).toBe(calendarItemMetrics!.taskLineHeight);
     expect(calendarItemMetrics!.roadmapPadding).toBe(calendarItemMetrics!.taskPadding);
 
-    await page.locator('[data-calendar-day="2026-04-04"]').click();
+    await page.locator('[data-calendar-day="2026-04-10"] [data-calendar-roadmap-title="Launch"]').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+
+    await page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-item-overflow').click();
+    await expect(page.locator('[data-calendar-day="2026-04-10"] .portfolio-calendar-item-overflow')).toHaveText('Show less');
+    await expect(page.locator('[data-calendar-day="2026-04-10"] [data-calendar-item-title="Scale Task"]')).toBeVisible();
+    await expect(page.locator('[data-calendar-day="2026-04-10"] [data-calendar-item-title="Support Task"]')).toBeVisible();
+
+    await page.locator('[data-calendar-day="2026-04-04"]').click({ position: { x: 10, y: 105 } });
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect(page.locator('#modalTitle')).toHaveText('New Task');
     await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'date');

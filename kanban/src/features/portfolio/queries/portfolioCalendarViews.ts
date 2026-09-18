@@ -70,7 +70,7 @@ function createPortfolioCalendarItem(input: CalendarItemInput): PortfolioCalenda
         boardTitle,
         title: input.title || '',
         subtitle: input.subtitle || '',
-        taskId: input.taskId || null,
+        taskId: input.taskId === null || input.taskId === undefined ? null : input.taskId,
         roadmapKind: input.roadmapKind || '',
         projectColor: input.projectColor || createPortfolioProjectColor(0),
         historical: Boolean(input.historical),

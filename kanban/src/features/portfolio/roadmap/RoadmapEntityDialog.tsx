@@ -59,9 +59,10 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '' }));
     const dueDateRef = useRef<HTMLInputElement>(null);
     const startDateRef = useRef<HTMLInputElement>(null);
+    const endDateRef = useRef<HTMLInputElement>(null);
     // Fields saveRoadmapEntity can send focus back to after a failed validation.
     const fieldRefs: Record<RoadmapFocusField, RefObject<HTMLElement | null>> = {
-        existingSprintId: sprintRef, title: titleRef, dueDate: dueDateRef, startDate: startDateRef
+        existingSprintId: sprintRef, title: titleRef, dueDate: dueDateRef, startDate: startDateRef, endDate: endDateRef
     };
     const bind = (field: keyof RoadmapEntityFormDraft) => ({
         value: draft[field],
@@ -77,7 +78,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 <Dialog.Title asChild>
                     <span className="modal-title" id="roadmapEntityModalTitle">{vm.heading}</span>
                 </Dialog.Title>
-                <Dialog.Close className="modal-close" id="roadmapEntityModalCloseBtn">&times;</Dialog.Close>
+                <Dialog.Close className="modal-close" id="roadmapEntityModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
             </div>
             <div className="modal-body">
                 <form id="roadmapEntityForm" onSubmit={(event) => event.preventDefault()}>
@@ -93,23 +94,23 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                         </select>
                     </div>
                     <div className={`form-group${hideTitle ? ' hidden' : ''}`}>
-                        <label className="required">{t('roadmapDialog.title')}</label>
+                        <label className="required" htmlFor="roadmapEntityTitle">{t('roadmapDialog.title')}</label>
                         <input type="text" id="roadmapEntityTitle" ref={titleRef} required maxLength={80} {...bind('title')} />
                     </div>
                     <div className={`roadmap-entity-date-row single${hideSingleDate ? ' hidden' : ''}`} id="roadmapEntitySingleDateRow">
                         <div className="form-group">
-                            <label className="required" id="roadmapEntityDateLabel">{vm.dateLabel}</label>
+                            <label className="required" id="roadmapEntityDateLabel" htmlFor="roadmapEntityDate">{vm.dateLabel}</label>
                             <input type="date" id="roadmapEntityDate" ref={dueDateRef} {...bind('dueDate')} />
                         </div>
                     </div>
                     <div className={`roadmap-entity-date-row${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
                         <div className="form-group">
-                            <label className="required">{t('roadmapDialog.startDate')}</label>
+                            <label className="required" htmlFor="roadmapEntityStartDate">{t('roadmapDialog.startDate')}</label>
                             <input type="date" id="roadmapEntityStartDate" ref={startDateRef} {...bind('startDate')} />
                         </div>
                         <div className="form-group">
-                            <label className="required">{t('roadmapDialog.endDate')}</label>
-                            <input type="date" id="roadmapEntityEndDate" {...bind('endDate')} />
+                            <label className="required" htmlFor="roadmapEntityEndDate">{t('roadmapDialog.endDate')}</label>
+                            <input type="date" id="roadmapEntityEndDate" ref={endDateRef} {...bind('endDate')} />
                         </div>
                     </div>
                 </form>

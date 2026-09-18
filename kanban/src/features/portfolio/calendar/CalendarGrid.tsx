@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import type { HeatStats } from '@/domain/types';
 import type { Language } from '@/shared/types/ui';
 import type { PortfolioCalendarItem, PortfolioCalendarViewModel } from '@/features/portfolio/types';
@@ -100,6 +100,7 @@ function CalendarRoadmapItem({ item, date, aggregate }: { item: PortfolioCalenda
             data-calendar-roadmap-kind={item.kind || ''}
             style={itemStyle(item, aggregate)}
             title={title}
+            onClick={(event) => event.stopPropagation()}
         >
             {shouldShowPortfolioCalendarRoadmapLabel(item, date) ? title : ' '}
         </div>
@@ -197,7 +198,9 @@ function CalendarYearView({ items, aggregate, heatmap, year, onSetPeriod }: Heat
                                         data-action="open-calendar-month"
                                         data-year={year}
                                         data-month={month}
-                                        aria-label={t('calendar.openMonth', { month: getCalendarMonthLabel(language, year, month) })}
+                                        aria-label={`${t('calendar.openMonth', { month: getCalendarMonthLabel(language, year, month) })}: ${monthItems.length === 1
+                                            ? t('calendar.itemCount', { count: monthItems.length })
+                                            : t('calendar.itemCountPlural', { count: monthItems.length })}`}
                                         onClick={() => onSetPeriod(year, month)}
                                         key={month}
                                     >
@@ -237,6 +240,7 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
     onCreateTask: CalendarGridActions['onCreateTask'];
 }) {
     const { language, t } = useI18n();
+    const [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set());
     const firstOfMonth = createUtcDate(year, month, 1);
     const leadingDays = firstOfMonth.getUTCDay();
     const gridStart = addRoadmapDays(firstOfMonth, -leadingDays);
@@ -249,20 +253,20 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
         && !isBoardInHistoricalPreview(state, state.selectedPortfolioBoardId);
 
     return (
-        <div className="portfolio-calendar-month-grid surface-card surface-border">
+        <div className="portfolio-calendar-month-grid surface-card surface-border" aria-label={getCalendarMonthLabel(language, year, month)}>
             <div className="portfolio-calendar-month-grid-track">
-                <div className="portfolio-calendar-weekdays">
+                <div className="portfolio-calendar-weekdays" role="row">
                     {Array.from({ length: 7 }, (_, weekday) => {
                         const name = getCalendarWeekdayName(language, weekday);
-                        return <div className="portfolio-calendar-weekday" key={name}>{name}</div>;
+                        return <div className="portfolio-calendar-weekday" role="columnheader" key={name}>{name}</div>;
                     })}
                 </div>
-                <div className="portfolio-calendar-day-grid">
+                <div className="portfolio-calendar-day-grid" role="grid" aria-label={getCalendarMonthLabel(language, year, month)}>
                     {Array.from({ length: weekCount }, (_, weekIndex) => {
                         const weekStart = addRoadmapDays(gridStart, weekIndex * 7);
                         const weekStartIso = formatUtcIsoDate(weekStart);
                         return (
-                            <div className="portfolio-calendar-week-row" data-calendar-week-start={weekStartIso} key={weekStartIso}>
+                            <div className="portfolio-calendar-week-row" data-calendar-week-start={weekStartIso} role="row" key={weekStartIso}>
                                 <div className="portfolio-calendar-week-days">
                                     {Array.from({ length: 7 }, (_, dayIndex) => {
                                         const date = addRoadmapDays(weekStart, dayIndex);
@@ -270,7 +274,8 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
                                         const dayItems = items
                                             .filter((item) => doesPortfolioCalendarItemOccurOnDay(item, isoDate))
                                             .sort(comparePortfolioCalendarDayItems);
-                                        const visibleItems = dayItems.slice(0, 4);
+                                        const isExpanded = expandedDays.has(isoDate);
+                                        const visibleItems = isExpanded ? dayItems : dayItems.slice(0, 4);
                                         const roadmapItems = visibleItems.filter((item) => item?.kind !== 'task');
                                         const taskItems = visibleItems.filter((item) => item?.kind === 'task');
                                         const overflow = Math.max(0, dayItems.length - visibleItems.length);
@@ -284,19 +289,37 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
                                         const style = heatmap && inCurrentMonth
                                             ? { background: getPortfolioCalendarHeatColor(taskCount, heatStats) }
                                             : undefined;
+                                        const dateLabel = new Intl.DateTimeFormat(language === 'pt' ? 'pt-PT' : 'en-US', { dateStyle: 'long', timeZone: 'UTC' }).format(date);
                                         return (
                                             <div
                                                 className={classes.join(' ')}
                                                 data-calendar-day={isoDate}
                                                 data-action={canCreateTasks && inCurrentMonth ? 'create-calendar-task' : undefined}
                                                 data-due-date={canCreateTasks && inCurrentMonth ? isoDate : undefined}
+                                                role="gridcell"
+                                                aria-label={t('calendar.dayLabel', { date: dateLabel, count: dayItems.length })}
                                                 style={style}
                                                 onClick={canCreateTasks && inCurrentMonth
                                                     ? () => onCreateTask(state.selectedPortfolioBoardId, '', { preferredDueDate: isoDate })
                                                     : undefined}
                                                 key={isoDate}
                                             >
-                                                <div className="portfolio-calendar-day-number">{date.getUTCDate()}</div>
+                                                <div className="portfolio-calendar-day-number">
+                                                    <span aria-hidden="true">{date.getUTCDate()}</span>
+                                                    {canCreateTasks && inCurrentMonth && (
+                                                        <button
+                                                            className="portfolio-calendar-create-day"
+                                                            type="button"
+                                                            aria-label={t('calendar.createTaskForDate', { date: dateLabel })}
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                onCreateTask(state.selectedPortfolioBoardId, '', { preferredDueDate: isoDate });
+                                                            }}
+                                                        >
+                                                            <span aria-hidden="true">+</span>
+                                                        </button>
+                                                    )}
+                                                </div>
                                                 {roadmapItems.length > 0 && (
                                                     <div className="portfolio-calendar-day-roadmap">
                                                         {roadmapItems.map((item) => <CalendarRoadmapItem item={item} date={date} aggregate={aggregate} key={item.id} />)}
@@ -304,7 +327,25 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
                                                 )}
                                                 <div className="portfolio-calendar-day-items">
                                                     {taskItems.map((item) => <CalendarTaskButton item={item} aggregate={aggregate} onOpenTask={onOpenTask} key={item.id} />)}
-                                                    {overflow > 0 && <div className="portfolio-calendar-item-overflow">{t('calendar.moreItems', { count: overflow })}</div>}
+                                                    {dayItems.length > 4 && (
+                                                        <button
+                                                            className="portfolio-calendar-item-overflow"
+                                                            type="button"
+                                                            aria-expanded={isExpanded}
+                                                            aria-label={isExpanded ? t('calendar.showLessItems') : t('calendar.showMoreItems', { count: overflow })}
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                setExpandedDays((current) => {
+                                                                    const next = new Set(current);
+                                                                    if (isExpanded) next.delete(isoDate);
+                                                                    else next.add(isoDate);
+                                                                    return next;
+                                                                });
+                                                            }}
+                                                        >
+                                                            {isExpanded ? t('calendar.showLess') : t('calendar.moreItems', { count: overflow })}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -326,6 +367,7 @@ export function CalendarGrid({ model, state, onOpenTask, onCreateTask, onSetPeri
     onCreateTask: CalendarGridActions['onCreateTask'];
     onSetPeriod: CalendarGridActions['onSetPeriod'];
 }) {
+    const { t } = useI18n();
     const { items, aggregate, view, displayMode, year, month } = model;
     const heatmap = displayMode === 'heatmap';
     return (
@@ -335,6 +377,7 @@ export function CalendarGrid({ model, state, onOpenTask, onCreateTask, onSetPeri
             data-calendar-view={view}
             data-calendar-display-mode={displayMode}
         >
+            {heatmap && <p className="portfolio-calendar-legend" role="note">{t('calendar.heatmapDescription')}</p>}
             {view === 'month'
                 ? <CalendarMonthView items={items} aggregate={aggregate} heatmap={heatmap} year={year} month={month} state={state} onOpenTask={onOpenTask} onCreateTask={onCreateTask} />
                 : <CalendarYearView items={items} aggregate={aggregate} heatmap={heatmap} year={year} onSetPeriod={onSetPeriod} />}

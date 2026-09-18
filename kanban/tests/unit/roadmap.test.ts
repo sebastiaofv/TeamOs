@@ -198,9 +198,10 @@ describe('normalizeRoadmapDate', () => {
     expect(normalizeRoadmapDate('  2024-01-01  ')).toBe('2024-01-01');
   });
 
-  it('returns an empty string for a malformed date string', () => {
+  it('returns an empty string for a malformed or impossible date string', () => {
     expect(normalizeRoadmapDate('2024-1-1')).toBe('');
     expect(normalizeRoadmapDate('2024/01/01')).toBe('');
+    expect(normalizeRoadmapDate('2024-02-30')).toBe('');
     expect(normalizeRoadmapDate('not-a-date')).toBe('');
   });
 });
@@ -232,12 +233,8 @@ describe('parseRoadmapIsoDate', () => {
     expect(parseRoadmapIsoDate('2024-13-01')).toBeNull();
   });
 
-  it('rolls over a day that is out of range for its month rather than rejecting it', () => {
-    // The function only checks the regex shape and Number.isNaN(getTime()); it
-    // does not validate calendar correctness, so the JS Date constructor's
-    // own rollover behavior applies (Feb 30 becomes Mar 1).
-    const result = parseRoadmapIsoDate('2024-02-30');
-    expect(result!.toISOString()).toBe('2024-03-01T00:00:00.000Z');
+  it('returns null when the day is out of range for its month', () => {
+    expect(parseRoadmapIsoDate('2024-02-30')).toBeNull();
   });
 });
 
@@ -307,10 +304,9 @@ describe('getRoadmapItemDateBounds', () => {
     expect(result!.end.toISOString()).toBe('2024-03-10T00:00:00.000Z');
   });
 
-  it('swaps startDate/endDate when start is after end', () => {
+  it('returns null when startDate is after endDate', () => {
     const result = getRoadmapItemDateBounds({ startDate: '2024-03-10', endDate: '2024-03-01' });
-    expect(result!.start.toISOString()).toBe('2024-03-01T00:00:00.000Z');
-    expect(result!.end.toISOString()).toBe('2024-03-10T00:00:00.000Z');
+    expect(result).toBeNull();
   });
 
   it('returns a degenerate single-point range when startDate and endDate are equal', () => {
@@ -545,6 +541,19 @@ describe('normalizeRoadmapItems', () => {
       ['dueDate']
     );
     expect(result).toBeNull();
+  });
+
+  it('returns null for an impossible or reversed range', () => {
+    expect(normalizeRoadmapItems(
+      [{ id: 'p1', title: 'Build', startDate: '2024-02-30', endDate: '2024-03-01' }],
+      ['startDate', 'endDate'],
+      ['startDate', 'endDate']
+    )).toBeNull();
+    expect(normalizeRoadmapItems(
+      [{ id: 'p1', title: 'Build', startDate: '2024-03-10', endDate: '2024-03-01' }],
+      ['startDate', 'endDate'],
+      ['startDate', 'endDate']
+    )).toBeNull();
   });
 
   it('returns null when a required date key is absent from the item', () => {

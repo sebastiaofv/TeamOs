@@ -114,6 +114,28 @@ describe('portfolio mutation actions', () => {
     expect(enqueueSave).not.toHaveBeenCalled();
   });
 
+  it('reports a failed persistence operation and does not run onCommitted', async () => {
+    const { store } = createActions();
+    const enqueueSave = vi.fn(async () => false);
+    const onCommitted = vi.fn();
+    const context = createBoardMutationContext({
+      store,
+      enqueueSave,
+      markDirty: vi.fn(),
+      onBoardChanged: vi.fn(),
+      alert: vi.fn()
+    });
+
+    await expect(context.runPortfolioBoardMutation('p1', (data) => {
+      data.board.tasks[0].title = 'Unsaved title';
+      return true;
+    }, { onCommitted })).resolves.toBe(false);
+
+    expect(onCommitted).not.toHaveBeenCalled();
+    expect(store.getState().portfolioBoards[0].data.board.tasks[0].title).toBe('Unsaved title');
+    expect(enqueueSave).toHaveBeenCalledTimes(1);
+  });
+
   it('discards a partially changed draft when a mutation fails', async () => {
     const { store } = createActions();
     const alert = vi.fn();

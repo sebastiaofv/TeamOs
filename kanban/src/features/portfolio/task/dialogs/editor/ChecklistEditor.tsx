@@ -21,7 +21,7 @@ import { translateCurrent, useI18n } from '@/shared/i18n';
 // sortable id is the index too; the order only changes on drop.
 const rowId = (index: number) => `checklist-${index}`;
 const rowIndex = (id: UniqueIdentifier) => Number(String(id).slice('checklist-'.length));
-const itemLabel = (id: UniqueIdentifier) => `${translateCurrent('common.task')} ${rowIndex(id) + 1}`;
+const itemLabel = (id: UniqueIdentifier) => translateCurrent('editor.todoItem', { index: rowIndex(id) + 1 });
 
 const ANNOUNCEMENTS: Announcements = {
     onDragStart: ({ active }) => translateCurrent('drag.pickedUp', { title: itemLabel(active.id) }),
@@ -79,7 +79,7 @@ export function ChecklistEditor({ value, onChange }: { value: ChecklistItem[]; o
     };
 
     return (
-        <div className="checklist-editor" id="taskChecklistEditor">
+        <div className="checklist-editor" id="taskChecklistEditor" aria-labelledby="taskTodoListLabel">
             <div className="checklist-editor-list" id="taskChecklistItems">
                 {value.length === 0 ? (
                     <div className="checklist-editor-empty">{t('editor.noTodoItems')}</div>
@@ -110,6 +110,7 @@ export function ChecklistEditor({ value, onChange }: { value: ChecklistItem[]; o
                 <input
                     type="text"
                     id="taskChecklistNewItem"
+                    aria-label={t('editor.addTodoPlaceholder')}
                     placeholder={t('editor.addTodoPlaceholder')}
                     ref={composerRef}
                     value={composer}

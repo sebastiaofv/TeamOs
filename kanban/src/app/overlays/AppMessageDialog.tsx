@@ -72,6 +72,7 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
                 </Dialog.Description>
                 {message.input && (
                     <div className="form-group app-message-field">
+                        <label className="sr-only" htmlFor="appMessageInput">{message.title}</label>
                         <input
                             type="text"
                             id="appMessageInput"

@@ -4,6 +4,7 @@
 // bulk controls, board selection, and calendar navigation.
 
 import type { BoardRecord, PortfolioFilters } from '@/features/portfolio/types';
+import type { BoardFileHandle } from '@/infrastructure/browser/types';
 import { normalizePortfolioSortKey, normalizePortfolioViewMode } from '@/domain/board';
 import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterValue, type PortfolioFilterName } from '@/domain/portfolioFilters';
 import { getRoadmapExtension } from '@/domain/roadmap';
@@ -38,6 +39,26 @@ function assignFilter<K extends PortfolioFilterName>(filters: PortfolioFilters, 
     filters[name] = normalizePortfolioFilterValue(name, value);
 }
 
+async function handlesReferToSameFile(left: BoardFileHandle | null | undefined, right: BoardFileHandle | null | undefined): Promise<boolean> {
+    if (!left || !right) return false;
+    if (left === right) return true;
+
+    for (const [handle, other] of [[left, right], [right, left]] as const) {
+        if (typeof handle.isSameEntry !== 'function') continue;
+        try {
+            if (await handle.isSameEntry(other)) return true;
+        } catch {
+            // A revoked or stale handle cannot prove equality.
+        }
+    }
+    return false;
+}
+
+async function recordsReferToSameFile(left: BoardRecord, right: BoardRecord): Promise<boolean> {
+    if (left.sourceKey && right.sourceKey && left.sourceKey === right.sourceKey) return true;
+    return handlesReferToSameFile(left.handle, right.handle);
+}
+
 /**
  * Create the actions that control the portfolio shell.
  *
@@ -56,6 +77,7 @@ export function createPortfolioControlActions({
     forgetFileState = forgetProjectFileState
 }: PortfolioControlOptions = {}) {
     const getState = () => store.getState();
+    let appendQueue = Promise.resolve();
     const syncUrlState = typeof updateUrlState === 'function'
         ? updateUrlState
         : () => updatePortfolioUrlState(undefined, getState());
@@ -92,36 +114,65 @@ export function createPortfolioControlActions({
         commitState(partial);
     }
 
-    function appendPortfolioRecords(records: readonly (BoardRecord | null | undefined)[] | null | undefined, options: { selectBoardId?: string } = {}) {
-        const list = Array.isArray(records) ? records.filter((record): record is BoardRecord => Boolean(record)) : [];
-        if (list.length === 0) return;
+    function appendPortfolioRecords(records: readonly (BoardRecord | null | undefined)[] | null | undefined, options: { selectBoardId?: string } = {}): Promise<void> {
+        const operation = appendQueue.then(async () => {
+            const list = Array.isArray(records) ? records.filter((record): record is BoardRecord => Boolean(record)) : [];
+            if (list.length === 0) return;
 
-        const state = getState();
-        const portfolioBoards = [...state.portfolioBoards, ...list].sort((a, b) => {
-            const aLabel = String(a.title || a.fileName || '').toLowerCase();
-            const bLabel = String(b.title || b.fileName || '').toLowerCase();
-            return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+            const state = getState();
+            const candidates = [...state.portfolioBoards];
+            const additions: BoardRecord[] = [];
+            const duplicateBoardIds = new Map<string, string>();
+            for (const record of list) {
+                let existingRecord: BoardRecord | null = null;
+                for (const candidate of [...candidates, ...additions]) {
+                    if (await recordsReferToSameFile(candidate, record)) {
+                        existingRecord = candidate;
+                        break;
+                    }
+                }
+                if (existingRecord) {
+                    duplicateBoardIds.set(record.id, existingRecord.id);
+                    continue;
+                }
+                additions.push(record);
+            }
+            if (additions.length === 0) {
+                if (typeof options.selectBoardId === 'string') {
+                    const selectedDuplicate = duplicateBoardIds.get(options.selectBoardId);
+                    if (selectedDuplicate) setSelectedPortfolioBoardId(selectedDuplicate);
+                }
+                return;
+            }
+
+            const portfolioBoards = [...state.portfolioBoards, ...additions].sort((a, b) => {
+                const aLabel = String(a.title || a.fileName || '').toLowerCase();
+                const bLabel = String(b.title || b.fileName || '').toLowerCase();
+                return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+            });
+            let selectedPortfolioBoardId = state.selectedPortfolioBoardId;
+            if (typeof options.selectBoardId === 'string') {
+                selectedPortfolioBoardId = duplicateBoardIds.get(options.selectBoardId) || options.selectBoardId;
+            }
+            if (
+                selectedPortfolioBoardId
+                && !portfolioBoards.some((board) => board.id === selectedPortfolioBoardId)
+            ) {
+                selectedPortfolioBoardId = '';
+            }
+
+            const partial: Partial<AppState> = { portfolioBoards };
+            if (selectedPortfolioBoardId !== state.selectedPortfolioBoardId) {
+                partial.selectedPortfolioBoardId = selectedPortfolioBoardId;
+                partial.portfolioBulkSelectionByBoardId = {};
+            }
+            commitState(partial);
+            syncProjectSaveStates(store);
+
+            void primeProjectFiles(additions);
         });
-        let selectedPortfolioBoardId = state.selectedPortfolioBoardId;
-        if (typeof options.selectBoardId === 'string') {
-            selectedPortfolioBoardId = options.selectBoardId;
-        }
-        if (
-            selectedPortfolioBoardId
-            && !portfolioBoards.some((board) => board.id === selectedPortfolioBoardId)
-        ) {
-            selectedPortfolioBoardId = '';
-        }
-
-        const partial: Partial<AppState> = { portfolioBoards };
-        if (selectedPortfolioBoardId !== state.selectedPortfolioBoardId) {
-            partial.selectedPortfolioBoardId = selectedPortfolioBoardId;
-            partial.portfolioBulkSelectionByBoardId = {};
-        }
-        commitState(partial);
-        syncProjectSaveStates(store);
-
-        void primeProjectFiles(list);
+        appendQueue = operation.catch(() => {});
+        return operation;
     }
 
     function selectPortfolioBoard(boardId: string) {

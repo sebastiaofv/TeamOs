@@ -22,7 +22,7 @@ export function AssigneeEditor({ value, onChange, pool }: {
 
     return (
         <>
-            <div className="assignee-editor" id="taskAssigneeEditor">
+            <div className="assignee-editor" id="taskAssigneeEditor" aria-labelledby="taskAssigneesLabel">
                 <div className="assignee-editor-list" id="taskAssigneeItems">
                     {value.length === 0 ? (
                         <div className="assignee-editor-empty">{t('editor.noAssignees')}</div>
@@ -53,6 +53,7 @@ export function AssigneeEditor({ value, onChange, pool }: {
                     <input
                         type="text"
                         id="taskAssigneeNewItem"
+                        aria-label={t('editor.addAssigneePlaceholder')}
                         list="taskAssigneeSuggestions"
                         placeholder={t('editor.addAssigneePlaceholder')}
                         ref={composerRef}

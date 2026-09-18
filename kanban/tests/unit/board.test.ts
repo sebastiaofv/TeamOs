@@ -464,6 +464,27 @@ describe('validateBoardData', () => {
     expect(() => validateBoardData(b)).toThrow('Task id must be a number.');
   });
 
+  it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])('rejects task id %s when it is not a positive safe integer', (id) => {
+    const b = validBoard();
+    b.board.tasks = [fromAny(validTask({ id }))];
+    expect(() => validateBoardData(b)).toThrow('Task id must be a positive safe integer.');
+  });
+
+  it('rejects duplicate task ids', () => {
+    const b = validBoard();
+    b.board.tasks = [
+      fromAny(validTask({ id: 1 })),
+      fromAny(validTask({ id: 1, title: 'Second task' }))
+    ];
+    expect(() => validateBoardData(b)).toThrow('Task ids must be unique.');
+  });
+
+  it('rejects impossible task due dates', () => {
+    const b = validBoard();
+    b.board.tasks = [fromAny(validTask({ dueDate: '2024-02-30' }))];
+    expect(() => validateBoardData(b)).toThrow('Task dueDate must be YYYY-MM-DD or empty.');
+  });
+
   it('rejects an empty task title', () => {
     const b = validBoard();
     b.board.tasks = [fromAny(validTask({ title: '' }))];

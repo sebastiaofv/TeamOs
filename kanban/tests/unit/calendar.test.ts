@@ -112,6 +112,7 @@ describe('normalizeDueDate', () => {
     expect(normalizeDueDate('03-15-2024')).toBe('');
     expect(normalizeDueDate('2024-3-15')).toBe('');
     expect(normalizeDueDate('2024/03/15')).toBe('');
+    expect(normalizeDueDate('2024-02-30')).toBe('');
   });
 
   it('returns empty string for non-string or empty input', () => {

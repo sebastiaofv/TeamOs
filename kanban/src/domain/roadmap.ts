@@ -102,7 +102,7 @@ export function getRoadmapEntityConfig(kind: unknown): RoadmapEntityConfig | nul
 export function normalizeRoadmapDate(value: unknown): string {
     if (typeof value !== 'string') return '';
     const trimmed = value.trim();
-    return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : '';
+    return parseRoadmapIsoDate(trimmed) ? trimmed : '';
 }
 
 export function normalizeRoadmapRef(value: unknown): string {
@@ -111,9 +111,21 @@ export function normalizeRoadmapRef(value: unknown): string {
 }
 
 export function parseRoadmapIsoDate(value: unknown): Date | null {
-    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-    const date = new Date(`${value}T00:00:00Z`);
-    return Number.isNaN(date.getTime()) ? null : date;
+    if (typeof value !== 'string') return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (year < 1 || month < 1 || month > 12 || day < 1) return null;
+
+    const date = new Date(0);
+    date.setUTCFullYear(year, month - 1, day);
+    date.setUTCHours(0, 0, 0, 0);
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+        return null;
+    }
+    return date;
 }
 
 export function slugifyRoadmapEntityId(title: unknown, items: readonly { id?: string }[] | null | undefined, currentId = ''): string {
@@ -152,7 +164,8 @@ export function getRoadmapItemDateBounds(item: RoadmapItemLike): DateBounds | nu
         const start = parseRoadmapIsoDate(item.startDate);
         const end = parseRoadmapIsoDate(item.endDate);
         if (!start || !end) return null;
-        return start <= end ? { start, end } : { start: end, end: start };
+        if (start > end) return null;
+        return { start, end };
     }
     return null;
 }
@@ -203,6 +216,12 @@ export function normalizeRoadmapItems(value: unknown, dateKeys: readonly Roadmap
             if (!Object.prototype.hasOwnProperty.call(normalizedItem, key)) {
                 return null;
             }
+        }
+
+        if (requiredDateKeys.includes('startDate') && requiredDateKeys.includes('endDate')) {
+            const start = parseRoadmapIsoDate(normalizedItem.startDate);
+            const end = parseRoadmapIsoDate(normalizedItem.endDate);
+            if (!start || !end || start > end) return null;
         }
 
         normalized.push(normalizedItem);

@@ -8,8 +8,8 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
     const themeLabel = theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark');
     const languageLabel = language === 'en' ? t('language.switchToPt') : t('language.switchToEn');
     return (
-        <div className="header">
-            <div className="app-title">TeamOS → Kanban</div>
+        <header className="header">
+            <h1 className="app-title" id="appTitle">TeamOS → Kanban</h1>
             <div className="header-actions">
                 <button
                     className="btn icon-btn theme-toggle-btn"
@@ -43,11 +43,11 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                     title={languageLabel}
                     onClick={toggleLanguage}
                 >{languageCode}</button>
-                <button className="btn" id="openShortcutsBtn" onClick={() => openDialog('shortcuts')}>{t('header.shortcuts')}</button>
-                <button className="btn" id="openHelpBtn" onClick={() => openDialog('help')}>{t('header.help')}</button>
-                <button className="btn" id="importProjectsBtn" onClick={() => { void importPortfolioProjects(); }}>{t('header.importProjects')}</button>
-                <button className="btn btn-primary" id="newProjectBtn" onClick={() => { void createNewProject(); }}>{t('header.newProject')}</button>
+                <button className="btn" id="openShortcutsBtn" type="button" onClick={() => openDialog('shortcuts')}>{t('header.shortcuts')}</button>
+                <button className="btn" id="openHelpBtn" type="button" onClick={() => openDialog('help')}>{t('header.help')}</button>
+                <button className="btn" id="importProjectsBtn" type="button" onClick={() => { void importPortfolioProjects(); }}>{t('header.importProjects')}</button>
+                <button className="btn btn-primary" id="newProjectBtn" type="button" onClick={() => { void createNewProject(); }}>{t('header.newProject')}</button>
             </div>
-        </div>
+        </header>
     );
 }

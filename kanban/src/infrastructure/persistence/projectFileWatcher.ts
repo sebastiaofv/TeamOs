@@ -11,6 +11,7 @@ import {
     PROJECT_FILE_EXTERNAL_BADGE_MS
 } from '@/domain/constants';
 import { formatErrorMessage } from '@/domain/util';
+import { hashTextContent } from '@/domain/serialize';
 import { BoardRepository, type BoardSnapshot } from './boardRepository';
 import {
     applySnapshotToBoardRecord,
@@ -32,6 +33,12 @@ export type ConflictCallbacks = {
 
 let watchRunning = false;
 
+function updateFileBaseline(fileState: ProjectFileState, snapshot: BoardSnapshot): void {
+    fileState.lastModified = snapshot.fileMeta.lastModified;
+    fileState.size = snapshot.fileMeta.size;
+    fileState.lastTextHash = snapshot.fileMeta.textHash;
+}
+
 export async function primeProjectFileBaselines(records: readonly (BoardRecord | null | undefined)[] | null | undefined): Promise<void> {
     const list = Array.isArray(records) ? records : [];
     for (const boardRecord of list) {
@@ -52,22 +59,24 @@ async function checkProjectFileForExternalChanges(boardRecord: BoardRecord | nul
         const { file, lastModified, size } = await BoardRepository.readHandleFileMeta(boardRecord.handle);
         const hasBaseline = Boolean(fileState.lastTextHash);
         const metaUnchanged = hasBaseline && fileState.lastModified === lastModified && fileState.size === size;
+        let snapshot: BoardSnapshot;
         if (metaUnchanged) {
-            return false;
+            const text = await file.text();
+            if (hashTextContent(text) === fileState.lastTextHash) return false;
+            snapshot = await BoardRepository.readFileSnapshot(file, text);
+        } else {
+            snapshot = await BoardRepository.readFileSnapshot(file);
         }
-
-        const snapshot = await BoardRepository.readFileSnapshot(file);
         const previousHash = fileState.lastTextHash;
-        fileState.lastModified = snapshot.fileMeta.lastModified;
-        fileState.size = snapshot.fileMeta.size;
-        fileState.lastTextHash = snapshot.fileMeta.textHash;
 
         if (!previousHash) {
+            updateFileBaseline(fileState, snapshot);
             clearProjectWatchStatus(boardId);
             return false;
         }
 
         if (previousHash === snapshot.fileMeta.textHash) {
+            updateFileBaseline(fileState, snapshot);
             clearProjectWatchStatus(boardId);
             return false;
         }
@@ -84,6 +93,7 @@ async function checkProjectFileForExternalChanges(boardRecord: BoardRecord | nul
             return await resolveExternalChangeConflict(boardRecord, snapshot, fileState, callbacks);
         }
 
+        updateFileBaseline(fileState, snapshot);
         callbacks.onReload(boardId);
         applySnapshotToBoardRecord(boardRecord, snapshot.parsed);
         setProjectWatchStatus(
@@ -143,6 +153,7 @@ async function resolveExternalChangeConflict(
 
     if (choice === 'reload') {
         onReload(boardId);
+        updateFileBaseline(fileState, snapshot);
         applySnapshotToBoardRecord(boardRecord, snapshot.parsed, { discardLocalChanges: true });
         setProjectWatchStatus(
             boardId,

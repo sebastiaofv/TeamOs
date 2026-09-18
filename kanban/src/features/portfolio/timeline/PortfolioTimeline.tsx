@@ -57,13 +57,15 @@ function TimelineEventList({ view, onSelect }: {
     const { language } = useI18n();
     const events = Array.isArray(view.timeline?.events) ? view.timeline.events : [];
     return (
-        <>
+        <div role="listbox" aria-label={`${view.boardTitle} timeline events`}>
             {events.slice().reverse().map((event, indexFromEnd) => {
                 const index = events.length - 1 - indexFromEnd;
                 return (
                     <button
                         className={`timeline-event-item${index === view.selectedIndex ? ' active' : ''}`}
                         type="button"
+                        role="option"
+                        aria-selected={index === view.selectedIndex}
                         data-action="timeline-select-event"
                         data-board-id={view.boardId}
                         data-event-index={index}
@@ -76,7 +78,7 @@ function TimelineEventList({ view, onSelect }: {
                     </button>
                 );
             })}
-        </>
+        </div>
     );
 }
 
@@ -93,8 +95,8 @@ function PortfolioTimelineView({ view, actions }: {
         return (
             <div className="timeline-panel-header">
                 <div>
-                        <div className="timeline-panel-title">{t('roadmap.timeline')}</div>
-                        <div className="timeline-panel-subtitle">
+                    <h2 className="timeline-panel-title" id={`timeline-title-${view.boardId}`}>{t('roadmap.timeline')}</h2>
+                    <div className="timeline-panel-subtitle" role="status" aria-live="polite">
                         {t('timeline.noEvents', { board: view.boardTitle })}
                     </div>
                 </div>
@@ -121,16 +123,19 @@ function PortfolioTimelineView({ view, actions }: {
         <>
             <div className="timeline-panel-header">
                 <div>
-                    <div className="timeline-panel-title">{t('roadmap.timeline')}</div>
-                    <div className="timeline-panel-subtitle">{subtitleText}</div>
+                    <h2 className="timeline-panel-title" id={`timeline-title-${view.boardId}`}>{t('roadmap.timeline')}</h2>
+                    <div className="timeline-panel-subtitle" role="status" aria-live="polite">{subtitleText}</div>
                 </div>
                 <div className="timeline-panel-actions">
-                    <div className={`timeline-preview-banner${view.isPreview ? ' active' : ''}`}>{t('timeline.historicalPreview')}</div>
+                    <div className={`timeline-preview-banner${view.isPreview ? ' active' : ''}`} role="status" aria-live="polite">{t('timeline.historicalPreview')}</div>
                     <button
                         className="btn timeline-toggle-btn"
                         type="button"
                         data-action="timeline-toggle-expanded"
                         data-board-id={view.boardId}
+                        aria-expanded={isExpanded}
+                        aria-controls={`timeline-body-${view.boardId}`}
+                        aria-label={isExpanded ? t('timeline.collapse', { board: view.boardTitle }) : t('timeline.expand', { board: view.boardTitle })}
                         onClick={() => actions.setPortfolioTimelineExpanded(view.boardId, !isExpanded)}
                     >
                         {isExpanded ? t('common.collapse') : t('common.expand')}
@@ -147,7 +152,9 @@ function PortfolioTimelineView({ view, actions }: {
                     </div>
                 )}
                 <div className="timeline-slider-row">
+                    <label className="sr-only" htmlFor={`timeline-slider-${view.boardId}`}>{t('timeline.sliderLabel', { board: view.boardTitle })}</label>
                     <input
+                        id={`timeline-slider-${view.boardId}`}
                         className="timeline-slider"
                         type="range"
                         min="0"
@@ -156,6 +163,10 @@ function PortfolioTimelineView({ view, actions }: {
                         value={selectedIndex}
                         data-action="timeline-slider"
                         data-board-id={view.boardId}
+                        aria-valuetext={t('timeline.selectedEvent', {
+                            summary: selectedEvent?.summary || t('timeline.timelineEvent'),
+                            date: formatDateTime(selectedEvent?.at || '', locale)
+                        })}
                         onInput={(event) => commitTimelineSelection(
                             actions.setPortfolioTimelineSelection,
                             view.boardId,
@@ -183,7 +194,7 @@ function PortfolioTimelineView({ view, actions }: {
                     )}
                 </div>
             </div>
-            <div className="timeline-body">
+            <div className="timeline-body" id={`timeline-body-${view.boardId}`}>
                 <div className="timeline-event-list">
                     <TimelineEventList
                         view={view}
@@ -194,7 +205,7 @@ function PortfolioTimelineView({ view, actions }: {
                         )}
                     />
                 </div>
-                <div className="timeline-event-detail">
+                <div className="timeline-event-detail" aria-live="polite" aria-atomic="true">
                     <div className="timeline-event-detail-title">{selectedEvent?.summary || t('timeline.timelineEvent')}</div>
                     <TimelineEventChanges event={selectedEvent} />
                 </div>

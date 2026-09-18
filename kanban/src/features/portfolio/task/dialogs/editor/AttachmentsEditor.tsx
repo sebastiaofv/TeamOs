@@ -47,12 +47,12 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
         .filter((message) => message && typeof message.text === 'string' && message.text.trim());
 
     return (
-        <div className="attachment-editor" id="taskAttachmentsEditor">
+        <div className="attachment-editor" id="taskAttachmentsEditor" aria-labelledby="taskAttachmentsLabel">
             <div className="attachment-editor-toolbar">
                 <button type="button" className="btn" id="taskAttachmentsAddBtn" onClick={() => inputRef.current?.click()}>{t('editor.addFiles')}</button>
                 <span className="attachment-editor-summary" id="taskAttachmentsSummary">{summary}</span>
             </div>
-            <div className="attachment-editor-warnings" id="taskAttachmentsWarnings">
+            <div className="attachment-editor-warnings" id="taskAttachmentsWarnings" role={messages.some((message) => message.type === 'error') ? 'alert' : 'status'} aria-live="polite" aria-atomic="true">
                 {messages.map((message, index) => (
                     <div key={index} className={message.type === 'error' ? 'attachment-editor-error' : 'attachment-editor-warning'}>
                         {message.text}

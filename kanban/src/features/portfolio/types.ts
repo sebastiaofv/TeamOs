@@ -24,6 +24,10 @@ export type BoardRecord = {
     id: string;
     colorSeed: number | null;
     handle: BoardFileHandle | null;
+    // Read-only drag/drop imports do not expose a file-system handle. This
+    // metadata identity lets the session reject importing that same file
+    // again without persisting it into the board JSON.
+    sourceKey?: string;
     fileName: string;
     title: string;
     data: BoardData;

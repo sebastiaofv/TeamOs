@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import {
     DndContext,
     DragOverlay,
+    KeyboardSensor,
     MouseSensor,
     TouchSensor,
     pointerWithin,
@@ -55,7 +56,7 @@ function getColumnTitle(status: string, title: string, t: ReturnType<typeof useI
 
 function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCardState }) {
     const canDrag = Boolean(item.canMutate) && !item.historical;
-    const { setNodeRef, listeners, isDragging } = useDraggable({
+    const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
         id: cardDragId(item),
         data: {
             boardId: item.boardId,
@@ -63,9 +64,10 @@ function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCar
             status: normalizeTaskStatus(item.task.status),
             title: item.task.title
         },
+        attributes: { role: 'group', roleDescription: 'draggable task', tabIndex: 0 },
         disabled: !canDrag
     });
-    return <PortfolioTaskCard item={item} state={state} drag={{ setNodeRef, listeners, isDragging }} />;
+    return <PortfolioTaskCard item={item} state={state} drag={{ setNodeRef, listeners, attributes, isDragging }} />;
 }
 
 // Highlights only when the dragged card would change status here.
@@ -95,7 +97,9 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
         // A short move before dragging keeps clicks on the card working.
         useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
         // Touch waits for a brief press, so swiping still scrolls the board.
-        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+        useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+        // The same card can be picked up without a pointer or touch device.
+        useSensor(KeyboardSensor)
     );
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
@@ -137,20 +141,20 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                 const items = buckets[column.status] || [];
                 const columnTitle = getColumnTitle(column.status, column.title, t);
                 return (
-                    <div className="portfolio-column" data-status={column.status} key={column.status}>
+                    <section className="portfolio-column" data-status={column.status} aria-labelledby={`portfolio-${column.status}-heading`} key={column.status}>
                         <div className="portfolio-column-header">
-                            <span className="column-title">{column.title}</span>
-                            <span className="column-count">{items.length}</span>
+                            <h2 className="column-title" id={`portfolio-${column.status}-heading`}>{columnTitle}</h2>
+                            <span className="column-count" aria-label={t('board.columnLabel', { title: columnTitle, count: items.length })}>{items.length}</span>
                         </div>
                         <DroppableColumnBody column={{ ...column, title: columnTitle }}>
                             {canAddTasks && (
-                                <div className="add-task-card" data-action="add-task" data-status={column.status} onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, column.status)}>{t('board.addTask')}</div>
+                                <button className="add-task-card" type="button" data-action="add-task" data-status={column.status} onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, column.status)}>{t('board.addTask')}</button>
                             )}
                             {items.length === 0
-                                ? <div className="empty-state"><span className="empty-state-text">{t('common.noTasks')}</span></div>
+                                ? <p className="empty-state"><span className="empty-state-text">{t('common.noTasks')}</span></p>
                                 : items.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />)}
                         </DroppableColumnBody>
-                    </div>
+                    </section>
                 );
             })}
             {/* In a portal, so the column's scroll area never clips the card being dragged. */}

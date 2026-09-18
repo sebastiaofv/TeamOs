@@ -15,6 +15,14 @@ export type BoardFileMeta = { lastModified: number; size: number; textHash: stri
 export type BoardSnapshot = { parsed: BoardData; fileMeta: BoardFileMeta };
 export type ImportResult = { loaded: BoardRecord[]; errors: string[] };
 
+function getLooseFileSourceKey(file: BoardFile): string {
+    return JSON.stringify([
+        String(file?.name || ''),
+        Number(file?.size) || 0,
+        Number(file?.lastModified) || 0
+    ]);
+}
+
 export async function writeJsonToFileHandle(fileHandle: BoardFileHandle, data: unknown): Promise<void> {
     const writable = await fileHandle.createWritable();
     await writable.write(JSON.stringify(data, null, 2));
@@ -39,8 +47,8 @@ export const BoardRepository = {
             size: Number(file?.size) || 0
         };
     },
-    async readFileSnapshot(file: BoardFile): Promise<BoardSnapshot> {
-        const text = await file.text();
+    async readFileSnapshot(file: BoardFile, textOverride?: string): Promise<BoardSnapshot> {
+        const text = textOverride === undefined ? await file.text() : textOverride;
         const parsed: unknown = JSON.parse(text);
         this.validate(parsed);
         return {
@@ -68,6 +76,7 @@ export const BoardRepository = {
         this.validate(parsed);
         return createPortfolioRecord({
             handle,
+            ...(!handle ? { sourceKey: getLooseFileSourceKey(file) } : {}),
             fileName: file.name,
             data: parsed
         });

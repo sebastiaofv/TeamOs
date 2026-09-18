@@ -21,6 +21,7 @@ import type { PortfolioMutationActions } from '@/features/portfolio/commands/por
 import { PortfolioActionsProvider, usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { useInitializeLanguage, useI18n } from '@/shared/i18n';
+import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 
 // A dialog that fails to render is closed so keyboard shortcuts are not left
 // suppressed by a dialog nobody can see.
@@ -30,6 +31,34 @@ function closeAllDialogs(actions: Pick<PortfolioMutationActions, 'closeTaskEdito
     actions.closeTaskDetail();
     actions.closeRoadmapEntity();
     closeDialog();
+}
+
+function PortfolioEmptyState() {
+    const { t } = useI18n();
+    return (
+        <section className="portfolio-empty-state" id="portfolioEmptyState" aria-labelledby="portfolioEmptyStateTitle">
+            <div>
+                <h2 id="portfolioEmptyStateTitle">{t('empty.title')}</h2>
+                <p>{t('empty.description')}</p>
+            </div>
+            <div className="portfolio-empty-state-actions">
+                <button className="btn" type="button" onClick={() => { void importPortfolioProjects(); }}>{t('empty.importProjects')}</button>
+                <button className="btn btn-primary" type="button" onClick={() => { void createNewProject(); }}>{t('empty.newProject')}</button>
+            </div>
+        </section>
+    );
+}
+
+function PortfolioReadOnlyNotice() {
+    const board = useAppStore((state) => state.portfolioBoards.find((record) => record.id === state.selectedPortfolioBoardId));
+    const { t } = useI18n();
+    if (!board || board.handle) return null;
+    return (
+        <div className="portfolio-read-only-notice" role="note">
+            <strong>{t('common.readOnlyProject')}</strong>
+            <span>{board.title || board.fileName}: {t('messages.readOnlyProject')}</span>
+        </div>
+    );
 }
 
 function AppContent() {
@@ -48,12 +77,15 @@ function AppContent() {
 
     return (
         <>
+            <a className="skip-link" href="#portfolioMain">{t('common.skipToContent')}</a>
             <AppHeader theme={theme} onToggleTheme={toggleTheme} />
-            <div className={`view${fileDropActive ? ' file-drop-active' : ''}`} id="portfolioView">
-                <div className="view-main">
+            <main className={`view${fileDropActive ? ' file-drop-active' : ''}`} id="portfolioView" aria-labelledby="appTitle">
+                <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
                     <div className="portfolio-board-wrap" id="portfolioBoardWrap">
+                        {!hasBoards && <PortfolioEmptyState />}
+                        <PortfolioReadOnlyNotice />
                         <PortfolioTimeline />
                         <PortfolioBulkActions />
                         <PortfolioBoard hidden={roadmapActive || calendarActive} />
@@ -62,7 +94,7 @@ function AppContent() {
                     </div>
                 </div>
                 <div className="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">{t('app.dropProjectFiles')}</div>
-            </div>
+            </main>
             <ErrorBoundary name="Dialogs" onError={() => closeAllDialogs(actions)}>
                 <ShortcutsDialog />
                 <HelpDialog />

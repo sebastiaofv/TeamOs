@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createPortfolioControlActions } from '../../src/features/portfolio/commands/portfolioControls';
 
-function createBoard(id: string, title: string, options: { sprints?: any[]; handle?: any } = {}) {
+function createBoard(id: string, title: string, options: { sprints?: any[]; handle?: any; sourceKey?: string } = {}) {
     const data = createEmptyProjectData(title);
     data.board.tasks.push(fromPartial({
         id: 1,
@@ -30,6 +30,7 @@ function createBoard(id: string, title: string, options: { sprints?: any[]; hand
         id,
         colorSeed: 0,
         handle: options.handle === undefined ? {} : options.handle,
+        ...(options.sourceKey ? { sourceKey: options.sourceKey } : {}),
         fileName: `${id}.board.json`,
         title,
         data
@@ -116,12 +117,12 @@ describe('portfolio control actions', () => {
         expect(store.getState().portfolioVisibleRows).toHaveLength(1);
     });
 
-    it('owns board ordering, selection, and removal cleanup', () => {
+    it('owns board ordering, selection, and removal cleanup', async () => {
         const first = createBoard('p1', 'Zeta');
         const second = createBoard('p2', 'Alpha');
         const { actions, store, primeProjectFiles, clearTimeline, closeContexts, forgetFileState } = createActions();
 
-        actions.appendPortfolioRecords([first, second], { selectBoardId: 'p1' });
+        await actions.appendPortfolioRecords([first, second], { selectBoardId: 'p1' });
 
         expect(store.getState().portfolioBoards.map((board) => board.id)).toEqual(['p2', 'p1']);
         expect(store.getState().selectedPortfolioBoardId).toBe('p1');
@@ -147,6 +148,40 @@ describe('portfolio control actions', () => {
         expect(forgetFileState).toHaveBeenCalledWith('p1');
         expect(clearTimeline).toHaveBeenCalledWith();
         expect(closeContexts).toHaveBeenCalledWith('p1');
+    });
+
+    it('does not append a file that is already open in the portfolio', async () => {
+        const sharedHandle = {
+            name: 'shared.board.json',
+            isSameEntry: vi.fn(async (other: any) => other?.name === 'shared.board.json')
+        };
+        const existing = createBoard('existing', 'Existing', { handle: sharedHandle });
+        const duplicate = createBoard('duplicate', 'Duplicate', {
+            handle: { name: 'shared.board.json', isSameEntry: sharedHandle.isSameEntry }
+        });
+        const other = createBoard('other', 'Other', {
+            handle: { name: 'other.board.json', isSameEntry: vi.fn(async () => false) }
+        });
+        const { actions, store, primeProjectFiles } = createActions();
+        store.setState({ portfolioBoards: [existing] });
+
+        await actions.appendPortfolioRecords([duplicate, other]);
+
+        expect(store.getState().portfolioBoards.map((board) => board.id)).toEqual(['existing', 'other']);
+        expect(primeProjectFiles).toHaveBeenCalledWith([other]);
+    });
+
+    it('does not append the same read-only dropped file twice', async () => {
+        const existing = createBoard('existing', 'Existing', { handle: null, sourceKey: '["shared.board.json",42,123]' });
+        const duplicate = createBoard('duplicate', 'Duplicate', { handle: null, sourceKey: '["shared.board.json",42,123]' });
+        const other = createBoard('other', 'Other', { handle: null, sourceKey: '["other.board.json",42,123]' });
+        const { actions, store, primeProjectFiles } = createActions();
+        store.setState({ portfolioBoards: [existing] });
+
+        await actions.appendPortfolioRecords([duplicate, other]);
+
+        expect(store.getState().portfolioBoards.map((board) => board.id)).toEqual(['existing', 'other']);
+        expect(primeProjectFiles).toHaveBeenCalledWith([other]);
     });
 
     it('only opens sprint actions for a valid selected bulk task set', () => {
