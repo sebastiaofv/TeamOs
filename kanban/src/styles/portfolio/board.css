@@ -10,42 +10,16 @@
     display: none;
 }
 
-.portfolio-empty-state {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg-card);
-}
-
-.portfolio-empty-state h2 {
-    font-size: 14px;
-    margin-bottom: 4px;
-}
-
-.portfolio-empty-state p {
-    color: var(--text-secondary);
-    max-width: 620px;
-}
-
-.portfolio-empty-state-actions {
-    display: flex;
-    gap: 8px;
-    flex: 0 0 auto;
-}
-
 .portfolio-read-only-notice {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     align-items: baseline;
-    padding: 8px 16px;
+    padding: 4px 12px;
     border-bottom: 1px solid var(--border);
     background: #fff8e1;
     color: #5c4718;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .portfolio-bulk-actions {
@@ -230,7 +204,6 @@
     padding: 10px 12px;
     margin-bottom: 8px;
     cursor: pointer;
-    min-height: 40px;
     text-align: left;
     font-family: inherit;
     font-size: 12px;
@@ -306,8 +279,8 @@
 }
 
 .task-action-btn {
-    width: 32px;
-    height: 32px;
+    width: 20px;
+    height: 20px;
     border: 1px solid var(--border);
     background: var(--bg-card);
     cursor: pointer;
@@ -326,15 +299,6 @@
 
     .portfolio-column {
         min-width: min(86vw, 340px);
-    }
-
-    .portfolio-empty-state {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .portfolio-empty-state-actions {
-        flex-wrap: wrap;
     }
 
     .portfolio-read-only-notice {

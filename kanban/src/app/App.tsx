@@ -21,7 +21,6 @@ import type { PortfolioMutationActions } from '@/features/portfolio/commands/por
 import { PortfolioActionsProvider, usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { useInitializeLanguage, useI18n } from '@/shared/i18n';
-import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 
 // A dialog that fails to render is closed so keyboard shortcuts are not left
 // suppressed by a dialog nobody can see.
@@ -31,22 +30,6 @@ function closeAllDialogs(actions: Pick<PortfolioMutationActions, 'closeTaskEdito
     actions.closeTaskDetail();
     actions.closeRoadmapEntity();
     closeDialog();
-}
-
-function PortfolioEmptyState() {
-    const { t } = useI18n();
-    return (
-        <section className="portfolio-empty-state" id="portfolioEmptyState" aria-labelledby="portfolioEmptyStateTitle">
-            <div>
-                <h2 id="portfolioEmptyStateTitle">{t('empty.title')}</h2>
-                <p>{t('empty.description')}</p>
-            </div>
-            <div className="portfolio-empty-state-actions">
-                <button className="btn" type="button" onClick={() => { void importPortfolioProjects(); }}>{t('empty.importProjects')}</button>
-                <button className="btn btn-primary" type="button" onClick={() => { void createNewProject(); }}>{t('empty.newProject')}</button>
-            </div>
-        </section>
-    );
 }
 
 function PortfolioReadOnlyNotice() {
@@ -84,7 +67,6 @@ function AppContent() {
                     <PortfolioToolbar />
                     <PortfolioChips />
                     <div className="portfolio-board-wrap" id="portfolioBoardWrap">
-                        {!hasBoards && <PortfolioEmptyState />}
                         <PortfolioReadOnlyNotice />
                         <PortfolioTimeline />
                         <PortfolioBulkActions />

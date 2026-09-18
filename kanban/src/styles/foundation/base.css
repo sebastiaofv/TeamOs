@@ -159,7 +159,6 @@ textarea::placeholder {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
 }
 
 .app-title {
@@ -183,7 +182,6 @@ textarea::placeholder {
 }
 
 .btn {
-    min-height: 36px;
     padding: 6px 16px;
     border: 1px solid var(--border);
     background: var(--bg-card);
@@ -200,8 +198,8 @@ textarea::placeholder {
 }
 
 .icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 30px;
     padding: 0;
     display: inline-flex;
     align-items: center;
@@ -296,7 +294,6 @@ textarea::placeholder {
     font-size: 12px;
     background: var(--bg-card);
     cursor: pointer;
-    min-height: 32px;
 }
 
 .hidden {

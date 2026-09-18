@@ -235,11 +235,11 @@ button.portfolio-calendar-item:focus-visible {
 
 .portfolio-calendar-item-overflow {
     appearance: none;
-    width: 100%;
-    min-height: 32px;
-    border: 1px dashed var(--border);
-    background: var(--bg-card);
-    padding: 4px 6px;
+    width: auto;
+    min-height: 0;
+    border: 0;
+    background: transparent;
+    padding: 0 2px;
     font-size: 11px;
     font-weight: 600;
     color: var(--text-muted);
@@ -255,11 +255,11 @@ button.portfolio-calendar-item:focus-visible {
 
 .portfolio-calendar-legend {
     margin: 0;
-    padding: 8px 10px;
+    padding: 4px 8px;
     border: 1px solid var(--border);
     background: var(--bg-secondary);
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .portfolio-calendar-month-grid {
@@ -390,7 +390,7 @@ button.portfolio-calendar-item:focus-visible {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
+    gap: 4px;
     font-size: 12px;
     font-weight: 700;
     color: var(--text-secondary);
@@ -398,13 +398,13 @@ button.portfolio-calendar-item:focus-visible {
 
 .portfolio-calendar-create-day {
     appearance: none;
-    width: 32px;
-    height: 32px;
+    width: 22px;
+    height: 22px;
     border: 1px solid var(--border);
     background: var(--bg-card);
     color: var(--accent);
     cursor: pointer;
-    font-size: 18px;
+    font-size: 16px;
     line-height: 1;
 }
 
