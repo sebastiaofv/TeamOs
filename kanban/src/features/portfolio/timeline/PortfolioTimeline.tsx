@@ -7,6 +7,7 @@ import type { PortfolioMutationActions } from '@/features/portfolio/commands/por
 import { formatDateTime } from '@/domain/calendar';
 import { formatTimelineValue } from '@/domain/timeline';
 import { useI18n } from '@/shared/i18n';
+import { describeTimelineEvent } from './timelineEventText';
 
 function commitTimelineSelection(
     setSelection: PortfolioMutationActions['setPortfolioTimelineSelection'],
@@ -73,7 +74,7 @@ function TimelineEventList({ view, onSelect }: {
                         onClick={() => onSelect(view.boardId, index)}
                     >
                         <span className="timeline-event-kind">{event.kind}</span>
-                        <span className="timeline-event-summary">{event.summary}</span>
+                        <span className="timeline-event-summary">{describeTimelineEvent(event, language)}</span>
                         <span className="timeline-event-time">{formatDateTime(event.at, language === 'pt' ? 'pt-PT' : undefined)}</span>
                     </button>
                 );
@@ -110,7 +111,7 @@ function PortfolioTimelineView({ view, actions }: {
     const latestIndex = timeline.events.length - 1;
     const latestEvent = timeline.events[latestIndex];
     const latestText = t('timeline.latestEvent', {
-        summary: latestEvent?.summary || 'Unknown event',
+        summary: describeTimelineEvent(latestEvent, language) || t('timeline.timelineEvent'),
         date: formatDateTime(latestEvent?.at || '', locale)
     });
     const subtitleText = t(timeline.events.length === 1 ? 'timeline.summary' : 'timeline.summaryPlural', {
@@ -164,7 +165,7 @@ function PortfolioTimelineView({ view, actions }: {
                         data-action="timeline-slider"
                         data-board-id={view.boardId}
                         aria-valuetext={t('timeline.selectedEvent', {
-                            summary: selectedEvent?.summary || t('timeline.timelineEvent'),
+                            summary: describeTimelineEvent(selectedEvent, language) || t('timeline.timelineEvent'),
                             date: formatDateTime(selectedEvent?.at || '', locale)
                         })}
                         onInput={(event) => commitTimelineSelection(
@@ -206,7 +207,7 @@ function PortfolioTimelineView({ view, actions }: {
                     />
                 </div>
                 <div className="timeline-event-detail" aria-live="polite" aria-atomic="true">
-                    <div className="timeline-event-detail-title">{selectedEvent?.summary || t('timeline.timelineEvent')}</div>
+                    <div className="timeline-event-detail-title">{describeTimelineEvent(selectedEvent, language) || t('timeline.timelineEvent')}</div>
                     <TimelineEventChanges event={selectedEvent} />
                 </div>
             </div>

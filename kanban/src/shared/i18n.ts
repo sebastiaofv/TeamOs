@@ -376,6 +376,14 @@ const en = {
     'timeline.collapse': 'Collapse timeline for {board}',
     'timeline.sliderLabel': 'Timeline event for {board}',
     'timeline.selectedEvent': 'Selected event: {summary}, {date}',
+    'timeline.baselineCreated': 'Baseline snapshot created',
+    'timeline.boardRestored': 'Board restored from timeline',
+    'timeline.taskCreated': 'Task created: {title}',
+    'timeline.taskDeleted': 'Task deleted: {title}',
+    'timeline.taskArchived': 'Task archived: {title}',
+    'timeline.taskRestored': 'Task restored: {title}',
+    'timeline.statusChanged': 'Status changed: {title}',
+    'timeline.taskUpdated': 'Task updated: {title}',
     'drag.pickedUp': 'Picked up {title}.',
     'drag.over': '{title} is over {target}.',
     'drag.notOverColumn': '{title} is not over a column.',
@@ -762,6 +770,14 @@ const pt: Record<TranslationKey, string> = {
     'timeline.collapse': 'Recolher linha temporal de {board}',
     'timeline.sliderLabel': 'Evento da linha temporal de {board}',
     'timeline.selectedEvent': 'Evento selecionado: {summary}, {date}',
+    'timeline.baselineCreated': 'Cópia de base criada',
+    'timeline.boardRestored': 'Projeto restaurado a partir da linha temporal',
+    'timeline.taskCreated': 'Tarefa criada: {title}',
+    'timeline.taskDeleted': 'Tarefa eliminada: {title}',
+    'timeline.taskArchived': 'Tarefa arquivada: {title}',
+    'timeline.taskRestored': 'Tarefa restaurada: {title}',
+    'timeline.statusChanged': 'Estado alterado: {title}',
+    'timeline.taskUpdated': 'Tarefa atualizada: {title}',
     'drag.pickedUp': 'Pegou em {title}.',
     'drag.over': '{title} está sobre {target}.',
     'drag.notOverColumn': '{title} não está sobre uma coluna.',
@@ -797,8 +813,8 @@ export function translate(language: Language, key: TranslationKey, values: Trans
     return template.replace(/\{(\w+)\}/g, (_, name: string) => String(values[name] ?? `{${name}}`));
 }
 
-// Timeline summaries are saved in the project file, so they are always English
-// whatever language the app is showing.
+// Timeline summaries are saved in the project file in English; the timeline
+// panel shows their fixed wording in the selected language (timelineEventText).
 export function translateTimeline(key: TranslationKey, values: TranslationValues = {}): string {
     return translate('en', key, values);
 }

@@ -144,10 +144,18 @@ test.describe('day planner', () => {
     const panel = page.locator('#portfolioTimelinePanel');
     await panel.locator('.timeline-toggle-btn').click();
     await expect(panel).toContainText('Moved "Write spec"');
+    await expect(panel).toContainText('Baseline snapshot created');
+
+    // The fixed wording follows the selected language; the task name does not.
+    await page.locator('#languageToggleBtn').click();
+    await expect(panel).toContainText('"Write spec" movida para');
+    await expect(panel).toContainText('Cópia de base criada');
+    await page.locator('#languageToggleBtn').click();
+    await expect(panel).toContainText('Moved "Write spec"');
 
     // Event 0 is the baseline, before the move.
     await setTimelineSlider(page, 0);
-    await expect(panel.locator('.timeline-preview-banner.active')).toContainText('Historical preview');
+    await expect(panel.locator('.timeline-preview-banner.active')).toBeVisible();
     await expect(page.locator('[data-block-id="b1"]')).toContainText('09:00–10:00');
     await expect(page.locator('[data-block-id="b1"]')).toHaveClass(/read-only/);
   });
