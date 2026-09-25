@@ -42,7 +42,8 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (state.portfolioSortKey !== 'priority') params.set('ps', state.portfolioSortKey);
     if (state.portfolioSortDir === 'desc') params.set('pd', state.portfolioSortDir);
     if (state.selectedPortfolioBoardId) params.set('pb', state.selectedPortfolioBoardId);
-    if (state.selectedPortfolioViewMode === 'calendar' && (state.portfolioBoards || []).length > 0) {
+    const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner';
+    if (aggregateView && (state.portfolioBoards || []).length > 0) {
         params.set('pv', state.selectedPortfolioViewMode);
     } else if (state.selectedPortfolioBoardId && state.selectedPortfolioViewMode === 'roadmap') {
         params.set('pv', state.selectedPortfolioViewMode);

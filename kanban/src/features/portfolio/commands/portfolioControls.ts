@@ -8,6 +8,8 @@ import type { BoardFileHandle } from '@/infrastructure/browser/types';
 import { normalizePortfolioSortKey, normalizePortfolioViewMode } from '@/domain/board';
 import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterValue, type PortfolioFilterName } from '@/domain/portfolioFilters';
 import { getRoadmapExtension } from '@/domain/roadmap';
+import { shiftPlannerDate } from '@/domain/dayPlanner';
+import { todayLocalIsoDate } from '@/domain/util';
 import {
     clearPortfolioTimelineSelection as defaultClearPortfolioTimelineSelection,
     openRoadmapEntityModal as defaultOpenRoadmapEntityModal
@@ -319,6 +321,23 @@ export function createPortfolioControlActions({
         setPortfolioCalendarPeriod(next.getUTCFullYear(), next.getUTCMonth());
     }
 
+    function setPortfolioPlannerMode(mode: unknown) {
+        if (mode !== 'day' && mode !== 'week') return;
+        commitState({ portfolioPlannerMode: mode });
+    }
+
+    // One step is a day in Day mode and a week in Week mode.
+    function shiftPortfolioPlannerDate(step: number) {
+        const state = getState();
+        const current = state.portfolioPlannerDate || todayLocalIsoDate();
+        const days = Number(step || 0) * (state.portfolioPlannerMode === 'week' ? 7 : 1);
+        commitState({ portfolioPlannerDate: shiftPlannerDate(current, days) });
+    }
+
+    function showPortfolioPlannerToday() {
+        commitState({ portfolioPlannerDate: '' });
+    }
+
     function shiftPortfolioCalendarYear(step: unknown) {
         const model = buildPortfolioCalendarViewModel(getState());
         commitState({ portfolioCalendarYear: model.year + Number(step || 0) });
@@ -336,11 +355,14 @@ export function createPortfolioControlActions({
         setPortfolioCalendarPeriod,
         setPortfolioCalendarView,
         setPortfolioFilter,
+        setPortfolioPlannerMode,
         setPortfolioSort,
         setPortfolioViewMode,
         setSelectedPortfolioBoardId,
         shiftPortfolioCalendarMonth,
         shiftPortfolioCalendarYear,
+        shiftPortfolioPlannerDate,
+        showPortfolioPlannerToday,
         togglePortfolioCalendarDisplayMode
     };
 }
@@ -367,3 +389,6 @@ export const setSelectedPortfolioBoardId: PortfolioControlActions['setSelectedPo
 export const shiftPortfolioCalendarMonth: PortfolioControlActions['shiftPortfolioCalendarMonth'] = (...args) => activeActions.shiftPortfolioCalendarMonth(...args);
 export const shiftPortfolioCalendarYear: PortfolioControlActions['shiftPortfolioCalendarYear'] = (...args) => activeActions.shiftPortfolioCalendarYear(...args);
 export const togglePortfolioCalendarDisplayMode: PortfolioControlActions['togglePortfolioCalendarDisplayMode'] = (...args) => activeActions.togglePortfolioCalendarDisplayMode(...args);
+export const setPortfolioPlannerMode: PortfolioControlActions['setPortfolioPlannerMode'] = (...args) => activeActions.setPortfolioPlannerMode(...args);
+export const shiftPortfolioPlannerDate: PortfolioControlActions['shiftPortfolioPlannerDate'] = (...args) => activeActions.shiftPortfolioPlannerDate(...args);
+export const showPortfolioPlannerToday: PortfolioControlActions['showPortfolioPlannerToday'] = (...args) => activeActions.showPortfolioPlannerToday(...args);

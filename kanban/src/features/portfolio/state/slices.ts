@@ -12,6 +12,7 @@ import type {
     PortfolioRow,
     PortfolioSortKey,
     PortfolioTimelineViewModel,
+    PlannerMode,
     PortfolioViewMode,
     ProjectSaveState,
     RoadmapEntityMode,
@@ -50,6 +51,9 @@ export type PortfolioSlice = {
     portfolioCalendarDisplayMode: CalendarDisplayMode;
     portfolioCalendarYear: number | null;
     portfolioCalendarMonth: number | null;
+    // '' shows today; the planner date is view state and never saved to files.
+    portfolioPlannerDate: string;
+    portfolioPlannerMode: PlannerMode;
 };
 
 export type BoardSlice = {
@@ -104,7 +108,9 @@ export function createPortfolioSlice(): PortfolioSlice {
         portfolioCalendarView: 'year',
         portfolioCalendarDisplayMode: 'calendar',
         portfolioCalendarYear: null,
-        portfolioCalendarMonth: null
+        portfolioCalendarMonth: null,
+        portfolioPlannerDate: '',
+        portfolioPlannerMode: 'day'
     };
 }
 

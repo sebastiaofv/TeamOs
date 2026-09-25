@@ -88,6 +88,39 @@ function createActions(overrides = {}) {
 }
 
 describe('portfolio control actions', () => {
+    it('switches to the planner view only when projects are loaded', () => {
+        const { actions, store } = createActions();
+        actions.setPortfolioViewMode('planner');
+        expect(store.getState().selectedPortfolioViewMode).toBe('board');
+
+        store.setState({ portfolioBoards: [createBoard('p1', 'Project')] });
+        actions.setPortfolioViewMode('planner');
+        expect(store.getState().selectedPortfolioViewMode).toBe('planner');
+    });
+
+    it('navigates planner dates by day or by week and keeps the mode on Today', () => {
+        const { actions, store } = createActions();
+        store.setState({ portfolioPlannerDate: '2026-09-25', portfolioPlannerMode: 'day' });
+
+        actions.shiftPortfolioPlannerDate(1);
+        expect(store.getState().portfolioPlannerDate).toBe('2026-09-26');
+
+        actions.setPortfolioPlannerMode('week');
+        actions.shiftPortfolioPlannerDate(-1);
+        expect(store.getState().portfolioPlannerDate).toBe('2026-09-19');
+        expect(store.getState().portfolioPlannerMode).toBe('week');
+
+        actions.showPortfolioPlannerToday();
+        expect(store.getState().portfolioPlannerDate).toBe('');
+        expect(store.getState().portfolioPlannerMode).toBe('week');
+    });
+
+    it('ignores unknown planner modes', () => {
+        const { actions, store } = createActions();
+        actions.setPortfolioPlannerMode('month');
+        expect(store.getState().portfolioPlannerMode).toBe('day');
+    });
+
     it('normalizes filters, sort, view mode, and reset state through the store', () => {
         const { actions, store } = createActions();
         store.setState({ portfolioBoards: [createBoard('p1', 'Project')] });
