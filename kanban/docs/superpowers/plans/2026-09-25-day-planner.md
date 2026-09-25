@@ -3070,6 +3070,33 @@ git commit -m "feat(planner): move, resize, remove and open blocks by pointer an
 
 ---
 
+### Task 12: Planner keyboard shortcuts in the Shortcuts dialog
+
+**Files:**
+- Modify: `src/features/portfolio/commands/portfolioShortcuts.ts`
+- Modify: `src/app/overlays/ShortcutsDialog.tsx`
+- Modify: `src/shared/i18n.ts`
+- Test: `tests/e2e/planner.test.ts` (append)
+
+**Shortcuts** (single-key, so they respect the "Enable single-key shortcuts" preference):
+
+| Keys | Action | When |
+| --- | --- | --- |
+| `P` | Open the Day Planner | projects loaded |
+| `T` | Jump to today | planner view |
+| `D` / `W` | Day / Week mode | planner view |
+| `,` / `.` | Previous / next day or week | planner view |
+| `↑` / `↓` | Move focused block 15 min | reference only (handled by the block) |
+| `Shift` + `↑` / `↓` | Resize focused block end by 15 min | reference only |
+| `Delete` | Remove focused block | reference only |
+| `Enter` | Open the focused block's task | reference only |
+
+- Section keys: `'Day Planner'` for active shortcuts, `'Planner Blocks'` for reference-only entries (`match: () => false`).
+- The dialog gets a new group "Day Planner" with both sections, localized via `shortcuts.*` keys (EN + PT).
+- E2E: pressing `P` opens the planner; `W` switches to week (5 columns); `T` returns to today; the Shortcuts dialog lists "Day Planner".
+
+---
+
 ### Task 11: Final verification and docs
 
 **Files:**

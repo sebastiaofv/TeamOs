@@ -98,11 +98,26 @@ export type TimelineExtension = {
     events: TimelineEvent[];
 };
 
+// A task scheduled on the day planner. Times are local "HH:MM" on the
+// 15-minute grid; the block belongs to the project file that owns the task.
+export type DayPlanBlock = {
+    id: string;
+    taskId: number;
+    date: string;
+    start: string;
+    end: string;
+};
+export type DayPlannerExtension = {
+    version: number;
+    blocks: DayPlanBlock[];
+};
+
 export type TeamOsExtensions = { [key: string]: unknown; taskAttachments?: Record<string, unknown> };
 export type BoardExtensions = {
     [key: string]: unknown;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
+    dayPlanner?: DayPlannerExtension;
     teamOsKanban?: TeamOsExtensions;
 };
 
