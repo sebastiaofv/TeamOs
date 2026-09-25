@@ -117,7 +117,7 @@ export function ShortcutsDialog() {
         {
             title: t('shortcuts.planner'),
             sections: [
-                { key: 'Day Planner', title: t('shortcuts.planner') },
+                { key: 'Day Planner', title: t('shortcuts.plannerNavigation') },
                 { key: 'Planner Blocks', title: t('shortcuts.plannerBlocks') }
             ]
         },

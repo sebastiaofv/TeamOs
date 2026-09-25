@@ -222,12 +222,13 @@ test.describe('app shell', () => {
     await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true);
   });
 
-  test('shortcuts dialog groups entries into Global, Cards and Modals', async ({ page }) => {
+  test('shortcuts dialog groups entries into Global, Cards, Day Planner and Modals', async ({ page }) => {
     await page.locator('#openShortcutsBtn').click();
     const list = page.locator('#shortcutsList');
 
-    await expect(list.locator('.shortcut-section-card-title')).toHaveText(['Global', 'Cards', 'Modals']);
-    await expect(list.locator('.shortcut-section-title')).toHaveText(['Task Modal', 'Task Detail', 'Modal']);
+    await expect(list.locator('.shortcut-section-card-title')).toHaveText(['Global', 'Cards', 'Day Planner', 'Modals']);
+    await expect(list.locator('.shortcut-section-title'))
+      .toHaveText(['Navigation', 'Planner blocks', 'Task Modal', 'Task Detail', 'Modal']);
     await expect(list.locator('.shortcut-row').filter({ hasText: 'Save task' }).locator('.shortcut-keys'))
       .toHaveText('Ctrl+Enter');
   });
