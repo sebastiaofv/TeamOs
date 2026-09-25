@@ -154,3 +154,42 @@ export function setDayPlannerBlocks(boardData: LooseBoardData, blocks: DayPlanBl
 export function createDayPlanBlockId(): string {
     return `blk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
+
+export type PlannerLayoutSlot = { column: number; columns: number };
+
+// Calendar-style packing: blocks that overlap (directly or through a chain)
+// form a group; each takes the first free column, and every block in a group
+// shares that group's column count.
+export function layoutPlannerBlocks(blocks: readonly { id: string; start: string; end: string }[]): Map<string, PlannerLayoutSlot> {
+    const sorted = [...blocks].sort((a, b) => plannerMinutes(a.start) - plannerMinutes(b.start)
+        || plannerMinutes(b.end) - plannerMinutes(a.end)
+        || a.id.localeCompare(b.id));
+    const layout = new Map<string, PlannerLayoutSlot>();
+    let group: { id: string; column: number }[] = [];
+    let columnEnds: number[] = [];
+    let groupEnd = -Infinity;
+    const flush = () => {
+        group.forEach(({ id, column }) => layout.set(id, { column, columns: columnEnds.length }));
+        group = [];
+        columnEnds = [];
+    };
+    sorted.forEach((block) => {
+        const start = plannerMinutes(block.start);
+        const end = plannerMinutes(block.end);
+        if (start >= groupEnd) {
+            flush();
+            groupEnd = -Infinity;
+        }
+        let column = columnEnds.findIndex((columnEnd) => columnEnd <= start);
+        if (column < 0) {
+            column = columnEnds.length;
+            columnEnds.push(end);
+        } else {
+            columnEnds[column] = end;
+        }
+        group.push({ id: block.id, column });
+        groupEnd = Math.max(groupEnd, end);
+    });
+    flush();
+    return layout;
+}

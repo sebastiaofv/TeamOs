@@ -16,6 +16,7 @@ import {
   formatPlannerDuration,
   formatPlannerTime,
   getPlannerWeekDates,
+  layoutPlannerBlocks,
   minutesAtPlannerOffset,
   parsePlannerTime,
   shiftPlannerDate,
@@ -196,5 +197,40 @@ describe('serialization', () => {
     const data = createEmptyProjectData('P');
     data.extensions.dayPlanner = { version: 1, blocks: [{ ...validBlock, taskId: 99 }] };
     expect(serializeBoardDataFromObject(data).extensions).not.toHaveProperty('dayPlanner');
+  });
+});
+
+describe('layoutPlannerBlocks', () => {
+  const b = (id: string, start: string, end: string) => ({ id, start, end });
+
+  it('gives non-overlapping blocks the full width', () => {
+    const layout = layoutPlannerBlocks([b('a', '09:00', '10:00'), b('b', '10:00', '11:00')]);
+    expect(layout.get('a')).toEqual({ column: 0, columns: 1 });
+    expect(layout.get('b')).toEqual({ column: 0, columns: 1 });
+  });
+
+  it('puts overlapping blocks side by side', () => {
+    const layout = layoutPlannerBlocks([b('a', '09:00', '11:00'), b('b', '10:00', '12:00')]);
+    expect(layout.get('a')).toEqual({ column: 0, columns: 2 });
+    expect(layout.get('b')).toEqual({ column: 1, columns: 2 });
+  });
+
+  it('reuses a freed column inside the same overlap group', () => {
+    const layout = layoutPlannerBlocks([
+      b('long', '09:00', '12:00'),
+      b('first', '09:00', '10:00'),
+      b('second', '10:00', '11:00')
+    ]);
+    expect(layout.get('long')).toEqual({ column: 0, columns: 2 });
+    expect(layout.get('first')).toEqual({ column: 1, columns: 2 });
+    expect(layout.get('second')).toEqual({ column: 1, columns: 2 });
+  });
+
+  it('lays out separate overlap groups independently', () => {
+    const layout = layoutPlannerBlocks([
+      b('a', '09:00', '10:00'), b('b', '09:00', '10:00'), b('c', '13:00', '14:00')
+    ]);
+    expect(layout.get('c')).toEqual({ column: 0, columns: 1 });
+    expect(layout.get('b')!.columns).toBe(2);
   });
 });
