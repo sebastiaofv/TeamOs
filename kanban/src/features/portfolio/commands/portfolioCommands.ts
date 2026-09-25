@@ -4,6 +4,7 @@ import { createBoardInteractions } from './boardCommands';
 import { createTaskActions, type TaskActions } from './taskCommands';
 import { createRoadmapActions } from './roadmapCommands';
 import { createTimelineActions } from './timelineCommands';
+import { createPlannerActions } from './plannerCommands';
 
 export type { BoardMutationOptions } from './mutationContext';
 
@@ -17,7 +18,8 @@ export function createPortfolioMutationActions(options: BoardMutationOptions = {
     const tasks: TaskActions = createTaskActions(context, interactions);
     const roadmap = createRoadmapActions(context, interactions);
     const timeline = createTimelineActions(context, tasks);
-    return { ...tasks, ...roadmap, ...timeline, ...interactions };
+    const planner = createPlannerActions(context, tasks);
+    return { ...tasks, ...roadmap, ...timeline, ...planner, ...interactions };
 }
 
 export type PortfolioMutationActions = ReturnType<typeof createPortfolioMutationActions>;

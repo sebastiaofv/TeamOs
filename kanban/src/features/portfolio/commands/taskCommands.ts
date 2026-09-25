@@ -317,6 +317,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         toggleTaskDetailChecklistItem,
         movePortfolioTaskToStatus,
         performUndo,
+        showUndo,
         refreshTaskDetail,
     };
 }
