@@ -1,0 +1,127 @@
+# TeamOS Kanban: test every change, and publish the built app from main.
+#
+# - Pull requests and pushes touching kanban/: lint, typecheck, unit tests and
+#   Playwright end-to-end tests. Visual snapshot tests are skipped here: their
+#   baselines are recorded on macOS and differ pixel-for-pixel on Linux, so run
+#   them locally with `npm test`.
+# - Pushes to main (and manual runs on main): after the tests pass, build the
+#   app and replace the "kanban-latest" GitHub Release with the standalone
+#   HTML file and a zip of dist/.
+
+name: Kanban CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'kanban/**'
+      - '.github/workflows/kanban.yml'
+  pull_request:
+    paths:
+      - 'kanban/**'
+      - '.github/workflows/kanban.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kanban-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: kanban
+
+env:
+  # The prepare script installs git hooks; they are not needed in CI.
+  HUSKY: '0'
+
+jobs:
+  test:
+    name: Lint, typecheck and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: kanban/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:unit
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npx playwright test tests/e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            kanban/playwright-report/
+            kanban/test-results/
+          retention-days: 14
+
+  release:
+    name: Build and publish
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: kanban-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: kanban/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+      - run: npm run build:standalone
+
+      - name: Package
+        run: |
+          mkdir -p release
+          cp dist-standalone/index.html release/teamos-kanban.html
+          (cd dist && zip -qr ../release/teamos-kanban-dist.zip .)
+
+      - name: Replace the kanban-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          gh release delete kanban-latest --cleanup-tag --yes || true
+          gh release create kanban-latest \
+            release/teamos-kanban.html \
+            release/teamos-kanban-dist.zip \
+            --target "$GITHUB_SHA" \
+            --title "TeamOS Kanban (latest build)" \
+            --notes "Built from ${short_sha} on $(date -u +'%Y-%m-%d %H:%M UTC').
+
+          - **teamos-kanban.html**: the whole app in one file. Download it and open it in a Chromium-based browser.
+          - **teamos-kanban-dist.zip**: the regular build (\`dist/\`) for serving from a web server." \
+            --latest
+
+      - name: Keep the build as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: teamos-kanban-${{ github.sha }}
+          path: kanban/release/
+          retention-days: 90
