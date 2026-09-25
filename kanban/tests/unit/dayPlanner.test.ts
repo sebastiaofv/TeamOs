@@ -1,10 +1,18 @@
+import { fromPartial } from '@total-typescript/shoehorn';
 import { describe, expect, it } from 'vitest';
+import { createEmptyProjectData } from '../../src/domain/board';
+import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 import {
   PLANNER_DAY_END,
   PLANNER_DAY_START,
   applyPlannerGesture,
   clampPlannerStart,
+  createDayPlanBlockId,
   createPlannerBlockTimes,
+  getDayPlannerBlocks,
+  normalizeDayPlannerBlock,
+  normalizeDayPlannerExtension,
+  setDayPlannerBlocks,
   formatPlannerDuration,
   formatPlannerTime,
   getPlannerWeekDates,
@@ -110,5 +118,83 @@ describe('planner dates', () => {
 
   it('returns an empty week for an invalid date', () => {
     expect(getPlannerWeekDates('nope')).toEqual([]);
+  });
+});
+
+const validBlock = { id: 'blk-1', taskId: 1, date: '2026-09-25', start: '09:00', end: '10:00' };
+
+describe('normalizeDayPlannerBlock', () => {
+  it('keeps a valid block', () => {
+    expect(normalizeDayPlannerBlock(validBlock)).toEqual(validBlock);
+  });
+
+  it.each([
+    ['missing id', { ...validBlock, id: '' }],
+    ['non-integer task id', { ...validBlock, taskId: 'x' }],
+    ['bad date', { ...validBlock, date: '2026-02-30' }],
+    ['off-grid time', { ...validBlock, start: '09:05' }],
+    ['outside the window', { ...validBlock, end: '21:15' }],
+    ['end before start', { ...validBlock, start: '10:00', end: '09:00' }],
+    ['zero length', { ...validBlock, end: '09:00' }],
+    ['not an object', 'blk']
+  ])('drops a block with %s', (_label, value) => {
+    expect(normalizeDayPlannerBlock(value)).toBeNull();
+  });
+
+  it('drops a block whose task is not in the given id set', () => {
+    expect(normalizeDayPlannerBlock(validBlock, new Set([2]))).toBeNull();
+    expect(normalizeDayPlannerBlock(validBlock, new Set([1]))).toEqual(validBlock);
+  });
+});
+
+describe('normalizeDayPlannerExtension', () => {
+  it('keeps valid blocks, drops invalid ones and duplicate ids', () => {
+    const result = normalizeDayPlannerExtension({
+      version: 1,
+      blocks: [validBlock, { ...validBlock, start: 'bad' }, { ...validBlock, start: '11:00', end: '12:00' }]
+    });
+    expect(result).toEqual({ version: 1, blocks: [validBlock] });
+  });
+
+  it('returns null for a wrong version, a non-object or no remaining blocks', () => {
+    expect(normalizeDayPlannerExtension({ version: 2, blocks: [validBlock] })).toBeNull();
+    expect(normalizeDayPlannerExtension([])).toBeNull();
+    expect(normalizeDayPlannerExtension({ version: 1, blocks: [] })).toBeNull();
+  });
+});
+
+describe('reading and writing blocks', () => {
+  it('writes blocks and removes the extension when empty', () => {
+    const data = createEmptyProjectData('P');
+    setDayPlannerBlocks(data, [validBlock]);
+    expect(data.extensions.dayPlanner).toEqual({ version: 1, blocks: [validBlock] });
+    expect(getDayPlannerBlocks(data)).toEqual([validBlock]);
+    setDayPlannerBlocks(data, []);
+    expect(data.extensions).not.toHaveProperty('dayPlanner');
+    expect(getDayPlannerBlocks(data)).toEqual([]);
+  });
+
+  it('creates unique block ids', () => {
+    expect(createDayPlanBlockId()).toMatch(/^blk_\d+_[a-z0-9]+$/);
+    expect(createDayPlanBlockId()).not.toBe(createDayPlanBlockId());
+  });
+});
+
+describe('serialization', () => {
+  it('drops blocks whose task no longer exists and keeps the rest', () => {
+    const data = createEmptyProjectData('P');
+    data.board.tasks.push(fromPartial({ id: 1, title: 'Kept', status: 'to-do' }));
+    data.extensions.dayPlanner = {
+      version: 1,
+      blocks: [validBlock, { ...validBlock, id: 'blk-2', taskId: 99 }]
+    };
+    const serialized = serializeBoardDataFromObject(data);
+    expect(serialized.extensions.dayPlanner).toEqual({ version: 1, blocks: [validBlock] });
+  });
+
+  it('removes the extension when no block survives', () => {
+    const data = createEmptyProjectData('P');
+    data.extensions.dayPlanner = { version: 1, blocks: [{ ...validBlock, taskId: 99 }] };
+    expect(serializeBoardDataFromObject(data).extensions).not.toHaveProperty('dayPlanner');
   });
 });

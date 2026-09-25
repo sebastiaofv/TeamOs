@@ -1,7 +1,8 @@
 import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData } from './types';
-import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, DEFAULT_BOARD_TITLE, ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, defaultColumns } from './constants';
+import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, DAY_PLANNER_EXTENSION_KEY, DEFAULT_BOARD_TITLE, ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, defaultColumns } from './constants';
 import { getLegacyTaskAttachmentsFromExtensions, stripLegacyTaskAttachmentsFromExtensions } from './attachments';
 import { normalizeColumns } from './board';
+import { normalizeDayPlannerExtension } from './dayPlanner';
 import { normalizeRoadmapExtension } from './roadmap';
 import { normalizeTask } from './task';
 import { normalizeTimelineExtension } from './timelineSchema';
@@ -22,7 +23,10 @@ export function hashTextContent(text: unknown): string {
     return `h${(hash >>> 0).toString(16)}`;
 }
 
-export function normalizeBoardExtensionsValue(extensionsValue: unknown, options: { includeTimeline?: boolean } = {}): BoardExtensions {
+export function normalizeBoardExtensionsValue(
+    extensionsValue: unknown,
+    options: { includeTimeline?: boolean; taskIds?: ReadonlySet<number> } = {}
+): BoardExtensions {
     const includeTimeline = options.includeTimeline !== false;
     const base = stripLegacyTaskAttachmentsFromExtensions(extensionsValue);
     const nextExtensions = ((base && typeof base === 'object' && !Array.isArray(base))
@@ -35,6 +39,15 @@ export function normalizeBoardExtensionsValue(extensionsValue: unknown, options:
             nextExtensions[ROADMAP_EXTENSION_KEY] = normalizedRoadmap;
         } else {
             delete nextExtensions[ROADMAP_EXTENSION_KEY];
+        }
+    }
+
+    if (Object.prototype.hasOwnProperty.call(nextExtensions, DAY_PLANNER_EXTENSION_KEY)) {
+        const normalizedPlanner = normalizeDayPlannerExtension(nextExtensions[DAY_PLANNER_EXTENSION_KEY], options.taskIds);
+        if (normalizedPlanner) {
+            nextExtensions[DAY_PLANNER_EXTENSION_KEY] = normalizedPlanner;
+        } else {
+            delete nextExtensions[DAY_PLANNER_EXTENSION_KEY];
         }
     }
 
@@ -87,7 +100,10 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
                 title
             }
         },
-        extensions: normalizeBoardExtensionsValue(input.extensions, { includeTimeline: false })
+        extensions: normalizeBoardExtensionsValue(input.extensions, {
+            includeTimeline: false,
+            taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
+        })
     };
 }
 
@@ -125,6 +141,8 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
                 title
             }
         },
-        extensions: normalizeBoardExtensionsValue(input.extensions)
+        extensions: normalizeBoardExtensionsValue(input.extensions, {
+            taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
+        })
     };
 }

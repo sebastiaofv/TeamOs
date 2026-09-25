@@ -1,8 +1,11 @@
 // Day planner rules: the 15-minute time grid, block gestures and planner dates.
 // Times are minutes since midnight; stored values are "HH:MM" strings.
 
-import type { DayPlanBlock } from './types';
+import type { DayPlanBlock, DayPlannerExtension, LooseBoardData } from './types';
+import { DAY_PLANNER_EXTENSION_KEY, DAY_PLANNER_VERSION } from './constants';
+import { getBoardExtensionsObject } from './extensions';
 import { parseRoadmapIsoDate } from './roadmap';
+import { isRecord } from './util';
 
 export const PLANNER_SLOT_MINUTES = 15;
 export const PLANNER_DAY_START = 7 * 60;
@@ -103,4 +106,51 @@ export function getPlannerWeekDates(isoDate: string): string[] {
     const mondayOffset = (date.getUTCDay() + 6) % 7;
     const monday = shiftPlannerDate(isoDate, -mondayOffset);
     return [0, 1, 2, 3, 4].map((day) => shiftPlannerDate(monday, day));
+}
+
+// A stored block, or null when it is malformed, off the grid, empty, or (when
+// `taskIds` is given) points at a task that does not exist.
+export function normalizeDayPlannerBlock(value: unknown, taskIds?: ReadonlySet<number>): DayPlanBlock | null {
+    if (!isRecord(value)) return null;
+    const id = typeof value.id === 'string' ? value.id.trim() : '';
+    const taskId = Number(value.taskId);
+    const date = typeof value.date === 'string' && parseRoadmapIsoDate(value.date) ? value.date : '';
+    const start = parsePlannerTime(value.start);
+    const end = parsePlannerTime(value.end);
+    if (!id || !Number.isInteger(taskId) || !date || start === null || end === null || end <= start) return null;
+    if (taskIds && !taskIds.has(taskId)) return null;
+    return { id, taskId, date, start: formatPlannerTime(start), end: formatPlannerTime(end) };
+}
+
+// Null when the value is not a version-1 extension or no block survives, so
+// callers can drop the key.
+export function normalizeDayPlannerExtension(value: unknown, taskIds?: ReadonlySet<number>): DayPlannerExtension | null {
+    if (!isRecord(value) || value.version !== DAY_PLANNER_VERSION || !Array.isArray(value.blocks)) return null;
+    const seen = new Set<string>();
+    const blocks: DayPlanBlock[] = [];
+    value.blocks.forEach((entry) => {
+        const block = normalizeDayPlannerBlock(entry, taskIds);
+        if (!block || seen.has(block.id)) return;
+        seen.add(block.id);
+        blocks.push(block);
+    });
+    return blocks.length > 0 ? { version: DAY_PLANNER_VERSION, blocks } : null;
+}
+
+export function getDayPlannerBlocks(boardData: LooseBoardData | null | undefined): DayPlanBlock[] {
+    return normalizeDayPlannerExtension(boardData?.extensions?.[DAY_PLANNER_EXTENSION_KEY])?.blocks || [];
+}
+
+export function setDayPlannerBlocks(boardData: LooseBoardData, blocks: DayPlanBlock[]): void {
+    const extensions = getBoardExtensionsObject(boardData, { create: true });
+    if (blocks.length === 0) {
+        delete extensions[DAY_PLANNER_EXTENSION_KEY];
+        return;
+    }
+    const extension: DayPlannerExtension = { version: DAY_PLANNER_VERSION, blocks };
+    extensions[DAY_PLANNER_EXTENSION_KEY] = extension;
+}
+
+export function createDayPlanBlockId(): string {
+    return `blk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
