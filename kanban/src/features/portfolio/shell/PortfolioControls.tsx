@@ -1,13 +1,12 @@
 import type { CSSProperties } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type { BoardRecord, PortfolioFilters, PortfolioRow, ProjectSaveState } from '@/features/portfolio/types';
+import type { BoardRecord, PortfolioFilters, ProjectSaveState } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import {
     clearPortfolioBulkSelection,
     openAssignSprintFromSelection,
     openCreateSprintFromSelection,
     removePortfolioBoard,
-    resetPortfolioFilters,
     retryPortfolioSave,
     selectPortfolioBoard,
     setPortfolioFilter,
@@ -15,13 +14,12 @@ import {
     setPortfolioViewMode
 } from '@/features/portfolio/commands/portfolioControls';
 import { getRoadmapExtension } from '@/domain/roadmap';
-import { EFFORT_BUCKETS } from '@/domain/constants';
 import { normalizePortfolioViewMode, createPortfolioProjectColor, portfolioSortSelectValueFromKey } from '@/domain/board';
 import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
-import { normalizeAssignee, taskAssignees } from '@/domain/task';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useI18n } from '@/shared/i18n';
+import { PortfolioActiveFilters, PortfolioFilterMenu } from './PortfolioFilterMenu';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
@@ -46,21 +44,6 @@ type Translate = ReturnType<typeof useI18n>['t'];
 
 function getFilters(state: Pick<AppState, 'portfolioFilters'>): PortfolioFilters {
     return { ...DEFAULT_PORTFOLIO_FILTERS, ...(state.portfolioFilters || {}) };
-}
-
-function getAssigneeNames(tasks: PortfolioRow[]): string[] {
-    const seen = new Set<string>();
-    const values: string[] = [];
-    (Array.isArray(tasks) ? tasks : []).forEach((item) => {
-        taskAssignees(item?.task).forEach((value) => {
-            const name = normalizeAssignee(value);
-            const key = name.toLowerCase();
-            if (!name || seen.has(key)) return;
-            seen.add(key);
-            values.push(name);
-        });
-    });
-    return values.sort((a, b) => a.localeCompare(b));
 }
 
 function getChipSaveUiState(saveState: ProjectSaveState | undefined, t: Translate): ChipSaveUi {
@@ -133,7 +116,6 @@ function getBulkViewModel(state: BulkState) {
 function ToolbarContent({ state }: { state: ToolbarState }) {
     const { t } = useI18n();
     const filters = getFilters(state);
-    const assignees = getAssigneeNames(state.portfolioTasks);
     const sortValue = portfolioSortSelectValueFromKey(state.portfolioSortKey);
     const hasBoards = state.portfolioBoards.length > 0;
     const hasSelectedBoard = Boolean(state.selectedPortfolioBoardId);
@@ -155,45 +137,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         onChange={(event) => setPortfolioFilter('search', event.target.value)}
                     />
                 </div>
-                <div className="filter-group">
-                    <label htmlFor="portfolioArchiveFilter">{t('toolbar.archive')}</label>
-                    <select id="portfolioArchiveFilter" value={filters.archive} onChange={(event) => setPortfolioFilter('archive', event.target.value)}>
-                        <option value="active">{t('toolbar.activeOnly')}</option>
-                        <option value="all">{t('toolbar.activeAndArchived')}</option>
-                        <option value="archived">{t('toolbar.archivedOnly')}</option>
-                    </select>
-                </div>
-                <div className="filter-group">
-                    <label htmlFor="portfolioBlockedFilter">{t('toolbar.blocked')}</label>
-                    <select id="portfolioBlockedFilter" value={filters.blocked} onChange={(event) => setPortfolioFilter('blocked', event.target.value)}>
-                        <option value="all">{t('common.all')}</option>
-                        <option value="blocked">{t('toolbar.blockedOnly')}</option>
-                        <option value="unblocked">{t('toolbar.unblockedOnly')}</option>
-                    </select>
-                </div>
-                <div className="filter-group">
-                    <label htmlFor="portfolioAssigneeFilter">{t('toolbar.assignee')}</label>
-                    <select id="portfolioAssigneeFilter" value={filters.assignee} onChange={(event) => setPortfolioFilter('assignee', event.target.value)}>
-                        <option value="">{t('common.all')}</option>
-                        {assignees.map((name) => <option key={name} value={name}>{name}</option>)}
-                    </select>
-                </div>
-                <div className="filter-group">
-                    <label htmlFor="portfolioPriorityFilter">{t('toolbar.priority')}</label>
-                    <select id="portfolioPriorityFilter" value={filters.priority} onChange={(event) => setPortfolioFilter('priority', event.target.value)}>
-                        <option value="">{t('common.all')}</option>
-                        <option value="high">{t('toolbar.high')}</option>
-                        <option value="medium">{t('toolbar.medium')}</option>
-                        <option value="low">{t('toolbar.low')}</option>
-                    </select>
-                </div>
-                <div className="filter-group">
-                    <label htmlFor="portfolioEffortFilter">{t('toolbar.effort')}</label>
-                    <select id="portfolioEffortFilter" value={filters.effort} onChange={(event) => setPortfolioFilter('effort', event.target.value)}>
-                        <option value="">{t('common.all')}</option>
-                        {EFFORT_BUCKETS.map((effort) => <option key={effort} value={effort}>{effort}</option>)}
-                    </select>
-                </div>
+                <PortfolioFilterMenu filters={filters} tasks={state.portfolioTasks} />
                 <div className="filter-group">
                     <label htmlFor="portfolioSortSelect">{t('toolbar.sort')}</label>
                     <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => setPortfolioSort(event.target.value)}>
@@ -235,7 +179,6 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         onClick={() => setPortfolioViewMode('planner')}
                     >{t('toolbar.planner')}</button>
                 </div>
-                <button className="btn" id="resetPortfolioFiltersBtn" type="button" onClick={() => resetPortfolioFilters()}>{t('toolbar.resetFilters')}</button>
             </div>
         </>
     );
@@ -289,13 +232,16 @@ export function PortfolioToolbar() {
     })));
     const { t } = useI18n();
     return (
-        <section className="portfolio-toolbar" id="portfolioToolbar" aria-labelledby="portfolioToolbarTitle">
-            <h2 className="sr-only" id="portfolioToolbarTitle">{t('toolbar.filters')}</h2>
-            <ToolbarContent state={state} />
-            <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-                {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
-            </span>
-        </section>
+        <>
+            <section className="portfolio-toolbar" id="portfolioToolbar" aria-labelledby="portfolioToolbarTitle">
+                <h2 className="sr-only" id="portfolioToolbarTitle">{t('toolbar.filters')}</h2>
+                <ToolbarContent state={state} />
+                <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                    {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
+                </span>
+            </section>
+            <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />
+        </>
     );
 }
 

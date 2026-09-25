@@ -88,6 +88,24 @@ function createActions(overrides = {}) {
 }
 
 describe('portfolio control actions', () => {
+    it('clears one or all panel filters, keeping the search text and sort', () => {
+        const { actions, store } = createActions();
+        store.setState({ portfolioBoards: [createBoard('p1', 'Project')] });
+        actions.setPortfolioFilter('search', 'beta');
+        actions.setPortfolioFilter('priority', 'high');
+        actions.setPortfolioFilter('blocked', 'blocked');
+        actions.setPortfolioSort('score');
+
+        actions.clearPortfolioFilter('priority');
+        expect(store.getState().portfolioFilters).toMatchObject({ priority: '', blocked: 'blocked', search: 'beta' });
+
+        actions.clearPortfolioFilters();
+        expect(store.getState().portfolioFilters).toEqual({
+            search: 'beta', archive: 'active', blocked: 'all', assignee: '', priority: '', effort: ''
+        });
+        expect(store.getState().portfolioSortKey).toBe('score');
+    });
+
     it('switches to the planner view only when projects are loaded', () => {
         const { actions, store } = createActions();
         actions.setPortfolioViewMode('planner');

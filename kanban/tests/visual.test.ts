@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse } from './support/portfolio';
+import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel } from './support/portfolio';
 
 // Pixel baselines for pieces being ported to React. They are captured against
 // the legacy implementation first; a port must match them unchanged. Baselines
@@ -356,6 +356,7 @@ test.describe('2.2 toolbar and chips', () => {
       ]
     }], { selectedBoardId: 'v1' });
     await page.locator('#portfolioSearchInput').fill('launch');
+    await openFiltersPanel(page);
     await page.locator('#portfolioArchiveFilter').selectOption('all');
     await page.locator('#portfolioBlockedFilter').selectOption('blocked');
     await page.locator('#portfolioAssigneeFilter').selectOption('Ana');
@@ -365,6 +366,21 @@ test.describe('2.2 toolbar and chips', () => {
     await page.locator('#portfolio-backlog-column input[data-action="toggle-bulk-task-selection"]').check();
     await expect(page.locator('#portfolioBulkActions')).toBeVisible();
     await captureControls(page, 'toolbar-selected-bulk-light.png');
+  });
+
+  test('filters panel open with active filters (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [{
+      id: 'v1',
+      title: 'Launch Project',
+      hasHandle: true,
+      tasks: [{ id: 1, title: 'Launch target', status: 'backlog', priority: 'high', effort: 'L', assignees: ['Ana'] }]
+    }]);
+    await openFiltersPanel(page);
+    await page.locator('#portfolioPriorityFilter').selectOption('high');
+    await page.locator('#portfolioAssigneeFilter').selectOption('Ana');
+    await expect(page.locator('#portfolioFiltersBtn .portfolio-filters-badge')).toHaveText('2');
+    await captureControls(page, 'toolbar-filters-panel-light.png');
   });
 
   test('project chip save failure and retry affordance (light)', async ({ page }) => {

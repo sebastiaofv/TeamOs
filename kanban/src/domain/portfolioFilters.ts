@@ -43,3 +43,13 @@ export function normalizePortfolioFilterSet(filters: Partial<Record<PortfolioFil
         (Object.keys(DEFAULT_PORTFOLIO_FILTERS) as PortfolioFilterName[]).map((key) => [key, normalizePortfolioFilterValue(key, current[key])])
     ) as PortfolioFilters;
 }
+
+// The filters shown in the toolbar's Filters panel, in panel order. Search has
+// its own box and is not one of them.
+export const PANEL_PORTFOLIO_FILTERS = ['archive', 'blocked', 'assignee', 'priority', 'effort'] as const;
+export type PanelPortfolioFilterName = typeof PANEL_PORTFOLIO_FILTERS[number];
+
+export function getActivePortfolioFilterNames(filters: Partial<Record<PortfolioFilterName, unknown>> | null | undefined): PanelPortfolioFilterName[] {
+    const normalized = normalizePortfolioFilterSet(filters);
+    return PANEL_PORTFOLIO_FILTERS.filter((name) => normalized[name] !== DEFAULT_PORTFOLIO_FILTERS[name]);
+}

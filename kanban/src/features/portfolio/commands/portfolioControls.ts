@@ -6,7 +6,7 @@
 import type { BoardRecord, PortfolioFilters } from '@/features/portfolio/types';
 import type { BoardFileHandle } from '@/infrastructure/browser/types';
 import { normalizePortfolioSortKey, normalizePortfolioViewMode } from '@/domain/board';
-import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterValue, type PortfolioFilterName } from '@/domain/portfolioFilters';
+import { DEFAULT_PORTFOLIO_FILTERS, PANEL_PORTFOLIO_FILTERS, normalizePortfolioFilterValue, type PortfolioFilterName } from '@/domain/portfolioFilters';
 import { getRoadmapExtension } from '@/domain/roadmap';
 import { shiftPlannerDate } from '@/domain/dayPlanner';
 import { todayLocalIsoDate } from '@/domain/util';
@@ -261,6 +261,20 @@ export function createPortfolioControlActions({
         syncUrlState();
     }
 
+    // Resets one Filters-panel filter to its default.
+    function clearPortfolioFilter(name: PortfolioFilterName) {
+        setPortfolioFilter(name, DEFAULT_PORTFOLIO_FILTERS[name]);
+    }
+
+    // Resets the Filters-panel filters; the search text and sort are kept.
+    function clearPortfolioFilters() {
+        const next = { ...DEFAULT_PORTFOLIO_FILTERS, ...(getState().portfolioFilters || {}) };
+        PANEL_PORTFOLIO_FILTERS.forEach((name) => assignFilter(next, name, DEFAULT_PORTFOLIO_FILTERS[name]));
+        commitState({ portfolioFilters: next });
+
+        syncUrlState();
+    }
+
     function resetPortfolioFilters() {
         commitState({
             portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS },
@@ -346,6 +360,8 @@ export function createPortfolioControlActions({
         appendPortfolioRecords,
         canUsePortfolioViewMode,
         clearPortfolioBulkSelection,
+        clearPortfolioFilter,
+        clearPortfolioFilters,
         openAssignSprintFromSelection,
         openCreateSprintFromSelection,
         removePortfolioBoard,
@@ -392,3 +408,5 @@ export const togglePortfolioCalendarDisplayMode: PortfolioControlActions['toggle
 export const setPortfolioPlannerMode: PortfolioControlActions['setPortfolioPlannerMode'] = (...args) => activeActions.setPortfolioPlannerMode(...args);
 export const shiftPortfolioPlannerDate: PortfolioControlActions['shiftPortfolioPlannerDate'] = (...args) => activeActions.shiftPortfolioPlannerDate(...args);
 export const showPortfolioPlannerToday: PortfolioControlActions['showPortfolioPlannerToday'] = (...args) => activeActions.showPortfolioPlannerToday(...args);
+export const clearPortfolioFilter: PortfolioControlActions['clearPortfolioFilter'] = (...args) => activeActions.clearPortfolioFilter(...args);
+export const clearPortfolioFilters: PortfolioControlActions['clearPortfolioFilters'] = (...args) => activeActions.clearPortfolioFilters(...args);

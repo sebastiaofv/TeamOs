@@ -287,6 +287,14 @@ async function waitForBoardWrites(page: Page, minCount = 1) {
   await expect.poll(() => page.evaluate(() => (window.__portfolioTestWrites || []).length)).toBeGreaterThanOrEqual(minCount);
 }
 
+// Opens the toolbar's Filters panel (if it is not already open), where the
+// archive, blocked, assignee, priority and effort selects live.
+async function openFiltersPanel(page: Page) {
+  const button = page.locator('#portfolioFiltersBtn');
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.click();
+  await expect(page.locator('#portfolioFiltersPanel')).toBeVisible();
+}
+
 function portfolioCard(page: Page, title: string) {
   return page.locator('.portfolio-task-card').filter({ hasText: title }).first();
 }
@@ -526,6 +534,7 @@ export {
   readSavedBoard,
   waitForBoardWrites,
   portfolioCard,
+  openFiltersPanel,
   focusIsInside,
   closeDialogBy,
   portfolioProjectChipButtons,
