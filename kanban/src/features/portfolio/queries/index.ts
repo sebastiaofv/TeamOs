@@ -30,6 +30,7 @@ import {
 } from './portfolioTimelineViews';
 import { buildPortfolioRoadmapView } from './portfolioRoadmapViews';
 import { buildPortfolioCalendarViewModel } from './portfolioCalendarViews';
+import { buildPortfolioPlannerViewModel } from './portfolioPlannerViews';
 
 // Normalized filters for the current state; an assignee filter that matches no
 // loaded task is dropped.
@@ -95,5 +96,7 @@ export {
     getSelectedPortfolioTimelineView,
     isBoardInHistoricalPreview,
     buildPortfolioRoadmapView,
-    buildPortfolioCalendarViewModel
+    buildPortfolioCalendarViewModel,
+    buildPortfolioPlannerViewModel
 };
+export type { PlannerBlockView, PlannerDayView, PlannerTrayGroup, PlannerTrayItem, PlannerViewModel } from './portfolioPlannerViews';
