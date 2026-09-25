@@ -1,6 +1,6 @@
 // Task editing, details, validation, and undo.
 
-import type { Task } from '@/domain/types';
+import type { Effort, Priority, Task } from '@/domain/types';
 import type { TaskDraft } from '@/features/portfolio/types';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
@@ -8,6 +8,7 @@ import { defaultColumns } from '@/domain/constants';
 import {
     buildTaskFieldsFromDraft,
     nextTaskIdForBoard,
+    normalizeTask,
     normalizeTaskStatus,
     resolveCreateTaskStatus
 } from '@/domain/task';
@@ -281,6 +282,82 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }));
     }
 
+    // Adds `name` to the task's assignees, or removes it when already there.
+    async function togglePortfolioTaskAssignee(boardId: string, taskId: number, name: string): Promise<boolean> {
+        const source = findPortfolioTaskSource(boardId, taskId);
+        const trimmed = name.trim();
+        if (!source || !trimmed) return false;
+        const before = [...source.task.assignees];
+        const assigned = before.some((entry) => entry.toLowerCase() === trimmed.toLowerCase());
+        const next = assigned ? before.filter((entry) => entry.toLowerCase() !== trimmed.toLowerCase()) : [...before, trimmed];
+        const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
+            task.assignees = next;
+            return true;
+        });
+        if (!changed) return false;
+        showUndo(translateCurrent(assigned ? 'palette.unassigned' : 'palette.assigned', { name: trimmed, title: source.task.title }), () => (
+            runPortfolioTaskMutation(boardId, taskId, (task) => {
+                task.assignees = before;
+                return true;
+            })
+        ));
+        return true;
+    }
+
+    async function setPortfolioTaskPriority(boardId: string, taskId: number, priority: Priority | null): Promise<boolean> {
+        const source = findPortfolioTaskSource(boardId, taskId);
+        if (!source || source.task.priority === priority) return false;
+        const before = source.task.priority;
+        const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
+            task.priority = priority;
+            return true;
+        });
+        if (!changed) return false;
+        showUndo(translateCurrent('palette.prioritySet', { title: source.task.title }), () => (
+            runPortfolioTaskMutation(boardId, taskId, (task) => {
+                task.priority = before;
+                return true;
+            })
+        ));
+        return true;
+    }
+
+    // Creates a task in To Do (or the board's first column) from quick-create
+    // fields. Returns the new task id, or null when nothing was created.
+    async function createPortfolioTaskFromFields(boardId: string, fields: {
+        title: string; assignees: string[]; priority: Priority | null; tags: string[]; effort: Effort | null; dueDate: string;
+    }): Promise<number | null> {
+        const boardRecord = getBoardRecord(boardId);
+        const title = fields.title.trim();
+        if (!boardRecord || !title) return null;
+        if (!canUsePortfolioTaskMutations(boardId)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return null;
+        }
+        const id = nextTaskIdForBoard(boardRecord);
+        const now = nowIso();
+        const created = await runPortfolioBoardMutation(boardId, (data) => {
+            data.board.tasks.push(normalizeTask({
+                id, title, description: '', assignees: fields.assignees, tags: fields.tags,
+                priority: fields.priority, effort: fields.effort, dueDate: fields.dueDate,
+                status: resolveCreateTaskStatus(boardRecord, 'to-do'), archived: false,
+                createdAt: now, updatedAt: now
+            }, { includeStatusChangedAt: false }));
+            recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, id));
+            return true;
+        });
+        if (!created) return null;
+        showUndo(translateCurrent('palette.taskCreated', { title }), () => runPortfolioBoardMutation(boardId, (data) => {
+            const before = captureTaskTimelineSnapshot(data, id);
+            const index = data.board.tasks.findIndex((task) => Number(task.id) === id);
+            if (index < 0) return false;
+            data.board.tasks.splice(index, 1);
+            recordTaskTimelineEvent(data, before, null);
+            return true;
+        }));
+        return id;
+    }
+
     function showUndo(message: string, undoFn: () => unknown) {
         if (undoTimer) clearTimeout(undoTimer);
         commitState({ undoAction: undoFn, undoToast: { message } });
@@ -318,6 +395,9 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         movePortfolioTaskToStatus,
         performUndo,
         showUndo,
+        togglePortfolioTaskAssignee,
+        setPortfolioTaskPriority,
+        createPortfolioTaskFromFields,
         refreshTaskDetail,
     };
 }
