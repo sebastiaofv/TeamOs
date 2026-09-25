@@ -227,6 +227,13 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         aria-pressed={viewMode === 'calendar'}
                         onClick={() => setPortfolioViewMode('calendar')}
                     >{t('toolbar.calendar')}</button>
+                    <button
+                        className={`btn${viewMode === 'planner' ? ' active' : ''}`}
+                        type="button"
+                        data-view-mode="planner"
+                        aria-pressed={viewMode === 'planner'}
+                        onClick={() => setPortfolioViewMode('planner')}
+                    >{t('toolbar.planner')}</button>
                 </div>
                 <button className="btn" id="resetPortfolioFiltersBtn" type="button" onClick={() => resetPortfolioFilters()}>{t('toolbar.resetFilters')}</button>
             </div>

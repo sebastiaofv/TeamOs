@@ -7,7 +7,14 @@ import type { DetailContext } from '@/features/portfolio/state/slices';
 import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { getPortfolioMutationActions, type PortfolioMutationActions } from './portfolioCommands';
-import { resetPortfolioFilters, selectPortfolioBoard } from './portfolioControls';
+import {
+    resetPortfolioFilters,
+    selectPortfolioBoard,
+    setPortfolioPlannerMode,
+    setPortfolioViewMode,
+    shiftPortfolioPlannerDate,
+    showPortfolioPlannerToday
+} from './portfolioControls';
 import { focusTarget } from '@/shared/ui/focusTargets';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 
@@ -116,6 +123,12 @@ function withOpenDetail(action: (context: DetailContext) => void) {
     };
 }
 
+const isPlannerActive = () => getState().selectedPortfolioViewMode === 'planner' && getState().portfolioBoards.length > 0;
+// Listed in the Shortcuts dialog only; a focused planner block handles these keys itself.
+const plannerBlockReference = (id: string, keys: string[], description: string): Shortcut => ({
+    id, section: 'Planner Blocks', keys, description, contexts: ['global'], match: () => false, handler: () => {}
+});
+
 const canMutateTargetRow = () => Boolean(getShortcutTargetRow()?.canMutate);
 const canEditOpenDetail = () => Boolean(getState().portfolioDetailContext && !getState().portfolioDetailContext?.readOnly);
 
@@ -211,6 +224,46 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
         when: canMutateTargetRow,
         handler: withTargetRow((row) => { void actions.movePortfolioTaskToStatus(row.boardId, row.taskId, status); })
     })),
+    {
+        id: 'open-planner', section: 'Day Planner', keys: ['P'], description: 'Open the Day Planner', contexts: ['global'],
+        match: (event) => noModifiers(event) && isKey(event, 'p'),
+        when: () => getState().portfolioBoards.length > 0,
+        handler: () => setPortfolioViewMode('planner')
+    },
+    {
+        id: 'planner-today', section: 'Day Planner', keys: ['T'], description: 'Jump to today', contexts: ['global'],
+        match: (event) => noModifiers(event) && isKey(event, 't'),
+        when: isPlannerActive,
+        handler: () => showPortfolioPlannerToday()
+    },
+    {
+        id: 'planner-day', section: 'Day Planner', keys: ['D'], description: 'Show one day', contexts: ['global'],
+        match: (event) => noModifiers(event) && isKey(event, 'd'),
+        when: isPlannerActive,
+        handler: () => setPortfolioPlannerMode('day')
+    },
+    {
+        id: 'planner-week', section: 'Day Planner', keys: ['W'], description: 'Show the work week', contexts: ['global'],
+        match: (event) => noModifiers(event) && isKey(event, 'w'),
+        when: isPlannerActive,
+        handler: () => setPortfolioPlannerMode('week')
+    },
+    {
+        id: 'planner-prev', section: 'Day Planner', keys: [','], description: 'Previous day or week', contexts: ['global'],
+        match: (event) => noModifiers(event) && event.key === ',',
+        when: isPlannerActive,
+        handler: () => shiftPortfolioPlannerDate(-1)
+    },
+    {
+        id: 'planner-next', section: 'Day Planner', keys: ['.'], description: 'Next day or week', contexts: ['global'],
+        match: (event) => noModifiers(event) && event.key === '.',
+        when: isPlannerActive,
+        handler: () => shiftPortfolioPlannerDate(1)
+    },
+    plannerBlockReference('planner-block-move', ['↑/↓'], 'Move the focused block by 15 minutes'),
+    plannerBlockReference('planner-block-resize', ['Shift', '↑/↓'], 'Resize the focused block by 15 minutes'),
+    plannerBlockReference('planner-block-remove', ['Delete'], 'Remove the focused block'),
+    plannerBlockReference('planner-block-open', ['Enter'], "Open the focused block's task"),
     {
         // Listed for reference; the task editor handles Ctrl/Cmd+Enter itself.
         id: 'save-task-modal', section: 'Task Modal', keys: ['Ctrl', 'Enter'], description: 'Save task', contexts: ['taskModal'], allowWhileTyping: true,

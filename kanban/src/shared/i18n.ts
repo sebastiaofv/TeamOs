@@ -182,6 +182,37 @@ const en = {
     'planner.blockAdded': 'Task scheduled',
     'planner.blockUpdated': 'Plan updated',
     'planner.blockRemoved': 'Removed from plan',
+    'toolbar.planner': 'Day Planner',
+    'planner.today': 'Today',
+    'planner.previousDay': 'Previous day',
+    'planner.nextDay': 'Next day',
+    'planner.previousWeek': 'Previous week',
+    'planner.nextWeek': 'Next week',
+    'planner.day': 'Day',
+    'planner.week': 'Week',
+    'planner.rangeLabel': 'Planner range',
+    'planner.summary': '{planned} planned of {capacity}',
+    'planner.trayLabel': 'Tasks to plan',
+    'planner.statusFilterLabel': 'Show statuses',
+    'planner.planned': 'planned',
+    'planner.noTasks': 'No tasks match the current filters.',
+    'planner.readOnlyTask': 'Read-only project',
+    'planner.dayColumn': 'Schedule for {date}',
+    'planner.blockLabel': '{title}, {start} to {end}, {project}',
+    'planner.removeBlock': 'Remove {title} from the plan',
+    'planner.dragHint': 'Drag a task onto the day. Drag a block to move it, or its edges to resize. Delete removes a selected block.',
+    'shortcuts.planner': 'Day Planner',
+    'shortcuts.plannerBlocks': 'Planner blocks',
+    'shortcuts.openPlanner': 'Open the Day Planner',
+    'shortcuts.plannerToday': 'Jump to today',
+    'shortcuts.plannerDay': 'Show one day',
+    'shortcuts.plannerWeek': 'Show the work week',
+    'shortcuts.plannerPrev': 'Previous day or week',
+    'shortcuts.plannerNext': 'Next day or week',
+    'shortcuts.plannerBlockMove': 'Move the focused block by 15 minutes',
+    'shortcuts.plannerBlockResize': 'Resize the focused block by 15 minutes',
+    'shortcuts.plannerBlockRemove': 'Remove the focused block',
+    'shortcuts.plannerBlockOpen': 'Open the focused block\'s task',
     'roadmap.timeline': 'Timeline',
     'roadmap.milestone': 'Milestone',
     'roadmap.milestones': 'Milestones',
@@ -532,6 +563,37 @@ const pt: Record<TranslationKey, string> = {
     'planner.blockAdded': 'Tarefa agendada',
     'planner.blockUpdated': 'Plano atualizado',
     'planner.blockRemoved': 'Removida do plano',
+    'toolbar.planner': 'Planeador',
+    'planner.today': 'Hoje',
+    'planner.previousDay': 'Dia anterior',
+    'planner.nextDay': 'Dia seguinte',
+    'planner.previousWeek': 'Semana anterior',
+    'planner.nextWeek': 'Semana seguinte',
+    'planner.day': 'Dia',
+    'planner.week': 'Semana',
+    'planner.rangeLabel': 'Intervalo do planeador',
+    'planner.summary': '{planned} planeadas de {capacity}',
+    'planner.trayLabel': 'Tarefas para planear',
+    'planner.statusFilterLabel': 'Mostrar estados',
+    'planner.planned': 'planeada',
+    'planner.noTasks': 'Nenhuma tarefa corresponde aos filtros atuais.',
+    'planner.readOnlyTask': 'Projeto só de leitura',
+    'planner.dayColumn': 'Agenda de {date}',
+    'planner.blockLabel': '{title}, {start} a {end}, {project}',
+    'planner.removeBlock': 'Remover {title} do plano',
+    'planner.dragHint': 'Arraste uma tarefa para o dia. Arraste um bloco para o mover ou as suas margens para o redimensionar. Delete remove o bloco selecionado.',
+    'shortcuts.planner': 'Planeador',
+    'shortcuts.plannerBlocks': 'Blocos do planeador',
+    'shortcuts.openPlanner': 'Abrir o planeador',
+    'shortcuts.plannerToday': 'Ir para hoje',
+    'shortcuts.plannerDay': 'Mostrar um dia',
+    'shortcuts.plannerWeek': 'Mostrar a semana de trabalho',
+    'shortcuts.plannerPrev': 'Dia ou semana anterior',
+    'shortcuts.plannerNext': 'Dia ou semana seguinte',
+    'shortcuts.plannerBlockMove': 'Mover o bloco focado 15 minutos',
+    'shortcuts.plannerBlockResize': 'Redimensionar o bloco focado 15 minutos',
+    'shortcuts.plannerBlockRemove': 'Remover o bloco focado',
+    'shortcuts.plannerBlockOpen': 'Abrir a tarefa do bloco focado',
     'roadmap.timeline': 'Linha temporal',
     'roadmap.milestone': 'Marco',
     'roadmap.milestones': 'Marcos',
@@ -743,6 +805,16 @@ export function getCalendarWeekdayName(language: Language, weekday: number, shor
 
 export function getCalendarMonthLabel(language: Language, year: number, month: number): string {
     return `${getCalendarMonthName(language, month)} ${year}`;
+}
+
+// "Friday, 25 Sep 2026" (long) or "Fri 25" (short) for a YYYY-MM-DD date.
+export function formatPlannerDateLabel(language: Language, isoDate: string, short = false): string {
+    const [year, month, day] = isoDate.split('-').map(Number);
+    if (!year || !month || !day) return isoDate;
+    const options: Intl.DateTimeFormatOptions = short
+        ? { weekday: 'short', day: 'numeric', timeZone: 'UTC' }
+        : { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
+    return new Intl.DateTimeFormat(language === 'pt' ? 'pt-PT' : 'en-GB', options).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
 export function getCurrentLanguage(): Language {

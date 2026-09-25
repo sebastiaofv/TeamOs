@@ -97,13 +97,30 @@ export function ShortcutsDialog() {
                 'save-task-modal': t('shortcuts.saveTask'),
                 'detail-edit': t('shortcuts.detailEdit'),
                 'detail-archive': t('shortcuts.detailArchive'),
-                'close-modal': t('shortcuts.closeModal')
+                'close-modal': t('shortcuts.closeModal'),
+                'open-planner': t('shortcuts.openPlanner'),
+                'planner-today': t('shortcuts.plannerToday'),
+                'planner-day': t('shortcuts.plannerDay'),
+                'planner-week': t('shortcuts.plannerWeek'),
+                'planner-prev': t('shortcuts.plannerPrev'),
+                'planner-next': t('shortcuts.plannerNext'),
+                'planner-block-move': t('shortcuts.plannerBlockMove'),
+                'planner-block-resize': t('shortcuts.plannerBlockResize'),
+                'planner-block-remove': t('shortcuts.plannerBlockRemove'),
+                'planner-block-open': t('shortcuts.plannerBlockOpen')
             } as Record<string, string>)[entry.id] || entry.description;
         return { ...entry, description };
     });
     const groups = [
         { title: t('shortcuts.global'), sections: [{ key: 'Global', title: t('shortcuts.global') }] },
         { title: t('shortcuts.cards'), sections: [{ key: 'Cards', title: t('shortcuts.cards') }] },
+        {
+            title: t('shortcuts.planner'),
+            sections: [
+                { key: 'Day Planner', title: t('shortcuts.planner') },
+                { key: 'Planner Blocks', title: t('shortcuts.plannerBlocks') }
+            ]
+        },
         {
             title: t('shortcuts.modals'),
             sections: [

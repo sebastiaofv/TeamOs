@@ -12,6 +12,7 @@ import { PortfolioBoard } from '@/features/portfolio/board/PortfolioBoard';
 import { PortfolioTimeline } from '@/features/portfolio/timeline/PortfolioTimeline';
 import { PortfolioRoadmap } from '@/features/portfolio/roadmap/PortfolioRoadmap';
 import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
+import { PortfolioPlanner } from '@/features/portfolio/planner/PortfolioPlanner';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
@@ -57,6 +58,7 @@ function AppContent() {
     const selectedBoardId = useAppStore((state) => state.selectedPortfolioBoardId);
     const roadmapActive = Boolean(selectedBoardId) && viewMode === 'roadmap';
     const calendarActive = hasBoards && viewMode === 'calendar';
+    const plannerActive = hasBoards && viewMode === 'planner';
 
     return (
         <>
@@ -70,9 +72,10 @@ function AppContent() {
                         <PortfolioReadOnlyNotice />
                         <PortfolioTimeline />
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive} />
+                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
                         <PortfolioCalendar hidden={!calendarActive} />
+                        <PortfolioPlanner hidden={!plannerActive} />
                     </div>
                 </div>
                 <div className="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">{t('app.dropProjectFiles')}</div>
