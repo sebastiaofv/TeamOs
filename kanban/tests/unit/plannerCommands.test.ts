@@ -1,7 +1,7 @@
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
 import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
-import { createAppStore } from '../../src/features/portfolio/state/store';
+import { createAppStore, useAppStore } from '../../src/features/portfolio/state/store';
 import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
 import { buildPortfolioPlannerViewModel } from '../../src/features/portfolio/queries';
 
@@ -138,6 +138,17 @@ describe('planner commands', () => {
 
     await actions.performUndo();
     expect(blocks()).toEqual([original]);
+  });
+
+  it('writes timeline summaries in English whatever the app language', async () => {
+    const { actions, events } = setup();
+    useAppStore.setState({ activeLanguage: 'pt' });
+    try {
+      await actions.addPlannerBlock('p1', 1, '2026-09-25', 540);
+    } finally {
+      useAppStore.setState({ activeLanguage: 'en' });
+    }
+    expect(plannerEvents(events)[0].summary).toBe('Planned "Plan me" on Fri 25 Sept, 09:00–10:00');
   });
 
   it('shows the planner as it was at a previewed timeline event', async () => {

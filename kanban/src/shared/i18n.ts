@@ -797,6 +797,12 @@ export function translate(language: Language, key: TranslationKey, values: Trans
     return template.replace(/\{(\w+)\}/g, (_, name: string) => String(values[name] ?? `{${name}}`));
 }
 
+// Timeline summaries are saved in the project file, so they are always English
+// whatever language the app is showing.
+export function translateTimeline(key: TranslationKey, values: TranslationValues = {}): string {
+    return translate('en', key, values);
+}
+
 export function translateCurrent(key: TranslationKey, values: TranslationValues = {}): string {
     return translate(useAppStore.getState().activeLanguage, key, values);
 }

@@ -17,7 +17,7 @@ import {
 } from '@/domain/dayPlanner';
 import { parseRoadmapIsoDate } from '@/domain/roadmap';
 import { appendTimelineEvent } from '@/domain/timeline';
-import { formatPlannerDateLabel, getCurrentLanguage, translateCurrent, type TranslationKey } from '@/shared/i18n';
+import { formatPlannerDateLabel, translateCurrent, translateTimeline, type TranslationKey } from '@/shared/i18n';
 
 const EVENT_SUMMARY_KEYS: Record<PlannerEventKind, TranslationKey> = {
     'planner.block.added': 'planner.eventAdded',
@@ -48,9 +48,9 @@ export function createPlannerActions(
                 kind,
                 entityType: 'task',
                 entityId: String(shown.taskId),
-                summary: translateCurrent(EVENT_SUMMARY_KEYS[kind], {
-                    title: task?.title || translateCurrent('common.task'),
-                    date: formatPlannerDateLabel(getCurrentLanguage(), shown.date, 'medium'),
+                summary: translateTimeline(EVENT_SUMMARY_KEYS[kind], {
+                    title: task?.title || translateTimeline('common.task'),
+                    date: formatPlannerDateLabel('en', shown.date, 'medium'),
                     start: shown.start,
                     end: shown.end
                 }),

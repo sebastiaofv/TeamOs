@@ -21,7 +21,7 @@ import { cloneSerializable, createBoardStateSnapshot } from '@/domain/serialize'
 import { appendTimelineEvent } from '@/domain/timeline';
 
 import { nowIso } from '@/domain/util';
-import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+import { getCurrentLanguage, translateCurrent, translateTimeline } from '@/shared/i18n';
 
 export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate' | 'endDate';
 
@@ -40,11 +40,11 @@ type RoadmapEntityDraft = {
 export function createRoadmapActions({ getState, commitState, getBoardRecord, canUsePortfolioTaskMutations,
     notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, alert, confirm, closeDialogFn, openDialogFn }: BoardMutationContext,
 { getSelectedPortfolioBulkTaskIds, clearPortfolioBulkSelection }: Pick<BoardInteractions, 'getSelectedPortfolioBulkTaskIds' | 'clearPortfolioBulkSelection'>) {
-    const getRoadmapLabel = (kind: RoadmapKind): string => kind === 'milestones'
-        ? translateCurrent('roadmap.milestone')
+    const getRoadmapLabel = (kind: RoadmapKind, tr: typeof translateCurrent = translateCurrent): string => kind === 'milestones'
+        ? tr('roadmap.milestone')
         : kind === 'phases'
-            ? translateCurrent('roadmap.phase')
-            : translateCurrent('roadmap.sprint');
+            ? tr('roadmap.phase')
+            : tr('roadmap.sprint');
 
     function buildRoadmapSprintOptions(items: RoadmapItem[] | null | undefined): SelectOption[] {
         return (Array.isArray(items) ? items : []).map((item) => {
@@ -145,9 +145,9 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 kind: 'roadmap.bulk-assigned',
                 entityType: 'board',
                 entityId: 'board',
-                summary: translateCurrent('roadmap.sprintCreatedSummary', {
+                summary: translateTimeline('roadmap.sprintCreatedSummary', {
                     count: assignedCount,
-                    tasks: assignedCount === 1 ? translateCurrent('common.task') : translateCurrent('common.tasks'),
+                    tasks: assignedCount === 1 ? translateTimeline('common.task') : translateTimeline('common.tasks'),
                     title: nextSprint.title
                 }),
                 meta: {
@@ -190,9 +190,9 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 kind: 'roadmap.bulk-assigned',
                 entityType: 'board',
                 entityId: 'board',
-                summary: translateCurrent('roadmap.sprintAssignedSummary', {
+                summary: translateTimeline('roadmap.sprintAssignedSummary', {
                     count: assignedCount,
-                    tasks: assignedCount === 1 ? translateCurrent('common.task') : translateCurrent('common.tasks'),
+                    tasks: assignedCount === 1 ? translateTimeline('common.task') : translateTimeline('common.tasks'),
                     title: sprint.title
                 }),
                 meta: {
@@ -280,9 +280,9 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 kind: 'roadmap.updated',
                 entityType: 'board',
                 entityId: 'board',
-                summary: translateCurrent('roadmap.entityUpdatedSummary', {
-                    label: getRoadmapLabel(context.kind),
-                    action: index >= 0 ? translateCurrent('roadmap.updated') : translateCurrent('roadmap.created'),
+                summary: translateTimeline('roadmap.entityUpdatedSummary', {
+                    label: getRoadmapLabel(context.kind, translateTimeline),
+                    action: index >= 0 ? translateTimeline('roadmap.updated') : translateTimeline('roadmap.created'),
                     title: nextItem.title
                 }),
                 snapshot: createBoardStateSnapshot(boardData),
@@ -334,9 +334,9 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 kind: 'roadmap.updated',
                 entityType: 'board',
                 entityId: 'board',
-                summary: translateCurrent('roadmap.entityUpdatedSummary', {
-                    label,
-                    action: translateCurrent('roadmap.deleted'),
+                summary: translateTimeline('roadmap.entityUpdatedSummary', {
+                    label: getRoadmapLabel(kind, translateTimeline),
+                    action: translateTimeline('roadmap.deleted'),
                     title: removed.title
                 }),
                 snapshot: createBoardStateSnapshot(boardData),
