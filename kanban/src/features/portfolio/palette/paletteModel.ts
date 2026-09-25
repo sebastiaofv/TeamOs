@@ -361,10 +361,19 @@ function roadmapItems(ctx: Ctx, query: string): PaletteItem[] {
 
 function search(ctx: Ctx): PaletteModel {
     const q = ctx.query.trim();
-    const sections: PaletteSection[] = [{
+    const sections: PaletteSection[] = [];
+    // Actions of the task in front of the user come first when they match.
+    const contextRow = ctx.contextTask ? findRow(ctx, ctx.contextTask.boardId, ctx.contextTask.taskId) : null;
+    const contextActions = contextRow
+        ? taskActionItems(ctx, contextRow, false)
+            .filter((item) => scoreText(item.label, q) >= WORD_MATCH)
+            .map((item) => ({ ...item, ranges: matchRanges(item.label, q) }))
+        : [];
+    if (contextRow && contextActions.length) sections.push({ id: 'context', title: contextRow.task.title, items: contextActions });
+    sections.push({
         id: 'filter', title: ctx.t('palette.sectionFilter'),
         items: [{ key: 'filter', icon: 'filter', label: ctx.t('palette.filterBoard', { query: q }), ranges: [], action: { type: 'filterBoard', text: q } }]
-    }];
+    });
     // Recently used tasks rank a little higher, but only when they match.
     const tasks = ctx.rows
         .filter((row) => !row.task.archived)
@@ -384,7 +393,7 @@ function search(ctx: Ctx): PaletteModel {
     if (projects.length) sections.push({ id: 'projects', title: ctx.t('palette.sectionProjects'), items: projects });
     if (roadmap.length) sections.push({ id: 'roadmap', title: ctx.t('palette.sectionRoadmap'), items: roadmap });
     if (commands.length) sections.push({ id: 'commands', title: ctx.t('palette.sectionCommands'), items: commands });
-    if (sections.length === 1) {
+    if (sections.every((section) => section.id === 'filter')) {
         sections.push({
             id: 'create', title: ctx.t('palette.sectionCreate'),
             items: [{ key: 'create-suggestion', icon: 'create', label: ctx.t('palette.createSuggestion', { title: q }), ranges: [], action: { type: 'setQuery', query: `+ ${q}` } }]

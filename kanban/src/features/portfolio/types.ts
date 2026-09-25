@@ -137,7 +137,11 @@ export type RoadmapEntityViewModel = {
     initialFocus: 'existingSprint' | 'title';
 };
 
+// The task the command palette opened for (open, hovered or selected card).
+export type CommandPaletteProps = { contextTask: { boardId: string; taskId: number } | null };
+
 export type DialogPropsByName = {
+    commandPalette: CommandPaletteProps;
     taskEditor: TaskEditorViewModel;
     taskDetail: TaskDetailViewModel;
     roadmapEntity: RoadmapEntityViewModel;

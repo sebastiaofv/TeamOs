@@ -7,6 +7,7 @@ import { TaskDetailDialog } from '@/features/portfolio/task/dialogs/TaskDetailDi
 import { TaskEditorDialog } from '@/features/portfolio/task/dialogs/TaskEditorDialog';
 import { AppMessageDialog } from '@/app/overlays/AppMessageDialog';
 import { UndoToast } from '@/features/portfolio/shell/UndoToast';
+import { CommandPalette } from '@/features/portfolio/palette/CommandPalette';
 import { PortfolioBulkActions, PortfolioChips, PortfolioToolbar } from '@/features/portfolio/shell/PortfolioControls';
 import { PortfolioBoard } from '@/features/portfolio/board/PortfolioBoard';
 import { PortfolioTimeline } from '@/features/portfolio/timeline/PortfolioTimeline';
@@ -83,6 +84,7 @@ function AppContent() {
             <ErrorBoundary name="Dialogs" onError={() => closeAllDialogs(actions)}>
                 <ShortcutsDialog />
                 <HelpDialog />
+                <CommandPalette />
                 <TaskDetailDialog />
                 <RoadmapEntityDialog />
                 <TaskEditorDialog />

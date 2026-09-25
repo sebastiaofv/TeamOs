@@ -23,6 +23,11 @@ function applyTheme(theme: unknown, persist = false) {
     }
 }
 
+// Switches between light and dark and remembers the choice.
+export function toggleThemePreference(): void {
+    applyTheme(useAppStore.getState().activeTheme === 'dark' ? 'light' : 'dark', true);
+}
+
 // Applies the stored theme on mount and returns the active theme plus a toggle.
 export function useTheme(): { theme: Theme; toggleTheme: () => void } {
     const theme = useAppStore((state) => state.activeTheme);

@@ -80,7 +80,8 @@ export function ShortcutsDialog() {
                             : t('board.done')
             })
             : ({
-                'focus-search': t('shortcuts.focusSearch'),
+                'focus-search': t('shortcuts.focusSearchPalette'),
+                'open-palette': t('shortcuts.openPalette'),
                 'new-project': t('shortcuts.newProject'),
                 'import-projects': t('shortcuts.importProjects'),
                 'open-shortcuts': t('shortcuts.openShortcuts'),

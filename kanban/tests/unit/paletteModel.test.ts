@@ -74,6 +74,14 @@ describe('buildPaletteModel', () => {
     expect(task.drill).toEqual({ kind: 'task', boardId: 'app', taskId: 7 });
   });
 
+  it('ranks matching actions of the context task above everything else', () => {
+    const model = buildPaletteModel(input({ query: 'assign', contextTask: { boardId: 'app', taskId: 7 } }));
+    expect(model.sections[0]).toMatchObject({ id: 'context', title: 'Login bug on Android' });
+    expect(labels(model, 'context')).toEqual(['Assign…']);
+    expect(model.sections[1].id).toBe('filter');
+    expect(buildPaletteModel(input({ query: 'login', contextTask: { boardId: 'app', taskId: 7 } })).sections[0].id).toBe('filter');
+  });
+
   it('finds tasks by #id, tag, assignee and project, and roadmap items and projects by name', () => {
     expect(labels(buildPaletteModel(input({ query: '#9' })), 'tasks')).toEqual(['Push notification spec']);
     expect(labels(buildPaletteModel(input({ query: '#auth' })), 'tasks')).toEqual(['Login bug on Android']);

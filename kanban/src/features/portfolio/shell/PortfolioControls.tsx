@@ -20,6 +20,11 @@ import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/
 import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useI18n } from '@/shared/i18n';
 import { PortfolioActiveFilters, PortfolioFilterMenu } from './PortfolioFilterMenu';
+import { openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
+
+const PALETTE_SHORTCUT_LABEL = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+    ? '⌘K'
+    : 'Ctrl K';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
@@ -120,22 +125,37 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
     const hasBoards = state.portfolioBoards.length > 0;
     const hasSelectedBoard = Boolean(state.selectedPortfolioBoardId);
     const viewMode = normalizePortfolioViewMode(state.selectedPortfolioViewMode);
-    const searchRef = useFocusTarget<HTMLInputElement>('portfolioSearch');
     const sortRef = useFocusTarget<HTMLSelectElement>('portfolioSort');
 
     return (
         <>
             <div className="portfolio-toolbar-left">
-                <div className="search-box">
-                    <label className="sr-only" htmlFor="portfolioSearchInput">{t('toolbar.searchLabel')}</label>
-                    <input
-                        type="text"
-                        id="portfolioSearchInput"
-                        ref={searchRef}
-                        placeholder={t('toolbar.searchTasks')}
-                        value={filters.search}
-                        onChange={(event) => setPortfolioFilter('search', event.target.value)}
-                    />
+                <div className="search-box palette-search">
+                    <button
+                        className={`palette-search-btn${filters.search ? ' has-value' : ''}`}
+                        id="portfolioSearchBtn"
+                        type="button"
+                        aria-haspopup="dialog"
+                        aria-label={filters.search ? `${t('palette.openButton')}: ${filters.search}` : t('palette.openButton')}
+                        onClick={() => openCommandPalette()}
+                    >
+                        <svg className="palette-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                            <circle cx="7" cy="7" r="4.5" />
+                            <path d="M10.5 10.5 14 14" />
+                        </svg>
+                        <span className="palette-search-text">{filters.search || t('toolbar.searchTasks')}</span>
+                        {!filters.search && <kbd className="palette-search-kbd">{PALETTE_SHORTCUT_LABEL}</kbd>}
+                    </button>
+                    {filters.search && (
+                        <button
+                            className="palette-search-clear"
+                            id="portfolioSearchClearBtn"
+                            type="button"
+                            aria-label={t('palette.clearSearch')}
+                            title={t('palette.clearSearch')}
+                            onClick={() => setPortfolioFilter('search', '')}
+                        >×</button>
+                    )}
                 </div>
                 <PortfolioFilterMenu filters={filters} tasks={state.portfolioTasks} />
                 <div className="filter-group">
