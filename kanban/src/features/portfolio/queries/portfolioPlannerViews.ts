@@ -1,7 +1,7 @@
 // Day planner view model: tray groups from the visible rows and per-day
 // blocks from every project in scope.
 
-import type { Effort, Priority, ProjectColor, Task, TaskStatus } from '@/domain/types';
+import type { BoardData, Effort, Priority, ProjectColor, Task, TaskStatus } from '@/domain/types';
 import type { BoardRecord, PlannerMode } from '@/features/portfolio/types';
 import { createPortfolioProjectColor } from '@/domain/board';
 import {
@@ -14,7 +14,7 @@ import {
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
 import type { SelectorState } from './portfolioRowViews';
-import { isBoardInHistoricalPreview } from './portfolioTimelineViews';
+import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './portfolioTimelineViews';
 
 export type PlannerTrayItem = {
     boardId: string;
@@ -61,10 +61,18 @@ const boardColor = (board: BoardRecord): ProjectColor => board.projectColor || c
 const boardTitle = (board: BoardRecord): string => board.title || board.fileName;
 
 function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<string>): PlannerBlockView[] {
+    // A project previewed at an earlier timeline event shows the plan as it was then.
+    const timelineView = getSelectedPortfolioTimelineView(state);
+    const previewData = (board: BoardRecord): BoardData => (
+        timelineView?.isPreview && timelineView.projectedBoard && timelineView.boardRecord.id === board.id
+            ? timelineView.projectedBoard
+            : board.data
+    );
     return boards.flatMap((board) => {
-        const tasks = new Map<number, Task>(board.data.board.tasks.map((task) => [Number(task.id), task]));
+        const data = previewData(board);
+        const tasks = new Map<number, Task>(data.board.tasks.map((task) => [Number(task.id), task]));
         const canEdit = Boolean(board.handle) && !isBoardInHistoricalPreview(state, board.id);
-        return getDayPlannerBlocks(board.data).flatMap((block) => {
+        return getDayPlannerBlocks(data).flatMap((block) => {
             const task = tasks.get(block.taskId);
             if (!task || !dates.has(block.date)) return [];
             return [{

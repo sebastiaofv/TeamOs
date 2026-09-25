@@ -20,7 +20,7 @@
 - Only tasks can be scheduled — no free blocks.
 - Scheduling never changes any task field (status included).
 - A task may appear in any number of blocks.
-- Planner edits do **not** append timeline events.
+- Planner edits append small timeline events (`planner.block.added|moved|resized|removed`, block before/after only, no snapshot); added after the original plan, see the spec.
 - Stored shape: `extensions.dayPlanner = { version: 1, blocks: [{ id, taskId, date: "YYYY-MM-DD", start: "HH:MM", end: "HH:MM" }] }`; the key is removed when there are no blocks.
 - Every user-visible string goes through `src/shared/i18n.ts` with both `en` and `pt` entries.
 - Follow `ARCHITECTURE.md`: domain code has no React, Zustand, or browser globals.

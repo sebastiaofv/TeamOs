@@ -4,6 +4,8 @@ import {
   gotoApp,
   readSavedBoard,
   seedPortfolioBoards,
+  selectPortfolioBoard,
+  setTimelineSlider,
   waitForBoardWrites
 } from '../support/portfolio';
 
@@ -123,7 +125,31 @@ test.describe('day planner', () => {
       expect.objectContaining({ taskId: 1, date: today, start: '10:00', end: '11:00' })
     ]);
     expect(saved.board.tasks[0].status).toBe('to-do');
+    expect(saved.extensions.timeline.events).toContainEqual(expect.objectContaining({
+      kind: 'planner.block.added',
+      entityId: '1',
+      summary: expect.stringContaining('Planned "Write spec"')
+    }));
     await expect(card).toContainText('planned');
+  });
+
+  test('planner changes appear in the timeline and a historical preview shows the earlier plan', async ({ page }) => {
+    const { block } = await openPlannerWithBlock(page);
+    await selectPortfolioBoard(page, 'Alpha');
+    await block.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(block).toContainText('09:15–10:15');
+    await waitForBoardWrites(page);
+
+    const panel = page.locator('#portfolioTimelinePanel');
+    await panel.locator('.timeline-toggle-btn').click();
+    await expect(panel).toContainText('Moved "Write spec"');
+
+    // Event 0 is the baseline, before the move.
+    await setTimelineSlider(page, 0);
+    await expect(panel.locator('.timeline-preview-banner.active')).toContainText('Historical preview');
+    await expect(page.locator('[data-block-id="b1"]')).toContainText('09:00–10:00');
+    await expect(page.locator('[data-block-id="b1"]')).toHaveClass(/read-only/);
   });
 
   test('drags a block to move it and its bottom edge to resize it', async ({ page }) => {

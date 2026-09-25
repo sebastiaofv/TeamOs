@@ -15,6 +15,7 @@ import { getBoardExtensionsObject } from './extensions';
 import { cloneSerializable, areSerializableValuesEqual } from './serializable';
 import { nowIso } from './util';
 import { createEmptyRoadmapExtension, getRoadmapExtension, normalizeRoadmapExtension } from './roadmap';
+import { applyPlannerBlockChange, normalizeDayPlannerBlock } from './dayPlanner';
 import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
@@ -195,6 +196,12 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
             if (!taskIdSet.has(Number(task?.id))) return;
             task.sprintId = sprint.id;
         });
+        return nextState;
+    }
+    if (event.kind.startsWith('planner.block.')) {
+        const change = event.changes?.block;
+        if (!change) return nextState;
+        applyPlannerBlockChange(nextState, normalizeDayPlannerBlock(change.before), normalizeDayPlannerBlock(change.after));
         return nextState;
     }
     if (event.kind === 'roadmap.updated') {

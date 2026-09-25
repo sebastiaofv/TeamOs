@@ -74,7 +74,7 @@ export function PlannerGrid({ model, nowMinutes, preview = null, renderBlock }: 
                     <span />
                     {model.days.map((day) => (
                         <span key={day.date} className={`planner-day-header${day.isToday ? ' today' : ''}`}>
-                            {formatPlannerDateLabel(language, day.date, true)}
+                            {formatPlannerDateLabel(language, day.date, 'short')}
                         </span>
                     ))}
                 </div>

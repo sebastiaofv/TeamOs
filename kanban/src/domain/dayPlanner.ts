@@ -193,3 +193,22 @@ export function layoutPlannerBlocks(blocks: readonly { id: string; start: string
     flush();
     return layout;
 }
+
+export type PlannerEventKind = 'planner.block.added' | 'planner.block.moved' | 'planner.block.resized' | 'planner.block.removed';
+
+// The timeline event kind for a block change: a move keeps the duration, a
+// resize changes it. Null when nothing changed.
+export function getPlannerChangeKind(before: DayPlanBlock | null, after: DayPlanBlock | null): PlannerEventKind | null {
+    if (!before) return after ? 'planner.block.added' : null;
+    if (!after) return 'planner.block.removed';
+    if (before.date === after.date && before.start === after.start && before.end === after.end) return null;
+    const duration = (block: DayPlanBlock) => plannerMinutes(block.end) - plannerMinutes(block.start);
+    return duration(before) === duration(after) ? 'planner.block.moved' : 'planner.block.resized';
+}
+
+// Replaces `before` with `after` (either may be null) in the board's blocks.
+export function applyPlannerBlockChange(boardData: LooseBoardData, before: DayPlanBlock | null, after: DayPlanBlock | null): void {
+    const id = before?.id ?? after?.id;
+    const blocks = getDayPlannerBlocks(boardData).filter((block) => block.id !== id);
+    setDayPlannerBlocks(boardData, after ? [...blocks, after] : blocks);
+}

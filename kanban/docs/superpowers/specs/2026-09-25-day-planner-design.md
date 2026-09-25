@@ -111,11 +111,21 @@ Each project JSON gains `extensions.dayPlanner`:
   non-object value removes the extension.
 - Writes go through the existing save queue (`runPortfolioBoardMutation`),
   like roadmap edits.
-- Planner edits are **not** recorded as timeline events. Board-level timeline
-  events store a full board snapshot, and planning produces many small edits
-  a day, which would bloat the project file. The timeline stays a history of
-  task and roadmap changes. (Timeline replay ignores unknown kinds, so nothing
-  depends on planner events.)
+- Every planner change is recorded as a timeline event (revised 2026-09-25 at
+  the user's request). To keep files small, events carry only the block before
+  and after, never a board snapshot:
+
+  ```json
+  { "kind": "planner.block.moved", "entityType": "task", "entityId": "14",
+    "summary": "Moved \"Write spec\" to Fri 25 Sept, 13:00–14:00",
+    "changes": { "block": { "before": { "id": "…", "start": "09:00", … }, "after": { … } } } }
+  ```
+
+  Kinds: `planner.block.added`, `planner.block.moved` (duration kept),
+  `planner.block.resized` (duration changed), `planner.block.removed`. Undo is
+  recorded as the inverse change. Keyboard nudges are not merged: each press is
+  one event. Timeline replay applies these changes, so a historical preview of
+  a project shows its plan as it was at that event (read-only).
 
 ## Code layout
 

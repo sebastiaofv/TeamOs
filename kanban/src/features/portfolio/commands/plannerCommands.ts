@@ -1,19 +1,30 @@
-// Day planner edits. Blocks are written to the project that owns the task;
-// the task itself and the timeline are never changed.
+// Day planner edits. Blocks are written to the project that owns the task and
+// each change is recorded as a small timeline event (the block before and
+// after, no board snapshot). The task itself is never changed.
 
 import type { DayPlanBlock } from '@/domain/types';
 import type { BoardMutationContext } from './mutationContext';
 import type { TaskActions } from './taskCommands';
 import {
+    applyPlannerBlockChange,
     createDayPlanBlockId,
     createPlannerBlockTimes,
     getDayPlannerBlocks,
+    getPlannerChangeKind,
     normalizeDayPlannerBlock,
-    setDayPlannerBlocks,
-    type PlannerBlockTimes
+    type PlannerBlockTimes,
+    type PlannerEventKind
 } from '@/domain/dayPlanner';
 import { parseRoadmapIsoDate } from '@/domain/roadmap';
-import { translateCurrent } from '@/shared/i18n';
+import { appendTimelineEvent } from '@/domain/timeline';
+import { formatPlannerDateLabel, getCurrentLanguage, translateCurrent, type TranslationKey } from '@/shared/i18n';
+
+const EVENT_SUMMARY_KEYS: Record<PlannerEventKind, TranslationKey> = {
+    'planner.block.added': 'planner.eventAdded',
+    'planner.block.moved': 'planner.eventMoved',
+    'planner.block.resized': 'planner.eventResized',
+    'planner.block.removed': 'planner.eventRemoved'
+};
 
 export function createPlannerActions(
     { getBoardRecord, runPortfolioBoardMutation }: BoardMutationContext,
@@ -23,22 +34,34 @@ export function createPlannerActions(
         getDayPlannerBlocks(getBoardRecord(boardId)?.data).find((block) => block.id === blockId) || null
     );
 
-    // `update` returns the next block list, or null to leave the board untouched.
-    function writeBlocks(boardId: string, update: (blocks: DayPlanBlock[]) => DayPlanBlock[] | null): Promise<boolean> {
+    // Sets block `blockId` to `after` (null removes it) and records the change.
+    // Leaves the board untouched when nothing would change.
+    function writeBlock(boardId: string, blockId: string, after: DayPlanBlock | null): Promise<boolean> {
         return runPortfolioBoardMutation(boardId, (data) => {
-            const next = update(getDayPlannerBlocks(data));
-            if (!next) return false;
-            setDayPlannerBlocks(data, next);
+            const before = getDayPlannerBlocks(data).find((block) => block.id === blockId) || null;
+            const kind = getPlannerChangeKind(before, after);
+            const shown = after || before;
+            if (!kind || !shown) return false;
+            applyPlannerBlockChange(data, before, after);
+            const task = data.board.tasks.find((entry) => Number(entry.id) === shown.taskId);
+            appendTimelineEvent(data, {
+                kind,
+                entityType: 'task',
+                entityId: String(shown.taskId),
+                summary: translateCurrent(EVENT_SUMMARY_KEYS[kind], {
+                    title: task?.title || translateCurrent('common.task'),
+                    date: formatPlannerDateLabel(getCurrentLanguage(), shown.date, 'medium'),
+                    start: shown.start,
+                    end: shown.end
+                }),
+                changes: { block: { before, after } }
+            });
             return true;
         });
     }
 
-    const putBlock = (boardId: string, block: DayPlanBlock) => writeBlocks(boardId, (blocks) => (
-        [...blocks.filter((entry) => entry.id !== block.id), block]
-    ));
-    const dropBlock = (boardId: string, blockId: string) => writeBlocks(boardId, (blocks) => (
-        blocks.some((entry) => entry.id === blockId) ? blocks.filter((entry) => entry.id !== blockId) : null
-    ));
+    const putBlock = (boardId: string, block: DayPlanBlock) => writeBlock(boardId, block.id, block);
+    const dropBlock = (boardId: string, blockId: string) => writeBlock(boardId, blockId, null);
 
     async function addPlannerBlock(boardId: string, taskId: number, date: string, startMinutes: number): Promise<boolean> {
         const record = getBoardRecord(boardId);

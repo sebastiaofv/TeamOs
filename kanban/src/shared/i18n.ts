@@ -182,6 +182,10 @@ const en = {
     'planner.blockAdded': 'Task scheduled',
     'planner.blockUpdated': 'Plan updated',
     'planner.blockRemoved': 'Removed from plan',
+    'planner.eventAdded': 'Planned "{title}" on {date}, {start}–{end}',
+    'planner.eventMoved': 'Moved "{title}" to {date}, {start}–{end}',
+    'planner.eventResized': 'Resized "{title}" to {start}–{end} on {date}',
+    'planner.eventRemoved': 'Removed "{title}" from the plan ({date}, {start}–{end})',
     'toolbar.planner': 'Day Planner',
     'planner.today': 'Today',
     'planner.previousDay': 'Previous day',
@@ -564,6 +568,10 @@ const pt: Record<TranslationKey, string> = {
     'planner.blockAdded': 'Tarefa agendada',
     'planner.blockUpdated': 'Plano atualizado',
     'planner.blockRemoved': 'Removida do plano',
+    'planner.eventAdded': '"{title}" planeada para {date}, {start}–{end}',
+    'planner.eventMoved': '"{title}" movida para {date}, {start}–{end}',
+    'planner.eventResized': '"{title}" redimensionada para {start}–{end} em {date}',
+    'planner.eventRemoved': '"{title}" removida do plano ({date}, {start}–{end})',
     'toolbar.planner': 'Planeador',
     'planner.today': 'Hoje',
     'planner.previousDay': 'Dia anterior',
@@ -809,13 +817,17 @@ export function getCalendarMonthLabel(language: Language, year: number, month: n
     return `${getCalendarMonthName(language, month)} ${year}`;
 }
 
-// "Friday, 25 Sep 2026" (long) or "Fri 25" (short) for a YYYY-MM-DD date.
-export function formatPlannerDateLabel(language: Language, isoDate: string, short = false): string {
+const PLANNER_DATE_FORMATS: Record<'long' | 'medium' | 'short', Intl.DateTimeFormatOptions> = {
+    long: { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' },
+    medium: { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' },
+    short: { weekday: 'short', day: 'numeric', timeZone: 'UTC' }
+};
+
+// "Friday, 25 Sep 2026" (long), "Fri 25 Sep" (medium) or "Fri 25" (short) for a YYYY-MM-DD date.
+export function formatPlannerDateLabel(language: Language, isoDate: string, style: 'long' | 'medium' | 'short' = 'long'): string {
     const [year, month, day] = isoDate.split('-').map(Number);
     if (!year || !month || !day) return isoDate;
-    const options: Intl.DateTimeFormatOptions = short
-        ? { weekday: 'short', day: 'numeric', timeZone: 'UTC' }
-        : { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
+    const options = PLANNER_DATE_FORMATS[style];
     return new Intl.DateTimeFormat(language === 'pt' ? 'pt-PT' : 'en-GB', options).format(new Date(Date.UTC(year, month - 1, day)));
 }
 

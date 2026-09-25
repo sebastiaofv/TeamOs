@@ -2,9 +2,11 @@ import { fromPartial } from '@total-typescript/shoehorn';
 import { describe, expect, it } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
+import { applyTimelineEventToState } from '../../src/domain/timeline';
 import {
   PLANNER_DAY_END,
   PLANNER_DAY_START,
+  applyPlannerBlockChange,
   applyPlannerGesture,
   clampPlannerStart,
   createDayPlanBlockId,
@@ -15,6 +17,7 @@ import {
   setDayPlannerBlocks,
   formatPlannerDuration,
   formatPlannerTime,
+  getPlannerChangeKind,
   getPlannerWeekDates,
   layoutPlannerBlocks,
   minutesAtPlannerOffset,
@@ -232,5 +235,44 @@ describe('layoutPlannerBlocks', () => {
     ]);
     expect(layout.get('c')).toEqual({ column: 0, columns: 1 });
     expect(layout.get('b')!.columns).toBe(2);
+  });
+});
+
+describe('planner changes', () => {
+  const at = (start: string, end: string, date = '2026-09-25') => ({ ...validBlock, date, start, end });
+
+  it('classifies a change as added, moved, resized or removed', () => {
+    expect(getPlannerChangeKind(null, validBlock)).toBe('planner.block.added');
+    expect(getPlannerChangeKind(validBlock, null)).toBe('planner.block.removed');
+    expect(getPlannerChangeKind(validBlock, at('13:00', '14:00'))).toBe('planner.block.moved');
+    expect(getPlannerChangeKind(validBlock, at('09:00', '10:00', '2026-09-24'))).toBe('planner.block.moved');
+    expect(getPlannerChangeKind(validBlock, at('09:00', '10:30'))).toBe('planner.block.resized');
+    expect(getPlannerChangeKind(validBlock, at('08:45', '10:00'))).toBe('planner.block.resized');
+    expect(getPlannerChangeKind(validBlock, validBlock)).toBeNull();
+    expect(getPlannerChangeKind(null, null)).toBeNull();
+  });
+
+  it('applies a change to the board data', () => {
+    const data = createEmptyProjectData('P');
+    applyPlannerBlockChange(data, null, validBlock);
+    expect(getDayPlannerBlocks(data)).toEqual([validBlock]);
+    applyPlannerBlockChange(data, validBlock, at('13:00', '14:00'));
+    expect(getDayPlannerBlocks(data)).toEqual([at('13:00', '14:00')]);
+    applyPlannerBlockChange(data, at('13:00', '14:00'), null);
+    expect(data.extensions).not.toHaveProperty('dayPlanner');
+  });
+
+  it('replays planner timeline events onto a board state', () => {
+    const base = createEmptyProjectData('P');
+    const event = (kind: string, before: unknown, after: unknown) => ({
+      id: kind, at: '2026-09-25T10:00:00.000Z', kind, entityType: 'task' as const, entityId: '1',
+      summary: kind, changes: { block: { before, after } }
+    });
+    let state: any = applyTimelineEventToState(base as any, event('planner.block.added', null, validBlock));
+    expect(state.extensions.dayPlanner.blocks).toEqual([validBlock]);
+    state = applyTimelineEventToState(state, event('planner.block.resized', validBlock, at('09:00', '11:00')));
+    expect(state.extensions.dayPlanner.blocks).toEqual([at('09:00', '11:00')]);
+    state = applyTimelineEventToState(state, event('planner.block.removed', at('09:00', '11:00'), null));
+    expect(state.extensions).not.toHaveProperty('dayPlanner');
   });
 });

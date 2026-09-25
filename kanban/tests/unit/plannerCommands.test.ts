@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createAppStore } from '../../src/features/portfolio/state/store';
 import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
+import { buildPortfolioPlannerViewModel } from '../../src/features/portfolio/queries';
 
 function createBoard() {
   const data = createEmptyProjectData('Project');
@@ -38,16 +39,48 @@ function setup() {
 }
 
 describe('planner commands', () => {
-  it('adds a 1-hour block without touching the task or the timeline', async () => {
+  const plannerEvents = (events: () => any[]) => events().filter((event) => event.kind.startsWith('planner.'));
+
+  it('adds a 1-hour block without touching the task, recording a timeline event', async () => {
     const { actions, blocks, task, events, enqueueSave } = setup();
     const before = structuredClone(task());
 
     await expect(actions.addPlannerBlock('p1', 1, '2026-09-25', 600)).resolves.toBe(true);
 
-    expect(blocks()).toEqual([expect.objectContaining({ taskId: 1, date: '2026-09-25', start: '10:00', end: '11:00' })]);
+    const block = blocks()[0];
+    expect(block).toMatchObject({ taskId: 1, date: '2026-09-25', start: '10:00', end: '11:00' });
     expect(task()).toEqual(before);
-    expect(events().filter((event) => event.kind !== 'board.baseline')).toHaveLength(0);
+    expect(plannerEvents(events)).toEqual([expect.objectContaining({
+      kind: 'planner.block.added',
+      entityType: 'task',
+      entityId: '1',
+      summary: expect.stringContaining('Plan me'),
+      changes: { block: { before: null, after: block } }
+    })]);
+    expect(plannerEvents(events)[0]).not.toHaveProperty('snapshot');
     expect(enqueueSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('records moves, resizes and removals as separate events, and undo as the inverse action', async () => {
+    const { actions, blocks, events } = setup();
+    await actions.addPlannerBlock('p1', 1, '2026-09-25', 540);
+    const id = blocks()[0].id;
+    await actions.updatePlannerBlock('p1', id, { date: '2026-09-25', start: '09:15', end: '10:15' });
+    await actions.updatePlannerBlock('p1', id, { date: '2026-09-25', start: '09:15', end: '10:30' });
+    await actions.removePlannerBlock('p1', id);
+    await actions.performUndo();
+
+    expect(plannerEvents(events).map((event) => event.kind)).toEqual([
+      'planner.block.added',
+      'planner.block.moved',
+      'planner.block.resized',
+      'planner.block.removed',
+      'planner.block.added'
+    ]);
+    expect(plannerEvents(events)[2].changes.block).toEqual({
+      before: expect.objectContaining({ start: '09:15', end: '10:15' }),
+      after: expect.objectContaining({ start: '09:15', end: '10:30' })
+    });
   });
 
   it('clamps a late drop so the block ends at 21:00', async () => {
@@ -105,6 +138,20 @@ describe('planner commands', () => {
 
     await actions.performUndo();
     expect(blocks()).toEqual([original]);
+  });
+
+  it('shows the planner as it was at a previewed timeline event', async () => {
+    const { actions, blocks, events, store } = setup();
+    await actions.addPlannerBlock('p1', 1, '2026-09-25', 540);
+    await actions.updatePlannerBlock('p1', blocks()[0].id, { date: '2026-09-25', start: '13:00', end: '14:00' });
+    const addedIndex = events().findIndex((event) => event.kind === 'planner.block.added');
+    const view = () => buildPortfolioPlannerViewModel(store.getState(), { today: '2026-09-25', trayStatuses: ['to-do'] });
+
+    expect(view().days[0].blocks.map((block) => block.start)).toEqual(['13:00']);
+    store.setState({ selectedPortfolioBoardId: 'p1', portfolioTimelineSelection: { boardId: 'p1', eventIndex: addedIndex } });
+    expect(view().days[0].blocks.map((block) => [block.start, block.canEdit])).toEqual([['09:00', false]]);
+    store.setState({ portfolioTimelineSelection: { boardId: 'p1', eventIndex: addedIndex - 1 } });
+    expect(view().days[0].blocks).toEqual([]);
   });
 
   it('undoing an add removes the block', async () => {

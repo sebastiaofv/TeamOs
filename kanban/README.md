@@ -10,7 +10,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
 - **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
 - **Calendar view** — year and month calendars with tasks and roadmap spans, plus a heatmap mode.
-- **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself.
+- **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
 - **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
 - **Light and dark theme.**
 
