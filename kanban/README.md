@@ -79,6 +79,25 @@ open dist-standalone/index.html
 
 This produces one self-contained HTML file. The regular `npm run build` continues to generate the normal `dist/` bundle.
 
+`dist/` and `dist-standalone/` are build output and are not committed; CI publishes them (below).
+
+## Continuous integration and downloads
+
+GitHub Actions (`.github/workflows/kanban.yml`, at the repository root) runs on every pull request and push that touches `kanban/`: lint, typecheck, unit tests and the Playwright end-to-end tests (`tests/e2e`). The visual snapshot tests are not run in CI because their baselines are macOS-specific; run `npm test` locally for those.
+
+When the tests pass on `main`, the workflow builds the app and replaces the **`kanban-latest`** GitHub Release with:
+
+- `teamos-kanban.html`: the standalone single-file app, to download and open in a Chromium-based browser.
+- `teamos-kanban-dist.zip`: the regular `dist/` build for a web server.
+
+To fetch the latest standalone file from the command line:
+
+```bash
+gh release download kanban-latest --repo sebastiaofv/TeamOs --pattern teamos-kanban.html
+```
+
+The workflow can also be started by hand from the Actions tab (*Run workflow*).
+
 ## Testing
 
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
