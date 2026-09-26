@@ -113,6 +113,14 @@ for (const theme of ['light', 'dark']) {
     await expect(page.locator('#helpModal')).toContainText('Drag cards between columns');
     await expect(page).toHaveScreenshot(`help-${theme}.png`, { fullPage: true });
   });
+
+  test(`help command palette tab (${theme})`, async ({ page }) => {
+    await gotoVisualApp(page, theme);
+    await page.locator('#openHelpBtn').click();
+    await page.locator('#helpModal').getByRole('tab', { name: 'Command palette' }).click();
+    await expect(page.locator('#helpModal')).toContainText('Create a task in one line');
+    await expect(page).toHaveScreenshot(`help-palette-${theme}.png`, { fullPage: true });
+  });
 }
 
 test('no dialog open after opening and closing one (light)', async ({ page }) => {

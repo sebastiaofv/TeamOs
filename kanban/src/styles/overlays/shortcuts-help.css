@@ -198,3 +198,128 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Help dialog tabs */
+.help-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.help-tab {
+    position: relative;
+    top: 1px;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.help-tab:hover {
+    color: var(--text-primary);
+}
+
+.help-tab.active {
+    border-color: var(--border-light);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: inset 0 2px 0 var(--accent);
+}
+
+.help-tab:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+}
+
+/* Command palette guide */
+.palette-help code {
+    padding: 1px 5px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+    white-space: nowrap;
+}
+
+.palette-help kbd {
+    padding: 0 5px;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font: 11px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.help-card .palette-help-examples {
+    padding-left: 0;
+    list-style: none;
+    gap: 0;
+}
+
+.palette-help-example {
+    display: grid;
+    grid-template-columns: minmax(120px, max-content) 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.palette-help-example:last-child {
+    border-bottom: none;
+}
+
+.palette-help-keys,
+.palette-help-tokens {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 6px 12px;
+    align-items: center;
+    font-size: 12px;
+}
+
+.palette-help-tokens > div {
+    display: contents;
+}
+
+.palette-help-keys dt,
+.palette-help-tokens dt {
+    white-space: nowrap;
+}
+
+.palette-help-sample {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 8px 10px;
+    border: 1px dashed var(--accent);
+    background: var(--bg-primary);
+}
+
+.palette-help-sample code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.palette-help-hint {
+    color: var(--text-secondary);
+}
+
+@media (max-width: 700px) {
+    .palette-help-example {
+        grid-template-columns: 1fr auto;
+    }
+
+    .palette-help-example span {
+        grid-column: 1 / -1;
+        grid-row: 2;
+    }
+}

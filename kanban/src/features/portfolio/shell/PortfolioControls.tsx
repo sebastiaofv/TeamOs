@@ -20,11 +20,7 @@ import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/
 import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useI18n } from '@/shared/i18n';
 import { PortfolioActiveFilters, PortfolioFilterMenu } from './PortfolioFilterMenu';
-import { openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
-
-const PALETTE_SHORTCUT_LABEL = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
-    ? '⌘K'
-    : 'Ctrl K';
+import { PALETTE_SHORTCUT_LABEL, openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'

@@ -30,6 +30,7 @@ export type PaletteDeps = {
     toggleLanguage: () => void;
     openShortcuts: () => void;
     openHelp: () => void;
+    openPaletteHelp: () => void;
     newProject: () => unknown;
     importProjects: () => unknown;
     taskInfo: (boardId: string, taskId: number) => { title: string; status: TaskStatus } | null;
@@ -78,6 +79,7 @@ export async function runPaletteAction(action: PaletteAction, deps: PaletteDeps)
         case 'toggle-language': deps.toggleLanguage(); return;
         case 'open-shortcuts': deps.openShortcuts(); return;
         case 'open-help': deps.openHelp(); return;
+        case 'open-palette-help': deps.openPaletteHelp(); return;
         case 'new-project': await deps.newProject(); return;
         case 'import-projects': await deps.importProjects(); return;
         }

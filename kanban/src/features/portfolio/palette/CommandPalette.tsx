@@ -57,7 +57,7 @@ const sameFrame = (a: PaletteFrame | undefined, b: PaletteFrame) => Boolean(a)
     && a!.kind === b.kind && a!.boardId === b.boardId && a!.taskId === b.taskId
     && (a!.kind !== 'step' || (b.kind === 'step' && a!.step === b.step));
 
-function PaletteBody({ contextTask }: { contextTask: CommandPaletteProps['contextTask'] }) {
+function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPaletteProps['contextTask']; initialQuery: string }) {
     const { t, language, toggleLanguage } = useI18n();
     const actions = usePortfolioActions();
     const state = useAppStore(useShallow((s) => ({
@@ -66,7 +66,7 @@ function PaletteBody({ contextTask }: { contextTask: CommandPaletteProps['contex
         selectedBoardId: s.selectedPortfolioBoardId,
         boardSearch: s.portfolioFilters.search
     })));
-    const [query, setQuery] = useState('');
+    const [query, setQuery] = useState(initialQuery);
     const [stack, setStack] = useState<PaletteFrame[]>([]);
     const [active, setActive] = useState(0);
     const [recent] = useState(() => loadRecentPaletteItems());
@@ -106,6 +106,7 @@ function PaletteBody({ contextTask }: { contextTask: CommandPaletteProps['contex
         toggleLanguage,
         openShortcuts: () => openDialog('shortcuts'),
         openHelp: () => openDialog('help'),
+        openPaletteHelp: () => openDialog('help', { tab: 'palette' }),
         newProject: () => createNewProject(),
         importProjects: () => importPortfolioProjects(),
         taskInfo: (boardId, taskId) => {
@@ -279,7 +280,7 @@ export function CommandPalette() {
                 <Dialog.Overlay className="palette-overlay" id="commandPaletteOverlay">
                     <Dialog.Content className="palette" id="commandPalette" aria-describedby={undefined} {...returnFocus}>
                         <Dialog.Title className="sr-only">{t('palette.title')}</Dialog.Title>
-                        {open && <PaletteBody contextTask={props?.contextTask || null} />}
+                        {open && <PaletteBody contextTask={props?.contextTask || null} initialQuery={props?.initialQuery || ''} />}
                     </Dialog.Content>
                 </Dialog.Overlay>
             </Dialog.Portal>

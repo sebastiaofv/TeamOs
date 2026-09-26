@@ -9,7 +9,7 @@ function deps(): any {
     moveTask: vi.fn(async () => true), toggleAssignee: vi.fn(async () => true), setPriority: vi.fn(async () => true),
     planTask: vi.fn(async () => true), createTask: vi.fn(async () => 21),
     setBoardSearch: vi.fn(), setViewMode: vi.fn(), selectBoard: vi.fn(), resetFilters: vi.fn(), openFilters: vi.fn(),
-    toggleTheme: vi.fn(), toggleLanguage: vi.fn(), openShortcuts: vi.fn(), openHelp: vi.fn(),
+    toggleTheme: vi.fn(), toggleLanguage: vi.fn(), openShortcuts: vi.fn(), openHelp: vi.fn(), openPaletteHelp: vi.fn(),
     newProject: vi.fn(), importProjects: vi.fn(),
     taskInfo: vi.fn(() => ({ title: 'Write spec', status: 'to-do' })),
     showUndo: vi.fn((_message: string, fn: () => unknown) => { d.undo = fn; }),
@@ -25,6 +25,8 @@ describe('runPaletteAction', () => {
     await runPaletteAction({ type: 'command', id: 'view-planner' }, d);
     await runPaletteAction({ type: 'command', id: 'clear-board-filter' }, d);
     await runPaletteAction({ type: 'openRoadmap', boardId: 'web' }, d);
+    await runPaletteAction({ type: 'command', id: 'open-palette-help' }, d);
+    expect(d.openPaletteHelp).toHaveBeenCalled();
     expect(d.setBoardSearch.mock.calls).toEqual([['login'], ['']]);
     expect(d.setViewMode.mock.calls).toEqual([['planner'], ['roadmap']]);
     expect(d.selectBoard).toHaveBeenCalledWith('web');

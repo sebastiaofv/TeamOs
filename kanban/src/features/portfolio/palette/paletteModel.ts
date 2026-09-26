@@ -28,7 +28,7 @@ export type PaletteFrame =
 export type PaletteCommandId =
     | 'view-board' | 'view-roadmap' | 'view-calendar' | 'view-planner'
     | 'open-filters' | 'reset-filters' | 'clear-board-filter'
-    | 'toggle-theme' | 'toggle-language' | 'open-shortcuts' | 'open-help'
+    | 'toggle-theme' | 'toggle-language' | 'open-shortcuts' | 'open-help' | 'open-palette-help'
     | 'new-project' | 'import-projects';
 
 export type QuickCreateFields = Pick<QuickCreateDraft, 'title' | 'assignees' | 'priority' | 'tags' | 'effort' | 'dueDate'>;
@@ -133,6 +133,7 @@ const COMMANDS: CommandSpec[] = [
     { id: 'toggle-language', key: 'palette.cmdLanguage' },
     { id: 'open-shortcuts', key: 'palette.cmdShortcuts', hint: ['?'] },
     { id: 'open-help', key: 'palette.cmdHelp', hint: ['H'] },
+    { id: 'open-palette-help', key: 'palette.cmdPaletteHelp' },
     { id: 'new-project', key: 'palette.cmdNewProject', hint: ['N'] },
     { id: 'import-projects', key: 'palette.cmdImport', hint: ['I'] }
 ];

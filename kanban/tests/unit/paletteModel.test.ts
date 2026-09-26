@@ -97,6 +97,10 @@ describe('buildPaletteModel', () => {
     expect(labels(buildPaletteModel(input({ query: 'roadmap', selectedBoardId: 'web' })), 'commands')).toEqual(['Go to Roadmap']);
   });
 
+  it('offers help on using the palette', () => {
+    expect(labels(buildPaletteModel(input({ query: 'how to use' })), 'commands')).toEqual(['How to use the command palette']);
+  });
+
   it('offers clearing the board filter when one is active', () => {
     expect(labels(buildPaletteModel(input({ boardSearch: 'x' })), 'commands')).toContain('Clear board filter "x"');
   });

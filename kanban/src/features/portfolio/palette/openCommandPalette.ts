@@ -5,13 +5,17 @@
 import { openDialog } from '@/app/overlays/dialogs';
 import { useAppStore } from '@/features/portfolio/state/store';
 
-export function openCommandPalette(): void {
+export function openCommandPalette(initialQuery = ''): void {
     const state = useAppStore.getState();
     const detail = state.activeDialog === 'taskDetail' ? state.portfolioDetailContext : null;
     if (detail) useAppStore.setState({ portfolioDetailContext: null });
     const ref = detail || state.hoveredPortfolioCardRef || state.selectedPortfolioCardRef;
-    openDialog('commandPalette', { contextTask: ref ? { boardId: ref.boardId, taskId: Number(ref.taskId) } : null });
+    openDialog('commandPalette', { contextTask: ref ? { boardId: ref.boardId, taskId: Number(ref.taskId) } : null, initialQuery });
 }
+
+export const PALETTE_SHORTCUT_LABEL = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+    ? '⌘K'
+    : 'Ctrl K';
 
 // Event the Filters panel listens for, so the palette can open it.
 export const OPEN_FILTERS_EVENT = 'teamOs:open-filters';
