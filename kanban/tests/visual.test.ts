@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel } from './support/portfolio';
+import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
 
 // Pixel baselines for pieces being ported to React. They are captured against
 // the legacy implementation first; a port must match them unchanged. Baselines
@@ -112,6 +112,14 @@ for (const theme of ['light', 'dark']) {
     await expect(page.locator('#helpModal')).toBeVisible();
     await expect(page.locator('#helpModal')).toContainText('Drag cards between columns');
     await expect(page).toHaveScreenshot(`help-${theme}.png`, { fullPage: true });
+  });
+
+  test(`help command palette tab (${theme})`, async ({ page }) => {
+    await gotoVisualApp(page, theme);
+    await page.locator('#openHelpBtn').click();
+    await page.locator('#helpModal').getByRole('tab', { name: 'Command palette' }).click();
+    await expect(page.locator('#helpModal')).toContainText('Create a task in one line');
+    await expect(page).toHaveScreenshot(`help-palette-${theme}.png`, { fullPage: true });
   });
 }
 
@@ -355,7 +363,7 @@ test.describe('2.2 toolbar and chips', () => {
         { id: 2, title: 'Other task', status: 'doing', priority: 'low', effort: 'S' }
       ]
     }], { selectedBoardId: 'v1' });
-    await page.locator('#portfolioSearchInput').fill('launch');
+    await setBoardSearch(page, 'launch');
     await openFiltersPanel(page);
     await page.locator('#portfolioArchiveFilter').selectOption('all');
     await page.locator('#portfolioBlockedFilter').selectOption('blocked');

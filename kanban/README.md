@@ -10,6 +10,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
 - **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
 - **Calendar view** — year and month calendars with tasks and roadmap spans, plus a heatmap mode.
+- **Command palette** — `⌘K` / `Ctrl+K`, `/` or the toolbar search box. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan, archive); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
 - **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
 - **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
 - **Light and dark theme.**
@@ -34,7 +35,8 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 
 | Keys | Action |
 |---|---|
-| `/` | Focus search |
+| `Ctrl/⌘` + `K` | Open the command palette |
+| `/` | Search tasks and commands (opens the command palette) |
 | `N` / `I` | New project / import projects |
 | `H` | Help |
 | `R` | Reset filters and sort |

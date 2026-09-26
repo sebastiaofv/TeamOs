@@ -137,12 +137,19 @@ export type RoadmapEntityViewModel = {
     initialFocus: 'existingSprint' | 'title';
 };
 
+// The task the command palette opened for (open, hovered or selected card),
+// and text to start with (e.g. an example from Help).
+export type CommandPaletteProps = { contextTask: { boardId: string; taskId: number } | null; initialQuery?: string };
+export type HelpTab = 'guide' | 'palette';
+export type HelpDialogProps = { tab?: HelpTab };
+
 export type DialogPropsByName = {
+    commandPalette: CommandPaletteProps;
     taskEditor: TaskEditorViewModel;
     taskDetail: TaskDetailViewModel;
     roadmapEntity: RoadmapEntityViewModel;
     shortcuts: null;
-    help: null;
+    help: HelpDialogProps | null;
 };
 export type DialogName = keyof DialogPropsByName;
 

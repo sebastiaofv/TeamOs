@@ -13,6 +13,7 @@ import {
 import { normalizeAssignee, taskAssignees } from '@/domain/task';
 import { clearPortfolioFilter, clearPortfolioFilters, setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { useI18n } from '@/shared/i18n';
+import { OPEN_FILTERS_EVENT } from '@/features/portfolio/palette/openCommandPalette';
 
 type Translate = ReturnType<typeof useI18n>['t'];
 type FilterOption = { value: string; label: string };
@@ -92,6 +93,13 @@ export function PortfolioFilterMenu({ filters, tasks }: { filters: PortfolioFilt
         setOpen(false);
         if (returnFocus) buttonRef.current?.focus();
     };
+
+    // The command palette's "Open filters" command.
+    useEffect(() => {
+        const onRequest = () => setOpen(true);
+        window.addEventListener(OPEN_FILTERS_EVENT, onRequest);
+        return () => window.removeEventListener(OPEN_FILTERS_EVENT, onRequest);
+    }, []);
 
     useEffect(() => {
         if (!open) return undefined;

@@ -16,9 +16,10 @@ import {
     showPortfolioPlannerToday
 } from './portfolioControls';
 import { focusTarget } from '@/shared/ui/focusTargets';
+import { openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 
-export type ShortcutContext = 'global' | 'taskModal' | 'detailModal' | 'roadmapEntityModal' | 'shortcutsModal' | 'helpModal';
+export type ShortcutContext = 'global' | 'taskModal' | 'detailModal' | 'roadmapEntityModal' | 'shortcutsModal' | 'helpModal' | 'paletteModal';
 
 export type Shortcut = {
     id: string;
@@ -89,10 +90,6 @@ export function selectAdjacentPortfolioCard(step: number): void {
     useAppStore.setState({ selectedPortfolioCardRef: { boardId: row.boardId, taskId: Number(row.taskId) } });
 }
 
-export function focusPortfolioSearch(): void {
-    focusTarget('portfolioSearch');
-}
-
 export function focusPortfolioSortControl(): void {
     focusTarget('portfolioSort');
 }
@@ -142,9 +139,15 @@ const MOVE_SHORTCUTS: [string, TaskStatus, string][] = [
 export function createPortfolioShortcuts(actions: PortfolioMutationActions = getPortfolioMutationActions()): Shortcut[] {
     return [
     {
-        id: 'focus-search', section: 'Global', keys: ['/'], description: 'Focus project search', contexts: ['global'],
+        id: 'open-palette', section: 'Global', keys: ['Ctrl/⌘', 'K'], description: 'Open the command palette', contexts: ['global', 'detailModal'],
+        allowWhileTyping: true,
+        match: (event) => (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'k',
+        handler: () => openCommandPalette()
+    },
+    {
+        id: 'focus-search', section: 'Global', keys: ['/'], description: 'Search tasks and commands', contexts: ['global'],
         match: (event) => noModifiers(event) && !event.shiftKey && event.key === '/',
-        handler: () => focusPortfolioSearch()
+        handler: () => openCommandPalette()
     },
     {
         id: 'new-project', section: 'Global', keys: ['N'], description: 'Create a new project', contexts: ['global'],
@@ -303,7 +306,8 @@ const SHORTCUT_CONTEXT_BY_DIALOG: Record<DialogName, ShortcutContext> = {
     taskDetail: 'detailModal',
     roadmapEntity: 'roadmapEntityModal',
     shortcuts: 'shortcutsModal',
-    help: 'helpModal'
+    help: 'helpModal',
+    commandPalette: 'paletteModal'
 };
 
 function isTyping(): boolean {

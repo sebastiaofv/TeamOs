@@ -36,6 +36,7 @@ src/
 │   ├── board/                   # board view and drag/drop composition
 │   ├── calendar/                # calendar view and grid
 │   ├── planner/                 # day planner view, tray, time grid, block gestures
+│   ├── palette/                 # command palette: matching, quick create, results, actions
 │   ├── roadmap/                 # roadmap view and roadmap dialog
 │   ├── task/                    # task card and task dialogs
 │   ├── timeline/                # timeline view

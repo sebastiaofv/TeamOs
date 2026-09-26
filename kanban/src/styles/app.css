@@ -8,6 +8,7 @@
 @import './portfolio/timeline.css';
 @import './portfolio/board.css';
 @import './overlays/dialogs.css';
+@import './overlays/command-palette.css';
 @import './overlays/app-message.css';
 @import './portfolio/task-editor.css';
 @import './overlays/shortcuts-help.css';
