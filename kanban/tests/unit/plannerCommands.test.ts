@@ -41,14 +41,14 @@ function setup() {
 describe('planner commands', () => {
   const plannerEvents = (events: () => any[]) => events().filter((event) => event.kind.startsWith('planner.'));
 
-  it('adds a 1-hour block without touching the task, recording a timeline event', async () => {
+  it('adds a 15-minute block without touching the task, recording a timeline event', async () => {
     const { actions, blocks, task, events, enqueueSave } = setup();
     const before = structuredClone(task());
 
     await expect(actions.addPlannerBlock('p1', 1, '2026-09-25', 600)).resolves.toBe(true);
 
     const block = blocks()[0];
-    expect(block).toMatchObject({ taskId: 1, date: '2026-09-25', start: '10:00', end: '11:00' });
+    expect(block).toMatchObject({ taskId: 1, date: '2026-09-25', start: '10:00', end: '10:15' });
     expect(task()).toEqual(before);
     expect(plannerEvents(events)).toEqual([expect.objectContaining({
       kind: 'planner.block.added',
@@ -65,7 +65,7 @@ describe('planner commands', () => {
     const { actions, blocks, events } = setup();
     await actions.addPlannerBlock('p1', 1, '2026-09-25', 540);
     const id = blocks()[0].id;
-    await actions.updatePlannerBlock('p1', id, { date: '2026-09-25', start: '09:15', end: '10:15' });
+    await actions.updatePlannerBlock('p1', id, { date: '2026-09-25', start: '09:15', end: '09:30' });
     await actions.updatePlannerBlock('p1', id, { date: '2026-09-25', start: '09:15', end: '10:30' });
     await actions.removePlannerBlock('p1', id);
     await actions.performUndo();
@@ -78,7 +78,7 @@ describe('planner commands', () => {
       'planner.block.added'
     ]);
     expect(plannerEvents(events)[2].changes.block).toEqual({
-      before: expect.objectContaining({ start: '09:15', end: '10:15' }),
+      before: expect.objectContaining({ start: '09:15', end: '09:30' }),
       after: expect.objectContaining({ start: '09:15', end: '10:30' })
     });
   });
@@ -86,7 +86,7 @@ describe('planner commands', () => {
   it('clamps a late drop so the block ends at 21:00', async () => {
     const { actions, blocks } = setup();
     await actions.addPlannerBlock('p1', 1, '2026-09-25', 1250);
-    expect(blocks()[0]).toMatchObject({ start: '20:00', end: '21:00' });
+    expect(blocks()[0]).toMatchObject({ start: '20:45', end: '21:00' });
   });
 
   it('refuses unknown tasks and invalid dates', async () => {
@@ -113,7 +113,7 @@ describe('planner commands', () => {
     expect(store.getState().undoToast?.message).toBeTruthy();
 
     await actions.performUndo();
-    expect(blocks()[0]).toMatchObject({ date: '2026-09-25', start: '09:00', end: '10:00' });
+    expect(blocks()[0]).toMatchObject({ date: '2026-09-25', start: '09:00', end: '09:15' });
   });
 
   it('rejects invalid or unchanged updates', async () => {
@@ -123,8 +123,8 @@ describe('planner commands', () => {
     enqueueSave.mockClear();
 
     await expect(actions.updatePlannerBlock('p1', id, { date: '2026-09-25', start: '10:00', end: '09:00' })).resolves.toBe(false);
-    await expect(actions.updatePlannerBlock('p1', id, { date: '2026-09-25', start: '09:00', end: '10:00' })).resolves.toBe(false);
-    await expect(actions.updatePlannerBlock('p1', 'missing', { date: '2026-09-25', start: '09:00', end: '10:00' })).resolves.toBe(false);
+    await expect(actions.updatePlannerBlock('p1', id, { date: '2026-09-25', start: '09:00', end: '09:15' })).resolves.toBe(false);
+    await expect(actions.updatePlannerBlock('p1', 'missing', { date: '2026-09-25', start: '09:00', end: '09:15' })).resolves.toBe(false);
     expect(enqueueSave).not.toHaveBeenCalled();
   });
 
@@ -148,7 +148,7 @@ describe('planner commands', () => {
     } finally {
       useAppStore.setState({ activeLanguage: 'en' });
     }
-    expect(plannerEvents(events)[0].summary).toBe('Planned "Plan me" on Fri 25 Sept, 09:00–10:00');
+    expect(plannerEvents(events)[0].summary).toBe('Planned "Plan me" on Fri 25 Sept, 09:00–09:15');
   });
 
   it('shows the planner as it was at a previewed timeline event', async () => {

@@ -76,9 +76,9 @@ describe('snapping and clamping', () => {
     expect(minutesAtPlannerOffset(-10, 24)).toBe(420);
   });
 
-  it('creates a 1-hour block that ends by 21:00', () => {
-    expect(createPlannerBlockTimes(600)).toEqual({ start: '10:00', end: '11:00' });
-    expect(createPlannerBlockTimes(1245)).toEqual({ start: '20:00', end: '21:00' });
+  it('creates a 15-minute block that ends by 21:00', () => {
+    expect(createPlannerBlockTimes(600)).toEqual({ start: '10:00', end: '10:15' });
+    expect(createPlannerBlockTimes(1245)).toEqual({ start: '20:45', end: '21:00' });
   });
 });
 
