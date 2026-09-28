@@ -12,7 +12,7 @@ export const PLANNER_DAY_START = 7 * 60;
 export const PLANNER_DAY_END = 21 * 60;
 export const PLANNER_WORK_START = 9 * 60;
 export const PLANNER_WORK_END = 17 * 60;
-export const PLANNER_DEFAULT_BLOCK_MINUTES = 60;
+export const PLANNER_DEFAULT_BLOCK_MINUTES = 15;
 
 export type PlannerBlockTimes = Pick<DayPlanBlock, 'date' | 'start' | 'end'>;
 export type PlannerGestureMode = 'move' | 'resize-start' | 'resize-end';

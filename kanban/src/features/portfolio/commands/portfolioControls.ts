@@ -183,7 +183,8 @@ export function createPortfolioControlActions({
             clearPortfolioTimelineSelection();
         }
         setSelectedPortfolioBoardId(boardId, {
-            resetViewModeWhenEmpty: !(!boardId && state.selectedPortfolioViewMode === 'calendar')
+            resetViewModeWhenEmpty: !(!boardId
+                && (state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner'))
         });
 
         syncUrlState();

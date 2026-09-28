@@ -53,7 +53,10 @@ export function createBoardInteractions(
         }
         commitState({
             selectedPortfolioBoardId: nextBoardId,
-            ...(options.resetViewModeWhenEmpty !== false && !nextBoardId
+            ...(options.resetViewModeWhenEmpty !== false
+                && !nextBoardId
+                && state.selectedPortfolioViewMode !== 'calendar'
+                && state.selectedPortfolioViewMode !== 'planner'
                 ? { selectedPortfolioViewMode: 'board' as const }
                 : {})
         });
