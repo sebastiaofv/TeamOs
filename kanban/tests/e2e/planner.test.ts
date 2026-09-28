@@ -105,7 +105,7 @@ test.describe('day planner', () => {
     if (hour >= 7 && hour < 21) await expect(day.locator('.planner-now')).toHaveCount(1);
   });
 
-  test('dragging a task onto the day creates a 1-hour block and saves it without changing the task', async ({ page }) => {
+  test('dragging a task onto the day creates a 15-minute block and saves it without changing the task', async ({ page }) => {
     const today = localIsoDate();
     await seedPortfolioBoards(page, [{
       id: 'alpha', hasHandle: true, title: 'Alpha',
@@ -118,11 +118,11 @@ test.describe('day planner', () => {
     // 10:00 is 12 slots of 24px below 07:00; aim inside that slot.
     await dragWithMouse(page, card, day, { targetPosition: { x: 40, y: 12 * 24 + 6 } });
 
-    await expect(day.locator('.planner-block')).toContainText('10:00–11:00');
+    await expect(day.locator('.planner-block')).toHaveAttribute('aria-label', /10:00 to 10:15/);
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'alpha');
     expect(saved.extensions.dayPlanner.blocks).toEqual([
-      expect.objectContaining({ taskId: 1, date: today, start: '10:00', end: '11:00' })
+      expect.objectContaining({ taskId: 1, date: today, start: '10:00', end: '10:15' })
     ]);
     expect(saved.board.tasks[0].status).toBe('to-do');
     expect(saved.extensions.timeline.events).toContainEqual(expect.objectContaining({

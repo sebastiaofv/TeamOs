@@ -152,7 +152,7 @@ test.describe('command palette', () => {
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'bravo');
     expect(saved.extensions.dayPlanner.blocks).toEqual([
-      expect.objectContaining({ taskId: 5, date: localIsoDate(), start: '14:00', end: '15:00' })
+      expect.objectContaining({ taskId: 5, date: localIsoDate(), start: '14:00', end: '14:15' })
     ]);
   });
 
