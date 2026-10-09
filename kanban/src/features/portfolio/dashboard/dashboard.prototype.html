@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- THROWAWAY: portable entry for the dashboard design study. -->
+<html lang="pt" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeamOS — Mockup dos dashboards</title>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        import '/src/styles/app.css';
+        import { createElement } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import { DashboardPrototype } from './DashboardPrototype.tsx';
+        createRoot(document.getElementById('root')).render(createElement(DashboardPrototype));
+    </script>
+</body>
+</html>

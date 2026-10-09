@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prototype:dashboard": "vite --open '/?prototype=dashboard&variant=A'",
     "build": "vite build",
     "build:standalone": "vite build --config vite.standalone.config.ts",
     "preview": "vite preview",
