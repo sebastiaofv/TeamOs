@@ -18,9 +18,11 @@ import {
 } from '@/domain/attachments';
 import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
+import { cloneSerializable } from '@/domain/serializable';
 import { translateCurrent } from '@/shared/i18n';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
+import { resolveTaskDetailSource } from '@/features/portfolio/queries/taskDetailSource';
 import {
     buildTaskEditorViewModel,
     buildTaskDetailViewModel,
@@ -39,11 +41,22 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     let undoTimer: ReturnType<typeof setTimeout> | null = null;
 
     function openPortfolioTaskDetails(boardId: string, taskId: number, options: { boardData?: unknown; readOnly?: boolean } = {}) {
-        const source = findPortfolioTaskDetailSource(getBoardRecord, boardId, taskId, options);
+        // All entry points (cards, calendar, keyboard and palette) use the
+        // opened project's preview, including when another project is selected.
+        const state = getState();
+        const view = getSelectedPortfolioTimelineView({ ...state, selectedPortfolioBoardId: boardId });
+        const detailOptions = view?.isPreview
+            ? { ...options, boardData: view.projectedBoard, readOnly: true }
+            : options;
+        const source = findPortfolioTaskDetailSource(getBoardRecord, boardId, taskId, detailOptions);
         if (!source) return;
         setSelectedPortfolioCard(boardId, taskId);
-        const readOnly = options.readOnly === true || !canUsePortfolioTaskMutations(boardId);
-        commitState({ portfolioDetailContext: { boardId, taskId, readOnly } });
+        const readOnly = detailOptions.readOnly === true || !canUsePortfolioTaskMutations(boardId);
+        commitState({ portfolioDetailContext: {
+            boardId, taskId, readOnly, task: cloneSerializable(source.task),
+            eventId: view?.isPreview ? view.selectedEvent?.id || null : null,
+            openedAtEventId: view?.timeline?.events.at(-1)?.id || null
+        } });
         openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly));
     }
 
@@ -257,6 +270,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             notifyPortfolioMutationUnavailable(context.boardId);
             return;
         }
+        if (!resolveTaskDetailSource(getBoardRecord(context.boardId), context)) return;
         return runPortfolioTaskMutation(context.boardId, context.taskId, (task) => {
             if (!Array.isArray(task.checklist) || !task.checklist[itemIndex]) return false;
             task.checklist[itemIndex].done = checked;
@@ -379,7 +393,9 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
     function refreshTaskDetail(boardId: string) {
         const context = getState().portfolioDetailContext;
-        if (context?.boardId === boardId) openPortfolioTaskDetails(boardId, context.taskId);
+        if (context?.boardId !== boardId) return;
+        const detail = resolveTaskDetailSource(getBoardRecord(boardId), context);
+        if (detail) openDialogFn('taskDetail', buildTaskDetailViewModel(detail.source, context.taskId, context.readOnly));
     }
     return {
         openPortfolioTaskDetails,

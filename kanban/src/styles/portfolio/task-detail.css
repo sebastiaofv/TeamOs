@@ -118,3 +118,152 @@
     background: var(--bg-secondary);
     border-color: var(--text-secondary);
 }
+
+.task-history {
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.task-history > summary {
+    padding: 12px;
+    font-weight: 600;
+    background: var(--bg-secondary);
+}
+
+.task-history summary {
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+
+.task-history summary:focus-visible,
+.task-history-list:focus-visible {
+    outline: 2px solid var(--text-primary);
+    outline-offset: 2px;
+}
+
+.task-history-content {
+    padding: 12px;
+}
+
+.task-history-notices,
+.task-history-empty,
+.task-history-entry-notice {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.task-history-notices p {
+    margin: 0 0 8px;
+}
+
+.task-history-save-error {
+    font-weight: 600;
+}
+
+.task-history-list {
+    list-style: none;
+    display: grid;
+    gap: 8px;
+    max-height: min(50vh, 480px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    margin: 0;
+    padding: 2px;
+}
+
+.task-history-entry {
+    border: 1px solid var(--border-light);
+    background: var(--bg-primary);
+}
+
+.task-history-entry > summary {
+    padding: 10px;
+    line-height: 1.5;
+}
+
+.task-history-entry-summary {
+    font-weight: 600;
+}
+
+.task-history-entry time {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.task-history-changes {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0 10px 10px;
+}
+
+.task-history-change > dt {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.task-history-change dd {
+    margin: 0;
+}
+
+.task-history-values {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.task-history-value {
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+}
+
+.task-history-value-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.task-history-value ul {
+    display: grid;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.task-history-value li,
+.task-history-item-change {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+
+.task-history-item-change {
+    padding-bottom: 6px;
+}
+
+.task-history-entry-notice {
+    margin: 0;
+    padding: 0 10px 10px;
+}
+
+.task-history-value.unavailable {
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+@media (max-width: 600px) {
+    .task-history-values {
+        grid-template-columns: 1fr;
+    }
+}

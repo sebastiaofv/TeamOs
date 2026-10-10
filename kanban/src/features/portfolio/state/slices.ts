@@ -18,13 +18,22 @@ import type {
     RoadmapEntityMode,
     SortDir
 } from '@/features/portfolio/types';
-import type { TaskStatus, RoadmapKind } from '@/domain/types';
+import type { Task, TaskStatus, RoadmapKind } from '@/domain/types';
 import type { AppMessage } from '@/app/types';
 import type { Language, Theme } from '@/shared/types/ui';
 
 export type EditContext = { boardId: string; taskId: number };
 export type CreateContext = { boardId: string; status: TaskStatus };
-export type DetailContext = { boardId: string; taskId: number; readOnly: boolean };
+export type DetailContext = {
+    boardId: string;
+    taskId: number;
+    readOnly: boolean;
+    // Capture identity and the inclusive preview boundary when opening. Neither
+    // follows a later project selection or a task that reuses the numeric id.
+    task?: Task;
+    eventId?: string | null;
+    openedAtEventId?: string | null;
+};
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };
 

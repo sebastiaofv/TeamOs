@@ -1,4 +1,10 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { useMemo } from 'react';
+import { deriveTaskHistory } from '@/domain/taskHistory';
+import type { TaskHistory } from '@/domain/taskHistoryTypes';
+import { resolveTaskDetailSource } from '@/features/portfolio/queries/taskDetailSource';
+import { buildTaskDetailViewModel } from '@/features/portfolio/commands/taskViewModels';
+import { TaskHistorySection } from './TaskHistorySection';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -28,9 +34,30 @@ const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFiel
 export function TaskDetailDialog() {
     const { closeTaskDetail, toggleTaskDetailChecklistItem } = usePortfolioActions();
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
-    const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
+    const initialVm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
+    const context = useAppStore((s) => s.activeDialog === 'taskDetail' ? s.portfolioDetailContext : null);
+    const boardRecord = useAppStore((s) => s.portfolioBoards.find((board) => board.id === context?.boardId) || null);
+    const boardData = boardRecord?.data;
+    const saveState = useAppStore((s) => context ? s.projectSaveStateById.get(context.boardId) : undefined);
     const returnFocus = useReturnFocus();
-    const { t } = useI18n();
+    const { t, language } = useI18n();
+    // Store selectors return existing references. Reconstruction and projection
+    // run in memoized reads, not getSnapshot, and track full loaded board data.
+    const detail = useMemo(() => resolveTaskDetailSource(boardRecord, context), [boardRecord, context]);
+    const vm = useMemo(() => {
+        if (!detail || !context) return initialVm ? { ...initialVm, readOnly: true } : null;
+        return buildTaskDetailViewModel(detail.source, context.taskId, context.readOnly, language);
+    }, [detail, context, initialVm, language]);
+    const history = useMemo<TaskHistory>(() => {
+        if (!detail || !boardData) return {
+            entries: [], earlierHistoryUnavailable: true, incomplete: true,
+            asOf: context?.eventId ? (() => {
+                const event = boardData?.extensions.timeline?.events.find((entry) => entry.id === context.eventId);
+                return event ? { eventId: event.id, at: event.at } : null;
+            })() : null
+        };
+        return deriveTaskHistory(boardData, detail.source.task, { eventIndex: detail.eventIndex });
+    }, [detail, boardData, context]);
 
     return (
         <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeTaskDetail(); }}>
@@ -49,6 +76,8 @@ export function TaskDetailDialog() {
                         </div>
                         <div className="modal-body">
                             {vm && <TaskDetailList vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
+                            {vm && <TaskHistorySection key={`${context?.boardId}:${context?.taskId}:${context?.eventId || 'live'}`}
+                                history={history} saveState={saveState} sourceUnavailable={!detail} />}
                         </div>
                         <div className="modal-footer">
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>
