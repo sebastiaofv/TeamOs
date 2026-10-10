@@ -2,7 +2,7 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 
 import { createBoardStateSnapshot } from '../../src/domain/serialize';
 import { normalizeTask } from '../../src/domain/task';
-import { recordTaskTimelineEvent } from '../../src/domain/timeline';
+import { ensureBoardTimelineBaseline, recordTaskTimelineEvent } from '../../src/domain/timeline';
 import {
   answerAppMessage,
   buildBoardPayload,
@@ -45,6 +45,18 @@ async function expandEntry(entry: Locator) {
   await summary.click();
   await expect(entry.getByText('Before', { exact: true }).first()).toBeVisible();
   await expect(entry.getByText('After', { exact: true }).first()).toBeVisible();
+}
+
+// Establish the initial known state before measuring action-only increments.
+// Otherwise the first mutation adds both that state and the action to history.
+function withBaseline(board: SeedBoard): SeedBoard {
+  const data = createBoardStateSnapshot(buildBoardPayload({
+    title: board.title,
+    tasks: board.tasks,
+    extensions: board.extensions
+  }));
+  ensureBoardTimelineBaseline(data);
+  return { ...board, tasks: data.board.tasks, extensions: data.extensions };
 }
 
 // Build a real project timeline through the domain's public recording API. Its
@@ -118,10 +130,10 @@ test.describe('task history', () => {
   });
 
   test('a command-palette status move and undo remain two changes in newest-first order', async ({ page }) => {
-    await seedPortfolioBoards(page, [{
+    await seedPortfolioBoards(page, [withBaseline({
       id: 'alpha', title: 'Alpha', hasHandle: true,
       tasks: [{ id: 1, title: 'Review release', status: 'to-do' }]
-    }], { selectedBoardId: 'alpha' });
+    })], { selectedBoardId: 'alpha' });
     await openDetail(page, 'Review release');
     await expandHistory(page);
     const initialCount = await entries(page).count();
@@ -193,11 +205,33 @@ test.describe('task history', () => {
     expect(await diskSnapshot(page)).toEqual(before);
   });
 
-  test('checklist changes update an already-open history before the project finishes saving', async ({ page }) => {
+  test('an imported task without a timeline has empty history and unavailable earlier information without writes', async ({ page }) => {
     await seedPortfolioBoards(page, [{
+      id: 'imported', title: 'Imported project', hasHandle: true,
+      tasks: [{ id: 1, title: 'Imported task', status: 'to-do', createdAt: FIXED_TIMESTAMP }]
+    }], { selectedBoardId: 'imported' });
+    const before = await diskSnapshot(page);
+    const selectedUrl = page.url();
+
+    await openDetail(page, 'Imported task');
+    await expandHistory(page);
+    await expect(entries(page)).toHaveCount(0);
+    await expect(history(page)).toContainText(/no changes.*recorded|no recorded changes/i);
+    await expect(history(page)).toContainText(/earlier.*unavailable|previous.*unavailable/i);
+    await expect(page.locator('#detailTitle')).toHaveText('Imported task');
+    await page.locator('#taskDetailModalCloseBtn').click();
+
+    await expect(portfolioBoardChip(page, 'Imported project')).toHaveClass(/\bactive\b/);
+    expect(page.url()).toBe(selectedUrl);
+    expect(await diskSnapshot(page)).toEqual(before);
+    expect((await readSavedBoard(page, 'imported')).extensions.timeline).toBeUndefined();
+  });
+
+  test('checklist changes update an already-open history before the project finishes saving', async ({ page }) => {
+    await seedPortfolioBoards(page, [withBaseline({
       id: 'alpha', title: 'Alpha', hasHandle: true,
       tasks: [{ id: 1, title: 'Checklist task', status: 'to-do', checklist: [{ text: 'Review evidence', done: false }] }]
-    }], { selectedBoardId: 'alpha' });
+    })], { selectedBoardId: 'alpha' });
     await installControlledPortfolioWriter(page, { boardId: 'alpha', holdWrites: true });
     const originalFile = await readSavedBoard(page, 'alpha');
     await openDetail(page, 'Checklist task');
@@ -303,7 +337,7 @@ test.describe('task history', () => {
     await expect(entries(page).first().getByText('Depois', { exact: true }).first()).toBeVisible();
     await expect(entries(page).first()).toContainText('Reference task first description');
     await expect(entries(page).first()).toContainText('Reference task revised description');
-    await expect(page.locator('#taskDetailModal').getByText('Descrição', { exact: true })).toBeVisible();
+    await expect(page.locator('#taskDetailModal .detail-label').filter({ hasText: /^Descrição$/ })).toBeVisible();
     // Project-defined column names remain data, even when dialog labels change.
     await expect(page.locator('#detailStatus')).toHaveText('to-do');
     await expect(page.locator('#detailChecklist input[type="checkbox"]')).toBeDisabled();
@@ -314,7 +348,7 @@ test.describe('task history', () => {
   });
 
   test('bulk sprint assignment and phase deletion appear while changes to other tasks are excluded', async ({ page }) => {
-    await seedPortfolioBoards(page, [{
+    await seedPortfolioBoards(page, [withBaseline({
       id: 'alpha', title: 'Alpha', hasHandle: true,
       tasks: [
         { id: 1, title: 'Task A', status: 'to-do', phaseId: 'foundation' },
@@ -326,7 +360,7 @@ test.describe('task history', () => {
           { id: 'other-phase', title: 'Other phase', startDate: '2026-05-01', endDate: '2026-05-30' }
         ]
       } }
-    }], { selectedBoardId: 'alpha' });
+    })], { selectedBoardId: 'alpha' });
     await openDetail(page, 'Task A');
     await expandHistory(page);
     const initialCount = await entries(page).count();
@@ -362,10 +396,10 @@ test.describe('task history', () => {
   });
 
   test('real Planner creation, movement, resizing and removal are readable task history entries', async ({ page }) => {
-    await seedPortfolioBoards(page, [{
+    await seedPortfolioBoards(page, [withBaseline({
       id: 'alpha', title: 'Alpha', hasHandle: true,
       tasks: [{ id: 1, title: 'Plan release', status: 'to-do' }]
-    }], { selectedBoardId: 'alpha' });
+    })], { selectedBoardId: 'alpha' });
     await openDetail(page, 'Plan release');
     await expandHistory(page);
     const initialCount = await entries(page).count();
