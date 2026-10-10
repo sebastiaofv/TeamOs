@@ -6,7 +6,7 @@ import { getDayPlannerBlocks, normalizeDayPlannerBlock } from './dayPlanner';
 import { areSerializableValuesEqual } from './serializable';
 import { isRecord } from './util';
 import {
-    HISTORY_FIELDS, historyLabelState, matchesHistoryTask, planningHistoryValue, recordedFieldValue,
+    HISTORY_FIELDS, effectiveHistoryTask, historyLabelState, matchesHistoryTask, planningHistoryValue, recordedFieldValue,
     taskFieldValue, taskHistoryChanges, unknownHistoryValue
 } from './taskHistoryValues';
 import type { HistoryState, HistoryTask } from './taskHistoryValues';
@@ -61,6 +61,7 @@ export function deriveTaskHistory(boardData: BoardData, task: Task, options: { e
     // orphan is not proof that it belongs to the replacement task.
     const knownBlockOwners = new Map<string, Lifecycle | null>();
     let previousTask: HistoryTask | null = null;
+    let previousEffectiveTask: HistoryTask | null = null;
     let previousBlocks: DayPlanBlock[] = [];
     const frames = new Map<number, Frame>();
     const entries: OwnedEntry[] = [];
@@ -77,20 +78,22 @@ export function deriveTaskHistory(boardData: BoardData, task: Task, options: { e
         const rawEvent = rawEvents[index];
         if (!event) {
             lifecycle = frame.lifecycle;
-            previousTask = frame.task;
-            finalTask = frame.task;
+            previousTask = frame.evidenceTask;
+            previousEffectiveTask = frame.effectiveTask;
+            finalTask = frame.evidenceTask;
             if (lifecycle && couldAffectTask(rawEvent, task.id)) lifecycle.incomplete = true;
             continue;
         }
         const beforeLabels = labels;
         const beforeTask = previousTask;
+        const beforeEffectiveTask = previousEffectiveTask;
         const beforeLifecycle = lifecycle;
         const beforeFrame: Frame = { task: beforeTask, lifecycle, blocks: previousBlocks, owners, labels };
         const direct = event.entityType === 'task' && Number(event.entityId) === task.id;
         const baseline = event.kind === 'board.baseline' && Boolean(event.snapshot?.board && Array.isArray(event.snapshot.board.tasks));
 
         lifecycle = frame.lifecycle;
-        const afterTask = frame.task;
+        const afterTask = frame.evidenceTask;
         const blocks = getDayPlannerBlocks(state).filter((block) => block.taskId === task.id);
         const nextOwners = new Map<string, Lifecycle | null>();
         const source = frame.recoveredSourceIndex === null ? undefined : frames.get(frame.recoveredSourceIndex);
@@ -139,25 +142,36 @@ export function deriveTaskHistory(boardData: BoardData, task: Task, options: { e
             const recoveredLifecycle = event.kind === 'board.restored' && recovered;
             const beforeKnown = creation || sameLifecycle || Boolean(recoveredLifecycle);
             const previousTask = sameLifecycle || (TASK_EDIT_KINDS.has(event.kind) && direct) ? beforeTask : null;
-            let changes = taskHistoryChanges(previousTask, afterTask, beforeLabels, labels, beforeKnown);
+            let changes = taskHistoryChanges(previousTask, afterTask, beforeLabels, labels, beforeKnown,
+                { before: previousTask ? beforeEffectiveTask : null, after: frame.effectiveTask });
             // Missing provenance is an identity gap, not proof that unchanged
             // data was edited. Keep demonstrable effects with unknown before
             // values, and never manufacture a restore change for a no-op.
-            if (event.kind === 'board.restored' && !recovered && beforeTask) changes = changes.filter((change) => !areSerializableValuesEqual(beforeTask[change.field], afterTask[change.field]));
+            if (event.kind === 'board.restored' && !recovered && beforeEffectiveTask && frame.effectiveTask) changes = changes.filter((change) => !areSerializableValuesEqual(beforeEffectiveTask[change.field], frame.effectiveTask?.[change.field]));
             let eventIncomplete = !beforeKnown || planningGap || creation && HISTORY_FIELDS.some((field) => !Object.hasOwn(afterTask, field));
             if (TASK_EDIT_KINDS.has(event.kind) && direct) {
+                const recordedBefore = { ...frame.task };
+                const recordedAfter = { ...frame.task };
                 for (const field of HISTORY_FIELDS) {
                     const pair = event.changes?.[field];
                     if (!pair) continue;
-                    const previous = taskFieldValue(beforeTask, field, beforeLabels);
-                    const inconsistent = previous.known && !areSerializableValuesEqual(beforeTask?.[field], pair.before);
+                    recordedBefore[field] = pair.before;
+                    recordedAfter[field] = pair.after;
+                }
+                const effectiveBefore = effectiveHistoryTask(recordedBefore, state);
+                const effectiveAfter = effectiveHistoryTask(recordedAfter, state);
+                for (const field of HISTORY_FIELDS) {
+                    const pair = event.changes?.[field];
+                    if (!pair) continue;
+                    const previous = taskFieldValue(beforeTask, field, beforeLabels, sameLifecycle);
+                    const inconsistent = previous.known && !areSerializableValuesEqual(beforeEffectiveTask?.[field], effectiveBefore?.[field]);
                     if (inconsistent) eventIncomplete = true;
-                    if (inconsistent || !previous.known && pair.before !== undefined) {
+                    if (inconsistent || !previous.known || !areSerializableValuesEqual(beforeTask?.[field], pair.before)) {
                         // Explicit field pairs can recover values that the
                         // adjacent replay cannot: retain that evidence and flag
                         // a missing transition rather than inventing its before.
                         changes = changes.filter((change) => change.field !== field);
-                        if (!areSerializableValuesEqual(pair.before, pair.after)) changes.push({
+                        if (!areSerializableValuesEqual(effectiveBefore?.[field], effectiveAfter?.[field])) changes.push({
                             field, before: recordedFieldValue(field, pair.before, beforeLabels), after: recordedFieldValue(field, pair.after, labels)
                         });
                     }
@@ -179,6 +193,7 @@ export function deriveTaskHistory(boardData: BoardData, task: Task, options: { e
 
         frames.set(index, afterFrame);
         previousTask = afterTask;
+        previousEffectiveTask = frame.effectiveTask;
         previousBlocks = blocks;
         finalTask = afterTask;
     }

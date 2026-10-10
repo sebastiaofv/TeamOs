@@ -70,6 +70,22 @@ describe('opened task detail source', () => {
         expect(resolveTaskDetailSource({ ...board, id: 'other' }, context)).toBeNull();
     });
 
+    it('returns sparse loaded task fields without exposing effective comparison defaults as recorded values', () => {
+        const { board, context } = fixture();
+        const original = board.data.board.tasks[0];
+        const sparse = fromPartial<Task>({
+            id: original.id, title: original.title, status: original.status, createdAt: original.createdAt, updatedAt: original.updatedAt
+        });
+        board.data.board.tasks = [sparse];
+        board.data.extensions.timeline!.events[0].snapshot!.board!.tasks = [sparse];
+        context.task = cloneSerializable(sparse);
+        const result = resolveTaskDetailSource(board, context)!;
+        expect(result.source.task).toEqual(sparse);
+        expect(Object.hasOwn(result.source.task, 'priority')).toBe(false);
+        expect(Object.hasOwn(result.source.task, 'checklist')).toBe(false);
+        expect(Object.hasOwn(board.data.board.tasks[0], 'priority')).toBe(false);
+    });
+
     it('pins the inclusive historical boundary by event identity after a reload', () => {
         const { board, context } = fixture();
         const before = cloneSerializable(board.data.board.tasks[0]);
