@@ -36,7 +36,8 @@ import {
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
 import { formatFileSize } from '@/domain/util';
-import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+import { getCurrentLanguage, translate, translateCurrent, type TranslationKey } from '@/shared/i18n';
+import type { Language } from '@/shared/types/ui';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -157,7 +158,8 @@ export function buildTaskEditorViewModel(
     };
 }
 
-export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean): TaskDetailViewModel {
+export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, language: Language = getCurrentLanguage()): TaskDetailViewModel {
+    const t = (key: TranslationKey) => translate(language, key);
     const task = normalizeTask(source.task);
     const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
     const roadmap = getRoadmapExtension(source.boardData);
@@ -168,15 +170,15 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
             description: task.description || '-',
             assignees: formatAssignees(task.assignees) || '-',
             tags: normalizeTags(task.tags).join(', ') || '-',
-            blocked: task.blocked ? translateCurrent('common.yes') : translateCurrent('common.no'),
+            blocked: task.blocked ? t('common.yes') : t('common.no'),
             blockerReason: task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-',
             priority: task.priority
-                ? ({ high: translateCurrent('toolbar.high'), medium: translateCurrent('toolbar.medium'), low: translateCurrent('toolbar.low') }[task.priority] || task.priority)
+                ? ({ high: t('toolbar.high'), medium: t('toolbar.medium'), low: t('toolbar.low') }[task.priority] || task.priority)
                 : '-',
             effort: task.effort || '-',
             status: (statusMap[task.status] || task.status) || '-',
-            createdAt: formatDateTime(task.createdAt, getCurrentLanguage() === 'pt' ? 'pt-PT' : undefined),
-            updatedAt: formatDateTime(task.updatedAt, getCurrentLanguage() === 'pt' ? 'pt-PT' : undefined),
+            createdAt: formatDateTime(task.createdAt, language === 'pt' ? 'pt-PT' : undefined),
+            updatedAt: formatDateTime(task.updatedAt, language === 'pt' ? 'pt-PT' : undefined),
             dueDate: formatDueDateForUi(task.dueDate) || '-',
             phase: getRoadmapItemTitle(roadmap, 'phases', task.phaseId) || '-',
             milestone: getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-',
