@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { deriveTaskHistory } from '../../src/domain/taskHistory';
 import type { Attachment, BoardData, DayPlanBlock, Task, TimelineEvent } from '../../src/domain/types';
 import * as timeline from '../../src/domain/timeline';
+import { normalizeTask } from '../../src/domain/task';
 
 const AT = '2026-10-09T10:00:00.000Z';
 
@@ -234,6 +235,54 @@ describe('deriveTaskHistory', () => {
             event('noop-restore', 'board.restored', { entityType: 'board', entityId: 'board', snapshot: snapshot([task()], planning([block()])), meta: { fromEventId: 'baseline' } })
         ]), task());
         expect(history.entries.map((entry) => entry.id)).toEqual(['baseline']);
+    });
+
+    it('retains known history when reconstruction and restore normalize a sparse legacy baseline', () => {
+        const sparse = fromPartial<Task>({ id: 1, title: 'Original', status: 'backlog', createdAt: AT, updatedAt: AT });
+        const board = project([baseline([sparse])], normalizeTask(sparse));
+        const before = timeline.captureTaskTimelineSnapshot(board, 1)!;
+        board.board.tasks[0].title = 'Edited';
+        const edit = timeline.recordTaskTimelineEvent(board, before, board.board.tasks[0])!;
+        const restored = timeline.reconstructBoardStateFromTimeline(board, 0);
+        restored.extensions.timeline = board.extensions.timeline;
+        const restore = timeline.recordBoardRestoreTimelineEvent(restored, board.extensions.timeline!.events[0])!;
+
+        const history = deriveTaskHistory(restored, restored.board.tasks[0]);
+        expect(history.entries.map((entry) => entry.id)).toEqual([restore.id, edit.id, 'baseline']);
+        expect(history.entries[0]).toMatchObject({ kind: 'board.restored', incomplete: false, changes: [
+            { field: 'title', before: { known: true, value: 'Edited' }, after: { known: true, value: 'Original' } }
+        ] });
+        expect(history.entries[0].changes).toHaveLength(1);
+        expect(history.entries[1].changes.map((change) => change.field)).toEqual(['title']);
+        expect(history.entries[2].changes.map((change) => change.field)).toEqual(['title', 'status']);
+        expect(history.earlierHistoryUnavailable).toBe(true);
+        expect(history.incomplete).toBe(true);
+    });
+
+    it('does not claim a restored normalization default as a known optional historical value', () => {
+        const sparse = fromPartial<Task>({ id: 1, title: 'Original', status: 'backlog', createdAt: AT, updatedAt: AT });
+        const board = project([baseline([sparse])], normalizeTask(sparse));
+        const before = timeline.captureTaskTimelineSnapshot(board, 1)!;
+        board.board.tasks[0].priority = 'high';
+        const edit = timeline.recordTaskTimelineEvent(board, before, board.board.tasks[0])!;
+        const restored = timeline.reconstructBoardStateFromTimeline(board, 0);
+        restored.extensions.timeline = board.extensions.timeline;
+        const restore = timeline.recordBoardRestoreTimelineEvent(restored, board.extensions.timeline!.events[0])!;
+        const history = deriveTaskHistory(restored, restored.board.tasks[0]);
+        expect(history.entries.map((entry) => entry.id)).toEqual([restore.id, edit.id, 'baseline']);
+        expect(history.entries[0].changes).toEqual([
+            { field: 'priority', before: { known: true, value: 'high' }, after: { known: false, value: undefined } }
+        ]);
+        expect(history.entries[0].incomplete).toBe(true);
+    });
+
+    it('does not invent a restore change when only omitted legacy fields acquire defaults', () => {
+        const sparse = fromPartial<Task>({ id: 1, title: 'Original', status: 'backlog', createdAt: AT, updatedAt: AT });
+        const board = project([baseline([sparse])], normalizeTask(sparse));
+        const restored = timeline.reconstructBoardStateFromTimeline(board, 0);
+        restored.extensions.timeline = board.extensions.timeline;
+        timeline.recordBoardRestoreTimelineEvent(restored, board.extensions.timeline!.events[0]);
+        expect(deriveTaskHistory(restored, restored.board.tasks[0]).entries.map((entry) => entry.id)).toEqual(['baseline']);
     });
 
     it('marks a restore identity gap without inventing changes when its snapshot is an observable no-op', () => {

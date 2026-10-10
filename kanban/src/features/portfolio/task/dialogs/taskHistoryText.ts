@@ -2,6 +2,7 @@ import type { TaskHistoryChange, TaskHistoryEntry, TaskHistoryValue } from '@/do
 import type { Language } from '@/shared/types/ui';
 import { formatPlannerDateLabel, translate, type TranslationKey } from '@/shared/i18n';
 import { formatFileSize } from '@/domain/util';
+import { parsePlannerTime } from '@/domain/dayPlanner';
 
 const FIELD_KEYS: Record<string, TranslationKey> = {
     title: 'task.title', description: 'task.description', assignees: 'task.assignees',
@@ -93,15 +94,12 @@ export function taskHistoryItemChanges(change: TaskHistoryChange, language: Lang
 function planningLines(value: unknown, language: Language): string[] {
     const blocks = Array.isArray(value) ? items(value) : [record(value)].filter((item) => item !== null);
     return blocks.map((block) => {
-        const start = text(block.start);
-        const end = text(block.end);
-        const minutes = (time: string) => {
-            const [hour, minute] = time.split(':').map(Number);
-            return hour * 60 + minute;
-        };
-        const duration = minutes(end) - minutes(start);
-        return `${formatPlannerDateLabel(language, text(block.date))} • ${start}–${end}${Number.isFinite(duration) && duration >= 0
-            ? ` • ${translate(language, 'taskHistory.duration', { minutes: duration })}` : ''}`;
+        const start = parsePlannerTime(block.start);
+        const end = parsePlannerTime(block.end);
+        const unavailable = translate(language, 'taskHistory.unavailable');
+        const duration = start !== null && end !== null && end > start ? end - start : null;
+        return `${formatPlannerDateLabel(language, text(block.date))} • ${start === null ? unavailable : text(block.start)}–${end === null ? unavailable : text(block.end)} • ${duration === null
+            ? unavailable : translate(language, 'taskHistory.duration', { minutes: duration })}`;
     });
 }
 

@@ -47,4 +47,15 @@ describe('readable task history', () => {
         expect(taskHistoryValueLines('block', known(block), 'en')[0]).toContain('9 Oct 2026');
         expect(taskHistoryValueLines('planning', known([]), 'pt')).toEqual(['Nenhum']);
     });
+
+    it.each(['25:00', '09:99', '9:00', '09:10', '06:00', 'invalid'])('identifies an invalid planner time (%s) and its duration as unavailable', (start) => {
+        const block = { date: '2026-10-09', start, end: '10:00' };
+        expect(taskHistoryValueLines('planning', known([block]), 'en')[0]).toContain('Unavailable–10:00 • Unavailable');
+        expect(taskHistoryValueLines('planning', known([block]), 'pt')[0]).toContain('Indisponível–10:00 • Indisponível');
+    });
+
+    it('does not invent a duration for unavailable or reversed planner endpoints', () => {
+        expect(taskHistoryValueLines('planning', known([{ date: '2026-10-09', start: '09:00' }]), 'en')[0]).toContain('09:00–Unavailable • Unavailable');
+        expect(taskHistoryValueLines('planning', known([{ date: '2026-10-09', start: '10:00', end: '09:00' }]), 'en')[0]).toContain('10:00–09:00 • Unavailable');
+    });
 });

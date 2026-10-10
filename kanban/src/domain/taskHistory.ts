@@ -1,18 +1,19 @@
 import type { BoardData, DayPlanBlock, Task, TimelineEvent } from './types';
 import type { TaskHistory, TaskHistoryChange, TaskHistoryEntry } from './taskHistoryTypes';
-import { applyTimelineEventToState } from './timeline';
 import { normalizeTimelineEvent } from './timelineSchema';
 import { TIMELINE_VERSION } from './constants';
 import { getDayPlannerBlocks, normalizeDayPlannerBlock } from './dayPlanner';
-import { areSerializableValuesEqual, cloneSerializable } from './serializable';
+import { areSerializableValuesEqual } from './serializable';
 import { isRecord } from './util';
 import {
-    HISTORY_FIELDS, historyLabelState, historyTask, matchesHistoryTask, planningHistoryValue, recordedFieldValue,
+    HISTORY_FIELDS, historyLabelState, matchesHistoryTask, planningHistoryValue, recordedFieldValue,
     taskFieldValue, taskHistoryChanges, unknownHistoryValue
 } from './taskHistoryValues';
 import type { HistoryState, HistoryTask } from './taskHistoryValues';
+import { replayTaskContinuity, TASK_EDIT_KINDS } from './taskContinuity';
+import type { TaskLifecycle } from './taskContinuity';
 
-type Lifecycle = { earlierUnavailable: boolean; incomplete: boolean };
+type Lifecycle = TaskLifecycle;
 type Frame = {
     task: HistoryTask | null;
     lifecycle: Lifecycle | null;
@@ -21,7 +22,6 @@ type Frame = {
     labels: HistoryState;
 };
 type OwnedEntry = { lifecycle: Lifecycle; entry: TaskHistoryEntry };
-const TASK_EDIT_KINDS = new Set(['task.updated', 'task.status.changed', 'task.archived', 'task.restored']);
 
 function couldAffectTask(raw: unknown, taskId: number): boolean {
     if (!isRecord(raw)) return true;
@@ -53,16 +53,16 @@ export function deriveTaskHistory(boardData: BoardData, task: Task, options: { e
         ? Math.max(0, Math.min(latest, Math.trunc(requested))) : latest;
     const limitEvent = normalizeTimelineEvent(rawEvents[limit]);
     const asOf = limit < latest && limitEvent ? { eventId: limitEvent.id, at: limitEvent.at } : null;
-    let state: HistoryState = {};
+    let finalTask: HistoryTask | null = null;
     let labels: HistoryState = {};
     let lifecycle: Lifecycle | null = null;
     let owners = new Map<string, Lifecycle | null>();
     // Keep tombstones as well as live ownership: a late move of a removed
     // orphan is not proof that it belongs to the replacement task.
     const knownBlockOwners = new Map<string, Lifecycle | null>();
-    let absenceKnown = false;
-    const frames = new Map<string, Frame>();
-    const duplicateIds = new Set<string>();
+    let previousTask: HistoryTask | null = null;
+    let previousBlocks: DayPlanBlock[] = [];
+    const frames = new Map<number, Frame>();
     const entries: OwnedEntry[] = [];
 
     const addEntry = (event: TimelineEvent, owner: Lifecycle, changes: TaskHistoryChange[], kind = event.kind, incomplete = false) => {
@@ -72,74 +72,29 @@ export function deriveTaskHistory(boardData: BoardData, task: Task, options: { e
         entries.push({ lifecycle: owner, entry: { id: event.id, at: event.at, kind, changes, incomplete: missing } });
     };
 
-    for (let index = 0; index <= limit; index += 1) {
+    for (const frame of replayTaskContinuity(rawEvents, task.id, limit)) {
+        const { index, event, state } = frame;
         const rawEvent = rawEvents[index];
-        const event = normalizeTimelineEvent(rawEvent);
         if (!event) {
-            // An invalid lifecycle boundary cannot prove continuity, even if
-            // the replacement happens to have exactly the same task fields.
-            if (isRecord(rawEvent) && (rawEvent.kind === 'board.restored' || (Number(rawEvent.entityId) === task.id && ['task.created', 'task.deleted'].includes(String(rawEvent.kind))))) {
-                state = { ...state, board: { ...state.board, tasks: state.board?.tasks?.filter((item) => Number(item.id) !== task.id) } };
-                lifecycle = null;
-                absenceKnown = false;
-            } else if (lifecycle && couldAffectTask(rawEvent, task.id)) lifecycle.incomplete = true;
+            lifecycle = frame.lifecycle;
+            previousTask = frame.task;
+            finalTask = frame.task;
+            if (lifecycle && couldAffectTask(rawEvent, task.id)) lifecycle.incomplete = true;
             continue;
         }
         const beforeLabels = labels;
-        let beforeTask = historyTask(state, task.id);
+        const beforeTask = previousTask;
         const beforeLifecycle = lifecycle;
-        const beforeFrame: Frame = { task: beforeTask, lifecycle, blocks: getDayPlannerBlocks(state).filter((block) => block.taskId === task.id), owners, labels };
+        const beforeFrame: Frame = { task: beforeTask, lifecycle, blocks: previousBlocks, owners, labels };
         const direct = event.entityType === 'task' && Number(event.entityId) === task.id;
         const baseline = event.kind === 'board.baseline' && Boolean(event.snapshot?.board && Array.isArray(event.snapshot.board.tasks));
 
-        if (baseline) {
-            state = cloneSerializable(event.snapshot) as HistoryState;
-            lifecycle = historyTask(state, task.id) ? { earlierUnavailable: true, incomplete: true } : null;
-            absenceKnown = true;
-        } else {
-            // Without a baseline, explicit field pairs still carry useful
-            // evidence. Seed only those fields, never the current board/task.
-            if (direct && TASK_EDIT_KINDS.has(event.kind) && !beforeTask && !absenceKnown && event.changes) {
-                beforeTask = { id: task.id };
-                for (const field of HISTORY_FIELDS) {
-                    if (event.changes[field]) beforeTask[field] = cloneSerializable(event.changes[field].before);
-                }
-                state = { ...state, board: { ...state.board, tasks: [...(state.board?.tasks || []), beforeTask] } };
-                lifecycle = { earlierUnavailable: true, incomplete: true };
-            }
-            state = applyTimelineEventToState(state, event) || {};
-            if (direct && event.kind === 'task.created') {
-                // Creation always opens a new incarnation, including identical
-                // snapshots and equal createdAt timestamps.
-                lifecycle = historyTask(state, task.id) && event.snapshot
-                    ? { earlierUnavailable: false, incomplete: false } : null;
-                absenceKnown = Boolean(event.snapshot);
-            } else if (direct && event.kind === 'task.deleted') {
-                lifecycle = null;
-                absenceKnown = true;
-            } else if (event.kind === 'board.restored') {
-                const sourceId = event.meta?.fromEventId || '';
-                const source = duplicateIds.has(sourceId) ? undefined : frames.get(sourceId);
-                const restoredTask = historyTask(state, task.id);
-                const proven = Boolean(event.snapshot?.board && source && (
-                    (!source.task && !restoredTask) || (source.task && restoredTask && matchesHistoryTask(source.task, restoredTask) && matchesHistoryTask(restoredTask, source.task))
-                ));
-                lifecycle = proven && source ? source.lifecycle : restoredTask && event.snapshot?.board ? { earlierUnavailable: true, incomplete: true } : null;
-                absenceKnown = Boolean(event.snapshot?.board);
-            } else if (event.kind === 'roadmap.updated' && event.snapshot?.board) {
-                const afterTask = historyTask(state, task.id);
-                if (!afterTask) lifecycle = null;
-                else if (!beforeTask || (beforeTask.createdAt && afterTask.createdAt && beforeTask.createdAt !== afterTask.createdAt)) lifecycle = { earlierUnavailable: true, incomplete: true };
-                absenceKnown = true;
-            }
-        }
-
-        const afterTask = historyTask(state, task.id);
+        lifecycle = frame.lifecycle;
+        const afterTask = frame.task;
         const blocks = getDayPlannerBlocks(state).filter((block) => block.taskId === task.id);
         const nextOwners = new Map<string, Lifecycle | null>();
-        const sourceId = event.meta?.fromEventId || '';
-        const source = event.kind === 'board.restored' && !duplicateIds.has(sourceId) ? frames.get(sourceId) : undefined;
-        const recovered = source && source.lifecycle === lifecycle && source.task && afterTask && matchesHistoryTask(source.task, afterTask) && matchesHistoryTask(afterTask, source.task);
+        const source = frame.recoveredSourceIndex === null ? undefined : frames.get(frame.recoveredSourceIndex);
+        const recovered = source && source.lifecycle === lifecycle && source.task && afterTask;
         labels = historyLabelState(recovered ? source.labels : labels, state);
         let planningGap = false;
         for (const block of blocks) {
@@ -222,11 +177,12 @@ export function deriveTaskHistory(boardData: BoardData, task: Task, options: { e
             addEntry(event, lifecycle, changes, event.kind, eventIncomplete);
         }
 
-        if (frames.has(event.id)) duplicateIds.add(event.id);
-        frames.set(event.id, afterFrame);
+        frames.set(index, afterFrame);
+        previousTask = afterTask;
+        previousBlocks = blocks;
+        finalTask = afterTask;
     }
 
-    const finalTask = historyTask(state, task.id);
     if (!lifecycle || !finalTask || !matchesHistoryTask(finalTask, { ...task })) return { ...empty(), asOf };
     return {
         entries: entries.filter((item) => item.lifecycle === lifecycle).map((item) => item.entry).reverse(),
