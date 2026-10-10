@@ -7,12 +7,13 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
 - **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag cards between columns with a mouse or by touch (keyboard: `1`–`4`), add/edit/archive/delete tasks, undo after archiving.
 - **Tasks** — title, description, assignees, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
+- **Task history** — expand **History** in a task's details to see its changes, newest first, with local dates and before/after values. Includes state changes, indirect roadmap changes, planning and the inverse changes made by undo.
 - **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
 - **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
 - **Calendar view** — year and month calendars with tasks and roadmap spans, plus a heatmap mode.
 - **Command palette** — `⌘K` / `Ctrl+K`, `/` or the toolbar search box. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan, archive); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
 - **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
-- **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
+- **Timeline** (single project) — recorded changes appear immediately and autosave with the project; scrub back to preview a past state read-only and restore it.
 - **Light and dark theme.**
 
 ## Data and persistence
@@ -28,6 +29,12 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - Blocked tasks require `blockerReason`.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
+
+### Reading a task's history
+
+Open a task and expand **History** (**Histórico** in Portuguese). Expand an entry to compare its previous and next values. The history is derived from the project's existing timeline, including changes made through Roadmap and Day Planner.
+
+In historical preview, the list ends at the selected event. Tasks already present when recording started have an **initial known state**, and unavailable earlier history is identified. Incomplete records are shown using the information available. The project's save indication identifies pending changes or save errors; reopening the file shows the history saved in it.
 
 ## Keyboard shortcuts
 
