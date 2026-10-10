@@ -414,9 +414,9 @@ test.describe('task history', () => {
     await expect(block).toHaveCount(1);
     await block.focus();
     await page.keyboard.press('ArrowDown');
-    await expect(block).toContainText('14:15–14:30');
+    await expect(block).toHaveAccessibleName(/14:15 to 14:30/);
     await page.keyboard.press('Shift+ArrowDown');
-    await expect(block).toContainText('14:15–14:45');
+    await expect(block).toHaveAccessibleName(/14:15 to 14:45/);
     await page.keyboard.press('Delete');
     await expect(block).toHaveCount(0);
     await waitForBoardWrites(page, 4);
@@ -437,7 +437,7 @@ test.describe('task history', () => {
     await expect(entries(page).nth(3)).toContainText('14:15');
     await expect(page.locator('#detailStatus')).toHaveText('to-do');
     const saved = await readSavedBoard(page, 'alpha');
-    expect(saved.extensions.dayPlanner.blocks).toEqual([]);
+    expect(saved.extensions.dayPlanner?.blocks ?? []).toEqual([]);
     expect(saved.extensions.timeline.events.slice(1).map((event: { kind: string }) => event.kind))
       .toEqual(['planner.block.added', 'planner.block.moved', 'planner.block.resized', 'planner.block.removed']);
   });

@@ -151,6 +151,32 @@ test.describe('2.1a modals and toast', () => {
       await expect(page).toHaveScreenshot(`task-detail-full-${theme}.png`, { fullPage: true });
     });
 
+    test(`task history expanded (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'history', title: 'Timeline Project', hasHandle: true,
+        tasks: [{ id: 1, title: 'Timeline task', status: 'doing', description: 'Latest timeline description.' }],
+        extensions: { timeline: {
+          ...TIMELINE.timeline,
+          events: [TIMELINE.timeline.events[0], {
+            ...TIMELINE.timeline.events[1],
+            changes: {
+              ...TIMELINE.timeline.events[1].changes,
+              status: { before: 'backlog', after: 'doing' }
+            }
+          }]
+        } }
+      }], { selectedBoardId: 'history' });
+      await portfolioCard(page, 'Timeline task').click();
+      const history = page.locator('#taskHistory');
+      await history.locator(':scope > summary').click();
+      await history.locator('.task-history-entry').first().locator('summary').click();
+      await expect(history).toContainText('Initial timeline description.');
+      await expect(history).toContainText('Latest timeline description.');
+      await page.locator('#taskDetailModal .modal-body').evaluate((body) => { body.scrollTop = body.scrollHeight; });
+      await expect(page).toHaveScreenshot(`task-history-expanded-${theme}.png`, { fullPage: true });
+    });
+
     test(`roadmap entity, new milestone (${theme})`, async ({ page }) => {
       await gotoVisualApp(page, theme);
       await seedPortfolioBoards(page, [
