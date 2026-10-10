@@ -4,6 +4,8 @@ import { deriveTaskHistory } from '../../src/domain/taskHistory';
 import type { Attachment, BoardData, DayPlanBlock, Task, TimelineEvent } from '../../src/domain/types';
 import * as timeline from '../../src/domain/timeline';
 import { normalizeTask } from '../../src/domain/task';
+import { createBoardStateSnapshot } from '../../src/domain/serialize';
+import { taskHistoryValueLines } from '../../src/features/portfolio/task/dialogs/taskHistoryText';
 
 const AT = '2026-10-09T10:00:00.000Z';
 
@@ -285,6 +287,57 @@ describe('deriveTaskHistory', () => {
         expect(deriveTaskHistory(restored, restored.board.tasks[0]).entries.map((entry) => entry.id)).toEqual(['baseline']);
     });
 
+    it('does not report a priority restore when an edited legacy priority was already cleared to its effective empty value', () => {
+        const sparse = fromPartial<Task>({ id: 1, title: 'Original', status: 'backlog', createdAt: AT, updatedAt: AT });
+        const board = project([baseline([sparse])], normalizeTask(sparse));
+        const before = timeline.captureTaskTimelineSnapshot(board, 1)!;
+        board.board.tasks[0].priority = 'high';
+        const set = timeline.recordTaskTimelineEvent(board, before, board.board.tasks[0])!;
+        const high = timeline.captureTaskTimelineSnapshot(board, 1)!;
+        board.board.tasks[0].priority = null;
+        const clear = timeline.recordTaskTimelineEvent(board, high, board.board.tasks[0])!;
+        const restored = timeline.reconstructBoardStateFromTimeline(board, 0);
+        restored.extensions.timeline = board.extensions.timeline;
+        timeline.recordBoardRestoreTimelineEvent(restored, board.extensions.timeline!.events[0]);
+
+        expect(restored.board.tasks[0].priority).toBeNull();
+        const history = deriveTaskHistory(restored, restored.board.tasks[0]);
+        expect(history.entries.map((entry) => entry.id)).toEqual([clear.id, set.id, 'baseline']);
+        expect(history.entries[0].changes).toEqual([
+            { field: 'priority', before: { known: true, value: 'high' }, after: { known: true, value: null } }
+        ]);
+        expect(history.entries[2].changes.map((change) => change.field)).toEqual(['title', 'status']);
+    });
+
+    it('does not turn a full unrelated Roadmap snapshot after a sparse restore into task edits', () => {
+        const sparse = fromPartial<Task>({ id: 1, title: 'Original', status: 'backlog', createdAt: AT, updatedAt: AT });
+        const board = project([baseline([sparse])], normalizeTask(sparse));
+        const restored = timeline.reconstructBoardStateFromTimeline(board, 0);
+        restored.extensions.timeline = board.extensions.timeline;
+        timeline.recordBoardRestoreTimelineEvent(restored, board.extensions.timeline!.events[0]);
+        restored.extensions.roadmap = { version: 1, phases: [
+            { id: 'unrelated', title: 'Unrelated phase', startDate: '2026-10-01', endDate: '2026-10-10' }
+        ], milestones: [], sprints: [] };
+        timeline.appendTimelineEvent(restored, {
+            kind: 'roadmap.updated', entityType: 'board', entityId: 'board', summary: 'Phase created',
+            snapshot: createBoardStateSnapshot(restored)
+        });
+
+        const history = deriveTaskHistory(restored, restored.board.tasks[0]);
+        expect(history.entries.map((entry) => entry.id)).toEqual(['baseline']);
+        expect(history.entries[0].changes.map((change) => change.field)).toEqual(['title', 'status']);
+        expect(history.earlierHistoryUnavailable).toBe(true);
+        // The restored state really retains defaults; a later replayed edit must
+        // compare against them, while the explicit pair supplies display evidence.
+        const before = timeline.captureTaskTimelineSnapshot(restored, 1)!;
+        restored.board.tasks[0].priority = 'high';
+        const edit = timeline.recordTaskTimelineEvent(restored, before, restored.board.tasks[0])!;
+        expect(deriveTaskHistory(restored, restored.board.tasks[0]).entries.map((entry) => entry.id)).toEqual([edit.id, 'baseline']);
+        expect(deriveTaskHistory(restored, restored.board.tasks[0]).entries[0].changes).toEqual([
+            { field: 'priority', before: { known: true, value: null }, after: { known: true, value: 'high' } }
+        ]);
+    });
+
     it('marks a restore identity gap without inventing changes when its snapshot is an observable no-op', () => {
         const history = deriveTaskHistory(project([
             baseline([]), event('create', 'task.created', { snapshot: task() }),
@@ -443,15 +496,86 @@ describe('deriveTaskHistory', () => {
         expect(JSON.stringify(history)).not.toContain('fresh-block');
     });
 
-    it('marks unavailable fields in sparse snapshots instead of filling them from the opened task', () => {
+    it('keeps omitted snapshot fields unavailable but recovers an explicitly recorded empty predecessor', () => {
         const sparse = fromPartial<Task>({ id: 1, title: 'Original', createdAt: AT });
         const opened = task({ priority: 'high' });
         const history = deriveTaskHistory(project([
             baseline([sparse]), event('priority', 'task.updated', { changes: { priority: { before: undefined, after: 'high' } } })
         ], opened), opened);
-        expect(history.entries[0].changes).toEqual([{ field: 'priority', before: { known: false, value: undefined }, after: { known: true, value: 'high' } }]);
-        expect(history.entries[0].incomplete).toBe(true);
+        // The snapshot omits priority; the edit pair explicitly records its
+        // empty predecessor. These are different kinds of evidence.
+        expect(history.entries[0].changes).toEqual([{ field: 'priority', before: { known: true, value: undefined }, after: { known: true, value: 'high' } }]);
+        expect(history.entries[0].incomplete).toBe(false);
         expect(history.entries[1].changes.map((change) => change.field)).toEqual(['title']);
+    });
+
+    it.each([
+        { field: 'priority', empty: undefined, next: 'high' },
+        { field: 'priority', empty: null, next: 'high' },
+        { field: 'description', empty: '', next: 'Now described' }
+    ] as const)('preserves an explicitly recorded empty $field predecessor ($empty) in a first edit with no baseline', ({ field, empty, next }) => {
+        const before = fromPartial<Task>({ ...task(), [field]: empty });
+        const after = fromPartial<Task>({ ...task(), [field]: next });
+        const board = snapshot([after]);
+        const edit = timeline.recordTaskTimelineEvent(board, before, after)!;
+        // An imported/truncated timeline can contain the recorded edit alone.
+        board.extensions.timeline!.events = [edit];
+        board.extensions.timeline!.baselineEventId = '';
+        expect(Object.hasOwn(edit.changes![field], 'before')).toBe(true);
+
+        const history = deriveTaskHistory(board, after);
+        expect(history.entries).toHaveLength(1);
+        expect(history.entries[0]).toMatchObject({ id: edit.id, kind: 'task.updated', changes: [
+            { field, before: { known: true, value: empty }, after: { known: true, value: next } }
+        ] });
+        expect(taskHistoryValueLines(field, history.entries[0].changes[0].before, 'en')).toEqual(['None']);
+        expect(taskHistoryValueLines(field, history.entries[0].changes[0].before, 'pt')).toEqual(['Nenhum']);
+        expect(history.earlierHistoryUnavailable).toBe(true);
+        expect(history.incomplete).toBe(true);
+    });
+
+    it('does not treat an omitted predecessor property as an explicitly recorded empty value', () => {
+        const opened = task({ priority: 'high' });
+        const edit = timeline.recordTaskTimelineEvent(snapshot([opened]), task(), opened)!;
+        edit.changes = { priority: fromPartial({ after: 'high' }) };
+        const history = deriveTaskHistory(project([edit], opened), opened);
+        expect(history.entries).toEqual([]);
+        expect(history.incomplete).toBe(true);
+        expect(history.earlierHistoryUnavailable).toBe(true);
+    });
+
+    it('does not turn an explicit undefined-to-null empty normalization into a business edit', () => {
+        const before = fromPartial<Task>({ ...task(), priority: undefined });
+        const after = task();
+        const board = snapshot([after]);
+        const edit = timeline.recordTaskTimelineEvent(board, before, after)!;
+        board.extensions.timeline!.events = [edit];
+        const history = deriveTaskHistory(board, after);
+        expect(history.entries).toEqual([]);
+        expect(history.earlierHistoryUnavailable).toBe(true);
+        expect(history.incomplete).toBe(true);
+    });
+
+    it('does not mark equivalent recorded empty representations as a missing transition', () => {
+        const board = project([baseline()], task());
+        const before = fromPartial<Task>({ ...task(), priority: undefined });
+        board.board.tasks[0].priority = 'high';
+        const edit = timeline.recordTaskTimelineEvent(board, before, board.board.tasks[0])!;
+        const history = deriveTaskHistory(board, board.board.tasks[0]);
+        expect(history.entries.map((entry) => entry.id)).toEqual([edit.id, 'baseline']);
+        expect(history.entries[0]).toMatchObject({ incomplete: false, changes: [
+            { field: 'priority', before: { known: true, value: undefined }, after: { known: true, value: 'high' } }
+        ] });
+    });
+
+    it('does not fill initial omitted values from either normalization defaults or the current task', () => {
+        const sparse = fromPartial<Task>({ id: 1, title: 'Original', status: 'backlog', createdAt: AT, updatedAt: AT });
+        const board = project([baseline([sparse])], sparse);
+        const history = deriveTaskHistory(board, sparse);
+        expect(history.entries[0].changes.map((change) => change.field)).toEqual(['title', 'status']);
+        expect(Object.hasOwn(sparse, 'priority')).toBe(false);
+        const current = task({ priority: 'high' });
+        expect(deriveTaskHistory(board, current).entries[0].changes.map((change) => change.field)).toEqual(['title', 'status']);
     });
 
     it('preserves direct field evidence when the earlier baseline is missing', () => {

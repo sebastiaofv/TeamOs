@@ -3,6 +3,9 @@ import type { DayPlanBlock } from './types';
 import { areSerializableValuesEqual, cloneSerializable } from './serializable';
 import { formatPlannerDuration, plannerMinutes } from './dayPlanner';
 import { isRecord } from './util';
+import { normalizeTask } from './task';
+import { normalizeRoadmapExtension } from './roadmap';
+import { getLegacyTaskAttachmentsFromExtensions } from './attachments';
 
 export const HISTORY_FIELDS = ['title', 'description', 'assignees', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status'] as const;
 export type HistoryTask = Record<string, unknown>;
@@ -14,6 +17,16 @@ export type HistoryState = {
 
 export function historyTask(state: HistoryState, id: number): HistoryTask | null {
     return state.board?.tasks?.find((task) => Number(task.id) === id) || null;
+}
+
+// Match the existing snapshot normalizer, for comparisons/proof only. A
+// normalized default is not evidence that a historical field was recorded.
+export function effectiveHistoryTask(task: HistoryTask | null, state: HistoryState): HistoryTask | null {
+    return task ? { ...normalizeTask(task, {
+        fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(state, task.id),
+        includeStatusChangedAt: false,
+        roadmap: normalizeRoadmapExtension(state.extensions?.roadmap)
+    }) } : null;
 }
 
 // Replay normalizers can drop incomplete Roadmap records. A title already
@@ -84,8 +97,12 @@ export function taskFieldValue(task: HistoryTask | null, field: string, state: H
     return Object.hasOwn(task, field) ? recordedFieldValue(field, task[field], state) : unknownHistoryValue();
 }
 
-export function taskHistoryChanges(before: HistoryTask | null, after: HistoryTask | null, beforeState: HistoryState, afterState: HistoryState, beforeKnown = true): TaskHistoryChange[] {
+export function taskHistoryChanges(before: HistoryTask | null, after: HistoryTask | null, beforeState: HistoryState, afterState: HistoryState, beforeKnown = true,
+    effective?: { before: HistoryTask | null; after: HistoryTask | null }): TaskHistoryChange[] {
     return HISTORY_FIELDS.flatMap((field) => {
+        // Knowledge can change without a business edit (for example when a
+        // full snapshot records defaults omitted by a legacy snapshot).
+        if (effective?.before && effective.after && areSerializableValuesEqual(effective.before[field], effective.after[field])) return [];
         const previous = taskFieldValue(before, field, beforeState, beforeKnown);
         const next = taskFieldValue(after, field, afterState);
         if (!before && after && !next.known) return [];
