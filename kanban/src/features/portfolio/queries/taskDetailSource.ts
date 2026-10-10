@@ -31,7 +31,7 @@ export function resolveTaskDetailSource(boardRecord: BoardRecord | null, context
             // the project's baseline. That baseline captures the opened task;
             // a later creation with the same ID does not.
             if (openedIndex === -1 && frame.index === 0 && frame.event?.kind === 'board.baseline'
-                && frame.task && context.task && matchesHistoryTask(frame.task, { ...context.task })) {
+                && frame.task && context.task && matchesHistoryTask(frame.task, { ...context.task }, frame.effectiveTask || frame.task)) {
                 openedLifecycle = frame.lifecycle;
             }
             currentLifecycle = frame.lifecycle;

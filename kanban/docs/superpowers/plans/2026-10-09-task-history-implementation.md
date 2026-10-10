@@ -62,9 +62,16 @@ Branch de entrega: `US6`. A fonte única continua a ser a timeline existente no 
 
 - `npm run lint`: passou.
 - `npm run typecheck`: passou.
-- `npm run test:unit`: 1.077 testes passaram.
-- `npm test`: 216 testes de navegador e referências visuais passaram.
+- `npm run test:unit`: 1.080 testes passaram.
+- `npm test`: 221 testes de navegador e referências visuais passaram.
 - Builds normal e standalone: passaram.
 - Revalidação dos findings de Standards e Spec: resolvidos, incluindo as reproduções de restauro esparso, ausência de falsas alterações por normalização e preservação de valores anteriores vazios.
 
 Entrega: [PR #4](https://github.com/sebastiaofv/TeamOs/pull/4), branch `US6`.
+
+## Correção após utilização com projetos importados
+
+- Sintoma reproduzido: alterações recentes gravadas na timeline, mas o detalhe apresenta **Sem alterações registadas no histórico disponível**.
+- Causa: a validação final comparava os valores históricos em bruto com os valores normalizados da tarefa carregada. Tags, responsáveis ou motivos de bloqueio antigos com espaços/formatação diferente faziam rejeitar toda a projeção.
+- Correção: validar apenas os campos historicamente conhecidos usando os seus valores efetivos normalizados, preservando os valores originais nas entradas e o discriminador de identidade.
+- Regressões: testes de domínio para os três tipos de valores antigos; cenários PT do import/edit/save/detail e sequência de várias edições reais. O caso com tags canónicas funciona como controlo.

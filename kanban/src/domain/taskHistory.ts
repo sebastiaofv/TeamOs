@@ -198,7 +198,7 @@ export function deriveTaskHistory(boardData: BoardData, task: Task, options: { e
         finalTask = afterTask;
     }
 
-    if (!lifecycle || !finalTask || !matchesHistoryTask(finalTask, { ...task })) return { ...empty(), asOf };
+    if (!lifecycle || !finalTask || !matchesHistoryTask(finalTask, { ...task }, previousEffectiveTask || finalTask)) return { ...empty(), asOf };
     return {
         entries: entries.filter((item) => item.lifecycle === lifecycle).map((item) => item.entry).reverse(),
         earlierHistoryUnavailable: lifecycle.earlierUnavailable,

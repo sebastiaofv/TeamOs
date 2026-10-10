@@ -17,7 +17,8 @@ import {
   seedPortfolioBoards,
   setTimelineSlider,
   waitForBoardWrites,
-  type SeedBoard
+  type SeedBoard,
+  type SeedTask
 } from '../support/portfolio';
 
 const history = (page: Page) => page.locator('#taskDetailModal details#taskHistory');
@@ -38,13 +39,13 @@ async function expandHistory(page: Page, label = 'History') {
   await expect(section).toHaveAttribute('open', '');
 }
 
-async function expandEntry(entry: Locator) {
+async function expandEntry(entry: Locator, language: 'en' | 'pt' = 'en') {
   const summary = entry.locator('summary').first();
   await expect(summary).toBeVisible();
   await expect(summary).not.toHaveText('');
   await summary.click();
-  await expect(entry.getByText('Before', { exact: true }).first()).toBeVisible();
-  await expect(entry.getByText('After', { exact: true }).first()).toBeVisible();
+  await expect(entry.getByText(language === 'pt' ? 'Antes' : 'Before', { exact: true }).first()).toBeVisible();
+  await expect(entry.getByText(language === 'pt' ? 'Depois' : 'After', { exact: true }).first()).toBeVisible();
 }
 
 // Establish the initial known state before measuring action-only increments.
@@ -128,6 +129,86 @@ test.describe('task history', () => {
       priority: { before: 'low', after: 'high' }
     });
   });
+
+  test('history stays non-empty after successive normal edits and reopening the task', async ({ page }) => {
+    await seedPortfolioBoards(page, [{
+      id: 'history-regression', title: 'History regression', hasHandle: true,
+      tasks: [{ id: 1, title: 'History regression task', status: 'to-do' }],
+      extensions: { roadmap: {
+        version: 1, sprints: [],
+        phases: [{ id: 'delivery', title: 'Delivery', startDate: '2026-10-01', endDate: '2026-10-31' }],
+        milestones: [{ id: 'release', title: 'Release', dueDate: '2026-10-20' }]
+      } }
+    }], { selectedBoardId: 'history-regression' });
+
+    const changes = [
+      async () => { await page.locator('#taskDescription').fill('Description changed'); },
+      async () => { await page.locator('#taskPriority').selectOption('high'); },
+      async () => {
+        await page.locator('#taskBlocked').check();
+        await page.locator('#taskBlockerReason').fill('Waiting for review');
+      },
+      async () => { await page.locator('#taskBlocked').uncheck(); },
+      async () => {
+        await page.locator('#taskAssigneeNewItem').fill('Ana');
+        await page.locator('#taskAssigneeNewItem').press('Enter');
+      },
+      async () => { await page.locator('#taskDueDate').fill('2026-10-20'); },
+      async () => {
+        await page.locator('#taskPhase').selectOption('delivery');
+        await page.locator('#taskMilestone').selectOption('release');
+      }
+    ];
+    for (const [index, edit] of changes.entries()) {
+      await openTaskEditor(page, 'History regression task');
+      await edit();
+      await page.locator('#taskModal .btn-primary').click();
+      await expect(page.locator('#taskModal')).toBeHidden();
+      await waitForBoardWrites(page, index + 1);
+      const saved = await readSavedBoard(page, 'history-regression');
+      expect(saved.extensions.timeline.events.length).toBeGreaterThan(1);
+      await openDetail(page, 'History regression task');
+      await expandHistory(page);
+      await expect(history(page), `history disappeared after edit ${index + 1}`).not.toContainText('No changes recorded');
+      await expect(entries(page)).toHaveCount(index + 2);
+      await page.locator('#taskDetailModalCloseBtn').click();
+    }
+  });
+
+  const olderFieldCases: { name: string; fields: Pick<SeedTask, 'tags' | 'assignees' | 'blocked' | 'blockerReason'> }[] = [
+    { name: 'tags', fields: { tags: [' Bug '] } },
+    { name: 'canonical tags', fields: { tags: ['bug'] } },
+    { name: 'assignees', fields: { assignees: [' Ana '] } },
+    { name: 'blocker', fields: { blocked: true, blockerReason: ' Waiting for review ' } }
+  ];
+  for (const { name, fields } of olderFieldCases) {
+    test(`a new edit remains visible with an imported timeline containing older ${name} values`, async ({ page }) => {
+      const task = { id: 1, title: 'Imported task', status: 'to-do', ...fields };
+      const snapshot = buildBoardPayload({ title: 'Imported history', tasks: [task] });
+      await seedPortfolioBoards(page, [{
+        id: 'legacy-history', title: 'Imported history', hasHandle: true, tasks: [task],
+        extensions: { timeline: {
+          version: 1, baselineEventId: 'legacy-baseline', events: [{
+            id: 'legacy-baseline', at: FIXED_TIMESTAMP, kind: 'board.baseline',
+            entityType: 'board', entityId: 'board', summary: 'Initial state', snapshot
+          }]
+        } }
+      }], { selectedBoardId: 'legacy-history' });
+      await renameTaskViaEditor(page, 'Imported task', 'Edited imported task');
+      await waitForBoardWrites(page);
+      const saved = await readSavedBoard(page, 'legacy-history');
+      expect(saved.extensions.timeline.events.at(-1).changes.title)
+        .toEqual({ before: 'Imported task', after: 'Edited imported task' });
+      await page.locator('#languageToggleBtn').click();
+      await openDetail(page, 'Edited imported task');
+      await expandHistory(page, 'Histórico');
+      await expect(history(page)).not.toContainText('Sem alterações registadas no histórico disponível');
+      await expect(entries(page), 'recorded changes must not produce an empty history').toHaveCount(2);
+      await expandEntry(entries(page).first(), 'pt');
+      await expect(entries(page).first()).toContainText('Imported task');
+      await expect(entries(page).first()).toContainText('Edited imported task');
+    });
+  }
 
   test('a command-palette status move and undo remain two changes in newest-first order', async ({ page }) => {
     await seedPortfolioBoards(page, [withBaseline({

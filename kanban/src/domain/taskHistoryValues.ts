@@ -52,9 +52,13 @@ export function historyLabelState(previous: HistoryState, state: HistoryState): 
 
 // Compare only evidence carried by the snapshot. Automatic timestamps are not
 // replayed, and createdAt is a discriminator, never evidence of creation.
-export function matchesHistoryTask(evidence: HistoryTask, candidate: HistoryTask): boolean {
+// A loaded task may have canonical values while its old snapshots retain raw
+// values. Optional effective values validate those same known fields without
+// treating normalization defaults as new historical evidence.
+export function matchesHistoryTask(evidence: HistoryTask, candidate: HistoryTask, effectiveEvidence: HistoryTask = evidence): boolean {
     return [...HISTORY_FIELDS, 'createdAt'].every((field) =>
-        !Object.hasOwn(evidence, field) || field === 'createdAt' && !evidence[field] || areSerializableValuesEqual(evidence[field], candidate[field]));
+        !Object.hasOwn(evidence, field) || field === 'createdAt' && !evidence[field]
+        || areSerializableValuesEqual(field === 'createdAt' ? evidence[field] : effectiveEvidence[field], candidate[field]));
 }
 
 export function recordedFieldValue(field: string, value: unknown, state: HistoryState): TaskHistoryValue {

@@ -56,6 +56,25 @@ function freeze(value: unknown): void {
 }
 
 describe('deriveTaskHistory', () => {
+    const olderValues: { field: 'tags' | 'assignees' | 'blockerReason'; fields: Partial<Task> }[] = [
+        { field: 'tags', fields: { tags: [' Bug '] } },
+        { field: 'assignees', fields: { assignees: [' Ana '] } },
+        { field: 'blockerReason', fields: { blocked: true, blockerReason: ' Waiting for review ' } }
+    ];
+    it.each(olderValues)('retains recorded history when imported $field values are normalized', ({ field, fields }) => {
+        const historical = task(fields);
+        const opened = normalizeTask({ ...historical, title: 'Edited' });
+        const board = project([
+            baseline([historical]),
+            event('edit', 'task.updated', { changes: { title: { before: 'Original', after: 'Edited' } } })
+        ], opened);
+        const history = deriveTaskHistory(board, opened);
+        expect(history.entries.map((entry) => entry.id)).toEqual(['edit', 'baseline']);
+        expect(history.entries[0].changes.find((change) => change.field === 'title')?.after.value).toBe('Edited');
+        // Normalization validates continuity; it must not rewrite historical evidence.
+        expect(history.entries[1].changes.find((change) => change.field === field)?.after.value).toEqual(historical[field]);
+    });
+
     it('is read-only, including normalization of the timeline and nested values', () => {
         const opened = task({ checklist: [{ text: 'Ship', done: true }] });
         const events = [baseline(), event('edit', 'task.updated', { changes: { checklist: { before: [], after: opened.checklist } } })];
