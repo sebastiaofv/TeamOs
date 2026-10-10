@@ -1,6 +1,6 @@
 # US6 — Histórico de alterações da tarefa
 
-Estado: entendimento partilhado confirmado pelo utilizador em 9 de outubro de 2026. Decisões de produto, orientação de reutilização da timeline e critérios de aceitação acordados; pronta para implementação.
+Estado: entendimento partilhado confirmado pelo utilizador e implementação integrada na branch `US6`. Decisões de produto, orientação de reutilização da timeline e critérios de aceitação acordados.
 
 ## Necessidade
 
@@ -47,7 +47,7 @@ Como Gestor de projeto, quero abrir uma tarefa e consultar o histórico das suas
 - A reconstrução existente permite obter o estado depois de cada evento e observar alterações comparando os estados adjacentes. A baseline é o primeiro estado conhecido; não existe estado reconstruível anterior a ela.
 - A ordem de referência é a sequência dos eventos na timeline do projeto. Num contexto histórico, considerar apenas o prefixo até ao evento selecionado, inclusive.
 
-## Factos do modelo atual
+## Factos do modelo na definição da história
 
 - Existe uma timeline persistida no projeto, com eventos associados a tarefas e valores antes/depois dos campos alterados.
 - Mudanças de estado podem aparecer num evento específico ou dentro de uma alteração com vários campos; ambos os casos são relevantes para a consulta.
@@ -102,3 +102,11 @@ Referências: `src/domain/types.ts`, `src/domain/timeline.ts`, `src/domain/task.
 ## Confirmação final
 
 O utilizador confirmou as recomendações de todas as rondas, incluindo o tratamento de informação incompleta, a identidade e continuidade da tarefa e as regras e critérios de aceitação de fecho. A orientação explícita é derivar o histórico e os estados da tarefa da timeline já existente no projeto.
+
+## Implementação
+
+- `src/domain/taskHistory.ts`: projeção de alterações a partir da timeline do projeto, incluindo estados iniciais conhecidos, alterações indiretas e planeamento.
+- `src/domain/taskContinuity.ts`: regra partilhada de continuidade da tarefa e proveniência de restauro, incluindo snapshots históricos esparsos e reutilização de identificadores.
+- `src/features/portfolio/queries/taskDetailQuery.ts` e `taskDetailSource.ts`: composição reativa do detalhe e do histórico no contexto da tarefa aberta.
+- `src/features/portfolio/task/dialogs/TaskHistorySection.tsx` e `taskHistoryText.ts`: apresentação recolhível, resumos e valores legíveis em EN/PT.
+- Testes de domínio e queries em `tests/unit/taskHistory.test.ts`, `taskDetailSource.test.ts` e `taskHistoryText.test.ts`; cenários de utilizador em `tests/e2e/task-history.test.ts`; referências visuais nos temas claro e escuro em `tests/visual.test.ts`.
