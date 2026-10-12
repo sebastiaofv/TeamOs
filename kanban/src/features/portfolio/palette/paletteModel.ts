@@ -17,8 +17,9 @@ import {
     shiftPlannerDate
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
+import { getProjectAssigneeSuggestions } from '@/domain/projectDetails';
 import { matchRanges, scoreText } from './paletteText';
-import { parseQuickCreate, type QuickCreateDraft } from './quickCreate';
+import { chooseQuickCreateAssignee, parseQuickCreate, type QuickCreateDraft } from './quickCreate';
 
 export type PaletteStep = 'status' | 'assignee' | 'priority' | 'plan';
 export type PaletteFrame =
@@ -217,12 +218,9 @@ function taskActionItems(ctx: Ctx, row: PortfolioRow, compact: boolean): Palette
     return items;
 }
 
-function allPeople(ctx: Ctx): string[] {
-    const names = new Map<string, string>();
-    ctx.rows.forEach((row) => row.task.assignees.forEach((name) => {
-        if (name && !names.has(name.toLowerCase())) names.set(name.toLowerCase(), name);
-    }));
-    return [...names.values()].sort((a, b) => a.localeCompare(b));
+function projectPeople(ctx: Ctx, boardId: string): string[] {
+    const board = findBoard(ctx, boardId);
+    return board ? getProjectAssigneeSuggestions(board.data) : [];
 }
 
 // Free 1-hour slots: the next whole hour today, 14:00 and 16:00 today when
@@ -265,10 +263,11 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
                 { type: 'planTask', boardId, taskId, date: slot.date, startMinutes: slot.startMinutes }));
     }
     const assigned = new Set(row.task.assignees.map((name) => name.toLowerCase()));
-    const people = allPeople(ctx).filter((name) => matches(name))
+    const suggestions = projectPeople(ctx, boardId);
+    const people = suggestions.filter((name) => matches(name))
         .map((name) => choice(name, 'person', name, { type: 'toggleAssignee', boardId, taskId, name }, { checked: assigned.has(name.toLowerCase()) }));
     const typed = q.trim();
-    if (typed && !allPeople(ctx).some((name) => name.toLowerCase() === typed.toLowerCase())) {
+    if (typed && !suggestions.some((name) => name.toLowerCase() === typed.toLowerCase())) {
         people.push(choice('new', 'person', ctx.t('palette.addPerson', { name: typed }), { type: 'toggleAssignee', boardId, taskId, name: typed },
             { checked: false, ranges: [] }));
     }
@@ -284,13 +283,22 @@ function quickCreate(ctx: Ctx): PaletteModel {
     const fallback = defaultCreateBoard(ctx);
     const writableBoards = ctx.boards.filter((board) => board.handle);
     const draft = parseQuickCreate(ctx.query, {
-        people: allPeople(ctx),
+        peopleForProject: (projectId) => projectPeople(ctx, projectId),
         projects: writableBoards.map((board) => ({ id: board.id, title: boardTitle(board) })),
         defaultProjectId: fallback?.id || '',
         today: ctx.today
     });
     const board = findBoard(ctx, draft.projectId);
     const preview: PalettePreview = { ...draft, projectTitle: boardTitle(board) };
+    const ambiguous = draft.ambiguousAssignees[0];
+    if (ambiguous) {
+        const items: PaletteItem[] = ambiguous.candidates.map((name) => ({
+            key: `create-assignee:${name}`, icon: 'person', label: name, ranges: [],
+            detail: `@${ambiguous.value}`, hint: ['Enter'],
+            action: { type: 'setQuery', query: chooseQuickCreateAssignee(ctx.query, ambiguous, name) }
+        }));
+        return { sections: [{ id: 'create-assignee', title: ctx.t('palette.stepAssign'), items }], breadcrumbs: [], preview };
+    }
     const items: PaletteItem[] = draft.title && board ? [{
         key: 'create', icon: 'create', label: ctx.t('palette.create', { title: draft.title, project: boardTitle(board) }), ranges: [],
         hint: ['Enter'], color: boardColor(board),
@@ -457,4 +465,3 @@ export function buildPaletteModel(input: PaletteInput): PaletteModel {
     if (!trimmed) return home(ctx);
     return search(ctx);
 }
-
