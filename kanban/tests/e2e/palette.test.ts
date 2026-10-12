@@ -25,7 +25,8 @@ async function seed(page: Page) {
         { id: 2, title: 'Login bug', status: 'doing', tags: ['auth'] }
       ]
     },
-    { id: 'bravo', hasHandle: true, title: 'Bravo', tasks: [{ id: 5, title: 'Ship release', status: 'backlog' }] },
+    { id: 'bravo', hasHandle: true, title: 'Bravo', tasks: [{ id: 5, title: 'Ship release', status: 'backlog' }],
+      extensions: { projectDetails: { version: 1, description: '', team: ['Ana'] } } },
     { id: 'charlie', hasHandle: false, title: 'Charlie', tasks: [{ id: 9, title: 'Read-only note', status: 'to-do' }] }
   ]);
 }

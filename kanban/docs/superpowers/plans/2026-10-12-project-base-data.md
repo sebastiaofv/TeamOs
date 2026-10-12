@@ -26,3 +26,13 @@ Um evento `project.details.updated` usa `entityType: 'board'` e changes `title`,
 - **T5 — Revisão e correções**: revisão de standards e spec, corrigir problemas e concluir PR. Bloqueado por T4.
 
 T1, T2 e T3 podem ser implementados em paralelo com este contrato. T2 e T3 não alteram o módulo partilhado nem os ficheiros de domínio de T1.
+
+## Progresso e verificação
+
+- [x] T1 — Domínio e persistência.
+- [x] T2 — Ficha e comandos.
+- [x] T3 — Sugestões e criação rápida.
+- [x] T4 — Integração e verificação inicial.
+- [ ] T5 — Revisão e correções.
+
+A integração passou lint, typecheck, build, 1.034 testes unitários e 222 testes Playwright (178 E2E e 44 visuais). As quatro novas baselines da ficha cobrem temas claro/escuro em desktop/mobile. Foram atualizadas as baselines afetadas pela engrenagem; algumas também continham a antiga pesquisa por input, já substituída pela paleta no código de `main`. A comparação das imagens foi revista antes de aceitar as novas baselines.

@@ -2,7 +2,7 @@ import { fromPartial } from '@total-typescript/shoehorn';
 import { describe, expect, it } from 'vitest';
 import type { TimelineEvent } from '../../src/domain/types';
 import { buildTaskTimelineEvent } from '../../src/domain/timeline';
-import { describeTimelineEvent } from '../../src/features/portfolio/timeline/timelineEventText';
+import { describeTimelineEvent, describeTimelineChangeField, describeTimelineChangeValue } from '../../src/features/portfolio/timeline/timelineEventText';
 
 const event = (kind: string, summary: string, extra: Partial<TimelineEvent> = {}): TimelineEvent => ({
   id: 'e', at: '2026-09-25T10:00:00.000Z', kind, entityType: 'board', entityId: 'board', summary, ...extra
@@ -65,5 +65,18 @@ describe('describeTimelineEvent', () => {
   it('falls back to the saved text when the wording is not recognised', () => {
     expect(describeTimelineEvent(event('task.updated', 'Something custom'), 'pt')).toBe('Something custom');
     expect(describeTimelineEvent(event('plugin.thing', 'Plugin did a thing'), 'pt')).toBe('Plugin did a thing');
+  });
+
+  it('uses readable localized labels and team values for project details only', () => {
+    const updated = event('project.details.updated', 'Project details updated: Launch');
+    expect(describeTimelineEvent(updated, 'pt')).toBe('Dados do projeto atualizados: Launch');
+    expect(describeTimelineChangeField(updated, 'title', 'pt')).toBe('Nome do projeto');
+    expect(describeTimelineChangeField(updated, 'description', 'en')).toBe('Description');
+    expect(describeTimelineChangeField(updated, 'team', 'pt')).toBe('Equipa');
+    expect(describeTimelineChangeValue(updated, 'team', ['Ana', 'Rui'], 'pt')).toBe('• Ana\n• Rui');
+    expect(describeTimelineChangeValue(updated, 'team', [], 'pt')).toBe('Nenhum');
+    expect(describeTimelineChangeValue(updated, 'description', '', 'en')).toBe('None');
+    expect(describeTimelineChangeField(event('task.updated', ''), 'title', 'pt')).toBe('title');
+    expect(describeTimelineChangeValue(event('task.updated', ''), 'assignees', ['Ana'], 'en')).toBe('[\n  "Ana"\n]');
   });
 });

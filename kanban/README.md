@@ -5,6 +5,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 ## What it does
 
 - **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
+- **Project details** — select a project and open the gear beside its name to edit its required name, optional multiline description and team names. Save applies changes; Cancel, close and Escape discard the draft. Read-only files and historical previews allow consultation only.
 - **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag cards between columns with a mouse or by touch (keyboard: `1`–`4`), add/edit/archive/delete tasks, undo after archiving.
 - **Tasks** — title, description, assignees, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
 - **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
@@ -28,6 +29,15 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - Blocked tasks require `blockerReason`.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
+
+### Project details
+
+- The project name stays in `board.settings.title`; description and team are stored in `extensions.projectDetails` (`{ version: 1, description, team }`). Older files open with empty description and team.
+- Team names are trimmed and deduplicated case-insensitively. Editing the team does not reassign existing tasks, and renaming a project does not rename its file.
+- Assignee suggestions show the owning project's team first, then other assignees used in that project. Names outside the team remain allowed.
+- Quick-create resolves `@person` against the final `in:project` destination. Ambiguous prefixes require choosing a person; full names can be quoted, e.g. `@"Ana Silva"`.
+- Each effective Save records one `project.details.updated` timeline event with before/after values. Historical consultation and restoration include the project details; unchanged saves create no event.
+- If the base data changes externally while the details draft is open, Save refuses to overwrite it silently. Close and reopen the details to reload; unrelated task/planning changes are preserved.
 
 ## Keyboard shortcuts
 

@@ -7,6 +7,7 @@
 import type { TimelineEvent } from '@/domain/types';
 import type { Language } from '@/shared/types/ui';
 import { normalizeDayPlannerBlock } from '@/domain/dayPlanner';
+import { formatTimelineValue } from '@/domain/timeline';
 import { LANGUAGE_CODES, formatPlannerDateLabel, translate, type TranslationKey } from '@/shared/i18n';
 
 type Descriptor = {
@@ -24,6 +25,7 @@ const TASK_COUNT_WORDS = { tasks: ['common.task', 'common.tasks'] } as const;
 const DESCRIPTORS: Record<string, readonly Descriptor[]> = {
     'board.baseline': [{ key: 'timeline.baselineCreated' }],
     'board.restored': [{ key: 'timeline.boardRestored' }],
+    'project.details.updated': [{ key: 'timeline.projectDetailsUpdated' }],
     'task.created': [{ key: 'timeline.taskCreated' }],
     'task.deleted': [{ key: 'timeline.taskDeleted' }],
     'task.archived': [{ key: 'timeline.taskArchived' }],
@@ -93,4 +95,25 @@ export function describeTimelineEvent(event: TimelineEvent | null | undefined, l
         }
     }
     return event.summary;
+}
+
+const PROJECT_FIELD_LABELS = {
+    title: 'timeline.projectName',
+    description: 'timeline.projectDescription',
+    team: 'timeline.projectTeam'
+} as const;
+
+export function describeTimelineChangeField(event: TimelineEvent | null, field: string, language: Language): string {
+    if (event?.kind !== 'project.details.updated') return field;
+    const label = Object.entries(PROJECT_FIELD_LABELS).find(([key]) => key === field)?.[1];
+    return label ? translate(language, label) : field;
+}
+
+export function describeTimelineChangeValue(event: TimelineEvent | null, field: string, value: unknown, language: Language): string {
+    if (event?.kind !== 'project.details.updated') return formatTimelineValue(value);
+    if (value === '' || (Array.isArray(value) && value.length === 0)) return translate(language, 'common.none');
+    if (field === 'team' && Array.isArray(value) && value.every((name) => typeof name === 'string')) {
+        return value.map((name) => `• ${name}`).join('\n');
+    }
+    return formatTimelineValue(value);
 }

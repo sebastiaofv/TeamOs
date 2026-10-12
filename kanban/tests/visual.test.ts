@@ -593,3 +593,22 @@ test.describe('2.5 roadmap and 2.6 calendar views', () => {
     await expect(page).toHaveScreenshot('portfolio-calendar-month-heatmap-light.png', { fullPage: true });
   });
 });
+
+test.describe('US11 project details visuals', () => {
+  for (const theme of ['light', 'dark']) {
+    for (const viewport of ['desktop', 'mobile']) {
+      test(`project details (${theme}, ${viewport})`, async ({ page }) => {
+        await gotoVisualApp(page, theme);
+        if (viewport === 'mobile') await page.setViewportSize({ width: 390, height: 844 });
+        await seedPortfolioBoards(page, [{
+          id: 'details', title: 'Product Launch', hasHandle: true,
+          extensions: { projectDetails: { version: 1, description: 'Coordinate the product launch.\nKeep the team informed.', team: ['Ana Silva', 'Rui'] } }
+        }], { selectedBoardId: 'details' });
+        await page.locator('[data-action="project-details"]').click();
+        await expect(page.locator('#projectDetailsModal')).toBeVisible();
+        await page.mouse.move(1, 1);
+        await expect(page).toHaveScreenshot(`project-details-${theme}-${viewport}.png`, { fullPage: true });
+      });
+    }
+  }
+});

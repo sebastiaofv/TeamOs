@@ -5,9 +5,8 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import type { PortfolioMutationActions } from '@/features/portfolio/commands/portfolioCommands';
 import { formatDateTime } from '@/domain/calendar';
-import { formatTimelineValue } from '@/domain/timeline';
 import { useI18n } from '@/shared/i18n';
-import { describeTimelineEvent } from './timelineEventText';
+import { describeTimelineEvent, describeTimelineChangeField, describeTimelineChangeValue } from './timelineEventText';
 
 function commitTimelineSelection(
     setSelection: PortfolioMutationActions['setPortfolioTimelineSelection'],
@@ -18,7 +17,7 @@ function commitTimelineSelection(
 }
 
 function TimelineEventChanges({ event }: { event: TimelineEvent | null }) {
-    const { t } = useI18n();
+    const { language, t } = useI18n();
     const changeEntries = Object.entries(event?.changes || {});
     if (changeEntries.length === 0) {
         return (
@@ -34,15 +33,15 @@ function TimelineEventChanges({ event }: { event: TimelineEvent | null }) {
         <div className="timeline-diff-list">
             {changeEntries.map(([field, change]) => (
                 <div className="timeline-diff-item" key={field}>
-                    <div className="timeline-diff-field">{field}</div>
+                    <div className="timeline-diff-field">{describeTimelineChangeField(event, field, language)}</div>
                     <div className="timeline-diff-values">
                         <div className="timeline-diff-box">
                             <div className="timeline-diff-label">{t('common.before')}</div>
-                            <pre className="timeline-diff-value">{formatTimelineValue(change.before)}</pre>
+                            <pre className="timeline-diff-value">{describeTimelineChangeValue(event, field, change.before, language)}</pre>
                         </div>
                         <div className="timeline-diff-box">
                             <div className="timeline-diff-label">{t('common.after')}</div>
-                            <pre className="timeline-diff-value">{formatTimelineValue(change.after)}</pre>
+                            <pre className="timeline-diff-value">{describeTimelineChangeValue(event, field, change.after, language)}</pre>
                         </div>
                     </div>
                 </div>
