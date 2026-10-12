@@ -1,7 +1,7 @@
 # US11 — Ficha e dados base do projeto
 
 Date: 2026-10-12
-Status: desenho aprovado; implementação autorizada
+Status: implementada e revista
 Branch: `US11`, criada a partir de `main`
 
 ## Objetivo

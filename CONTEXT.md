@@ -27,3 +27,6 @@ Pessoa identificada pelo nome a quem uma tarefa está atribuída. Pode pertencer
 
 **Histórico do projeto**:
 Sequência de alterações do projeto, incluindo os seus dados base, tarefas e planeamento, que permite compreender a sua evolução.
+
+**Alteração dos dados base do projeto**:
+Mudança ao nome, à descrição ou à equipa de um projeto, descrita pelos valores anteriores e seguintes e pelo momento em que ocorreu.
