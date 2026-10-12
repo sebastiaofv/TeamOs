@@ -4,6 +4,7 @@ import { getLegacyTaskAttachmentsFromExtensions, stripLegacyTaskAttachmentsFromE
 import { normalizeColumns } from './board';
 import { normalizeDayPlannerExtension } from './dayPlanner';
 import { normalizeRoadmapExtension } from './roadmap';
+import { normalizeProjectDetailsExtension } from './projectDetails';
 import { normalizeTask } from './task';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
@@ -32,6 +33,15 @@ export function normalizeBoardExtensionsValue(
     const nextExtensions = ((base && typeof base === 'object' && !Array.isArray(base))
         ? { ...base }
         : {}) as BoardExtensions;
+
+    if (Object.prototype.hasOwnProperty.call(nextExtensions, 'projectDetails')) {
+        const normalizedDetails = normalizeProjectDetailsExtension(nextExtensions.projectDetails);
+        if (normalizedDetails) {
+            nextExtensions.projectDetails = normalizedDetails;
+        } else {
+            delete nextExtensions.projectDetails;
+        }
+    }
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);

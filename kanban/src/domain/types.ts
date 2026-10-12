@@ -112,12 +112,19 @@ export type DayPlannerExtension = {
     blocks: DayPlanBlock[];
 };
 
+export type ProjectDetailsExtension = {
+    version: 1;
+    description: string;
+    team: string[];
+};
+
 export type TeamOsExtensions = { [key: string]: unknown; taskAttachments?: Record<string, unknown> };
 export type BoardExtensions = {
     [key: string]: unknown;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;
+    projectDetails?: ProjectDetailsExtension;
     teamOsKanban?: TeamOsExtensions;
 };
 

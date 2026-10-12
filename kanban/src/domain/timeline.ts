@@ -19,6 +19,7 @@ import { applyPlannerBlockChange, normalizeDayPlannerBlock } from './dayPlanner'
 import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
+import { normalizeProjectDetailsExtension } from './projectDetails';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -162,6 +163,23 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         Object.entries(event.changes).forEach(([field, change]) => {
             settings[field] = cloneSerializable(change.after);
         });
+        return nextState;
+    }
+    if (event.kind === 'project.details.updated' && event.changes) {
+        const title = event.changes.title?.after;
+        if (typeof title === 'string' && title.trim()) settings.title = title.trim();
+        if (event.changes.description || event.changes.team) {
+            const extensions = nextState.extensions || {};
+            nextState.extensions = extensions;
+            const details = normalizeProjectDetailsExtension(extensions.projectDetails)
+                || { version: 1, description: '', team: [] };
+            const normalized = normalizeProjectDetailsExtension({
+                version: 1,
+                description: event.changes.description ? event.changes.description.after : details.description,
+                team: event.changes.team ? event.changes.team.after : details.team
+            });
+            if (normalized) extensions.projectDetails = normalized;
+        }
         return nextState;
     }
     if (event.kind === 'board.columns.updated') {
