@@ -184,6 +184,29 @@
     max-width: 760px;
 }
 
+.project-details-person {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.project-details-person input {
+    min-width: 0;
+    flex: 1;
+}
+
+.project-details-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.project-details-error {
+    font-size: 13px;
+    color: var(--priority-high);
+}
+
 @media (max-width: 600px) {
     .modal-content,
     #shortcutsModal .modal-content {

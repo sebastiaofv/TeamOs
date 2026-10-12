@@ -21,6 +21,7 @@ import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useI18n } from '@/shared/i18n';
 import { PortfolioActiveFilters, PortfolioFilterMenu } from './PortfolioFilterMenu';
 import { PALETTE_SHORTCUT_LABEL, openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
+import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
@@ -202,6 +203,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
 
 function ChipList({ state }: { state: ChipState }) {
     const { t } = useI18n();
+    const { openProjectDetails } = usePortfolioActions();
     if (state.portfolioBoards.length === 0) {
         return <span className="empty-state-text">{t('toolbar.noProjectsLoaded')}</span>;
     }
@@ -225,6 +227,23 @@ function ChipList({ state }: { state: ChipState }) {
                             {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
                             {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
                         </button>
+                        {state.selectedPortfolioBoardId === board.id && (
+                            <button
+                                className="chip-link chip-details"
+                                type="button"
+                                aria-haspopup="dialog"
+                                aria-label={t('projectDetails.open', { title: board.title || board.fileName })}
+                                title={t('projectDetails.heading')}
+                                data-action="project-details"
+                                data-board-id={board.id}
+                                onClick={() => openProjectDetails(board.id)}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                                    <path d="m10 3-.6 2.3-1.7 1-2.3-.6-2 3.5 1.7 1.7v2.2l-1.7 1.7 2 3.5 2.3-.6 1.7 1L10 21h4l.6-2.3 1.7-1 2.3.6 2-3.5-1.7-1.7v-2.2l1.7-1.7-2-3.5-2.3.6-1.7-1L14 3Z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                            </button>
+                        )}
                         {board.handle && saveUi.canRetry && (
                             <button className="chip-link" type="button" title={t('toolbar.retrySave')} data-action="retry-save" data-board-id={board.id} onClick={() => retryPortfolioSave(board.id)}>{t('common.retry')}</button>
                         )}
