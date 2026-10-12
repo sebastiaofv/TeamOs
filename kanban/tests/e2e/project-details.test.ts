@@ -187,12 +187,13 @@ test.describe('US11 project details', () => {
     await expect(modal(page).getByRole('button', { name: 'Save', exact: true })).toBeVisible();
   });
 
-  test('external base data changes cannot overwrite silently or discard the draft', async ({ page }) => {
+  test('immediate save detects external base data changes before the watcher and retains the draft', async ({ page }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date());
     await seedPortfolioBoards(page, [{ id: 'alpha', title: 'Alpha', hasHandle: true }], { selectedBoardId: 'alpha' });
     await openDetails(page);
     await page.locator('#projectDetailsName').fill('Local draft');
     await mutateExternalBoardFile(page, { boardId: 'alpha', payload: buildBoardPayload({ title: 'External name' }) });
-    await triggerExternalFileCheck(page);
     await expect(modal(page)).toBeVisible();
     await expect(page.locator('#projectDetailsName')).toHaveValue('Local draft');
     await modal(page).getByRole('button', { name: 'Save', exact: true }).click();
@@ -205,20 +206,104 @@ test.describe('US11 project details', () => {
     await expect(page.locator('#projectDetailsName')).toHaveValue('External name');
   });
 
-  test('external task changes are preserved and do not block saving the draft', async ({ page }) => {
+  test('immediate save preserves external task changes before the watcher', async ({ page }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date());
     await seedPortfolioBoards(page, [{ id: 'alpha', title: 'Alpha', hasHandle: true,
       tasks: [{ title: 'Original task' }] }], { selectedBoardId: 'alpha' });
     await openDetails(page);
     await page.locator('#projectDetailsDescription').fill('Local description');
     await mutateExternalBoardFile(page, { boardId: 'alpha', payload: buildBoardPayload({ title: 'Alpha',
-      tasks: [{ title: 'Updated externally', status: 'done', assignees: ['New owner'] }] }) });
-    await triggerExternalFileCheck(page);
+      tasks: [{ title: 'Updated externally', status: 'done', assignees: ['New owner'] }],
+      extensions: { dayPlanner: { version: 1, blocks: [{ id: 'external-plan', taskId: 1,
+        date: '2026-10-12', start: '09:00', end: '10:00' }] } } }) });
     await expect(modal(page)).toBeVisible();
     await saveDetails(page);
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'alpha');
     expect(saved.extensions.projectDetails.description).toBe('Local description');
     expect(saved.board.tasks[0]).toMatchObject({ title: 'Updated externally', status: 'done', assignees: ['New owner'] });
+    expect(saved.extensions.dayPlanner.blocks).toEqual([{ id: 'external-plan', taskId: 1,
+      date: '2026-10-12', start: '09:00', end: '10:00' }]);
+  });
+
+  for (const route of ['watcher', 'preflight']) {
+    for (const selection of ['automatically pinned', 'explicit latest']) {
+      test(`${route} keeps ${selection} editable after external task history appends`, async ({ page }) => {
+        await page.clock.install();
+        await page.clock.pauseAt(new Date());
+        await seedPortfolioBoards(page, [{ id: 'alpha', title: 'Alpha', hasHandle: true,
+          tasks: [{ title: 'Original task' }] }], { selectedBoardId: 'alpha' });
+        await openDetails(page);
+        await page.locator('#projectDetailsDescription').fill('First description');
+        await saveDetails(page);
+        await waitForBoardWrites(page);
+        if (selection === 'explicit latest') {
+          await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+          await setTimelineSlider(page, 1);
+        }
+        await openDetails(page);
+        await page.locator('#projectDetailsDescription').fill('Local draft');
+        const external = await readSavedBoard(page, 'alpha');
+        external.board.tasks[0].title = 'External task';
+        external.extensions.timeline.events.push({ id: 'external-task-event', at: '2026-10-12T12:00:00.000Z',
+          kind: 'task.updated', entityType: 'task', entityId: '1', summary: 'External task update',
+          changes: { title: { before: 'Original task', after: 'External task' } } });
+        await mutateExternalBoardFile(page, { boardId: 'alpha', payload: external });
+        if (route === 'watcher') {
+          await page.clock.resume();
+          await triggerExternalFileCheck(page);
+        }
+        await expect(modal(page).getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+        await expect(page.locator('#projectDetailsDescription')).toHaveValue('Local draft');
+        await saveDetails(page);
+        await waitForBoardWrites(page, 2);
+        const saved = await readSavedBoard(page, 'alpha');
+        expect(saved.board.tasks[0].title).toBe('External task');
+        expect(saved.extensions.projectDetails.description).toBe('Local draft');
+        expect(saved.extensions.timeline.events.map((event: { kind: string }) => event.kind))
+          .toEqual(['board.baseline', 'project.details.updated', 'task.updated', 'project.details.updated']);
+      });
+    }
+  }
+
+  test('external history appends retain a genuine historical selection', async ({ page }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date());
+    await seedPortfolioBoards(page, [{ id: 'alpha', title: 'Alpha', hasHandle: true,
+      tasks: [{ title: 'Original task' }] }], { selectedBoardId: 'alpha' });
+    await openDetails(page);
+    await page.locator('#projectDetailsDescription').fill('Present description');
+    await saveDetails(page);
+    await waitForBoardWrites(page);
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await setTimelineSlider(page, 0);
+    await openDetails(page);
+    const external = await readSavedBoard(page, 'alpha');
+    external.board.tasks[0].title = 'External task';
+    external.extensions.timeline.events.push({ id: 'external-task-event', at: '2026-10-12T12:00:00.000Z',
+      kind: 'task.updated', entityType: 'task', entityId: '1', summary: 'External task update',
+      changes: { title: { before: 'Original task', after: 'External task' } } });
+    await mutateExternalBoardFile(page, { boardId: 'alpha', payload: external });
+    await page.clock.resume();
+    await triggerExternalFileCheck(page);
+    await expect(page.locator('#portfolioTimelinePanel .timeline-slider')).toHaveValue('0');
+    await expect(page.locator('#projectDetailsDescription')).toHaveValue('');
+    await expect(modal(page).getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+  });
+
+  test('a disk read error on immediate save retains the draft without writing', async ({ page }) => {
+    await page.clock.install();
+    await page.clock.pauseAt(new Date());
+    await seedPortfolioBoards(page, [{ id: 'alpha', title: 'Alpha', hasHandle: true }], { selectedBoardId: 'alpha' });
+    await openDetails(page);
+    await page.locator('#projectDetailsName').fill('Local draft');
+    await mutateExternalBoardFile(page, { boardId: 'alpha', invalidText: '{ invalid json' });
+    await modal(page).getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(modal(page).getByRole('alert')).toBeVisible();
+    await expect(page.locator('#projectDetailsName')).toHaveValue('Local draft');
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
+    expect(await page.evaluate(() => window.__portfolioDiskByBoardId.alpha.text)).toBe('{ invalid json');
   });
 
   test('quick creation uses the destination team and asks for ambiguous prefixes in either order', async ({ page }) => {

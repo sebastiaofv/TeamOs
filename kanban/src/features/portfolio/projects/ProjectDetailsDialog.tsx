@@ -118,9 +118,10 @@ function ProjectDetailsForm({ vm, titleRef }: {
                             {!readOnly && <button className="btn" type="button" onClick={() => setDraft((current) => ({ ...current, team: [...current.team, ''] }))}>{t('projectDetails.addPerson')}</button>}
                         </div>
                     </div>
-                    {(result === 'invalid-name' || result === 'conflict' || result === 'unavailable') && (
+                    {(result === 'invalid-name' || result === 'conflict' || result === 'unavailable' || result === 'failed') && (
                         <p className="project-details-error" id="projectDetailsError" role="alert">
-                            {t(result === 'invalid-name' ? 'projectDetails.nameRequired' : result === 'conflict' ? 'projectDetails.conflict' : 'projectDetails.unavailable')}
+                            {t(result === 'invalid-name' ? 'projectDetails.nameRequired' : result === 'conflict' ? 'projectDetails.conflict'
+                                : result === 'failed' ? 'projectDetails.saveFailed' : 'projectDetails.unavailable')}
                         </p>
                     )}
                 </form>

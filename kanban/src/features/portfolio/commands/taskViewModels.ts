@@ -1,6 +1,5 @@
 import type {
     BoardRecord,
-    PortfolioRow,
     SelectOption,
     TaskDetailViewModel,
     TaskDraft,
@@ -85,7 +84,6 @@ function buildRoadmapEntityOptions(items: RoadmapItem[] | null | undefined): Sel
 export function buildTaskEditorViewModel(
     boardRecord: BoardRecord,
     task: Task | null,
-    _portfolioTasks: readonly PortfolioRow[] | null | undefined,
     openId: number,
     options: { taskId?: unknown; preferredDueDate?: string } = {}
 ): TaskEditorViewModel {

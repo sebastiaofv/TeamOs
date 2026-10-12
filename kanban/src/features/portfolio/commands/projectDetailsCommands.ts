@@ -15,7 +15,7 @@ import { translateTimeline } from '@/shared/i18n';
 export type ProjectDetailsSaveResult = 'saved' | 'unchanged' | 'invalid-name' | 'conflict' | 'unavailable' | 'failed';
 
 export function createProjectDetailsActions({ getState, getBoardRecord, canUsePortfolioTaskMutations,
-    runPortfolioBoardMutation, openDialogFn, closeDialogFn }: BoardMutationContext) {
+    runPortfolioBoardMutation, openDialogFn, closeDialogFn, preflightSave }: BoardMutationContext) {
     function openProjectDetails(boardId: string): ProjectDetailsViewModel | undefined {
         const record = getBoardRecord(boardId);
         if (!record) return;
@@ -40,11 +40,15 @@ export function createProjectDetailsActions({ getState, getBoardRecord, canUsePo
     }
 
     async function saveProjectDetails(vm: ProjectDetailsViewModel, input: ProjectBaseData): Promise<ProjectDetailsSaveResult> {
-        const current = getBoardRecord(vm.boardId);
+        let current = getBoardRecord(vm.boardId);
         if (vm.readOnly || !current || !canUsePortfolioTaskMutations(vm.boardId)) return 'unavailable';
         // Title validation precedes normalization, which may reject empty names.
         if (!input.title.trim()) return 'invalid-name';
         const next = normalizeProjectBaseData(input);
+        if (!await preflightSave(vm.boardId)) return 'failed';
+        // Disk I/O can reload data, revoke permissions or change the timeline.
+        current = getBoardRecord(vm.boardId);
+        if (!current || !canUsePortfolioTaskMutations(vm.boardId)) return 'unavailable';
         const before = getProjectBaseData(current.data);
         if (!projectBaseDataEqual(vm.initial, before)) return 'conflict';
         // Stay outside the mutation seam: even a baseline must not be created.

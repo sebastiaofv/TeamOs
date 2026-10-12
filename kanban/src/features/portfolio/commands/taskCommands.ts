@@ -63,7 +63,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         openDialogFn('taskEditor', buildTaskEditorViewModel(
             source.boardRecord,
             source.task,
-            getState().portfolioTasks,
             ++taskEditorOpenCount,
             { taskId }
         ));
@@ -89,7 +88,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         openDialogFn('taskEditor', buildTaskEditorViewModel(
             boardRecord,
             null,
-            getState().portfolioTasks,
             ++taskEditorOpenCount,
             { preferredDueDate: options.preferredDueDate }
         ));

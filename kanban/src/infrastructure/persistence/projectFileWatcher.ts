@@ -18,6 +18,7 @@ import {
     clearProjectWatchStatus,
     enqueueProjectSave,
     getProjectFileState,
+    getProjectSaveState,
     projectHasUnsavedChanges,
     refreshProjectFileBaseline,
     setProjectWatchStatus,
@@ -47,6 +48,7 @@ export async function primeProjectFileBaselines(records: readonly (BoardRecord |
     }
 }
 
+// True means the read completed and any detected external change was resolved.
 async function checkProjectFileForExternalChanges(boardRecord: BoardRecord | null | undefined, callbacks: ConflictCallbacks): Promise<boolean> {
     if (!boardRecord || !boardRecord.id || !boardRecord.handle) return false;
     const boardId = boardRecord.id;
@@ -62,23 +64,29 @@ async function checkProjectFileForExternalChanges(boardRecord: BoardRecord | nul
         let snapshot: BoardSnapshot;
         if (metaUnchanged) {
             const text = await file.text();
-            if (hashTextContent(text) === fileState.lastTextHash) return false;
+            if (hashTextContent(text) === fileState.lastTextHash) {
+                if (getProjectSaveState(boardId, { create: false })?.watchStatus === 'watch-error') clearProjectWatchStatus(boardId);
+                return true;
+            }
             snapshot = await BoardRepository.readFileSnapshot(file, text);
         } else {
             snapshot = await BoardRepository.readFileSnapshot(file);
         }
         const previousHash = fileState.lastTextHash;
+        // A write or handle replacement during the read invalidates the check.
+        const current = useAppStore.getState().portfolioBoards.find(board => board.id === boardId);
+        if (fileState.inFlight || current?.handle !== boardRecord.handle) return false;
 
         if (!previousHash) {
             updateFileBaseline(fileState, snapshot);
             clearProjectWatchStatus(boardId);
-            return false;
+            return true;
         }
 
         if (previousHash === snapshot.fileMeta.textHash) {
             updateFileBaseline(fileState, snapshot);
             clearProjectWatchStatus(boardId);
-            return false;
+            return true;
         }
 
         if (projectHasUnsavedChanges(boardId)) {
@@ -88,7 +96,7 @@ async function checkProjectFileForExternalChanges(boardRecord: BoardRecord | nul
                     'conflict',
                     'External and local changes both exist. Resolve conflict to continue.'
                 );
-                return true;
+                return false;
             }
             return await resolveExternalChangeConflict(boardRecord, snapshot, fileState, callbacks);
         }
@@ -113,6 +121,22 @@ async function checkProjectFileForExternalChanges(boardRecord: BoardRecord | nul
     } finally {
         fileState.checking = false;
     }
+}
+
+// A fiche save must read this project's disk state even before the next watcher
+// tick. Never treat a skipped/failed check or an unknown baseline as permission
+// to overwrite. Existing unresolved local edits stay in the save/conflict flow.
+export async function preflightProjectFileSave(boardId: string, { onReload = () => {} }: Pick<Partial<ConflictCallbacks>, 'onReload'> = {}): Promise<boolean> {
+    const board = useAppStore.getState().portfolioBoards.find(record => record.id === boardId);
+    const runtime = getProjectFileState(boardId, { create: false });
+    const saveState = getProjectSaveState(boardId, { create: false });
+    if (!board?.handle || !runtime?.lastTextHash || runtime.checking || runtime.inFlight || saveState?.status === 'error') return false;
+    const checked = await checkProjectFileForExternalChanges(board, { chooseConflict: () => null, onReload });
+    const current = useAppStore.getState().portfolioBoards.find(record => record.id === boardId);
+    const latestSave = getProjectSaveState(boardId, { create: false });
+    return checked && current?.handle === board.handle && !runtime.inFlight && !runtime.checking
+        && !projectHasUnsavedChanges(boardId) && latestSave?.status !== 'error'
+        && latestSave?.watchStatus !== 'conflict' && latestSave?.watchStatus !== 'watch-error';
 }
 
 // The caller owns user interaction. Persistence only consumes a canonical

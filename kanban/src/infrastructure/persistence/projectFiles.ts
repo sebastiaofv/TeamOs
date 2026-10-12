@@ -7,6 +7,7 @@
 import type { BoardRecord, ProjectSaveState, WatchStatus } from '@/features/portfolio/types';
 import { useAppStore, getPortfolioBoardRecord, type AppStore } from '@/features/portfolio/state/store';
 import { serializeBoardDataFromObject } from '@/domain/serialize';
+import { getBoardTimelineData } from '@/domain/timeline';
 import { formatErrorMessage, nowIso } from '@/domain/util';
 import { BoardRepository, type BoardSnapshot } from './boardRepository';
 import { Logger } from '@/infrastructure/logging/logger';
@@ -50,10 +51,20 @@ export function applySnapshotToBoardRecord(
     if (!boardRecord || !parsed) return false;
     const boardId = boardRecord.id;
     const payload = serializeBoardDataFromObject(parsed);
-    useAppStore.setState((state) => ({
-        portfolioBoards: state.portfolioBoards.map((board) => board.id === boardId
-            ? { ...board, data: payload, title: payload.board.settings.title } : board)
-    }));
+    useAppStore.setState((state) => {
+        const selection = state.portfolioTimelineSelection;
+        const previous = state.portfolioBoards.find(board => board.id === boardId);
+        const previousLatest = (getBoardTimelineData(previous?.data)?.events.length || 1) - 1;
+        const followingLatest = selection.boardId === boardId
+            && (selection.eventIndex === null || selection.eventIndex >= previousLatest);
+        return {
+            portfolioBoards: state.portfolioBoards.map((board) => board.id === boardId
+                ? { ...board, data: payload, title: payload.board.settings.title } : board),
+            ...(followingLatest ? { portfolioTimelineSelection: {
+                boardId, eventIndex: (getBoardTimelineData(payload)?.events.length || 1) - 1
+            } } : {})
+        };
+    });
     if (options.discardLocalChanges) {
         const saveState = getProjectSaveState(boardId, { create: false });
         if (saveState) updateProjectSaveState(boardId, {

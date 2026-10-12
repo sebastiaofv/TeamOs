@@ -24,7 +24,8 @@ function setup() {
   const enqueueSave = vi.fn(async () => true);
   const closeDialogFn = vi.fn();
   const openDialogFn = vi.fn();
-  const actions = createPortfolioMutationActions({ store, markDirty, enqueueSave, closeDialogFn, openDialogFn, alert: vi.fn() });
+  const preflightSave = vi.fn(async () => true);
+  const actions = createPortfolioMutationActions({ store, markDirty, enqueueSave, closeDialogFn, openDialogFn, preflightSave, alert: vi.fn() });
   const record = () => store.getState().portfolioBoards[0];
   const events = () => record().data.extensions.timeline?.events || [];
   const open = () => actions.openProjectDetails('p1')!;
@@ -34,7 +35,7 @@ function setup() {
     next.title = next.data.board.settings.title;
     store.setState({ portfolioBoards: [next, store.getState().portfolioBoards[1]] });
   }
-  return { actions, store, record, events, open, externalChange, markDirty, enqueueSave, closeDialogFn, openDialogFn };
+  return { actions, store, record, events, open, externalChange, markDirty, enqueueSave, closeDialogFn, openDialogFn, preflightSave };
 }
 
 describe('project details commands', () => {
@@ -215,6 +216,39 @@ describe('project details commands', () => {
     externalChange((board) => { board.handle = null; });
     await expect(actions.saveProjectDetails(vm, { ...vm.initial, title: 'Forbidden' })).resolves.toBe('unavailable');
     expect(enqueueSave).not.toHaveBeenCalled();
+  });
+
+  it.each(['permission', 'history', 'base data'] as const)('rechecks %s after the asynchronous preflight', async (change) => {
+    const { actions, open, externalChange, store, preflightSave, enqueueSave, markDirty, closeDialogFn } = setup();
+    await actions.saveProjectDetails(open(), { title: 'Present', description: '', team: [] });
+    const vm = open();
+    preflightSave.mockImplementationOnce(async () => {
+      if (change === 'permission') externalChange(board => { board.handle = null; });
+      if (change === 'history') store.setState({ portfolioTimelineSelection: { boardId: 'p1', eventIndex: 0 } });
+      if (change === 'base data') externalChange(board => { board.data.board.settings.title = 'External'; });
+      return true;
+    });
+    enqueueSave.mockClear();
+    markDirty.mockClear();
+    closeDialogFn.mockClear();
+    await expect(actions.saveProjectDetails(vm, { ...vm.initial, description: 'Draft' }))
+      .resolves.toBe(change === 'base data' ? 'conflict' : 'unavailable');
+    expect(enqueueSave).not.toHaveBeenCalled();
+    expect(markDirty).not.toHaveBeenCalled();
+    expect(closeDialogFn).not.toHaveBeenCalled();
+  });
+
+  it('does not mutate or close the draft when the disk preflight cannot complete safely', async () => {
+    const { actions, open, record, preflightSave, enqueueSave, markDirty, closeDialogFn } = setup();
+    const vm = open();
+    const before = record();
+    preflightSave.mockResolvedValueOnce(false);
+    await expect(actions.saveProjectDetails(vm, { ...vm.initial, description: 'Draft' })).resolves.toBe('failed');
+    expect(preflightSave).toHaveBeenCalledExactlyOnceWith('p1');
+    expect(record()).toBe(before);
+    expect(enqueueSave).not.toHaveBeenCalled();
+    expect(markDirty).not.toHaveBeenCalled();
+    expect(closeDialogFn).not.toHaveBeenCalled();
   });
 
   it('imposes no additional field length limits', async () => {

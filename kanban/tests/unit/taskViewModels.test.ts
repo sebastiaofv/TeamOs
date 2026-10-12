@@ -2,7 +2,7 @@ import { fromAny } from '@total-typescript/shoehorn';
 import { describe, expect, it } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { normalizeTask } from '../../src/domain/task';
-import type { BoardRecord, PortfolioRow } from '../../src/features/portfolio/types';
+import type { BoardRecord } from '../../src/features/portfolio/types';
 import { buildTaskEditorViewModel } from '../../src/features/portfolio/commands/taskViewModels';
 
 describe('task editor assignee suggestions', () => {
@@ -12,13 +12,10 @@ describe('task editor assignee suggestions', () => {
     const task = normalizeTask({ id: 1, title: 'Task', status: 'to-do', assignees: ['ANA', 'Bruno'] });
     data.board.tasks = [task, normalizeTask({ id: 2, title: 'Other local task', assignees: ['Carla'] })];
     const owner = fromAny<BoardRecord, Record<string, unknown>>({ id: 'owner', title: 'Owner', data });
-    const unrelatedRows = fromAny<PortfolioRow[], Record<string, unknown>[]>([
-      { boardId: 'selected', task: normalizeTask({ id: 1, title: 'External task', assignees: ['Rui'] }) }
-    ]);
-    const editor = buildTaskEditorViewModel(owner, task, unrelatedRows, 1);
+    const editor = buildTaskEditorViewModel(owner, task, 1);
     expect(editor.assigneePool).toEqual(['Zoe', 'Ana', 'Bruno', 'Carla']);
     expect(editor.initial.assignees).toEqual(['ANA', 'Bruno']);
-    expect(buildTaskEditorViewModel(owner, null, [], 2).assigneePool).toEqual(editor.assigneePool);
+    expect(buildTaskEditorViewModel(owner, null, 2).assigneePool).toEqual(editor.assigneePool);
   });
 
   it('keeps free task names after a person is removed from the team', () => {
@@ -27,7 +24,7 @@ describe('task editor assignee suggestions', () => {
     const task = normalizeTask({ id: 1, title: 'Task', assignees: ['External Person'] });
     data.board.tasks = [task];
     const owner = fromAny<BoardRecord, Record<string, unknown>>({ id: 'owner', title: 'Owner', data });
-    const editor = buildTaskEditorViewModel(owner, task, [], 1);
+    const editor = buildTaskEditorViewModel(owner, task, 1);
     expect(editor.assigneePool).toEqual(['External Person']);
     expect(editor.initial.assignees).toEqual(['External Person']);
   });

@@ -11,7 +11,8 @@ import {
 import { touchTask } from '@/domain/task';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persistence/projectFiles';
-import { closeDialog, openDialog } from '@/app/overlays/dialogs';
+import { preflightProjectFileSave } from '@/infrastructure/persistence/projectFileWatcher';
+import { closeDialog, closePortfolioContextsForProject, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
 
@@ -24,6 +25,7 @@ export type BoardMutationOptions = {
     store?: AppStore;
     enqueueSave?: (boardRecord: BoardRecord | null) => Promise<unknown>;
     markDirty?: (boardId: string) => unknown;
+    preflightSave?: (boardId: string) => Promise<boolean>;
     closeDialogFn?: (name?: DialogName) => void;
     openDialogFn?: typeof openDialog;
     alert?: (text: string, options?: { title?: string }) => unknown;
@@ -36,6 +38,7 @@ export function createBoardMutationContext({
     store = useAppStore,
     enqueueSave = enqueueProjectSave,
     markDirty = markProjectDirty,
+    preflightSave = (boardId) => preflightProjectFileSave(boardId, { onReload: closePortfolioContextsForProject }),
     closeDialogFn = closeDialog,
     openDialogFn = openDialog,
     alert = showAlert,
@@ -123,7 +126,7 @@ export function createBoardMutationContext({
         getState, commitState, getBoardRecord, findPortfolioTaskSource,
         isPortfolioBoardMutable, canUsePortfolioTaskMutations, notifyPortfolioMutationUnavailable,
         runPortfolioBoardMutation, runPortfolioTaskMutation,
-        alert, confirm, closeDialogFn, openDialogFn
+        alert, confirm, closeDialogFn, openDialogFn, preflightSave
     };
 }
 
