@@ -17,6 +17,7 @@ import type {
     TimelineExtension
 } from '@/domain/types';
 import type { BoardFileHandle } from '@/infrastructure/browser/types';
+import type { ProjectBaseData } from '@/domain/projectDetails';
 
 export type { DraftMessage, TaskDraft, TaskEditorFields } from '@/domain/types';
 
@@ -143,11 +144,19 @@ export type CommandPaletteProps = { contextTask: { boardId: string; taskId: numb
 export type HelpTab = 'guide' | 'palette';
 export type HelpDialogProps = { tab?: HelpTab };
 
+export type ProjectDetailsViewModel = {
+    boardId: string;
+    initial: ProjectBaseData;
+    readOnly: boolean;
+    historical: boolean;
+};
+
 export type DialogPropsByName = {
     commandPalette: CommandPaletteProps;
     taskEditor: TaskEditorViewModel;
     taskDetail: TaskDetailViewModel;
     roadmapEntity: RoadmapEntityViewModel;
+    projectDetails: ProjectDetailsViewModel;
     shortcuts: null;
     help: HelpDialogProps | null;
 };

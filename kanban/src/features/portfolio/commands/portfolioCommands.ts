@@ -5,6 +5,7 @@ import { createTaskActions, type TaskActions } from './taskCommands';
 import { createRoadmapActions } from './roadmapCommands';
 import { createTimelineActions } from './timelineCommands';
 import { createPlannerActions } from './plannerCommands';
+import { createProjectDetailsActions } from './projectDetailsCommands';
 
 export type { BoardMutationOptions } from './mutationContext';
 
@@ -19,7 +20,8 @@ export function createPortfolioMutationActions(options: BoardMutationOptions = {
     const roadmap = createRoadmapActions(context, interactions);
     const timeline = createTimelineActions(context, tasks);
     const planner = createPlannerActions(context, tasks);
-    return { ...tasks, ...roadmap, ...timeline, ...planner, ...interactions };
+    const projectDetails = createProjectDetailsActions(context);
+    return { ...tasks, ...roadmap, ...timeline, ...planner, ...interactions, ...projectDetails };
 }
 
 export type PortfolioMutationActions = ReturnType<typeof createPortfolioMutationActions>;
@@ -31,6 +33,9 @@ export function getPortfolioMutationActions(): PortfolioMutationActions {
 }
 
 export const {
+    openProjectDetails,
+    closeProjectDetails,
+    saveProjectDetails,
     setSelectedPortfolioCard,
     setHoveredPortfolioCard,
     togglePortfolioTaskBulkSelection,

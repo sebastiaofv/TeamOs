@@ -3,6 +3,7 @@ import { AppHeader } from '@/app/AppHeader';
 import { HelpDialog } from '@/app/overlays/HelpDialog';
 import { ShortcutsDialog } from '@/app/overlays/ShortcutsDialog';
 import { RoadmapEntityDialog } from '@/features/portfolio/roadmap/RoadmapEntityDialog';
+import { ProjectDetailsDialog } from '@/features/portfolio/projects/ProjectDetailsDialog';
 import { TaskDetailDialog } from '@/features/portfolio/task/dialogs/TaskDetailDialog';
 import { TaskEditorDialog } from '@/features/portfolio/task/dialogs/TaskEditorDialog';
 import { AppMessageDialog } from '@/app/overlays/AppMessageDialog';
@@ -87,6 +88,7 @@ function AppContent() {
                 <CommandPalette />
                 <TaskDetailDialog />
                 <RoadmapEntityDialog />
+                <ProjectDetailsDialog />
                 <TaskEditorDialog />
                 <AppMessageDialog />
                 <UndoToast />

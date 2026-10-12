@@ -280,6 +280,24 @@
     font-size: 12px;
 }
 
+.chip-details {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    min-height: 28px;
+}
+
+.chip-details svg {
+    width: 16px;
+    height: 16px;
+}
+
+.chip-details:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
+
 .portfolio-active-filter {
     display: inline-flex;
     align-items: center;
