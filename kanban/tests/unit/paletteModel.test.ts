@@ -124,9 +124,26 @@ describe('buildPaletteModel', () => {
     expect(model.breadcrumbs).toEqual(['#7 Login bug on Android', 'Assign']);
     const items = model.sections[0].items;
     expect(items.map((item) => [item.label, item.checked])).toEqual([
-      ['Ana', false], ['Marta', true], ['Add "a"', false]
+      ['Marta', true], ['Ana', false], ['Add "a"', false]
     ]);
-    expect(items[1].action).toEqual({ type: 'toggleAssignee', boardId: 'app', taskId: 7, name: 'Marta' });
+    expect(items[0].action).toEqual({ type: 'toggleAssignee', boardId: 'app', taskId: 7, name: 'Marta' });
+  });
+
+  it('suggests the task owner\'s team before local assignees regardless of the selected project', () => {
+    const ctx = input({
+      selectedBoardId: 'web',
+      stack: [{ kind: 'step', step: 'assignee', boardId: 'app', taskId: 7 }]
+    });
+    ctx.boards.find((item) => item.id === 'app')!.data.extensions.projectDetails = {
+      version: 1, description: '', team: ['Zoe', 'marta', 'ZOE']
+    };
+    const model = buildPaletteModel(ctx);
+    expect(model.sections[0].items.map((item) => [item.label, item.checked])).toEqual([
+      ['Zoe', false], ['marta', true], ['Ana', false]
+    ]);
+    expect(buildPaletteModel({ ...ctx, query: 'Rui' }).sections[0].items).toMatchObject([
+      { label: 'Add "Rui"', action: { type: 'toggleAssignee', boardId: 'app', taskId: 7, name: 'Rui' } }
+    ]);
   });
 
   it('offers planning slots later today and tomorrow', () => {
@@ -150,6 +167,43 @@ describe('buildPaletteModel', () => {
   it('creates in the context project by default, never in a read-only one', () => {
     expect(buildPaletteModel(input({ query: '+ x', contextTask: { boardId: 'web', taskId: 15 } })).preview!.projectId).toBe('web');
     expect(buildPaletteModel(input({ query: '+ x', selectedBoardId: 'ops' })).preview!.projectId).toBe('web');
+  });
+
+  it('uses destination team hints in either order without other projects\' people', () => {
+    const ctx = input({ selectedBoardId: 'web', contextTask: { boardId: 'web', taskId: 15 } });
+    ctx.boards.find((item) => item.id === 'web')!.data.extensions.projectDetails = { version: 1, description: '', team: ['Diana Web'] };
+    ctx.boards.find((item) => item.id === 'app')!.data.extensions.projectDetails = { version: 1, description: '', team: ['Diana App'] };
+    for (const query of ['+ Ship @di in:mobile', '+ Ship in:mobile @di']) {
+      const model = buildPaletteModel({ ...ctx, query });
+      expect(model.preview).toMatchObject({ assignees: ['Diana App'], projectId: 'app', warnings: [] });
+      expect(model.sections[0].items[0].action).toMatchObject({ type: 'createTask', boardId: 'app', fields: { assignees: ['Diana App'] } });
+    }
+    expect(buildPaletteModel({ ...ctx, query: '+ Ship @marta' }).preview).toMatchObject({
+      assignees: ['marta'], projectId: 'web', warnings: [{ kind: 'newPerson', value: 'marta' }]
+    });
+  });
+
+  it('offers explicit choices for every ambiguous prefix before enabling creation', () => {
+    const ctx = input({ query: '+ Ship @an @ma in:mobile' });
+    ctx.boards.find((item) => item.id === 'app')!.data.extensions.projectDetails = {
+      version: 1, description: '', team: ['Ana Silva', 'Ana Maria', 'Mario']
+    };
+    const model = buildPaletteModel(ctx);
+    expect(model.preview!.assignees).toEqual([]);
+    expect(labels(model, 'create-assignee')).toEqual(['Ana Silva', 'Ana Maria', 'Ana']);
+    expect(model.sections.flatMap((section) => section.items).some((item) => item.action.type === 'createTask')).toBe(false);
+    const first = model.sections[0].items[1].action;
+    expect(first.type).toBe('setQuery');
+    if (first.type !== 'setQuery') throw new Error('Expected a person choice');
+    const next = buildPaletteModel({ ...ctx, query: first.query });
+    expect(next.preview!.assignees).toEqual(['Ana Maria']);
+    expect(labels(next, 'create-assignee')).toEqual(['Mario', 'Marta']);
+    const second = next.sections[0].items[1].action;
+    if (second.type !== 'setQuery') throw new Error('Expected another person choice');
+    const resolved = buildPaletteModel({ ...ctx, query: second.query });
+    expect(resolved.sections[0].items[0].action).toMatchObject({
+      type: 'createTask', boardId: 'app', fields: { title: 'Ship', assignees: ['Ana Maria', 'Marta'] }
+    });
   });
 
   it('plans a matching task directly when a time is given, or opens the time step', () => {

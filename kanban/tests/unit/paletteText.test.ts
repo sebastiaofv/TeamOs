@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { matchRanges, scoreText } from '../../src/features/portfolio/palette/paletteText';
-import { parseQuickCreate } from '../../src/features/portfolio/palette/quickCreate';
+import { chooseQuickCreateAssignee, parseQuickCreate } from '../../src/features/portfolio/palette/quickCreate';
 
 describe('scoreText', () => {
   it('ranks prefix above word start above substring above scattered letters', () => {
@@ -46,7 +46,7 @@ describe('matchRanges', () => {
 
 describe('parseQuickCreate', () => {
   const context = {
-    people: ['Ana', 'Marta', 'Bruno'],
+    peopleForProject: (projectId: string) => projectId === 'app' ? ['Marta'] : ['Ana', 'Bruno'],
     projects: [{ id: 'web', title: 'Website' }, { id: 'app', title: 'Mobile App' }],
     defaultProjectId: 'web',
     today: '2026-09-26' // a Saturday
@@ -61,7 +61,8 @@ describe('parseQuickCreate', () => {
       effort: 'S',
       dueDate: '2026-10-02',
       projectId: 'app',
-      warnings: []
+      warnings: [],
+      ambiguousAssignees: []
     });
   });
 
@@ -70,6 +71,54 @@ describe('parseQuickCreate', () => {
     expect(draft.priority).toBe('medium');
     expect(draft.assignees).toEqual(['Ana', 'Bruno']);
     expect(draft.projectId).toBe('web');
+  });
+
+  it('resolves people only in the final destination, in either token order', () => {
+    const localContext = {
+      ...context,
+      peopleForProject: (projectId: string) => projectId === 'app' ? ['Ana Maria'] : ['Ana Silva']
+    };
+    for (const query of ['+ Ship @ana in:mobile', '+ Ship in:mobile @ana', '+ Ship in:web @ana in:mobile']) {
+      const draft = parseQuickCreate(query, localContext);
+      expect(draft).toMatchObject({ title: 'Ship', projectId: 'app', assignees: ['Ana Maria'], warnings: [], ambiguousAssignees: [] });
+    }
+    expect(parseQuickCreate('+ Ship @ma', context)).toMatchObject({
+      assignees: ['ma'], warnings: [{ kind: 'newPerson', value: 'ma' }]
+    });
+  });
+
+  it('prefers an exact name over longer matches and resolves only unique prefixes', () => {
+    const localContext = { ...context, peopleForProject: () => ['Ana', 'Ana Silva', 'Marta', 'marta'] };
+    expect(parseQuickCreate('+ Ship @ANA @mar', localContext)).toMatchObject({
+      assignees: ['Ana', 'Marta'], ambiguousAssignees: [], warnings: []
+    });
+  });
+
+  it('leaves ambiguous people unassigned until a choice, preserving the other tokens', () => {
+    const localContext = { ...context, peopleForProject: () => ['Ana Silva', 'Ana Maria', 'Bruno'] };
+    const query = '  + Ship @an !h @br in:mobile @an';
+    const draft = parseQuickCreate(query, localContext);
+    expect(draft.assignees).toEqual(['Bruno']);
+    expect(draft.warnings).toEqual([]);
+    expect(draft.ambiguousAssignees).toHaveLength(2);
+    expect(draft.ambiguousAssignees[0]).toMatchObject({ value: 'an', candidates: ['Ana Silva', 'Ana Maria'] });
+    const chosen = chooseQuickCreateAssignee(query, draft.ambiguousAssignees[0], 'Ana Maria');
+    expect(chosen).toBe('  + Ship @"Ana Maria" !h @br in:mobile @an');
+    const next = parseQuickCreate(chosen, localContext);
+    expect(next).toMatchObject({ title: 'Ship', assignees: ['Ana Maria', 'Bruno'], priority: 'high', projectId: 'app' });
+    expect(next.ambiguousAssignees).toHaveLength(1);
+    const resolved = parseQuickCreate(chooseQuickCreateAssignee(chosen, next.ambiguousAssignees[0], 'Ana Silva'), localContext);
+    expect(resolved).toMatchObject({ assignees: ['Ana Maria', 'Bruno', 'Ana Silva'], ambiguousAssignees: [] });
+  });
+
+  it('round-trips names with quotes and treats malformed quoted tokens as title text', () => {
+    const name = 'Ana "A" Silva';
+    const localContext = { ...context, peopleForProject: () => [name, 'Ana Maria'] };
+    const query = '+ Ship @an';
+    const draft = parseQuickCreate(query, localContext);
+    expect(parseQuickCreate(chooseQuickCreateAssignee(query, draft.ambiguousAssignees[0], name), localContext).assignees).toEqual([name]);
+    expect(parseQuickCreate('+ Ship @"Ana\\q"', localContext).title).toBe('Ship @"Ana\\q"');
+    expect(parseQuickCreate('+ Ship @"Ana"suffix', localContext).title).toBe('Ship @"Ana"suffix');
   });
 
   it('resolves relative and ISO due dates', () => {
