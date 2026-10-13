@@ -9,6 +9,28 @@ import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload,
 
 const FIXED_TIME = '2026-02-26T12:00:00Z';
 
+test.describe('US-01 workitems table', () => {
+  for (const theme of ['light', 'dark']) {
+    test(`project table with default columns (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'table', title: 'Delivery project', hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Prepare delivery', status: 'doing', assignees: ['Ana', 'Rui'], priority: 'high', phaseId: 'p1' },
+          { id: 2, title: 'Review feedback', status: 'to-do', priority: null },
+          { id: 3, title: 'Archived delivery', status: 'done', archived: true }
+        ],
+        extensions: ROADMAP
+      }], { selectedBoardId: 'table' });
+      await page.locator('[data-view-mode="table"]').click();
+      await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`workitems-table-${theme}.png`, { fullPage: true });
+    });
+  }
+});
+
 const ONE_PIXEL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
 
 const ROADMAP = {
