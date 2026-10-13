@@ -249,7 +249,7 @@ export function createPortfolioControlActions({
         const state = getState();
         const normalized = normalizePortfolioViewMode(mode);
         if (normalized === 'calendar') return state.portfolioBoards.length > 0;
-        if (normalized === 'roadmap') return Boolean(state.selectedPortfolioBoardId);
+        if (normalized === 'roadmap' || normalized === 'table') return Boolean(state.selectedPortfolioBoardId);
         return state.portfolioBoards.length > 0;
     }
 

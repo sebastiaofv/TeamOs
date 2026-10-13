@@ -97,11 +97,20 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         setPriority: (boardId, taskId, priority) => actions.setPortfolioTaskPriority(boardId, taskId, priority),
         planTask: (boardId, taskId, date, startMinutes) => actions.addPlannerBlock(boardId, taskId, date, startMinutes),
         createTask: (boardId, fields) => actions.createPortfolioTaskFromFields(boardId, fields),
-        setBoardSearch: (text) => setPortfolioFilter('search', text),
+        setBoardSearch: (text) => {
+            if (useAppStore.getState().selectedPortfolioViewMode === 'table') setPortfolioViewMode('board');
+            setPortfolioFilter('search', text);
+        },
         setViewMode: (mode) => setPortfolioViewMode(mode),
         selectBoard: (boardId) => selectPortfolioBoard(boardId),
-        resetFilters: () => resetPortfolioFilters(),
-        openFilters: () => requestOpenFilters(),
+        resetFilters: () => {
+            if (useAppStore.getState().selectedPortfolioViewMode === 'table') setPortfolioViewMode('board');
+            resetPortfolioFilters();
+        },
+        openFilters: () => {
+            if (useAppStore.getState().selectedPortfolioViewMode === 'table') setPortfolioViewMode('board');
+            requestOpenFilters();
+        },
         toggleTheme: () => toggleThemePreference(),
         toggleLanguage,
         openShortcuts: () => openDialog('shortcuts'),

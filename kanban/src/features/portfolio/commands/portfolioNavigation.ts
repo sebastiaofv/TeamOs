@@ -45,7 +45,7 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner';
     if (aggregateView && (state.portfolioBoards || []).length > 0) {
         params.set('pv', state.selectedPortfolioViewMode);
-    } else if (state.selectedPortfolioBoardId && state.selectedPortfolioViewMode === 'roadmap') {
+    } else if (state.selectedPortfolioBoardId && (state.selectedPortfolioViewMode === 'roadmap' || state.selectedPortfolioViewMode === 'table')) {
         params.set('pv', state.selectedPortfolioViewMode);
     }
 

@@ -62,7 +62,7 @@ export type PortfolioFilters = {
 };
 export type PortfolioSortKey = 'board' | 'task' | 'column' | 'priority' | 'effort' | 'score' | 'dueDate' | 'updatedAt';
 export type SortDir = 'asc' | 'desc';
-export type PortfolioViewMode = 'board' | 'roadmap' | 'calendar' | 'planner';
+export type PortfolioViewMode = 'board' | 'table' | 'roadmap' | 'calendar' | 'planner';
 export type PlannerMode = 'day' | 'week';
 export type CalendarView = 'year' | 'month';
 export type CalendarDisplayMode = 'calendar' | 'heatmap';

@@ -26,7 +26,7 @@ export type PaletteFrame =
     | { kind: 'step'; step: PaletteStep; boardId: string; taskId: number };
 
 export type PaletteCommandId =
-    | 'view-board' | 'view-roadmap' | 'view-calendar' | 'view-planner'
+    | 'view-board' | 'view-table' | 'view-roadmap' | 'view-calendar' | 'view-planner'
     | 'open-filters' | 'reset-filters' | 'clear-board-filter'
     | 'toggle-theme' | 'toggle-language' | 'open-shortcuts' | 'open-help' | 'open-palette-help'
     | 'new-project' | 'import-projects';
@@ -123,6 +123,7 @@ const WORD_MATCH = 60;
 type CommandSpec = { id: PaletteCommandId; key: TranslationKey; hint?: string[]; when?: (ctx: Ctx) => boolean };
 const COMMANDS: CommandSpec[] = [
     { id: 'view-board', key: 'palette.cmdBoard' },
+    { id: 'view-table', key: 'palette.cmdTable', when: (ctx) => Boolean(ctx.selectedBoardId) },
     { id: 'view-roadmap', key: 'palette.cmdRoadmap', when: (ctx) => Boolean(ctx.selectedBoardId) },
     { id: 'view-calendar', key: 'palette.cmdCalendar' },
     { id: 'view-planner', key: 'palette.cmdPlanner', hint: ['P'] },
@@ -457,4 +458,3 @@ export function buildPaletteModel(input: PaletteInput): PaletteModel {
     if (!trimmed) return home(ctx);
     return search(ctx);
 }
-

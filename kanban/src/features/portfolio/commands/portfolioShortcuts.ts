@@ -335,6 +335,10 @@ export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMu
         : createPortfolioShortcuts(actions);
     for (const entry of shortcuts) {
         if (!entry.contexts.includes(contextName)) continue;
+        // Table controls own their row navigation and filters. Card shortcuts
+        // must not target rows from the hidden Board's independent filters.
+        if (contextName === 'global' && getState().selectedPortfolioViewMode === 'table'
+            && (entry.section === 'Cards' || entry.id === 'focus-sort' || entry.id === 'reset-filters')) continue;
         if (contextName === 'global' && !areSingleKeyShortcutsEnabled() && isSingleKeyShortcut(entry)) continue;
         if (typing && !entry.allowWhileTyping) continue;
         if (!entry.match(event)) continue;

@@ -125,7 +125,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
 
     return (
         <>
-            <div className="portfolio-toolbar-left">
+            <div className={`portfolio-toolbar-left${viewMode === 'table' ? ' hidden' : ''}`}>
                 <div className="search-box palette-search">
                     <button
                         className={`palette-search-btn${filters.search ? ' has-value' : ''}`}
@@ -173,6 +173,13 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         aria-pressed={viewMode === 'board'}
                         onClick={() => setPortfolioViewMode('board')}
                     >{t('toolbar.board')}</button>
+                    <button
+                        className={`btn${viewMode === 'table' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`}
+                        type="button"
+                        data-view-mode="table"
+                        aria-pressed={viewMode === 'table'}
+                        onClick={() => setPortfolioViewMode('table')}
+                    >{t('table.view')}</button>
                     <button
                         className={`btn${viewMode === 'roadmap' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`}
                         type="button"
@@ -252,11 +259,11 @@ export function PortfolioToolbar() {
             <section className="portfolio-toolbar" id="portfolioToolbar" aria-labelledby="portfolioToolbarTitle">
                 <h2 className="sr-only" id="portfolioToolbarTitle">{t('toolbar.filters')}</h2>
                 <ToolbarContent state={state} />
-                <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                <span className={`sr-only${state.selectedPortfolioViewMode === 'table' ? ' hidden' : ''}`} role="status" aria-live="polite" aria-atomic="true">
                     {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
                 </span>
             </section>
-            <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />
+            {state.selectedPortfolioViewMode !== 'table' && <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />}
         </>
     );
 }
