@@ -57,6 +57,10 @@ const sameFrame = (a: PaletteFrame | undefined, b: PaletteFrame) => Boolean(a)
     && a!.kind === b.kind && a!.boardId === b.boardId && a!.taskId === b.taskId
     && (a!.kind !== 'step' || (b.kind === 'step' && a!.step === b.step));
 
+function ensureBoardFilterView() {
+    if (useAppStore.getState().selectedPortfolioViewMode === 'table') setPortfolioViewMode('board');
+}
+
 function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPaletteProps['contextTask']; initialQuery: string }) {
     const { t, language, toggleLanguage } = useI18n();
     const actions = usePortfolioActions();
@@ -98,17 +102,17 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         planTask: (boardId, taskId, date, startMinutes) => actions.addPlannerBlock(boardId, taskId, date, startMinutes),
         createTask: (boardId, fields) => actions.createPortfolioTaskFromFields(boardId, fields),
         setBoardSearch: (text) => {
-            if (useAppStore.getState().selectedPortfolioViewMode === 'table') setPortfolioViewMode('board');
+            ensureBoardFilterView();
             setPortfolioFilter('search', text);
         },
         setViewMode: (mode) => setPortfolioViewMode(mode),
         selectBoard: (boardId) => selectPortfolioBoard(boardId),
         resetFilters: () => {
-            if (useAppStore.getState().selectedPortfolioViewMode === 'table') setPortfolioViewMode('board');
+            ensureBoardFilterView();
             resetPortfolioFilters();
         },
         openFilters: () => {
-            if (useAppStore.getState().selectedPortfolioViewMode === 'table') setPortfolioViewMode('board');
+            ensureBoardFilterView();
             requestOpenFilters();
         },
         toggleTheme: () => toggleThemePreference(),

@@ -1,6 +1,6 @@
 import { useMemo, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import type { BoardData, TaskStatus } from '@/domain/types';
+import type { BoardData, Priority, TaskStatus } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { buildPortfolioRowsFromBoardData, getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -23,6 +23,9 @@ const COLUMN_LABELS: Record<TableColumnId, TranslationKey> = {
 };
 const STATUS_LABELS: Record<TaskStatus, TranslationKey> = {
     backlog: 'board.backlog', 'to-do': 'board.toDo', doing: 'board.doing', done: 'board.done'
+};
+const PRIORITY_LABELS: Record<Priority, TranslationKey> = {
+    high: 'toolbar.high', medium: 'toolbar.medium', low: 'toolbar.low'
 };
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
@@ -99,7 +102,11 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
         });
     }
     function openDetails(row: PortfolioRow, event?: MouseEvent<HTMLElement>) {
-        event?.currentTarget.focus({ preventScroll: true });
+        const target = event?.currentTarget;
+        const trigger = target?.matches('button.table-item-link')
+            ? target
+            : target?.querySelector<HTMLButtonElement>('button.table-item-link');
+        trigger?.focus({ preventScroll: true });
         actions.setSelectedPortfolioCard(boardId, row.taskId);
         actions.openPortfolioTaskDetails(boardId, row.taskId, row.historical ? { boardData, readOnly: true } : undefined);
     }
@@ -107,11 +114,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
         const value = tableCellValue(row, column, boardData);
         if (!value) return t('table.notDefined');
         if (column === 'status') return t(STATUS_LABELS[row.task.status]);
-        if (column === 'priority') {
-            if (value === 'high') return t('toolbar.high');
-            if (value === 'medium') return t('toolbar.medium');
-            if (value === 'low') return t('toolbar.low');
-        }
+        if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
         if (column === 'blocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
         return value;
     }
@@ -154,7 +157,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
                     <span id="tableStatusesHint" className="sr-only">{t('table.selectStatuses')}</span>
                 </label>
                 <TableSelect id="tableAssignee" label={t('task.assignees')} value={filters.assignee} options={assignees.map((name) => ({ value: name, label: name }))} onChange={(value) => changeFilter('assignee', value)} />
-                <TableSelect id="tablePriority" label={t('task.priority')} value={filters.priority} options={['high', 'medium', 'low'].map((priority) => ({ value: priority, label: t(priority === 'high' ? 'toolbar.high' : priority === 'medium' ? 'toolbar.medium' : 'toolbar.low') }))} onChange={(value) => changeFilter('priority', value)} />
+                <TableSelect id="tablePriority" label={t('task.priority')} value={filters.priority} options={(Object.keys(PRIORITY_LABELS) as Priority[]).map((priority) => ({ value: priority, label: t(PRIORITY_LABELS[priority]) }))} onChange={(value) => changeFilter('priority', value)} />
                 <TableSelect id="tablePhase" label={t('task.phase')} value={filters.phaseId} options={roadmap.phases.map((item) => ({ value: item.id, label: item.title }))} onChange={(value) => changeFilter('phaseId', value)} />
                 <TableSelect id="tableMilestone" label={t('task.milestone')} value={filters.milestoneId} options={roadmap.milestones.map((item) => ({ value: item.id, label: item.title }))} onChange={(value) => changeFilter('milestoneId', value)} />
                 <TableSelect id="tableSprint" label={t('task.sprint')} value={filters.sprintId} options={roadmap.sprints.map((item) => ({ value: item.id, label: item.title }))} onChange={(value) => changeFilter('sprintId', value)} />

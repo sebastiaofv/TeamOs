@@ -12,6 +12,7 @@ import {
   readSavedBoard,
   seedPortfolioBoards,
   selectPortfolioBoard,
+  setTimelineSlider,
   triggerExternalFileCheck,
   waitForBoardWrites,
   type SeedTask
@@ -276,21 +277,21 @@ test.describe('workitems table', () => {
 
     await openColumnOptions(page);
     await page.locator('#tableColumn-dueDate').check();
-    await tableHeader(page, 'Due date').getByRole('button').click();
-    await expect(tableHeader(page, 'Due date')).toHaveAttribute('aria-sort', 'ascending');
+    await tableHeader(page, 'Due').getByRole('button').click();
+    await expect(tableHeader(page, 'Due')).toHaveAttribute('aria-sort', 'ascending');
     const ascendingIds = await tableRows(page).evaluateAll((rows) => (
       rows.map((row) => Number(row.getAttribute('data-task-id')))
     ));
     expect(ascendingIds.filter((id) => id !== 4)).toEqual([3, 2, 10]);
     expect(ascendingIds.filter((id) => id === 4)).toHaveLength(1);
-    await tableHeader(page, 'Due date').getByRole('button').click();
-    await expect(tableHeader(page, 'Due date')).toHaveAttribute('aria-sort', 'descending');
+    await tableHeader(page, 'Due').getByRole('button').click();
+    await expect(tableHeader(page, 'Due')).toHaveAttribute('aria-sort', 'descending');
     const descendingIds = await tableRows(page).evaluateAll((rows) => (
       rows.map((row) => Number(row.getAttribute('data-task-id')))
     ));
     expect(descendingIds.filter((id) => id !== 4)).toEqual([2, 10, 3]);
     expect(descendingIds.filter((id) => id === 4)).toHaveLength(1);
-    await tableHeader(page, 'Due date').getByRole('button').click();
+    await tableHeader(page, 'Due').getByRole('button').click();
     await expectRowIds(page, ascendingIds);
   });
 
@@ -390,6 +391,76 @@ test.describe('workitems table', () => {
     await expect(page.locator('#detailTitle')).toHaveText('Workitem 00051 edited');
   });
 
+  test('clicking a status cell returns focus to its own item and preserves table scroll on close', async ({ page }) => {
+    await seedPortfolioBoards(page, [{
+      id: 'cell-focus', title: 'Cell focus', hasHandle: true, tasks: numberedTasks(100)
+    }], { selectedBoardId: 'cell-focus' });
+    await openTable(page);
+    await page.locator('#tableSearch').fill('Workitem');
+    await tableHeader(page, 'Title').getByRole('button').click();
+    await page.locator('#tableNextPage').click();
+    const row = tableRow(page, 80);
+    const status = row.locator('[data-column="status"]');
+    await status.scrollIntoViewIfNeeded();
+    const scroll = page.locator('#portfolioTable .table-scroll');
+    const before = await scroll.evaluate((node) => ({ top: node.scrollTop, left: node.scrollLeft }));
+    expect(before.top).toBeGreaterThan(0);
+    await status.click();
+    await expect(page.locator('#detailTitle')).toHaveText('Workitem 00080');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#taskDetailModal')).toBeHidden();
+    await expect(row.locator('button.table-item-link').first()).toBeFocused();
+    await expect.poll(() => scroll.evaluate((node) => ({ top: node.scrollTop, left: node.scrollLeft }))).toEqual(before);
+    await expect(page.locator('#tableSearch')).toHaveValue('Workitem');
+    await expect(tableHeader(page, 'Title')).toHaveAttribute('aria-sort', 'ascending');
+    await expect(page.locator('#portfolioTable')).toContainText('Page 2 of 2');
+  });
+
+  test('historical table previews show replayed detail and export without changing the writable live project', async ({ page }) => {
+    await seedPortfolioBoards(page, [{
+      id: 'history', title: 'Historical table', hasHandle: true,
+      tasks: [{ id: 1, title: 'Original historical item', status: 'doing', description: 'Original description' }]
+    }], { selectedBoardId: 'history' });
+    await openTable(page);
+    await editTableTitle(page, 1, 'Live edited item');
+    await waitForBoardWrites(page);
+    const saved = await readSavedBoard(page, 'history');
+    const writes = await page.evaluate(() => window.__portfolioTestWrites.length);
+
+    // Reuse the timeline's real edit/baseline flow and slider helper.
+    await page.locator('[data-view-mode="board"]').click();
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await setTimelineSlider(page, 0);
+    await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toContainText('Historical preview');
+    await openTable(page);
+    await expect(tableRow(page, 1)).toContainText('Original historical item');
+    await expect(tableRow(page, 1)).not.toContainText('Live edited item');
+    await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toBeDisabled();
+    await page.locator('#tableSearch').fill('historical');
+    await tableRow(page, 1).locator('[data-column="status"]').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Original historical item');
+    await expect(page.locator('#taskDetailModal')).toContainText('Original description');
+    await page.keyboard.press('e');
+    await expect(page.locator('#taskModal')).toBeHidden();
+    await page.keyboard.press('x');
+    await expect(appMessage(page)).toBeHidden();
+    await page.keyboard.press('Escape');
+    const csv = parseCsv(await exportCsv(page), ',');
+    expect(csv).toHaveLength(2);
+    expect(csv[1][csv[0].indexOf('Title')]).toBe('Original historical item');
+    expect(await readSavedBoard(page, 'history')).toEqual(saved);
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(writes);
+
+    await page.locator('[data-view-mode="board"]').click();
+    await page.locator('#portfolioTimelinePanel [data-action="timeline-latest"]').click();
+    await openTable(page);
+    await expect(page.locator('#tableSearch')).toHaveValue('historical');
+    await expect(tableRows(page)).toHaveCount(0);
+    await page.locator('#tableClearFilters').click();
+    await expect(tableRow(page, 1)).toContainText('Live edited item');
+    await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toBeEnabled();
+  });
+
   test('read-only imports allow filtering, detail, selection and export without edits or writes', async ({ page }) => {
     await seedPortfolioBoards(page, [{
       id: 'readonly', title: 'Read only', hasHandle: false,
@@ -444,19 +515,19 @@ test.describe('workitems table', () => {
       await tableHeader(page, 'ID').getByRole('button').click();
       await expect(tableHeader(page, 'ID')).toHaveAttribute('aria-sort', 'descending');
       await tableRow(page, 100).getByRole('checkbox', { name: 'Select Export 100', exact: true }).check();
-      await expect(page.locator('#portfolioTable')).toContainText(/\b1 selected\b/);
+      await expect(page.locator('#portfolioTable .table-summary > span[role="status"]')).toHaveText('1 selected');
 
       await openColumnOptions(page);
       for (const column of ['status', 'assignees', 'priority', 'phase', 'updatedAt']) {
         await page.locator(`#tableColumn-${column}`).uncheck();
       }
       await page.locator('#tableColumn-dueDate').check();
-      await moveColumnBefore(page, 'Due date', 'Title');
-      await expectColumnOrder(page, ['ID', 'Due date', 'Title']);
+      await moveColumnBefore(page, 'Due', 'Title');
+      await expectColumnOrder(page, ['ID', 'Due', 'Title']);
       await page.locator('#tableCsvSeparator').selectOption(separator);
 
       const csv = parseCsv(await exportCsv(page), separator);
-      expect(csv[0]).toEqual(['ID', 'Due date', 'Title']);
+      expect(csv[0]).toEqual(['ID', 'Due', 'Title']);
       expect(csv).toHaveLength(101);
       expect(csv.slice(1).map((row) => Number(row[0]))).toEqual(
         Array.from({ length: 100 }, (_, index) => 100 - index)
@@ -478,11 +549,11 @@ test.describe('workitems table', () => {
     await openColumnOptions(page);
     await page.locator('#tableColumn-priority').uncheck();
     await page.locator('#tableColumn-dueDate').check();
-    await moveColumnBefore(page, 'Due date', 'Phase');
-    await page.locator('#tableColumns').getByRole('button', { name: 'Move Due date right', exact: true }).click();
-    await moveColumnBefore(page, 'Due date', 'Phase');
+    await moveColumnBefore(page, 'Due', 'Phase');
+    await page.locator('#tableColumns').getByRole('button', { name: 'Move Due right', exact: true }).click();
+    await moveColumnBefore(page, 'Due', 'Phase');
     await expect(tableHeader(page, 'Priority')).toHaveCount(0);
-    await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Assignees', 'Due date', 'Phase', 'Updated']);
+    await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Assignees', 'Due', 'Phase', 'Updated']);
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
     expect(await readSavedBoard(page, 'prefs')).toEqual(original);
 
@@ -491,7 +562,7 @@ test.describe('workitems table', () => {
     await seedPortfolioBoards(page, [board], { selectedBoardId: 'prefs' });
     await openTable(page);
     await expect(tableHeader(page, 'Priority')).toHaveCount(0);
-    await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Assignees', 'Due date', 'Phase', 'Updated']);
+    await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Assignees', 'Due', 'Phase', 'Updated']);
     await openColumnOptions(page);
     await expect(page.locator('#tableColumn-priority')).not.toBeChecked();
     await expect(page.locator('#tableColumn-dueDate')).toBeChecked();
@@ -529,7 +600,7 @@ test.describe('workitems table', () => {
     await expect(page.locator('#portfolioTable')).toContainText('Page 1 of 400');
     await page.locator('#portfolioTable').getByRole('checkbox', { name: 'Select this page', exact: true }).check();
     await expect(tableRows(page).getByRole('checkbox', { checked: true })).toHaveCount(25);
-    await expect(page.locator('#portfolioTable')).toContainText(/\b25 selected\b/);
+    await expect(page.locator('#portfolioTable .table-summary > span[role="status"]')).toHaveText('25 selected');
     await page.locator('#tableNextPage').click();
     await expect(tableRows(page).getByRole('checkbox', { checked: true })).toHaveCount(0);
 
