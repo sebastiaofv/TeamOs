@@ -204,6 +204,8 @@ export function createPortfolioControlActions({
         delete portfolioBulkSelectionByBoardId[boardId];
         const portfolioTableFiltersByBoardId = { ...state.portfolioTableFiltersByBoardId };
         delete portfolioTableFiltersByBoardId[boardId];
+        const portfolioTableSortByBoardId = { ...state.portfolioTableSortByBoardId };
+        delete portfolioTableSortByBoardId[boardId];
         const projectSaveStateById = new Map(state.projectSaveStateById || []);
         projectSaveStateById.delete(boardId);
         forgetFileState(boardId);
@@ -212,6 +214,7 @@ export function createPortfolioControlActions({
             portfolioBoards: state.portfolioBoards.filter((board) => board.id !== boardId),
             portfolioBulkSelectionByBoardId,
             portfolioTableFiltersByBoardId,
+            portfolioTableSortByBoardId,
             projectSaveStateById
         };
         if (state.selectedPortfolioCardRef?.boardId === boardId) {

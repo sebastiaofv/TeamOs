@@ -21,13 +21,17 @@ import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useI18n } from '@/shared/i18n';
 import { PortfolioActiveFilters, PortfolioFilterMenu } from './PortfolioFilterMenu';
 import { PALETTE_SHORTCUT_LABEL, openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
-import { setTableFilter } from '@/features/portfolio/table/tableControls';
+import { setTableFilter, setTableSort } from '@/features/portfolio/table/tableControls';
+import { DEFAULT_TABLE_SORT } from '@/features/portfolio/table/tableModel';
+import { COLUMN_LABELS } from '@/features/portfolio/table/tableLabels';
+import { TableActiveFilters, TableToolbarFilters } from '@/features/portfolio/table/TableToolbarFilters';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
     | 'portfolioTasks'
     | 'portfolioFilters'
     | 'portfolioTableFiltersByBoardId'
+    | 'portfolioTableSortByBoardId'
     | 'portfolioSortKey'
     | 'selectedPortfolioBoardId'
     | 'selectedPortfolioViewMode'
@@ -119,10 +123,13 @@ function getBulkViewModel(state: BulkState) {
 function ToolbarContent({ state }: { state: ToolbarState }) {
     const { t } = useI18n();
     const filters = getFilters(state);
-    const sortValue = portfolioSortSelectValueFromKey(state.portfolioSortKey);
     const hasBoards = state.portfolioBoards.length > 0;
     const hasSelectedBoard = Boolean(state.selectedPortfolioBoardId);
     const viewMode = normalizePortfolioViewMode(state.selectedPortfolioViewMode);
+    const tableSort = state.portfolioTableSortByBoardId[state.selectedPortfolioBoardId] || DEFAULT_TABLE_SORT;
+    const tableSortValue = tableSort.column === 'title' ? 'name'
+        : ['priority', 'effort', 'score'].includes(tableSort.column) ? tableSort.column : 'custom';
+    const sortValue = viewMode === 'table' ? tableSortValue : portfolioSortSelectValueFromKey(state.portfolioSortKey);
     const sortRef = useFocusTarget<HTMLSelectElement>('portfolioSort');
     const search = viewMode === 'table'
         ? state.portfolioTableFiltersByBoardId[state.selectedPortfolioBoardId]?.search || ''
@@ -131,12 +138,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
     return (
         <>
             <div className="portfolio-toolbar-left">
-                <div className={`search-box palette-search${viewMode === 'table' ? ' table-toolbar-search' : ''}`}>
-                    {viewMode === 'table' && <>
-                        <label className="sr-only" htmlFor="tableSearch">{t('table.search')}</label>
-                        <input id="tableSearch" type="search" value={search} placeholder={t('table.searchHint')}
-                            onChange={(event) => setTableFilter('search', event.target.value)} />
-                    </>}
+                <div className="search-box palette-search">
                     <button
                         className={`palette-search-btn${search ? ' has-value' : ''}`}
                         id="portfolioSearchBtn"
@@ -149,24 +151,30 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                             <circle cx="7" cy="7" r="4.5" />
                             <path d="M10.5 10.5 14 14" />
                         </svg>
-                        {viewMode !== 'table' && <span className="palette-search-text">{search || t('toolbar.searchTasks')}</span>}
-                        {(viewMode === 'table' || !search) && <kbd className="palette-search-kbd">{PALETTE_SHORTCUT_LABEL}</kbd>}
+                        <span className="palette-search-text">{search || t('toolbar.searchTasks')}</span>
+                        {!search && <kbd className="palette-search-kbd">{PALETTE_SHORTCUT_LABEL}</kbd>}
                     </button>
-                    {search && viewMode !== 'table' && (
+                    {search && (
                         <button
                             className="palette-search-clear"
                             id="portfolioSearchClearBtn"
                             type="button"
-                            aria-label={t('palette.clearSearch')}
-                            title={t('palette.clearSearch')}
-                            onClick={() => setPortfolioFilter('search', '')}
+                            aria-label={viewMode === 'table' ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
+                            title={viewMode === 'table' ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
+                            onClick={() => viewMode === 'table' ? setTableFilter('search', '') : setPortfolioFilter('search', '')}
                         >×</button>
                     )}
                 </div>
-                {viewMode !== 'table' && <PortfolioFilterMenu filters={filters} tasks={state.portfolioTasks} />}
-                <div className={`filter-group${viewMode === 'table' ? ' hidden' : ''}`}>
+                {viewMode === 'table' ? <TableToolbarFilters /> : <PortfolioFilterMenu filters={filters} tasks={state.portfolioTasks} />}
+                <div className="filter-group">
                     <label htmlFor="portfolioSortSelect">{t('toolbar.sort')}</label>
-                    <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => setPortfolioSort(event.target.value)}>
+                    <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => {
+                        const value = event.target.value;
+                        if (viewMode !== 'table') setPortfolioSort(value);
+                        else if (value === 'name') setTableSort('title');
+                        else if (value === 'priority' || value === 'effort' || value === 'score') setTableSort(value);
+                    }}>
+                        {viewMode === 'table' && tableSortValue === 'custom' && <option value="custom">{tableSort.column === 'score' ? t('toolbar.score') : t(COLUMN_LABELS[tableSort.column])}</option>}
                         <option value="name">{t('toolbar.name')}</option>
                         <option value="priority">{t('toolbar.priority').replace(':', '')}</option>
                         <option value="effort">{t('toolbar.effort').replace(':', '')}</option>
@@ -259,6 +267,7 @@ export function PortfolioToolbar() {
         portfolioTasks: state.portfolioTasks,
         portfolioFilters: state.portfolioFilters,
         portfolioTableFiltersByBoardId: state.portfolioTableFiltersByBoardId,
+        portfolioTableSortByBoardId: state.portfolioTableSortByBoardId,
         portfolioSortKey: state.portfolioSortKey,
         selectedPortfolioBoardId: state.selectedPortfolioBoardId,
         selectedPortfolioViewMode: state.selectedPortfolioViewMode,
@@ -274,7 +283,7 @@ export function PortfolioToolbar() {
                     {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
                 </span>
             </section>
-            {state.selectedPortfolioViewMode !== 'table' && <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />}
+            {state.selectedPortfolioViewMode === 'table' ? <TableActiveFilters /> : <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />}
         </>
     );
 }

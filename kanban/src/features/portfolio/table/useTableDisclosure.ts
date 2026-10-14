@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 
-// Table controls use the same dismiss/focus behavior for filters and columns.
+// Dismiss, focus restoration and viewport sizing for the column chooser.
 export function useTableDisclosure(hidden: boolean) {
     const detailsRef = useRef<HTMLDetailsElement>(null);
     const summaryRef = useRef<HTMLElement>(null);
     const onToggle = useCallback(() => {
         const details = detailsRef.current;
         if (!details?.open) return;
-        details.parentElement?.querySelectorAll<HTMLDetailsElement>('details[open]').forEach((other) => {
-            if (other !== details) other.open = false;
-        });
         const panel = details.querySelector<HTMLElement>('[data-table-panel]');
         if (panel) {
             const available = window.innerHeight - panel.getBoundingClientRect().top - 12;

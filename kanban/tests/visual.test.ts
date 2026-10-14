@@ -23,11 +23,13 @@ test.describe('US-01 workitems table', () => {
         extensions: ROADMAP
       }], { selectedBoardId: 'table' });
       await page.locator('[data-view-mode="table"]').click();
+      await page.locator('#tableCsvSeparator').selectOption(';');
       await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`workitems-table-${theme}.png`, { fullPage: true });
-      await page.locator('#tableFilters > summary').click();
+      await page.locator('#portfolioFiltersBtn').click();
+      await expect(page.locator('#portfolioFiltersPanel')).toBeVisible();
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`workitems-table-filters-${theme}.png`, { fullPage: true });
@@ -42,11 +44,13 @@ test.describe('US-01 workitems table', () => {
       tasks: [{ id: 1, title: 'Prepare delivery', status: 'doing', assignees: ['Ana'], priority: 'high' }]
     }], { selectedBoardId: 'compact-table' });
     await page.locator('[data-view-mode="table"]').click();
-    await expect(page.locator('#tableSearch')).toBeVisible();
+    await page.locator('#tableCsvSeparator').selectOption(';');
+    await expect(page.locator('#portfolioSearchBtn')).toBeVisible();
     await page.mouse.move(1, 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await expect(page).toHaveScreenshot('workitems-table-mobile.png', { fullPage: true });
-    await page.locator('#tableFilters > summary').click();
+    await page.locator('#portfolioFiltersBtn').click();
+    await expect(page.locator('#portfolioFiltersPanel')).toBeVisible();
     await page.mouse.move(1, 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await expect(page).toHaveScreenshot('workitems-table-filters-mobile.png', { fullPage: true });

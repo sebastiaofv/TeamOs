@@ -1,9 +1,10 @@
+.portfolio-board-wrap.table-active { overflow-y: auto; }
 .portfolio-table {
     display: flex;
     flex: 1;
     flex-direction: column;
     gap: 12px;
-    min-height: 0;
+    min-height: 320px;
     padding: 16px;
     overflow: visible;
     background: var(--bg-primary);
@@ -26,7 +27,7 @@
 .table-tools > details > summary { list-style: none; cursor: pointer; }
 .table-tools > details > summary::-webkit-details-marker { display: none; }
 .table-tools > details[open] > summary { border-color: var(--accent); color: var(--accent); }
-.table-filter-panel.portfolio-filters-panel, .table-column-panel {
+.table-column-panel {
     position: absolute;
     top: calc(100% + 6px);
     left: 0;
@@ -39,17 +40,9 @@
     background: var(--bg-card);
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
 }
-.table-filter-panel .portfolio-filters-panel-head h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-.table-filters.portfolio-filters-panel-body {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: start;
-    gap: 16px;
-}
-.table-filter-field { display: grid; min-width: 0; gap: 6px; color: var(--text-secondary); font-size: 11px; }
-.table-status-field { grid-column: span 2; }
-.table-filter-hint { font-size: 11px; color: var(--text-muted); }
-.table-filters select, .table-export select, .table-pagination select {
+.table-filter-options { max-height: min(620px, calc(100dvh - 160px)); overflow: auto; overscroll-behavior: contain; }
+.portfolio-filter-hint { grid-column: 2; color: var(--text-muted); font-size: 11px; }
+.table-export select, .table-pagination select {
     width: 100%;
     min-width: 0;
     padding: 5px 8px;
@@ -59,9 +52,9 @@
     font-size: 12px;
 }
 .table-export select, .table-pagination select { width: auto; }
-.table-toolbar-search.search-box { flex-basis: 360px; max-width: 420px; }
-.table-toolbar-search input { min-width: 0; flex: 1; color: var(--text-primary); background: var(--bg-card); }
-.table-toolbar-search .palette-search-btn { flex: none; cursor: pointer; border-left: 0; }
+.table-csv-select { position: relative; display: inline-block; flex: none; width: 132px; color: var(--text-primary); }
+#tableCsvSeparator { appearance: none; -webkit-appearance: none; display: block; width: 100%; min-height: 30px; padding: 5px 30px 5px 8px; line-height: 18px; box-sizing: border-box; }
+.table-csv-arrow { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; pointer-events: none; }
 .table-column-panel { padding: 14px; }
 .table-column-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .table-column-option { display: flex; align-items: center; gap: 4px; }
@@ -87,11 +80,10 @@
 .table-heading, .table-tools, .table-summary, .table-pagination { flex-shrink: 0; }
 @media (max-width: 640px) {
     .portfolio-table { padding: 10px; }
-    .table-filters.portfolio-filters-panel-body { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .table-filter-options { max-height: calc(100dvh - 240px); }
     .table-export { gap: 8px; }
     .table-export label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     .table-pagination { justify-content: flex-start; }
     .table-column-options { grid-template-columns: minmax(0, 1fr); }
     .table-summary { gap: 6px; font-size: 11px; }
-    .table-toolbar-search.search-box { max-width: none; }
 }

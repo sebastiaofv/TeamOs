@@ -1,7 +1,7 @@
 import type { BoardData, TaskStatus } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getRoadmapItemTitle } from '@/domain/roadmap';
-import { effortRank, priorityRank } from '@/domain/scoring';
+import { effortRank, priorityRank, taskScore } from '@/domain/scoring';
 
 export type TableColumnId =
     | 'id' | 'title' | 'status' | 'assignees' | 'priority' | 'phase' | 'updatedAt'
@@ -14,6 +14,8 @@ export const TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze([
     'effort', 'tags', 'archived'
 ]);
 export const DEFAULT_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(TABLE_COLUMNS.slice(0, 7));
+export type TableSort = { column: TableColumnId | 'score'; direction: 'asc' | 'desc' };
+export const DEFAULT_TABLE_SORT: TableSort = Object.freeze({ column: 'id', direction: 'asc' });
 
 export type TableFilters = {
     search: string;
@@ -24,12 +26,13 @@ export type TableFilters = {
     milestoneId: string;
     sprintId: string;
     priority: string;
+    effort: string;
     blocked: 'all' | 'blocked' | 'unblocked';
 };
 
 export const DEFAULT_TABLE_FILTERS: Readonly<TableFilters> = Object.freeze({
     search: '', archive: 'active', statuses: [], assignee: '', phaseId: '',
-    milestoneId: '', sprintId: '', priority: '', blocked: 'all'
+    milestoneId: '', sprintId: '', priority: '', effort: '', blocked: 'all'
 });
 
 /** Each populated filter is ANDed; statuses are ORed within their selection. */
@@ -44,6 +47,7 @@ export function filterTableRows(rows: PortfolioRow[], filters: TableFilters): Po
         if (filters.milestoneId && task.milestoneId !== filters.milestoneId) return false;
         if (filters.sprintId && task.sprintId !== filters.sprintId) return false;
         if (filters.priority && task.priority !== filters.priority) return false;
+        if (filters.effort && task.effort !== filters.effort) return false;
         if (filters.blocked === 'blocked' && !task.blocked) return false;
         if (filters.blocked === 'unblocked' && task.blocked) return false;
         return !search || [String(task.id), task.title || '', task.description || '']
@@ -69,7 +73,8 @@ export function tableCellValue(row: PortfolioRow, column: TableColumnId, boardDa
 const textCollator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
 const statusRanks: Record<TaskStatus, number> = { backlog: 0, 'to-do': 1, doing: 2, done: 3 };
 
-function tableSortValue(row: PortfolioRow, column: TableColumnId, boardData: BoardData | null): string | number | null {
+function tableSortValue(row: PortfolioRow, column: TableSort['column'], boardData: BoardData | null): string | number | null {
+    if (column === 'score') return taskScore(row.task);
     const value = tableCellValue(row, column, boardData);
     if (!value.trim()) return null;
     switch (column) {
@@ -90,7 +95,7 @@ function tableSortValue(row: PortfolioRow, column: TableColumnId, boardData: Boa
 
 /** Missing values stay last in both directions; equal values use ascending numeric ID. */
 export function sortTableRows(
-    rows: PortfolioRow[], column: TableColumnId, direction: 'asc' | 'desc', boardData: BoardData | null
+    rows: PortfolioRow[], column: TableSort['column'], direction: 'asc' | 'desc', boardData: BoardData | null
 ): PortfolioRow[] {
     const sign = direction === 'desc' ? -1 : 1;
     return rows.map((row) => ({ row, value: tableSortValue(row, column, boardData) }))

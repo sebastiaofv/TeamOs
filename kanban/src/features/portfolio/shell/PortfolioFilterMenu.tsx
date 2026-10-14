@@ -18,6 +18,16 @@ import { OPEN_FILTERS_EVENT } from '@/features/portfolio/palette/openCommandPale
 type Translate = ReturnType<typeof useI18n>['t'];
 type FilterOption = { value: string; label: string };
 type FilterField = { name: PanelPortfolioFilterName; id: string; label: string; options: FilterOption[] };
+export type FilterMenuField = {
+    id: string;
+    label: string;
+    options: FilterOption[];
+    value: string | string[];
+    changed: boolean;
+    multiple?: boolean;
+    hint?: string;
+    onChange: (value: string | string[]) => void;
+};
 
 function getAssigneeNames(rows: PortfolioRow[]): string[] {
     const names = new Map<string, string>();
@@ -82,12 +92,28 @@ function FilterIcon() {
 
 export function PortfolioFilterMenu({ filters, tasks }: { filters: PortfolioFilters; tasks: PortfolioRow[] }) {
     const { t } = useI18n();
+    const fields = getFilterFields(t, tasks).map((field) => ({
+        ...field,
+        value: String(filters[field.name] ?? ''),
+        changed: filters[field.name] !== DEFAULT_PORTFOLIO_FILTERS[field.name],
+        onChange: (value: string | string[]) => setPortfolioFilter(field.name, value)
+    }));
+    return <FilterMenu fields={fields} activeCount={getActivePortfolioFilterNames(filters).length} onClear={clearPortfolioFilters} />;
+}
+
+// Board and Table use the same toolbar button, dropdown, field layout and focus behavior.
+export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false }: {
+    fields: FilterMenuField[];
+    activeCount: number;
+    onClear: () => void;
+    panelClassName?: string;
+    dismissOnBlur?: boolean;
+}) {
+    const { t } = useI18n();
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const titleId = useId();
-    const activeCount = getActivePortfolioFilterNames(filters).length;
-    const fields = getFilterFields(t, tasks);
 
     const close = (returnFocus: boolean) => {
         setOpen(false);
@@ -120,7 +146,9 @@ export function PortfolioFilterMenu({ filters, tasks }: { filters: PortfolioFilt
     }, [open]);
 
     return (
-        <div className="portfolio-filters" ref={rootRef}>
+        <div className="portfolio-filters" ref={rootRef} onBlur={dismissOnBlur ? (event) => {
+            if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) close(false);
+        } : undefined}>
             <button
                 ref={buttonRef}
                 className={`btn portfolio-filters-btn${open ? ' open' : ''}${activeCount ? ' has-active' : ''}`}
@@ -136,31 +164,33 @@ export function PortfolioFilterMenu({ filters, tasks }: { filters: PortfolioFilt
                 {activeCount > 0 && <span className="portfolio-filters-badge" aria-hidden="true">{activeCount}</span>}
             </button>
             {open && (
-                <div className="portfolio-filters-panel" id="portfolioFiltersPanel" role="dialog" aria-labelledby={titleId}>
+                <div className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id="portfolioFiltersPanel" role="dialog" aria-labelledby={titleId}>
                     <div className="portfolio-filters-panel-head">
                         <h2 id={titleId}>{t('toolbar.filtersButton')}</h2>
-                        <button className="btn-text" id="resetPortfolioFiltersBtn" type="button" disabled={!activeCount} onClick={() => clearPortfolioFilters()}>
+                        <button className="btn-text" id="resetPortfolioFiltersBtn" type="button" disabled={!activeCount} onClick={onClear}>
                             {t('toolbar.resetShort')}
                         </button>
                     </div>
                     <div className="portfolio-filters-panel-body">
-                        {fields.map((field) => {
-                            const value = String(filters[field.name] ?? '');
-                            const changed = value !== DEFAULT_PORTFOLIO_FILTERS[field.name];
-                            return (
-                                <div className="portfolio-filters-field" key={field.name}>
+                        {fields.map((field) => (
+                                <div className="portfolio-filters-field" key={field.id}>
                                     <label htmlFor={field.id}>{field.label}</label>
                                     <select
                                         id={field.id}
-                                        className={changed ? 'changed' : ''}
-                                        value={value}
-                                        onChange={(event) => setPortfolioFilter(field.name, event.target.value)}
+                                        className={field.changed ? 'changed' : ''}
+                                        value={field.value}
+                                        multiple={field.multiple}
+                                        size={field.multiple ? 4 : undefined}
+                                        aria-describedby={field.hint ? `${field.id}-hint` : undefined}
+                                        onChange={(event) => field.onChange(field.multiple
+                                            ? Array.from(event.target.selectedOptions, (option) => option.value)
+                                            : event.target.value)}
                                     >
                                         {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                                     </select>
+                                    {field.hint && <span className="portfolio-filter-hint" id={`${field.id}-hint`}>{field.hint}</span>}
                                 </div>
-                            );
-                        })}
+                        ))}
                     </div>
                     <div className="portfolio-filters-panel-foot">
                         <span role="status">
