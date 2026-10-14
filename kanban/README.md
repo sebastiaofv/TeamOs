@@ -88,7 +88,7 @@ open dist-standalone/index.html
 
 This produces one self-contained HTML file. The regular `npm run build` continues to generate the normal `dist/` bundle.
 
-`dist/` and `dist-standalone/` are build output and are not committed; CI publishes them (below).
+`dist/` and `dist-standalone/` are committed build outputs, so each branch and PR includes its own runnable builds. Before committing app changes, run both `npm run build` and `npm run build:standalone`, and include the regenerated folders. CI also publishes builds as described below.
 
 ## Continuous integration and downloads
 
