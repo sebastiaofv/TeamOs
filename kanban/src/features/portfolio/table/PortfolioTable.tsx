@@ -112,8 +112,8 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
 
     return (
         <section id="portfolioTable" className={`portfolio-table${hidden ? ' hidden' : ''}`} aria-labelledby="tableTitle">
+            <h2 id="tableTitle" className="sr-only">{t('table.title', { project })}</h2>
             <div className="table-heading">
-                <h2 id="tableTitle">{t('table.title', { project })}</h2>
                 <div className="table-export">
                     <label htmlFor="tableCsvSeparator">{t('table.separator')}</label>
                     <span className="table-csv-select">
