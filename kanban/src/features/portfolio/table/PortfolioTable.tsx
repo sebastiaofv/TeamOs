@@ -114,39 +114,39 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
         <section id="portfolioTable" className={`portfolio-table${hidden ? ' hidden' : ''}`} aria-labelledby="tableTitle">
             <h2 id="tableTitle" className="sr-only">{t('table.title', { project })}</h2>
             <div className="table-heading">
+                <div className="table-tools">
+                    <details id="tableColumns" className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
+                        <summary className="btn" ref={columnDisclosure.summaryRef}>{t('table.columns')}</summary>
+                        <div className="table-column-panel" data-table-panel>
+                            <div className="table-column-options">
+                                {[...columns, ...TABLE_COLUMNS.filter((column) => !columns.includes(column))].map((column) => {
+                                    const required = column === 'id' || column === 'title';
+                                    const index = columns.indexOf(column);
+                                    const label = t(COLUMN_LABELS[column]);
+                                    return <div className="table-column-option" key={column}>
+                                        <label htmlFor={`tableColumn-${column}`}><input id={`tableColumn-${column}`} type="checkbox" checked={index >= 0} disabled={required}
+                                            onChange={(event) => changeColumns(event.target.checked ? [...columns, column] : columns.filter((entry) => entry !== column))} /> {label}
+                                            {required && <span className="table-column-required"> ({t('table.mandatory')})</span>}
+                                        </label>
+                                        <button className="btn" disabled={index <= 0} aria-label={t('table.moveLeft', { column: label })} onClick={() => moveColumn(column, -1)}>←</button>
+                                        <button className="btn" disabled={index < 0 || index === columns.length - 1} aria-label={t('table.moveRight', { column: label })} onClick={() => moveColumn(column, 1)}>→</button>
+                                    </div>;
+                                })}
+                            </div>
+                            <button className="btn" onClick={() => changeColumns([...DEFAULT_TABLE_COLUMNS])}>{t('table.resetColumns')}</button>
+                        </div>
+                    </details>
+                </div>
                 <div className="table-export">
                     <label htmlFor="tableCsvSeparator">{t('table.separator')}</label>
                     <span className="table-csv-select">
-                    <select id="tableCsvSeparator" value={separator} onChange={(event) => setSeparator(event.target.value === ';' ? ';' : ',')}>
-                        <option value=",">{t('table.comma')}</option><option value=";">{t('table.semicolon')}</option>
-                    </select>
-                    <svg className="table-csv-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+                        <select id="tableCsvSeparator" value={separator} onChange={(event) => setSeparator(event.target.value === ';' ? ';' : ',')}>
+                            <option value=",">{t('table.comma')}</option><option value=";">{t('table.semicolon')}</option>
+                        </select>
+                        <svg className="table-csv-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
                     </span>
                     <button className="btn" id="tableExportCsv" disabled={rows.length === 0} onClick={exportCsv}>{t('table.export')}</button>
                 </div>
-            </div>
-            <div className="table-tools">
-                <details id="tableColumns" className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
-                    <summary className="btn" ref={columnDisclosure.summaryRef}>{t('table.columns')}</summary>
-                    <div className="table-column-panel" data-table-panel>
-                        <div className="table-column-options">
-                            {[...columns, ...TABLE_COLUMNS.filter((column) => !columns.includes(column))].map((column) => {
-                                const required = column === 'id' || column === 'title';
-                                const index = columns.indexOf(column);
-                                const label = t(COLUMN_LABELS[column]);
-                                return <div className="table-column-option" key={column}>
-                                    <label htmlFor={`tableColumn-${column}`}><input id={`tableColumn-${column}`} type="checkbox" checked={index >= 0} disabled={required}
-                                        onChange={(event) => changeColumns(event.target.checked ? [...columns, column] : columns.filter((entry) => entry !== column))} /> {label}
-                                        {required && <span className="table-column-required"> ({t('table.mandatory')})</span>}
-                                    </label>
-                                    <button className="btn" disabled={index <= 0} aria-label={t('table.moveLeft', { column: label })} onClick={() => moveColumn(column, -1)}>←</button>
-                                    <button className="btn" disabled={index < 0 || index === columns.length - 1} aria-label={t('table.moveRight', { column: label })} onClick={() => moveColumn(column, 1)}>→</button>
-                                </div>;
-                            })}
-                        </div>
-                        <button className="btn" onClick={() => changeColumns([...DEFAULT_TABLE_COLUMNS])}>{t('table.resetColumns')}</button>
-                    </div>
-                </details>
             </div>
             <div className="table-summary">
                 <p role="status" aria-live="polite" id="tableCounts">{t('table.counts', { visible: rows.length, total: sourceRows.length, active: activeCount, archived: sourceRows.length - activeCount })}</p>

@@ -15,9 +15,9 @@
     gap: 12px;
     flex-wrap: wrap;
 }
-.table-heading { justify-content: flex-end; }
+.table-heading { position: relative; justify-content: space-between; }
 .table-tools {
-    position: relative;
+    position: static;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
