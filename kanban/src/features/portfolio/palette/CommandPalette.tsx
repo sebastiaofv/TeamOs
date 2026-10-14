@@ -25,6 +25,7 @@ import { buildPaletteModel, type PaletteFrame, type PaletteIcon, type PaletteIte
 import { runPaletteAction, type PaletteDeps } from './paletteActions';
 import { loadRecentPaletteItems, rememberPaletteItem } from './recentItems';
 import { requestOpenFilters } from './openCommandPalette';
+import { clearTableFilters, setTableFilter } from '@/features/portfolio/table/tableControls';
 
 const ICONS: Record<PaletteIcon, string> = {
     task: '●', project: '■', roadmap: '◆', command: '›', filter: '⌕', create: '+', open: '↗', move: '→',
@@ -57,10 +58,6 @@ const sameFrame = (a: PaletteFrame | undefined, b: PaletteFrame) => Boolean(a)
     && a!.kind === b.kind && a!.boardId === b.boardId && a!.taskId === b.taskId
     && (a!.kind !== 'step' || (b.kind === 'step' && a!.step === b.step));
 
-function ensureBoardFilterView() {
-    if (useAppStore.getState().selectedPortfolioViewMode === 'table') setPortfolioViewMode('board');
-}
-
 function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPaletteProps['contextTask']; initialQuery: string }) {
     const { t, language, toggleLanguage } = useI18n();
     const actions = usePortfolioActions();
@@ -68,7 +65,9 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         boards: s.portfolioBoards,
         rows: s.portfolioTasks,
         selectedBoardId: s.selectedPortfolioBoardId,
-        boardSearch: s.portfolioFilters.search
+        tableView: s.selectedPortfolioViewMode === 'table',
+        boardSearch: s.selectedPortfolioViewMode === 'table'
+            ? s.portfolioTableFiltersByBoardId[s.selectedPortfolioBoardId]?.search || '' : s.portfolioFilters.search
     })));
     const [query, setQuery] = useState(initialQuery);
     const [stack, setStack] = useState<PaletteFrame[]>([]);
@@ -102,17 +101,16 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         planTask: (boardId, taskId, date, startMinutes) => actions.addPlannerBlock(boardId, taskId, date, startMinutes),
         createTask: (boardId, fields) => actions.createPortfolioTaskFromFields(boardId, fields),
         setBoardSearch: (text) => {
-            ensureBoardFilterView();
-            setPortfolioFilter('search', text);
+            if (useAppStore.getState().selectedPortfolioViewMode === 'table') setTableFilter('search', text);
+            else setPortfolioFilter('search', text);
         },
         setViewMode: (mode) => setPortfolioViewMode(mode),
         selectBoard: (boardId) => selectPortfolioBoard(boardId),
         resetFilters: () => {
-            ensureBoardFilterView();
-            resetPortfolioFilters();
+            if (useAppStore.getState().selectedPortfolioViewMode === 'table') clearTableFilters();
+            else resetPortfolioFilters();
         },
         openFilters: () => {
-            ensureBoardFilterView();
             requestOpenFilters();
         },
         toggleTheme: () => toggleThemePreference(),

@@ -27,8 +27,30 @@ test.describe('US-01 workitems table', () => {
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`workitems-table-${theme}.png`, { fullPage: true });
+      await page.locator('#tableFilters > summary').click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`workitems-table-filters-${theme}.png`, { fullPage: true });
     });
   }
+
+  test('compact table and filter panel on a narrow screen', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedPortfolioBoards(page, [{
+      id: 'compact-table', title: 'Delivery', hasHandle: true,
+      tasks: [{ id: 1, title: 'Prepare delivery', status: 'doing', assignees: ['Ana'], priority: 'high' }]
+    }], { selectedBoardId: 'compact-table' });
+    await page.locator('[data-view-mode="table"]').click();
+    await expect(page.locator('#tableSearch')).toBeVisible();
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot('workitems-table-mobile.png', { fullPage: true });
+    await page.locator('#tableFilters > summary').click();
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot('workitems-table-filters-mobile.png', { fullPage: true });
+  });
 });
 
 const ONE_PIXEL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';

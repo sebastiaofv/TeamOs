@@ -91,6 +91,7 @@ export type PaletteInput = {
     selectedBoardId: string;
     // The board's active text filter.
     boardSearch: string;
+    tableView?: boolean;
     // Open, hovered or selected task when the palette opened.
     contextTask: { boardId: string; taskId: number } | null;
     recent: string[];
@@ -171,7 +172,9 @@ function taskItem(ctx: Ctx, row: PortfolioRow, query: string): PaletteItem {
 }
 
 function commandItem(ctx: Ctx, spec: CommandSpec, query: string): PaletteItem {
-    const label = ctx.t(spec.key, { query: ctx.boardSearch });
+    const key = ctx.tableView && spec.id === 'clear-board-filter' ? 'palette.cmdClearTableSearch'
+        : ctx.tableView && spec.id === 'reset-filters' ? 'palette.cmdResetTableFilters' : spec.key;
+    const label = ctx.t(key, { query: ctx.boardSearch });
     return {
         key: `cmd:${spec.id}`, icon: 'command', label, ranges: matchRanges(label, query), hint: spec.hint,
         action: { type: 'command', id: spec.id }, recentKey: `cmd:${spec.id}`
@@ -373,8 +376,8 @@ function search(ctx: Ctx): PaletteModel {
         : [];
     if (contextRow && contextActions.length) sections.push({ id: 'context', title: contextRow.task.title, items: contextActions });
     sections.push({
-        id: 'filter', title: ctx.t('palette.sectionFilter'),
-        items: [{ key: 'filter', icon: 'filter', label: ctx.t('palette.filterBoard', { query: q }), ranges: [], action: { type: 'filterBoard', text: q } }]
+        id: 'filter', title: ctx.t(ctx.tableView ? 'palette.sectionTableFilter' : 'palette.sectionFilter'),
+        items: [{ key: 'filter', icon: 'filter', label: ctx.t(ctx.tableView ? 'palette.filterTable' : 'palette.filterBoard', { query: q }), ranges: [], action: { type: 'filterBoard', text: q } }]
     });
     // Recently used tasks rank a little higher, but only when they match.
     const tasks = ctx.rows

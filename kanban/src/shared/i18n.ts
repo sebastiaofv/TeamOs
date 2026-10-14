@@ -6,6 +6,10 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'palette.filterTable': 'Filter table by "{query}"',
+    'palette.sectionTableFilter': 'Table filter',
+    'palette.cmdClearTableSearch': 'Clear table search "{query}"',
+    'palette.cmdResetTableFilters': 'Reset table filters',
     'palette.cmdTable': 'Go to Table',
     'table.view': 'Table',
     'table.title': 'Workitems · {project}',
@@ -553,6 +557,10 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'palette.filterTable': 'Filtrar tabela por "{query}"',
+    'palette.sectionTableFilter': 'Filtro da tabela',
+    'palette.cmdClearTableSearch': 'Limpar pesquisa da tabela "{query}"',
+    'palette.cmdResetTableFilters': 'Repor filtros da tabela',
     'palette.cmdTable': 'Ir para a Tabela',
     'table.view': 'Tabela',
     'table.title': 'Workitems · {project}',

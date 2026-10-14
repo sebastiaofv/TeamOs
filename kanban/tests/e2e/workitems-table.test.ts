@@ -11,6 +11,7 @@ import {
   mutateExternalBoardFile,
   readSavedBoard,
   seedPortfolioBoards,
+  setBoardSearch,
   selectPortfolioBoard,
   setTimelineSlider,
   triggerExternalFileCheck,
@@ -34,9 +35,19 @@ function tableHeader(page: Page, label: string) {
   });
 }
 
-async function openTable(page: Page) {
-  await page.locator('[data-view-mode="table"]').click();
-  await expect(page.locator('#portfolioTable')).toBeVisible();
+async function openTable(page: Page, expandFilters = false) {
+    await page.locator('[data-view-mode="table"]').click();
+    await expect(page.locator('#portfolioTable')).toBeVisible();
+    if (expandFilters && await page.locator('#tableFilters').getAttribute('open') === null) {
+      await page.locator('#tableFilters > summary').click();
+    }
+}
+
+async function selectTableFilter(page: Page, id: string, value: string | string[] | { label: string }) {
+  const panel = page.locator('#tableFilters');
+  if (await panel.getAttribute('open') === null) await panel.locator('summary').click();
+  await page.locator(id).selectOption(value);
+  await panel.getByRole('button', { name: 'Done', exact: true }).click();
 }
 
 async function expectRowIds(page: Page, ids: number[]) {
@@ -147,6 +158,78 @@ test.describe('workitems table', () => {
     await gotoApp(page);
   });
 
+  test('keeps the main search visible when switching to Table', async ({ page }) => {
+    await seedPortfolioBoards(page, [{
+      id: 'search', title: 'Search continuity', hasHandle: true,
+      tasks: [{ id: 1, title: 'Visible workitem' }]
+    }], { selectedBoardId: 'search' });
+    await expect(page.locator('#portfolioSearchBtn')).toBeVisible();
+    await setBoardSearch(page, 'Visible');
+    await openTable(page, false);
+    await expect(page.locator('#portfolioSearchBtn')).toBeVisible();
+    await expect(page.locator('#tableSearch')).toHaveValue('');
+    await page.locator('#tableSearch').fill('missing');
+    await expect(tableRows(page)).toHaveCount(0);
+    await page.locator('#portfolioSearchBtn').click();
+    await page.locator('#commandPaletteInput').fill('Visible');
+    await expect(page.locator('#commandPalette .palette-item').first()).toContainText('Filter table by');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('[data-view-mode="table"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#tableSearch')).toHaveValue('Visible');
+    await expectRowIds(page, [1]);
+    await page.locator('#tableSearch').fill('workitem');
+    await page.locator('[data-view-mode="board"]').click();
+    await expect(page.locator('#portfolioSearchBtn')).toContainText('Visible');
+    await openTable(page);
+    await expect(page.locator('#tableSearch')).toHaveValue('workitem');
+    await page.locator('#portfolioSearchBtn').click();
+    await page.locator('#commandPaletteInput').fill('Open filters');
+    await page.locator('#commandPalette .palette-item').filter({ has: page.getByText('Open filters', { exact: true }) }).click();
+    await expect(page.locator('#tableFilters')).toHaveAttribute('open', '');
+    await expect(page.locator('[data-view-mode="table"]')).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tableArchive')).toBeHidden();
+  });
+
+  test('keeps workitems in view on narrow screens instead of stacking all filters above them', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedPortfolioBoards(page, [{
+      id: 'compact', title: 'Compact table', hasHandle: true,
+      tasks: [{ id: 1, title: 'Visible workitem' }]
+    }], { selectedBoardId: 'compact' });
+    await openTable(page, false);
+    await expect(page.locator('#tableArchive')).toBeHidden();
+    await expect(page.locator('#tableFilters > summary')).toBeVisible();
+    await expect(tableRow(page, 1)).toBeInViewport();
+    await page.locator('#tableFilters > summary').click();
+    await expect(page.locator('#tableArchive')).toBeVisible();
+    await expect.poll(() => page.locator('#tableFilters [data-table-panel]').evaluate((node) => node.getBoundingClientRect().bottom)).toBeLessThanOrEqual(844);
+    const fields = await page.locator('#tableFilters .table-filter-field').evaluateAll((nodes) => nodes.map((node) => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    }));
+    for (let index = 0; index < fields.length; index++) {
+      expect(fields[index].left).toBeGreaterThanOrEqual(0);
+      expect(fields[index].right).toBeLessThanOrEqual(390);
+      for (const other of fields.slice(index + 1)) {
+        const field = fields[index];
+        expect(field.right <= other.left || other.right <= field.left || field.bottom <= other.top || other.bottom <= field.top).toBe(true);
+      }
+    }
+    await page.locator('#tableArchive').focus();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tableArchive')).toBeHidden();
+    await expect(page.locator('#tableFilters > summary')).toBeFocused();
+    await page.locator('#tableFilters > summary').click();
+    await page.locator('#tableColumns > summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#tableFilters')).not.toHaveAttribute('open', '');
+    await expect(page.locator('#tableColumns')).toHaveAttribute('open', '');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tableColumns')).not.toHaveAttribute('open', '');
+    await expect(page.locator('#tableColumns > summary')).toBeFocused();
+  });
+
   test('is project-scoped and distinguishes active, all and archived items with counts', async ({ page }) => {
     await seedPortfolioBoards(page, [{
       id: 'alpha', title: 'Alpha', hasHandle: true,
@@ -173,11 +256,11 @@ test.describe('workitems table', () => {
     await expectColumnOrder(page, DEFAULT_COLUMNS);
     await expect(page.locator('#portfolioTable')).not.toContainText('Other project item');
 
-    await page.locator('#tableArchive').selectOption('all');
+    await selectTableFilter(page, '#tableArchive', 'all');
     await expectRowIds(page, [1, 2, 3, 4, 5]);
     await expect(page.locator('#portfolioTable')).toContainText('5 of 5 workitems · 3 active · 2 archived');
 
-    await page.locator('#tableArchive').selectOption('archived');
+    await selectTableFilter(page, '#tableArchive', 'archived');
     await expectRowIds(page, [4, 5]);
     await expect(page.locator('#portfolioTable')).toContainText('2 of 5 workitems · 3 active · 2 archived');
   });
@@ -195,9 +278,9 @@ test.describe('workitems table', () => {
     }], { selectedBoardId: 'filters' });
     await openTable(page);
 
-    await page.locator('#tableStatuses').selectOption(['doing', 'to-do']);
+    await selectTableFilter(page, '#tableStatuses', ['doing', 'to-do']);
     await expectRowIds(page, [11, 12, 13]);
-    await page.locator('#tableAssignee').selectOption({ label: 'Ana' });
+    await selectTableFilter(page, '#tableAssignee', { label: 'Ana' });
     await expectRowIds(page, [11, 12]);
     await page.locator('#tableSearch').fill('needle');
     await expectRowIds(page, [11]);
@@ -242,15 +325,15 @@ test.describe('workitems table', () => {
     }], { selectedBoardId: 'roadmap' });
     await openTable(page);
 
-    await page.locator('#tablePhase').selectOption('p1');
+    await selectTableFilter(page, '#tablePhase', 'p1');
     await expectRowIds(page, [1, 3, 4, 5, 6]);
-    await page.locator('#tableMilestone').selectOption('m1');
+    await selectTableFilter(page, '#tableMilestone', 'm1');
     await expectRowIds(page, [1, 4, 5, 6]);
-    await page.locator('#tableSprint').selectOption('s1');
+    await selectTableFilter(page, '#tableSprint', 's1');
     await expectRowIds(page, [1, 5, 6]);
-    await page.locator('#tablePriority').selectOption('high');
+    await selectTableFilter(page, '#tablePriority', 'high');
     await expectRowIds(page, [1, 6]);
-    await page.locator('#tableBlocked').selectOption('blocked');
+    await selectTableFilter(page, '#tableBlocked', 'blocked');
     await expectRowIds(page, [1]);
     await page.locator('#tableClearFilters').click();
     await expect(tableRows(page)).toHaveCount(6);
@@ -471,8 +554,8 @@ test.describe('workitems table', () => {
     }], { selectedBoardId: 'readonly' });
     await openTable(page);
     await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toBeDisabled();
-    await page.locator('#tableStatuses').selectOption('doing');
-    await page.locator('#tableAssignee').selectOption({ label: 'Ana' });
+    await selectTableFilter(page, '#tableStatuses', 'doing');
+    await selectTableFilter(page, '#tableAssignee', { label: 'Ana' });
     await page.locator('#tableSearch').fill('read-only');
     await expectRowIds(page, [1]);
     await tableRow(page, 1).getByRole('button', { name: 'Visible read-only item', exact: true }).click();
@@ -508,8 +591,8 @@ test.describe('workitems table', () => {
         ]
       }], { selectedBoardId: 'csv' });
       await openTable(page);
-      await page.locator('#tableStatuses').selectOption('doing');
-      await page.locator('#tableAssignee').selectOption({ label: 'Ana' });
+      await selectTableFilter(page, '#tableStatuses', 'doing');
+      await selectTableFilter(page, '#tableAssignee', { label: 'Ana' });
       await page.locator('#tablePageSize').selectOption('25');
       await expect(tableRows(page)).toHaveCount(25);
       await tableHeader(page, 'ID').getByRole('button').click();
@@ -680,7 +763,7 @@ test.describe('workitems table', () => {
       tasks: [{ id: 1, title: 'Original item', status: 'doing' }]
     }], { selectedBoardId: 'conflict' });
     await openTable(page);
-    await page.locator('#tableStatuses').selectOption('doing');
+    await selectTableFilter(page, '#tableStatuses', 'doing');
     await installControlledPortfolioWriter(page, { boardId: 'conflict', failWrites: 1 });
     await editTableTitle(page, 1, 'Local unsaved item');
     await expect(page.locator('.portfolio-chip.active')).toContainText('Save failed');

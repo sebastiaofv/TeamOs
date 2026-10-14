@@ -21,6 +21,7 @@ import type {
 import type { TaskStatus, RoadmapKind } from '@/domain/types';
 import type { AppMessage } from '@/app/types';
 import type { Language, Theme } from '@/shared/types/ui';
+import type { TableFilters } from '@/features/portfolio/table/tableModel';
 
 export type EditContext = { boardId: string; taskId: number };
 export type CreateContext = { boardId: string; status: TaskStatus };
@@ -36,6 +37,7 @@ export type PortfolioSlice = {
     selectedPortfolioBoardId: string;
     selectedPortfolioViewMode: PortfolioViewMode;
     portfolioFilters: PortfolioFilters;
+    portfolioTableFiltersByBoardId: Record<string, TableFilters>;
     portfolioSortKey: PortfolioSortKey;
     portfolioSortDir: SortDir;
     portfolioEditContext: EditContext | null;
@@ -86,6 +88,7 @@ export function createPortfolioSlice(): PortfolioSlice {
         portfolioVisibleRows: [],
         selectedPortfolioBoardId: '',
         selectedPortfolioViewMode: 'board',
+        portfolioTableFiltersByBoardId: {},
         portfolioFilters: {
             search: '',
             archive: 'active',

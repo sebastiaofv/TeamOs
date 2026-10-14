@@ -21,11 +21,13 @@ import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useI18n } from '@/shared/i18n';
 import { PortfolioActiveFilters, PortfolioFilterMenu } from './PortfolioFilterMenu';
 import { PALETTE_SHORTCUT_LABEL, openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
+import { setTableFilter } from '@/features/portfolio/table/tableControls';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
     | 'portfolioTasks'
     | 'portfolioFilters'
+    | 'portfolioTableFiltersByBoardId'
     | 'portfolioSortKey'
     | 'selectedPortfolioBoardId'
     | 'selectedPortfolioViewMode'
@@ -122,27 +124,35 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
     const hasSelectedBoard = Boolean(state.selectedPortfolioBoardId);
     const viewMode = normalizePortfolioViewMode(state.selectedPortfolioViewMode);
     const sortRef = useFocusTarget<HTMLSelectElement>('portfolioSort');
+    const search = viewMode === 'table'
+        ? state.portfolioTableFiltersByBoardId[state.selectedPortfolioBoardId]?.search || ''
+        : filters.search;
 
     return (
         <>
-            <div className={`portfolio-toolbar-left${viewMode === 'table' ? ' hidden' : ''}`}>
-                <div className="search-box palette-search">
+            <div className="portfolio-toolbar-left">
+                <div className={`search-box palette-search${viewMode === 'table' ? ' table-toolbar-search' : ''}`}>
+                    {viewMode === 'table' && <>
+                        <label className="sr-only" htmlFor="tableSearch">{t('table.search')}</label>
+                        <input id="tableSearch" type="search" value={search} placeholder={t('table.searchHint')}
+                            onChange={(event) => setTableFilter('search', event.target.value)} />
+                    </>}
                     <button
-                        className={`palette-search-btn${filters.search ? ' has-value' : ''}`}
+                        className={`palette-search-btn${search ? ' has-value' : ''}`}
                         id="portfolioSearchBtn"
                         type="button"
                         aria-haspopup="dialog"
-                        aria-label={filters.search ? `${t('palette.openButton')}: ${filters.search}` : t('palette.openButton')}
+                        aria-label={search ? `${t('palette.openButton')}: ${search}` : t('palette.openButton')}
                         onClick={() => openCommandPalette()}
                     >
                         <svg className="palette-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
                             <circle cx="7" cy="7" r="4.5" />
                             <path d="M10.5 10.5 14 14" />
                         </svg>
-                        <span className="palette-search-text">{filters.search || t('toolbar.searchTasks')}</span>
-                        {!filters.search && <kbd className="palette-search-kbd">{PALETTE_SHORTCUT_LABEL}</kbd>}
+                        {viewMode !== 'table' && <span className="palette-search-text">{search || t('toolbar.searchTasks')}</span>}
+                        {(viewMode === 'table' || !search) && <kbd className="palette-search-kbd">{PALETTE_SHORTCUT_LABEL}</kbd>}
                     </button>
-                    {filters.search && (
+                    {search && viewMode !== 'table' && (
                         <button
                             className="palette-search-clear"
                             id="portfolioSearchClearBtn"
@@ -153,8 +163,8 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         >×</button>
                     )}
                 </div>
-                <PortfolioFilterMenu filters={filters} tasks={state.portfolioTasks} />
-                <div className="filter-group">
+                {viewMode !== 'table' && <PortfolioFilterMenu filters={filters} tasks={state.portfolioTasks} />}
+                <div className={`filter-group${viewMode === 'table' ? ' hidden' : ''}`}>
                     <label htmlFor="portfolioSortSelect">{t('toolbar.sort')}</label>
                     <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => setPortfolioSort(event.target.value)}>
                         <option value="name">{t('toolbar.name')}</option>
@@ -248,6 +258,7 @@ export function PortfolioToolbar() {
         portfolioBoards: state.portfolioBoards,
         portfolioTasks: state.portfolioTasks,
         portfolioFilters: state.portfolioFilters,
+        portfolioTableFiltersByBoardId: state.portfolioTableFiltersByBoardId,
         portfolioSortKey: state.portfolioSortKey,
         selectedPortfolioBoardId: state.selectedPortfolioBoardId,
         selectedPortfolioViewMode: state.selectedPortfolioViewMode,
