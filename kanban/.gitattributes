@@ -1,0 +1,3 @@
+# Preserve compiler output, including whitespace inside bundled string literals.
+dist/** -whitespace linguist-generated=true
+dist-standalone/** -whitespace linguist-generated=true
