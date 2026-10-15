@@ -161,13 +161,13 @@ test.describe('roadmap', () => {
     await page.getByRole('button', { name: 'Delete Alpha' }).click();
     await answerAppMessage(page, { button: 'Delete', expectText: 'Linked task references will be cleared.' });
 
-    await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.at(-1)?.summary || '').toContain('Milestone deleted');
+    await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.findLast((event: { kind: string }) => event.kind === 'roadmap.updated')?.summary || '').toContain('Milestone deleted');
     const board = await readSavedBoard(page, 'alpha');
     const result = {
       task: board.board.tasks[0],
       roadmap: board.extensions.roadmap,
-      lastTimelineKind: board.extensions.timeline?.events?.at(-1)?.kind || '',
-      lastTimelineSummary: board.extensions.timeline?.events?.at(-1)?.summary || ''
+      lastTimelineKind: board.extensions.timeline?.events?.findLast((event: { kind: string }) => event.kind === 'roadmap.updated')?.kind || '',
+      lastTimelineSummary: board.extensions.timeline?.events?.findLast((event: { kind: string }) => event.kind === 'roadmap.updated')?.summary || ''
     };
 
     expect(result.roadmap.milestones).toEqual([{
