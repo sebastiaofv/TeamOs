@@ -7,6 +7,7 @@ import { normalizeRoadmapExtension } from './roadmap';
 import { normalizeTask } from './task';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
+import { migrateProjectMetadata } from './project';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -86,7 +87,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
         ? settings.title.trim()
         : DEFAULT_BOARD_TITLE;
 
-    return {
+    return migrateProjectMetadata({
         meta: {
             schemaVersion: BOARD_SCHEMA_VERSION,
             appId: BOARD_APP_ID,
@@ -104,7 +105,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
             includeTimeline: false,
             taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
         })
-    };
+    });
 }
 
 export function serializeBoardDataFromObject(boardData: unknown): BoardData {
@@ -127,7 +128,7 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
         ? settings.title.trim()
         : DEFAULT_BOARD_TITLE;
 
-    return {
+    return migrateProjectMetadata({
         meta: {
             schemaVersion: BOARD_SCHEMA_VERSION,
             appId: BOARD_APP_ID,
@@ -144,5 +145,5 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
         extensions: normalizeBoardExtensionsValue(input.extensions, {
             taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
         })
-    };
+    });
 }

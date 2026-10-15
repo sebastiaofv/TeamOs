@@ -12,6 +12,7 @@ import { comparePortfolioDueDateAsc } from './calendar';
 import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
+import { getProjectInfo, validateProjectInfo } from './project';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -248,6 +249,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions)) {
         throw new Error('Invalid extensions structure.');
     }
+    if ('project' in extensions) validateProjectInfo(getProjectInfo({ extensions: extensions as Record<string, unknown> }));
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {

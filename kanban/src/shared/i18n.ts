@@ -6,6 +6,14 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'project.settings': 'Project settings',
+    'project.save': 'Save project',
+    'project.review': 'Review imported metadata',
+    'project.localIdentity': 'Local profiles are not authenticated identities',
+    'project.name': 'Name', 'project.state': 'State', 'project.manager': 'Manager', 'project.product': 'Product / application',
+    'project.planned': 'Planned', 'project.active': 'Active', 'project.paused': 'Paused', 'project.completed': 'Completed', 'project.archived': 'Archived',
+    'project.team': 'Project team', 'project.role': 'Role', 'project.provisional': 'Provisional — review name', 'project.addMember': 'Add team member',
+    'project.forecast': 'Forecast', 'project.baseline': 'Baseline', 'project.actual': 'Actual', 'project.start': 'Start', 'project.end': 'End',
     'palette.filterTable': 'Filter table by "{query}"',
     'palette.sectionTableFilter': 'Table filter',
     'palette.cmdClearTableSearch': 'Clear table search "{query}"',
@@ -557,6 +565,14 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'project.settings': 'Definições do projeto',
+    'project.save': 'Guardar projeto',
+    'project.review': 'Rever dados importados',
+    'project.localIdentity': 'Perfis locais não são identidades autenticadas',
+    'project.name': 'Nome', 'project.state': 'Estado', 'project.manager': 'Gestor', 'project.product': 'Produto / aplicação',
+    'project.planned': 'Planeado', 'project.active': 'Ativo', 'project.paused': 'Em pausa', 'project.completed': 'Concluído', 'project.archived': 'Arquivado',
+    'project.team': 'Equipa do projeto', 'project.role': 'Papel', 'project.provisional': 'Provisório — rever nome', 'project.addMember': 'Adicionar membro',
+    'project.forecast': 'Previsão', 'project.baseline': 'Baseline', 'project.actual': 'Real', 'project.start': 'Início', 'project.end': 'Fim',
     'palette.filterTable': 'Filtrar tabela por "{query}"',
     'palette.sectionTableFilter': 'Filtro da tabela',
     'palette.cmdClearTableSearch': 'Limpar pesquisa da tabela "{query}"',

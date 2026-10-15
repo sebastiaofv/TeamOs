@@ -1,0 +1,10 @@
+.project-settings { margin: 12px 0; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); color: var(--text-primary); }
+.project-settings > summary { cursor: pointer; padding: 12px 16px; font-size: 13px; font-weight: 600; }
+.project-settings form { padding: 0 16px 16px; max-height: 65vh; overflow: auto; }
+.project-settings fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.project-field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.project-settings label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.project-settings input:not([type=checkbox]), .project-settings select, .project-settings textarea { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: inherit; }
+.project-member-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
+.project-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.muted { color: var(--text-muted); font-size: 12px; }
