@@ -73,3 +73,16 @@
 .drilldown-tree details > summary { cursor: pointer; font-size: 12px; color: var(--text-secondary); padding: 6px 0; }
 .drilldown-origin { display: inline-block; font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
 .roadmap-period-controls { padding: 0 16px; }
+.project-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 20px 0 12px; }
+.kpi-card, .project-progress, .group-progress-card { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.kpi-card { cursor: pointer; }
+.kpi-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.kpi-card strong, .project-progress strong { font-size: 26px; font-weight: 650; }
+.project-progress > span, .kpi-card > span { font-size: 12px; color: var(--text-secondary); }
+.project-group-progress { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 20px 0; }
+.group-progress-card { cursor: pointer; }
+.group-progress-card progress { width: 100%; accent-color: var(--accent); }
+.dashboard-source-list { background: var(--bg-card); padding: 20px; border: 1px solid var(--border); border-radius: 10px; margin: 20px 0; }
+.dashboard-plan { margin: 20px 0; }
+.dashboard-plan > summary { padding: 16px; cursor: pointer; font-size: 16px; font-weight: 600; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; }
+.roadmap-row[data-current-phase=true] > .roadmap-row-main { border-left: 3px solid var(--accent); }

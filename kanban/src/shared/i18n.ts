@@ -6,6 +6,7 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'palette.cmdDashboard': 'Go to Project Dashboard', 'dashboard.indicators': 'Project indicators', 'dashboard.execution': 'Execution', 'dashboard.leaves': 'eligible leaf workitems', 'dashboard.open': 'Open', 'dashboard.completed': 'Completed', 'dashboard.blocked': 'Blocked', 'dashboard.overdue': 'Overdue', 'dashboard.unassigned': 'Unassigned', 'dashboard.metricRule': 'Unique non-archived leaf Task/Bug workitems; cancelled work is excluded. Click an indicator to see its source records.', 'dashboard.groupProgress': 'Phase and milestone progress', 'dashboard.currentPhase': 'Current phase', 'dashboard.plan': 'Project plan · Gantt and drilldown',
     'drilldown.unassociated': 'Unassociated / unclassified', 'drilldown.hierarchy': 'Workitem hierarchy', 'drilldown.group': 'Group workitems by', 'drilldown.completion': 'Completion', 'drilldown.sprint': 'Sprint', 'drilldown.milestone': 'Milestone', 'drilldown.direct': 'Direct association', 'drilldown.inherited': 'Inherited association', 'drilldown.children': '{count} child workitems', 'drilldown.more': 'Show 100 more workitems', 'drilldown.fit': 'Fit plan', 'drilldown.includeArchived': 'Include archived workitems',
     'dates.from': 'Plan period from', 'dates.to': 'Plan period to',
     'dashboard.project': 'Dashboard', 'dashboard.current': 'Current snapshot', 'dashboard.historical': 'Historical snapshot — read only',
@@ -592,6 +593,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'palette.cmdDashboard': 'Abrir Dashboard do projeto', 'dashboard.indicators': 'Indicadores do projeto', 'dashboard.execution': 'Execução', 'dashboard.leaves': 'workitems de folha elegíveis', 'dashboard.open': 'Abertos', 'dashboard.completed': 'Concluídos', 'dashboard.blocked': 'Bloqueados', 'dashboard.overdue': 'Atrasados', 'dashboard.unassigned': 'Sem responsável', 'dashboard.metricRule': 'Tasks/Bugs de folha únicos e não arquivados; trabalho cancelado excluído. Clicar num indicador mostra os registos de origem.', 'dashboard.groupProgress': 'Progresso por etapa e milestone', 'dashboard.currentPhase': 'Etapa atual', 'dashboard.plan': 'Plano do projeto · Gantt e drilldown',
     'drilldown.unassociated': 'Sem associação / por classificar', 'drilldown.hierarchy': 'Hierarquia de workitems', 'drilldown.group': 'Agrupar workitems por', 'drilldown.completion': 'Conclusão', 'drilldown.sprint': 'Sprint', 'drilldown.milestone': 'Milestone', 'drilldown.direct': 'Associação direta', 'drilldown.inherited': 'Associação herdada', 'drilldown.children': '{count} workitems filhos', 'drilldown.more': 'Mostrar mais 100 workitems', 'drilldown.fit': 'Ajustar ao plano', 'drilldown.includeArchived': 'Incluir workitems arquivados',
     'dates.from': 'Período do plano desde', 'dates.to': 'Período do plano até',
     'dashboard.project': 'Dashboard', 'dashboard.current': 'Fotografia atual', 'dashboard.historical': 'Fotografia histórica — apenas leitura',

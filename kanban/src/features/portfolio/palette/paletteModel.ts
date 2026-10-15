@@ -28,7 +28,7 @@ export type PaletteFrame =
     | { kind: 'step'; step: PaletteStep; boardId: string; taskId: number };
 
 export type PaletteCommandId =
-    | 'view-board' | 'view-table' | 'view-roadmap' | 'view-calendar' | 'view-planner'
+    | 'view-board' | 'view-table' | 'view-roadmap' | 'view-calendar' | 'view-planner' | 'view-dashboard'
     | 'open-filters' | 'reset-filters' | 'clear-board-filter'
     | 'toggle-theme' | 'toggle-language' | 'open-shortcuts' | 'open-help' | 'open-palette-help'
     | 'new-project' | 'import-projects';
@@ -125,6 +125,7 @@ const WORD_MATCH = 60;
 
 type CommandSpec = { id: PaletteCommandId; key: TranslationKey; hint?: string[]; when?: (ctx: Ctx) => boolean };
 const COMMANDS: CommandSpec[] = [
+    { id: 'view-dashboard', key: 'palette.cmdDashboard', when: (ctx) => Boolean(ctx.selectedBoardId) },
     { id: 'view-board', key: 'palette.cmdBoard' },
     { id: 'view-table', key: 'palette.cmdTable', when: (ctx) => Boolean(ctx.selectedBoardId) },
     { id: 'view-roadmap', key: 'palette.cmdRoadmap', when: (ctx) => Boolean(ctx.selectedBoardId) },

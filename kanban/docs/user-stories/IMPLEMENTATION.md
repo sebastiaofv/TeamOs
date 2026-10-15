@@ -147,3 +147,13 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Archived inclusion is explicit; lists render in 100-item increments.
 - Period controls and expansion/grouping remain mounted when opening the shared
   side panel; project-local sprint groupings do not duplicate totals.
+
+## US-09 — Project dashboard
+
+- Selected-project current/historical snapshots with leaf-based execution,
+  open/completed/blocked/overdue/unassigned indicators and exact source drilldown.
+- Phase/milestone percentages and all overlapping current phases, reusing the
+  Gantt/drilldown and US-19 date analysis instead of parallel plan concepts.
+- Semantic completion/cancellation and no-denominator N/A share domain rules.
+- FTE/risks are unavailable because US-18/20 are unapproved; no workstream model
+  is invented in the absence of US-14. Project/session scope is explicit.

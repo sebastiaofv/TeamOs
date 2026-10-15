@@ -21,6 +21,8 @@ import { executionProgress, planWorkitems, phaseDepth, orderedPhases } from '@/d
 import { PlanDrilldown } from './PlanDrilldown';
 import { planDrilldownTasks, unassociatedPlanTasks } from '@/features/portfolio/queries/planDrilldown';
 import { parseRoadmapIsoDate, getRoadmapAxisTicks } from '@/domain/roadmap';
+import { isCurrentPlanPhase } from '@/features/portfolio/queries/projectDashboard';
+import { todayLocalIsoDate } from '@/domain/util';
 
 type RoadmapState = TaskCardState & Pick<AppState, 'portfolioRoadmapExpandedRowsByBoardId'>;
 
@@ -39,6 +41,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
     const { t, language } = useI18n();
     const config = getRoadmapEntityConfig(kind);
     if (!config) return null;
+    const mutable = !historical && Boolean(state.portfolioBoards.find((board) => board.id === boardId)?.handle);
     const sortedItems = kind === 'phases' && boardData ? orderedPhases(boardData) : Array.isArray(items) ? [...items].sort(compareRoadmapItemsByDate) : [];
     const label = kind === 'milestones' ? t('roadmap.milestone') : kind === 'phases' ? t('roadmap.phase') : t('roadmap.sprint');
     const pluralLabel = kind === 'milestones' ? t('roadmap.milestones') : kind === 'phases' ? t('roadmap.phases') : t('roadmap.sprints');
@@ -73,6 +76,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                 </div>
                 <button
                     className="roadmap-section-btn"
+                    disabled={!mutable}
                     type="button"
                     aria-label={t('roadmap.addAria', { label })}
                     data-action="add-roadmap-item"
@@ -97,6 +101,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                             <div
                                 id={rowId}
                                 className="roadmap-row"
+                                data-current-phase={kind === 'phases' && boardData && isCurrentPlanPhase(boardData, item.id, todayLocalIsoDate()) || undefined}
                                 data-roadmap-kind={config.singular}
                                 data-roadmap-id={item.id}
                                 tabIndex={0}
@@ -114,6 +119,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                         <div className="roadmap-row-actions">
                                             <button
                                                 className="roadmap-action-btn"
+                                                disabled={!mutable}
                                                 type="button"
                                                 aria-label={`${t('common.edit')} ${item.title}`}
                                                 title={t('common.edit')}
@@ -126,6 +132,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                             </button>
                                             <button
                                                 className="roadmap-action-btn"
+                                                disabled={!mutable}
                                                 type="button"
                                                 aria-label={`${t('common.delete')} ${item.title}`}
                                                 title={t('common.delete')}
@@ -277,3 +284,5 @@ export function PortfolioRoadmap({ hidden }: { hidden: boolean }) {
         </div>
     );
 }
+
+export function ProjectPlanTimeline() { return <ConnectedRoadmap />; }

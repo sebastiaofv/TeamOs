@@ -1,6 +1,24 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
 
+test('US09: project KPIs use only the selected project and open their exact source items', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'dash', title: 'Dashboard project', hasHandle: true, tasks: [{ id: 1, title: 'Finished', status: 'done' }, { id: 2, title: 'Needs attention', status: 'doing', blocked: true, blockerReason: 'Waiting', dueDate: '2000-01-01' }] }, { id: 'foreign', title: 'Other project', hasHandle: true, tasks: [{ id: 1, title: 'Foreign completed', status: 'done' }] }], { selectedBoardId: 'dash' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await expect(page.locator('[data-metric="completed"] strong')).toHaveText('1');
+    await expect(page.locator('[data-metric="open"] strong')).toHaveText('1');
+    await expect(page.locator('[data-metric="blocked"] strong')).toHaveText('1');
+    await expect(page.locator('[data-metric="overdue"] strong')).toHaveText('1');
+    await page.locator('[data-metric="completed"]').click();
+    await expect(page.locator('#dashboardSourceList')).toContainText('Finished');
+    await expect(page.locator('#dashboardSourceList')).not.toContainText('Foreign completed');
+    await page.locator('#dashboardSourceList').getByRole('button', { name: 'Finished', exact: true }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Finished');
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await expect(page.locator('[data-view-mode="dashboard"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-metric="completed"]')).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('US15: drill into inherited work, preserve period and expose unclassified items', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'drill', title: 'Drill', hasHandle: true, tasks: [{ id: 1, title: 'Epic', workitemType: 'epic', phaseId: 'p' }, { id: 2, title: 'Story', workitemType: 'story', parentId: 1 }, { id: 3, title: 'Inherited task', parentId: 2 }, { id: 4, title: 'Unclassified task' }], extensions: { roadmap: { version: 1, phases: [{ id: 'p', title: 'Delivery', startDate: '2026-01-01', endDate: '2026-01-10' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'drill' });
