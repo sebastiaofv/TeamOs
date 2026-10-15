@@ -25,7 +25,7 @@ async function seed(page: Page) {
         { id: 2, title: 'Login bug', status: 'doing', tags: ['auth'] }
       ]
     },
-    { id: 'bravo', hasHandle: true, title: 'Bravo', tasks: [{ id: 5, title: 'Ship release', status: 'backlog' }] },
+    { id: 'bravo', hasHandle: true, title: 'Bravo', tasks: [{ id: 5, title: 'Ship release', status: 'backlog' }], extensions: { project: { version: 1, id: 'bravo-project', name: 'Bravo', state: 'active', product: '', manager: '', description: '', team: [{ id: 'ana', name: 'Ana', role: '', email: '', active: true }], tags: [], forecast: { start: '', end: '' }, baseline: { start: '', end: '' }, actual: { start: '', end: '' }, needsReview: true } } },
     { id: 'charlie', hasHandle: false, title: 'Charlie', tasks: [{ id: 9, title: 'Read-only note', status: 'to-do' }] }
   ]);
 }
@@ -96,7 +96,7 @@ test.describe('command palette', () => {
     await expect(page.locator('#portfolio-to-do-column')).toContainText('Write spec');
   });
 
-  test('starts with actions for the selected card and adds a new assignee step by step', async ({ page }) => {
+  test('starts with actions for the selected card and assigns an active team member', async ({ page }) => {
     await portfolioCard(page, 'Login bug').click();
     await page.keyboard.press('Control+k');
     await expect(palette(page).locator('.palette-section').first()).toHaveText('Login bug');
@@ -104,13 +104,15 @@ test.describe('command palette', () => {
     await page.keyboard.press('Enter');
     await expect(palette(page).locator('.palette-crumb')).toHaveText(['#2 Login bug', 'Assign']);
     await input(page).fill('Zoe');
-    await expect(activeItem(page)).toContainText('Add "Zoe"');
+    await expect(activeItem(page)).toHaveCount(0);
+    await input(page).fill('Ana');
+    await expect(activeItem(page)).toContainText('Ana');
     await page.keyboard.press('Enter');
 
-    await expect(portfolioCard(page, 'Login bug')).toContainText('Zoe');
+    await expect(portfolioCard(page, 'Login bug')).toContainText('Ana');
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'alpha');
-    expect(saved.board.tasks.find((task: any) => task.id === 2).assignees).toEqual(['Zoe']);
+    expect(saved.board.tasks.find((task: any) => task.id === 2).assignees).toEqual(['Ana']);
   });
 
   test('backspace on an empty box steps back', async ({ page }) => {
