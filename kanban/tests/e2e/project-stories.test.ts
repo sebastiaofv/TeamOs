@@ -1,6 +1,19 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
 
+test('US03: reassign to an active team member without changing status', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'team', title: 'Team', hasHandle: true, tasks: [{ id: 1, title: 'Owned', assignees: ['Ana'], status: 'doing' }, { id: 2, title: 'Other', assignees: ['Rui'] }] }], { selectedBoardId: 'team' });
+    await page.locator('.task-title').filter({ hasText: 'Owned' }).click();
+    await page.locator('#detailResponsible').selectOption({ label: 'Rui' });
+    await expect(page.locator('#detailAssignees')).toHaveText('Rui');
+    await expect.poll(async () => (await readSavedBoard(page, 'team')).board.tasks[0].assignees).toEqual(['Rui']);
+    const saved = await readSavedBoard(page, 'team');
+    expect(saved.board.tasks[0].status).toBe('doing');
+    expect(saved.board.tasks[0].assigneeId).toBe(saved.extensions.project.team.find((m: { name: string }) => m.name === 'Rui').id);
+    expect(saved.extensions.timeline.events.some((event: { changes?: { assigneeId?: unknown } }) => event.changes?.assigneeId)).toBe(true);
+});
+
 test('US05: create a subphase and offer only leaf phases for assignment', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'plan', title: 'Plan', hasHandle: true, extensions: { roadmap: { version: 1, phases: [{ id: 'root', title: 'Delivery', startDate: '2026-01-01', endDate: '2026-12-31' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'plan' });

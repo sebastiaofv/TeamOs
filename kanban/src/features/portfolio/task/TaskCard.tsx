@@ -183,6 +183,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     {normalizeTags(task.tags).map((tag) => <span className="task-tag task-tag-label" key={`tag-${tag}`}>{tag}</span>)}
                     {task.blocked && <span className="task-tag task-tag-blocked" title={t('task.blocked')}>{t('task.blocked')}</span>}
                     {item.dependencyBlocked && <span className="task-tag task-tag-blocked">{t('relations.dependencyBlocked')}</span>}
+                    {item.assignmentNeedsReview && <span className="task-tag task-tag-blocked">{t('assignment.review')}</span>}
                     {localizedStatusAge && <span className="task-tag task-tag-age" title={t('task.timeInStatus')}>{localizedStatusAge}</span>}
                     {isTaskOverdue(task) && <span className="task-tag" title={t('task.overdue')}><span className="due-dot" />{t('task.overdue')}</span>}
                     {priority && <span className="task-tag"><span className={`priority-dot priority-${task.priority}`} />{priority === 'high' ? t('toolbar.high') : priority === 'medium' ? t('toolbar.medium') : priority === 'low' ? t('toolbar.low') : priority}</span>}

@@ -64,7 +64,7 @@ function getFilterFields(t: Translate, tasks: PortfolioRow[]): FilterField[] {
         },
         {
             name: 'assignee', id: 'portfolioAssigneeFilter', label: fieldLabel(t, 'toolbar.assignee'),
-            options: [all, ...getAssigneeNames(tasks).map((name) => ({ value: name, label: name }))]
+            options: [all, ...getAssigneeNames(tasks).map((name) => ({ value: name, label: name })), ...[...new Map(tasks.filter((row) => row.task.assigneeId).map((row) => [row.task.assigneeId!, { value: row.task.assigneeId!, label: `${row.task.assignees.join(', ')} · ${row.task.assigneeId}` }])).values()]]
         },
         {
             name: 'priority', id: 'portfolioPriorityFilter', label: fieldLabel(t, 'toolbar.priority'),

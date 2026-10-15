@@ -18,6 +18,7 @@ import { translateCurrent } from '@/shared/i18n';
 import { validateWorkitems, synchronizeParentCompletion } from '@/domain/workitems';
 import { getWorkflow, assertTaskTransition, isTaskCompleted } from '@/domain/workflow';
 import { validatePhaseHierarchy } from '@/domain/projectPlan';
+import { reconcileAssignments } from '@/domain/assignments';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -86,9 +87,21 @@ export function createBoardMutationContext({
         try {
             ensureBoardTimelineBaseline(draft.data);
             if (mutator(draft.data, draft) === false) return false;
+            const previousTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
+            const beforeAssignment = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
+            reconcileAssignments(draft.data, current.data);
+            for (const task of draft.data.board.tasks) {
+                const before = beforeAssignment.get(task.id);
+                if (before && (before.assigneeId !== task.assigneeId || JSON.stringify(before.assignees) !== JSON.stringify(task.assignees))) {
+                    if (previousTasks.has(task.id)) recordTaskTimelineEvent(draft.data, before, task);
+                    else {
+                        const event = [...(getBoardTimelineData(draft.data)?.events || [])].reverse().find((event) => event.kind === 'task.created' && event.entityId === String(task.id));
+                        if (event) event.snapshot = captureTaskTimelineSnapshot(draft.data, task.id) || undefined;
+                    }
+                }
+            }
             validateWorkitems(draft.data, current.data);
             validatePhaseHierarchy(draft.data);
-            const previousTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
             if (JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow)) {
                 for (const task of draft.data.board.tasks) {
                     const before = previousTasks.get(task.id);

@@ -4,6 +4,7 @@ import type { AppState } from '@/features/portfolio/state/slices';
 import { normalizeTask } from '@/domain/task';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { dependencyBlockedKeys, refKey, taskRef } from '@/domain/relations';
+import { assignmentNeedsReview } from '@/domain/assignments';
 
 // Selectors accept any slice of the store: components pass the fields they
 // subscribe to.
@@ -34,6 +35,7 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
             boardFileName: board.fileName,
             columnTitle: statusMap[task.status] || task.status,
             dependencyBlocked: blockedKeys.has(refKey(taskRef(board.data, task.id))),
+            assignmentNeedsReview: assignmentNeedsReview(board.data, task),
             canMutate: Boolean(board.handle),
             task: normalizeTask(task)
         }));

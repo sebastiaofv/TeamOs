@@ -38,6 +38,7 @@ export type CardRef = { boardId: string; taskId: number };
 
 export type PortfolioRow = {
     dependencyBlocked?: boolean;
+    assignmentNeedsReview?: boolean;
     boardIndex: number;
     boardId: string;
     taskId: number;

@@ -298,7 +298,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     validateWorkitems(data as BoardData);
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['workitemType', 'parentId', 'acceptanceCriteria', 'reproductionSteps', 'expectedResult', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
+        const optionalTaskKeys = new Set(['assigneeId', 'legacyAssignees', 'workitemType', 'parentId', 'acceptanceCriteria', 'reproductionSteps', 'expectedResult', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));

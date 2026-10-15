@@ -8,11 +8,17 @@ import { normalizeTask } from './task';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { migrateProjectMetadata } from './project';
+import { migrateAssignments } from './assignments';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
 type LooseMeta = Partial<Record<keyof BoardMeta, unknown>>;
 type LooseBoard = NonNullable<LooseBoardData['board']>;
+function migrateMetadata(data: BoardData): BoardData {
+    migrateProjectMetadata(data);
+    migrateAssignments(data);
+    return data;
+}
 
 export function hashTextContent(text: unknown): string {
     const value = String(text ?? '');
@@ -87,7 +93,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
         ? settings.title.trim()
         : DEFAULT_BOARD_TITLE;
 
-    return migrateProjectMetadata({
+    return migrateMetadata({
         meta: {
             schemaVersion: BOARD_SCHEMA_VERSION,
             appId: BOARD_APP_ID,
@@ -128,7 +134,7 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
         ? settings.title.trim()
         : DEFAULT_BOARD_TITLE;
 
-    return migrateProjectMetadata({
+    return migrateMetadata({
         meta: {
             schemaVersion: BOARD_SCHEMA_VERSION,
             appId: BOARD_APP_ID,

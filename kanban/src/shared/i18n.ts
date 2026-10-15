@@ -6,6 +6,8 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'assignment.review': 'Assignment needs review', 'assignment.inactive': 'Inactive — reassign', 'assignment.hint': 'One responsible person, selected from the active project team.',
+    'assignment.profile': 'Local profile', 'assignment.unidentified': 'Unidentified', 'assignment.mine': 'My workitems', 'assignment.local': 'Local, unverified profile', 'assignment.chooseActive': 'Choose an active member of this project team.',
     'plan.parentPhase': 'Parent phase', 'plan.reassignParent': 'Move the {count} workitems directly assigned to the parent into this new leaf phase?',
     'plan.removeChildren': 'Remove or reparent child phases before deleting this phase.', 'plan.na': 'N/A', 'plan.completed': 'Completed workitems', 'plan.open': 'Open workitems',
     'relations.title': 'Workitem relations', 'relations.coverage': 'Cross-project links cover loaded files of the same product. Hierarchy is project-local.',
@@ -577,6 +579,8 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'assignment.review': 'Atribuição por rever', 'assignment.inactive': 'Inativo — reatribuir', 'assignment.hint': 'Uma pessoa responsável, selecionada da equipa ativa do projeto.',
+    'assignment.profile': 'Perfil local', 'assignment.unidentified': 'Não identificado', 'assignment.mine': 'Os meus workitems', 'assignment.local': 'Perfil local não verificado', 'assignment.chooseActive': 'Selecionar um membro ativo da equipa deste projeto.',
     'plan.parentPhase': 'Etapa principal', 'plan.reassignParent': 'Realocar os {count} workitems diretamente associados à etapa principal para esta nova subetapa?',
     'plan.removeChildren': 'Remover ou realocar subetapas antes de eliminar esta etapa.', 'plan.na': 'N/D', 'plan.completed': 'Workitems concluídos', 'plan.open': 'Workitems por concluir',
     'relations.title': 'Relações do workitem', 'relations.coverage': 'Ligações entre projetos abrangem ficheiros carregados do mesmo produto. Hierarquia dentro do projeto.',

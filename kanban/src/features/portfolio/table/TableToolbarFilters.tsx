@@ -10,6 +10,7 @@ import { clearTableFilters, setTableFilter } from './tableControls';
 import { DEFAULT_TABLE_FILTERS, type TableFilters } from './tableModel';
 import { STATUS_LABELS, PRIORITY_LABELS } from './tableLabels';
 import { WORKITEM_TYPES } from '@/domain/workitems';
+import { getProjectInfo } from '@/domain/project';
 
 function useTableFilterFields() {
     const { t } = useI18n();
@@ -47,7 +48,7 @@ function useTableFilterFields() {
         field('blocked', t('toolbar.blocked'), 'tableBlocked', [
             { value: 'all', label: t('common.all') }, { value: 'blocked', label: t('toolbar.blockedOnly') }, { value: 'unblocked', label: t('toolbar.unblockedOnly') }
         ]),
-        field('assignee', t('toolbar.assignee'), 'tableAssignee', [all, ...assignees.map((name) => ({ value: name, label: name }))]),
+        field('assignee', t('toolbar.assignee'), 'tableAssignee', [all, ...assignees.map((name) => ({ value: name, label: name })), ...(boardData ? getProjectInfo(boardData).team.map((member) => ({ value: member.id, label: `${member.name} · ${member.id}` })) : [])]),
         field('priority', t('toolbar.priority'), 'tablePriority', [all, ...Object.entries(PRIORITY_LABELS).map(([value, key]) => ({ value, label: t(key) }))]),
         field('effort', t('toolbar.effort'), 'tableEffort', [all, ...EFFORT_BUCKETS.map((value) => ({ value, label: value }))]),
         field('statuses', t('task.status'), 'tableStatuses', (boardData?.board.columns || []).map((column) => ({ value: column.status, label: STATUS_LABELS[column.status] && !boardData?.extensions.workflow ? t(STATUS_LABELS[column.status]) : column.title })), true, t('table.selectStatuses')),

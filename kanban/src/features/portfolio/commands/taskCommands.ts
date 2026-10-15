@@ -20,6 +20,7 @@ import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/t
 import { nowIso } from '@/domain/util';
 import { workitemType } from '@/domain/workitems';
 import { addRelation, taskRef } from '@/domain/relations';
+import { getProjectInfo } from '@/domain/project';
 import { translateCurrent } from '@/shared/i18n';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -300,16 +301,21 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const trimmed = name.trim();
         if (!source || !trimmed) return false;
         const before = [...source.task.assignees];
-        const assigned = before.some((entry) => entry.toLowerCase() === trimmed.toLowerCase());
-        const next = assigned ? before.filter((entry) => entry.toLowerCase() !== trimmed.toLowerCase()) : [...before, trimmed];
+        const beforeId = source.task.assigneeId;
+        const assigned = source.task.assigneeId === name || before.some((entry) => entry.toLowerCase() === trimmed.toLowerCase());
+        const member = getProjectInfo(source.boardRecord.data).team.find((member) => member.active && (member.id === name || member.name.toLowerCase() === trimmed.toLowerCase()));
+        if (!assigned && !member) { await alert(translateCurrent('assignment.chooseActive')); return false; }
+        const next = assigned ? [] : [member!.name];
         const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
             task.assignees = next;
+            task.assigneeId = assigned ? '' : member!.id;
             return true;
         });
         if (!changed) return false;
         showUndo(translateCurrent(assigned ? 'palette.unassigned' : 'palette.assigned', { name: trimmed, title: source.task.title }), () => (
             runPortfolioTaskMutation(boardId, taskId, (task) => {
                 task.assignees = before;
+                task.assigneeId = beforeId;
                 return true;
             })
         ));

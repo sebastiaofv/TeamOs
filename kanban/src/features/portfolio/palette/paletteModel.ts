@@ -18,6 +18,7 @@ import {
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
 import { getWorkflow } from '@/domain/workflow';
+import { getProjectInfo } from '@/domain/project';
 import { matchRanges, scoreText } from './paletteText';
 import { parseQuickCreate, type QuickCreateDraft } from './quickCreate';
 
@@ -280,13 +281,9 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
                 { type: 'planTask', boardId, taskId, date: slot.date, startMinutes: slot.startMinutes }));
     }
     const assigned = new Set(row.task.assignees.map((name) => name.toLowerCase()));
-    const people = allPeople(ctx).filter((name) => matches(name))
-        .map((name) => choice(name, 'person', name, { type: 'toggleAssignee', boardId, taskId, name }, { checked: assigned.has(name.toLowerCase()) }));
-    const typed = q.trim();
-    if (typed && !allPeople(ctx).some((name) => name.toLowerCase() === typed.toLowerCase())) {
-        people.push(choice('new', 'person', ctx.t('palette.addPerson', { name: typed }), { type: 'toggleAssignee', boardId, taskId, name: typed },
-            { checked: false, ranges: [] }));
-    }
+    const board = findBoard(ctx, boardId);
+    const people = (board ? getProjectInfo(board.data).team : []).filter((member) => member.active && matches(member.name)).sort((a, b) => a.name.localeCompare(b.name))
+        .map((member) => choice(member.id, 'person', member.name, { type: 'toggleAssignee', boardId, taskId, name: member.id }, { checked: row.task.assigneeId ? row.task.assigneeId === member.id : assigned.has(member.name.toLowerCase()) }));
     return people;
 }
 

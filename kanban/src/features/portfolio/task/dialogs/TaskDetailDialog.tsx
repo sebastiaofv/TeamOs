@@ -7,6 +7,7 @@ import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
 import { TaskRelations } from '../TaskRelations';
+import { TaskAssignment } from '../TaskAssignment';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -51,6 +52,7 @@ export function TaskDetailDialog() {
                         <div className="modal-body">
                             {vm && <TaskDetailList vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
                             {vm && <TaskRelations readOnly={vm.readOnly} />}
+                            {vm && <TaskAssignment readOnly={vm.readOnly} />}
                         </div>
                         <div className="modal-footer">
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>

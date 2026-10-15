@@ -44,7 +44,7 @@ export function filterTableRows(rows: PortfolioRow[], filters: TableFilters): Po
         if (filters.archive === 'active' && task.archived) return false;
         if (filters.archive === 'archived' && !task.archived) return false;
         if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
-        if (filters.assignee && !task.assignees?.includes(filters.assignee)) return false;
+        if (filters.assignee && task.assigneeId !== filters.assignee && !task.assignees?.includes(filters.assignee)) return false;
         if (filters.phaseId && task.phaseId !== filters.phaseId) return false;
         if (filters.milestoneId && task.milestoneId !== filters.milestoneId) return false;
         if (filters.sprintId && task.sprintId !== filters.sprintId) return false;

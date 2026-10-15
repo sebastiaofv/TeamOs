@@ -38,6 +38,7 @@ import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/c
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 import { getProjectPlan } from '@/domain/projectPlan';
+import { getProjectInfo } from '@/domain/project';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -146,6 +147,7 @@ export function buildTaskEditorViewModel(
             milestoneId: ''
         };
     Object.assign(initial, {
+        assigneeId: normalized?.assigneeId,
         workitemType: normalized?.workitemType || 'task', parentId: normalized?.parentId || null,
         acceptanceCriteria: normalized?.acceptanceCriteria || '', reproductionSteps: normalized?.reproductionSteps || '', expectedResult: normalized?.expectedResult || ''
     });
@@ -155,7 +157,7 @@ export function buildTaskEditorViewModel(
         initial,
         phaseOptions,
         milestoneOptions,
-        assigneePool: getTaskAssigneeSuggestions(portfolioTasks),
+        assigneePool: getTaskAssigneeSuggestions(portfolioTasks).filter((name) => getProjectInfo(boardRecord.data).team.some((member) => member.active && member.name === name)),
         tagSuggestions: getBoardTagSuggestions(boardRecord.data),
         otherAttachmentBytes: calculateBoardAttachmentBytes(boardRecord.data, {
             excludeTaskId: normalized ? options.taskId : null

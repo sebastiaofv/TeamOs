@@ -64,3 +64,14 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Hierarchy/cycle validation and confirmed unlinking protect plan removal.
 - Forecast remains in legacy roadmap fields; baseline/actual metadata is separate
   and is completed by the dependent US-19 increment.
+
+## US-03 — Team assignment
+
+- One responsible active project member, identified by stable ID; reassignment
+  does not change workflow state and is recorded in the timeline.
+- Creation/edit/detail and palette share active-team validation. Local profiles
+  support My workitems without representing authentication.
+- Inactive references and multi-assignee legacy data are preserved and flagged;
+  explicit reassignment retains old names in `legacyAssignees`.
+- Existing name-based filters remain compatible; ID-based filtering distinguishes
+  directory members. Assignment implies neither capacity nor notifications.

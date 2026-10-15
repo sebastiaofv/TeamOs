@@ -66,6 +66,7 @@ export type BoardSlice = {
 };
 
 export type UiSlice = {
+    localProfiles: Record<string, string>;
     undoAction: (() => unknown) | null;
     undoToast: { message: string } | null;
     activeTheme: Theme;
@@ -129,6 +130,7 @@ export function createBoardSlice(): BoardSlice {
 
 export function createUiSlice(): UiSlice {
     return {
+        localProfiles: {},
         undoAction: null,
         undoToast: null,
         activeTheme: 'light',

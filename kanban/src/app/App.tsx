@@ -16,6 +16,7 @@ import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalend
 import { PortfolioPlanner } from '@/features/portfolio/planner/PortfolioPlanner';
 import { PortfolioTable } from '@/features/portfolio/table/PortfolioTable';
 import { ProjectSettings } from '@/features/portfolio/projects/ProjectSettings';
+import { LocalProfile } from '@/features/portfolio/projects/LocalProfile';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
@@ -73,6 +74,7 @@ function AppContent() {
                     <PortfolioToolbar />
                     <PortfolioChips />
                     <ProjectSettings />
+                    <LocalProfile />
                     <div className={`portfolio-board-wrap${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <PortfolioTimeline />

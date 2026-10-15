@@ -8,7 +8,7 @@ import { buildTaskDraft } from '@/domain/taskDraft';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
-import { AssigneeEditor } from './editor/AssigneeEditor';
+import { ResponsibleEditor } from './editor/ResponsibleEditor';
 import { TagEditor } from './editor/TagEditor';
 import { ChecklistEditor } from './editor/ChecklistEditor';
 import { AttachmentsEditor } from './editor/AttachmentsEditor';
@@ -135,7 +135,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                     </div>
                     <div className="form-group">
                         <label id="taskAssigneesLabel">{t('task.assignees')}</label>
-                        <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool} />
+                        <ResponsibleEditor form={form} onChange={(patch) => setForm((current) => ({ ...current, ...patch }))} />
                     </div>
                     <div className="form-group">
                         <label id="taskTagsLabel">{t('task.tags')}</label>

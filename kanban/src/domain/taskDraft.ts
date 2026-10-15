@@ -173,6 +173,7 @@ export function buildAttachmentWarnings(attachments: readonly unknown[], otherAt
 export function buildTaskDraft(form: TaskEditorFields): TaskDraft {
     return {
         workitemType: form.workitemType || 'task', parentId: form.parentId || null,
+        ...(form.assigneeId !== undefined ? { assigneeId: form.assigneeId } : {}),
         acceptanceCriteria: form.acceptanceCriteria || '', reproductionSteps: form.reproductionSteps || '', expectedResult: form.expectedResult || '',
         title: String(form.title ?? '').trim(),
         description: String(form.description ?? '').trim(),

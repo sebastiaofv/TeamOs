@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createAppStore } from '../../src/features/portfolio/state/store';
 import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
+import { getProjectInfo } from '../../src/domain/project';
 
 function setup({ handle = {} as unknown } = {}) {
   const data = createEmptyProjectData('Project');
@@ -11,6 +12,9 @@ function setup({ handle = {} as unknown } = {}) {
     checklist: [], assignees: ['Ana'], tags: [],
     createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z'
   }));
+  const project = getProjectInfo(data);
+  project.team.push({ id: 'member_marta', name: 'Marta', role: '', email: '', active: true });
+  data.extensions.project = project;
   const store = createAppStore(fromAny({
     portfolioBoards: [{ id: 'p1', colorSeed: 0, handle, fileName: 'p1.json', title: 'Project', data }],
     portfolioTimelineSelection: { boardId: '', eventIndex: null },
@@ -34,17 +38,17 @@ function setup({ handle = {} as unknown } = {}) {
 }
 
 describe('palette task commands', () => {
-  it('toggles an assignee on and off, keeping the others, with undo', async () => {
+  it('replaces the one responsible team member and supports undo', async () => {
     const { actions, task, store } = setup();
     await expect(actions.togglePortfolioTaskAssignee('p1', 4, 'Marta')).resolves.toBe(true);
-    expect(task().assignees).toEqual(['Ana', 'Marta']);
+    expect(task().assignees).toEqual(['Marta']);
     expect(store.getState().undoToast?.message).toContain('Marta');
 
     await actions.togglePortfolioTaskAssignee('p1', 4, 'ana');
-    expect(task().assignees).toEqual(['Marta']);
+    expect(task().assignees).toEqual(['Ana']);
 
     await actions.performUndo();
-    expect(task().assignees).toEqual(['Ana', 'Marta']);
+    expect(task().assignees).toEqual(['Marta']);
   });
 
   it('sets the priority with undo and ignores no-op changes', async () => {

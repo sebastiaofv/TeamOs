@@ -13,3 +13,5 @@
 .workitem-link-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 0; }
 .workitem-section select, .workitem-section input, .workitem-section textarea { padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: var(--text-primary); max-width: 100%; }
 .workitem-section label { display: flex; flex-direction: column; gap: 6px; }
+.local-profile { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
+.local-profile select { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 5px; padding: 5px; }

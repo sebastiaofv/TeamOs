@@ -55,7 +55,8 @@ export function taskAssignees(task: { assignees?: unknown; assignee?: unknown } 
     return normalizeAssignees(task?.assignee);
 }
 
-export function taskHasAssignee(task: { assignees?: unknown; assignee?: unknown } | null | undefined, assigneeName: unknown): boolean {
+export function taskHasAssignee(task: { assignees?: unknown; assignee?: unknown; assigneeId?: string } | null | undefined, assigneeName: unknown): boolean {
+    if (task?.assigneeId && task.assigneeId === assigneeName) return true;
     const normalized = normalizeAssignee(assigneeName).toLowerCase();
     if (!normalized) return false;
     return taskAssignees(task).some((name) => name.toLowerCase() === normalized);
@@ -80,6 +81,7 @@ export function normalizeTags(input: unknown): string[] {
 
 export function buildTaskFieldsFromDraft(draft: TaskDraft) {
     return {
+        ...(draft.assigneeId !== undefined ? { assigneeId: draft.assigneeId } : {}),
         workitemType: draft.workitemType || 'task', parentId: draft.parentId || null,
         acceptanceCriteria: draft.acceptanceCriteria || '', reproductionSteps: draft.reproductionSteps || '', expectedResult: draft.expectedResult || '',
         title: draft.title,
@@ -237,6 +239,8 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
     const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
     const includeStatusChangedAt = options.includeStatusChangedAt !== false;
     const normalizedTask: Task = {
+        ...(typeof task.assigneeId === 'string' ? { assigneeId: task.assigneeId } : {}),
+        ...(Array.isArray(task.legacyAssignees) ? { legacyAssignees: task.legacyAssignees.filter((v): v is string => typeof v === 'string') } : {}),
         workitemType: (task.workitemType || 'task') as Task['workitemType'],
         parentId: typeof task.parentId === 'number' ? task.parentId : null,
         acceptanceCriteria: typeof task.acceptanceCriteria === 'string' ? task.acceptanceCriteria : '',

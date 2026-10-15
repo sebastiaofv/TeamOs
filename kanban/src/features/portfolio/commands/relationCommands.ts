@@ -1,6 +1,7 @@
 import { addRelation, getRelations, taskRef, type WorkitemRelation } from '@/domain/relations';
 import { appendTimelineEvent } from '@/domain/timeline';
 import type { BoardMutationContext } from './mutationContext';
+import { getProjectInfo } from '@/domain/project';
 
 export function createRelationActions(context: BoardMutationContext) {
     function linkWorkitems(boardId: string, taskId: number, targetBoardId: string, targetTaskId: number, kind: WorkitemRelation['kind'], reverse = false) {
@@ -27,5 +28,13 @@ export function createRelationActions(context: BoardMutationContext) {
     function setWorkitemParent(boardId: string, taskId: number, parentId: number | null) {
         return context.runPortfolioTaskMutation(boardId, taskId, (task) => { task.parentId = parentId; return true; });
     }
-    return { linkWorkitems, unlinkWorkitems, setWorkitemParent };
+    function setWorkitemResponsible(boardId: string, taskId: number, memberId: string) {
+        return context.runPortfolioTaskMutation(boardId, taskId, (task, board) => {
+            const member = getProjectInfo(board.data).team.find((member) => member.id === memberId && member.active);
+            if (memberId && !member) throw new Error('Choose an active project team member.');
+            task.assigneeId = member?.id || ''; task.assignees = member ? [member.name] : [];
+            return true;
+        });
+    }
+    return { linkWorkitems, unlinkWorkitems, setWorkitemParent, setWorkitemResponsible };
 }

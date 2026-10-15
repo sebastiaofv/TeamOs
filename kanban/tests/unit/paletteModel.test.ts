@@ -116,7 +116,7 @@ describe('buildPaletteModel', () => {
     expect(labels(readOnly, 'actions')).toEqual(['Open details']);
   });
 
-  it('walks through the assign step, toggling people and adding a new one', () => {
+  it('walks through active team assignment without offering arbitrary new people', () => {
     const model = buildPaletteModel(input({
       stack: [{ kind: 'task', boardId: 'app', taskId: 7 }, { kind: 'step', step: 'assignee', boardId: 'app', taskId: 7 }],
       query: 'a'
@@ -124,9 +124,10 @@ describe('buildPaletteModel', () => {
     expect(model.breadcrumbs).toEqual(['#7 Login bug on Android', 'Assign']);
     const items = model.sections[0].items;
     expect(items.map((item) => [item.label, item.checked])).toEqual([
-      ['Ana', false], ['Marta', true], ['Add "a"', false]
+      ['Ana', false], ['Marta', true]
     ]);
-    expect(items[1].action).toEqual({ type: 'toggleAssignee', boardId: 'app', taskId: 7, name: 'Marta' });
+    expect(items[1].action).toMatchObject({ type: 'toggleAssignee', boardId: 'app', taskId: 7 });
+    expect(items[1].action).toHaveProperty('name', expect.stringMatching(/^member_/));
   });
 
   it('offers planning slots later today and tomorrow', () => {
