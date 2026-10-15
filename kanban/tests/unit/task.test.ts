@@ -171,6 +171,7 @@ describe('buildTaskFieldsFromDraft', () => {
       milestoneId: 'm1'
     };
     expect(buildTaskFieldsFromDraft(fromAny(draft))).toEqual({
+      workitemType: 'task', parentId: null, acceptanceCriteria: '', reproductionSteps: '', expectedResult: '',
       title: 'Ship it',
       description: 'desc',
       assignees: ['Ada'],

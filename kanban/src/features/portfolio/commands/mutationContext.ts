@@ -14,6 +14,7 @@ import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persisten
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
+import { validateWorkitems, synchronizeParentCompletion } from '@/domain/workitems';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -82,6 +83,16 @@ export function createBoardMutationContext({
         try {
             ensureBoardTimelineBaseline(draft.data);
             if (mutator(draft.data, draft) === false) return false;
+            validateWorkitems(draft.data, current.data);
+            const beforeAggregate = draft.data.board.tasks.map((task) => ({ ...task }));
+            synchronizeParentCompletion(draft.data);
+            for (const task of draft.data.board.tasks) {
+                const before = beforeAggregate.find((entry) => entry.id === task.id);
+                if (before && before.status !== task.status) {
+                    touchTask(task);
+                    recordTaskTimelineEvent(draft.data, before, task);
+                }
+            }
         } catch (error) {
             alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;

@@ -260,6 +260,7 @@ describe('buildTaskDraft', () => {
     });
 
     expect(draft).toEqual({
+      workitemType: 'task', parentId: null, acceptanceCriteria: '', reproductionSteps: '', expectedResult: '',
       title: 'Ship it',
       description: 'Notes',
       assignees: ['Alex', 'Sam, Jo'],

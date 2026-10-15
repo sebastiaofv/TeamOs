@@ -12,6 +12,7 @@ import { AssigneeEditor } from './editor/AssigneeEditor';
 import { TagEditor } from './editor/TagEditor';
 import { ChecklistEditor } from './editor/ChecklistEditor';
 import { AttachmentsEditor } from './editor/AttachmentsEditor';
+import { WorkitemFields } from './editor/WorkitemFields';
 import { useI18n } from '@/shared/i18n';
 
 type SubmitRef = RefObject<(() => Promise<void>) | null>;
@@ -107,6 +108,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
             </div>
             <div className="modal-body">
                 <form id="taskForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+                    <WorkitemFields form={form} onChange={(next) => setForm((current) => ({ ...current, ...next }))} />
                     <div className="form-group">
                         <label className="required" htmlFor="taskName">{t('task.taskName')}</label>
                         <input type="text" id="taskName" ref={nameRef} required maxLength={80} {...bind('title')} />

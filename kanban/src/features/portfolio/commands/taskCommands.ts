@@ -18,6 +18,7 @@ import {
 } from '@/domain/attachments';
 import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
+import { workitemType } from '@/domain/workitems';
 import { translateCurrent } from '@/shared/i18n';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -268,6 +269,10 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         if (!boardId || taskId === null || taskId === undefined || !isPortfolioBoardMutable(boardId)) return false;
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return false;
+        if (['epic', 'story'].includes(workitemType(source.task))) {
+            await alert(translateCurrent('workitem.aggregate'));
+            return false;
+        }
         const normalizedTargetStatus = normalizeTaskStatus(targetStatus);
         const validStatuses = new Set(
             (source.boardRecord.data.board.columns || defaultColumns)

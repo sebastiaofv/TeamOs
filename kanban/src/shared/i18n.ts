@@ -6,6 +6,9 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'workitem.aggregate': 'Epic and Story status is derived from their children.',
+    'workitem.type': 'Workitem type', 'workitem.epic': 'Epic', 'workitem.story': 'User Story', 'workitem.task': 'Task', 'workitem.bug': 'Bug',
+    'workitem.parent': 'Parent workitem', 'workitem.acceptance': 'Acceptance criteria', 'workitem.reproduction': 'Reproduction steps', 'workitem.expected': 'Expected result',
     'project.settings': 'Project settings',
     'project.save': 'Save project',
     'project.review': 'Review imported metadata',
@@ -565,6 +568,9 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'workitem.aggregate': 'O estado de Epics e Stories é calculado a partir dos filhos.',
+    'workitem.type': 'Tipo de workitem', 'workitem.epic': 'Epic', 'workitem.story': 'User Story', 'workitem.task': 'Tarefa', 'workitem.bug': 'Bug',
+    'workitem.parent': 'Workitem pai', 'workitem.acceptance': 'Critérios de aceitação', 'workitem.reproduction': 'Passos de reprodução', 'workitem.expected': 'Resultado esperado',
     'project.settings': 'Definições do projeto',
     'project.save': 'Guardar projeto',
     'project.review': 'Rever dados importados',

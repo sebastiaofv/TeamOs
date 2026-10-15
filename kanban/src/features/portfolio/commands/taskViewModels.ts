@@ -143,6 +143,10 @@ export function buildTaskEditorViewModel(
             phaseId: '',
             milestoneId: ''
         };
+    Object.assign(initial, {
+        workitemType: normalized?.workitemType || 'task', parentId: normalized?.parentId || null,
+        acceptanceCriteria: normalized?.acceptanceCriteria || '', reproductionSteps: normalized?.reproductionSteps || '', expectedResult: normalized?.expectedResult || ''
+    });
     return {
         openId,
         heading: normalized ? translateCurrent('task.edit') : translateCurrent('task.new'),
@@ -163,6 +167,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
+        task,
         fields: {
             title: task.title || '-',
             description: task.description || '-',

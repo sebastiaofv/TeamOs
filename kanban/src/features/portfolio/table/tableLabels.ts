@@ -3,6 +3,7 @@ import type { TranslationKey } from '@/shared/i18n';
 import type { TableColumnId } from './tableModel';
 
 export const COLUMN_LABELS: Record<TableColumnId, TranslationKey> = {
+    workitemType: 'workitem.type',
     id: 'table.id', title: 'task.title', status: 'task.status', assignees: 'task.assignees',
     priority: 'task.priority', phase: 'task.phase', updatedAt: 'task.updated',
     milestone: 'task.milestone', sprint: 'task.sprint', dueDate: 'task.due', createdAt: 'task.created',

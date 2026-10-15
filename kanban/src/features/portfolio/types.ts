@@ -115,6 +115,7 @@ export type TaskDetailFields = Record<
 >;
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
 export type TaskDetailViewModel = {
+    task?: Task;
     readOnly: boolean;
     fields: TaskDetailFields;
     checklist: ChecklistItem[];

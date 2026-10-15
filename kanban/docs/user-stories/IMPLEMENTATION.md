@@ -23,3 +23,11 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Settings reuse the shared mutation/save/conflict path and block read-only edits.
 - Forecast, baseline and actual project dates remain separate; date pairs validated.
 - Verification: project migration unit tests and master-data browser acceptance test.
+
+## US-12 — Workitem types
+
+- Epic, User Story, Task and Bug creation; type is immutable after creation.
+- Shared Task model with retained type-specific fields and validated hierarchy.
+- Epic/Story completion derived bottom-up from children; leaf-only metrics seam.
+- Type column and combined filter reuse the existing table and CSV pipeline.
+- Tests cover hierarchy, aggregate reopening, immutable types and JSON round trips.

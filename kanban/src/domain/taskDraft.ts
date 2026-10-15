@@ -172,6 +172,8 @@ export function buildAttachmentWarnings(attachments: readonly unknown[], otherAt
 // Normalize the structured React draft without a lossy text conversion.
 export function buildTaskDraft(form: TaskEditorFields): TaskDraft {
     return {
+        workitemType: form.workitemType || 'task', parentId: form.parentId || null,
+        acceptanceCriteria: form.acceptanceCriteria || '', reproductionSteps: form.reproductionSteps || '', expectedResult: form.expectedResult || '',
         title: String(form.title ?? '').trim(),
         description: String(form.description ?? '').trim(),
         assignees: normalizeAssignees(form.assignees),

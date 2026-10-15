@@ -6,18 +6,19 @@ import { effortRank, priorityRank, taskScore } from '@/domain/scoring';
 export type TableColumnId =
     | 'id' | 'title' | 'status' | 'assignees' | 'priority' | 'phase' | 'updatedAt'
     | 'milestone' | 'sprint' | 'dueDate' | 'createdAt' | 'blocked' | 'blockerReason'
-    | 'effort' | 'tags' | 'archived';
+    | 'effort' | 'tags' | 'archived' | 'workitemType';
 
 export const TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze([
     'id', 'title', 'status', 'assignees', 'priority', 'phase', 'updatedAt',
     'milestone', 'sprint', 'dueDate', 'createdAt', 'blocked', 'blockerReason',
-    'effort', 'tags', 'archived'
+    'effort', 'tags', 'archived', 'workitemType'
 ]);
 export const DEFAULT_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(TABLE_COLUMNS.slice(0, 7));
 export type TableSort = { column: TableColumnId | 'score'; direction: 'asc' | 'desc' };
 export const DEFAULT_TABLE_SORT: TableSort = Object.freeze({ column: 'id', direction: 'asc' });
 
 export type TableFilters = {
+    workitemType?: string;
     search: string;
     archive: 'active' | 'all' | 'archived';
     statuses: TaskStatus[];
@@ -31,7 +32,7 @@ export type TableFilters = {
 };
 
 export const DEFAULT_TABLE_FILTERS: Readonly<TableFilters> = Object.freeze({
-    search: '', archive: 'active', statuses: [], assignee: '', phaseId: '',
+    workitemType: '', search: '', archive: 'active', statuses: [], assignee: '', phaseId: '',
     milestoneId: '', sprintId: '', priority: '', effort: '', blocked: 'all'
 });
 
@@ -39,6 +40,7 @@ export const DEFAULT_TABLE_FILTERS: Readonly<TableFilters> = Object.freeze({
 export function filterTableRows(rows: PortfolioRow[], filters: TableFilters): PortfolioRow[] {
     const search = filters.search.trim().toLowerCase();
     return rows.filter(({ task }) => {
+        if (filters.workitemType && (task.workitemType || 'task') !== filters.workitemType) return false;
         if (filters.archive === 'active' && task.archived) return false;
         if (filters.archive === 'archived' && !task.archived) return false;
         if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
@@ -61,6 +63,7 @@ export function tableCellValue(row: PortfolioRow, column: TableColumnId, boardDa
     const roadmap = boardData?.extensions.roadmap;
     switch (column) {
         case 'id': return String(task.id);
+        case 'workitemType': return task.workitemType || 'task';
         case 'phase': return getRoadmapItemTitle(roadmap, 'phases', task.phaseId);
         case 'milestone': return getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId);
         case 'sprint': return getRoadmapItemTitle(roadmap, 'sprints', task.sprintId);

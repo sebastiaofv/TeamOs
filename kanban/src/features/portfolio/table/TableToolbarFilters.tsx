@@ -9,6 +9,7 @@ import { useI18n } from '@/shared/i18n';
 import { clearTableFilters, setTableFilter } from './tableControls';
 import { DEFAULT_TABLE_FILTERS, type TableFilters } from './tableModel';
 import { STATUS_LABELS, PRIORITY_LABELS } from './tableLabels';
+import { WORKITEM_TYPES } from '@/domain/workitems';
 
 function useTableFilterFields() {
     const { t } = useI18n();
@@ -31,7 +32,7 @@ function useTableFilterFields() {
         key: K, label: string, id: string, options: { value: string; label: string }[], multiple = false, hint?: string
     ): FilterMenuField & { key: K } {
         return {
-            key, id, label: label.replace(/:$/, ''), options, value: filters[key], multiple, hint,
+            key, id, label: label.replace(/:$/, ''), options, value: filters[key] ?? '', multiple, hint,
             changed: key === 'statuses' ? filters.statuses.length > 0 : filters[key] !== DEFAULT_TABLE_FILTERS[key],
             onChange: (value) => setTableFilter(key, value as TableFilters[K])
         };
@@ -39,6 +40,7 @@ function useTableFilterFields() {
 
     // Keep the original fields and order; story-specific fields use that same layout.
     const fields = [
+        field('workitemType', t('workitem.type'), 'tableType', [all, ...WORKITEM_TYPES.map((value) => ({ value, label: t(`workitem.${value}`) }))]),
         field('archive', t('toolbar.archive'), 'tableArchive', [
             { value: 'active', label: t('toolbar.activeOnly') }, { value: 'all', label: t('toolbar.activeAndArchived') }, { value: 'archived', label: t('toolbar.archivedOnly') }
         ]),

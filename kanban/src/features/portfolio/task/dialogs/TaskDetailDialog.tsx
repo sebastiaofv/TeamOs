@@ -67,6 +67,10 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
     const { t } = useI18n();
     return (
         <dl className="detail-list">
+            <div className="detail-item"><dt className="detail-label">{t('workitem.type')}</dt><dd className="detail-value">{t(`workitem.${vm.task?.workitemType || 'task'}`)}</dd></div>
+            {vm.task?.acceptanceCriteria && <div className="detail-item"><dt>{t('workitem.acceptance')}</dt><dd className="detail-value">{vm.task.acceptanceCriteria}</dd></div>}
+            {vm.task?.reproductionSteps && <div className="detail-item"><dt>{t('workitem.reproduction')}</dt><dd className="detail-value">{vm.task.reproductionSteps}</dd></div>}
+            {vm.task?.expectedResult && <div className="detail-item"><dt>{t('workitem.expected')}</dt><dd className="detail-value">{vm.task.expectedResult}</dd></div>}
             {FIELD_ROWS.map((row) => (
                 <div className="detail-item" key={row.id}>
                     <dt className="detail-label">{t(row.label)}</dt>

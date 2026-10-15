@@ -79,6 +79,8 @@ export function normalizeTags(input: unknown): string[] {
 
 export function buildTaskFieldsFromDraft(draft: TaskDraft) {
     return {
+        workitemType: draft.workitemType || 'task', parentId: draft.parentId || null,
+        acceptanceCriteria: draft.acceptanceCriteria || '', reproductionSteps: draft.reproductionSteps || '', expectedResult: draft.expectedResult || '',
         title: draft.title,
         description: draft.description,
         assignees: draft.assignees,
@@ -233,6 +235,11 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
     const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
     const includeStatusChangedAt = options.includeStatusChangedAt !== false;
     const normalizedTask: Task = {
+        workitemType: (task.workitemType || 'task') as Task['workitemType'],
+        parentId: typeof task.parentId === 'number' ? task.parentId : null,
+        acceptanceCriteria: typeof task.acceptanceCriteria === 'string' ? task.acceptanceCriteria : '',
+        reproductionSteps: typeof task.reproductionSteps === 'string' ? task.reproductionSteps : '',
+        expectedResult: typeof task.expectedResult === 'string' ? task.expectedResult : '',
         id: task.id as number,
         title: task.title as string,
         description: (task.description || '') as string,

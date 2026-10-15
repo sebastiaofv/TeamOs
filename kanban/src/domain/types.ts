@@ -18,6 +18,11 @@ export type Attachment = {
 };
 
 export type Task = {
+    workitemType?: import('./workitems').WorkitemType;
+    parentId?: number | null;
+    acceptanceCriteria?: string;
+    reproductionSteps?: string;
+    expectedResult?: string;
     id: number;
     title: string;
     description: string;
@@ -145,6 +150,11 @@ export type ProjectColor = { bg: string; border: string; text: string };
 // current consumer. Keeping them here lets the pure draft rules avoid a
 // dependency on the React feature layer.
 export type TaskEditorFields = {
+    workitemType?: import('./workitems').WorkitemType;
+    parentId?: number | null;
+    acceptanceCriteria?: string;
+    reproductionSteps?: string;
+    expectedResult?: string;
     title: string;
     description: string;
     blocked: boolean;
@@ -161,6 +171,11 @@ export type TaskEditorFields = {
 };
 
 export type TaskDraft = {
+    workitemType?: import('./workitems').WorkitemType;
+    parentId?: number | null;
+    acceptanceCriteria?: string;
+    reproductionSteps?: string;
+    expectedResult?: string;
     title: string;
     description: string;
     assignees: string[];
