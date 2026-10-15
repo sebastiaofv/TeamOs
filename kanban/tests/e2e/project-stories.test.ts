@@ -1,6 +1,26 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
 
+test('US07: post immutable plain text and a pasted screenshot without altering description', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'comments', title: 'Comments', hasHandle: true, tasks: [{ id: 1, title: 'Discuss', description: 'Original description' }] }], { selectedBoardId: 'comments' });
+    await page.locator('.task-title').filter({ hasText: 'Discuss' }).click();
+    await page.getByRole('tab', { name: 'Comments', exact: true }).click();
+    await page.locator('#commentBody').fill('Conversation <script>alert(1)</script> @Ana');
+    await page.locator('#commentBody').evaluate((element) => {
+        const data = new DataTransfer();
+        data.items.add(new File([Uint8Array.from(atob('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+tmVYAAAAASUVORK5CYII='), (char) => char.charCodeAt(0))], 'screenshot.png', { type: 'image/png' }));
+        element.dispatchEvent(new ClipboardEvent('paste', { bubbles: true, clipboardData: data }));
+    });
+    await expect(page.locator('#taskComments form .comment-images img')).toHaveCount(1);
+    await page.getByRole('button', { name: 'Post comment', exact: true }).click();
+    await expect(page.locator('.workitem-comments')).toContainText('Conversation <script>alert(1)</script> @Ana');
+    await expect(page.locator('.workitem-comments img')).toHaveCount(1);
+    await expect(page.locator('.workitem-comments button')).toHaveCount(0);
+    await expect.poll(async () => (await readSavedBoard(page, 'comments')).extensions.conversation.byTaskId['1'].length).toBe(1);
+    expect((await readSavedBoard(page, 'comments')).board.tasks[0].description).toBe('Original description');
+});
+
 test('US06: item history shows readable before/after values and unidentified authors', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'history', title: 'History', hasHandle: true, tasks: [{ id: 1, title: 'Before title' }] }], { selectedBoardId: 'history' });

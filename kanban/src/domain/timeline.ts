@@ -19,6 +19,7 @@ import { applyPlannerBlockChange, normalizeDayPlannerBlock } from './dayPlanner'
 import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
+import { getTaskComments, getConversation, type Conversation } from './comments';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -124,7 +125,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
     };
 }
 
-export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
+export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined, source?: LooseBoardData | null): ReplayState | null | undefined {
     if (!state || !event) return state;
     if (event.kind === 'board.restored' && event.snapshot) {
         return cloneSerializable(event.snapshot);
@@ -140,6 +141,17 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
+
+    if (event.kind === 'workitem.comment.added' && source) {
+        const comment = getTaskComments(source, Number(event.entityId)).find((comment) => comment.id === event.meta?.commentId);
+        if (comment) {
+            const conversation = getConversation(nextState as LooseBoardData);
+            const existing = conversation.byTaskId[event.entityId] || [];
+            nextState.extensions ||= {};
+            nextState.extensions.conversation = { version: 1, byTaskId: { ...conversation.byTaskId, [event.entityId]: [...existing.filter((c) => c.id !== comment.id), cloneSerializable(comment)] } } satisfies Conversation;
+        }
+        return nextState;
+    }
 
     if (event.kind === 'board.extension.updated' && event.changes) {
         nextState.extensions ||= {};
@@ -288,7 +300,7 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
         ? cloneSerializable(timeline.events[0].snapshot)
         : createBoardStateSnapshot(boardData);
     for (let index = 1; index <= targetIndex; index += 1) {
-        state = applyTimelineEventToState(state, timeline.events[index]);
+        state = applyTimelineEventToState(state, timeline.events[index], boardData);
     }
     return createBoardStateSnapshot(state);
 }

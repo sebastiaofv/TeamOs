@@ -86,3 +86,13 @@ optional GitHub PR URLs, and aggregate parent completion.
   remains unidentified. No historical authors or past events are invented.
 - Partial-history notice and read-only history; embedded attachment data is not
   rendered as raw JSON. No restore action is attached to item history.
+
+## US-07 — Conversation comments
+
+- Immutable chronological comments in a versioned conversation extension, with
+  local author snapshots, plain text, safe links and textual @mentions.
+- Clipboard screenshots reuse embedded attachments and existing size/count limits;
+  only PNG/JPEG/WebP payloads render as comment images.
+- Description stays separate. Timeline stores only comment references, and replay
+  resolves the canonical content without duplicating bodies or image payloads.
+- Read-only blocks posting; no edit/delete API or remote notifications.

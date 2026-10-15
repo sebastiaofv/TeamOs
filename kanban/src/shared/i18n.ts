@@ -6,6 +6,7 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'comments.immutable': 'Comments cannot be edited or deleted. Authors are local and unverified.', 'comments.empty': 'No comments yet.', 'comments.write': 'Write a comment', 'comments.paste': 'Plain text, @mentions, safe links and pasted screenshots (PNG/JPEG/WebP).', 'comments.imageFormats': 'Paste PNG, JPEG or WebP images only.', 'comments.post': 'Post comment',
     'history.title': 'History', 'history.summary': 'Summary', 'history.partial': 'Available local history starts at:', 'history.category': 'Event category', 'history.empty': 'No tracked events for this workitem.', 'history.more': 'Show 50 more',
     'history.all': 'All', 'history.status': 'Status', 'history.assignment': 'Assignment', 'history.planning': 'Planning', 'history.relations': 'Relations', 'history.comments': 'Comments', 'history.pullRequests': 'Pull requests', 'history.attachments': 'Attachments', 'history.general': 'General',
     'assignment.review': 'Assignment needs review', 'assignment.inactive': 'Inactive — reassign', 'assignment.hint': 'One responsible person, selected from the active project team.',
@@ -581,6 +582,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'comments.immutable': 'Os comentários não podem ser editados nem eliminados. Autoria local não verificada.', 'comments.empty': 'Ainda sem comentários.', 'comments.write': 'Escrever comentário', 'comments.paste': 'Texto, @menções, ligações seguras e screenshots colados (PNG/JPEG/WebP).', 'comments.imageFormats': 'Colar apenas imagens PNG, JPEG ou WebP.', 'comments.post': 'Publicar comentário',
     'history.title': 'Histórico', 'history.summary': 'Resumo', 'history.partial': 'Histórico local disponível a partir de:', 'history.category': 'Categoria de evento', 'history.empty': 'Sem eventos registados para este workitem.', 'history.more': 'Mostrar mais 50',
     'history.all': 'Todos', 'history.status': 'Estado', 'history.assignment': 'Atribuição', 'history.planning': 'Planeamento', 'history.relations': 'Relações', 'history.comments': 'Comentários', 'history.pullRequests': 'Pull requests', 'history.attachments': 'Anexos', 'history.general': 'Geral',
     'assignment.review': 'Atribuição por rever', 'assignment.inactive': 'Inativo — reatribuir', 'assignment.hint': 'Uma pessoa responsável, selecionada da equipa ativa do projeto.',
