@@ -1,6 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
 
+test('US06: item history shows readable before/after values and unidentified authors', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'history', title: 'History', hasHandle: true, tasks: [{ id: 1, title: 'Before title' }] }], { selectedBoardId: 'history' });
+    await page.getByRole('button', { name: 'Edit', exact: true }).first().click();
+    await page.locator('#taskName').fill('After title');
+    await page.locator('#taskModalSaveBtn').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+    await page.locator('.task-title').filter({ hasText: 'After title' }).click();
+    await page.getByRole('tab', { name: 'History', exact: true }).click();
+    await expect(page.locator('#taskHistory')).toContainText('Before title');
+    await expect(page.locator('#taskHistory')).toContainText('After title');
+    await expect(page.locator('#taskHistory')).toContainText('Unidentified');
+    await expect(page.locator('#taskHistory .workitem-history > li')).toHaveCount(1);
+});
+
 test('US03: reassign to an active team member without changing status', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'team', title: 'Team', hasHandle: true, tasks: [{ id: 1, title: 'Owned', assignees: ['Ana'], status: 'doing' }, { id: 2, title: 'Other', assignees: ['Rui'] }] }], { selectedBoardId: 'team' });

@@ -15,3 +15,11 @@
 .workitem-section label { display: flex; flex-direction: column; gap: 6px; }
 .local-profile { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; font-size: 12px; }
 .local-profile select { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 5px; padding: 5px; }
+.detail-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.detail-tabs button { padding: 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-secondary); cursor: pointer; }
+.detail-tabs button[aria-selected=true] { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+.workitem-history { list-style: none; padding: 0; }
+.workitem-history > li { padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+.history-change { margin-top: 8px; }
+.history-change dt { font-weight: 600; }
+.history-change dd { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }

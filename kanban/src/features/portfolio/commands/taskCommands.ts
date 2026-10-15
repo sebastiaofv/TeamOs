@@ -16,7 +16,7 @@ import {
     removeLegacyTaskAttachmentsFromExtensions,
     setTaskAttachments,
 } from '@/domain/attachments';
-import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
+import { appendTimelineEvent, captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
 import { workitemType } from '@/domain/workitems';
 import { addRelation, taskRef } from '@/domain/relations';
@@ -234,7 +234,8 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                 } as Task);
                 setTaskAttachments(data, nextId, draft.attachments);
                 if (state.portfolioCreateContext?.relatedToTaskId) {
-                    addRelation(data, [data], { kind: 'related', from: taskRef(data, state.portfolioCreateContext.relatedToTaskId), to: taskRef(data, nextId) });
+                    const relation = addRelation(data, [data], { kind: 'related', from: taskRef(data, state.portfolioCreateContext.relatedToTaskId), to: taskRef(data, nextId) });
+                    appendTimelineEvent(data, { kind: 'workitem.relation.added', entityType: 'task', entityId: String(state.portfolioCreateContext.relatedToTaskId), summary: 'Related workitem created', meta: { relation } });
                 }
                 recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, nextId));
                 return true;

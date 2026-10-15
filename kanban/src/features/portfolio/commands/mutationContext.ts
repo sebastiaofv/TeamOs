@@ -19,6 +19,8 @@ import { validateWorkitems, synchronizeParentCompletion } from '@/domain/workite
 import { getWorkflow, assertTaskTransition, isTaskCompleted } from '@/domain/workflow';
 import { validatePhaseHierarchy } from '@/domain/projectPlan';
 import { reconcileAssignments } from '@/domain/assignments';
+import { ensureTaskAuditEvents } from '@/domain/workitemHistory';
+import { getProjectInfo } from '@/domain/project';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -86,6 +88,7 @@ export function createBoardMutationContext({
         const draft: BoardRecord = { ...current, data: cloneSerializable(current.data) };
         try {
             ensureBoardTimelineBaseline(draft.data);
+            const eventStart = getBoardTimelineData(draft.data)?.events.length || 0;
             if (mutator(draft.data, draft) === false) return false;
             const previousTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
             const beforeAssignment = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
@@ -121,6 +124,11 @@ export function createBoardMutationContext({
             if (JSON.stringify(current.data.extensions.relations) !== JSON.stringify(draft.data.extensions.relations)) {
                 appendTimelineEvent(draft.data, { kind: 'board.extension.updated', entityType: 'board', entityId: 'relations', summary: 'Workitem relations updated', changes: { relations: { before: current.data.extensions.relations, after: draft.data.extensions.relations } } });
             }
+            ensureTaskAuditEvents(draft.data, current.data, eventStart);
+            const project = getProjectInfo(draft.data);
+            const profileId = getState().localProfiles[project.id];
+            const actor = project.team.find((member) => member.id === profileId && member.active);
+            if (actor) for (const event of getBoardTimelineData(draft.data)?.events.slice(eventStart) || []) event.meta = { ...event.meta, actor: { id: actor.id, name: actor.name, verified: false } };
         } catch (error) {
             alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;

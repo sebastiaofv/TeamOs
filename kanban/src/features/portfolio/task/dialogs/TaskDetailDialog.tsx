@@ -1,4 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { useState } from 'react';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -8,6 +9,7 @@ import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMes
 import { useI18n, type TranslationKey } from '@/shared/i18n';
 import { TaskRelations } from '../TaskRelations';
 import { TaskAssignment } from '../TaskAssignment';
+import { TaskHistory } from '../TaskHistory';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -50,9 +52,7 @@ export function TaskDetailDialog() {
                             <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                         </div>
                         <div className="modal-body">
-                            {vm && <TaskDetailList vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
-                            {vm && <TaskRelations readOnly={vm.readOnly} />}
-                            {vm && <TaskAssignment readOnly={vm.readOnly} />}
+                            {vm && <TaskDetailContent key={vm.task?.id} vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
                         </div>
                         <div className="modal-footer">
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>
@@ -62,6 +62,19 @@ export function TaskDetailDialog() {
             </Dialog.Portal>
         </Dialog.Root>
     );
+}
+
+function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewModel; onToggleChecklistItem: (index: number, checked: boolean) => unknown }) {
+    const { t } = useI18n();
+    const [tab, setTab] = useState('summary');
+    return <><div className="detail-tabs" role="tablist" aria-label={t('task.details')}>
+        {(['summary', 'history'] as const).map((name) => <button key={name} id={`detail-tab-${name}`} type="button" role="tab" aria-selected={tab === name} aria-controls={`detail-panel-${name}`} tabIndex={tab === name ? 0 : -1} onClick={() => setTab(name)} onKeyDown={(event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault(); const next = tab === 'summary' ? 'history' : 'summary'; setTab(next); document.getElementById(`detail-tab-${next}`)?.focus();
+        }}>{t(name === 'summary' ? 'history.summary' : 'history.title')}</button>)}
+    </div><div role="tabpanel" id="detail-panel-summary" aria-labelledby="detail-tab-summary" hidden={tab !== 'summary'}>
+        <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations readOnly={vm.readOnly} /><TaskAssignment readOnly={vm.readOnly} />
+    </div><div role="tabpanel" id="detail-panel-history" aria-labelledby="detail-tab-history" hidden={tab !== 'history'}><TaskHistory /></div></>;
 }
 
 function TaskDetailList({ vm, onToggleChecklistItem }: {

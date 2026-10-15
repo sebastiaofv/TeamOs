@@ -75,3 +75,14 @@ optional GitHub PR URLs, and aggregate parent completion.
   explicit reassignment retains old names in `legacyAssignees`.
 - Existing name-based filters remain compatible; ID-based filtering distinguishes
   directory members. Assignment implies neither capacity nor notifications.
+
+## US-06 — Workitem history
+
+- History tab reuses the project timeline, exact task references, related-link
+  events and bulk-assignment metadata; no parallel log is introduced.
+- Central audit fills gaps from board-level changes without duplicating existing
+  field events. Before/after values, local timestamps, categories and pagination.
+- Explicitly selected local profiles are stamped as unverified; otherwise author
+  remains unidentified. No historical authors or past events are invented.
+- Partial-history notice and read-only history; embedded attachment data is not
+  rendered as raw JSON. No restore action is attached to item history.
