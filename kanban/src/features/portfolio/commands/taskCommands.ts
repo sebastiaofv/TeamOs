@@ -18,7 +18,7 @@ import {
 } from '@/domain/attachments';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
-import { workitemType } from '@/domain/workitems';
+import { isAggregateWorkitem } from '@/domain/workitems';
 import { addRelation, taskRef } from '@/domain/relations';
 import { getProjectInfo } from '@/domain/project';
 import { translateCurrent } from '@/shared/i18n';
@@ -278,7 +278,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         if (!boardId || taskId === null || taskId === undefined || !isPortfolioBoardMutable(boardId)) return false;
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return false;
-        if (['epic', 'story'].includes(workitemType(source.task))) {
+        if (isAggregateWorkitem(source.task)) {
             await alert(translateCurrent('workitem.aggregate'));
             return false;
         }
