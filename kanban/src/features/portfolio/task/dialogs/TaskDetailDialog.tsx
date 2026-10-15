@@ -52,6 +52,11 @@ export function TaskDetailDialog() {
                         aria-modal={smallScreen || undefined}
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
+                        onFocusOutside={(event) => event.preventDefault()}
+                        onInteractOutside={(event) => {
+                            const target = event.target;
+                            if (useAppStore.getState().appMessage || target instanceof Element && target.closest('#undoToast, #appMessageDialog, #appMessageModal')) event.preventDefault();
+                        }}
                         onEscapeKeyDown={escapeAnswersAppMessage}
                         {...returnFocus}
                     >

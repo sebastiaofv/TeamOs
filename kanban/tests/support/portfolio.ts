@@ -333,10 +333,12 @@ async function closeDialogBy(page: Page, dialogId: string, method: string) {
   } else if (method === 'cancel button') {
     await page.locator(`#${dialogId}CancelBtn`).click();
   } else if (method === 'overlay click') {
-    await page.locator(`#${dialogId}`).click({ position: { x: 5, y: 5 } });
+    if (dialogId === 'taskDetailModal') await page.mouse.click(5, 5);
+    else await page.locator(`#${dialogId}`).click({ position: { x: 5, y: 5 } });
   } else {
     throw new Error(`Unknown dialog close method: ${method}`);
   }
+  if (dialogId === 'taskModal' && await appMessage(page).count()) await answerAppMessage(page, { expectText: 'unsaved' });
 }
 
 // Project chips for loaded boards (excludes the "All" chip).
