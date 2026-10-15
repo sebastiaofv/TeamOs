@@ -13,7 +13,7 @@ import {
     plannerMinutes
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
-import { isTaskCompleted, statusCategory } from '@/domain/workflow';
+import { isTaskCompleted, isWorkflowStatusId, statusCategory } from '@/domain/workflow';
 import type { SelectorState } from './portfolioRowViews';
 import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './portfolioTimelineViews';
 
@@ -127,7 +127,7 @@ export function buildPortfolioPlannerViewModel(
         if (!board) return;
         const category = statusCategory(board.data, status);
         const trayStatus = category === 'completed' ? 'done' : category === 'in-progress' ? 'doing' : 'to-do';
-        if (!statusSet.has(status) && !(status.startsWith('wf_') && statusSet.has(trayStatus))) return;
+        if (!statusSet.has(status) && !(isWorkflowStatusId(status) && statusSet.has(trayStatus))) return;
         let group = groups.get(board.id);
         if (!group) {
             group = { boardId: board.id, boardTitle: boardTitle(board), color: boardColor(board), items: [] };

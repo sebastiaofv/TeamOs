@@ -14,8 +14,8 @@ import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persisten
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
-import { validateWorkitems, synchronizeParentCompletion } from '@/domain/workitems';
-import { getWorkflow, assertTaskTransition, isTaskCompleted } from '@/domain/workflow';
+import { validateWorkitems } from '@/domain/workitems';
+import { assertTaskTransition, synchronizeAggregateStatuses } from '@/domain/workflow';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -92,8 +92,7 @@ export function createBoardMutationContext({
                 }
             }
             const beforeAggregate = draft.data.board.tasks.map((task) => ({ ...task }));
-            const workflow = getWorkflow(draft.data);
-            synchronizeParentCompletion(draft.data, (task) => isTaskCompleted(draft.data, task), workflow.states.find((s) => s.category === 'completed')?.id, workflow.states.find((s) => s.category === 'in-progress')?.id || workflow.initialStateId);
+            synchronizeAggregateStatuses(draft.data);
             for (const task of draft.data.board.tasks) {
                 const before = beforeAggregate.find((entry) => entry.id === task.id);
                 if (before && before.status !== task.status) {
