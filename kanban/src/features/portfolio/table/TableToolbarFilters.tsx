@@ -50,7 +50,7 @@ function useTableFilterFields() {
         field('assignee', t('toolbar.assignee'), 'tableAssignee', [all, ...assignees.map((name) => ({ value: name, label: name }))]),
         field('priority', t('toolbar.priority'), 'tablePriority', [all, ...Object.entries(PRIORITY_LABELS).map(([value, key]) => ({ value, label: t(key) }))]),
         field('effort', t('toolbar.effort'), 'tableEffort', [all, ...EFFORT_BUCKETS.map((value) => ({ value, label: value }))]),
-        field('statuses', t('task.status'), 'tableStatuses', Object.entries(STATUS_LABELS).map(([value, key]) => ({ value, label: t(key) })), true, t('table.selectStatuses')),
+        field('statuses', t('task.status'), 'tableStatuses', (boardData?.board.columns || []).map((column) => ({ value: column.status, label: STATUS_LABELS[column.status] && !boardData?.extensions.workflow ? t(STATUS_LABELS[column.status]) : column.title })), true, t('table.selectStatuses')),
         field('phaseId', t('task.phase'), 'tablePhase', [all, ...roadmap.phases.map((item) => ({ value: item.id, label: item.title }))]),
         field('milestoneId', t('task.milestone'), 'tableMilestone', [all, ...roadmap.milestones.map((item) => ({ value: item.id, label: item.title }))]),
         field('sprintId', t('task.sprint'), 'tableSprint', [all, ...roadmap.sprints.map((item) => ({ value: item.id, label: item.title }))])

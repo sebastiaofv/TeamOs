@@ -14,6 +14,7 @@ import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { getProjectInfo, validateProjectInfo } from './project';
 import { validateWorkitems } from './workitems';
+import { getWorkflow, validateWorkflow } from './workflow';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -40,7 +41,7 @@ export function normalizeColumns(inputColumns: unknown): BoardColumn[] {
     const normalized: BoardColumn[] = [];
     inputColumns.forEach((col) => {
         if (!col || typeof col !== 'object') return;
-        const status = resolveKnownTaskStatus(col.status);
+        const status = typeof col.status === 'string' && /^wf_[a-z0-9_-]+$/i.test(col.status) ? col.status : resolveKnownTaskStatus(col.status);
         if (!status) return;
         if (seen.has(status)) return;
         const rawTitle = typeof col.title === 'string' ? col.title.trim() : '';
@@ -251,6 +252,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid extensions structure.');
     }
     if ('project' in extensions) validateProjectInfo(getProjectInfo({ extensions: extensions as Record<string, unknown> }));
+    if ('workflow' in extensions) validateWorkflow(getWorkflow(data as BoardData));
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {

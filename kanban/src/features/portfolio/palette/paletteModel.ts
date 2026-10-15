@@ -17,6 +17,7 @@ import {
     shiftPlannerDate
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
+import { getWorkflow } from '@/domain/workflow';
 import { matchRanges, scoreText } from './paletteText';
 import { parseQuickCreate, type QuickCreateDraft } from './quickCreate';
 
@@ -146,11 +147,20 @@ const rowKey = (row: PortfolioRow) => `${row.boardId}:${Number(row.taskId ?? row
 const findRow = (ctx: Ctx, boardId: string, taskId: number) => ctx.rows.find((row) => row.boardId === boardId && Number(row.taskId ?? row.task.id) === Number(taskId)) || null;
 const canEdit = (row: PortfolioRow) => Boolean(row.canMutate) && !row.historical;
 const findBoard = (ctx: Ctx, boardId: string) => ctx.boards.find((board) => board.id === boardId);
-const statusLabel = (ctx: Ctx, status: TaskStatus) => ctx.t(STATUS_KEYS[status]);
+const statusLabel = (ctx: Ctx, status: TaskStatus, boardId = ctx.selectedBoardId) => {
+    const board = findBoard(ctx, boardId);
+    return board?.data.extensions.workflow ? getWorkflow(board.data).states.find((s) => s.id === status)?.name || status : STATUS_KEYS[status] ? ctx.t(STATUS_KEYS[status]) : status;
+};
+const availableStatuses = (ctx: Ctx, row: PortfolioRow) => {
+    const board = findBoard(ctx, row.boardId);
+    if (!board) return defaultColumns.map((column) => column.status);
+    if (['epic', 'story'].includes(row.task.workitemType || 'task')) return [];
+    return getWorkflow(board.data).transitions.filter((tr) => tr.from === row.task.status).map((tr) => tr.to);
+};
 
 function taskDetail(ctx: Ctx, row: PortfolioRow): string {
     const board = findBoard(ctx, row.boardId);
-    return [`#${row.taskId ?? row.task.id}`, boardTitle(board), statusLabel(ctx, normalizeTaskStatus(row.task.status)), row.task.assignees.join(', ')]
+    return [`#${row.taskId ?? row.task.id}`, boardTitle(board), statusLabel(ctx, normalizeTaskStatus(row.task.status), row.boardId), row.task.assignees.join(', ')]
         .filter(Boolean)
         .join(' · ');
 }
@@ -205,8 +215,9 @@ function taskActionItems(ctx: Ctx, row: PortfolioRow, compact: boolean): Palette
     if (!canEdit(row)) return items;
 
     const current = normalizeTaskStatus(row.task.status);
-    const statuses = defaultColumns.map((column) => column.status);
-    const targets = compact ? statuses.slice(statuses.indexOf(current) + 1) : statuses.filter((status) => status !== current);
+    const statuses = availableStatuses(ctx, row);
+    const defaultOrder = defaultColumns.map((column) => column.status);
+    const targets = compact && !findBoard(ctx, boardId)?.data.extensions.workflow ? statuses.filter((s) => defaultOrder.indexOf(s) > defaultOrder.indexOf(current)) : statuses.filter((status) => status !== current);
     targets.forEach((status) => items.push(item(`move-${status}`, 'move', ctx.t('palette.moveTo', { status: statusLabel(ctx, status) }),
         { type: 'moveTask', boardId, taskId, status }, [STATUS_SHORTCUTS[status]])));
     if (!compact) items.push(item('move', 'move', ctx.t('palette.moveToStep'), step('status')));
@@ -253,7 +264,7 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
     const matches = (label: string) => scoreText(label, q) > 0;
     if (frame.step === 'status') {
         const current = normalizeTaskStatus(row.task.status);
-        return defaultColumns.map((column) => column.status)
+        return [current, ...availableStatuses(ctx, row)]
             .filter((status) => matches(statusLabel(ctx, status)))
             .map((status) => choice(status, 'move', statusLabel(ctx, status), { type: 'moveTask', boardId, taskId, status },
                 { checked: status === current, hint: [STATUS_SHORTCUTS[status]] }));

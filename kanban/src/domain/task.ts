@@ -15,6 +15,7 @@ import { nowIso, normalizeTimestamp, todayLocalIsoDate } from './util';
 import { normalizeDueDate } from './calendar';
 import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
+import { getWorkflow } from './workflow';
 export { findTaskInBoardData } from './boardData';
 
 type BoardRecordLike = { data?: BoardData } | null | undefined;
@@ -202,6 +203,7 @@ export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived'
 }
 
 export function normalizeTaskStatus(status: unknown): TaskStatus {
+    if (typeof status === 'string' && /^wf_[a-z0-9_-]+$/i.test(status)) return status;
     const normalized = resolveKnownTaskStatus(status);
     if (normalized) return normalized;
     return defaultColumns[0].status;
@@ -220,7 +222,7 @@ export function formatTaskStatusAge(task: TaskInput | null | undefined): string 
 
 export function resolveCreateTaskStatus(boardRecord: BoardRecordLike, preferredStatus: unknown): TaskStatus {
     const validStatuses = new Set((boardRecord?.data?.board?.columns || []).map(col => normalizeTaskStatus(col.status)));
-    const fallbackStatus = normalizeTaskStatus((boardRecord?.data?.board?.columns || [defaultColumns[0]])[0]?.status);
+    const fallbackStatus = boardRecord?.data ? getWorkflow(boardRecord.data).initialStateId : defaultColumns[0].status;
     const normalizedPreferred = normalizeTaskStatus(preferredStatus);
     return validStatuses.has(normalizedPreferred) ? normalizedPreferred : fallbackStatus;
 }

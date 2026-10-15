@@ -2,11 +2,11 @@ import type { CSSProperties } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { TaskStatus } from '@/domain/types';
 import type { PlannerTrayGroup, PlannerTrayItem } from '@/features/portfolio/queries';
-import { useI18n } from '@/shared/i18n';
+import { useI18n, type TranslationKey } from '@/shared/i18n';
 
 export const PLANNER_TRAY_STATUSES: readonly TaskStatus[] = ['backlog', 'to-do', 'doing', 'done'];
 
-const STATUS_LABEL_KEYS = {
+const STATUS_LABEL_KEYS: Record<string, TranslationKey> = {
     backlog: 'board.backlog',
     'to-do': 'board.toDo',
     doing: 'board.doing',

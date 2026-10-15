@@ -15,6 +15,7 @@ import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
 import { validateWorkitems, synchronizeParentCompletion } from '@/domain/workitems';
+import { getWorkflow, assertTaskTransition, isTaskCompleted } from '@/domain/workflow';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -84,8 +85,15 @@ export function createBoardMutationContext({
             ensureBoardTimelineBaseline(draft.data);
             if (mutator(draft.data, draft) === false) return false;
             validateWorkitems(draft.data, current.data);
+            if (JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow)) {
+                for (const task of draft.data.board.tasks) {
+                    const before = current.data.board.tasks.find((entry) => entry.id === task.id);
+                    if (before) assertTaskTransition(current.data, before, task.status);
+                }
+            }
             const beforeAggregate = draft.data.board.tasks.map((task) => ({ ...task }));
-            synchronizeParentCompletion(draft.data);
+            const workflow = getWorkflow(draft.data);
+            synchronizeParentCompletion(draft.data, (task) => isTaskCompleted(draft.data, task), workflow.states.find((s) => s.category === 'completed')?.id, workflow.states.find((s) => s.category === 'in-progress')?.id || workflow.initialStateId);
             for (const task of draft.data.board.tasks) {
                 const before = beforeAggregate.find((entry) => entry.id === task.id);
                 if (before && before.status !== task.status) {

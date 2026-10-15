@@ -31,3 +31,12 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Epic/Story completion derived bottom-up from children; leaf-only metrics seam.
 - Type column and combined filter reuse the existing table and CSV pipeline.
 - Tests cover hierarchy, aggregate reopening, immutable types and JSON round trips.
+
+## US-04 — Project workflows
+
+- Versioned workflow extension with immutable IDs, ordered names/colors, semantic
+  categories, initial state and explicit transitions.
+- Settings support adding, reordering, removing and mapping states in use.
+- Board, table filters, palette and all mutation paths use project states; central
+  transition validation applies equally to drag/drop, shortcuts and commands.
+- Tests cover custom completed categories, transitions, removal mapping and reopen.

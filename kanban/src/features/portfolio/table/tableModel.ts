@@ -82,7 +82,7 @@ function tableSortValue(row: PortfolioRow, column: TableSort['column'], boardDat
     if (!value.trim()) return null;
     switch (column) {
         case 'id': return row.task.id;
-        case 'status': return statusRanks[row.task.status];
+        case 'status': return boardData?.board.columns.findIndex((column) => column.status === row.task.status) ?? statusRanks[row.task.status] ?? 99;
         case 'priority': return priorityRank(row.task.priority);
         case 'effort': return effortRank(row.task.effort);
         case 'blocked': return Number(row.task.blocked);

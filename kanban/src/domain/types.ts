@@ -1,6 +1,6 @@
 // Stable domain values: board files, tasks, roadmap and timeline data.
 
-export type TaskStatus = 'backlog' | 'to-do' | 'doing' | 'done';
+export type TaskStatus = 'backlog' | 'to-do' | 'doing' | 'done' | (string & {});
 export type Priority = 'high' | 'medium' | 'low';
 export type Effort = 'XS' | 'S' | 'M' | 'L' | 'XL';
 

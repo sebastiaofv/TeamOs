@@ -4,13 +4,15 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
+import { WorkflowSettings } from './WorkflowSettings';
 
 export function ProjectSettings() {
     const board = useAppStore((s) => s.portfolioBoards.find((b) => b.id === s.selectedPortfolioBoardId));
     const historical = useAppStore((s) => isBoardInHistoricalPreview(s, s.selectedPortfolioBoardId));
     if (!board) return null;
     const project = getProjectInfo(board.data);
-    return <ProjectSettingsForm key={`${board.id}:${JSON.stringify(project)}`} boardId={board.id} initial={project} readOnly={!board.handle || historical} />;
+    return <><ProjectSettingsForm key={`${board.id}:${JSON.stringify(project)}`} boardId={board.id} initial={project} readOnly={!board.handle || historical} />
+        <WorkflowSettings key={`${board.id}:${JSON.stringify(board.data.extensions.workflow)}`} board={board} readOnly={!board.handle || historical} /></>;
 }
 
 function ProjectSettingsForm({ boardId, initial, readOnly }: { boardId: string; initial: ProjectInfo; readOnly: boolean }) {

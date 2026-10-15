@@ -6,6 +6,9 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'workflow.title': 'Project workflow', 'workflow.hint': 'States have stable IDs. Completion uses category, not name. Removed states in use require mapping.',
+    'workflow.category': 'Category', 'workflow.color': 'Color', 'workflow.up': 'Move up', 'workflow.add': 'Add state', 'workflow.initial': 'Initial state', 'workflow.map': 'Move items from', 'workflow.transitions': 'Allowed transitions', 'workflow.save': 'Save workflow',
+    'workflow.not-started': 'Not started', 'workflow.in-progress': 'In progress', 'workflow.completed': 'Completed', 'workflow.cancelled': 'Cancelled',
     'workitem.aggregate': 'Epic and Story status is derived from their children.',
     'workitem.type': 'Workitem type', 'workitem.epic': 'Epic', 'workitem.story': 'User Story', 'workitem.task': 'Task', 'workitem.bug': 'Bug',
     'workitem.parent': 'Parent workitem', 'workitem.acceptance': 'Acceptance criteria', 'workitem.reproduction': 'Reproduction steps', 'workitem.expected': 'Expected result',
@@ -568,6 +571,9 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'workflow.title': 'Workflow do projeto', 'workflow.hint': 'Estados com IDs estáveis. Conclusão por categoria, não pelo nome. Remover estados em uso exige realocação.',
+    'workflow.category': 'Categoria', 'workflow.color': 'Cor', 'workflow.up': 'Subir', 'workflow.add': 'Adicionar estado', 'workflow.initial': 'Estado inicial', 'workflow.map': 'Realocar itens de', 'workflow.transitions': 'Transições permitidas', 'workflow.save': 'Guardar workflow',
+    'workflow.not-started': 'Não iniciado', 'workflow.in-progress': 'Em curso', 'workflow.completed': 'Concluído', 'workflow.cancelled': 'Cancelado',
     'workitem.aggregate': 'O estado de Epics e Stories é calculado a partir dos filhos.',
     'workitem.type': 'Tipo de workitem', 'workitem.epic': 'Epic', 'workitem.story': 'User Story', 'workitem.task': 'Tarefa', 'workitem.bug': 'Bug',
     'workitem.parent': 'Workitem pai', 'workitem.acceptance': 'Critérios de aceitação', 'workitem.reproduction': 'Passos de reprodução', 'workitem.expected': 'Resultado esperado',

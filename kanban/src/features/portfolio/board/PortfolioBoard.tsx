@@ -47,6 +47,7 @@ const BOARD_DRAG_ANNOUNCEMENTS: Announcements = {
 };
 
 function getColumnTitle(status: string, title: string, t: ReturnType<typeof useI18n>['t']): string {
+    if (title !== defaultColumns.find((column) => column.status === status)?.title) return title;
     if (status === 'backlog') return t('board.backlog');
     if (status === 'to-do') return t('board.toDo');
     if (status === 'doing') return t('board.doing');
@@ -103,7 +104,9 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     );
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
-    const buckets: Record<string, PortfolioRow[]> = Object.fromEntries(defaultColumns.map((column) => [column.status, []]));
+    const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
+    const columns = selectedBoard?.data.board.columns || [...new Map(state.portfolioBoards.flatMap((board) => board.data.board.columns).map((column) => [column.status, column])).values()];
+    const buckets: Record<string, PortfolioRow[]> = Object.fromEntries(columns.map((column) => [column.status, []]));
     rows.forEach((item) => {
         const status = normalizeTaskStatus(item.task.status);
         if (!buckets[status]) buckets[status] = [];
@@ -111,7 +114,6 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     });
     const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 
-    const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
         && Boolean(selectedBoard?.handle)
         && !isBoardInHistoricalPreview(state, state.selectedPortfolioBoardId);
@@ -137,7 +139,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
             onDragEnd={onDragEnd}
             onDragCancel={finishDrag}
         >
-            {defaultColumns.map((column) => {
+            {columns.map((column) => {
                 const items = buckets[column.status] || [];
                 const columnTitle = getColumnTitle(column.status, column.title, t);
                 return (

@@ -97,7 +97,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     function cellText(row: PortfolioRow, column: TableColumnId): string {
         const value = tableCellValue(row, column, boardData);
         if (!value) return t('table.notDefined');
-        if (column === 'status') return t(STATUS_LABELS[row.task.status]);
+        if (column === 'status') return !boardData?.extensions.workflow && STATUS_LABELS[row.task.status] ? t(STATUS_LABELS[row.task.status]) : boardData?.board.columns.find((c) => c.status === row.task.status)?.title || row.task.status;
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
         if (column === 'blocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
         return value;

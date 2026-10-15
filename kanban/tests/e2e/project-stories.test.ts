@@ -1,6 +1,18 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
 
+test('US04: project state names and transitions persist', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'workflow', title: 'Workflow', hasHandle: true, tasks: [{ id: 1, title: 'In review', status: 'doing' }] }], { selectedBoardId: 'workflow' });
+    const settings = page.locator('#workflowSettings');
+    await settings.locator(':scope > summary').click();
+    await settings.getByLabel('Name 3', { exact: true }).fill('Review');
+    await settings.getByRole('button', { name: 'Save workflow', exact: true }).click();
+    await expect(page.locator('#portfolio-doing-heading')).toHaveText('Review');
+    await expect.poll(async () => (await readSavedBoard(page, 'workflow')).extensions.workflow.states[2].name).toBe('Review');
+    await expect(page.getByRole('group', { name: 'In review', exact: true })).toBeVisible();
+});
+
 test('US12: create an immutable Bug and preserve its specific fields', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'types', title: 'Types', hasHandle: true }], { selectedBoardId: 'types' });
