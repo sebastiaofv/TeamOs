@@ -1,5 +1,5 @@
 import type { Attachment, AttachmentKind, LooseBoardData, TaskInput } from './types';
-import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_COUNT } from './constants';
+import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_MAX_COUNT } from './constants';
 import { isRecord, normalizeTimestamp, nowIso } from './util';
 import { getTeamOsExtensionsObject, getBoardExtensionsObject } from './extensions';
 import { findTaskInBoardData } from './boardData';
@@ -41,6 +41,11 @@ function utf8ByteLength(value: string): number {
         else bytes += 4;
     }
     return bytes;
+}
+
+// Declared size can understate the payload, so check the larger of both.
+export function exceedsAttachmentHardLimit(item: Pick<Attachment, 'sizeBytes' | 'dataUrl'>): boolean {
+    return Math.max(item.sizeBytes, estimateAttachmentDataUrlSizeBytes(item.dataUrl)) > ATTACHMENT_HARD_MAX_BYTES;
 }
 
 export function estimateAttachmentDataUrlSizeBytes(dataUrl: unknown): number {

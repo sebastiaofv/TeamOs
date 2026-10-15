@@ -68,3 +68,24 @@ export function assertRequiredExtension(fileName: unknown, extension: string, la
         throw new Error(`${label} must use ${extension} extension.`);
     }
 }
+
+export function groupBy<T, K>(items: Iterable<T>, keyOf: (item: T) => K): Map<K, T[]> {
+    const groups = new Map<K, T[]>();
+    for (const item of items) {
+        const key = keyOf(item);
+        const group = groups.get(key);
+        if (group) group.push(item); else groups.set(key, [item]);
+    }
+    return groups;
+}
+
+// Roots plus everything reachable through childrenOf; safe on cyclic data.
+export function collectDescendants<T>(roots: Iterable<T>, childrenOf: (parent: T) => Iterable<T>): Set<T> {
+    const included = new Set(roots), pending = [...included];
+    while (pending.length) {
+        for (const child of childrenOf(pending.pop()!)) {
+            if (!included.has(child)) { included.add(child); pending.push(child); }
+        }
+    }
+    return included;
+}
