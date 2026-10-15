@@ -73,7 +73,7 @@ test.describe('task editor', () => {
           if (group.querySelector('#taskDescription')) return 'taskDescription';
           if (group.querySelector('#taskBlocked')) return 'taskBlocked';
           if (group.querySelector('#taskBlockerReason')) return 'taskBlockerReason';
-          if (group.querySelector('#taskAssigneeEditor')) return 'taskAssigneeEditor';
+          if (group.querySelector('#taskResponsible')) return 'taskAssigneeEditor';
           return null;
         })
         .filter(Boolean)
@@ -92,16 +92,12 @@ test.describe('task editor', () => {
 
   test('assignees and blocked fields save and render as card badges', async ({ page }) => {
     await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Team reference', assignees: ['Alex', 'Sam'] }] }
     ], { selectedBoardId: 'p1' });
 
-    const assigneeAddButton = page.locator('#taskAssigneeEditor').getByRole('button', { name: 'Add' });
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Investigate deploy issue');
-    await page.locator('#taskAssigneeNewItem').fill('Alex');
-    await assigneeAddButton.click();
-    await page.locator('#taskAssigneeNewItem').fill('Sam');
-    await assigneeAddButton.click();
+    await page.locator('#taskResponsible').selectOption({ label: 'Alex' });
     await page.locator('#taskBlocked').check();
     await page.locator('#taskBlockerReason').fill('Waiting for staging access');
     await page.locator('#taskModal .btn-primary').click();
@@ -110,7 +106,7 @@ test.describe('task editor', () => {
     const backlogColumn = page.locator('#portfolio-backlog-column');
     await expect(backlogColumn).toContainText('Investigate deploy issue');
     await expect(backlogColumn).toContainText('Alex');
-    await expect(backlogColumn).toContainText('Sam');
+    await expect(portfolioCard(page, 'Investigate deploy issue').locator('.task-tag-assignee')).toHaveText(['Alex']);
     await expect(backlogColumn).toContainText('Blocked');
 
     await waitForBoardWrites(page);
@@ -126,18 +122,18 @@ test.describe('task editor', () => {
     });
 
     expect(result.task).toEqual({
-      assignees: ['Alex', 'Sam'],
+      assignees: ['Alex'],
       blocked: true,
       blockerReason: 'Waiting for staging access'
     });
     expect(result.savedTask).toEqual({
-      assignees: ['Alex', 'Sam'],
+      assignees: ['Alex'],
       blocked: true,
       blockerReason: 'Waiting for staging access'
     });
   });
 
-  test('assignee editor suggests board assignees and excludes ones already added', async ({ page }) => {
+  test('responsible selector offers the project team and allows only one choice', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 'p1',
@@ -152,22 +148,14 @@ test.describe('task editor', () => {
 
     await page.locator('#portfolio-backlog-column .add-task-card').click();
 
-    let options = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLOptionElement>('#taskAssigneeSuggestions option')).map((option) => option.value));
-    expect(options).toEqual(['Alex', 'Sam']);
-
-    await page.locator('#taskAssigneeNewItem').fill('Alex');
-    await page.locator('#taskAssigneeNewItem').press('Enter');
-    await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(1);
-
-    options = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLOptionElement>('#taskAssigneeSuggestions option')).map((option) => option.value));
-    expect(options).toEqual(['Sam']);
-
-    await page.locator('#taskAssigneeNewItem').fill('Alex');
-    await page.locator('#taskAssigneeNewItem').press('Enter');
-    await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(1);
+    await expect(page.locator('#taskResponsible option')).toHaveText(['None', 'Alex', 'Sam']);
+    await page.locator('#taskResponsible').selectOption({ label: 'Alex' });
+    await page.locator('#taskResponsible').selectOption({ label: 'Sam' });
+    await expect(page.locator('#taskResponsible option:checked')).toHaveText('Sam');
+    await expect(page.locator('#taskResponsible')).not.toHaveAttribute('multiple');
   });
 
-  test('assignee editor can edit and remove existing assignees before save', async ({ page }) => {
+  test('responsible selector resolves legacy multiple names without losing them', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 'p1',
@@ -181,10 +169,8 @@ test.describe('task editor', () => {
 
     await openTaskEditor(page, 'Task A');
 
-    const rows = page.locator('#taskAssigneeItems .assignee-editor-row');
-    await expect(rows).toHaveCount(2);
-    await rows.nth(0).locator('input[type="text"]').fill('Jamie');
-    await rows.nth(1).getByRole('button', { name: 'Remove assignee' }).click();
+    await expect(page.locator('#taskResponsible option:checked')).toContainText('Assignment needs review');
+    await page.locator('#taskResponsible').selectOption({ label: 'Alex' });
 
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
@@ -201,9 +187,10 @@ test.describe('task editor', () => {
       };
     });
 
-    expect(result.taskAssignees).toEqual(['Jamie']);
-    expect(result.savedAssignees).toEqual(['Jamie']);
-    await expect(portfolioCard(page, 'Task A')).toContainText('Jamie');
+    expect(result.taskAssignees).toEqual(['Alex']);
+    expect(result.savedAssignees).toEqual(['Alex']);
+    expect((await readSavedBoard(page, 'p1')).board.tasks[0].legacyAssignees).toEqual(['Alex', 'Sam']);
+    await expect(portfolioCard(page, 'Task A')).toContainText('Alex');
     await expect(portfolioCard(page, 'Task A')).not.toContainText('Sam');
   });
 
@@ -732,7 +719,7 @@ test.describe('task editor', () => {
     expect(texts).toEqual(['Third']);
   });
 
-  test('assignee suggestions follow edits to existing assignee rows', async ({ page }) => {
+  test('responsible selector supports explicit unassignment without free-text identities', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 'p1',
@@ -746,13 +733,11 @@ test.describe('task editor', () => {
     ], { selectedBoardId: 'p1' });
 
     await openTaskEditor(page, 'Task A');
-    const suggestions = () => page.evaluate(() => (
-      Array.from(document.querySelectorAll<HTMLOptionElement>('#taskAssigneeSuggestions option')).map((option) => option.value)
-    ));
-    await expect.poll(suggestions).toEqual(['Sam']);
-
-    await page.locator('#taskAssigneeItems .assignee-editor-row input[type="text"]').fill('Jamie');
-    await expect.poll(suggestions).toEqual(['Alex', 'Sam']);
+    await expect(page.locator('#taskResponsible option:checked')).toHaveText('Alex');
+    await page.locator('#taskResponsible').selectOption('');
+    await page.locator('#taskModalSaveBtn').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+    await expect.poll(async () => (await readSavedBoard(page, 'p1')).board.tasks[0].assignees).toEqual([]);
   });
 
   test('removing an attachment clears the attachment picker error', async ({ page }) => {

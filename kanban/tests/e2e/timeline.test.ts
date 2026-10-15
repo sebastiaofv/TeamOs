@@ -60,7 +60,7 @@ test.describe('timeline', () => {
       await viewMode('roadmap');
       const rows = page.locator('#portfolioRoadmapView .roadmap-row[data-roadmap-kind="sprint"]');
       const titles = (await rows.locator('.roadmap-row-title').allTextContents()).map((text) => text.trim());
-      const usage = (await rows.locator('.roadmap-row-usage span').allTextContents()).map((text) => text.trim());
+      const usage = (await rows.locator('.roadmap-row-usage span').allTextContents()).map((text) => text.trim()).filter((text) => text.includes('linked task'));
       return { titles, usage };
     };
 
@@ -111,7 +111,7 @@ test.describe('timeline', () => {
       await viewMode('roadmap');
       const rows = page.locator('#portfolioRoadmapView .roadmap-row[data-roadmap-kind="milestone"]');
       const titles = (await rows.locator('.roadmap-row-title').allTextContents()).map((text) => text.trim());
-      const usage = (await rows.locator('.roadmap-row-usage span').allTextContents()).map((text) => text.trim());
+      const usage = (await rows.locator('.roadmap-row-usage span').allTextContents()).map((text) => text.trim()).filter((text) => text.includes('linked task'));
       return { titles, usage };
     };
 
