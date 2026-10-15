@@ -99,7 +99,7 @@ test.describe('timeline', () => {
     await answerAppMessage(page, { button: 'Delete' });
 
     await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.map((event: any) => event.kind))
-      .toEqual(['board.baseline', 'roadmap.updated', 'roadmap.updated', 'roadmap.updated']);
+      .toEqual(['board.baseline', 'roadmap.updated', 'roadmap.updated', 'roadmap.updated', 'task.updated']);
 
     const viewMode = (mode: string) => page.locator(`#portfolioViewModeToggle [data-view-mode="${mode}"]`).click();
     // Moves the timeline to `index`, then reads the replayed state the way a user
@@ -238,7 +238,7 @@ test.describe('timeline', () => {
     await expect.poll(() => page.evaluate(() => (window.__portfolioTestWrites || []).at(-1)?.text || '')).toContain('"board.restored"');
     const saved = await readSavedBoard(page, 'tl2');
     expect(saved.board.tasks.find((task: any) => task.id === 1)?.title).toBe('Original title');
-    expect(saved.extensions.timeline.events.map((event: any) => event.kind)).toEqual(['board.baseline', 'task.updated', 'task.updated', 'board.restored']);
+    expect(saved.extensions.timeline.events.map((event: any) => event.kind)).toEqual(['board.baseline', 'task.updated', 'task.updated', 'board.restored', 'task.updated']);
   });
 
   test('timeline slider supports continuous dragging across multiple events', async ({ page }) => {
