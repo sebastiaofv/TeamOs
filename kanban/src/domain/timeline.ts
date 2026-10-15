@@ -141,6 +141,12 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
     const tasks = board.tasks;
     const settings = board.settings;
 
+    if (event.kind === 'board.extension.updated' && event.changes) {
+        nextState.extensions ||= {};
+        for (const [key, change] of Object.entries(event.changes)) nextState.extensions[key] = cloneSerializable(change.after);
+        return nextState;
+    }
+
     if (event.kind === 'task.created' && event.snapshot) {
         board.tasks = tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
         board.tasks.push(cloneSerializable(event.snapshot));

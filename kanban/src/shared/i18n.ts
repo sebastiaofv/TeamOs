@@ -6,6 +6,10 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'relations.title': 'Workitem relations', 'relations.coverage': 'Cross-project links cover loaded files of the same product. Hierarchy is project-local.',
+    'relations.related': 'Related to', 'relations.blocks': 'Blocks', 'relations.blockedBy': 'Blocked by', 'relations.parent': 'Parent', 'relations.child': 'Child',
+    'relations.dependencyBlocked': 'Open blocking dependency', 'relations.unavailable': 'Workitem unavailable — load its project', 'relations.empty': 'No linked workitems.',
+    'relations.kind': 'Relation', 'relations.target': 'Target workitem', 'relations.link': 'Link workitem', 'relations.create': 'Create related workitem',
     'workflow.title': 'Project workflow', 'workflow.hint': 'States have stable IDs. Completion uses category, not name. Removed states in use require mapping.',
     'workflow.category': 'Category', 'workflow.color': 'Color', 'workflow.up': 'Move up', 'workflow.add': 'Add state', 'workflow.initial': 'Initial state', 'workflow.map': 'Move items from', 'workflow.transitions': 'Allowed transitions', 'workflow.save': 'Save workflow',
     'workflow.not-started': 'Not started', 'workflow.in-progress': 'In progress', 'workflow.completed': 'Completed', 'workflow.cancelled': 'Cancelled',
@@ -571,6 +575,10 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'relations.title': 'Relações do workitem', 'relations.coverage': 'Ligações entre projetos abrangem ficheiros carregados do mesmo produto. Hierarquia dentro do projeto.',
+    'relations.related': 'Relacionado com', 'relations.blocks': 'Bloqueia', 'relations.blockedBy': 'Bloqueado por', 'relations.parent': 'Pai', 'relations.child': 'Filho',
+    'relations.dependencyBlocked': 'Dependência bloqueante em aberto', 'relations.unavailable': 'Workitem indisponível — carregar projeto', 'relations.empty': 'Sem workitems relacionados.',
+    'relations.kind': 'Relação', 'relations.target': 'Workitem de destino', 'relations.link': 'Ligar workitem', 'relations.create': 'Criar workitem relacionado',
     'workflow.title': 'Workflow do projeto', 'workflow.hint': 'Estados com IDs estáveis. Conclusão por categoria, não pelo nome. Remover estados em uso exige realocação.',
     'workflow.category': 'Categoria', 'workflow.color': 'Cor', 'workflow.up': 'Subir', 'workflow.add': 'Adicionar estado', 'workflow.initial': 'Estado inicial', 'workflow.map': 'Realocar itens de', 'workflow.transitions': 'Transições permitidas', 'workflow.save': 'Guardar workflow',
     'workflow.not-started': 'Não iniciado', 'workflow.in-progress': 'Em curso', 'workflow.completed': 'Concluído', 'workflow.cancelled': 'Cancelado',

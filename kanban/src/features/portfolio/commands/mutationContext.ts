@@ -4,6 +4,7 @@ import { useAppStore, type AppStore } from '@/features/portfolio/state/store';
 import { cloneSerializable } from '@/domain/serialize';
 import {
     captureTaskTimelineSnapshot,
+    appendTimelineEvent,
     ensureBoardTimelineBaseline,
     getBoardTimelineData,
     recordTaskTimelineEvent,
@@ -85,21 +86,25 @@ export function createBoardMutationContext({
             ensureBoardTimelineBaseline(draft.data);
             if (mutator(draft.data, draft) === false) return false;
             validateWorkitems(draft.data, current.data);
+            const previousTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
             if (JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow)) {
                 for (const task of draft.data.board.tasks) {
-                    const before = current.data.board.tasks.find((entry) => entry.id === task.id);
+                    const before = previousTasks.get(task.id);
                     if (before) assertTaskTransition(current.data, before, task.status);
                 }
             }
-            const beforeAggregate = draft.data.board.tasks.map((task) => ({ ...task }));
+            const beforeAggregate = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
             const workflow = getWorkflow(draft.data);
             synchronizeParentCompletion(draft.data, (task) => isTaskCompleted(draft.data, task), workflow.states.find((s) => s.category === 'completed')?.id, workflow.states.find((s) => s.category === 'in-progress')?.id || workflow.initialStateId);
             for (const task of draft.data.board.tasks) {
-                const before = beforeAggregate.find((entry) => entry.id === task.id);
+                const before = beforeAggregate.get(task.id);
                 if (before && before.status !== task.status) {
                     touchTask(task);
                     recordTaskTimelineEvent(draft.data, before, task);
                 }
+            }
+            if (JSON.stringify(current.data.extensions.relations) !== JSON.stringify(draft.data.extensions.relations)) {
+                appendTimelineEvent(draft.data, { kind: 'board.extension.updated', entityType: 'board', entityId: 'relations', summary: 'Workitem relations updated', changes: { relations: { before: current.data.extensions.relations, after: draft.data.extensions.relations } } });
             }
         } catch (error) {
             alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));

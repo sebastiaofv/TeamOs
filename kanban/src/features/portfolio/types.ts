@@ -37,6 +37,7 @@ export type BoardRecord = {
 export type CardRef = { boardId: string; taskId: number };
 
 export type PortfolioRow = {
+    dependencyBlocked?: boolean;
     boardIndex: number;
     boardId: string;
     taskId: number;

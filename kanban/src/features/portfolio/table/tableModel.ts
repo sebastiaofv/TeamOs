@@ -39,7 +39,7 @@ export const DEFAULT_TABLE_FILTERS: Readonly<TableFilters> = Object.freeze({
 /** Each populated filter is ANDed; statuses are ORed within their selection. */
 export function filterTableRows(rows: PortfolioRow[], filters: TableFilters): PortfolioRow[] {
     const search = filters.search.trim().toLowerCase();
-    return rows.filter(({ task }) => {
+    return rows.filter(({ task, dependencyBlocked }) => {
         if (filters.workitemType && (task.workitemType || 'task') !== filters.workitemType) return false;
         if (filters.archive === 'active' && task.archived) return false;
         if (filters.archive === 'archived' && !task.archived) return false;
@@ -50,8 +50,8 @@ export function filterTableRows(rows: PortfolioRow[], filters: TableFilters): Po
         if (filters.sprintId && task.sprintId !== filters.sprintId) return false;
         if (filters.priority && task.priority !== filters.priority) return false;
         if (filters.effort && task.effort !== filters.effort) return false;
-        if (filters.blocked === 'blocked' && !task.blocked) return false;
-        if (filters.blocked === 'unblocked' && task.blocked) return false;
+        if (filters.blocked === 'blocked' && !task.blocked && !dependencyBlocked) return false;
+        if (filters.blocked === 'unblocked' && (task.blocked || dependencyBlocked)) return false;
         return !search || [String(task.id), task.title || '', task.description || '']
             .some((value) => value.toLowerCase().includes(search));
     });

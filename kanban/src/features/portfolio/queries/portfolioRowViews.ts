@@ -3,6 +3,7 @@ import type { BoardData } from '@/domain/types';
 import type { AppState } from '@/features/portfolio/state/slices';
 import { normalizeTask } from '@/domain/task';
 import { createBoardStateSnapshot } from '@/domain/serialize';
+import { dependencyBlockedKeys, refKey, taskRef } from '@/domain/relations';
 
 // Selectors accept any slice of the store: components pass the fields they
 // subscribe to.
@@ -20,6 +21,7 @@ function getBoardStatusMap(boardData: BoardData | null | undefined): Record<stri
 }
 
 export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
+    const blockedKeys = dependencyBlockedKeys((state?.portfolioBoards || []).map((board) => board.data));
     return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : []).flatMap((board, boardIndex) => {
         if (!board?.data?.board) return [];
         const statusMap = getBoardStatusMap(board.data);
@@ -31,6 +33,7 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
             boardTitle: board.title,
             boardFileName: board.fileName,
             columnTitle: statusMap[task.status] || task.status,
+            dependencyBlocked: blockedKeys.has(refKey(taskRef(board.data, task.id))),
             canMutate: Boolean(board.handle),
             task: normalizeTask(task)
         }));

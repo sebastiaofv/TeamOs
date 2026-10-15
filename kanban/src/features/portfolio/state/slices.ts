@@ -24,7 +24,7 @@ import type { Language, Theme } from '@/shared/types/ui';
 import type { TableFilters, TableSort } from '@/features/portfolio/table/tableModel';
 
 export type EditContext = { boardId: string; taskId: number };
-export type CreateContext = { boardId: string; status: TaskStatus };
+export type CreateContext = { boardId: string; status: TaskStatus; relatedToTaskId?: number };
 export type DetailContext = { boardId: string; taskId: number; readOnly: boolean };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };

@@ -19,6 +19,7 @@ import {
 import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
 import { workitemType } from '@/domain/workitems';
+import { addRelation, taskRef } from '@/domain/relations';
 import { translateCurrent } from '@/shared/i18n';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -70,7 +71,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         ));
     }
 
-    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string } = {}) {
+    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string; relatedToTaskId?: number } = {}) {
         const boardRecord = getBoardRecord(boardId);
         if (!boardRecord) return;
         if (!canUsePortfolioTaskMutations(boardId)) {
@@ -84,16 +85,19 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             ? normalizeTaskStatus(preferredStatus)
             : fallbackStatus;
         commitState({
-            portfolioCreateContext: { boardId, status },
+            portfolioCreateContext: { boardId, status, relatedToTaskId: options.relatedToTaskId },
             portfolioEditContext: null
         });
-        openDialogFn('taskEditor', buildTaskEditorViewModel(
+        const vm = buildTaskEditorViewModel(
             boardRecord,
             null,
             getState().portfolioTasks,
             ++taskEditorOpenCount,
             { preferredDueDate: options.preferredDueDate }
-        ));
+        );
+        const related = boardRecord.data.board.tasks.find((task) => task.id === options.relatedToTaskId);
+        if (related) Object.assign(vm.initial, { phaseId: related.phaseId, milestoneId: related.milestoneId });
+        openDialogFn('taskEditor', vm);
     }
 
     function closeTaskEditor() {
@@ -228,6 +232,9 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                     createdAt: now, updatedAt: now, status
                 } as Task);
                 setTaskAttachments(data, nextId, draft.attachments);
+                if (state.portfolioCreateContext?.relatedToTaskId) {
+                    addRelation(data, [data], { kind: 'related', from: taskRef(data, state.portfolioCreateContext.relatedToTaskId), to: taskRef(data, nextId) });
+                }
                 recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, nextId));
                 return true;
             }, { onMutated: closeTaskEditor });

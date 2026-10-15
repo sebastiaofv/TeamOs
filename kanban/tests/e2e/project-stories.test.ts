@@ -1,6 +1,24 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
 
+test('US02: related creation inherits planning only and links both endpoints', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'relations', title: 'Relations', hasHandle: true, tasks: [{ id: 1, title: 'Original', description: 'Do not copy', phaseId: 'p1', milestoneId: 'm1' }], extensions: { roadmap: { version: 1, phases: [{ id: 'p1', title: 'Build', startDate: '2026-10-01', endDate: '2026-10-30' }], milestones: [{ id: 'm1', title: 'Launch', dueDate: '2026-10-30' }], sprints: [] } } }], { selectedBoardId: 'relations' });
+    await page.locator('.task-title').filter({ hasText: 'Original' }).click();
+    await page.getByRole('button', { name: 'Create related workitem', exact: true }).click();
+    await expect(page.locator('#taskDescription')).toHaveValue('');
+    await expect(page.locator('#taskPhase')).toHaveValue('p1');
+    await expect(page.locator('#taskMilestone')).toHaveValue('m1');
+    await page.locator('#taskName').fill('Related work');
+    await page.locator('#taskModalSaveBtn').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+    await expect.poll(async () => (await readSavedBoard(page, 'relations')).extensions.relations.links.length).toBe(1);
+    await page.locator('.task-title').filter({ hasText: 'Original' }).click();
+    await page.locator('#taskRelations').getByRole('button', { name: '#2 · Related work', exact: true }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Related work');
+    await expect(page.locator('#taskRelations')).toContainText('Original');
+});
+
 test('US04: project state names and transitions persist', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'workflow', title: 'Workflow', hasHandle: true, tasks: [{ id: 1, title: 'In review', status: 'doing' }] }], { selectedBoardId: 'workflow' });

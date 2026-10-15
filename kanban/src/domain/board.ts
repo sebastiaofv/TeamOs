@@ -15,6 +15,7 @@ import { normalizeTimelineExtension } from './timelineSchema';
 import { getProjectInfo, validateProjectInfo } from './project';
 import { validateWorkitems } from './workitems';
 import { getWorkflow, validateWorkflow } from './workflow';
+import { getRelations } from './relations';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -253,6 +254,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     }
     if ('project' in extensions) validateProjectInfo(getProjectInfo({ extensions: extensions as Record<string, unknown> }));
     if ('workflow' in extensions) validateWorkflow(getWorkflow(data as BoardData));
+    if ('relations' in extensions) getRelations(data as BoardData);
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {

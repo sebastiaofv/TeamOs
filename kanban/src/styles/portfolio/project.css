@@ -8,3 +8,8 @@
 .project-member-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 10px 0; }
 .project-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
 .muted { color: var(--text-muted); font-size: 12px; }
+.workitem-section { border-top: 1px solid var(--border); margin-top: 20px; padding-top: 16px; }
+.workitem-section h3 { margin-bottom: 12px; }
+.workitem-link-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 8px 0; }
+.workitem-section select, .workitem-section input, .workitem-section textarea { padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: var(--text-primary); max-width: 100%; }
+.workitem-section label { display: flex; flex-direction: column; gap: 6px; }

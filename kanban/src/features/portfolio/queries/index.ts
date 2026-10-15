@@ -77,8 +77,8 @@ export function getFilteredSortedPortfolioRows(state: SelectorState, options: { 
             if (archiveFilter === 'archived' && !task.archived) return false;
             if (priorityFilter && task.priority !== priorityFilter) return false;
             if (assigneeFilter && !taskHasAssignee(task, assigneeFilter)) return false;
-            if (blockedFilter === 'blocked' && !task.blocked) return false;
-            if (blockedFilter === 'unblocked' && task.blocked) return false;
+            if (blockedFilter === 'blocked' && !task.blocked && !item.dependencyBlocked) return false;
+            if (blockedFilter === 'unblocked' && (task.blocked || item.dependencyBlocked)) return false;
             if (effortFilter && task.effort !== effortFilter) return false;
             if (search && !String(task.title || '').toLowerCase().includes(search)) return false;
             return true;

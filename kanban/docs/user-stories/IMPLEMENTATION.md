@@ -40,3 +40,16 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Board, table filters, palette and all mutation paths use project states; central
   transition validation applies equally to drag/drop, shortcuts and commands.
 - Tests cover custom completed categories, transitions, removal mapping and reopen.
+
+## US-02 — Relations and dependencies
+
+- Related creation inherits only phase/milestone and atomically creates the new
+  item and its link in the existing project save path.
+- Symmetric related links, directional blocking links and project-local hierarchy
+  expose both ends with navigation; unlinking retains workitems.
+- Cross-project related/blocking links use persistent project IDs within the same
+  product and loaded-session coverage. Unloaded references remain visible.
+- Derived dependency blocking is separate from manual blocked state.
+- Self-links, duplicates, hierarchy errors and blocking cycles rejected.
+- US-14 is absent: cross-project hierarchy and transfers require the later
+  maintenance increment; no global catalog is assumed.

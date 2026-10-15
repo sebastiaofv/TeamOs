@@ -10,9 +10,10 @@ export function canParent(parent: Task, child: Task): boolean {
 
 export function validateWorkitems(data: BoardData, previous?: BoardData): void {
     const byId = new Map(data.board.tasks.map((task) => [task.id, task]));
+    const previousById = new Map(previous?.board.tasks.map((task) => [task.id, task]) || []);
     for (const task of data.board.tasks) {
         if (!WORKITEM_TYPES.includes(workitemType(task))) throw new Error('Invalid workitem type.');
-        const before = previous?.board.tasks.find((item) => item.id === task.id);
+        const before = previousById.get(task.id);
         if (before && workitemType(before) !== workitemType(task)) throw new Error('Workitem type cannot be changed.');
         if (!task.parentId) continue;
         const parent = byId.get(task.parentId);
@@ -28,9 +29,11 @@ export function validateWorkitems(data: BoardData, previous?: BoardData): void {
 }
 
 export function synchronizeParentCompletion(data: BoardData, isDone = (task: Task) => task.status === 'done', doneStatus: TaskStatus = 'done', openStatus: TaskStatus = 'doing'): void {
+    const childrenByParent = new Map<number, Task[]>();
+    for (const task of data.board.tasks) if (task.parentId) childrenByParent.set(task.parentId, [...(childrenByParent.get(task.parentId) || []), task]);
     for (let pass = 0; pass < 2; pass++) for (const type of ['story', 'epic']) {
         for (const parent of data.board.tasks.filter((task) => workitemType(task) === type)) {
-            const children = data.board.tasks.filter((task) => task.parentId === parent.id);
+            const children = childrenByParent.get(parent.id) || [];
             if (children.length) parent.status = children.every(isDone) ? doneStatus : openStatus;
         }
     }
