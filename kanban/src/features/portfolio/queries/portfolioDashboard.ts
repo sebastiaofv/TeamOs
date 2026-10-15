@@ -1,13 +1,14 @@
 import type { BoardRecord, ProjectSaveState } from '@/features/portfolio/types';
 import { getProjectInfo, type ProjectState } from '@/domain/project';
 import { buildProjectDashboard } from './projectDashboard';
+import { groupBy } from '@/domain/util';
 
 export type PortfolioDashboardFilters = { state: ProjectState | 'all'; manager: string; product: string; lateOnly: boolean; sort: 'criticality' | 'deadline' | 'name' };
 export const DEFAULT_PORTFOLIO_DASHBOARD_FILTERS: PortfolioDashboardFilters = { state: 'active', manager: '', product: '', lateOnly: false, sort: 'criticality' };
 
 export function buildPortfolioDashboard(records: readonly BoardRecord[], saveStates: ReadonlyMap<string, ProjectSaveState>, filters: PortfolioDashboardFilters, today: string) {
-    const groups = new Map<string, BoardRecord[]>();
-    for (const record of records) { const id = getProjectInfo(record.data).id; groups.set(id, [...(groups.get(id) || []), record]); }
+    // The same project file may be opened more than once; count it once.
+    const groups = groupBy(records, (record) => getProjectInfo(record.data).id);
     const excluded: { id: string; title: string; reason: 'duplicate' | 'unavailable' }[] = [];
     const unique: BoardRecord[] = [];
     for (const [id, copies] of groups) {
@@ -28,7 +29,13 @@ export function buildPortfolioDashboard(records: readonly BoardRecord[], saveSta
         if (filters.sort === 'deadline') return Number(!a.info.forecast.end) - Number(!b.info.forecast.end) || a.info.forecast.end.localeCompare(b.info.forecast.end) || a.info.name.localeCompare(b.info.name);
         return a.info.name.localeCompare(b.info.name);
     });
-    const eligible = rows.reduce((sum, row) => sum + row.model.progress.eligible.length, 0), completed = rows.reduce((sum, row) => sum + row.model.progress.completed.length, 0);
-    return { rows, allSummaries, excluded, loaded: records.length, unique: groups.size, duplicates: records.length - groups.size,
-        totals: { projects: rows.length, eligible, completed, percent: eligible ? completed / eligible * 100 : null, overdue: rows.reduce((sum, row) => sum + row.model.metrics.overdue.length, 0), blocked: rows.reduce((sum, row) => sum + row.model.metrics.blocked.length, 0) } };
+    const total = (count: (row: (typeof rows)[number]) => number) => rows.reduce((sum, row) => sum + count(row), 0);
+    const eligible = total((row) => row.model.progress.eligible.length), completed = total((row) => row.model.progress.completed.length);
+    return {
+        rows, allSummaries, excluded, loaded: records.length, unique: groups.size, duplicates: records.length - groups.size,
+        totals: {
+            projects: rows.length, eligible, completed, percent: eligible ? completed / eligible * 100 : null,
+            overdue: total((row) => row.model.metrics.overdue.length), blocked: total((row) => row.model.metrics.blocked.length)
+        }
+    };
 }
