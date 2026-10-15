@@ -37,6 +37,7 @@ import { createBoardStateSnapshot } from '@/domain/serialize';
 import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+import { getProjectPlan } from '@/domain/projectPlan';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -105,7 +106,8 @@ export function buildTaskEditorViewModel(
     options: { taskId?: unknown; preferredDueDate?: string } = {}
 ): TaskEditorViewModel {
     const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
-    const phaseOptions = buildRoadmapEntityOptions(roadmap.phases);
+    const parentPhases = new Set(Object.values(getProjectPlan(boardRecord.data).phases).map((phase) => phase.parentId));
+    const phaseOptions = buildRoadmapEntityOptions(roadmap.phases.filter((phase) => !parentPhases.has(phase.id)));
     const milestoneOptions = buildRoadmapEntityOptions(roadmap.milestones);
     const knownRef = (optionList: SelectOption[], value: unknown) => {
         const ref = normalizeRoadmapRef(value);

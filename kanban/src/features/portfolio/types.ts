@@ -124,8 +124,9 @@ export type TaskDetailViewModel = {
 };
 
 export type RoadmapEntityMode = 'default' | 'create-sprint-from-selection' | 'assign-sprint-from-selection';
-export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string };
+export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string; parentPhaseId?: string };
 export type RoadmapEntityViewModel = {
+    parentPhaseOptions?: SelectOption[];
     kind: RoadmapKind;
     itemId: string;
     mode: RoadmapEntityMode;

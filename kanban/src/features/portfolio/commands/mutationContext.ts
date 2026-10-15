@@ -17,6 +17,7 @@ import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appM
 import { translateCurrent } from '@/shared/i18n';
 import { validateWorkitems, synchronizeParentCompletion } from '@/domain/workitems';
 import { getWorkflow, assertTaskTransition, isTaskCompleted } from '@/domain/workflow';
+import { validatePhaseHierarchy } from '@/domain/projectPlan';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -86,6 +87,7 @@ export function createBoardMutationContext({
             ensureBoardTimelineBaseline(draft.data);
             if (mutator(draft.data, draft) === false) return false;
             validateWorkitems(draft.data, current.data);
+            validatePhaseHierarchy(draft.data);
             const previousTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
             if (JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow)) {
                 for (const task of draft.data.board.tasks) {

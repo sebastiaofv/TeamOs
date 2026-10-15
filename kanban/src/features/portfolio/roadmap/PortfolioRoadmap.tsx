@@ -11,13 +11,14 @@ import {
     compareRoadmapItemsByDate,
     formatRoadmapDateRange,
     getRoadmapEntityConfig,
-    getRoadmapTaskFieldTasks,
     getRoadmapTimelinePlacement,
     getRoadmapTodayMarker
 } from '@/domain/roadmap';
 import { normalizeTask } from '@/domain/task';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
+import { executionProgress, planWorkitems, phaseDepth, orderedPhases } from '@/domain/projectPlan';
+import { isTaskCompleted } from '@/domain/workflow';
 
 type RoadmapState = TaskCardState & Pick<AppState, 'portfolioRoadmapExpandedRowsByBoardId'>;
 
@@ -31,6 +32,8 @@ function RoadmapTaskList({ tasks, descriptor, boardRecord, boardData, historical
 }) {
     const { t } = useI18n();
     const boardIndex = state.portfolioBoards.findIndex((board) => board.id === boardRecord.id);
+    const source = boardData || boardRecord.data;
+    const orderedTasks = [...tasks].sort((a, b) => Number(isTaskCompleted(source, a)) - Number(isTaskCompleted(source, b)));
     if (tasks.length === 0) {
         return (
             <div className="roadmap-task-list" data-roadmap-task-list={descriptor} id={`roadmap-tasks-${descriptor.replace(/[:\s]/g, '-')}`}>
@@ -46,7 +49,9 @@ function RoadmapTaskList({ tasks, descriptor, boardRecord, boardData, historical
         <div className="roadmap-task-list" data-roadmap-task-list={descriptor} id={`roadmap-tasks-${descriptor.replace(/[:\s]/g, '-')}`}>
             <div className="roadmap-task-list-gutter" aria-hidden="true" />
             <div className="roadmap-task-list-track">
-                {tasks.map((task, taskIndex) => (
+                {orderedTasks.map((task, taskIndex) => (
+                    <div key={`${boardRecord.id}:${task.id}`}>
+                    {(taskIndex === 0 || isTaskCompleted(source, task) !== isTaskCompleted(source, orderedTasks[taskIndex - 1])) && <h4>{t(isTaskCompleted(source, task) ? 'plan.completed' : 'plan.open')}</h4>}
                     <PortfolioTaskCard
                         key={`${boardRecord.id}:${task.id}`}
                         state={state}
@@ -63,6 +68,7 @@ function RoadmapTaskList({ tasks, descriptor, boardRecord, boardData, historical
                             task: normalizeTask(task)
                         }}
                     />
+                    </div>
                 ))}
             </div>
         </div>
@@ -83,7 +89,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
     const { t, language } = useI18n();
     const config = getRoadmapEntityConfig(kind);
     if (!config) return null;
-    const sortedItems = Array.isArray(items) ? [...items].sort(compareRoadmapItemsByDate) : [];
+    const sortedItems = kind === 'phases' && boardData ? orderedPhases(boardData) : Array.isArray(items) ? [...items].sort(compareRoadmapItemsByDate) : [];
     const label = kind === 'milestones' ? t('roadmap.milestone') : kind === 'phases' ? t('roadmap.phase') : t('roadmap.sprint');
     const pluralLabel = kind === 'milestones' ? t('roadmap.milestones') : kind === 'phases' ? t('roadmap.phases') : t('roadmap.sprints');
     const expandedRows = state.portfolioRoadmapExpandedRowsByBoardId?.[boardId] || {};
@@ -133,7 +139,8 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                         const expandKey = `${config.singular}:${item.id}`;
                         const expanded = Boolean(expandedRows[expandKey]);
                         const placement = getRoadmapTimelinePlacement(item, range);
-                        const tasks = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id);
+                        const tasks = boardData ? planWorkitems(boardData, kind, item.id).filter((task) => !task.archived) : [];
+                        const progress = boardData ? executionProgress(boardData, tasks) : null;
                         const rowId = `roadmap-row-${config.singular}-${item.id}`;
                         const taskListId = `roadmap-tasks-${config.singular}-${item.id}`;
                         return (
@@ -180,9 +187,10 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 {String.fromCodePoint(128465)}
                                             </button>
                                         </div>
-                                        <h4 className="roadmap-row-title" id={`${rowId}-title`}>{item.title}</h4>
+                                        <h4 className="roadmap-row-title" id={`${rowId}-title`} style={{ paddingLeft: kind === 'phases' && boardData ? phaseDepth(boardData, item.id) * 16 : 0 }}>{item.title}</h4>
                                         <div className="roadmap-row-meta">{formatRoadmapDateRange(item, language) || t('common.noDates')}</div>
                                         <div className="roadmap-row-usage">
+                                            <span>{progress?.percent == null ? t('plan.na') : `${Math.round(progress.percent)}%`} · {progress?.completed.length || 0}/{progress?.eligible.length || 0}</span>
                                                 <span>{tasks.length === 1 ? t('roadmap.linkedTask') : t('roadmap.linkedTasks', { count: tasks.length })}</span>
                                             <button
                                                 className="roadmap-disclosure-btn"

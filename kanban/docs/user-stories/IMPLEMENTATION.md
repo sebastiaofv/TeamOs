@@ -53,3 +53,14 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Self-links, duplicates, hierarchy errors and blocking cycles rejected.
 - US-14 is absent: cross-project hierarchy and transfers require the later
   maintenance increment; no global catalog is assumed.
+
+## US-05 — Project plan and milestones
+
+- Reuses the existing roadmap, phase/milestone/sprint IDs and editors.
+- Versioned project-plan extension adds nested phases; only leaf phases accept
+  workitems. Creating a child of an occupied phase requires confirmed relocation.
+- Phase/milestone clicks expand linked workitems grouped by completion, with
+  unique eligible-leaf progress and N/A for an empty denominator.
+- Hierarchy/cycle validation and confirmed unlinking protect plan removal.
+- Forecast remains in legacy roadmap fields; baseline/actual metadata is separate
+  and is completed by the dependent US-19 increment.

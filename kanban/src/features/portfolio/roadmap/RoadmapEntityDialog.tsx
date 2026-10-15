@@ -65,7 +65,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
         existingSprintId: sprintRef, title: titleRef, dueDate: dueDateRef, startDate: startDateRef, endDate: endDateRef
     };
     const bind = (field: keyof RoadmapEntityFormDraft) => ({
-        value: draft[field],
+        value: draft[field] || '',
         onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setDraft((current) => ({ ...current, [field]: event.target.value }))
     });
     const hideTitle = vm.showExistingSprint;
@@ -84,6 +84,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 <form id="roadmapEntityForm" onSubmit={(event) => event.preventDefault()}>
                     <input type="hidden" id="roadmapEntityKind" value={vm.kind} />
                     <input type="hidden" id="roadmapEntityId" value={vm.itemId} />
+                    {vm.kind === 'phases' && <div className="form-group"><label htmlFor="roadmapParentPhase">{t('plan.parentPhase')}</label><select id="roadmapParentPhase" {...bind('parentPhaseId')}><option value="">{t('common.none')}</option>{vm.parentPhaseOptions?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>}
                     <div className={`form-group${vm.showExistingSprint ? '' : ' hidden'}`} id="roadmapEntityExistingSprintRow">
                         <label className="required" htmlFor="roadmapEntityExistingSprint">{t('task.sprint')}</label>
                         <select id="roadmapEntityExistingSprint" ref={sprintRef} {...bind('existingSprintId')}>

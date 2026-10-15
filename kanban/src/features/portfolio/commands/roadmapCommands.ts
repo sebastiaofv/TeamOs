@@ -21,11 +21,12 @@ import { cloneSerializable, createBoardStateSnapshot } from '@/domain/serialize'
 import { appendTimelineEvent } from '@/domain/timeline';
 
 import { nowIso } from '@/domain/util';
+import { getProjectPlan, validatePhaseHierarchy } from '@/domain/projectPlan';
 import { getCurrentLanguage, translateCurrent, translateTimeline } from '@/shared/i18n';
 
 export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate' | 'endDate';
 
-export type RoadmapEntityInput = Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate', unknown>>;
+export type RoadmapEntityInput = Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate' | 'parentPhaseId', unknown>>;
 
 type RoadmapEntityDraft = {
     kind: unknown;
@@ -84,11 +85,13 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             dateMode: config.dateMode,
             dateLabel: config.dateMode === 'single' ? translateCurrent('roadmapDialog.dueDate') : (config.dateLabel || ''),
             showExistingSprint: assignExistingMode,
+            parentPhaseOptions: roadmap.phases.filter((phase) => phase.id !== itemId).map((phase) => ({ value: phase.id, label: phase.title })),
             initial: {
                 title: item?.title || '',
                 dueDate: item?.dueDate || '',
                 startDate: item?.startDate || '',
-                endDate: item?.endDate || ''
+                endDate: item?.endDate || '',
+                parentPhaseId: item ? getProjectPlan(boardRecord.data).phases[item.id]?.parentId || '' : ''
             },
             sprintOptions: buildRoadmapSprintOptions(roadmap.sprints || []),
             initialFocus: assignExistingMode ? 'existingSprint' : 'title'
@@ -259,6 +262,9 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             return;
         }
 
+        const parentPhaseId = normalizeRoadmapRef(input.parentPhaseId);
+        const parentTasks = context.kind === 'phases' && parentPhaseId ? getBoardRecord(context.boardId)?.data.board.tasks.filter((task) => task.phaseId === parentPhaseId) || [] : [];
+        if (parentTasks.length && !(await confirm(translateCurrent('plan.reassignParent', { count: parentTasks.length })))) return;
         const changed = await runPortfolioBoardMutation(context.boardId, (boardData) => {
             const roadmap = getRoadmapExtensionObject(boardData, { create: true });
             const items = roadmap[config.itemsKey];
@@ -268,12 +274,19 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const nextItem: RoadmapItem = config.dateMode === 'single'
                 ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
                 : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
-            if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) return false;
+            if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem) && (context.kind !== 'phases' || (getProjectPlan(boardData).phases[nextId]?.parentId || '') === parentPhaseId)) return false;
 
             if (index >= 0) {
                 items[index] = nextItem;
             } else {
                 items.push(nextItem);
+            }
+            if (context.kind === 'phases') {
+                const plan = getProjectPlan(boardData);
+                plan.phases[nextId] = { ...plan.phases[nextId], parentId: parentPhaseId };
+                boardData.extensions.projectPlan = plan;
+                for (const task of boardData.board.tasks) if (parentPhaseId && task.phaseId === parentPhaseId) { task.phaseId = nextId; touchTask(task); }
+                validatePhaseHierarchy(boardData);
             }
 
             appendTimelineEvent(boardData, {
@@ -311,6 +324,10 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const item = roadmap[config.itemsKey].find((entry) => entry.id === itemId);
         if (!item) return;
         const label = getRoadmapLabel(kind);
+        if (kind === 'phases' && Object.values(getProjectPlan(boardRecord.data).phases).some((phase) => phase.parentId === itemId)) {
+            await alert(translateCurrent('plan.removeChildren'));
+            return;
+        }
         const confirmed = await confirm(translateCurrent('roadmap.deleteQuestion', { title: item.title }), {
             title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
             confirmLabel: translateCurrent('common.delete'),
@@ -324,6 +341,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const index = items.findIndex((entry) => entry.id === itemId);
             if (index === -1) return false;
             const [removed] = items.splice(index, 1);
+            if (kind === 'phases') { const plan = getProjectPlan(boardData); delete plan.phases[itemId]; boardData.extensions.projectPlan = plan; }
             const tasks = Array.isArray(boardData.board?.tasks) ? boardData.board.tasks : [];
             tasks.forEach((task) => {
                 if (normalizeRoadmapRef(task[config.taskField]) !== removed.id) return;

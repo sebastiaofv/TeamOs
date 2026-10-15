@@ -1,6 +1,23 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
 
+test('US05: create a subphase and offer only leaf phases for assignment', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'plan', title: 'Plan', hasHandle: true, extensions: { roadmap: { version: 1, phases: [{ id: 'root', title: 'Delivery', startDate: '2026-01-01', endDate: '2026-12-31' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'plan' });
+    await page.locator('[data-view-mode="roadmap"]').click();
+    await page.locator('[data-action="add-roadmap-item"][data-roadmap-kind="phases"]').click();
+    await page.locator('#roadmapEntityTitle').fill('Build');
+    await page.locator('#roadmapParentPhase').selectOption('root');
+    await page.locator('#roadmapEntityStartDate').fill('2026-02-01');
+    await page.locator('#roadmapEntityEndDate').fill('2026-03-31');
+    await page.locator('#roadmapEntityModalSaveBtn').click();
+    await expect(page.locator('#roadmapEntityModal')).toBeHidden();
+    await expect.poll(async () => (await readSavedBoard(page, 'plan')).extensions.projectPlan.phases.build.parentId).toBe('root');
+    await page.locator('[data-view-mode="board"]').click();
+    await page.getByRole('button', { name: '+ Add Task', exact: true }).first().click();
+    await expect(page.locator('#taskPhase option')).toHaveText(['None', 'Build']);
+});
+
 test('US02: related creation inherits planning only and links both endpoints', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'relations', title: 'Relations', hasHandle: true, tasks: [{ id: 1, title: 'Original', description: 'Do not copy', phaseId: 'p1', milestoneId: 'm1' }], extensions: { roadmap: { version: 1, phases: [{ id: 'p1', title: 'Build', startDate: '2026-10-01', endDate: '2026-10-30' }], milestones: [{ id: 'm1', title: 'Launch', dueDate: '2026-10-30' }], sprints: [] } } }], { selectedBoardId: 'relations' });
