@@ -157,3 +157,13 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Semantic completion/cancellation and no-denominator N/A share domain rules.
 - FTE/risks are unavailable because US-18/20 are unapproved; no workstream model
   is invented in the absence of US-14. Project/session scope is explicit.
+
+## US-10 — Portfolio dashboard
+
+- Aggregates loaded projects across every product, defaulting to explicit Active
+  state. State/manager/product/overdue filters and documented ordering.
+- Sums eligible/completed workitems rather than averaging project percentages.
+- Persistent-ID deduplication; conflicting copies and unavailable/conflicted files
+  are explicitly excluded from current totals.
+- Project rows open the project dashboard; returning preserves global filters and
+  scroll. Coverage and unavailable FTE/risk metrics are explicit.

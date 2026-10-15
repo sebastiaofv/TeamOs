@@ -72,6 +72,7 @@ export async function runPaletteAction(action: PaletteAction, deps: PaletteDeps)
         case 'view-roadmap': deps.setViewMode('roadmap'); return;
         case 'view-table': deps.setViewMode('table'); return;
         case 'view-dashboard': deps.setViewMode('dashboard'); return;
+        case 'view-portfolio': deps.setViewMode('portfolio'); return;
         case 'view-calendar': deps.setViewMode('calendar'); return;
         case 'view-planner': deps.setViewMode('planner'); return;
         case 'open-filters': deps.openFilters(); return;

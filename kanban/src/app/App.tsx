@@ -18,6 +18,7 @@ import { PortfolioTable } from '@/features/portfolio/table/PortfolioTable';
 import { ProjectSettings } from '@/features/portfolio/projects/ProjectSettings';
 import { LocalProfile } from '@/features/portfolio/projects/LocalProfile';
 import { ProjectDashboard } from '@/features/portfolio/dashboard/ProjectDashboard';
+import { PortfolioDashboard } from '@/features/portfolio/dashboard/PortfolioDashboard';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
@@ -68,6 +69,7 @@ function AppContent() {
     const plannerActive = hasBoards && viewMode === 'planner';
     const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
     const dashboardActive = Boolean(selectedBoardId) && viewMode === 'dashboard';
+    const portfolioDashboardActive = viewMode === 'portfolio';
 
     return (
         <>
@@ -77,13 +79,14 @@ function AppContent() {
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
-                    <ProjectSettings />
-                    <LocalProfile />
+                    {!portfolioDashboardActive && <ProjectSettings />}
+                    {!portfolioDashboardActive && <LocalProfile />}
                     <div className={`portfolio-board-wrap${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
-                        <PortfolioReadOnlyNotice />
-                        <PortfolioTimeline />
+                        {!portfolioDashboardActive && <PortfolioReadOnlyNotice />}
+                        {!portfolioDashboardActive && <PortfolioTimeline />}
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive} />
+                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive || portfolioDashboardActive} />
+                        <PortfolioDashboard hidden={!portfolioDashboardActive} />
                         <ProjectDashboard hidden={!dashboardActive} />
                         <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />

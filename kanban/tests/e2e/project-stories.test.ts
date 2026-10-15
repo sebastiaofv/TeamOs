@@ -1,6 +1,27 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
 
+function projectMetadata(id: string, name: string, product: string, state = 'active') {
+    return { version: 1, id, name, product, state, description: '', manager: `${product} manager`, team: [], tags: [], forecast: { start: '', end: '' }, baseline: { start: '', end: '' }, actual: { start: '', end: '' }, needsReview: true };
+}
+
+test('US10: portfolio includes active projects across products and preserves filters on return', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'a', title: 'Project A', hasHandle: true, extensions: { project: projectMetadata('project-a', 'Project A', 'Product A') }, tasks: [{ id: 1, title: 'A done', status: 'done' }] }, { id: 'b', title: 'Project B', hasHandle: true, extensions: { project: projectMetadata('project-b', 'Project B', 'Product B') }, tasks: [{ id: 1, title: 'B open' }] }, { id: 'paused', title: 'Paused', hasHandle: true, extensions: { project: projectMetadata('project-paused', 'Paused', 'Product C', 'paused') } }], { selectedBoardId: 'a' });
+    await page.locator('[data-view-mode="portfolio"]').click();
+    const dashboard = page.locator('#portfolioDashboard');
+    await expect(dashboard.locator('#portfolioProjectTable tbody tr')).toHaveCount(2);
+    await expect(dashboard).toContainText('All products');
+    await expect(dashboard.locator('.project-kpis')).toContainText('50%');
+    await dashboard.getByLabel('Manager', { exact: true }).selectOption('Product B manager');
+    await expect(dashboard.locator('#portfolioProjectTable tbody tr')).toHaveCount(1);
+    await dashboard.getByRole('button', { name: 'Project B', exact: true }).click();
+    await expect(page.locator('#projectDashboard h1')).toContainText('Project B');
+    await page.getByRole('button', { name: '← Back to portfolio', exact: true }).click();
+    await expect(dashboard.getByLabel('Manager', { exact: true })).toHaveValue('Product B manager');
+    await expect(dashboard.locator('#portfolioProjectTable tbody tr')).toHaveCount(1);
+});
+
 test('US09: project KPIs use only the selected project and open their exact source items', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'dash', title: 'Dashboard project', hasHandle: true, tasks: [{ id: 1, title: 'Finished', status: 'done' }, { id: 2, title: 'Needs attention', status: 'doing', blocked: true, blockerReason: 'Waiting', dueDate: '2000-01-01' }] }, { id: 'foreign', title: 'Other project', hasHandle: true, tasks: [{ id: 1, title: 'Foreign completed', status: 'done' }] }], { selectedBoardId: 'dash' });

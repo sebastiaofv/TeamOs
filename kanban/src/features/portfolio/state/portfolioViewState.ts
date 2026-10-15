@@ -75,6 +75,7 @@ function normalizeSelection(state: AppState) {
     if (boards.length === 0) viewMode = 'board';
     if (viewMode === 'roadmap' && !selectedBoardId) viewMode = 'board';
     if (viewMode === 'table' && !selectedBoardId) viewMode = 'board';
+    if (viewMode === 'dashboard' && !selectedBoardId) viewMode = 'board';
     if (viewMode === 'calendar' && boards.length === 0) viewMode = 'board';
     return { selectedBoardId, viewMode };
 }

@@ -86,3 +86,6 @@
 .dashboard-plan { margin: 20px 0; }
 .dashboard-plan > summary { padding: 16px; cursor: pointer; font-size: 16px; font-weight: 600; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; }
 .roadmap-row[data-current-phase=true] > .roadmap-row-main { border-left: 3px solid var(--accent); }
+.portfolio-exclusions { padding: 16px; margin: 16px 0; border: 1px solid var(--border); border-radius: 8px; }
+.portfolio-exclusions ul { padding-left: 20px; }
+@media (max-width: 700px) { .portfolio-view-toggle { flex-wrap: wrap; max-width: 100%; } .project-dashboard { padding: 12px; } }

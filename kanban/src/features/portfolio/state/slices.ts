@@ -22,6 +22,7 @@ import type { TaskStatus, RoadmapKind, BoardData } from '@/domain/types';
 import type { AppMessage } from '@/app/types';
 import type { Language, Theme } from '@/shared/types/ui';
 import type { TableFilters, TableSort } from '@/features/portfolio/table/tableModel';
+import { DEFAULT_PORTFOLIO_DASHBOARD_FILTERS, type PortfolioDashboardFilters } from '@/features/portfolio/queries/portfolioDashboard';
 
 export type EditContext = { boardId: string; taskId: number };
 export type CreateContext = { boardId: string; status: TaskStatus; relatedToTaskId?: number };
@@ -66,6 +67,8 @@ export type BoardSlice = {
 };
 
 export type UiSlice = {
+    portfolioDashboardFilters: PortfolioDashboardFilters;
+    portfolioDashboardReturn: boolean;
     taskEditorDirty: boolean;
     pendingTaskLink: { projectId: string; taskId: number } | null;
     localProfiles: Record<string, string>;
@@ -132,6 +135,8 @@ export function createBoardSlice(): BoardSlice {
 
 export function createUiSlice(): UiSlice {
     return {
+        portfolioDashboardFilters: { ...DEFAULT_PORTFOLIO_DASHBOARD_FILTERS },
+        portfolioDashboardReturn: false,
         taskEditorDirty: false,
         pendingTaskLink: null,
         localProfiles: {},

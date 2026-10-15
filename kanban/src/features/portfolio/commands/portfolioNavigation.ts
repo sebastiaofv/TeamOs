@@ -47,7 +47,7 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     const detailBoard = state.portfolioBoards.find((board) => board.id === detail?.boardId);
     const link = detail && detailBoard ? { projectId: getProjectInfo(detailBoard.data).id, taskId: detail.taskId } : state.pendingTaskLink;
     if (link) { params.set('wiProject', link.projectId); params.set('wi', String(link.taskId)); }
-    const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner';
+    const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner' || state.selectedPortfolioViewMode === 'portfolio';
     if (aggregateView && (state.portfolioBoards || []).length > 0) {
         params.set('pv', state.selectedPortfolioViewMode);
     } else if (state.selectedPortfolioBoardId && (state.selectedPortfolioViewMode === 'roadmap' || state.selectedPortfolioViewMode === 'table' || state.selectedPortfolioViewMode === 'dashboard')) {
