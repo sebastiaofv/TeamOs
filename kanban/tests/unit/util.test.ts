@@ -10,6 +10,8 @@ import {
   hasRequiredExtension,
   normalizeTheme,
   normalizeTimestamp,
+  groupBy,
+  collectDescendants,
   assertRequiredExtension
 } from '../../src/domain/util';
 import { portfolioSortSelectValueFromKey } from '../../src/domain/board';
@@ -275,4 +277,19 @@ describe('portfolioSortSelectValueFromKey', () => {
     expect(portfolioSortSelectValueFromKey('bogus')).toBe('priority');
     expect(portfolioSortSelectValueFromKey(undefined)).toBe('priority');
   });
+});
+
+describe('groupBy', () => {
+    it('groups items by key preserving input order', () => {
+        const groups = groupBy([1, 2, 3, 4], (n) => n % 2);
+        expect(groups.get(1)).toEqual([1, 3]);
+        expect(groups.get(0)).toEqual([2, 4]);
+    });
+});
+
+describe('collectDescendants', () => {
+    it('collects roots and reachable children, tolerating cycles', () => {
+        const children: Record<string, string[]> = { a: ['b'], b: ['c', 'a'], c: [], d: ['a'] };
+        expect([...collectDescendants(['a'], (id) => children[id])].sort()).toEqual(['a', 'b', 'c']);
+    });
 });
