@@ -13,6 +13,7 @@ import { TaskHistory } from '../TaskHistory';
 import { TaskComments } from '../TaskComments';
 import { TaskPullRequests } from '../TaskPullRequests';
 import { TaskAttachments } from '../TaskAttachments';
+import { useSmallScreen } from '@/shared/hooks/useSmallScreen';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -33,35 +34,42 @@ const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFiel
 ];
 
 export function TaskDetailDialog() {
-    const { closeTaskDetail, toggleTaskDetailChecklistItem } = usePortfolioActions();
+    const { closeTaskDetail, toggleTaskDetailChecklistItem, editPortfolioTask, navigateWorkitemDetail } = usePortfolioActions();
+    const context = useAppStore((s) => s.portfolioDetailContext);
+    const smallScreen = useSmallScreen();
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
     const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
     const returnFocus = useReturnFocus();
     const { t } = useI18n();
 
     return (
-        <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeTaskDetail(); }}>
+        <Dialog.Root open={open} modal={smallScreen} onOpenChange={(next) => { if (!next) closeTaskDetail(); }}>
             <Dialog.Portal>
-                <Dialog.Overlay className="modal active" id="taskDetailModal">
+                <div className="task-detail-shell" id="taskDetailModal">
+                    {smallScreen && <Dialog.Overlay className="task-detail-backdrop" />}
                     <Dialog.Content
-                        className="modal-content"
+                        className="modal-content task-detail-panel"
+                        aria-modal={smallScreen || undefined}
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
                         onEscapeKeyDown={escapeAnswersAppMessage}
                         {...returnFocus}
                     >
                         <div className="modal-header">
-                            <Dialog.Title asChild><span className="modal-title">{t('task.details')}</span></Dialog.Title>
+                            <Dialog.Title asChild><span className="modal-title">{t('task.details')}{context ? ` · #${context.taskId}` : ''}</span></Dialog.Title>
                             <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                         </div>
                         <div className="modal-body">
-                            {vm && <TaskDetailContent key={vm.task?.id} vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
+                            {vm?.missing ? <p role="status">{t('detail.missing')}</p> : vm && <TaskDetailContent key={`${context?.boardId}:${vm.task?.id}`} vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
                         </div>
                         <div className="modal-footer">
+                            <button className="btn" type="button" aria-label={t('detail.previous')} disabled={!context?.navigation?.some((ref, index) => ref.boardId === context.boardId && ref.taskId === context.taskId && index > 0)} onClick={() => navigateWorkitemDetail(-1)}>←</button>
+                            <button className="btn" type="button" aria-label={t('detail.next')} disabled={!context?.navigation?.some((ref, index) => ref.boardId === context.boardId && ref.taskId === context.taskId && index < context.navigation!.length - 1)} onClick={() => navigateWorkitemDetail(1)}>→</button>
+                            {context && vm && !vm.readOnly && !vm.missing && <button className="btn btn-primary" type="button" id="taskDetailEditBtn" onClick={() => editPortfolioTask(context.boardId, context.taskId)}>{t('common.edit')}</button>}
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>
                         </div>
                     </Dialog.Content>
-                </Dialog.Overlay>
+                </div>
             </Dialog.Portal>
         </Dialog.Root>
     );
@@ -77,7 +85,7 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
             event.preventDefault(); const index = tabs.findIndex((name) => name === tab); const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowLeft' ? -1 : 1) + tabs.length) % tabs.length]; setTab(next); document.getElementById(`detail-tab-${next}`)?.focus();
         }}>{t(name === 'summary' ? 'history.summary' : name === 'history' ? 'history.title' : name === 'comments' ? 'history.comments' : name === 'pullRequests' ? 'history.pullRequests' : 'history.attachments')}</button>)}
     </div><div role="tabpanel" id="detail-panel-summary" aria-labelledby="detail-tab-summary" hidden={tab !== 'summary'}>
-        <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations readOnly={vm.readOnly} /><TaskAssignment readOnly={vm.readOnly} />
+        <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations readOnly={vm.readOnly} sourceData={vm.boardData} /><TaskAssignment readOnly={vm.readOnly} />
     </div><div role="tabpanel" id="detail-panel-history" aria-labelledby="detail-tab-history" hidden={tab !== 'history'}><TaskHistory /></div>
     <div role="tabpanel" id="detail-panel-comments" aria-labelledby="detail-tab-comments" hidden={tab !== 'comments'}><TaskComments readOnly={vm.readOnly} /></div>
     <div role="tabpanel" id="detail-panel-pullRequests" aria-labelledby="detail-tab-pullRequests" hidden={tab !== 'pullRequests'}><TaskPullRequests readOnly={vm.readOnly} /></div>

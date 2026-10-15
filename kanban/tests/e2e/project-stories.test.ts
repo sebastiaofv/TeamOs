@@ -1,6 +1,38 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
 
+test('US17: side panel navigates the underlying list, deep-links and confirms unsaved edits', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'panel', title: 'Panel', hasHandle: true, tasks: [{ id: 1, title: 'Alpha' }, { id: 2, title: 'Beta' }] }], { selectedBoardId: 'panel' });
+    await page.locator('.task-title').filter({ hasText: 'Alpha' }).click();
+    await expect(page).toHaveURL(/wiProject=.*wi=1/);
+    const panel = page.locator('.task-detail-panel');
+    expect((await panel.boundingBox())!.x).toBeGreaterThan(500);
+    await page.getByRole('button', { name: 'Next workitem', exact: true }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Beta');
+    await page.locator('#taskDetailEditBtn').click();
+    await page.locator('#taskName').fill('Unsaved title');
+    await page.keyboard.press('Escape');
+    await answerAppMessage(page, { button: 'Cancel', expectText: 'unsaved' });
+    await expect(page.locator('#taskName')).toHaveValue('Unsaved title');
+    await page.locator('#taskModalCancelBtn').click();
+    await answerAppMessage(page);
+    await expect(page.locator('#taskModal')).toBeHidden();
+    expect((await readSavedBoard(page, 'panel')).board.tasks[1].title).toBe('Beta');
+});
+
+test('US17: mobile uses an accessible full-screen modal and honors read-only', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'mobile', title: 'Mobile', tasks: [{ id: 1, title: 'Read only' }] }], { selectedBoardId: 'mobile' });
+    await page.locator('.task-title').filter({ hasText: 'Read only' }).click();
+    await expect(page.locator('.task-detail-panel')).toHaveAttribute('aria-modal', 'true');
+    expect((await page.locator('.task-detail-panel').boundingBox())!.width).toBe(390);
+    await expect(page.locator('#taskDetailEditBtn')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#taskDetailModal')).toHaveCount(0);
+});
+
 test('US16: manage embedded attachments from detail and reject unsafe uploads', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'files', title: 'Files', hasHandle: true, tasks: [{ id: 1, title: 'Documents' }] }], { selectedBoardId: 'files' });

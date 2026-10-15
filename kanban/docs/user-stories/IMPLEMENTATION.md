@@ -116,3 +116,15 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Add/remove audited through task timeline; removal requires confirmation.
 - Read-only disables attachment management. Tests cover safe legacy preservation,
   unsafe upload rejection, detail upload/save and confirmed removal.
+
+## US-17 — Workitem side panel
+
+- Right-side nonmodal desktop panel; full-screen accessible mobile dialog.
+- Shared summary/history/comments/PR/attachment tabs, explicit Edit, next/previous
+  navigation scoped to the underlying filtered list, and retained view context.
+- Unsaved editor changes require discard confirmation. Read-only/historical
+  contexts keep write actions unavailable and historical relationship navigation.
+- Stable project+task URL references reopen after loading the matching project;
+  missing/deleted tasks are handled without writes.
+- Browser acceptance covers navigation, URL state, discard/cancel and mobile
+  read-only behavior, alongside existing detail flows.

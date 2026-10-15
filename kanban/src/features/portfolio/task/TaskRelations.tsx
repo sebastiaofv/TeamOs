@@ -4,10 +4,12 @@ import { getProjectInfo } from '@/domain/project';
 import { getRelations, refKey, taskRef } from '@/domain/relations';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
+import type { BoardData } from '@/domain/types';
 
-export function TaskRelations({ readOnly }: { readOnly: boolean }) {
+export function TaskRelations({ readOnly, sourceData }: { readOnly: boolean; sourceData?: BoardData }) {
     const context = useAppStore((s) => s.portfolioDetailContext);
-    const boards = useAppStore((s) => s.portfolioBoards);
+    const loadedBoards = useAppStore((s) => s.portfolioBoards);
+    const boards = loadedBoards.map((board) => sourceData && board.id === context?.boardId ? { ...board, data: sourceData } : board);
     const actions = usePortfolioActions();
     const { t } = useI18n();
     const [target, setTarget] = useState('');
@@ -22,13 +24,13 @@ export function TaskRelations({ readOnly }: { readOnly: boolean }) {
     const hierarchy = board.data.board.tasks.filter((item) => item.id === task.parentId || item.parentId === task.id);
     return <section className="workitem-section" id="taskRelations"><h3>{t('relations.title')}</h3>
         <p className="muted">{t('relations.coverage')}</p>
-        {hierarchy.map((item) => <div className="workitem-link-row" key={item.id}><span>{t(item.id === task.parentId ? 'relations.parent' : 'relations.child')}</span><button type="button" className="btn-text" onClick={() => actions.openPortfolioTaskDetails(board.id, item.id)}>#{item.id} · {item.title}</button></div>)}
+        {hierarchy.map((item) => <div className="workitem-link-row" key={item.id}><span>{t(item.id === task.parentId ? 'relations.parent' : 'relations.child')}</span><button type="button" className="btn-text" onClick={() => actions.openPortfolioTaskDetails(board.id, item.id, { readOnly, ...(readOnly ? { boardData: sourceData } : {}) })}>#{item.id} · {item.title}</button></div>)}
         {links.map(({ owner, link }) => {
             const forward = refKey(link.from) === refKey(currentRef), other = forward ? link.to : link.from;
             const targetBoard = boards.find((b) => getProjectInfo(b.data).id === other.projectId);
             const otherTask = targetBoard?.data.board.tasks.find((t) => t.id === other.taskId);
             return <div className="workitem-link-row" key={link.id}><span>{t(link.kind === 'related' ? 'relations.related' : forward ? 'relations.blocks' : 'relations.blockedBy')}</span>
-                <button className="btn-text" type="button" disabled={!otherTask} onClick={() => targetBoard && actions.openPortfolioTaskDetails(targetBoard.id, other.taskId)}>#{other.taskId} · {otherTask?.title || t('relations.unavailable')}</button>
+                <button className="btn-text" type="button" disabled={!otherTask} onClick={() => targetBoard && actions.openPortfolioTaskDetails(targetBoard.id, other.taskId, { readOnly, ...(targetBoard.id === board.id && readOnly ? { boardData: sourceData } : {}) })}>#{other.taskId} · {otherTask?.title || t('relations.unavailable')}</button>
                 {!readOnly && owner.handle && <button className="btn-text" type="button" onClick={() => actions.unlinkWorkitems(owner.id, link.id)}>{t('common.remove')}</button>}</div>;
         })}
         {!links.length && !hierarchy.length && <p>{t('relations.empty')}</p>}

@@ -18,14 +18,14 @@ import type {
     RoadmapEntityMode,
     SortDir
 } from '@/features/portfolio/types';
-import type { TaskStatus, RoadmapKind } from '@/domain/types';
+import type { TaskStatus, RoadmapKind, BoardData } from '@/domain/types';
 import type { AppMessage } from '@/app/types';
 import type { Language, Theme } from '@/shared/types/ui';
 import type { TableFilters, TableSort } from '@/features/portfolio/table/tableModel';
 
 export type EditContext = { boardId: string; taskId: number };
 export type CreateContext = { boardId: string; status: TaskStatus; relatedToTaskId?: number };
-export type DetailContext = { boardId: string; taskId: number; readOnly: boolean };
+export type DetailContext = { boardId: string; taskId: number; readOnly: boolean; navigation?: CardRef[]; previewData?: BoardData };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };
 
@@ -66,6 +66,8 @@ export type BoardSlice = {
 };
 
 export type UiSlice = {
+    taskEditorDirty: boolean;
+    pendingTaskLink: { projectId: string; taskId: number } | null;
     localProfiles: Record<string, string>;
     undoAction: (() => unknown) | null;
     undoToast: { message: string } | null;
@@ -130,6 +132,8 @@ export function createBoardSlice(): BoardSlice {
 
 export function createUiSlice(): UiSlice {
     return {
+        taskEditorDirty: false,
+        pendingTaskLink: null,
         localProfiles: {},
         undoAction: null,
         undoToast: null,

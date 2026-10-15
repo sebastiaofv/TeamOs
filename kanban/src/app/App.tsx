@@ -20,6 +20,7 @@ import { LocalProfile } from '@/features/portfolio/projects/LocalProfile';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
+import { useWorkitemDeepLink } from '@/features/portfolio/hooks/useWorkitemDeepLink';
 import { closeDialog } from '@/app/overlays/dialogs';
 import { cancelAppMessages } from '@/app/overlays/appMessages';
 import type { PortfolioMutationActions } from '@/features/portfolio/commands/portfolioCommands';
@@ -52,6 +53,7 @@ function PortfolioReadOnlyNotice() {
 function AppContent() {
     const actions = usePortfolioActions();
     usePortfolioRuntime();
+    useWorkitemDeepLink();
     useInitializeLanguage();
     const { theme, toggleTheme } = useTheme();
     const { t } = useI18n();

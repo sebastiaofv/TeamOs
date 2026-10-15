@@ -6,6 +6,7 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'detail.discard': 'Discard the unsaved workitem changes?', 'detail.missing': 'This workitem is no longer available.', 'detail.previous': 'Previous workitem', 'detail.next': 'Next workitem',
     'attachments.policy': 'Embedded offline files · 10 per workitem · 10 MB per file. PNG/JPEG/WebP, PDF/TXT and existing document formats. Executables, HTML and SVG are rejected for new uploads; legacy files are retained without unsafe previews.',
     'attachments.unsafe': '{name}: executable content, HTML and SVG are not accepted.', 'attachments.removeConfirm': 'Remove this attachment? The embedded file reference will be removed from this workitem.',
     'pr.offline': 'Local GitHub references. No API, credentials or inferred merge status.', 'pr.number': 'PR number', 'pr.repository': 'Repository (optional)', 'pr.url': 'GitHub URL (optional)', 'pr.notes': 'Notes (optional)', 'pr.save': 'Save PR link', 'pr.open': 'Open on GitHub', 'pr.empty': 'No linked pull requests.', 'pr.unknownRepository': 'Repository not specified',
@@ -585,6 +586,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'detail.discard': 'Descartar as alterações por guardar do workitem?', 'detail.missing': 'Este workitem já não está disponível.', 'detail.previous': 'Workitem anterior', 'detail.next': 'Workitem seguinte',
     'attachments.policy': 'Ficheiros offline embebidos · 10 por workitem · 10 MB por ficheiro. PNG/JPEG/WebP, PDF/TXT e formatos de documentos existentes. Novos executáveis, HTML e SVG são rejeitados; ficheiros antigos mantidos sem pré-visualização insegura.',
     'attachments.unsafe': '{name}: conteúdo executável, HTML e SVG não são aceites.', 'attachments.removeConfirm': 'Remover este anexo? A referência do ficheiro embebido será removida deste workitem.',
     'pr.offline': 'Referências locais do GitHub. Sem API, credenciais ou estado de merge inferido.', 'pr.number': 'Número do PR', 'pr.repository': 'Repositório (opcional)', 'pr.url': 'URL GitHub (opcional)', 'pr.notes': 'Notas (opcional)', 'pr.save': 'Guardar ligação PR', 'pr.open': 'Abrir no GitHub', 'pr.empty': 'Sem pull requests associados.', 'pr.unknownRepository': 'Repositório não indicado',

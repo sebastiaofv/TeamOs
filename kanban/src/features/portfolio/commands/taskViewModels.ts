@@ -172,6 +172,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
+        boardData: source.boardData,
         task,
         fields: {
             title: task.title || '-',

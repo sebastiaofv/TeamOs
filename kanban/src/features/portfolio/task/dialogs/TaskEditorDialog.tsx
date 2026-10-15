@@ -88,6 +88,8 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
 
     useLayoutEffect(() => {
         submitRef.current = submit;
+        const dirty = JSON.stringify(form) !== JSON.stringify(vm.initial);
+        if (useAppStore.getState().taskEditorDirty !== dirty) useAppStore.setState({ taskEditorDirty: dirty });
     });
 
     const onBlockedChange = (event: ChangeEvent<HTMLInputElement>) => {

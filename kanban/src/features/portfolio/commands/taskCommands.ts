@@ -21,6 +21,9 @@ import { nowIso } from '@/domain/util';
 import { workitemType } from '@/domain/workitems';
 import { addRelation, taskRef } from '@/domain/relations';
 import { getProjectInfo } from '@/domain/project';
+import { updatePortfolioUrlState } from './portfolioNavigation';
+import { filterTableRows, sortTableRows, DEFAULT_TABLE_FILTERS, DEFAULT_TABLE_SORT } from '@/features/portfolio/table/tableModel';
+import type { CardRef, TaskDetailViewModel } from '@/features/portfolio/types';
 import { translateCurrent } from '@/shared/i18n';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -41,13 +44,20 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     let taskEditorOpenCount = 0;
     let undoTimer: ReturnType<typeof setTimeout> | null = null;
 
-    function openPortfolioTaskDetails(boardId: string, taskId: number, options: { boardData?: unknown; readOnly?: boolean } = {}) {
+    function openPortfolioTaskDetails(boardId: string, taskId: number, options: { boardData?: unknown; readOnly?: boolean; navigation?: CardRef[] } = {}) {
         const source = findPortfolioTaskDetailSource(getBoardRecord, boardId, taskId, options);
-        if (!source) return;
+        if (!source) { void alert(translateCurrent('detail.missing')); return; }
         setSelectedPortfolioCard(boardId, taskId);
         const readOnly = options.readOnly === true || !canUsePortfolioTaskMutations(boardId);
-        commitState({ portfolioDetailContext: { boardId, taskId, readOnly } });
+        const state = getState();
+        const sort = state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT;
+        const rows = state.selectedPortfolioViewMode === 'table'
+            ? sortTableRows(filterTableRows(state.portfolioTasks.filter((row) => row.boardId === boardId), state.portfolioTableFiltersByBoardId[boardId] || DEFAULT_TABLE_FILTERS), sort.column, sort.direction, source.boardData)
+            : state.portfolioVisibleRows;
+        const navigation = options.navigation || rows.map((row) => ({ boardId: row.boardId, taskId: row.taskId }));
+        commitState({ pendingTaskLink: null, portfolioDetailContext: { boardId, taskId, readOnly, navigation, ...(options.boardData ? { previewData: source.boardData } : {}) } });
         openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly));
+        updatePortfolioUrlState(undefined, getState());
     }
 
     function editPortfolioTask(boardId: string, taskId: number) {
@@ -61,6 +71,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         setSelectedPortfolioCard(boardId, taskId);
         commitState({
             portfolioEditContext: { boardId, taskId },
+            taskEditorDirty: false,
             portfolioCreateContext: null
         });
         openDialogFn('taskEditor', buildTaskEditorViewModel(
@@ -87,6 +98,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             : fallbackStatus;
         commitState({
             portfolioCreateContext: { boardId, status, relatedToTaskId: options.relatedToTaskId },
+            taskEditorDirty: false,
             portfolioEditContext: null
         });
         const vm = buildTaskEditorViewModel(
@@ -101,8 +113,13 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         openDialogFn('taskEditor', vm);
     }
 
-    function closeTaskEditor() {
+    function closeTaskEditor(discard = false) {
+        if (!discard && getState().taskEditorDirty) {
+            void Promise.resolve(confirm(translateCurrent('detail.discard'))).then((confirmed) => { if (confirmed) closeTaskEditor(true); });
+            return;
+        }
         commitState({
+            taskEditorDirty: false,
             portfolioEditContext: null,
             portfolioCreateContext: null
         });
@@ -112,6 +129,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     function closeTaskDetail() {
         commitState({ portfolioDetailContext: null });
         closeDialogFn('taskDetail');
+        updatePortfolioUrlState(undefined, getState());
     }
 
     function openPortfolioTaskDetailsForCalendar(boardId: string, taskId: number) {
@@ -239,7 +257,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                 }
                 recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, nextId));
                 return true;
-            }, { onMutated: closeTaskEditor });
+            }, { onMutated: () => closeTaskEditor(true) });
             return;
         }
 
@@ -253,7 +271,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                     setTaskAttachments(boardRecord.data, taskId, draft.attachments);
                 }
                 return true;
-            }, { onMutated: closeTaskEditor });
+            }, { onMutated: () => closeTaskEditor(true) });
             return;
         }
 
@@ -398,9 +416,22 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
     function refreshTaskDetail(boardId: string) {
         const context = getState().portfolioDetailContext;
-        if (context?.boardId === boardId) openPortfolioTaskDetails(boardId, context.taskId);
+        if (context?.boardId === boardId) {
+            if (!findPortfolioTaskSource(boardId, context.taskId)) {
+                const vm = getState().dialogProps as TaskDetailViewModel;
+                if (getState().activeDialog === 'taskDetail') commitState({ dialogProps: { ...vm, readOnly: true, missing: true } });
+            } else openPortfolioTaskDetails(boardId, context.taskId, { navigation: context.navigation, readOnly: context.readOnly, boardData: context.previewData });
+        }
+    }
+    function navigateWorkitemDetail(direction: -1 | 1) {
+        const context = getState().portfolioDetailContext;
+        if (!context?.navigation) return;
+        const index = context.navigation.findIndex((ref) => ref.boardId === context.boardId && ref.taskId === context.taskId);
+        const next = context.navigation[index + direction];
+        if (next) openPortfolioTaskDetails(next.boardId, next.taskId, { navigation: context.navigation, ...(context.previewData ? { readOnly: true, boardData: next.boardId === context.boardId ? context.previewData : undefined } : {}) });
     }
     return {
+        navigateWorkitemDetail,
         openPortfolioTaskDetails,
         editPortfolioTask,
         openPortfolioCreateTaskModal,
