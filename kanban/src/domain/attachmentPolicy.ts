@@ -1,6 +1,6 @@
 import type { Attachment } from './types';
-import { ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_MAX_COUNT } from './constants';
-import { estimateAttachmentDataUrlSizeBytes } from './attachments';
+import { ATTACHMENT_MAX_COUNT } from './constants';
+import { exceedsAttachmentHardLimit } from './attachments';
 
 export function isAcceptedPickedAttachment(name: string, mime: string): boolean {
     if (/\.(html?|svg|xhtml|xml|js|mjs|cjs|jsx|tsx|exe|dll|com|bat|cmd|ps1|sh|app|dmg|pkg|scr|jar|wasm)$/i.test(name)) return false;
@@ -14,7 +14,9 @@ export function validateNewAttachments(before: readonly Attachment[], after: rea
     if (after.length > Math.max(ATTACHMENT_MAX_COUNT, before.length)) throw new Error(`Attachment limit: ${ATTACHMENT_MAX_COUNT}.`);
     for (const item of after) {
         if (before.some((existing) => existing.id === item.id && existing.dataUrl === item.dataUrl)) continue;
-        if (!isAcceptedPickedAttachment(item.name, item.mime) || !item.dataUrl.startsWith('data:') || !isAcceptedPickedAttachment(item.name, item.dataUrl.slice(5, item.dataUrl.indexOf(',')))) throw new Error('Executable content, HTML and SVG attachments are not accepted.');
-        if (Math.max(item.sizeBytes, estimateAttachmentDataUrlSizeBytes(item.dataUrl)) > ATTACHMENT_HARD_MAX_BYTES) throw new Error('Attachment exceeds the 10 MB limit.');
+        // The data URL carries its own mime type; it must pass the same policy as the declared one.
+        const dataUrlMime = item.dataUrl.startsWith('data:') ? item.dataUrl.slice(5, item.dataUrl.indexOf(',')) : null;
+        if (dataUrlMime === null || !isAcceptedPickedAttachment(item.name, item.mime) || !isAcceptedPickedAttachment(item.name, dataUrlMime)) throw new Error('Executable content, HTML and SVG attachments are not accepted.');
+        if (exceedsAttachmentHardLimit(item)) throw new Error('Attachment exceeds the 10 MB limit.');
     }
 }

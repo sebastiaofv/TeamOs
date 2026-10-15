@@ -2,11 +2,10 @@ import { useState } from 'react';
 import type { BoardData } from '@/domain/types';
 import { getProjectPlan, orderedPhases } from '@/domain/projectPlan';
 import { phaseDateVariance } from '@/domain/dateVariance';
-import { getRoadmapTimelinePlacement, parseRoadmapIsoDate } from '@/domain/roadmap';
+import { getRoadmapDayDiff, getRoadmapTimelinePlacement, getRoadmapTodayMarker, parseRoadmapIsoDate } from '@/domain/roadmap';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
 import type { ProjectDates } from '@/domain/project';
-import { todayLocalIsoDate } from '@/domain/util';
 
 export function DateAnalysis({ boardId, data, readOnly }: { boardId: string; data: BoardData; readOnly: boolean }) {
     const { t } = useI18n();
@@ -21,7 +20,8 @@ export function DateAnalysis({ boardId, data, readOnly }: { boardId: string; dat
         return [dates.baseline?.start, dates.baseline?.end, dates.forecast.start, dates.forecast.end, dates.actual?.start, dates.actual?.end];
     }).filter((value): value is string => Boolean(value)).map((value) => parseRoadmapIsoDate(value)!).filter(Boolean).sort((a, b) => a.getTime() - b.getTime());
     const start = allDates[0], end = allDates.at(-1);
-    const range = start && end ? { start, end, totalDays: Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000)) } : null;
+    const range = start && end ? { start, end, totalDays: Math.max(1, getRoadmapDayDiff(start, end)) } : null;
+    const todayMarker = getRoadmapTodayMarker(range);
     const displayDates = (dates?: ProjectDates) => dates?.start || dates?.end ? `${dates.start || t('plan.na')} → ${dates.end || t('plan.na')}` : t('plan.na');
     const days = (value: number | null) => value == null ? t('plan.na') : `${value > 0 ? '+' : ''}${value} ${t('dates.days')}`;
     return <section className="date-analysis" id="projectDateAnalysis"><h2>{t('dates.title')}</h2>
@@ -38,7 +38,7 @@ export function DateAnalysis({ boardId, data, readOnly }: { boardId: string; dat
                         const placement = dates?.start && dates.end ? getRoadmapTimelinePlacement({ id: phase.id, title: phase.title, startDate: dates.start, endDate: dates.end }, range) : null;
                         return placement && <span key={kind} className={kind} style={{ left: `${placement.left}%`, width: `${Math.max(placement.width, 1)}%` }} />;
                     })}
-                    {range && todayLocalIsoDate() >= range.start.toISOString().slice(0, 10) && todayLocalIsoDate() <= range.end.toISOString().slice(0, 10) && <i className="analysis-today" style={{ left: `${Math.max(0, Math.min(100, (Date.parse(todayLocalIsoDate()) - range.start.getTime()) / (range.totalDays * 86400000) * 100))}%` }} />}
+                    {todayMarker && <i className="analysis-today" style={{ left: `${todayMarker.position}%` }} />}
                 </div></td><td>{!readOnly && <><button type="button" className="btn-text" onClick={() => setEditingId(editingId === phase.id ? '' : phase.id)}>{t('dates.record')}</button><button type="button" className="btn-text" onClick={() => actions.openRoadmapEntityModal('phases', phase.id, { boardId })}>{t('project.forecast')}</button></>}</td></tr>;
             })}
         </tbody></table></div>}
