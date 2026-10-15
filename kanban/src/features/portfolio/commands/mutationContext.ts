@@ -16,8 +16,8 @@ import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persisten
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
-import { validateWorkitems, synchronizeParentCompletion } from '@/domain/workitems';
-import { getWorkflow, getTaskWorkflow, assertTaskTransition, isTaskCompleted } from '@/domain/workflow';
+import { validateWorkitems } from '@/domain/workitems';
+import { assertTaskTransition, synchronizeAggregateStatuses } from '@/domain/workflow';
 import { validatePhaseHierarchy } from '@/domain/projectPlan';
 import { reconcileAssignments } from '@/domain/assignments';
 import { ensureTaskAuditEvents } from '@/domain/workitemHistory';
@@ -115,10 +115,8 @@ export function createBoardMutationContext({
                 }
             }
             const beforeAggregate = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
-            const workflow = getWorkflow(draft.data);
-            synchronizeParentCompletion(draft.data, (task) => isTaskCompleted(draft.data, task), workflow.states.find((s) => s.category === 'completed')?.id, workflow.states.find((s) => s.category === 'in-progress')?.id || workflow.initialStateId);
-            const maintenanceWorkflow = getTaskWorkflow(draft.data, { workContext: 'maintenance' });
-            synchronizeParentCompletion(draft.data, (task) => isTaskCompleted(draft.data, task), maintenanceWorkflow.states.find((state) => state.category === 'completed')?.id, maintenanceWorkflow.states.find((state) => state.category === 'in-progress')?.id || maintenanceWorkflow.initialStateId, 'maintenance');
+            synchronizeAggregateStatuses(draft.data, 'project');
+            synchronizeAggregateStatuses(draft.data, 'maintenance');
             for (const task of draft.data.board.tasks) {
                 const before = beforeAggregate.get(task.id);
                 if (before && before.status !== task.status) {

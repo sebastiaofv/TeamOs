@@ -14,7 +14,7 @@ import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { getProjectInfo, validateProjectInfo } from './project';
 import { validateWorkitems } from './workitems';
-import { getWorkflow, validateWorkflow } from './workflow';
+import { getWorkflow, isWorkflowStatusId, validateWorkflow } from './workflow';
 import { getRelations } from './relations';
 import { validatePhaseHierarchy } from './projectPlan';
 import { getConversation } from './comments';
@@ -46,7 +46,7 @@ export function normalizeColumns(inputColumns: unknown, knownStatuses?: Readonly
     const normalized: BoardColumn[] = [];
     inputColumns.forEach((col) => {
         if (!col || typeof col !== 'object') return;
-        const status = typeof col.status === 'string' && (knownStatuses?.has(col.status) || /^wf_[a-z0-9_-]+$/i.test(col.status)) ? col.status : resolveKnownTaskStatus(col.status);
+        const status = typeof col.status === 'string' && (knownStatuses?.has(col.status) || isWorkflowStatusId(col.status)) ? col.status : resolveKnownTaskStatus(col.status);
         if (!status) return;
         if (seen.has(status)) return;
         const rawTitle = typeof col.title === 'string' ? col.title.trim() : '';

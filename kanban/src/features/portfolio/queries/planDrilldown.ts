@@ -1,5 +1,5 @@
 import type { BoardData, RoadmapKind, Task } from '@/domain/types';
-import { planWorkitems } from '@/domain/projectPlan';
+import { PLAN_TASK_FIELD, planWorkitems } from '@/domain/projectPlan';
 
 export type DrilldownNode = { task: Task; direct: boolean; children: DrilldownNode[] };
 export function buildDrilldownTree(tasks: readonly Task[], directIds: ReadonlySet<number>): DrilldownNode[] {
@@ -9,6 +9,7 @@ export function buildDrilldownTree(tasks: readonly Task[], directIds: ReadonlySe
         const parent = node.task.parentId ? nodes.get(node.task.parentId) : null;
         const seen = new Set([node.task.id]); let cursor = parent;
         while (cursor && !seen.has(cursor.task.id)) { seen.add(cursor.task.id); cursor = cursor.task.parentId ? nodes.get(cursor.task.parentId) : undefined; }
+        // A cursor left over means the ancestor chain loops; show the node as a root.
         if (cursor) { roots.push(node); continue; }
         if (parent) parent.children.push(node); else roots.push(node);
     }
@@ -16,9 +17,8 @@ export function buildDrilldownTree(tasks: readonly Task[], directIds: ReadonlySe
 }
 
 export function planDrilldownTasks(data: BoardData, kind: RoadmapKind, id: string, includeArchived = false) {
-    const field = kind === 'phases' ? 'phaseId' : kind === 'milestones' ? 'milestoneId' : 'sprintId';
     const tasks = planWorkitems(data, kind, id).filter((task) => includeArchived || !task.archived);
-    return { tasks, directIds: new Set(tasks.filter((task) => task[field] === id).map((task) => task.id)) };
+    return { tasks, directIds: new Set(tasks.filter((task) => task[PLAN_TASK_FIELD[kind]] === id).map((task) => task.id)) };
 }
 
 export function unassociatedPlanTasks(data: BoardData, includeArchived = false): Task[] {

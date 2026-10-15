@@ -1,7 +1,7 @@
 import type { BoardData, LooseBoardData, Task } from './types';
 import { isRecord } from './util';
 import { defaultColumns } from './constants';
-import { workitemType } from './workitems';
+import { isAggregateWorkitem, synchronizeParentCompletion } from './workitems';
 
 export const WORKFLOW_CATEGORIES = ['not-started', 'in-progress', 'completed', 'cancelled'] as const;
 export type WorkflowCategory = typeof WORKFLOW_CATEGORIES[number];
@@ -16,6 +16,11 @@ export function declaredWorkflowStatuses(data: LooseBoardData): ReadonlySet<stri
         for (const state of value.states) if (isRecord(state) && typeof state.id === 'string') ids.add(state.id);
     }
     return ids;
+}
+
+// Custom workflow states are created with a `wf_` prefix (see WorkflowSettings).
+export function isWorkflowStatusId(status: unknown): status is string {
+    return typeof status === 'string' && /^wf_[a-z0-9_-]+$/i.test(status);
 }
 
 export function getWorkflow(data: BoardData): Workflow {
@@ -49,7 +54,7 @@ export function getTaskWorkflow(data: BoardData, task: Pick<Task, 'workContext'>
 export function isTaskCompleted(data: BoardData, task: Task): boolean { return getTaskWorkflow(data, task).states.find((state) => state.id === task.status)?.category === 'completed'; }
 export function assertTaskTransition(data: BoardData, task: Task, target: string): void {
     if (target === task.status) return;
-    if (['epic', 'story'].includes(workitemType(task))) throw new Error('Epic and Story status is derived from children.');
+    if (isAggregateWorkitem(task)) throw new Error('Epic and Story status is derived from children.');
     if (!getTaskWorkflow(data, task).transitions.some((transition) => transition.from === task.status && transition.to === target)) throw new Error('This workflow transition is not allowed.');
 }
 
@@ -72,4 +77,12 @@ export function applyMaintenanceWorkflow(data: BoardData, workflow: Workflow, ma
         task.status = mapping[task.status];
     }
     data.extensions.maintenance = { version: 1, enabled: true, workflow };
+}
+
+// Epic/Story status follows children: completed when every child is, else in progress.
+export function synchronizeAggregateStatuses(data: BoardData, context: NonNullable<Task['workContext']> = 'project'): void {
+    const workflow = getTaskWorkflow(data, { workContext: context });
+    const completed = workflow.states.find((state) => state.category === 'completed')?.id;
+    const inProgress = workflow.states.find((state) => state.category === 'in-progress')?.id || workflow.initialStateId;
+    synchronizeParentCompletion(data, (task) => isTaskCompleted(data, task), completed, inProgress, context);
 }

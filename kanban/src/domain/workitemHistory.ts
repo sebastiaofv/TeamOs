@@ -1,6 +1,7 @@
 import type { BoardData, TimelineEvent } from './types';
 import { getBoardTimelineData, appendTimelineEvent, buildTaskTimelineChanges } from './timeline';
 import { areSerializableValuesEqual } from './serializable';
+import { groupBy } from './util';
 import { getProjectInfo } from './project';
 import { refKey, type TaskRef, type WorkitemRelation } from './relations';
 
@@ -9,8 +10,7 @@ import { refKey, type TaskRef, type WorkitemRelation } from './relations';
 export function ensureTaskAuditEvents(data: BoardData, previous: BoardData, fromIndex: number): void {
     const emitted = getBoardTimelineData(data)?.events.slice(fromIndex) || [];
     const beforeById = new Map(previous.board.tasks.map((task) => [task.id, task]));
-    const coverage = new Map<string, TimelineEvent[]>();
-    for (const event of emitted) if (event.entityType === 'task') coverage.set(event.entityId, [...(coverage.get(event.entityId) || []), event]);
+    const coverage = groupBy(emitted.filter((event) => event.entityType === 'task'), (event) => event.entityId);
     for (const task of data.board.tasks) {
         const before = beforeById.get(task.id);
         if (!before) continue;

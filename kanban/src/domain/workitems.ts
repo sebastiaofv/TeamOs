@@ -3,6 +3,11 @@ import type { BoardData, Task, TaskStatus } from './types';
 export const WORKITEM_TYPES = ['epic', 'story', 'task', 'bug'] as const;
 export type WorkitemType = typeof WORKITEM_TYPES[number];
 export function workitemType(task: Pick<Task, 'workitemType'>): WorkitemType { return task.workitemType || 'task'; }
+// Epic and Story status is derived from their children, never set directly.
+export function isAggregateWorkitem(task: Pick<Task, 'workitemType'>): boolean {
+    const type = workitemType(task);
+    return type === 'epic' || type === 'story';
+}
 export function canParent(parent: Task, child: Task): boolean {
     const p = workitemType(parent), c = workitemType(child);
     return p === 'epic' && (c === 'story' || c === 'bug') || p === 'story' && (c === 'task' || c === 'bug');
@@ -42,5 +47,5 @@ export function synchronizeParentCompletion(data: BoardData, isDone = (task: Tas
 
 export function eligibleLeafTasks(data: BoardData, context: 'project' | 'maintenance' = 'project'): Task[] {
     const parents = new Set(data.board.tasks.map((task) => task.parentId).filter(Boolean));
-    return data.board.tasks.filter((task) => (task.workContext || 'project') === context && !task.archived && !parents.has(task.id) && !['epic', 'story'].includes(workitemType(task)));
+    return data.board.tasks.filter((task) => (task.workContext || 'project') === context && !task.archived && !parents.has(task.id) && !isAggregateWorkitem(task));
 }
