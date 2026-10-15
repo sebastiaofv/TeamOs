@@ -50,7 +50,7 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner';
     if (aggregateView && (state.portfolioBoards || []).length > 0) {
         params.set('pv', state.selectedPortfolioViewMode);
-    } else if (state.selectedPortfolioBoardId && (state.selectedPortfolioViewMode === 'roadmap' || state.selectedPortfolioViewMode === 'table')) {
+    } else if (state.selectedPortfolioBoardId && (state.selectedPortfolioViewMode === 'roadmap' || state.selectedPortfolioViewMode === 'table' || state.selectedPortfolioViewMode === 'dashboard')) {
         params.set('pv', state.selectedPortfolioViewMode);
     }
 

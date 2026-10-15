@@ -184,6 +184,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
             </div>
             <div className="portfolio-toolbar-right">
                 <div className={`portfolio-view-toggle${hasBoards ? '' : ' hidden'}`} id="portfolioViewModeToggle" role="group" aria-label={t('toolbar.selectedProjectViewMode')}>
+                    {hasSelectedBoard && <button className={`btn${viewMode === 'dashboard' ? ' active' : ''}`} type="button" data-view-mode="dashboard" aria-pressed={viewMode === 'dashboard'} onClick={() => setPortfolioViewMode('dashboard')}>{t('dashboard.project')}</button>}
                     <button
                         className={`btn${viewMode === 'board' ? ' active' : ''}`}
                         type="button"

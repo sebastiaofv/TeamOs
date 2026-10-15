@@ -1,6 +1,6 @@
 import type { BoardData, RoadmapKind, Task } from './types';
 import { getRoadmapExtension } from './roadmap';
-import type { ProjectDates } from './project';
+import { validateDatePair, type ProjectDates } from './project';
 import { eligibleLeafTasks } from './workitems';
 import { isTaskCompleted, statusCategory } from './workflow';
 
@@ -17,6 +17,13 @@ export function validatePhaseHierarchy(data: BoardData): void {
     const ids = new Set(phases.map((phase) => phase.id));
     const parents = new Set<string>();
     for (const [id, detail] of Object.entries(plan.phases)) {
+        if (!detail || typeof detail.parentId !== 'string') throw new Error('Invalid phase metadata.');
+        if (detail.baseline) validateDatePair(detail.baseline);
+        if (detail.actual) validateDatePair(detail.actual);
+        for (const revision of detail.baselineRevisions || []) {
+            if (!revision.reason?.trim() || !Number.isFinite(Date.parse(revision.at))) throw new Error('Invalid baseline revision.');
+            validateDatePair(revision.dates);
+        }
         if (!ids.has(id)) throw new Error('Phase metadata references a missing phase.');
         if (!detail.parentId) continue;
         if (!ids.has(detail.parentId)) throw new Error('Parent phase does not exist.');

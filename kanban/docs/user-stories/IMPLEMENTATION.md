@@ -128,3 +128,13 @@ optional GitHub PR URLs, and aggregate parent completion.
   missing/deleted tasks are handled without writes.
 - Browser acceptance covers navigation, URL state, discard/cancel and mobile
   read-only behavior, alongside existing detail flows.
+
+## US-19 — Date variance
+
+- Project Dashboard date table and baseline/forecast/actual Gantt overlay reuse
+  existing phase forecasts. Legacy dates are not fabricated into baselines.
+- Explicit plan approval freezes originals; dated, reasoned revisions retain the
+  original and can be selected as an alternative comparison reference.
+- Actual dates are recorded manually; signed calendar-day variance with N/A for
+  missing baselines or actual finishes. Date order validated and metadata replayed.
+- Unit tests cover revisions, reopen, negative variance and leap-day arithmetic.

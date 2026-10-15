@@ -17,6 +17,7 @@ import { PortfolioPlanner } from '@/features/portfolio/planner/PortfolioPlanner'
 import { PortfolioTable } from '@/features/portfolio/table/PortfolioTable';
 import { ProjectSettings } from '@/features/portfolio/projects/ProjectSettings';
 import { LocalProfile } from '@/features/portfolio/projects/LocalProfile';
+import { ProjectDashboard } from '@/features/portfolio/dashboard/ProjectDashboard';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
@@ -66,6 +67,7 @@ function AppContent() {
     const calendarActive = hasBoards && viewMode === 'calendar';
     const plannerActive = hasBoards && viewMode === 'planner';
     const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
+    const dashboardActive = Boolean(selectedBoardId) && viewMode === 'dashboard';
 
     return (
         <>
@@ -81,7 +83,8 @@ function AppContent() {
                         <PortfolioReadOnlyNotice />
                         <PortfolioTimeline />
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive} />
+                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive} />
+                        <ProjectDashboard hidden={!dashboardActive} />
                         <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
                         <PortfolioCalendar hidden={!calendarActive} />

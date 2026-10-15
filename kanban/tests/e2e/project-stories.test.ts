@@ -1,6 +1,31 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
 
+test('US19: freeze baseline, replan and record actual variance without losing originals', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'dates', title: 'Dates', hasHandle: true, extensions: { roadmap: { version: 1, phases: [{ id: 'p', title: 'Delivery', startDate: '2026-01-01', endDate: '2026-01-10' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'dates' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    const analysis = page.locator('#projectDateAnalysis');
+    await analysis.getByLabel('Approval / revision reason', { exact: true }).fill('Plan approval');
+    await analysis.getByRole('button', { name: 'Approve plan baseline', exact: true }).click();
+    await expect(analysis.locator('tbody')).toContainText('0 days');
+    await analysis.getByRole('button', { name: 'Dates and revisions', exact: true }).click();
+    await analysis.getByLabel('Actual start', { exact: true }).fill('2026-01-02');
+    await analysis.getByLabel('Actual finish', { exact: true }).fill('2026-01-17');
+    await analysis.getByRole('button', { name: 'Save actual dates', exact: true }).click();
+    await expect(analysis.locator('tbody')).toContainText('+7 days');
+    await analysis.getByRole('button', { name: 'Forecast', exact: true }).click();
+    await page.locator('#roadmapEntityEndDate').fill('2026-01-15');
+    await page.locator('#roadmapEntityModalSaveBtn').click();
+    await expect(analysis.locator('tbody')).toContainText('+5 days');
+    await analysis.getByLabel('Approval / revision reason', { exact: true }).fill('Scope changed');
+    await analysis.getByRole('button', { name: 'Approve baseline revision', exact: true }).click();
+    await analysis.getByLabel('Baseline reference', { exact: true }).selectOption('latest');
+    await expect(analysis.locator('tbody')).toContainText('+2 days');
+    await expect.poll(async () => (await readSavedBoard(page, 'dates')).extensions.projectPlan.phases.p.baselineRevisions.length).toBe(2);
+    expect((await readSavedBoard(page, 'dates')).extensions.projectPlan.phases.p.baseline.end).toBe('2026-01-10');
+});
+
 test('US17: side panel navigates the underlying list, deep-links and confirms unsaved edits', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'panel', title: 'Panel', hasHandle: true, tasks: [{ id: 1, title: 'Alpha' }, { id: 2, title: 'Beta' }] }], { selectedBoardId: 'panel' });

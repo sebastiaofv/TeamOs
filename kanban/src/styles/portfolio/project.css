@@ -42,3 +42,27 @@
 .task-detail-panel > .modal-footer { display: flex; gap: 8px; flex-wrap: wrap; }
 .task-detail-backdrop { position: fixed; inset: 0; background: #0007; pointer-events: auto; }
 @media (max-width: 700px) { .task-detail-panel { top: 0; right: 0; bottom: 0; width: 100%; height: 100dvh; border-radius: 0; } }
+.project-dashboard { flex: 1; min-height: 0; overflow: auto; padding: 24px; color: var(--text-primary); background: var(--bg-primary); }
+.project-dashboard h1 { font-size: 20px; margin-bottom: 8px; }
+.project-dashboard h2 { font-size: 16px; margin-bottom: 8px; }
+.date-analysis { padding: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin: 20px 0; }
+.dashboard-controls { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+.dashboard-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.dashboard-controls input, .dashboard-controls select { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 5px; padding: 8px; }
+.dashboard-table-scroll { overflow-x: auto; }
+.dashboard-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+.dashboard-table td, .dashboard-table th { padding: 12px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+.dashboard-table thead { color: var(--text-secondary); background: var(--bg-secondary); }
+.dashboard-table .btn-text { margin: 4px; }
+.analysis-gantt { position: relative; width: 240px; height: 54px; background: var(--bg-secondary); border-radius: 5px; }
+.analysis-gantt > span { position: absolute; height: 7px; border-radius: 3px; }
+.analysis-gantt .baseline { top: 6px; background: var(--text-muted); }
+.analysis-gantt .forecast { top: 22px; background: var(--accent); }
+.analysis-gantt .actual { top: 38px; background: var(--priority-low); }
+.analysis-today { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--priority-high); }
+.date-legend { display: flex; gap: 12px; font-size: 12px; }
+.date-legend span { border-bottom: 3px solid var(--text-muted); padding-bottom: 4px; }
+.date-legend .forecast { border-color: var(--accent); }
+.date-legend .actual { border-color: var(--priority-low); }
+.phase-dates-editor { margin: 16px 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
+.phase-dates-editor ol { padding-left: 20px; line-height: 1.8; font-size: 12px; }
