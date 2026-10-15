@@ -15,7 +15,7 @@ import { nowIso, normalizeTimestamp, todayLocalIsoDate } from './util';
 import { normalizeDueDate } from './calendar';
 import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
-import { getWorkflow } from './workflow';
+import { getWorkflow, isWorkflowStatusId } from './workflow';
 export { findTaskInBoardData } from './boardData';
 
 type BoardRecordLike = { data?: BoardData } | null | undefined;
@@ -205,7 +205,7 @@ export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived'
 }
 
 export function normalizeTaskStatus(status: unknown): TaskStatus {
-    if (typeof status === 'string' && /^wf_[a-z0-9_-]+$/i.test(status)) return status;
+    if (isWorkflowStatusId(status)) return status;
     const normalized = resolveKnownTaskStatus(status);
     if (normalized) return normalized;
     return defaultColumns[0].status;

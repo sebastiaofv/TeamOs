@@ -1,6 +1,6 @@
 import { useState, type ClipboardEvent } from 'react';
 import type { Attachment } from '@/domain/types';
-import { getTaskComments, isSafeCommentImage } from '@/domain/comments';
+import { COMMENT_MAX_LENGTH, getTaskComments, isSafeCommentImage } from '@/domain/comments';
 import { safeWebUrl } from '@/domain/links';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -53,7 +53,7 @@ export function TaskComments({ readOnly }: { readOnly: boolean }) {
         {!comments.length && <p>{t('comments.empty')}</p>}
         {comments.length > limit && <button className="btn" type="button" onClick={() => setLimit(limit + 50)}>{t('history.more')}</button>}
         {!readOnly && <form onSubmit={async (event) => { event.preventDefault(); setBusy(true); try { if (await actions.addWorkitemComment(board.id, context.taskId, body, images)) { setBody(''); setImages([]); } } finally { setBusy(false); } }}>
-            <label htmlFor="commentBody">{t('comments.write')}</label><textarea id="commentBody" value={body} maxLength={10000} onPaste={(event) => void paste(event)} onChange={(e) => setBody(e.target.value)} disabled={busy} placeholder={t('comments.paste')} />
+            <label htmlFor="commentBody">{t('comments.write')}</label><textarea id="commentBody" value={body} maxLength={COMMENT_MAX_LENGTH} onPaste={(event) => void paste(event)} onChange={(e) => setBody(e.target.value)} disabled={busy} placeholder={t('comments.paste')} />
             <div className="comment-images">{images.map((image) => <div key={image.id}><img src={image.dataUrl} alt={image.name} /><button className="btn-text" type="button" disabled={busy} onClick={() => setImages(images.filter((i) => i.id !== image.id))}>{t('common.remove')}</button></div>)}</div>
             {error && <p role="alert">{error}</p>}<button className="btn btn-primary" type="submit" disabled={busy || !body.trim() && !images.length}>{t('comments.post')}</button>
         </form>}
