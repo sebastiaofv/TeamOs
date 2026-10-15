@@ -7,6 +7,7 @@ import { getRoadmapExtension } from '@/domain/roadmap';
 import { isTaskCompleted } from '@/domain/workflow';
 import { executionProgress } from '@/domain/projectPlan';
 import { useI18n } from '@/shared/i18n';
+import { formatPercent } from '@/shared/ui/format';
 
 export function PlanDrilldown({ tasks, directIds, descriptor, board, data, historical, state }: {
     tasks: Task[]; directIds: Set<number>; descriptor: string; board: BoardRecord; data: BoardData; historical: boolean; state: TaskCardState;
@@ -31,7 +32,7 @@ export function PlanDrilldown({ tasks, directIds, descriptor, board, data, histo
     }
     return <div className="roadmap-task-list" data-roadmap-task-list={descriptor} id={`roadmap-tasks-${descriptor.replace(/[:\s]/g, '-')}`}><div className="roadmap-task-list-gutter" aria-hidden="true" /><div className="roadmap-task-list-track plan-drilldown">
         <div className="dashboard-controls"><label>{t('drilldown.group')}<select aria-label={t('drilldown.group')} value={grouping} onChange={(e) => setGrouping(e.target.value)}>{(['completion', 'hierarchy', 'sprint', 'milestone'] as const).map((group) => <option key={group} value={group}>{t(`drilldown.${group}`)}</option>)}</select></label>
-            <span className="muted">{progress.completed.length}/{progress.eligible.length} · {progress.percent == null ? t('plan.na') : `${Math.round(progress.percent)}%`} · {Math.min(tasks.length, limit)}/{tasks.length}</span>
+            <span className="muted">{progress.completed.length}/{progress.eligible.length} · {formatPercent(progress.percent, t('plan.na'))} · {Math.min(tasks.length, limit)}/{tasks.length}</span>
         </div>
         {!tasks.length && <p>{t('roadmap.noTasksAssigned')}</p>}
         {[...groups.entries()].map(([key, group]) => <section key={key}><h4>{group.label}</h4>{renderNodes(buildDrilldownTree(group.tasks, directIds))}</section>)}

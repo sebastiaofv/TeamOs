@@ -17,6 +17,7 @@ import {
 } from '@/domain/roadmap';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
+import { formatPercent } from '@/shared/ui/format';
 import { executionProgress, planWorkitems, phaseDepth, orderedPhases } from '@/domain/projectPlan';
 import { PlanDrilldown } from './PlanDrilldown';
 import { planDrilldownTasks, unassociatedPlanTasks } from '@/features/portfolio/queries/planDrilldown';
@@ -147,7 +148,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                         <h4 className="roadmap-row-title" id={`${rowId}-title`} style={{ paddingLeft: kind === 'phases' && boardData ? phaseDepth(boardData, item.id) * 16 : 0 }}>{item.title}</h4>
                                         <div className="roadmap-row-meta">{formatRoadmapDateRange(item, language) || t('common.noDates')}</div>
                                         <div className="roadmap-row-usage">
-                                            <span>{progress?.percent == null ? t('plan.na') : `${Math.round(progress.percent)}%`} · {progress?.completed.length || 0}/{progress?.eligible.length || 0}</span>
+                                            <span>{formatPercent(progress?.percent, t('plan.na'))} · {progress?.completed.length || 0}/{progress?.eligible.length || 0}</span>
                                                 <span>{tasks.length === 1 ? t('roadmap.linkedTask') : t('roadmap.linkedTasks', { count: tasks.length })}</span>
                                             <button
                                                 className="roadmap-disclosure-btn"
