@@ -30,3 +30,8 @@
 .comment-images { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
 .comment-images img { max-width: 240px; max-height: 180px; object-fit: contain; border: 1px solid var(--border); border-radius: 6px; }
 #commentBody { display: block; width: 100%; min-height: 100px; border: 1px solid var(--border); border-radius: 6px; padding: 10px; color: var(--text-primary); background: var(--bg-card); margin: 10px 0; }
+.pr-reference { padding: 16px 0; border-bottom: 1px solid var(--border); }
+.pr-reference > a { margin-left: 12px; color: var(--accent); }
+.pr-form fieldset { border: 0; padding: 0; }
+.pr-form label { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.pr-form input, .pr-form textarea { padding: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); border-radius: 6px; }

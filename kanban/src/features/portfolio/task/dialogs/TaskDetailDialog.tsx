@@ -11,6 +11,7 @@ import { TaskRelations } from '../TaskRelations';
 import { TaskAssignment } from '../TaskAssignment';
 import { TaskHistory } from '../TaskHistory';
 import { TaskComments } from '../TaskComments';
+import { TaskPullRequests } from '../TaskPullRequests';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -68,16 +69,17 @@ export function TaskDetailDialog() {
 function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewModel; onToggleChecklistItem: (index: number, checked: boolean) => unknown }) {
     const { t } = useI18n();
     const [tab, setTab] = useState('summary');
-    const tabs = ['summary', 'history', 'comments'] as const;
+    const tabs = ['summary', 'history', 'comments', 'pullRequests'] as const;
     return <><div className="detail-tabs" role="tablist" aria-label={t('task.details')}>
         {tabs.map((name) => <button key={name} id={`detail-tab-${name}`} type="button" role="tab" aria-selected={tab === name} aria-controls={`detail-panel-${name}`} tabIndex={tab === name ? 0 : -1} onClick={() => setTab(name)} onKeyDown={(event) => {
             if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
             event.preventDefault(); const index = tabs.findIndex((name) => name === tab); const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowLeft' ? -1 : 1) + tabs.length) % tabs.length]; setTab(next); document.getElementById(`detail-tab-${next}`)?.focus();
-        }}>{t(name === 'summary' ? 'history.summary' : name === 'history' ? 'history.title' : 'history.comments')}</button>)}
+        }}>{t(name === 'summary' ? 'history.summary' : name === 'history' ? 'history.title' : name === 'comments' ? 'history.comments' : 'history.pullRequests')}</button>)}
     </div><div role="tabpanel" id="detail-panel-summary" aria-labelledby="detail-tab-summary" hidden={tab !== 'summary'}>
         <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations readOnly={vm.readOnly} /><TaskAssignment readOnly={vm.readOnly} />
     </div><div role="tabpanel" id="detail-panel-history" aria-labelledby="detail-tab-history" hidden={tab !== 'history'}><TaskHistory /></div>
-    <div role="tabpanel" id="detail-panel-comments" aria-labelledby="detail-tab-comments" hidden={tab !== 'comments'}><TaskComments readOnly={vm.readOnly} /></div></>;
+    <div role="tabpanel" id="detail-panel-comments" aria-labelledby="detail-tab-comments" hidden={tab !== 'comments'}><TaskComments readOnly={vm.readOnly} /></div>
+    <div role="tabpanel" id="detail-panel-pullRequests" aria-labelledby="detail-tab-pullRequests" hidden={tab !== 'pullRequests'}><TaskPullRequests readOnly={vm.readOnly} /></div></>;
 }
 
 function TaskDetailList({ vm, onToggleChecklistItem }: {

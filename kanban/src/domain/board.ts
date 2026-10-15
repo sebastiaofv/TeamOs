@@ -18,6 +18,7 @@ import { getWorkflow, validateWorkflow } from './workflow';
 import { getRelations } from './relations';
 import { validatePhaseHierarchy } from './projectPlan';
 import { getConversation } from './comments';
+import { getPullRequests, normalizePullRequest } from './pullRequests';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -259,6 +260,10 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     if ('relations' in extensions) getRelations(data as BoardData);
     if ('projectPlan' in extensions) validatePhaseHierarchy(data as BoardData);
     if ('conversation' in extensions) getConversation(data as BoardData);
+    if ('pullRequests' in extensions) for (const links of Object.values(getPullRequests(data as BoardData).byTaskId)) {
+        if (!Array.isArray(links)) throw new Error('Invalid pull request list.');
+        links.forEach(normalizePullRequest);
+    }
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {

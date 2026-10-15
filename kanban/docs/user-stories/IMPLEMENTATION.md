@@ -96,3 +96,12 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Description stays separate. Timeline stores only comment references, and replay
   resolves the canonical content without duplicating bodies or image payloads.
 - Read-only blocks posting; no edit/delete API or remote notifications.
+
+## US-08 — Pull request links
+
+- GitHub PR number with optional repository/HTTPS URL and notes, following the
+  written decision that the URL is optional.
+- Canonical URL validation checks host, repository and PR number; duplicate links
+  rejected within an item. Multiple items may reference the same PR.
+- Create/correct/open/unlink in the detail tab, offline persistence and timeline
+  events. No network integration, credentials or invented merge state.

@@ -1,6 +1,22 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
 
+test('US08: link and correct a GitHub PR with an optional URL', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'prs', title: 'PRs', hasHandle: true, tasks: [{ id: 1, title: 'Code change' }] }], { selectedBoardId: 'prs' });
+    await page.locator('.task-title').filter({ hasText: 'Code change' }).click();
+    await page.getByRole('tab', { name: 'Pull requests', exact: true }).click();
+    await page.locator('#prNumber').fill('123');
+    await page.getByRole('button', { name: 'Save PR link', exact: true }).click();
+    await expect(page.locator('#taskPullRequests .pr-reference')).toContainText('#123');
+    await expect(page.locator('#taskPullRequests .pr-reference a')).toHaveCount(0);
+    await page.locator('#taskPullRequests .pr-reference').getByRole('button', { name: 'Edit', exact: true }).click();
+    await page.locator('#prUrl').fill('https://github.com/team/repo/pull/123');
+    await page.getByRole('button', { name: 'Save PR link', exact: true }).click();
+    await expect(page.locator('#taskPullRequests .pr-reference a')).toHaveAttribute('href', 'https://github.com/team/repo/pull/123');
+    await expect.poll(async () => (await readSavedBoard(page, 'prs')).extensions.pullRequests.byTaskId['1'][0].repository).toBe('team/repo');
+});
+
 test('US07: post immutable plain text and a pasted screenshot without altering description', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'comments', title: 'Comments', hasHandle: true, tasks: [{ id: 1, title: 'Discuss', description: 'Original description' }] }], { selectedBoardId: 'comments' });

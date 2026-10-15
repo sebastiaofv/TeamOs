@@ -6,6 +6,7 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'pr.offline': 'Local GitHub references. No API, credentials or inferred merge status.', 'pr.number': 'PR number', 'pr.repository': 'Repository (optional)', 'pr.url': 'GitHub URL (optional)', 'pr.notes': 'Notes (optional)', 'pr.save': 'Save PR link', 'pr.open': 'Open on GitHub', 'pr.empty': 'No linked pull requests.', 'pr.unknownRepository': 'Repository not specified',
     'comments.immutable': 'Comments cannot be edited or deleted. Authors are local and unverified.', 'comments.empty': 'No comments yet.', 'comments.write': 'Write a comment', 'comments.paste': 'Plain text, @mentions, safe links and pasted screenshots (PNG/JPEG/WebP).', 'comments.imageFormats': 'Paste PNG, JPEG or WebP images only.', 'comments.post': 'Post comment',
     'history.title': 'History', 'history.summary': 'Summary', 'history.partial': 'Available local history starts at:', 'history.category': 'Event category', 'history.empty': 'No tracked events for this workitem.', 'history.more': 'Show 50 more',
     'history.all': 'All', 'history.status': 'Status', 'history.assignment': 'Assignment', 'history.planning': 'Planning', 'history.relations': 'Relations', 'history.comments': 'Comments', 'history.pullRequests': 'Pull requests', 'history.attachments': 'Attachments', 'history.general': 'General',
@@ -582,6 +583,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'pr.offline': 'Referências locais do GitHub. Sem API, credenciais ou estado de merge inferido.', 'pr.number': 'Número do PR', 'pr.repository': 'Repositório (opcional)', 'pr.url': 'URL GitHub (opcional)', 'pr.notes': 'Notas (opcional)', 'pr.save': 'Guardar ligação PR', 'pr.open': 'Abrir no GitHub', 'pr.empty': 'Sem pull requests associados.', 'pr.unknownRepository': 'Repositório não indicado',
     'comments.immutable': 'Os comentários não podem ser editados nem eliminados. Autoria local não verificada.', 'comments.empty': 'Ainda sem comentários.', 'comments.write': 'Escrever comentário', 'comments.paste': 'Texto, @menções, ligações seguras e screenshots colados (PNG/JPEG/WebP).', 'comments.imageFormats': 'Colar apenas imagens PNG, JPEG ou WebP.', 'comments.post': 'Publicar comentário',
     'history.title': 'Histórico', 'history.summary': 'Resumo', 'history.partial': 'Histórico local disponível a partir de:', 'history.category': 'Categoria de evento', 'history.empty': 'Sem eventos registados para este workitem.', 'history.more': 'Mostrar mais 50',
     'history.all': 'Todos', 'history.status': 'Estado', 'history.assignment': 'Atribuição', 'history.planning': 'Planeamento', 'history.relations': 'Relações', 'history.comments': 'Comentários', 'history.pullRequests': 'Pull requests', 'history.attachments': 'Anexos', 'history.general': 'Geral',

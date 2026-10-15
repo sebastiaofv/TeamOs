@@ -121,8 +121,8 @@ export function createBoardMutationContext({
                     recordTaskTimelineEvent(draft.data, before, task);
                 }
             }
-            if (JSON.stringify(current.data.extensions.relations) !== JSON.stringify(draft.data.extensions.relations)) {
-                appendTimelineEvent(draft.data, { kind: 'board.extension.updated', entityType: 'board', entityId: 'relations', summary: 'Workitem relations updated', changes: { relations: { before: current.data.extensions.relations, after: draft.data.extensions.relations } } });
+            for (const key of ['relations', 'pullRequests']) if (JSON.stringify(current.data.extensions[key]) !== JSON.stringify(draft.data.extensions[key])) {
+                appendTimelineEvent(draft.data, { kind: 'board.extension.updated', entityType: 'board', entityId: key, summary: `Workitem ${key} updated`, changes: { [key]: { before: current.data.extensions[key], after: draft.data.extensions[key] } } });
             }
             ensureTaskAuditEvents(draft.data, current.data, eventStart);
             const project = getProjectInfo(draft.data);
