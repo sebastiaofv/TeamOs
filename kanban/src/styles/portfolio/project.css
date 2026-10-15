@@ -66,3 +66,10 @@
 .date-legend .actual { border-color: var(--priority-low); }
 .phase-dates-editor { margin: 16px 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
 .phase-dates-editor ol { padding-left: 20px; line-height: 1.8; font-size: 12px; }
+.plan-drilldown { display: block; }
+.drilldown-tree { list-style: none; padding: 0; margin: 8px 0; }
+.drilldown-tree .drilldown-tree { padding-left: 20px; border-left: 1px solid var(--border); }
+.drilldown-tree li { margin-bottom: 12px; }
+.drilldown-tree details > summary { cursor: pointer; font-size: 12px; color: var(--text-secondary); padding: 6px 0; }
+.drilldown-origin { display: inline-block; font-size: 10px; color: var(--text-muted); margin-bottom: 3px; }
+.roadmap-period-controls { padding: 0 16px; }

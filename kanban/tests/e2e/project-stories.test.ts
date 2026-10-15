@@ -1,6 +1,25 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
 
+test('US15: drill into inherited work, preserve period and expose unclassified items', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'drill', title: 'Drill', hasHandle: true, tasks: [{ id: 1, title: 'Epic', workitemType: 'epic', phaseId: 'p' }, { id: 2, title: 'Story', workitemType: 'story', parentId: 1 }, { id: 3, title: 'Inherited task', parentId: 2 }, { id: 4, title: 'Unclassified task' }], extensions: { roadmap: { version: 1, phases: [{ id: 'p', title: 'Delivery', startDate: '2026-01-01', endDate: '2026-01-10' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'drill' });
+    await page.locator('[data-view-mode="roadmap"]').click();
+    await page.locator('.roadmap-period-controls').getByLabel('Plan period from', { exact: true }).fill('2026-01-01');
+    await page.locator('.roadmap-period-controls').getByLabel('Plan period to', { exact: true }).fill('2026-02-01');
+    await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
+    const list = page.locator('[data-roadmap-task-list="phase:p"]');
+    await list.getByLabel('Group workitems by', { exact: true }).selectOption('hierarchy');
+    await expect(list.locator('.portfolio-task-card')).toHaveCount(3);
+    await expect(list).toContainText('Inherited association');
+    await list.locator('.task-title').filter({ hasText: 'Inherited task' }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Inherited task');
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await expect(list.getByLabel('Group workitems by', { exact: true })).toHaveValue('hierarchy');
+    await expect(page.locator('.roadmap-period-controls').getByLabel('Plan period to', { exact: true })).toHaveValue('2026-02-01');
+    await expect(page.locator('[data-roadmap-task-list="unassociated"]')).toContainText('Unclassified task');
+});
+
 test('US19: freeze baseline, replan and record actual variance without losing originals', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'dates', title: 'Dates', hasHandle: true, extensions: { roadmap: { version: 1, phases: [{ id: 'p', title: 'Delivery', startDate: '2026-01-01', endDate: '2026-01-10' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'dates' });

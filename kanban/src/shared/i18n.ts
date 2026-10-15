@@ -6,6 +6,7 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'drilldown.unassociated': 'Unassociated / unclassified', 'drilldown.hierarchy': 'Workitem hierarchy', 'drilldown.group': 'Group workitems by', 'drilldown.completion': 'Completion', 'drilldown.sprint': 'Sprint', 'drilldown.milestone': 'Milestone', 'drilldown.direct': 'Direct association', 'drilldown.inherited': 'Inherited association', 'drilldown.children': '{count} child workitems', 'drilldown.more': 'Show 100 more workitems', 'drilldown.fit': 'Fit plan', 'drilldown.includeArchived': 'Include archived workitems',
     'dates.from': 'Plan period from', 'dates.to': 'Plan period to',
     'dashboard.project': 'Dashboard', 'dashboard.current': 'Current snapshot', 'dashboard.historical': 'Historical snapshot — read only',
     'dates.title': 'Plan dates and variance', 'dates.days': 'days', 'dates.formula': 'Calendar days: forecast finish − baseline finish; actual finish − baseline finish only when an actual finish is recorded. Missing data = N/A.',
@@ -591,6 +592,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'drilldown.unassociated': 'Sem associação / por classificar', 'drilldown.hierarchy': 'Hierarquia de workitems', 'drilldown.group': 'Agrupar workitems por', 'drilldown.completion': 'Conclusão', 'drilldown.sprint': 'Sprint', 'drilldown.milestone': 'Milestone', 'drilldown.direct': 'Associação direta', 'drilldown.inherited': 'Associação herdada', 'drilldown.children': '{count} workitems filhos', 'drilldown.more': 'Mostrar mais 100 workitems', 'drilldown.fit': 'Ajustar ao plano', 'drilldown.includeArchived': 'Incluir workitems arquivados',
     'dates.from': 'Período do plano desde', 'dates.to': 'Período do plano até',
     'dashboard.project': 'Dashboard', 'dashboard.current': 'Fotografia atual', 'dashboard.historical': 'Fotografia histórica — apenas leitura',
     'dates.title': 'Datas do plano e desvios', 'dates.days': 'dias', 'dates.formula': 'Dias de calendário: fim previsto − fim baseline; fim real − fim baseline apenas com fim real registado. Dados em falta = N/D.',

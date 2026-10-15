@@ -64,6 +64,9 @@ function buildTaskPayload(task: SeedTask, index: number) {
       : [];
   return {
     id: task.id ?? index + 1,
+    ...(task.workitemType ? { workitemType: task.workitemType } : {}),
+    ...(task.parentId ? { parentId: task.parentId } : {}),
+    ...(task.assigneeId ? { assigneeId: task.assigneeId } : {}),
     title: task.title,
     description: task.description || '',
     assignees,

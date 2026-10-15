@@ -138,3 +138,12 @@ optional GitHub PR URLs, and aggregate parent completion.
 - Actual dates are recorded manually; signed calendar-day variance with N/A for
   missing baselines or actual finishes. Date order validated and metadata replayed.
 - Unit tests cover revisions, reopen, negative variance and leap-day arithmetic.
+
+## US-15 — Gantt drilldown
+
+- Expand plan rows into completion, hierarchy, sprint or milestone groupings.
+- Direct/inherited association labels, nested Epic/Story/Task/Bug navigation,
+  unique leaf metrics and an explicit unassociated-workitems section.
+- Archived inclusion is explicit; lists render in 100-item increments.
+- Period controls and expansion/grouping remain mounted when opening the shared
+  side panel; project-local sprint groupings do not duplicate totals.

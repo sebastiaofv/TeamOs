@@ -1,11 +1,12 @@
 import { useShallow } from 'zustand/react/shallow';
+import { useState } from 'react';
 import type {
     BoardRecord,
     PortfolioRoadmapViewModel,
 } from '@/features/portfolio/types';
-import type { BoardData, RoadmapItem, RoadmapKind, RoadmapRange, RoadmapTick, Task } from '@/domain/types';
+import type { BoardData, RoadmapItem, RoadmapKind, RoadmapRange, RoadmapTick } from '@/domain/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
-import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
+import type { TaskCardState } from '@/features/portfolio/task/TaskCard';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import {
     compareRoadmapItemsByDate,
@@ -14,68 +15,17 @@ import {
     getRoadmapTimelinePlacement,
     getRoadmapTodayMarker
 } from '@/domain/roadmap';
-import { normalizeTask } from '@/domain/task';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
 import { executionProgress, planWorkitems, phaseDepth, orderedPhases } from '@/domain/projectPlan';
-import { isTaskCompleted } from '@/domain/workflow';
+import { PlanDrilldown } from './PlanDrilldown';
+import { planDrilldownTasks, unassociatedPlanTasks } from '@/features/portfolio/queries/planDrilldown';
+import { parseRoadmapIsoDate, getRoadmapAxisTicks } from '@/domain/roadmap';
 
 type RoadmapState = TaskCardState & Pick<AppState, 'portfolioRoadmapExpandedRowsByBoardId'>;
 
-function RoadmapTaskList({ tasks, descriptor, boardRecord, boardData, historical, state }: {
-    tasks: Task[];
-    descriptor: string;
-    boardRecord: BoardRecord;
-    boardData: BoardData | null;
-    historical: boolean;
-    state: RoadmapState;
-}) {
-    const { t } = useI18n();
-    const boardIndex = state.portfolioBoards.findIndex((board) => board.id === boardRecord.id);
-    const source = boardData || boardRecord.data;
-    const orderedTasks = [...tasks].sort((a, b) => Number(isTaskCompleted(source, a)) - Number(isTaskCompleted(source, b)));
-    if (tasks.length === 0) {
-        return (
-            <div className="roadmap-task-list" data-roadmap-task-list={descriptor} id={`roadmap-tasks-${descriptor.replace(/[:\s]/g, '-')}`}>
-                <div className="roadmap-task-list-gutter" aria-hidden="true" />
-                <div className="roadmap-task-list-track">
-                        <div className="roadmap-task-empty">{t('roadmap.noTasksAssigned')}</div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="roadmap-task-list" data-roadmap-task-list={descriptor} id={`roadmap-tasks-${descriptor.replace(/[:\s]/g, '-')}`}>
-            <div className="roadmap-task-list-gutter" aria-hidden="true" />
-            <div className="roadmap-task-list-track">
-                {orderedTasks.map((task, taskIndex) => (
-                    <div key={`${boardRecord.id}:${task.id}`}>
-                    {(taskIndex === 0 || isTaskCompleted(source, task) !== isTaskCompleted(source, orderedTasks[taskIndex - 1])) && <h4>{t(isTaskCompleted(source, task) ? 'plan.completed' : 'plan.open')}</h4>}
-                    <PortfolioTaskCard
-                        key={`${boardRecord.id}:${task.id}`}
-                        state={state}
-                        item={{
-                            boardIndex,
-                            boardId: boardRecord.id,
-                            taskId: task.id,
-                            taskIndex,
-                            boardTitle: boardRecord.title,
-                            boardFileName: boardRecord.fileName,
-                            canMutate: false,
-                            historical,
-                            boardData,
-                            task: normalizeTask(task)
-                        }}
-                    />
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function RoadmapSection({ boardId, boardData, historical, kind, items, range, axisTicks, state }: {
+function RoadmapSection({ boardId, boardData, historical, kind, items, range, axisTicks, state, includeArchived }: {
+    includeArchived: boolean;
     boardId: string;
     boardData: BoardData | null;
     historical: boolean;
@@ -139,7 +89,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                         const expandKey = `${config.singular}:${item.id}`;
                         const expanded = Boolean(expandedRows[expandKey]);
                         const placement = getRoadmapTimelinePlacement(item, range);
-                        const tasks = boardData ? planWorkitems(boardData, kind, item.id).filter((task) => !task.archived) : [];
+                        const tasks = boardData ? planWorkitems(boardData, kind, item.id).filter((task) => includeArchived || !task.archived) : [];
                         const progress = boardData ? executionProgress(boardData, tasks) : null;
                         const rowId = `roadmap-row-${config.singular}-${item.id}`;
                         const taskListId = `roadmap-tasks-${config.singular}-${item.id}`;
@@ -221,11 +171,11 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                 </div>
                                 <div className="roadmap-expand-icon">{expanded ? t('common.collapse') : t('common.expand')}</div>
                                 {expanded && (
-                                    <RoadmapTaskList
-                                        tasks={tasks}
+                                    <PlanDrilldown
+                                        tasks={tasks} directIds={boardData ? planDrilldownTasks(boardData, kind, item.id, includeArchived).directIds : new Set()}
                                         descriptor={`${config.singular}:${item.id}`}
-                                        boardRecord={state.portfolioBoards.find((board) => board.id === boardId) as BoardRecord}
-                                        boardData={boardData}
+                                        board={state.portfolioBoards.find((board) => board.id === boardId) as BoardRecord}
+                                        data={boardData || (state.portfolioBoards.find((board) => board.id === boardId) as BoardRecord).data}
                                         historical={historical}
                                         state={state}
                                     />
@@ -239,14 +189,19 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
 }
 
 function PortfolioRoadmapView({ view, state }: { view: PortfolioRoadmapViewModel; state: RoadmapState }) {
-    const { t } = useI18n();
-    const { boardId, boardData, roadmap, range, axisTicks, historical } = view;
+    const { t, language } = useI18n();
+    const { boardId, boardData, roadmap, historical } = view;
+    const [from, setFrom] = useState(''), [to, setTo] = useState(''), [includeArchived, setIncludeArchived] = useState(false);
+    const start = parseRoadmapIsoDate(from), end = parseRoadmapIsoDate(to);
+    const range = start && end && start <= end ? { start, end, totalDays: Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000)) } : view.range;
+    const axisTicks = start && end && start <= end ? getRoadmapAxisTicks(range, language) : view.axisTicks;
     const marker = getRoadmapTodayMarker(range);
     const boardRecord = state.portfolioBoards.find((board) => board.id === boardId);
     if (!boardRecord) return null;
 
     return (
         <div className="portfolio-roadmap-timeline surface-page surface-border">
+            <div className="dashboard-controls roadmap-period-controls"><label>{t('dates.from')}<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label><label>{t('dates.to')}<input type="date" min={from} value={to} onChange={(e) => setTo(e.target.value)} /></label><button className="btn" type="button" onClick={() => { setFrom(''); setTo(''); }}>{t('drilldown.fit')}</button><label><input type="checkbox" checked={includeArchived} onChange={(e) => setIncludeArchived(e.target.checked)} />{t('drilldown.includeArchived')}</label></div>
             <div className="roadmap-axis-shell">
                 <div className="roadmap-axis-label">{t('roadmap.timeline')}</div>
                 <div className="roadmap-axis" data-roadmap-axis="shared">
@@ -291,8 +246,10 @@ function PortfolioRoadmapView({ view, state }: { view: PortfolioRoadmapViewModel
                     range={range}
                     axisTicks={axisTicks}
                     state={state}
+                    includeArchived={includeArchived}
                 />
             ))}
+            {boardData && <section className="roadmap-section"><h3 className="roadmap-section-title">{t('drilldown.unassociated')}</h3><PlanDrilldown tasks={unassociatedPlanTasks(boardData, includeArchived)} directIds={new Set(unassociatedPlanTasks(boardData, includeArchived).map((task) => task.id))} descriptor="unassociated" board={boardRecord} data={boardData} historical={historical} state={state} /></section>}
         </div>
     );
 }
@@ -310,7 +267,7 @@ function ConnectedRoadmap() {
         activeLanguage: state.activeLanguage,
     })));
     const view = buildPortfolioRoadmapView(state);
-    return view ? <PortfolioRoadmapView view={view} state={state} /> : null;
+    return view ? <PortfolioRoadmapView key={view.boardId} view={view} state={state} /> : null;
 }
 
 export function PortfolioRoadmap({ hidden }: { hidden: boolean }) {
