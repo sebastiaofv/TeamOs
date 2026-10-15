@@ -18,6 +18,7 @@ import {
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
 import { getWorkflow } from '@/domain/workflow';
+import { isAggregateWorkitem } from '@/domain/workitems';
 import { matchRanges, scoreText } from './paletteText';
 import { parseQuickCreate, type QuickCreateDraft } from './quickCreate';
 
@@ -154,7 +155,7 @@ const statusLabel = (ctx: Ctx, status: TaskStatus, boardId = ctx.selectedBoardId
 const availableStatuses = (ctx: Ctx, row: PortfolioRow) => {
     const board = findBoard(ctx, row.boardId);
     if (!board) return defaultColumns.map((column) => column.status);
-    if (['epic', 'story'].includes(row.task.workitemType || 'task')) return [];
+    if (isAggregateWorkitem(row.task)) return [];
     return getWorkflow(board.data).transitions.filter((tr) => tr.from === row.task.status).map((tr) => tr.to);
 };
 
