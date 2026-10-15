@@ -11,8 +11,7 @@ import {
     normalizeTags,
     taskAssignees,
     isTaskOverdue,
-    formatTaskStatusAge,
-    normalizeTaskStatus
+    formatTaskStatusAge
 } from '@/domain/task';
 import { formatTaskScore } from '@/domain/scoring';
 import { escapeRegExp } from '@/domain/util';
@@ -138,7 +137,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
             data-draggable={canDrag ? 'true' : 'false'}
             data-board-id={item.boardId}
             data-task-id={String(taskId)}
-            data-status={normalizeTaskStatus(task.status)}
+            data-status={task.status}
             data-historical={item.historical ? 'true' : 'false'}
             role="group"
             tabIndex={overlay ? -1 : 0}
@@ -176,7 +175,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}><span aria-hidden="true">🗑️</span></button>
                 </div>
             </div>
-            {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
+            {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task, item.boardData || state.portfolioBoards.find((board) => board.id === item.boardId)?.data) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
                 <div className="task-meta">
                     {showProjectBadge && <span className="portfolio-project-badge" style={{ background: color.bg, borderColor: color.border, color: color.text }} title={projectLabel}>{projectLabel}</span>}
                     {assignees.map((name) => <span className="task-tag task-tag-assignee" title={t('task.assignee')} key={`assignee-${name}`}>{name}</span>)}
@@ -185,7 +184,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     {item.dependencyBlocked && <span className="task-tag task-tag-blocked">{t('relations.dependencyBlocked')}</span>}
                     {item.assignmentNeedsReview && <span className="task-tag task-tag-blocked">{t('assignment.review')}</span>}
                     {localizedStatusAge && <span className="task-tag task-tag-age" title={t('task.timeInStatus')}>{localizedStatusAge}</span>}
-                    {isTaskOverdue(task) && <span className="task-tag" title={t('task.overdue')}><span className="due-dot" />{t('task.overdue')}</span>}
+                    {isTaskOverdue(task, item.boardData || state.portfolioBoards.find((board) => board.id === item.boardId)?.data) && <span className="task-tag" title={t('task.overdue')}><span className="due-dot" />{t('task.overdue')}</span>}
                     {priority && <span className="task-tag"><span className={`priority-dot priority-${task.priority}`} />{priority === 'high' ? t('toolbar.high') : priority === 'medium' ? t('toolbar.medium') : priority === 'low' ? t('toolbar.low') : priority}</span>}
                     {effort && <span className="task-tag" title={t('task.effort')}><span className={`effort-dot effort-${effort.toLowerCase()}`} />{effort}</span>}
                     {score !== '-' && <span className="task-tag task-tag-score" title={t('task.scoreTitle')}>{t('task.score', { score })}</span>}

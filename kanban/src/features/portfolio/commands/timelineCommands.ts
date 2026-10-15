@@ -10,6 +10,7 @@ import { cloneSerializable } from '@/domain/serializable';
 import { getBoardTimelineData, recordBoardRestoreTimelineEvent } from '@/domain/timeline';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
+import { getProjectInfo } from '@/domain/project';
 
 export function createTimelineActions(
     { getState, commitState, getBoardRecord, notifyPortfolioMutationUnavailable, runPortfolioBoardMutation }: BoardMutationContext,
@@ -75,10 +76,14 @@ export function createTimelineActions(
         closeTaskEditor();
         return runPortfolioBoardMutation(view.boardRecord.id, (_, draft) => {
             draft.data = createBoardStateSnapshot(view.projectedBoard);
+            getProjectInfo(draft.data).id = getProjectInfo(view.boardRecord.data).id;
+            // Conversations are append-only records, not restorable task fields.
+            // Keep the canonical bodies so retained timeline references remain resolvable.
+            if (view.boardRecord.data.extensions.conversation) draft.data.extensions.conversation = cloneSerializable(view.boardRecord.data.extensions.conversation);
             getBoardExtensionsObject(draft.data, { create: true })[TIMELINE_EXTENSION_KEY] = cloneSerializable(currentTimeline);
             recordBoardRestoreTimelineEvent(draft.data, view.selectedEvent);
             return true;
-        }, { allowHistorical: true });
+        }, { allowHistorical: true, restoreSnapshot: true });
     }
     return {
         clearPortfolioTimelineSelection,

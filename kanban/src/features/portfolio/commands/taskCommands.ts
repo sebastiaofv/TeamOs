@@ -98,8 +98,8 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const workflow = getTaskWorkflow(boardRecord.data, { workContext });
         const allowedStatuses = new Set(workflow.states.map((state) => state.id));
         const fallbackStatus = workflow.initialStateId;
-        const status = allowedStatuses.has(normalizeTaskStatus(preferredStatus))
-            ? normalizeTaskStatus(preferredStatus)
+        const status = allowedStatuses.has(normalizeTaskStatus(preferredStatus, allowedStatuses))
+            ? normalizeTaskStatus(preferredStatus, allowedStatuses)
             : fallbackStatus;
         commitState({
             portfolioCreateContext: { boardId, status, relatedToTaskId: options.relatedToTaskId, workContext, applicationId: options.applicationId || relatedSource?.applicationId || projectApplication(boardRecord.data)?.id },
@@ -308,14 +308,14 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             await alert(translateCurrent('workitem.aggregate'));
             return false;
         }
-        const normalizedTargetStatus = normalizeTaskStatus(targetStatus);
         const validStatuses = new Set(
             getTaskWorkflow(source.boardRecord.data, source.task).states.map((state) => state.id)
         );
+        const normalizedTargetStatus = normalizeTaskStatus(targetStatus, validStatuses);
         if (!validStatuses.has(normalizedTargetStatus)) return false;
-        if (normalizeTaskStatus(source.task.status) === normalizedTargetStatus) return false;
+        if (source.task.status === normalizedTargetStatus) return false;
         return Boolean(await runPortfolioTaskMutation(boardId, taskId, (task) => {
-            if (normalizeTaskStatus(task.status) === normalizedTargetStatus) return false;
+            if (task.status === normalizedTargetStatus) return false;
             task.status = normalizedTargetStatus;
             return true;
         }));
@@ -388,7 +388,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                 priority: fields.priority, effort: fields.effort, dueDate: fields.dueDate,
                 status: getState().selectedWorkContext === 'maintenance' ? getTaskWorkflow(data, { workContext: 'maintenance' }).initialStateId : resolveCreateTaskStatus(boardRecord, 'to-do'), archived: false,
                 createdAt: now, updatedAt: now
-            }, { includeStatusChangedAt: false }));
+            }, { includeStatusChangedAt: false, knownStatuses: new Set(getTaskWorkflow(data, { workContext: getState().selectedWorkContext }).states.map((state) => state.id)) }));
             recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, id));
             return true;
         });

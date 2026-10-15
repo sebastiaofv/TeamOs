@@ -7,6 +7,7 @@ import {
     appendTimelineEvent,
     ensureBoardTimelineBaseline,
     getBoardTimelineData,
+    getTimelineExtensionObject,
     recordTaskTimelineEvent,
 } from '@/domain/timeline';
 import { touchTask } from '@/domain/task';
@@ -78,7 +79,7 @@ export function createBoardMutationContext({
     async function runPortfolioBoardMutation(
         boardId: string,
         mutator: BoardMutator,
-        { allowHistorical = false, onMutated = () => {}, onCommitted = () => {} }: { allowHistorical?: boolean; onMutated?: () => void; onCommitted?: () => void } = {}
+        { allowHistorical = false, restoreSnapshot = false, onMutated = () => {}, onCommitted = () => {} }: { allowHistorical?: boolean; restoreSnapshot?: boolean; onMutated?: () => void; onCommitted?: () => void } = {}
     ): Promise<boolean> {
         const current = getBoardRecord(boardId);
         if (!current) return false;
@@ -92,22 +93,22 @@ export function createBoardMutationContext({
             const eventStart = getBoardTimelineData(draft.data)?.events.length || 0;
             if (mutator(draft.data, draft) === false) return false;
             const previousTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
-            for (const task of draft.data.board.tasks) validateNewAttachments(previousTasks.get(task.id)?.attachments || [], task.attachments || []);
+            if (!restoreSnapshot) for (const task of draft.data.board.tasks) validateNewAttachments(previousTasks.get(task.id)?.attachments || [], task.attachments || []);
             const beforeAssignment = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
-            reconcileAssignments(draft.data, current.data);
+            if (!restoreSnapshot) reconcileAssignments(draft.data, current.data);
             for (const task of draft.data.board.tasks) {
                 const before = beforeAssignment.get(task.id);
                 if (before && (before.assigneeId !== task.assigneeId || JSON.stringify(before.assignees) !== JSON.stringify(task.assignees))) {
                     if (previousTasks.has(task.id)) recordTaskTimelineEvent(draft.data, before, task);
                     else {
-                        const event = [...(getBoardTimelineData(draft.data)?.events || [])].reverse().find((event) => event.kind === 'task.created' && event.entityId === String(task.id));
+                        const event = [...(getTimelineExtensionObject(draft.data)?.events || [])].reverse().find((event) => event.kind === 'task.created' && event.entityId === String(task.id));
                         if (event) event.snapshot = captureTaskTimelineSnapshot(draft.data, task.id) || undefined;
                     }
                 }
             }
-            validateWorkitems(draft.data, current.data);
+            validateWorkitems(draft.data, restoreSnapshot ? undefined : current.data);
             validatePhaseHierarchy(draft.data);
-            if (JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow) && JSON.stringify(current.data.extensions.maintenance) === JSON.stringify(draft.data.extensions.maintenance)) {
+            if (!restoreSnapshot && JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow) && JSON.stringify(current.data.extensions.maintenance) === JSON.stringify(draft.data.extensions.maintenance)) {
                 for (const task of draft.data.board.tasks) {
                     const before = previousTasks.get(task.id);
                     if (before && (before.workContext || 'project') === (task.workContext || 'project')) assertTaskTransition(current.data, before, task.status);
@@ -132,7 +133,7 @@ export function createBoardMutationContext({
             const project = getProjectInfo(draft.data);
             const profileId = getState().localProfiles[project.id];
             const actor = project.team.find((member) => member.id === profileId && member.active);
-            if (actor) for (const event of getBoardTimelineData(draft.data)?.events.slice(eventStart) || []) event.meta = { ...event.meta, actor: { id: actor.id, name: actor.name, verified: false } };
+            if (actor) for (const event of getTimelineExtensionObject(draft.data)?.events.slice(eventStart) || []) event.meta = { ...event.meta, actor: { id: actor.id, name: actor.name, verified: false } };
         } catch (error) {
             alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;

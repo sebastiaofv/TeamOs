@@ -36,7 +36,7 @@ export function nextPortfolioProjectId(): string {
     return `p${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function normalizeColumns(inputColumns: unknown): BoardColumn[] {
+export function normalizeColumns(inputColumns: unknown, knownStatuses?: ReadonlySet<string>): BoardColumn[] {
     if (!Array.isArray(inputColumns) || inputColumns.length === 0) {
         return defaultColumns.map(col => ({ ...col }));
     }
@@ -46,7 +46,7 @@ export function normalizeColumns(inputColumns: unknown): BoardColumn[] {
     const normalized: BoardColumn[] = [];
     inputColumns.forEach((col) => {
         if (!col || typeof col !== 'object') return;
-        const status = typeof col.status === 'string' && /^wf_[a-z0-9_-]+$/i.test(col.status) ? col.status : resolveKnownTaskStatus(col.status);
+        const status = typeof col.status === 'string' && (knownStatuses?.has(col.status) || /^wf_[a-z0-9_-]+$/i.test(col.status)) ? col.status : resolveKnownTaskStatus(col.status);
         if (!status) return;
         if (seen.has(status)) return;
         const rawTitle = typeof col.title === 'string' ? col.title.trim() : '';

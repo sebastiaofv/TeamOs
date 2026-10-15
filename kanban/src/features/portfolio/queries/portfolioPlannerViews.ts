@@ -12,8 +12,7 @@ import {
     layoutPlannerBlocks,
     plannerMinutes
 } from '@/domain/dayPlanner';
-import { normalizeTaskStatus } from '@/domain/task';
-import { isTaskCompleted, statusCategory } from '@/domain/workflow';
+import { isTaskCompleted, getTaskWorkflow } from '@/domain/workflow';
 import { taskWorkContext } from '@/domain/maintenance';
 import type { SelectorState } from './portfolioRowViews';
 import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './portfolioTimelineViews';
@@ -123,12 +122,12 @@ export function buildPortfolioPlannerViewModel(
     const statusSet = new Set(trayStatuses);
     const groups = new Map<string, PlannerTrayGroup>();
     (Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : []).forEach((row) => {
-        const status = normalizeTaskStatus(row.task.status);
+        const status = row.task.status;
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;
-        const category = statusCategory(board.data, status);
+        const category = getTaskWorkflow(board.data, row.task).states.find((state) => state.id === status)?.category;
         const trayStatus = category === 'completed' ? 'done' : category === 'in-progress' ? 'doing' : 'to-do';
-        if (!statusSet.has(status) && !(status.startsWith('wf_') && statusSet.has(trayStatus))) return;
+        if (!statusSet.has(status) && !(board.data.extensions.workflow && !['backlog', 'to-do', 'doing', 'done'].includes(status) && statusSet.has(trayStatus))) return;
         let group = groups.get(board.id);
         if (!group) {
             group = { boardId: board.id, boardTitle: boardTitle(board), color: boardColor(board), items: [] };

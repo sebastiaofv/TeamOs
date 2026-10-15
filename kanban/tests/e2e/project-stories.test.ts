@@ -1,9 +1,31 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, setTimelineSlider } from '../support/portfolio';
 
 function projectMetadata(id: string, name: string, product: string, state = 'active') {
     return { version: 1, id, name, product, state, description: '', manager: `${product} manager`, team: [], tags: [], forecast: { start: '', end: '' }, baseline: { start: '', end: '' }, actual: { start: '', end: '' }, needsReview: true };
 }
+
+test('review regression: confirmed restore keeps immutable comments and local author records', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'restore-comments', title: 'Restore comments', hasHandle: true, tasks: [{ id: 1, title: 'Discuss safely', assignees: ['Ana'] }] }], { selectedBoardId: 'restore-comments' });
+    await page.locator('#localProfile').selectOption({ label: 'Ana' });
+    await page.locator('.task-title').filter({ hasText: 'Discuss safely' }).click();
+    await page.getByRole('tab', { name: 'Comments', exact: true }).click();
+    await page.locator('#commentBody').fill('Immutable across restore');
+    await page.getByRole('button', { name: 'Post comment', exact: true }).click();
+    await expect(page.locator('.workitem-comments')).toContainText('Immutable across restore');
+    await page.locator('#taskDetailModalCloseBtn').click();
+    const before = await readSavedBoard(page, 'restore-comments');
+    expect(before.extensions.timeline.events.at(-1).meta.actor).toMatchObject({ name: 'Ana', verified: false });
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await setTimelineSlider(page, 0);
+    await page.locator('#portfolioTimelinePanel .btn-primary').click();
+    await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toHaveCount(0);
+    await page.locator('.task-title').filter({ hasText: 'Discuss safely' }).click();
+    await page.getByRole('tab', { name: 'Comments', exact: true }).click();
+    await expect(page.locator('.workitem-comments')).toContainText('Immutable across restore');
+    expect((await readSavedBoard(page, 'restore-comments')).extensions.project.id).toBe(before.extensions.project.id);
+});
 
 test('US13: maintenance stays separate from project delivery and items move without copying', async ({ page }) => {
     await gotoApp(page);

@@ -9,6 +9,27 @@ import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload,
 
 const FIXED_TIME = '2026-02-26T12:00:00Z';
 
+test.describe('Business story views', () => {
+  for (const theme of ['light', 'dark']) {
+    test(`project dashboard and portfolio (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'business', title: 'Delivery project', hasHandle: true,
+        tasks: [{ id: 1, title: 'Prepare delivery', status: 'doing', assignees: ['Ana'], priority: 'high', phaseId: 'p1' }, { id: 2, title: 'Review feedback', status: 'done', phaseId: 'p1' }],
+        extensions: { ...ROADMAP, project: { version: 1, id: 'visual-project', name: 'Delivery project', state: 'active', product: 'Customer portal', manager: 'Ana', description: 'Delivery and release', team: [{ id: 'ana', name: 'Ana', role: 'Manager', email: '', active: true }], tags: ['delivery'], forecast: { start: '2026-02-01', end: '2026-03-31' }, baseline: { start: '', end: '' }, actual: { start: '', end: '' }, needsReview: false } }
+      }], { selectedBoardId: 'business' });
+      await page.locator('[data-view-mode="dashboard"]').click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`project-dashboard-${theme}.png`, { fullPage: true });
+      await page.locator('[data-view-mode="portfolio"]').click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`portfolio-dashboard-${theme}.png`, { fullPage: true });
+    });
+  }
+});
+
 test.describe('US-01 workitems table', () => {
   for (const theme of ['light', 'dark']) {
     test(`project table with default columns (${theme})`, async ({ page }) => {
@@ -324,7 +345,7 @@ test.describe('2.1b task editor', () => {
     ], { selectedBoardId: 'v1' });
     await portfolioCard(page, 'Prepare launch checklist').locator('[data-action="edit-task"]').click();
     await expect(page.locator('#modalTitle')).toHaveText('Edit Task');
-    await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(2);
+    await expect(page.locator('#taskResponsible option:checked')).toContainText('Assignment needs review');
     await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(3);
     await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(2);
   }

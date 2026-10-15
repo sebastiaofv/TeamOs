@@ -1,6 +1,6 @@
 import type { Attachment, BoardData, LooseBoardData } from './types';
 import { newLocalId } from './project';
-import { nowIso } from './util';
+import { nowIso, isRecord } from './util';
 import { ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_MAX_COUNT } from './constants';
 import { estimateAttachmentDataUrlSizeBytes } from './attachments';
 
@@ -11,15 +11,18 @@ export function getConversation(data: LooseBoardData): Conversation {
     const value = data.extensions?.conversation as Conversation | undefined;
     if (value && (value.version !== 1 || !value.byTaskId || typeof value.byTaskId !== 'object')) throw new Error('Invalid conversation data.');
     if (value) for (const comments of Object.values(value.byTaskId)) {
-        if (!Array.isArray(comments) || comments.some((comment) => !comment || typeof comment.id !== 'string' || typeof comment.body !== 'string' || !Number.isFinite(Date.parse(comment.at)) || !Array.isArray(comment.images))) throw new Error('Invalid workitem comments.');
+        if (!Array.isArray(comments) || comments.some((comment) => !comment || typeof comment.id !== 'string' || !comment.id || typeof comment.body !== 'string' || comment.body.length > 10000 || !Number.isFinite(Date.parse(comment.at)) || !Array.isArray(comment.images) || comment.images.length > ATTACHMENT_MAX_COUNT || comment.images.some((image) => !validCommentImage(image)) || comment.author !== null && (!isRecord(comment.author) || typeof comment.author.id !== 'string' || typeof comment.author.name !== 'string' || comment.author.verified !== false))) throw new Error('Invalid workitem comments or images.');
     }
     return value || { version: 1, byTaskId: {} };
 }
 export function getTaskComments(data: LooseBoardData, taskId: number): WorkitemComment[] {
     return getConversation(data).byTaskId[String(taskId)] || [];
 }
-export function isSafeCommentImage(image: Attachment): boolean {
-    return /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\s]+$/.test(image.dataUrl) && ['image/png', 'image/jpeg', 'image/webp'].includes(image.mime) && image.dataUrl.startsWith(`data:${image.mime};base64,`);
+export function isSafeCommentImage(image: unknown): image is Attachment {
+    return isRecord(image) && typeof image.dataUrl === 'string' && typeof image.mime === 'string' && /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\s]+$/.test(image.dataUrl) && ['image/png', 'image/jpeg', 'image/webp'].includes(image.mime) && image.dataUrl.startsWith(`data:${image.mime};base64,`);
+}
+function validCommentImage(image: unknown): boolean {
+    return isSafeCommentImage(image) && typeof image.id === 'string' && typeof image.name === 'string' && Number.isFinite(image.sizeBytes) && image.sizeBytes >= 0 && Math.max(image.sizeBytes, estimateAttachmentDataUrlSizeBytes(image.dataUrl)) <= ATTACHMENT_HARD_MAX_BYTES;
 }
 export function appendComment(data: BoardData, taskId: number, body: string, images: Attachment[], author: LocalAuthor | null): WorkitemComment {
     if (!data.board.tasks.some((task) => task.id === taskId)) throw new Error('Workitem no longer exists.');

@@ -11,11 +11,11 @@ import type {
 } from './types';
 import type { BlockedFilter } from '@/features/portfolio/types';
 import { defaultColumns, isEffort } from './constants';
-import { nowIso, normalizeTimestamp, todayLocalIsoDate } from './util';
+import { nowIso, normalizeTimestamp, todayLocalIsoDate, isRecord } from './util';
 import { normalizeDueDate } from './calendar';
 import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
-import { getWorkflow } from './workflow';
+import { getWorkflow, getTaskWorkflow } from './workflow';
 export { findTaskInBoardData } from './boardData';
 
 type BoardRecordLike = { data?: BoardData } | null | undefined;
@@ -179,10 +179,27 @@ export function isAcceptedLegacyAssigneeValue(value: unknown): boolean {
 }
 
 export function nextTaskIdForBoard(boardRecord: BoardRecordLike): number {
-    const existingIds = (boardRecord?.data?.board?.tasks || [])
-        .map(task => Number(task?.id))
-        .filter(Number.isFinite);
-    return existingIds.length > 0 ? Math.max(...existingIds) + 1 : Date.now();
+    const data = boardRecord?.data;
+    let highest = 0;
+    const reserve = (value: unknown) => {
+        const id = Number(value);
+        if (Number.isSafeInteger(id) && id > highest) highest = id;
+    };
+    for (const task of data?.board?.tasks || []) reserve(task.id);
+    // Deleted/restored-away workitems still own audit, comment and PR records.
+    // Never give their numeric identity to an unrelated new workitem.
+    for (const event of data?.extensions?.timeline?.events || []) {
+        if (event.entityType === 'task') reserve(event.entityId);
+        for (const id of event.meta?.taskIds || []) reserve(id);
+        reserve(event.snapshot?.id);
+        for (const task of event.snapshot?.board?.tasks || []) reserve(task.id);
+    }
+    for (const key of ['conversation', 'pullRequests']) {
+        const extension = data?.extensions?.[key];
+        if (isRecord(extension) && isRecord(extension.byTaskId)) for (const id of Object.keys(extension.byTaskId)) reserve(id);
+    }
+    if (highest >= Number.MAX_SAFE_INTEGER) throw new Error('Workitem ID range exhausted.');
+    return highest ? highest + 1 : Date.now();
 }
 
 export function touchTask(task: { updatedAt: string }): void {
@@ -197,14 +214,16 @@ export function getTaskStatusAgeBaseTimestamp(task: TaskInput | null | undefined
         || '';
 }
 
-export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived'>): boolean {
+export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived' | 'workContext'>, data?: BoardData): boolean {
     const due = normalizeDueDate(task.dueDate);
-    if (!due || task.status === 'done' || task.archived) return false;
+    const category = data ? getTaskWorkflow(data, task).states.find((state) => state.id === task.status)?.category : task.status === 'done' ? 'completed' : 'not-started';
+    if (!due || category === 'completed' || category === 'cancelled' || task.archived) return false;
     const today = todayLocalIsoDate();
     return due < today;
 }
 
-export function normalizeTaskStatus(status: unknown): TaskStatus {
+export function normalizeTaskStatus(status: unknown, knownStatuses?: ReadonlySet<string>): TaskStatus {
+    if (typeof status === 'string' && knownStatuses?.has(status)) return status;
     if (typeof status === 'string' && /^wf_[a-z0-9_-]+$/i.test(status)) return status;
     const normalized = resolveKnownTaskStatus(status);
     if (normalized) return normalized;
@@ -223,13 +242,14 @@ export function formatTaskStatusAge(task: TaskInput | null | undefined): string 
 }
 
 export function resolveCreateTaskStatus(boardRecord: BoardRecordLike, preferredStatus: unknown): TaskStatus {
-    const validStatuses = new Set((boardRecord?.data?.board?.columns || []).map(col => normalizeTaskStatus(col.status)));
+    const validStatuses = new Set((boardRecord?.data?.board?.columns || []).map(col => col.status));
     const fallbackStatus = boardRecord?.data ? getWorkflow(boardRecord.data).initialStateId : defaultColumns[0].status;
-    const normalizedPreferred = normalizeTaskStatus(preferredStatus);
+    const normalizedPreferred = normalizeTaskStatus(preferredStatus, validStatuses);
     return validStatuses.has(normalizedPreferred) ? normalizedPreferred : fallbackStatus;
 }
 
 export type NormalizeTaskOptions = {
+    knownStatuses?: ReadonlySet<string>;
     fallbackAttachments?: unknown;
     includeStatusChangedAt?: boolean;
     roadmap?: unknown;
@@ -269,7 +289,7 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
         phaseId: normalizeRoadmapRef(task.phaseId),
         milestoneId: normalizeRoadmapRef(task.milestoneId),
         sprintId: normalizeRoadmapRef(task.sprintId),
-        status: normalizeTaskStatus(task.status)
+        status: normalizeTaskStatus(task.status, options.knownStatuses)
     };
     if (includeStatusChangedAt) {
         const statusChangedAt = normalizeTimestamp(task.statusChangedAt);

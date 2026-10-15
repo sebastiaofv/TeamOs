@@ -1,9 +1,8 @@
 import { useState, type ClipboardEvent } from 'react';
-import type { Attachment } from '@/domain/types';
+import type { Attachment, BoardData } from '@/domain/types';
 import { getTaskComments, isSafeCommentImage } from '@/domain/comments';
 import { safeWebUrl } from '@/domain/links';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { mergePickedAttachments } from '@/domain/taskDraft';
 import { readFileAsDataUrl } from '@/infrastructure/browser/fileReader';
@@ -16,14 +15,11 @@ function CommentText({ text }: { text: string }) {
     })}</p>;
 }
 
-export function TaskComments({ readOnly }: { readOnly: boolean }) {
+export function TaskComments({ readOnly, data }: { readOnly: boolean; data: BoardData }) {
     const { t, language } = useI18n();
     const actions = usePortfolioActions();
     const context = useAppStore((s) => s.portfolioDetailContext);
     const boards = useAppStore((s) => s.portfolioBoards);
-    const portfolioTimelineSelection = useAppStore((s) => s.portfolioTimelineSelection);
-    const selectedPortfolioBoardId = useAppStore((s) => s.selectedPortfolioBoardId);
-    const preview = getSelectedPortfolioTimelineView({ portfolioBoards: boards, portfolioTimelineSelection, selectedPortfolioBoardId });
     const [body, setBody] = useState('');
     const [images, setImages] = useState<Attachment[]>([]);
     const [busy, setBusy] = useState(false);
@@ -31,7 +27,6 @@ export function TaskComments({ readOnly }: { readOnly: boolean }) {
     const [limit, setLimit] = useState(50);
     const board = boards.find((board) => board.id === context?.boardId);
     if (!board || !context) return null;
-    const data = preview?.isPreview && preview.boardRecord.id === board.id ? preview.projectedBoard || board.data : board.data;
     const comments = [...getTaskComments(data, context.taskId)].sort((a, b) => a.at.localeCompare(b.at));
     async function paste(event: ClipboardEvent<HTMLTextAreaElement>) {
         const files = [...event.clipboardData.files];

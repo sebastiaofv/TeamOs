@@ -40,7 +40,7 @@ import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 import { getProjectPlan } from '@/domain/projectPlan';
 import { getProjectInfo } from '@/domain/project';
 import { isSafeAttachmentPreview } from '@/domain/attachmentPolicy';
-import { getTaskWorkflow } from '@/domain/workflow';
+import { declaredWorkflowStatuses, getTaskWorkflow } from '@/domain/workflow';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -117,7 +117,7 @@ export function buildTaskEditorViewModel(
         const ref = normalizeRoadmapRef(value);
         return optionList.some((option) => option.value === ref) ? ref : '';
     };
-    const normalized = task ? normalizeTask(task) : null;
+    const normalized = task ? normalizeTask(task, { knownStatuses: declaredWorkflowStatuses(boardRecord.data) }) : null;
     const initial: TaskEditorFields = normalized
         ? {
             title: normalized.title || '',
@@ -169,7 +169,7 @@ export function buildTaskEditorViewModel(
 }
 
 export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean): TaskDetailViewModel {
-    const task = normalizeTask(source.task);
+    const task = normalizeTask(source.task, { knownStatuses: declaredWorkflowStatuses(source.boardData) });
     const statusMap: Record<string, string> = Object.fromEntries(getTaskWorkflow(source.boardData, task).states.map((state) => [state.id, state.name]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {

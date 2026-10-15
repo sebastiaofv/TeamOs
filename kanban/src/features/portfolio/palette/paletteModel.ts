@@ -16,7 +16,6 @@ import {
     formatPlannerTime,
     shiftPlannerDate
 } from '@/domain/dayPlanner';
-import { normalizeTaskStatus } from '@/domain/task';
 import { getWorkflow, getTaskWorkflow } from '@/domain/workflow';
 import { getProjectInfo } from '@/domain/project';
 import { matchRanges, scoreText } from './paletteText';
@@ -163,7 +162,7 @@ const availableStatuses = (ctx: Ctx, row: PortfolioRow) => {
 
 function taskDetail(ctx: Ctx, row: PortfolioRow): string {
     const board = findBoard(ctx, row.boardId);
-    return [`#${row.taskId ?? row.task.id}`, boardTitle(board), statusLabel(ctx, normalizeTaskStatus(row.task.status), row.boardId), row.task.assignees.join(', ')]
+    return [`#${row.taskId ?? row.task.id}`, boardTitle(board), statusLabel(ctx, row.task.status, row.boardId), row.task.assignees.join(', ')]
         .filter(Boolean)
         .join(' · ');
 }
@@ -217,7 +216,7 @@ function taskActionItems(ctx: Ctx, row: PortfolioRow, compact: boolean): Palette
     const items = [item('open', 'open', ctx.t('palette.open'), { type: 'openTask', boardId, taskId }, ['Enter'])];
     if (!canEdit(row)) return items;
 
-    const current = normalizeTaskStatus(row.task.status);
+    const current = row.task.status;
     const statuses = availableStatuses(ctx, row);
     const defaultOrder = defaultColumns.map((column) => column.status);
     const targets = compact && !findBoard(ctx, boardId)?.data.extensions.workflow ? statuses.filter((s) => defaultOrder.indexOf(s) > defaultOrder.indexOf(current)) : statuses.filter((status) => status !== current);
@@ -266,7 +265,7 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
     );
     const matches = (label: string) => scoreText(label, q) > 0;
     if (frame.step === 'status') {
-        const current = normalizeTaskStatus(row.task.status);
+        const current = row.task.status;
         return [current, ...availableStatuses(ctx, row)]
             .filter((status) => matches(statusLabel(ctx, status)))
             .map((status) => choice(status, 'move', statusLabel(ctx, status), { type: 'moveTask', boardId, taskId, status },
@@ -297,13 +296,15 @@ function defaultCreateBoard(ctx: Ctx): BoardRecord | undefined {
 function quickCreate(ctx: Ctx): PaletteModel {
     const fallback = defaultCreateBoard(ctx);
     const writableBoards = ctx.boards.filter((board) => board.handle);
-    const draft = parseQuickCreate(ctx.query, {
-        people: allPeople(ctx),
+    const parse = (people: string[]) => parseQuickCreate(ctx.query, {
+        people,
         projects: writableBoards.map((board) => ({ id: board.id, title: boardTitle(board) })),
         defaultProjectId: fallback?.id || '',
         today: ctx.today
     });
-    const board = findBoard(ctx, draft.projectId);
+    const preliminary = parse(allPeople(ctx));
+    const board = findBoard(ctx, preliminary.projectId);
+    const draft = parse(board ? getProjectInfo(board.data).team.filter((member) => member.active).map((member) => member.name) : []);
     const preview: PalettePreview = { ...draft, projectTitle: boardTitle(board) };
     const items: PaletteItem[] = draft.title && board ? [{
         key: 'create', icon: 'create', label: ctx.t('palette.create', { title: draft.title, project: boardTitle(board) }), ranges: [],

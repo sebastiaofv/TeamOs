@@ -22,7 +22,6 @@ import type { PortfolioRow } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { defaultColumns } from '@/domain/constants';
-import { normalizeTaskStatus } from '@/domain/task';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
 import { useI18n, translateCurrent } from '@/shared/i18n';
@@ -63,7 +62,7 @@ function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCar
         data: {
             boardId: item.boardId,
             taskId: Number(item.taskId ?? item.task.id),
-            status: normalizeTaskStatus(item.task.status),
+            status: item.task.status,
             title: item.task.title
         },
         attributes: { role: 'group', roleDescription: 'draggable task', tabIndex: 0 },
@@ -106,10 +105,10 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
-    const columns = selectedBoard ? getTaskWorkflow(selectedBoard.data, { workContext: state.selectedWorkContext }).states.map((state) => ({ status: state.id, title: state.name })) : [...new Map(state.portfolioBoards.flatMap((board) => board.data.board.columns).map((column) => [column.status, column])).values()];
+    const columns = selectedBoard ? getTaskWorkflow(selectedBoard.data, { workContext: state.selectedWorkContext }).states.map((state) => ({ status: state.id, title: state.name })) : state.portfolioBoards.length ? [...new Map(state.portfolioBoards.flatMap((board) => board.data.board.columns).map((column) => [column.status, column])).values()] : defaultColumns;
     const buckets: Record<string, PortfolioRow[]> = Object.fromEntries(columns.map((column) => [column.status, []]));
     rows.forEach((item) => {
-        const status = normalizeTaskStatus(item.task.status);
+        const status = item.task.status;
         if (!buckets[status]) buckets[status] = [];
         buckets[status].push(item);
     });

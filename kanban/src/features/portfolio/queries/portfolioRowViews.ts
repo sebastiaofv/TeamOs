@@ -5,7 +5,7 @@ import { normalizeTask } from '@/domain/task';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { dependencyBlockedKeys, refKey, taskRef } from '@/domain/relations';
 import { assignmentNeedsReview } from '@/domain/assignments';
-import { getTaskWorkflow } from '@/domain/workflow';
+import { declaredWorkflowStatuses, getTaskWorkflow } from '@/domain/workflow';
 
 // Selectors accept any slice of the store: components pass the fields they
 // subscribe to.
@@ -38,7 +38,7 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
             dependencyBlocked: blockedKeys.has(refKey(taskRef(board.data, task.id))),
             assignmentNeedsReview: assignmentNeedsReview(board.data, task),
             canMutate: Boolean(board.handle),
-            task: normalizeTask(task)
+            task: normalizeTask(task, { knownStatuses: declaredWorkflowStatuses(board.data) })
         }));
     });
 }
@@ -64,6 +64,6 @@ export function buildPortfolioRowsFromBoardData(
         columnTitle: statusMap[task.status] || task.status,
         canMutate,
         historical,
-        task: normalizeTask(task)
+        task: normalizeTask(task, { knownStatuses: declaredWorkflowStatuses(normalizedBoard) })
     }));
 }

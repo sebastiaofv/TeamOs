@@ -1,4 +1,5 @@
-import type { BoardData, Task } from './types';
+import type { BoardData, LooseBoardData, Task } from './types';
+import { isRecord } from './util';
 import { defaultColumns } from './constants';
 import { workitemType } from './workitems';
 
@@ -6,6 +7,16 @@ export const WORKFLOW_CATEGORIES = ['not-started', 'in-progress', 'completed', '
 export type WorkflowCategory = typeof WORKFLOW_CATEGORIES[number];
 export type WorkflowState = { id: string; name: string; color: string; category: WorkflowCategory };
 export type Workflow = { version: 1; initialStateId: string; states: WorkflowState[]; transitions: { from: string; to: string }[] };
+
+export function declaredWorkflowStatuses(data: LooseBoardData): ReadonlySet<string> {
+    const maintenance = data.extensions?.maintenance;
+    const values = [data.extensions?.workflow, isRecord(maintenance) ? maintenance.workflow : null];
+    const ids = new Set<string>();
+    for (const value of values) if (isRecord(value) && Array.isArray(value.states)) {
+        for (const state of value.states) if (isRecord(state) && typeof state.id === 'string') ids.add(state.id);
+    }
+    return ids;
+}
 
 export function getWorkflow(data: BoardData): Workflow {
     if (data.extensions?.workflow) return data.extensions.workflow as Workflow;
@@ -20,7 +31,7 @@ export function validateWorkflow(workflow: Workflow): void {
     if (workflow.version !== 1 || !Array.isArray(workflow.states) || !workflow.states.length || workflow.states.length > 20) throw new Error('Workflow must have 1–20 states.');
     const ids = new Set<string>();
     for (const state of workflow.states) {
-        if (!state.id || ids.has(state.id) || !state.name.trim() || !/^#[0-9a-f]{6}$/i.test(state.color) || !WORKFLOW_CATEGORIES.includes(state.category)) throw new Error('Invalid workflow state.');
+        if (typeof state.id !== 'string' || !state.id.trim() || ['__proto__', 'prototype', 'constructor'].includes(state.id) || ids.has(state.id) || typeof state.name !== 'string' || !state.name.trim() || !/^#[0-9a-f]{6}$/i.test(state.color) || !WORKFLOW_CATEGORIES.includes(state.category)) throw new Error('Invalid workflow state.');
         ids.add(state.id);
     }
     if (!ids.has(workflow.initialStateId)) throw new Error('Choose a valid initial state.');

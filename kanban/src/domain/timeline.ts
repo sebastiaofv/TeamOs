@@ -20,6 +20,8 @@ import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 import { getTaskComments, getConversation, type Conversation } from './comments';
+import { getProjectInfo } from './project';
+import { declaredWorkflowStatuses } from './workflow';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -253,6 +255,7 @@ export function captureTaskTimelineSnapshot(boardData: LooseBoardData | null | u
     const task = findTaskInBoardData(boardData, taskId);
     if (!task) return null;
     return normalizeTask(task, {
+        knownStatuses: boardData ? declaredWorkflowStatuses(boardData) : undefined,
         fallbackAttachments: getTaskAttachments(boardData, taskId),
         includeStatusChangedAt: false,
         roadmap: getRoadmapExtension(boardData)
@@ -302,7 +305,11 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     for (let index = 1; index <= targetIndex; index += 1) {
         state = applyTimelineEventToState(state, timeline.events[index], boardData);
     }
-    return createBoardStateSnapshot(state);
+    const result = createBoardStateSnapshot(state);
+    // Legacy snapshots predate persisted identity and may have older titles.
+    // Historical presentation must not generate a new project identity.
+    if (boardData) getProjectInfo(result).id = getProjectInfo(boardData).id;
+    return result;
 }
 
 export function appendTimelineEvent(boardData: LooseBoardData, eventInput: TimelineEventInput | null | undefined): TimelineEvent | null {

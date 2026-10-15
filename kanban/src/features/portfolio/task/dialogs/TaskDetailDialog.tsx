@@ -93,8 +93,8 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
     </div><div role="tabpanel" id="detail-panel-summary" aria-labelledby="detail-tab-summary" hidden={tab !== 'summary'}>
         <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations readOnly={vm.readOnly} sourceData={vm.boardData} /><TaskAssignment readOnly={vm.readOnly} /><TaskWorkContext readOnly={vm.readOnly} />
     </div><div role="tabpanel" id="detail-panel-history" aria-labelledby="detail-tab-history" hidden={tab !== 'history'}><TaskHistory /></div>
-    <div role="tabpanel" id="detail-panel-comments" aria-labelledby="detail-tab-comments" hidden={tab !== 'comments'}><TaskComments readOnly={vm.readOnly} /></div>
-    <div role="tabpanel" id="detail-panel-pullRequests" aria-labelledby="detail-tab-pullRequests" hidden={tab !== 'pullRequests'}><TaskPullRequests readOnly={vm.readOnly} /></div>
+    <div role="tabpanel" id="detail-panel-comments" aria-labelledby="detail-tab-comments" hidden={tab !== 'comments'}>{vm.boardData && <TaskComments readOnly={vm.readOnly} data={vm.boardData} />}</div>
+    <div role="tabpanel" id="detail-panel-pullRequests" aria-labelledby="detail-tab-pullRequests" hidden={tab !== 'pullRequests'}>{vm.boardData && <TaskPullRequests readOnly={vm.readOnly} data={vm.boardData} />}</div>
     <div role="tabpanel" id="detail-panel-attachments" aria-labelledby="detail-tab-attachments" hidden={tab !== 'attachments'}><TaskAttachments vm={vm} /></div></>;
 }
 

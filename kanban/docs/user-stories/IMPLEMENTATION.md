@@ -5,6 +5,92 @@ Source: `/Users/sebastiao/Downloads/grilling_user_stories` (15 October 2026).
 Branches are stacked, starting from `feat/us-01-workitems-table` at `32c06be`.
 Each story commit includes rebuilt `dist/` and `dist-standalone/`.
 
+## Testing the delivered branches
+
+All branches below are published on `origin`. They are **stacked**, not isolated
+patches against `main`: later branches include the preceding delivered stories.
+For the complete approved-story stack, use `feat/us-13-application-maintenance`.
+
+| Order | Story | Branch | Story commit |
+|---|---|---|---|
+| 1 | US-11 | `feat/us-11-project-master-data` | `b7d7e97` |
+| 2 | US-12 | `feat/us-12-workitem-types` | `4dbfd9c` |
+| 3 | US-04 | `feat/us-04-project-workflows` | `81640f9` |
+| 4 | US-02 | `feat/us-02-workitem-relations` | `8b912c0` |
+| 5 | US-05 | `feat/us-05-project-plan` | `4a7552c` |
+| 6 | US-03 | `feat/us-03-team-assignment` | `15e0517` |
+| 7 | US-06 | `feat/us-06-workitem-history` | `faf258b` |
+| 8 | US-07 | `feat/us-07-workitem-comments` | `dd8a475` |
+| 9 | US-08 | `feat/us-08-pull-request-links` | `fa42810` |
+| 10 | US-16 | `feat/us-16-safe-attachments` | `7d3c2a5` |
+| 11 | US-17 | `feat/us-17-workitem-side-panel` | `e8b891c` |
+| 12 | US-19 | `feat/us-19-date-variance-analysis` | `0f1c9be` |
+| 13 | US-15 | `feat/us-15-gantt-drilldown` | `a4ba26c` |
+| 14 | US-09 | `feat/us-09-project-dashboard` | `810e8b6` |
+| 15 | US-10 | `feat/us-10-portfolio-dashboard` | `7c6935b` |
+| 16 | US-13 | `feat/us-13-application-maintenance` | `f3e355a` |
+
+Serve the regular distribution with `npm run preview`. The standalone build is
+`dist-standalone/index.html`. Writable browser file access depends on browser
+support and a secure context; a loose import remains read-only. No JSON files in
+the source story directory are modified by these changes.
+
+The implementation files are grouped under `src/domain/` (rules and migrations),
+`src/features/portfolio/commands/` (writes), `queries/` (derived metrics), and
+  feature views. Each story's commit is the authoritative changed-file list.
+Acceptance flows live in `tests/e2e/project-stories.test.ts`; targeted unit tests
+  cover project migrations, types, workflow, relations, assignments, history,
+  comments, PRs, attachment policy, plan/drilldown, dates, dashboards and maintenance.
+
+### Final review and hardening
+
+The review compared the complete stack with `32c06be` on two independent axes.
+No issue-tracker configuration exists in this repository; the supplied approved
+Markdown stories were used directly rather than inventing issues or approvals.
+
+**Standards:** four documented-rule findings (comment preservation on restore,
+ordinary guards blocking restore, custom workflow-ID round trips, imported image
+validation), plus a duplicated historical-tab-resolution smell. All were fixed
+and covered by `tests/unit/storyReviewRegressions.test.ts`; comments/PR tabs now
+consume the already-resolved detail snapshot.
+
+**Spec:** four findings (immutable comments lost on restore, valid historical
+restores rejected, legacy title changes altering project identity, local audit
+authors not persisting). Each has a regression test. Confirmed restoration is a
+distinct mutation mode, retains append-only conversations, and keeps the current
+persistent project identity. Historical preview remains a projection of that time.
+
+New author metadata explicitly records `verified: false`. Nothing claims secure
+identity or a tamper-proof audit trail. Images are validated on import before
+rendering. Custom workflow IDs are preserved from declarations rather than being
+silently coerced to the legacy backlog state.
+
+Both follow-up reviews confirmed the original fixes and identified one additional
+identity issue: a restored-away task ID could be reused, attaching retained
+comments to a different new task. Allocation now reserves IDs found in retained
+timeline snapshots/events and canonical comment/PR records. The restore→create
+regression passes. Review totals: five correctness findings on each axis (some
+overlap), plus one standards smell; all addressed in the cumulative branch.
+
+Final regression hardening is on the cumulative maintenance branch. Earlier
+story branches remain their original incremental checkpoints; use the latest
+maintenance branch when testing the combined system or opening important files.
+As with any file-based application, test against copies of your JSON files first.
+
+### Verification commands
+
+- `npm run typecheck` — TypeScript validation.
+- `npm run lint` — repository ESLint rules.
+- `npm run test:unit` — 1,053 passing tests, including seven review regressions.
+- `npm test -- tests/e2e` — 206 passing browser acceptance/regression tests,
+  including external-file conflicts, read-only imports, CSV and 10,000-item tables.
+- `npm test -- tests/visual.test.ts` — 45 light/dark/mobile visual tests; baselines
+  deliberately updated for added navigation, settings and the side panel.
+- `npm run build` and `npm run build:standalone` — both distributions generated.
+
+The regular Vite build emits a non-blocking chunk-size warning (>500 kB).
+There is no new backend, hidden database, remote sync, authentication or API token.
+
 Execution order: 11 → 12 → 04 → 02 → 05 → 03 → 06 → 07 → 08 → 16 → 17 → 19 → 15 → 09 → 10 → 13.
 
 The package explicitly limits implementation to `APROVADA`. US-01 is already
