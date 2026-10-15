@@ -21,6 +21,7 @@ import { validatePhaseHierarchy } from '@/domain/projectPlan';
 import { reconcileAssignments } from '@/domain/assignments';
 import { ensureTaskAuditEvents } from '@/domain/workitemHistory';
 import { getProjectInfo } from '@/domain/project';
+import { validateNewAttachments } from '@/domain/attachmentPolicy';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -91,6 +92,7 @@ export function createBoardMutationContext({
             const eventStart = getBoardTimelineData(draft.data)?.events.length || 0;
             if (mutator(draft.data, draft) === false) return false;
             const previousTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
+            for (const task of draft.data.board.tasks) validateNewAttachments(previousTasks.get(task.id)?.attachments || [], task.attachments || []);
             const beforeAssignment = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
             reconcileAssignments(draft.data, current.data);
             for (const task of draft.data.board.tasks) {

@@ -39,6 +39,7 @@ import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 import { getProjectPlan } from '@/domain/projectPlan';
 import { getProjectInfo } from '@/domain/project';
+import { isSafeAttachmentPreview } from '@/domain/attachmentPolicy';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -197,7 +198,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
             .map((item) => ({
                 id: item.id,
                 name: item.name,
-                isImage: item.kind === 'image',
+                isImage: isSafeAttachmentPreview(item),
                 dataUrl: item.dataUrl,
                 subLabel: `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`
             }))

@@ -787,6 +787,7 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskAttachmentsWarnings')).toContainText('huge.bin exceeds the 10 MB limit.');
 
     await page.getByRole('button', { name: 'Remove attachment notes.txt' }).click();
+    await answerAppMessage(page);
     await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(0);
     await expect(page.locator('#taskAttachmentsWarnings')).toHaveText('');
   });

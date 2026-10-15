@@ -1,5 +1,22 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
+
+test('US16: manage embedded attachments from detail and reject unsafe uploads', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'files', title: 'Files', hasHandle: true, tasks: [{ id: 1, title: 'Documents' }] }], { selectedBoardId: 'files' });
+    await page.locator('.task-title').filter({ hasText: 'Documents' }).click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await page.setInputFiles('#taskAttachmentsInput', { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('offline document') });
+    await expect(page.locator('#taskAttachmentsList')).toContainText('notes.txt');
+    await expect.poll(async () => (await readSavedBoard(page, 'files')).board.tasks[0].attachments.length).toBe(1);
+    await page.setInputFiles('#taskAttachmentsInput', { name: 'unsafe.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg onload="alert(1)"/>') });
+    await expect(page.locator('#taskAttachmentsWarnings')).toContainText('not accepted');
+    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(1);
+    await page.getByRole('button', { name: 'Remove attachment notes.txt', exact: true }).click();
+    await answerAppMessage(page);
+    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(0);
+    await expect.poll(async () => (await readSavedBoard(page, 'files')).board.tasks[0].attachments.length).toBe(0);
+});
 
 test('US08: link and correct a GitHub PR with an optional URL', async ({ page }) => {
     await gotoApp(page);

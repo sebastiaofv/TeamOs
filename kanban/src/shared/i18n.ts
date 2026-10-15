@@ -6,6 +6,8 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'attachments.policy': 'Embedded offline files · 10 per workitem · 10 MB per file. PNG/JPEG/WebP, PDF/TXT and existing document formats. Executables, HTML and SVG are rejected for new uploads; legacy files are retained without unsafe previews.',
+    'attachments.unsafe': '{name}: executable content, HTML and SVG are not accepted.', 'attachments.removeConfirm': 'Remove this attachment? The embedded file reference will be removed from this workitem.',
     'pr.offline': 'Local GitHub references. No API, credentials or inferred merge status.', 'pr.number': 'PR number', 'pr.repository': 'Repository (optional)', 'pr.url': 'GitHub URL (optional)', 'pr.notes': 'Notes (optional)', 'pr.save': 'Save PR link', 'pr.open': 'Open on GitHub', 'pr.empty': 'No linked pull requests.', 'pr.unknownRepository': 'Repository not specified',
     'comments.immutable': 'Comments cannot be edited or deleted. Authors are local and unverified.', 'comments.empty': 'No comments yet.', 'comments.write': 'Write a comment', 'comments.paste': 'Plain text, @mentions, safe links and pasted screenshots (PNG/JPEG/WebP).', 'comments.imageFormats': 'Paste PNG, JPEG or WebP images only.', 'comments.post': 'Post comment',
     'history.title': 'History', 'history.summary': 'Summary', 'history.partial': 'Available local history starts at:', 'history.category': 'Event category', 'history.empty': 'No tracked events for this workitem.', 'history.more': 'Show 50 more',
@@ -583,6 +585,8 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'attachments.policy': 'Ficheiros offline embebidos · 10 por workitem · 10 MB por ficheiro. PNG/JPEG/WebP, PDF/TXT e formatos de documentos existentes. Novos executáveis, HTML e SVG são rejeitados; ficheiros antigos mantidos sem pré-visualização insegura.',
+    'attachments.unsafe': '{name}: conteúdo executável, HTML e SVG não são aceites.', 'attachments.removeConfirm': 'Remover este anexo? A referência do ficheiro embebido será removida deste workitem.',
     'pr.offline': 'Referências locais do GitHub. Sem API, credenciais ou estado de merge inferido.', 'pr.number': 'Número do PR', 'pr.repository': 'Repositório (opcional)', 'pr.url': 'URL GitHub (opcional)', 'pr.notes': 'Notas (opcional)', 'pr.save': 'Guardar ligação PR', 'pr.open': 'Abrir no GitHub', 'pr.empty': 'Sem pull requests associados.', 'pr.unknownRepository': 'Repositório não indicado',
     'comments.immutable': 'Os comentários não podem ser editados nem eliminados. Autoria local não verificada.', 'comments.empty': 'Ainda sem comentários.', 'comments.write': 'Escrever comentário', 'comments.paste': 'Texto, @menções, ligações seguras e screenshots colados (PNG/JPEG/WebP).', 'comments.imageFormats': 'Colar apenas imagens PNG, JPEG ou WebP.', 'comments.post': 'Publicar comentário',
     'history.title': 'Histórico', 'history.summary': 'Resumo', 'history.partial': 'Histórico local disponível a partir de:', 'history.category': 'Categoria de evento', 'history.empty': 'Sem eventos registados para este workitem.', 'history.more': 'Mostrar mais 50',

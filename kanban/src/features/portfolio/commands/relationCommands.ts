@@ -2,6 +2,8 @@ import { addRelation, getRelations, taskRef, type WorkitemRelation } from '@/dom
 import { appendTimelineEvent } from '@/domain/timeline';
 import type { BoardMutationContext } from './mutationContext';
 import { getProjectInfo } from '@/domain/project';
+import type { Attachment } from '@/domain/types';
+import { validateNewAttachments } from '@/domain/attachmentPolicy';
 
 export function createRelationActions(context: BoardMutationContext) {
     function linkWorkitems(boardId: string, taskId: number, targetBoardId: string, targetTaskId: number, kind: WorkitemRelation['kind'], reverse = false) {
@@ -36,5 +38,8 @@ export function createRelationActions(context: BoardMutationContext) {
             return true;
         });
     }
-    return { linkWorkitems, unlinkWorkitems, setWorkitemParent, setWorkitemResponsible };
+    function replaceWorkitemAttachments(boardId: string, taskId: number, attachments: Attachment[]) {
+        return context.runPortfolioTaskMutation(boardId, taskId, (task) => { validateNewAttachments(task.attachments, attachments); task.attachments = attachments; return true; });
+    }
+    return { linkWorkitems, unlinkWorkitems, setWorkitemParent, setWorkitemResponsible, replaceWorkitemAttachments };
 }

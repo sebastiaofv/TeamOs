@@ -30,6 +30,7 @@ import {
 import { normalizeDueDate } from './calendar';
 import { normalizeRoadmapRef } from './roadmap';
 import { translateCurrent } from '@/shared/i18n';
+import { isAcceptedPickedAttachment } from './attachmentPolicy';
 
 const TAG_MAX_LENGTH = 30;
 const TAG_MAX_COUNT = 10;
@@ -102,6 +103,11 @@ export async function mergePickedAttachments(existing: readonly unknown[], files
         const fileSize = Number(file.size) || 0;
         if (fileSize > ATTACHMENT_HARD_MAX_BYTES) {
             messages.push({ type: 'error', text: translateCurrent('messages.attachmentTooLarge', { name: file.name, size: formatFileSize(ATTACHMENT_HARD_MAX_BYTES) }) });
+            continue;
+        }
+
+        if (!isAcceptedPickedAttachment(file.name, file.type)) {
+            messages.push({ type: 'error', text: translateCurrent('attachments.unsafe', { name: file.name }) });
             continue;
         }
 

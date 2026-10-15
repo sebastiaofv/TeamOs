@@ -6,6 +6,8 @@ import { formatFileSize } from '@/domain/util';
 import { buildAttachmentWarnings, mergePickedAttachments } from '@/domain/taskDraft';
 import { readFileAsDataUrl } from '@/infrastructure/browser/fileReader';
 import { useI18n } from '@/shared/i18n';
+import { isSafeAttachmentPreview } from '@/domain/attachmentPolicy';
+import { showConfirm } from '@/app/overlays/appMessages';
 
 export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
     value: Attachment[];
@@ -14,6 +16,7 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
 }) {
     const { t } = useI18n();
     const [pickerMessages, setPickerMessages] = useState<DraftMessage[]>([]);
+    const [busy, setBusy] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const mountedRef = useRef(false);
 
@@ -27,14 +30,17 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
         const files = Array.from(input.files || []);
         input.value = '';
         if (files.length === 0) return;
+        setBusy(true);
         const result = await mergePickedAttachments(value, files, { readFile: readFileAsDataUrl });
         // The dialog may have closed while files were being read.
         if (!mountedRef.current) return;
+        setBusy(false);
         onChange(result.attachments);
         setPickerMessages(result.messages);
     };
 
-    const remove = (attachmentId: string) => {
+    const remove = async (attachmentId: string) => {
+        if (!(await showConfirm(t('attachments.removeConfirm')))) return;
         onChange(value.filter((item) => item.id !== attachmentId));
         setPickerMessages([]);
     };
@@ -49,7 +55,7 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
     return (
         <div className="attachment-editor" id="taskAttachmentsEditor" aria-labelledby="taskAttachmentsLabel">
             <div className="attachment-editor-toolbar">
-                <button type="button" className="btn" id="taskAttachmentsAddBtn" onClick={() => inputRef.current?.click()}>{t('editor.addFiles')}</button>
+                <button type="button" className="btn" id="taskAttachmentsAddBtn" disabled={busy} onClick={() => inputRef.current?.click()}>{t('editor.addFiles')}</button>
                 <span className="attachment-editor-summary" id="taskAttachmentsSummary">{summary}</span>
             </div>
             <div className="attachment-editor-warnings" id="taskAttachmentsWarnings" role={messages.some((message) => message.type === 'error') ? 'alert' : 'status'} aria-live="polite" aria-atomic="true">
@@ -64,7 +70,7 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
                     <div className="attachment-editor-empty">{t('editor.noAttachmentsYet')}</div>
                 ) : value.map((item) => (
                     <div className="attachment-editor-item" key={item.id}>
-                        {item.kind === 'image'
+                        {isSafeAttachmentPreview(item)
                             ? <img className="attachment-editor-thumb" alt="" src={item.dataUrl} />
                             : <span className="attachment-editor-icon">{t('common.file')}</span>}
                         <div className="attachment-editor-meta">
@@ -77,6 +83,7 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
                             <a className="attachment-editor-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
                             <button
                                 type="button"
+                                disabled={busy}
                                 className="attachment-remove-btn"
                                 aria-label={t('editor.removeAttachment', { name: item.name })}
                                 title={t('common.remove')}
@@ -89,7 +96,7 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
                     </div>
                 ))}
             </div>
-            <input type="file" id="taskAttachmentsInput" className="hidden" multiple ref={inputRef} onChange={onFilesPicked} />
+            <input type="file" id="taskAttachmentsInput" className="hidden" multiple ref={inputRef} onChange={onFilesPicked} disabled={busy} />
         </div>
     );
 }

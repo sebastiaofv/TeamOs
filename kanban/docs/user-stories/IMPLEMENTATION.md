@@ -105,3 +105,14 @@ optional GitHub PR URLs, and aggregate parent completion.
   rejected within an item. Multiple items may reference the same PR.
 - Create/correct/open/unlink in the detail tab, offline persistence and timeline
   events. No network integration, credentials or invented merge state.
+
+## US-16 — Attachments
+
+- Attachment tab reuses the existing embedded-file editor, limits, duplicate
+  detection, project-size warnings and shared save/conflict path.
+- New executable/HTML/SVG uploads rejected before reading; only raster data URLs
+  render as thumbnails. Legacy attachments remain downloadable without unsafe
+  previews. Documents use download rather than executable inline rendering.
+- Add/remove audited through task timeline; removal requires confirmation.
+- Read-only disables attachment management. Tests cover safe legacy preservation,
+  unsafe upload rejection, detail upload/save and confirmed removal.
