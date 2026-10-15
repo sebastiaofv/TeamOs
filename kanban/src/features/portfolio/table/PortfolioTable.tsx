@@ -15,6 +15,7 @@ import {
 } from './tableModel';
 import { clearTableFilters, setTableSort } from './tableControls';
 import { PRIORITY_LABELS, STATUS_LABELS, COLUMN_LABELS } from './tableLabels';
+import { getTaskWorkflow } from '@/domain/workflow';
 import { useTableDisclosure } from './useTableDisclosure';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
@@ -39,11 +40,12 @@ export function PortfolioTable({ hidden }: { hidden: boolean }) {
         boardData={projection.data} sourceRows={projection.rows} canCreate={Boolean(board.handle) && !projection.historical} />;
 }
 
-function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCreate }: {
+function ProjectTable({ hidden, boardId, project, boardData, sourceRows: allSourceRows, canCreate }: {
     hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean;
 }) {
     const { t } = useI18n();
     const actions = usePortfolioActions();
+    const context = useAppStore((s) => s.selectedWorkContext);
     const columnDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioTableFiltersByBoardId[boardId] || DEFAULT_TABLE_FILTERS);
     const [columns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences()));
@@ -53,8 +55,10 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     const [pageSize, setPageSize] = useState(50);
     const [selected, setSelected] = useState<Set<number>>(() => new Set());
     const [separator, setSeparator] = useState<',' | ';'>(',');
-    const rows = useMemo(() => sortTableRows(filterTableRows(sourceRows, filters), sort.column, sort.direction, boardData),
-        [sourceRows, filters, sort, boardData]);
+    const sourceRows = useMemo(() => allSourceRows.filter((row) => (row.task.workContext || 'project') === context), [allSourceRows, context]);
+    const contextRows = sourceRows;
+    const rows = useMemo(() => sortTableRows(filterTableRows(contextRows, filters), sort.column, sort.direction, boardData),
+        [contextRows, filters, sort, boardData]);
     const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
     const currentPage = pageScope.filters === filters && pageScope.sort === sort ? Math.min(page, pageCount - 1) : 0;
     const pageRows = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
@@ -97,7 +101,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     function cellText(row: PortfolioRow, column: TableColumnId): string {
         const value = tableCellValue(row, column, boardData);
         if (!value) return t('table.notDefined');
-        if (column === 'status') return !boardData?.extensions.workflow && STATUS_LABELS[row.task.status] ? t(STATUS_LABELS[row.task.status]) : boardData?.board.columns.find((c) => c.status === row.task.status)?.title || row.task.status;
+        if (column === 'status') return context === 'project' && !boardData?.extensions.workflow && STATUS_LABELS[row.task.status] ? t(STATUS_LABELS[row.task.status]) : getTaskWorkflow(boardData, row.task).states.find((state) => state.id === row.task.status)?.name || row.task.status;
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
         if (column === 'blocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
         return value;

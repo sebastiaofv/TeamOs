@@ -167,3 +167,18 @@ optional GitHub PR URLs, and aggregate parent completion.
   are explicitly excluded from current totals.
 - Project rows open the project dashboard; returning preserves global filters and
   scroll. Coverage and unavailable FTE/risk metrics are explicit.
+
+## US-13 — Application maintenance
+
+- Persistent application catalog is additive to project JSON; maintenance outlives
+  delivery through an explicit work context, not a phase of a completed project.
+- Application area aggregates loaded files, has a separate backlog/Board/Table,
+  common workitem types/detail, and an optionally separate maintenance workflow.
+- Confirmed context migration moves the item and descendants without copying IDs,
+  comments, PRs, attachments or history. Planning references are kept for return;
+  source/destination state mappings are required when workflows differ.
+- Single-file ownership avoids unsafe multi-file transactions. Cross-project
+  physical file transfers are not implemented without the missing US-14 model.
+- Project metrics exclude maintenance; combined application view is opt-in.
+- Tests cover context round trips, subtree integrity, workflow mappings and a
+  maintenance Bug that leaves completed-project execution unchanged.

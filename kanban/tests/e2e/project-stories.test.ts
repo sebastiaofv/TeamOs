@@ -5,6 +5,39 @@ function projectMetadata(id: string, name: string, product: string, state = 'act
     return { version: 1, id, name, product, state, description: '', manager: `${product} manager`, team: [], tags: [], forecast: { start: '', end: '' }, baseline: { start: '', end: '' }, actual: { start: '', end: '' }, needsReview: true };
 }
 
+test('US13: maintenance stays separate from project delivery and items move without copying', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'maintenance', title: 'Delivery project', hasHandle: true, extensions: { project: projectMetadata('delivery', 'Delivery project', 'Application A', 'completed') }, tasks: [{ id: 1, title: 'Delivered task', status: 'done' }] }], { selectedBoardId: 'maintenance' });
+    await page.locator('[data-view-mode="maintenance"]').click();
+    await page.getByRole('button', { name: 'Create maintenance area', exact: true }).click();
+    await page.getByRole('button', { name: 'Create maintenance workitem', exact: true }).click();
+    await page.locator('#taskType').selectOption('bug');
+    await page.locator('#taskName').fill('Post-release defect');
+    await page.locator('#taskModalSaveBtn').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+    await expect(page.locator('#applicationMaintenance')).toContainText('Post-release defect');
+    await expect.poll(async () => (await readSavedBoard(page, 'maintenance')).board.tasks.length).toBe(2);
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await expect(page.locator('[data-metric="completed"] strong')).toHaveText('1');
+    await expect(page.locator('[data-metric="open"] strong')).toHaveText('0');
+    await page.locator('[data-view-mode="maintenance"]').click();
+    await page.locator('#applicationMaintenance').getByRole('button', { name: 'Post-release defect', exact: true }).click();
+    await page.getByRole('button', { name: 'Return to project backlog', exact: true }).click();
+    await answerAppMessage(page);
+    await expect.poll(async () => (await readSavedBoard(page, 'maintenance')).board.tasks.find((task: { title: string }) => task.title === 'Post-release defect').workContext).toBe('project');
+    await expect(page.locator('#detailTitle')).toHaveText('Post-release defect');
+    await page.getByRole('button', { name: 'Move to maintenance backlog', exact: true }).click();
+    await answerAppMessage(page);
+    await expect.poll(async () => (await readSavedBoard(page, 'maintenance')).board.tasks.find((task: { title: string }) => task.title === 'Post-release defect').workContext).toBe('maintenance');
+    const saved = await readSavedBoard(page, 'maintenance');
+    expect(saved.board.tasks.map((task: { id: number }) => task.id)).toEqual([1, 2]);
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await page.locator('#applicationMaintenance').getByRole('button', { name: 'Board', exact: true }).click();
+    await expect(page.locator('.work-context-banner')).toContainText('Maintenance work');
+    await expect(page.locator('#portfolioBoard')).toContainText('Post-release defect');
+    await expect(page.locator('#portfolioBoard')).not.toContainText('Delivered task');
+});
+
 test('US10: portfolio includes active projects across products and preserves filters on return', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'a', title: 'Project A', hasHandle: true, extensions: { project: projectMetadata('project-a', 'Project A', 'Product A') }, tasks: [{ id: 1, title: 'A done', status: 'done' }] }, { id: 'b', title: 'Project B', hasHandle: true, extensions: { project: projectMetadata('project-b', 'Project B', 'Product B') }, tasks: [{ id: 1, title: 'B open' }] }, { id: 'paused', title: 'Paused', hasHandle: true, extensions: { project: projectMetadata('project-paused', 'Paused', 'Product C', 'paused') } }], { selectedBoardId: 'a' });

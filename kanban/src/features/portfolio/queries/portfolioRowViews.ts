@@ -5,6 +5,7 @@ import { normalizeTask } from '@/domain/task';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { dependencyBlockedKeys, refKey, taskRef } from '@/domain/relations';
 import { assignmentNeedsReview } from '@/domain/assignments';
+import { getTaskWorkflow } from '@/domain/workflow';
 
 // Selectors accept any slice of the store: components pass the fields they
 // subscribe to.
@@ -33,7 +34,7 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
             taskIndex,
             boardTitle: board.title,
             boardFileName: board.fileName,
-            columnTitle: statusMap[task.status] || task.status,
+            columnTitle: task.workContext === 'maintenance' ? getTaskWorkflow(board.data, task).states.find((state) => state.id === task.status)?.name || task.status : statusMap[task.status] || task.status,
             dependencyBlocked: blockedKeys.has(refKey(taskRef(board.data, task.id))),
             assignmentNeedsReview: assignmentNeedsReview(board.data, task),
             canMutate: Boolean(board.handle),

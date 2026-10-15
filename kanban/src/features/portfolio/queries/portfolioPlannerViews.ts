@@ -14,6 +14,7 @@ import {
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
 import { isTaskCompleted, statusCategory } from '@/domain/workflow';
+import { taskWorkContext } from '@/domain/maintenance';
 import type { SelectorState } from './portfolioRowViews';
 import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './portfolioTimelineViews';
 
@@ -75,7 +76,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
         const canEdit = Boolean(board.handle) && !isBoardInHistoricalPreview(state, board.id);
         return getDayPlannerBlocks(data).flatMap((block) => {
             const task = tasks.get(block.taskId);
-            if (!task || !dates.has(block.date)) return [];
+            if (!task || !dates.has(block.date) || taskWorkContext(task) !== (state?.selectedPortfolioBoardId ? state.selectedWorkContext || 'project' : 'project')) return [];
             return [{
                 ...block,
                 boardId: board.id,

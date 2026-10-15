@@ -18,6 +18,7 @@ export function validateWorkitems(data: BoardData, previous?: BoardData): void {
         if (!task.parentId) continue;
         const parent = byId.get(task.parentId);
         if (!parent || !canParent(parent, task)) throw new Error('Hierarchy must be Epic → Story → Task; Bugs may belong to Epic or Story.');
+        if ((parent.workContext || 'project') !== (task.workContext || 'project')) throw new Error('Parent and child must share a work context.');
         const seen = new Set([task.id]);
         let ancestor: Task | undefined = parent;
         while (ancestor) {
@@ -28,18 +29,18 @@ export function validateWorkitems(data: BoardData, previous?: BoardData): void {
     }
 }
 
-export function synchronizeParentCompletion(data: BoardData, isDone = (task: Task) => task.status === 'done', doneStatus: TaskStatus = 'done', openStatus: TaskStatus = 'doing'): void {
+export function synchronizeParentCompletion(data: BoardData, isDone = (task: Task) => task.status === 'done', doneStatus: TaskStatus = 'done', openStatus: TaskStatus = 'doing', context: 'project' | 'maintenance' = 'project'): void {
     const childrenByParent = new Map<number, Task[]>();
     for (const task of data.board.tasks) if (task.parentId) childrenByParent.set(task.parentId, [...(childrenByParent.get(task.parentId) || []), task]);
     for (let pass = 0; pass < 2; pass++) for (const type of ['story', 'epic']) {
-        for (const parent of data.board.tasks.filter((task) => workitemType(task) === type)) {
+        for (const parent of data.board.tasks.filter((task) => workitemType(task) === type && (task.workContext || 'project') === context)) {
             const children = childrenByParent.get(parent.id) || [];
             if (children.length) parent.status = children.every(isDone) ? doneStatus : openStatus;
         }
     }
 }
 
-export function eligibleLeafTasks(data: BoardData): Task[] {
+export function eligibleLeafTasks(data: BoardData, context: 'project' | 'maintenance' = 'project'): Task[] {
     const parents = new Set(data.board.tasks.map((task) => task.parentId).filter(Boolean));
-    return data.board.tasks.filter((task) => !task.archived && !parents.has(task.id) && !['epic', 'story'].includes(workitemType(task)));
+    return data.board.tasks.filter((task) => (task.workContext || 'project') === context && !task.archived && !parents.has(task.id) && !['epic', 'story'].includes(workitemType(task)));
 }

@@ -9,6 +9,7 @@ import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { migrateProjectMetadata } from './project';
 import { migrateAssignments } from './assignments';
+import { migrateApplications } from './applications';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -16,6 +17,7 @@ type LooseMeta = Partial<Record<keyof BoardMeta, unknown>>;
 type LooseBoard = NonNullable<LooseBoardData['board']>;
 function migrateMetadata(data: BoardData): BoardData {
     migrateProjectMetadata(data);
+    migrateApplications(data);
     migrateAssignments(data);
     return data;
 }

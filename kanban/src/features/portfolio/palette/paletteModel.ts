@@ -17,7 +17,7 @@ import {
     shiftPlannerDate
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
-import { getWorkflow } from '@/domain/workflow';
+import { getWorkflow, getTaskWorkflow } from '@/domain/workflow';
 import { getProjectInfo } from '@/domain/project';
 import { matchRanges, scoreText } from './paletteText';
 import { parseQuickCreate, type QuickCreateDraft } from './quickCreate';
@@ -158,7 +158,7 @@ const availableStatuses = (ctx: Ctx, row: PortfolioRow) => {
     const board = findBoard(ctx, row.boardId);
     if (!board) return defaultColumns.map((column) => column.status);
     if (['epic', 'story'].includes(row.task.workitemType || 'task')) return [];
-    return getWorkflow(board.data).transitions.filter((tr) => tr.from === row.task.status).map((tr) => tr.to);
+    return getTaskWorkflow(board.data, row.task).transitions.filter((tr) => tr.from === row.task.status).map((tr) => tr.to);
 };
 
 function taskDetail(ctx: Ctx, row: PortfolioRow): string {

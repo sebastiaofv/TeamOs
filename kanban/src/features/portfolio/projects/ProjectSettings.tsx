@@ -5,6 +5,7 @@ import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
 import { WorkflowSettings } from './WorkflowSettings';
+import { getMaintenanceConfig } from '@/domain/applications';
 
 export function ProjectSettings() {
     const board = useAppStore((s) => s.portfolioBoards.find((b) => b.id === s.selectedPortfolioBoardId));
@@ -12,7 +13,8 @@ export function ProjectSettings() {
     if (!board) return null;
     const project = getProjectInfo(board.data);
     return <><ProjectSettingsForm key={`${board.id}:${JSON.stringify(project)}`} boardId={board.id} initial={project} readOnly={!board.handle || historical} />
-        <WorkflowSettings key={`${board.id}:${JSON.stringify(board.data.extensions.workflow)}`} board={board} readOnly={!board.handle || historical} /></>;
+        <WorkflowSettings key={`${board.id}:${JSON.stringify(board.data.extensions.workflow)}`} board={board} readOnly={!board.handle || historical} />
+        {getMaintenanceConfig(board.data)?.enabled && <WorkflowSettings key={`${board.id}:${JSON.stringify(board.data.extensions.maintenance)}`} board={board} readOnly={!board.handle || historical} maintenance />}</>;
 }
 
 function ProjectSettingsForm({ boardId, initial, readOnly }: { boardId: string; initial: ProjectInfo; readOnly: boolean }) {

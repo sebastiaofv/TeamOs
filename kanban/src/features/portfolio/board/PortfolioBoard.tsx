@@ -26,11 +26,12 @@ import { normalizeTaskStatus } from '@/domain/task';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
 import { useI18n, translateCurrent } from '@/shared/i18n';
+import { getTaskWorkflow } from '@/domain/workflow';
 
 export { PortfolioTaskCard } from '@/features/portfolio/task/TaskCard';
 export type { CardDrag, TaskCardState } from '@/features/portfolio/task/TaskCard';
 
-type BoardViewState = TaskCardState & Pick<AppState, 'portfolioVisibleRows'>;
+type BoardViewState = TaskCardState & Pick<AppState, 'portfolioVisibleRows' | 'selectedWorkContext'>;
 
 const cardDragId = (item: PortfolioRow) => `${item.boardId}:${item.taskId ?? item.task.id}`;
 
@@ -105,7 +106,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
-    const columns = selectedBoard?.data.board.columns || [...new Map(state.portfolioBoards.flatMap((board) => board.data.board.columns).map((column) => [column.status, column])).values()];
+    const columns = selectedBoard ? getTaskWorkflow(selectedBoard.data, { workContext: state.selectedWorkContext }).states.map((state) => ({ status: state.id, title: state.name })) : [...new Map(state.portfolioBoards.flatMap((board) => board.data.board.columns).map((column) => [column.status, column])).values()];
     const buckets: Record<string, PortfolioRow[]> = Object.fromEntries(columns.map((column) => [column.status, []]));
     rows.forEach((item) => {
         const status = normalizeTaskStatus(item.task.status);
@@ -180,6 +181,7 @@ function ConnectedBoard() {
         suppressPortfolioCardClickUntil: state.suppressPortfolioCardClickUntil,
         portfolioTimelineSelection: state.portfolioTimelineSelection,
         portfolioVisibleRows: state.portfolioVisibleRows,
+        selectedWorkContext: state.selectedWorkContext,
     })));
     return <PortfolioBoardView state={state} />;
 }

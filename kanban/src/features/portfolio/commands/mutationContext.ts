@@ -16,7 +16,7 @@ import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
 import { validateWorkitems, synchronizeParentCompletion } from '@/domain/workitems';
-import { getWorkflow, assertTaskTransition, isTaskCompleted } from '@/domain/workflow';
+import { getWorkflow, getTaskWorkflow, assertTaskTransition, isTaskCompleted } from '@/domain/workflow';
 import { validatePhaseHierarchy } from '@/domain/projectPlan';
 import { reconcileAssignments } from '@/domain/assignments';
 import { ensureTaskAuditEvents } from '@/domain/workitemHistory';
@@ -107,15 +107,17 @@ export function createBoardMutationContext({
             }
             validateWorkitems(draft.data, current.data);
             validatePhaseHierarchy(draft.data);
-            if (JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow)) {
+            if (JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow) && JSON.stringify(current.data.extensions.maintenance) === JSON.stringify(draft.data.extensions.maintenance)) {
                 for (const task of draft.data.board.tasks) {
                     const before = previousTasks.get(task.id);
-                    if (before) assertTaskTransition(current.data, before, task.status);
+                    if (before && (before.workContext || 'project') === (task.workContext || 'project')) assertTaskTransition(current.data, before, task.status);
                 }
             }
             const beforeAggregate = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
             const workflow = getWorkflow(draft.data);
             synchronizeParentCompletion(draft.data, (task) => isTaskCompleted(draft.data, task), workflow.states.find((s) => s.category === 'completed')?.id, workflow.states.find((s) => s.category === 'in-progress')?.id || workflow.initialStateId);
+            const maintenanceWorkflow = getTaskWorkflow(draft.data, { workContext: 'maintenance' });
+            synchronizeParentCompletion(draft.data, (task) => isTaskCompleted(draft.data, task), maintenanceWorkflow.states.find((state) => state.category === 'completed')?.id, maintenanceWorkflow.states.find((state) => state.category === 'in-progress')?.id || maintenanceWorkflow.initialStateId, 'maintenance');
             for (const task of draft.data.board.tasks) {
                 const before = beforeAggregate.get(task.id);
                 if (before && before.status !== task.status) {
@@ -123,7 +125,7 @@ export function createBoardMutationContext({
                     recordTaskTimelineEvent(draft.data, before, task);
                 }
             }
-            for (const key of ['relations', 'pullRequests', 'projectPlan']) if (JSON.stringify(current.data.extensions[key]) !== JSON.stringify(draft.data.extensions[key])) {
+            for (const key of ['relations', 'pullRequests', 'projectPlan', 'applications', 'maintenance']) if (JSON.stringify(current.data.extensions[key]) !== JSON.stringify(draft.data.extensions[key])) {
                 appendTimelineEvent(draft.data, { kind: 'board.extension.updated', entityType: 'board', entityId: key, summary: `Workitem ${key} updated`, changes: { [key]: { before: current.data.extensions[key], after: draft.data.extensions[key] } } });
             }
             ensureTaskAuditEvents(draft.data, current.data, eventStart);

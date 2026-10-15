@@ -179,6 +179,7 @@ export function createPortfolioControlActions({
 
     function selectPortfolioBoard(boardId: string) {
         const state = getState();
+        commitState({ selectedWorkContext: 'project' });
         if ((boardId || '') !== state.selectedPortfolioBoardId) {
             clearPortfolioTimelineSelection();
         }

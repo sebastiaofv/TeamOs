@@ -2,7 +2,7 @@ import type { BoardData, RoadmapKind, Task } from './types';
 import { getRoadmapExtension } from './roadmap';
 import { validateDatePair, type ProjectDates } from './project';
 import { eligibleLeafTasks } from './workitems';
-import { isTaskCompleted, statusCategory } from './workflow';
+import { isTaskCompleted, getTaskWorkflow } from './workflow';
 
 export type PhasePlanDetails = { parentId: string; baseline?: ProjectDates; actual?: ProjectDates; baselineRevisions?: { at: string; reason: string; dates: ProjectDates }[] };
 export type ProjectPlan = { version: 1; phases: Record<string, PhasePlanDetails> };
@@ -56,12 +56,12 @@ export function planWorkitems(data: BoardData, kind: RoadmapKind, id: string): T
     for (const task of data.board.tasks) if (task.parentId) children.set(task.parentId, [...(children.get(task.parentId) || []), task.id]);
     const pending = [...included];
     while (pending.length) for (const child of children.get(pending.pop()!) || []) if (!included.has(child)) { included.add(child); pending.push(child); }
-    return data.board.tasks.filter((task) => included.has(task.id));
+    return data.board.tasks.filter((task) => task.workContext !== 'maintenance' && included.has(task.id));
 }
 
-export function executionProgress(data: BoardData, tasks: readonly Task[] = data.board.tasks): { eligible: Task[]; completed: Task[]; percent: number | null } {
+export function executionProgress(data: BoardData, tasks: readonly Task[] = data.board.tasks, context: 'project' | 'maintenance' = 'project'): { eligible: Task[]; completed: Task[]; percent: number | null } {
     const ids = new Set(tasks.map((task) => task.id));
-    const eligible = eligibleLeafTasks(data).filter((task) => ids.has(task.id) && statusCategory(data, task.status) !== 'cancelled');
+    const eligible = eligibleLeafTasks(data, context).filter((task) => ids.has(task.id) && getTaskWorkflow(data, task).states.find((state) => state.id === task.status)?.category !== 'cancelled');
     const completed = eligible.filter((task) => isTaskCompleted(data, task));
     return { eligible, completed, percent: eligible.length ? completed.length / eligible.length * 100 : null };
 }

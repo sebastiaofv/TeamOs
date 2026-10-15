@@ -14,6 +14,7 @@ import { TaskComments } from '../TaskComments';
 import { TaskPullRequests } from '../TaskPullRequests';
 import { TaskAttachments } from '../TaskAttachments';
 import { useSmallScreen } from '@/shared/hooks/useSmallScreen';
+import { TaskWorkContext } from '../TaskWorkContext';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -52,6 +53,11 @@ export function TaskDetailDialog() {
                         aria-modal={smallScreen || undefined}
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
+                        onFocusOutside={(event) => event.preventDefault()}
+                        onInteractOutside={(event) => {
+                            const target = event.target;
+                            if (useAppStore.getState().appMessage || target instanceof Element && target.closest('#undoToast, #appMessageDialog, #appMessageModal')) event.preventDefault();
+                        }}
                         onEscapeKeyDown={escapeAnswersAppMessage}
                         {...returnFocus}
                     >
@@ -85,7 +91,7 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
             event.preventDefault(); const index = tabs.findIndex((name) => name === tab); const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowLeft' ? -1 : 1) + tabs.length) % tabs.length]; setTab(next); document.getElementById(`detail-tab-${next}`)?.focus();
         }}>{t(name === 'summary' ? 'history.summary' : name === 'history' ? 'history.title' : name === 'comments' ? 'history.comments' : name === 'pullRequests' ? 'history.pullRequests' : 'history.attachments')}</button>)}
     </div><div role="tabpanel" id="detail-panel-summary" aria-labelledby="detail-tab-summary" hidden={tab !== 'summary'}>
-        <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations readOnly={vm.readOnly} sourceData={vm.boardData} /><TaskAssignment readOnly={vm.readOnly} />
+        <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations readOnly={vm.readOnly} sourceData={vm.boardData} /><TaskAssignment readOnly={vm.readOnly} /><TaskWorkContext readOnly={vm.readOnly} />
     </div><div role="tabpanel" id="detail-panel-history" aria-labelledby="detail-tab-history" hidden={tab !== 'history'}><TaskHistory /></div>
     <div role="tabpanel" id="detail-panel-comments" aria-labelledby="detail-tab-comments" hidden={tab !== 'comments'}><TaskComments readOnly={vm.readOnly} /></div>
     <div role="tabpanel" id="detail-panel-pullRequests" aria-labelledby="detail-tab-pullRequests" hidden={tab !== 'pullRequests'}><TaskPullRequests readOnly={vm.readOnly} /></div>

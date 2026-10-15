@@ -6,6 +6,7 @@ export type ProjectState = typeof PROJECT_STATES[number];
 export type ProjectMember = { id: string; name: string; role: string; active: boolean; email: string; provisional?: boolean };
 export type ProjectDates = { start: string; end: string };
 export type ProjectInfo = {
+    productId?: string;
     version: 1; id: string; name: string; state: ProjectState; description: string;
     manager: string; product: string; team: ProjectMember[]; tags: string[];
     forecast: ProjectDates; baseline: ProjectDates; actual: ProjectDates;
@@ -68,6 +69,6 @@ export function validateProjectInfo(info: ProjectInfo, complete = false): void {
 export function migrateProjectMetadata(data: BoardData): BoardData {
     const project = getProjectInfo(data);
     validateProjectInfo(project);
-    data.extensions.project = project;
+    data.extensions.project = structuredClone(project);
     return data;
 }

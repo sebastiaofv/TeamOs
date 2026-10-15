@@ -6,6 +6,7 @@ import type {
 import type { BoardData, ProjectColor } from '@/domain/types';
 import { getBoardRecord, type SelectorState } from './portfolioRowViews';
 import { getSelectedPortfolioTimelineView } from './portfolioTimelineViews';
+import { taskWorkContext } from '@/domain/maintenance';
 import {
     comparePortfolioCalendarItems,
     normalizeDueDate
@@ -84,6 +85,7 @@ function buildPortfolioCalendarItems(state: SelectorState): PortfolioCalendarIte
     const rows = Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
 
     rows.forEach((row) => {
+        if (taskWorkContext(row.task) !== (state?.selectedPortfolioBoardId ? state.selectedWorkContext || 'project' : 'project')) return;
         const dueDate = normalizeDueDate(row?.task?.dueDate);
         if (!dueDate) return;
         const boardRecord = getBoardRecord(state, row.boardId);

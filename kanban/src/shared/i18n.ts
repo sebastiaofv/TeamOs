@@ -6,6 +6,11 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'maintenance.view': 'Maintenance', 'maintenance.title': 'Application maintenance', 'maintenance.work': 'Maintenance work', 'maintenance.projectWork': 'Project work', 'maintenance.context': 'Work context',
+    'maintenance.fileOwnership': 'The workitem keeps its ID and original JSON file. Moving context retains comments, attachments, PRs and history without copying the workitem.',
+    'maintenance.moveConfirm': 'Move this workitem and its {count} subtree items between Project and Maintenance? Planning references are preserved for return; the root is detached from a parent in the other context.',
+    'maintenance.moveTo': 'Move to maintenance backlog', 'maintenance.returnToProject': 'Return to project backlog', 'maintenance.coverage': 'Application maintenance across loaded JSON files. Each workitem has one owning file and one context. Project delivery metrics exclude maintenance.',
+    'maintenance.noApplication': 'Define a product/application in project settings first.', 'maintenance.storage': 'Owning JSON file', 'maintenance.combined': 'Combined application view (project + maintenance)', 'maintenance.enable': 'Create maintenance area', 'maintenance.create': 'Create maintenance workitem', 'maintenance.execution': 'Maintenance execution', 'maintenance.openProject': 'Open related project', 'maintenance.workflow': 'Maintenance workflow',
     'portfolioDashboard.view': 'Portfolio', 'portfolioDashboard.title': 'Portfolio dashboard', 'portfolioDashboard.back': '← Back to portfolio',
     'portfolioDashboard.coverage': 'All products · {loaded} loaded files · {unique} persistent project IDs · {duplicates} duplicate imports. Only available loaded snapshots are counted; no other files are assumed.',
     'portfolioDashboard.lateOnly': 'Overdue projects only', 'portfolioDashboard.criticality': 'Criticality', 'portfolioDashboard.deadline': 'Deadline', 'portfolioDashboard.name': 'Name', 'portfolioDashboard.orderRule': 'Criticality: overdue projects first, then overdue leaf count, blocked leaf count and project name. Missing deadlines sort last.',
@@ -598,6 +603,11 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'maintenance.view': 'Manutenção', 'maintenance.title': 'Manutenção de aplicações', 'maintenance.work': 'Trabalho de manutenção', 'maintenance.projectWork': 'Trabalho de projeto', 'maintenance.context': 'Contexto do trabalho',
+    'maintenance.fileOwnership': 'O workitem mantém o ID e o ficheiro JSON original. Mudar o contexto preserva comentários, anexos, PRs e histórico sem copiar o workitem.',
+    'maintenance.moveConfirm': 'Mover este workitem e os {count} itens da sua subárvore entre Projeto e Manutenção? Referências de planeamento preservadas para regresso; a raiz é desassociada de um pai no outro contexto.',
+    'maintenance.moveTo': 'Mover para backlog de manutenção', 'maintenance.returnToProject': 'Regressar ao backlog do projeto', 'maintenance.coverage': 'Manutenção por aplicação nos ficheiros JSON carregados. Cada workitem pertence a um ficheiro e contexto. Métricas de execução do projeto excluem manutenção.',
+    'maintenance.noApplication': 'Definir primeiro um produto/aplicação nas definições do projeto.', 'maintenance.storage': 'Ficheiro JSON de origem', 'maintenance.combined': 'Visão combinada da aplicação (projeto + manutenção)', 'maintenance.enable': 'Criar área de manutenção', 'maintenance.create': 'Criar workitem de manutenção', 'maintenance.execution': 'Execução de manutenção', 'maintenance.openProject': 'Abrir projeto relacionado', 'maintenance.workflow': 'Workflow de manutenção',
     'portfolioDashboard.view': 'Portefólio', 'portfolioDashboard.title': 'Dashboard de portefólio', 'portfolioDashboard.back': '← Voltar ao portefólio',
     'portfolioDashboard.coverage': 'Todos os produtos · {loaded} ficheiros carregados · {unique} IDs persistentes de projeto · {duplicates} importações duplicadas. Apenas fotografias carregadas disponíveis são contabilizadas; sem presumir outros ficheiros.',
     'portfolioDashboard.lateOnly': 'Apenas projetos em atraso', 'portfolioDashboard.criticality': 'Criticidade', 'portfolioDashboard.deadline': 'Prazo', 'portfolioDashboard.name': 'Nome', 'portfolioDashboard.orderRule': 'Criticidade: projetos em atraso, contagem de folhas atrasadas, folhas bloqueadas e nome do projeto. Prazos em falta no fim.',

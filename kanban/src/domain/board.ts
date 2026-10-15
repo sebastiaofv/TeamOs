@@ -19,6 +19,7 @@ import { getRelations } from './relations';
 import { validatePhaseHierarchy } from './projectPlan';
 import { getConversation } from './comments';
 import { getPullRequests, normalizePullRequest } from './pullRequests';
+import { getMaintenanceConfig, getApplications } from './applications';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -86,6 +87,7 @@ export function portfolioSortSelectValueFromKey(sortKey: unknown): 'name' | 'pri
 }
 
 export function normalizePortfolioViewMode(value: unknown): PortfolioViewMode {
+    if (value === 'maintenance') return 'maintenance';
     if (value === 'portfolio') return 'portfolio';
     if (value === 'dashboard') return 'dashboard';
     if (value === 'table') return 'table';
@@ -262,6 +264,8 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     if ('relations' in extensions) getRelations(data as BoardData);
     if ('projectPlan' in extensions) validatePhaseHierarchy(data as BoardData);
     if ('conversation' in extensions) getConversation(data as BoardData);
+    if ('applications' in extensions) getApplications(data as BoardData);
+    if ('maintenance' in extensions) getMaintenanceConfig(data as BoardData);
     if ('pullRequests' in extensions) for (const links of Object.values(getPullRequests(data as BoardData).byTaskId)) {
         if (!Array.isArray(links)) throw new Error('Invalid pull request list.');
         links.forEach(normalizePullRequest);
@@ -307,7 +311,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     validateWorkitems(data as BoardData);
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['assigneeId', 'legacyAssignees', 'workitemType', 'parentId', 'acceptanceCriteria', 'reproductionSteps', 'expectedResult', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
+        const optionalTaskKeys = new Set(['workContext', 'applicationId', 'maintenanceOrigin', 'assigneeId', 'legacyAssignees', 'workitemType', 'parentId', 'acceptanceCriteria', 'reproductionSteps', 'expectedResult', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -381,7 +385,9 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if (task.blocked === true && !normalizeBlockerReason(task.blockerReason)) {
             throw new Error('Blocked tasks require blockerReason.');
         }
-        if (typeof task.status !== 'string' || !statuses.has(task.status)) {
+        const maintenanceStatuses = task.workContext === 'maintenance' ? getMaintenanceConfig(data as BoardData)?.workflow?.states.map((state) => state.id) : undefined;
+        if (task.workContext !== undefined && task.workContext !== 'project' && task.workContext !== 'maintenance') throw new Error('Invalid work context.');
+        if (typeof task.status !== 'string' || !(maintenanceStatuses ? maintenanceStatuses.includes(task.status) : statuses.has(task.status))) {
             throw new Error('Task status is invalid.');
         }
         task.checklist.forEach((item: unknown) => {

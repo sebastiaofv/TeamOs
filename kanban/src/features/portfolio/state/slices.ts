@@ -23,14 +23,16 @@ import type { AppMessage } from '@/app/types';
 import type { Language, Theme } from '@/shared/types/ui';
 import type { TableFilters, TableSort } from '@/features/portfolio/table/tableModel';
 import { DEFAULT_PORTFOLIO_DASHBOARD_FILTERS, type PortfolioDashboardFilters } from '@/features/portfolio/queries/portfolioDashboard';
+import type { WorkContext } from '@/domain/maintenance';
 
 export type EditContext = { boardId: string; taskId: number };
-export type CreateContext = { boardId: string; status: TaskStatus; relatedToTaskId?: number };
+export type CreateContext = { boardId: string; status: TaskStatus; relatedToTaskId?: number; workContext?: WorkContext; applicationId?: string };
 export type DetailContext = { boardId: string; taskId: number; readOnly: boolean; navigation?: CardRef[]; previewData?: BoardData };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };
 
 export type PortfolioSlice = {
+    selectedWorkContext: WorkContext;
     portfolioBoards: BoardRecord[];
     nextPortfolioProjectColorSeed: number;
     portfolioTasks: PortfolioRow[];
@@ -67,6 +69,7 @@ export type BoardSlice = {
 };
 
 export type UiSlice = {
+    selectedApplicationId: string;
     portfolioDashboardFilters: PortfolioDashboardFilters;
     portfolioDashboardReturn: boolean;
     taskEditorDirty: boolean;
@@ -89,6 +92,7 @@ export type AppState = PortfolioSlice & BoardSlice & UiSlice & FilesSlice;
 
 export function createPortfolioSlice(): PortfolioSlice {
     return {
+        selectedWorkContext: 'project',
         portfolioBoards: [],
         nextPortfolioProjectColorSeed: 0,
         portfolioTasks: [],
@@ -135,6 +139,7 @@ export function createBoardSlice(): BoardSlice {
 
 export function createUiSlice(): UiSlice {
     return {
+        selectedApplicationId: '',
         portfolioDashboardFilters: { ...DEFAULT_PORTFOLIO_DASHBOARD_FILTERS },
         portfolioDashboardReturn: false,
         taskEditorDirty: false,

@@ -26,7 +26,9 @@ export function validateRelation(boards: readonly BoardData[], link: WorkitemRel
     if (!source || !target) throw new Error('Both workitems must be loaded.');
     if (refKey(link.from) === refKey(link.to)) throw new Error('A workitem cannot link to itself.');
     const p1 = getProjectInfo(source.data), p2 = getProjectInfo(target.data);
-    if (p1.id !== p2.id && (!p1.product.trim() || p1.product.trim().toLowerCase() !== p2.product.trim().toLowerCase())) throw new Error('Cross-project links require the same product.');
+    const sourceApplication = source.task.applicationId || p1.productId || p1.product.trim().toLowerCase();
+    const targetApplication = target.task.applicationId || p2.productId || p2.product.trim().toLowerCase();
+    if (p1.id !== p2.id && (!sourceApplication || sourceApplication !== targetApplication)) throw new Error('Cross-project links require the same product.');
     const links = boards.flatMap(getRelations);
     for (const existing of links) {
         const direct = refKey(existing.from) === refKey(link.from) && refKey(existing.to) === refKey(link.to);

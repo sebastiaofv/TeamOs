@@ -137,7 +137,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
 
     return (
         <>
-            <div className={`portfolio-toolbar-left${viewMode === 'portfolio' ? ' hidden' : ''}`}>
+            <div className={`portfolio-toolbar-left${viewMode === 'portfolio' || viewMode === 'maintenance' ? ' hidden' : ''}`}>
                 <div className="search-box palette-search">
                     <button
                         className={`palette-search-btn${search ? ' has-value' : ''}`}
@@ -185,6 +185,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
             <div className="portfolio-toolbar-right">
                 <div className={`portfolio-view-toggle${hasBoards ? '' : ' hidden'}`} id="portfolioViewModeToggle" role="group" aria-label={t('toolbar.selectedProjectViewMode')}>
                     <button className={`btn${viewMode === 'portfolio' ? ' active' : ''}`} type="button" data-view-mode="portfolio" aria-pressed={viewMode === 'portfolio'} onClick={() => setPortfolioViewMode('portfolio')}>{t('portfolioDashboard.view')}</button>
+                    <button className={`btn${viewMode === 'maintenance' ? ' active' : ''}`} type="button" data-view-mode="maintenance" aria-pressed={viewMode === 'maintenance'} onClick={() => setPortfolioViewMode('maintenance')}>{t('maintenance.view')}</button>
                     {hasSelectedBoard && <button className={`btn${viewMode === 'dashboard' ? ' active' : ''}`} type="button" data-view-mode="dashboard" aria-pressed={viewMode === 'dashboard'} onClick={() => setPortfolioViewMode('dashboard')}>{t('dashboard.project')}</button>}
                     <button
                         className={`btn${viewMode === 'board' ? ' active' : ''}`}
@@ -281,11 +282,11 @@ export function PortfolioToolbar() {
             <section className="portfolio-toolbar" id="portfolioToolbar" aria-labelledby="portfolioToolbarTitle">
                 <h2 className="sr-only" id="portfolioToolbarTitle">{t('toolbar.filters')}</h2>
                 <ToolbarContent state={state} />
-                <span className={`sr-only${['table', 'portfolio'].includes(state.selectedPortfolioViewMode) ? ' hidden' : ''}`} role="status" aria-live="polite" aria-atomic="true">
+                <span className={`sr-only${['table', 'portfolio', 'maintenance'].includes(state.selectedPortfolioViewMode) ? ' hidden' : ''}`} role="status" aria-live="polite" aria-atomic="true">
                     {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
                 </span>
             </section>
-            {state.selectedPortfolioViewMode === 'table' ? <TableActiveFilters /> : state.selectedPortfolioViewMode !== 'portfolio' && <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />}
+            {state.selectedPortfolioViewMode === 'table' ? <TableActiveFilters /> : !['portfolio', 'maintenance'].includes(state.selectedPortfolioViewMode) && <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />}
         </>
     );
 }

@@ -40,6 +40,7 @@ import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 import { getProjectPlan } from '@/domain/projectPlan';
 import { getProjectInfo } from '@/domain/project';
 import { isSafeAttachmentPreview } from '@/domain/attachmentPolicy';
+import { getTaskWorkflow } from '@/domain/workflow';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -105,12 +106,13 @@ export function buildTaskEditorViewModel(
     task: Task | null,
     portfolioTasks: readonly PortfolioRow[] | null | undefined,
     openId: number,
-    options: { taskId?: unknown; preferredDueDate?: string } = {}
+    options: { taskId?: unknown; preferredDueDate?: string; workContext?: 'project' | 'maintenance' } = {}
 ): TaskEditorViewModel {
     const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
     const parentPhases = new Set(Object.values(getProjectPlan(boardRecord.data).phases).map((phase) => phase.parentId));
-    const phaseOptions = buildRoadmapEntityOptions(roadmap.phases.filter((phase) => !parentPhases.has(phase.id)));
-    const milestoneOptions = buildRoadmapEntityOptions(roadmap.milestones);
+    const maintenance = (task?.workContext || options.workContext) === 'maintenance';
+    const phaseOptions = maintenance ? [] : buildRoadmapEntityOptions(roadmap.phases.filter((phase) => !parentPhases.has(phase.id)));
+    const milestoneOptions = maintenance ? [] : buildRoadmapEntityOptions(roadmap.milestones);
     const knownRef = (optionList: SelectOption[], value: unknown) => {
         const ref = normalizeRoadmapRef(value);
         return optionList.some((option) => option.value === ref) ? ref : '';
@@ -168,7 +170,7 @@ export function buildTaskEditorViewModel(
 
 export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean): TaskDetailViewModel {
     const task = normalizeTask(source.task);
-    const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
+    const statusMap: Record<string, string> = Object.fromEntries(getTaskWorkflow(source.boardData, task).states.map((state) => [state.id, state.name]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,

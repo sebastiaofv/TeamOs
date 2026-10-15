@@ -95,6 +95,7 @@ export function buildPortfolioDerivedState(state: AppState, previous: Partial<Ap
         portfolioTasks,
         portfolioFilters,
         portfolioVisibleRows: changed('portfolioBoards', 'selectedPortfolioBoardId', 'portfolioFilters',
+            'selectedWorkContext',
             'portfolioSortKey', 'portfolioSortDir', 'portfolioTimelineSelection')
             ? getFilteredSortedPortfolioRows(normalized) : previous.portfolioVisibleRows!,
         portfolioTimelineView: changed('portfolioBoards', 'selectedPortfolioBoardId',
@@ -114,6 +115,7 @@ export function derivePortfolioState(state: AppState, previous: Partial<AppState
     next.selectedPortfolioViewMode = viewMode;
     const inputs: (keyof AppState)[] = [
         'portfolioBoards', 'selectedPortfolioBoardId', 'portfolioFilters',
+        'selectedWorkContext',
         'portfolioSortKey', 'portfolioSortDir', 'portfolioTimelineSelection',
         'portfolioTimelineExpandedByBoardId'
     ];

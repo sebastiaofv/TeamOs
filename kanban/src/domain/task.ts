@@ -239,6 +239,9 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
     const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
     const includeStatusChangedAt = options.includeStatusChangedAt !== false;
     const normalizedTask: Task = {
+        ...(task.workContext === 'maintenance' || task.workContext === 'project' ? { workContext: task.workContext } : {}),
+        ...(typeof task.applicationId === 'string' ? { applicationId: task.applicationId } : {}),
+        ...(task.maintenanceOrigin && typeof task.maintenanceOrigin === 'object' ? { maintenanceOrigin: task.maintenanceOrigin as Task['maintenanceOrigin'] } : {}),
         ...(typeof task.assigneeId === 'string' ? { assigneeId: task.assigneeId } : {}),
         ...(Array.isArray(task.legacyAssignees) ? { legacyAssignees: task.legacyAssignees.filter((v): v is string => typeof v === 'string') } : {}),
         workitemType: (task.workitemType || 'task') as Task['workitemType'],

@@ -24,6 +24,7 @@ export function planDrilldownTasks(data: BoardData, kind: RoadmapKind, id: strin
 export function unassociatedPlanTasks(data: BoardData, includeArchived = false): Task[] {
     const parents = new Map(data.board.tasks.map((task) => [task.id, task]));
     return data.board.tasks.filter((task) => {
+        if (task.workContext === 'maintenance') return false;
         if (!includeArchived && task.archived) return false;
         let current: Task | undefined = task;
         const seen = new Set<number>();

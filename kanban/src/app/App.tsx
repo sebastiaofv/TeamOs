@@ -19,6 +19,8 @@ import { ProjectSettings } from '@/features/portfolio/projects/ProjectSettings';
 import { LocalProfile } from '@/features/portfolio/projects/LocalProfile';
 import { ProjectDashboard } from '@/features/portfolio/dashboard/ProjectDashboard';
 import { PortfolioDashboard } from '@/features/portfolio/dashboard/PortfolioDashboard';
+import { MaintenanceArea } from '@/features/portfolio/maintenance/MaintenanceArea';
+import { WorkContextBanner } from '@/features/portfolio/maintenance/WorkContextBanner';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
@@ -70,6 +72,7 @@ function AppContent() {
     const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
     const dashboardActive = Boolean(selectedBoardId) && viewMode === 'dashboard';
     const portfolioDashboardActive = viewMode === 'portfolio';
+    const maintenanceActive = viewMode === 'maintenance';
 
     return (
         <>
@@ -79,13 +82,15 @@ function AppContent() {
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
-                    {!portfolioDashboardActive && <ProjectSettings />}
-                    {!portfolioDashboardActive && <LocalProfile />}
+                    {!portfolioDashboardActive && !maintenanceActive && <ProjectSettings />}
+                    {!portfolioDashboardActive && !maintenanceActive && <LocalProfile />}
+                    {!portfolioDashboardActive && !maintenanceActive && <WorkContextBanner />}
                     <div className={`portfolio-board-wrap${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
-                        {!portfolioDashboardActive && <PortfolioReadOnlyNotice />}
-                        {!portfolioDashboardActive && <PortfolioTimeline />}
+                        {!portfolioDashboardActive && !maintenanceActive && <PortfolioReadOnlyNotice />}
+                        {!portfolioDashboardActive && !maintenanceActive && <PortfolioTimeline />}
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive || portfolioDashboardActive} />
+                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive || portfolioDashboardActive || maintenanceActive} />
+                        <MaintenanceArea hidden={!maintenanceActive} />
                         <PortfolioDashboard hidden={!portfolioDashboardActive} />
                         <ProjectDashboard hidden={!dashboardActive} />
                         <PortfolioTable hidden={!tableActive} />

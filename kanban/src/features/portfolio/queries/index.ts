@@ -39,7 +39,7 @@ export function normalizePortfolioFilters(state: SelectorState): PortfolioFilter
     if ((state?.portfolioBoards || []).length > 0 && next.assignee) {
         const names = new Set(
             (state?.portfolioTasks || buildPortfolioTasks(state))
-                .flatMap((item) => item?.task?.assignees || [])
+                .flatMap((item) => [...(item?.task?.assignees || []), ...(item.task.assigneeId ? [item.task.assigneeId] : [])])
                 .map((name) => normalizeAssignee(name))
                 .filter(Boolean)
         );
@@ -73,6 +73,7 @@ export function getFilteredSortedPortfolioRows(state: SelectorState, options: { 
         .filter((item) => {
             const task = item.task;
             if (state?.selectedPortfolioBoardId && item.boardId !== state.selectedPortfolioBoardId) return false;
+            if ((task.workContext || 'project') !== (state?.selectedPortfolioBoardId ? state.selectedWorkContext || 'project' : 'project')) return false;
             if (archiveFilter === 'active' && task.archived) return false;
             if (archiveFilter === 'archived' && !task.archived) return false;
             if (priorityFilter && task.priority !== priorityFilter) return false;

@@ -18,6 +18,9 @@ export type Attachment = {
 };
 
 export type Task = {
+    workContext?: import('./maintenance').WorkContext;
+    applicationId?: string;
+    maintenanceOrigin?: import('./maintenance').MaintenanceOrigin;
     assigneeId?: string;
     legacyAssignees?: string[];
     workitemType?: import('./workitems').WorkitemType;

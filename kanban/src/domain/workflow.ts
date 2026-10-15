@@ -31,20 +31,34 @@ export function validateWorkflow(workflow: Workflow): void {
 export function statusCategory(data: BoardData, status: string): WorkflowCategory {
     return getWorkflow(data).states.find((state) => state.id === status)?.category || 'not-started';
 }
-export function isTaskCompleted(data: BoardData, task: Task): boolean { return statusCategory(data, task.status) === 'completed'; }
+export function getTaskWorkflow(data: BoardData, task: Pick<Task, 'workContext'>): Workflow {
+    const maintenance = data.extensions.maintenance as { workflow?: Workflow } | undefined;
+    return task.workContext === 'maintenance' ? maintenance?.workflow || getWorkflow(data) : getWorkflow(data);
+}
+export function isTaskCompleted(data: BoardData, task: Task): boolean { return getTaskWorkflow(data, task).states.find((state) => state.id === task.status)?.category === 'completed'; }
 export function assertTaskTransition(data: BoardData, task: Task, target: string): void {
     if (target === task.status) return;
     if (['epic', 'story'].includes(workitemType(task))) throw new Error('Epic and Story status is derived from children.');
-    if (!getWorkflow(data).transitions.some((transition) => transition.from === task.status && transition.to === target)) throw new Error('This workflow transition is not allowed.');
+    if (!getTaskWorkflow(data, task).transitions.some((transition) => transition.from === task.status && transition.to === target)) throw new Error('This workflow transition is not allowed.');
 }
 
 export function applyWorkflow(data: BoardData, workflow: Workflow, mapping: Record<string, string>): void {
     validateWorkflow(workflow);
     const ids = new Set(workflow.states.map((state) => state.id));
-    for (const task of data.board.tasks) if (!ids.has(task.status)) {
+    for (const task of data.board.tasks) if (task.workContext !== 'maintenance' && !ids.has(task.status)) {
         if (!mapping[task.status] || !ids.has(mapping[task.status])) throw new Error('Map every state in use before removing it.');
         task.status = mapping[task.status];
     }
     data.extensions.workflow = workflow;
     data.board.columns = workflow.states.map((state) => ({ status: state.id, title: state.name }));
+}
+
+export function applyMaintenanceWorkflow(data: BoardData, workflow: Workflow, mapping: Record<string, string>): void {
+    validateWorkflow(workflow);
+    const ids = new Set(workflow.states.map((state) => state.id));
+    for (const task of data.board.tasks) if (task.workContext === 'maintenance' && !ids.has(task.status)) {
+        if (!mapping[task.status] || !ids.has(mapping[task.status])) throw new Error('Map every maintenance state in use before removing it.');
+        task.status = mapping[task.status];
+    }
+    data.extensions.maintenance = { version: 1, enabled: true, workflow };
 }

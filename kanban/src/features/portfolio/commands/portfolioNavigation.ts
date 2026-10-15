@@ -43,11 +43,12 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (state.portfolioSortKey !== 'priority') params.set('ps', state.portfolioSortKey);
     if (state.portfolioSortDir === 'desc') params.set('pd', state.portfolioSortDir);
     if (state.selectedPortfolioBoardId) params.set('pb', state.selectedPortfolioBoardId);
+    if (state.selectedWorkContext === 'maintenance') params.set('work', 'maintenance');
     const detail = state.activeDialog === 'taskDetail' ? state.portfolioDetailContext : null;
     const detailBoard = state.portfolioBoards.find((board) => board.id === detail?.boardId);
     const link = detail && detailBoard ? { projectId: getProjectInfo(detailBoard.data).id, taskId: detail.taskId } : state.pendingTaskLink;
     if (link) { params.set('wiProject', link.projectId); params.set('wi', String(link.taskId)); }
-    const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner' || state.selectedPortfolioViewMode === 'portfolio';
+    const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner' || state.selectedPortfolioViewMode === 'portfolio' || state.selectedPortfolioViewMode === 'maintenance';
     if (aggregateView && (state.portfolioBoards || []).length > 0) {
         params.set('pv', state.selectedPortfolioViewMode);
     } else if (state.selectedPortfolioBoardId && (state.selectedPortfolioViewMode === 'roadmap' || state.selectedPortfolioViewMode === 'table' || state.selectedPortfolioViewMode === 'dashboard')) {
@@ -70,6 +71,7 @@ export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDef
     const projectId = readQueryParam('wiProject', '', windowRef), taskId = Number(readQueryParam('wi', '', windowRef));
 
     store.setState({
+        selectedWorkContext: readQueryParam('work', '', windowRef) === 'maintenance' ? 'maintenance' : 'project',
         pendingTaskLink: projectId && Number.isSafeInteger(taskId) && taskId > 0 ? { projectId, taskId } : null,
         portfolioFilters: normalizePortfolioFilterSet({
             search: readQueryParam('pq', '', windowRef),

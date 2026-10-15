@@ -11,6 +11,7 @@ import { DEFAULT_TABLE_FILTERS, type TableFilters } from './tableModel';
 import { STATUS_LABELS, PRIORITY_LABELS } from './tableLabels';
 import { WORKITEM_TYPES } from '@/domain/workitems';
 import { getProjectInfo } from '@/domain/project';
+import { getTaskWorkflow } from '@/domain/workflow';
 
 function useTableFilterFields() {
     const { t } = useI18n();
@@ -18,6 +19,7 @@ function useTableFilterFields() {
         portfolioBoards: s.portfolioBoards,
         selectedPortfolioBoardId: s.selectedPortfolioBoardId,
         portfolioTimelineSelection: s.portfolioTimelineSelection,
+        workContext: s.selectedWorkContext,
         filters: s.portfolioTableFiltersByBoardId[s.selectedPortfolioBoardId] || DEFAULT_TABLE_FILTERS
     })));
     const { portfolioBoards, selectedPortfolioBoardId, portfolioTimelineSelection, filters } = state;
@@ -51,7 +53,7 @@ function useTableFilterFields() {
         field('assignee', t('toolbar.assignee'), 'tableAssignee', [all, ...assignees.map((name) => ({ value: name, label: name })), ...(boardData ? getProjectInfo(boardData).team.map((member) => ({ value: member.id, label: `${member.name} · ${member.id}` })) : [])]),
         field('priority', t('toolbar.priority'), 'tablePriority', [all, ...Object.entries(PRIORITY_LABELS).map(([value, key]) => ({ value, label: t(key) }))]),
         field('effort', t('toolbar.effort'), 'tableEffort', [all, ...EFFORT_BUCKETS.map((value) => ({ value, label: value }))]),
-        field('statuses', t('task.status'), 'tableStatuses', (boardData?.board.columns || []).map((column) => ({ value: column.status, label: STATUS_LABELS[column.status] && !boardData?.extensions.workflow ? t(STATUS_LABELS[column.status]) : column.title })), true, t('table.selectStatuses')),
+        field('statuses', t('task.status'), 'tableStatuses', (boardData ? getTaskWorkflow(boardData, { workContext: state.workContext }).states : []).map((column) => ({ value: column.id, label: STATUS_LABELS[column.id] && !boardData?.extensions.workflow && state.workContext !== 'maintenance' ? t(STATUS_LABELS[column.id]) : column.name })), true, t('table.selectStatuses')),
         field('phaseId', t('task.phase'), 'tablePhase', [all, ...roadmap.phases.map((item) => ({ value: item.id, label: item.title }))]),
         field('milestoneId', t('task.milestone'), 'tableMilestone', [all, ...roadmap.milestones.map((item) => ({ value: item.id, label: item.title }))]),
         field('sprintId', t('task.sprint'), 'tableSprint', [all, ...roadmap.sprints.map((item) => ({ value: item.id, label: item.title }))])

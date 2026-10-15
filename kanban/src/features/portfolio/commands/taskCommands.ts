@@ -4,7 +4,6 @@ import type { Effort, Priority, Task } from '@/domain/types';
 import type { TaskDraft } from '@/features/portfolio/types';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
-import { defaultColumns } from '@/domain/constants';
 import {
     buildTaskFieldsFromDraft,
     nextTaskIdForBoard,
@@ -24,6 +23,9 @@ import { getProjectInfo } from '@/domain/project';
 import { updatePortfolioUrlState } from './portfolioNavigation';
 import { filterTableRows, sortTableRows, DEFAULT_TABLE_FILTERS, DEFAULT_TABLE_SORT } from '@/features/portfolio/table/tableModel';
 import type { CardRef, TaskDetailViewModel } from '@/features/portfolio/types';
+import { getTaskWorkflow } from '@/domain/workflow';
+import { projectApplication } from '@/domain/applications';
+import type { WorkContext } from '@/domain/maintenance';
 import { translateCurrent } from '@/shared/i18n';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -52,7 +54,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const state = getState();
         const sort = state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT;
         const rows = state.selectedPortfolioViewMode === 'table'
-            ? sortTableRows(filterTableRows(state.portfolioTasks.filter((row) => row.boardId === boardId), state.portfolioTableFiltersByBoardId[boardId] || DEFAULT_TABLE_FILTERS), sort.column, sort.direction, source.boardData)
+            ? sortTableRows(filterTableRows(state.portfolioTasks.filter((row) => row.boardId === boardId && (row.task.workContext || 'project') === state.selectedWorkContext), state.portfolioTableFiltersByBoardId[boardId] || DEFAULT_TABLE_FILTERS), sort.column, sort.direction, source.boardData)
             : state.portfolioVisibleRows;
         const navigation = options.navigation || rows.map((row) => ({ boardId: row.boardId, taskId: row.taskId }));
         commitState({ pendingTaskLink: null, portfolioDetailContext: { boardId, taskId, readOnly, navigation, ...(options.boardData ? { previewData: source.boardData } : {}) } });
@@ -83,7 +85,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         ));
     }
 
-    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string; relatedToTaskId?: number } = {}) {
+    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string; relatedToTaskId?: number; workContext?: WorkContext; applicationId?: string } = {}) {
         const boardRecord = getBoardRecord(boardId);
         if (!boardRecord) return;
         if (!canUsePortfolioTaskMutations(boardId)) {
@@ -91,13 +93,16 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             return;
         }
         closeTaskDetail();
-        const allowedStatuses = new Set((boardRecord.data.board.columns || []).map((column) => normalizeTaskStatus(column.status)));
-        const fallbackStatus = normalizeTaskStatus((boardRecord.data.board.columns || [defaultColumns[0]])[0]?.status);
+        const relatedSource = boardRecord.data.board.tasks.find((task) => task.id === options.relatedToTaskId);
+        const workContext = options.workContext || relatedSource?.workContext || getState().selectedWorkContext;
+        const workflow = getTaskWorkflow(boardRecord.data, { workContext });
+        const allowedStatuses = new Set(workflow.states.map((state) => state.id));
+        const fallbackStatus = workflow.initialStateId;
         const status = allowedStatuses.has(normalizeTaskStatus(preferredStatus))
             ? normalizeTaskStatus(preferredStatus)
             : fallbackStatus;
         commitState({
-            portfolioCreateContext: { boardId, status, relatedToTaskId: options.relatedToTaskId },
+            portfolioCreateContext: { boardId, status, relatedToTaskId: options.relatedToTaskId, workContext, applicationId: options.applicationId || relatedSource?.applicationId || projectApplication(boardRecord.data)?.id },
             taskEditorDirty: false,
             portfolioEditContext: null
         });
@@ -106,7 +111,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             null,
             getState().portfolioTasks,
             ++taskEditorOpenCount,
-            { preferredDueDate: options.preferredDueDate }
+            { preferredDueDate: options.preferredDueDate, workContext }
         );
         const related = boardRecord.data.board.tasks.find((task) => task.id === options.relatedToTaskId);
         if (related) Object.assign(vm.initial, { phaseId: related.phaseId, milestoneId: related.milestoneId });
@@ -241,12 +246,15 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
             const now = nowIso();
             const nextId = nextTaskIdForBoard(boardRecord);
-            const status = resolveCreateTaskStatus(boardRecord, state.portfolioCreateContext.status);
+            const status = state.portfolioCreateContext.workContext === 'maintenance'
+                ? state.portfolioCreateContext.status : resolveCreateTaskStatus(boardRecord, state.portfolioCreateContext.status);
             setSelectedPortfolioBoardId(boardId, { resetViewModeWhenEmpty: false });
             await runPortfolioBoardMutation(boardId, (data) => {
                 // Attachments are set just below; serialization fills in the
                 // remaining defaults.
                 data.board.tasks.push({
+                    workContext: state.portfolioCreateContext?.workContext || 'project',
+                    ...(state.portfolioCreateContext?.workContext === 'maintenance' ? { applicationId: state.portfolioCreateContext.applicationId } : {}),
                     id: nextId, ...commonFields, archived: false,
                     createdAt: now, updatedAt: now, status
                 } as Task);
@@ -302,8 +310,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
         const normalizedTargetStatus = normalizeTaskStatus(targetStatus);
         const validStatuses = new Set(
-            (source.boardRecord.data.board.columns || defaultColumns)
-                .map((column) => normalizeTaskStatus(column.status))
+            getTaskWorkflow(source.boardRecord.data, source.task).states.map((state) => state.id)
         );
         if (!validStatuses.has(normalizedTargetStatus)) return false;
         if (normalizeTaskStatus(source.task.status) === normalizedTargetStatus) return false;
@@ -375,9 +382,11 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const now = nowIso();
         const created = await runPortfolioBoardMutation(boardId, (data) => {
             data.board.tasks.push(normalizeTask({
+                workContext: getState().selectedWorkContext,
+                ...(getState().selectedWorkContext === 'maintenance' ? { applicationId: projectApplication(data)?.id } : {}),
                 id, title, description: '', assignees: fields.assignees, tags: fields.tags,
                 priority: fields.priority, effort: fields.effort, dueDate: fields.dueDate,
-                status: resolveCreateTaskStatus(boardRecord, 'to-do'), archived: false,
+                status: getState().selectedWorkContext === 'maintenance' ? getTaskWorkflow(data, { workContext: 'maintenance' }).initialStateId : resolveCreateTaskStatus(boardRecord, 'to-do'), archived: false,
                 createdAt: now, updatedAt: now
             }, { includeStatusChangedAt: false }));
             recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, id));

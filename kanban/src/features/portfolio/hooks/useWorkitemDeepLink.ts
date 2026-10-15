@@ -14,6 +14,8 @@ export function useWorkitemDeepLink() {
         if (!board) return;
         useAppStore.setState({ pendingTaskLink: null });
         actions.setSelectedPortfolioBoardId(board.id);
+        const task = board.data.board.tasks.find((task) => task.id === pending.taskId);
+        if (task) useAppStore.setState({ selectedWorkContext: task.workContext || 'project' });
         actions.openPortfolioTaskDetails(board.id, pending.taskId);
     }, [boards, pending, actions]);
     useEffect(() => {
