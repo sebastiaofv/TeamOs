@@ -3,6 +3,7 @@ import { getRoadmapExtension } from './roadmap';
 import { validateDatePair, type ProjectDates } from './project';
 import { eligibleLeafTasks } from './workitems';
 import { isTaskCompleted, statusCategory } from './workflow';
+import { collectDescendants, groupBy } from './util';
 
 export type PhasePlanDetails = { parentId: string; baseline?: ProjectDates; actual?: ProjectDates; baselineRevisions?: { at: string; reason: string; dates: ProjectDates }[] };
 export type ProjectPlan = { version: 1; phases: Record<string, PhasePlanDetails> };
@@ -39,24 +40,20 @@ export function validatePhaseHierarchy(data: BoardData): void {
     for (const task of data.board.tasks) if (task.phaseId && parents.has(task.phaseId)) throw new Error('Workitems must be assigned to a leaf phase.');
 }
 
+export const PLAN_TASK_FIELD = { phases: 'phaseId', milestones: 'milestoneId', sprints: 'sprintId' } as const satisfies Record<RoadmapKind, keyof Task>;
+
 export function phaseDescendants(data: BoardData, phaseId: string): Set<string> {
-    const plan = getProjectPlan(data), included = new Set([phaseId]), pending = [phaseId];
-    while (pending.length) {
-        const parent = pending.pop()!;
-        for (const [id, detail] of Object.entries(plan.phases)) if (detail.parentId === parent && !included.has(id)) { included.add(id); pending.push(id); }
-    }
-    return included;
+    const children = groupBy(Object.entries(getProjectPlan(data).phases), ([, detail]) => detail.parentId);
+    return collectDescendants([phaseId], (id) => (children.get(id) || []).map(([childId]) => childId));
 }
 
+// Workitems planned on the item (or a nested phase) plus their child workitems.
 export function planWorkitems(data: BoardData, kind: RoadmapKind, id: string): Task[] {
-    const field = kind === 'phases' ? 'phaseId' : kind === 'milestones' ? 'milestoneId' : 'sprintId';
+    const field = PLAN_TASK_FIELD[kind];
     const refs = kind === 'phases' ? phaseDescendants(data, id) : new Set([id]);
-    const included = new Set(data.board.tasks.filter((task) => refs.has(task[field])).map((task) => task.id));
-    const children = new Map<number, number[]>();
-    for (const task of data.board.tasks) if (task.parentId) children.set(task.parentId, [...(children.get(task.parentId) || []), task.id]);
-    const pending = [...included];
-    while (pending.length) for (const child of children.get(pending.pop()!) || []) if (!included.has(child)) { included.add(child); pending.push(child); }
-    return data.board.tasks.filter((task) => included.has(task.id));
+    const children = groupBy(data.board.tasks, (task) => task.parentId);
+    const included = collectDescendants(data.board.tasks.filter((task) => refs.has(task[field])), (task) => children.get(task.id) || []);
+    return data.board.tasks.filter((task) => included.has(task));
 }
 
 export function executionProgress(data: BoardData, tasks: readonly Task[] = data.board.tasks): { eligible: Task[]; completed: Task[]; percent: number | null } {
