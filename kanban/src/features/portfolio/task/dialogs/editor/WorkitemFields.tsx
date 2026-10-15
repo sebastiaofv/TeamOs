@@ -1,5 +1,5 @@
 import type { TaskEditorFields, Task } from '@/domain/types';
-import { WORKITEM_TYPES, canParent } from '@/domain/workitems';
+import { WORKITEM_TYPES, canParent, taskWorkContext } from '@/domain/workitems';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { useI18n } from '@/shared/i18n';
 
@@ -9,8 +9,9 @@ export function WorkitemFields({ form, onChange }: { form: TaskEditorFields; onC
     const context = useAppStore((s) => s.portfolioEditContext || s.portfolioCreateContext);
     const board = useAppStore((s) => s.portfolioBoards.find((b) => b.id === context?.boardId));
     const create = useAppStore((s) => s.portfolioCreateContext);
-    const workContext = editing ? board?.data.board.tasks.find((task) => task.id === editing.taskId)?.workContext || 'project' : create?.workContext || 'project';
-    const parents = board?.data.board.tasks.filter((task) => task.id !== editing?.taskId && (task.workContext || 'project') === workContext && canParent(task, { workitemType: form.workitemType } as Task)) || [];
+    const editedTask = editing ? board?.data.board.tasks.find((task) => task.id === editing.taskId) : undefined;
+    const workContext = taskWorkContext(editedTask || create || {});
+    const parents = board?.data.board.tasks.filter((task) => task.id !== editing?.taskId && taskWorkContext(task) === workContext && canParent(task, { workitemType: form.workitemType } as Task)) || [];
     return <>
         <div className="form-row"><div className="form-group"><label htmlFor="taskType">{t('workitem.type')}</label>
             <select id="taskType" value={form.workitemType || 'task'} disabled={Boolean(editing)} onChange={(e) => onChange({ workitemType: e.target.value as Task['workitemType'], parentId: null })}>

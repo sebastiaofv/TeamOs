@@ -13,6 +13,10 @@ export type ProjectInfo = {
     needsReview: boolean;
 };
 
+export function activeTeamMember(info: ProjectInfo, memberId: string | undefined): ProjectMember | undefined {
+    return memberId ? info.team.find((member) => member.id === memberId && member.active) : undefined;
+}
+
 export function stableLocalId(value: string): string {
     let hash = 2166136261;
     for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);

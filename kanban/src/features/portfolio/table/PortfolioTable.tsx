@@ -17,6 +17,7 @@ import { clearTableFilters, setTableSort } from './tableControls';
 import { PRIORITY_LABELS, STATUS_LABELS, COLUMN_LABELS } from './tableLabels';
 import { getTaskWorkflow } from '@/domain/workflow';
 import { useTableDisclosure } from './useTableDisclosure';
+import { taskWorkContext } from '@/domain/workitems';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
     const state = useAppStore(useShallow((s) => ({
@@ -55,7 +56,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows: allSour
     const [pageSize, setPageSize] = useState(50);
     const [selected, setSelected] = useState<Set<number>>(() => new Set());
     const [separator, setSeparator] = useState<',' | ';'>(',');
-    const sourceRows = useMemo(() => allSourceRows.filter((row) => (row.task.workContext || 'project') === context), [allSourceRows, context]);
+    const sourceRows = useMemo(() => allSourceRows.filter((row) => taskWorkContext(row.task) === context), [allSourceRows, context]);
     const contextRows = sourceRows;
     const rows = useMemo(() => sortTableRows(filterTableRows(contextRows, filters), sort.column, sort.direction, boardData),
         [contextRows, filters, sort, boardData]);

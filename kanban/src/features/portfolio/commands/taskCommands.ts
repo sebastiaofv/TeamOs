@@ -17,7 +17,7 @@ import {
 } from '@/domain/attachments';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
-import { isAggregateWorkitem } from '@/domain/workitems';
+import { isAggregateWorkitem, taskWorkContext } from '@/domain/workitems';
 import { addRelation, taskRef } from '@/domain/relations';
 import { getProjectInfo } from '@/domain/project';
 import { updatePortfolioUrlState } from './portfolioNavigation';
@@ -54,7 +54,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const state = getState();
         const sort = state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT;
         const rows = state.selectedPortfolioViewMode === 'table'
-            ? sortTableRows(filterTableRows(state.portfolioTasks.filter((row) => row.boardId === boardId && (row.task.workContext || 'project') === state.selectedWorkContext), state.portfolioTableFiltersByBoardId[boardId] || DEFAULT_TABLE_FILTERS), sort.column, sort.direction, source.boardData)
+            ? sortTableRows(filterTableRows(state.portfolioTasks.filter((row) => row.boardId === boardId && taskWorkContext(row.task) === state.selectedWorkContext), state.portfolioTableFiltersByBoardId[boardId] || DEFAULT_TABLE_FILTERS), sort.column, sort.direction, source.boardData)
             : state.portfolioVisibleRows;
         const navigation = options.navigation || rows.map((row) => ({ boardId: row.boardId, taskId: row.taskId }));
         commitState({ pendingTaskLink: null, portfolioDetailContext: { boardId, taskId, readOnly, navigation, ...(options.boardData ? { previewData: source.boardData } : {}) } });

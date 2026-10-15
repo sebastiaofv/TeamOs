@@ -15,7 +15,7 @@ import { nowIso, normalizeTimestamp, todayLocalIsoDate, isRecord } from './util'
 import { normalizeDueDate } from './calendar';
 import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
-import { getWorkflow, getTaskWorkflow, isWorkflowStatusId } from './workflow';
+import { getWorkflow, isWorkflowStatusId, taskStatusCategory } from './workflow';
 export { findTaskInBoardData } from './boardData';
 
 type BoardRecordLike = { data?: BoardData } | null | undefined;
@@ -216,7 +216,7 @@ export function getTaskStatusAgeBaseTimestamp(task: TaskInput | null | undefined
 
 export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived' | 'workContext'>, data?: BoardData): boolean {
     const due = normalizeDueDate(task.dueDate);
-    const category = data ? getTaskWorkflow(data, task).states.find((state) => state.id === task.status)?.category : task.status === 'done' ? 'completed' : 'not-started';
+    const category = data ? taskStatusCategory(data, task) : task.status === 'done' ? 'completed' : 'not-started';
     if (!due || category === 'completed' || category === 'cancelled' || task.archived) return false;
     const today = todayLocalIsoDate();
     return due < today;

@@ -41,6 +41,7 @@ import { getProjectPlan } from '@/domain/projectPlan';
 import { getProjectInfo } from '@/domain/project';
 import { isSafeAttachmentPreview } from '@/domain/attachmentPolicy';
 import { declaredWorkflowStatuses, getTaskWorkflow } from '@/domain/workflow';
+import { type WorkContext } from '@/domain/workitems';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -106,7 +107,7 @@ export function buildTaskEditorViewModel(
     task: Task | null,
     portfolioTasks: readonly PortfolioRow[] | null | undefined,
     openId: number,
-    options: { taskId?: unknown; preferredDueDate?: string; workContext?: 'project' | 'maintenance' } = {}
+    options: { taskId?: unknown; preferredDueDate?: string; workContext?: WorkContext } = {}
 ): TaskEditorViewModel {
     const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
     const parentPhases = new Set(Object.values(getProjectPlan(boardRecord.data).phases).map((phase) => phase.parentId));

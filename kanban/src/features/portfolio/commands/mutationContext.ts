@@ -4,10 +4,8 @@ import { useAppStore, type AppStore } from '@/features/portfolio/state/store';
 import { cloneSerializable } from '@/domain/serialize';
 import {
     captureTaskTimelineSnapshot,
-    appendTimelineEvent,
     ensureBoardTimelineBaseline,
     getBoardTimelineData,
-    getTimelineExtensionObject,
     recordTaskTimelineEvent,
 } from '@/domain/timeline';
 import { touchTask } from '@/domain/task';
@@ -16,13 +14,8 @@ import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persisten
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
-import { validateWorkitems } from '@/domain/workitems';
-import { assertTaskTransition, synchronizeAggregateStatuses } from '@/domain/workflow';
-import { validatePhaseHierarchy } from '@/domain/projectPlan';
-import { reconcileAssignments } from '@/domain/assignments';
-import { ensureTaskAuditEvents } from '@/domain/workitemHistory';
-import { getProjectInfo } from '@/domain/project';
-import { validateNewAttachments } from '@/domain/attachmentPolicy';
+import { activeTeamMember, getProjectInfo } from '@/domain/project';
+import { enforceMutationInvariants } from './mutationInvariants';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -92,46 +85,8 @@ export function createBoardMutationContext({
             ensureBoardTimelineBaseline(draft.data);
             const eventStart = getBoardTimelineData(draft.data)?.events.length || 0;
             if (mutator(draft.data, draft) === false) return false;
-            const previousTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
-            if (!restoreSnapshot) for (const task of draft.data.board.tasks) validateNewAttachments(previousTasks.get(task.id)?.attachments || [], task.attachments || []);
-            const beforeAssignment = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
-            if (!restoreSnapshot) reconcileAssignments(draft.data, current.data);
-            for (const task of draft.data.board.tasks) {
-                const before = beforeAssignment.get(task.id);
-                if (before && (before.assigneeId !== task.assigneeId || JSON.stringify(before.assignees) !== JSON.stringify(task.assignees))) {
-                    if (previousTasks.has(task.id)) recordTaskTimelineEvent(draft.data, before, task);
-                    else {
-                        const event = [...(getTimelineExtensionObject(draft.data)?.events || [])].reverse().find((event) => event.kind === 'task.created' && event.entityId === String(task.id));
-                        if (event) event.snapshot = captureTaskTimelineSnapshot(draft.data, task.id) || undefined;
-                    }
-                }
-            }
-            validateWorkitems(draft.data, restoreSnapshot ? undefined : current.data);
-            validatePhaseHierarchy(draft.data);
-            if (!restoreSnapshot && JSON.stringify(current.data.extensions.workflow) === JSON.stringify(draft.data.extensions.workflow) && JSON.stringify(current.data.extensions.maintenance) === JSON.stringify(draft.data.extensions.maintenance)) {
-                for (const task of draft.data.board.tasks) {
-                    const before = previousTasks.get(task.id);
-                    if (before && (before.workContext || 'project') === (task.workContext || 'project')) assertTaskTransition(current.data, before, task.status);
-                }
-            }
-            const beforeAggregate = new Map(draft.data.board.tasks.map((task) => [task.id, { ...task }]));
-            synchronizeAggregateStatuses(draft.data, 'project');
-            synchronizeAggregateStatuses(draft.data, 'maintenance');
-            for (const task of draft.data.board.tasks) {
-                const before = beforeAggregate.get(task.id);
-                if (before && before.status !== task.status) {
-                    touchTask(task);
-                    recordTaskTimelineEvent(draft.data, before, task);
-                }
-            }
-            for (const key of ['relations', 'pullRequests', 'projectPlan', 'applications', 'maintenance']) if (JSON.stringify(current.data.extensions[key]) !== JSON.stringify(draft.data.extensions[key])) {
-                appendTimelineEvent(draft.data, { kind: 'board.extension.updated', entityType: 'board', entityId: key, summary: `Workitem ${key} updated`, changes: { [key]: { before: current.data.extensions[key], after: draft.data.extensions[key] } } });
-            }
-            ensureTaskAuditEvents(draft.data, current.data, eventStart);
             const project = getProjectInfo(draft.data);
-            const profileId = getState().localProfiles[project.id];
-            const actor = project.team.find((member) => member.id === profileId && member.active);
-            if (actor) for (const event of getTimelineExtensionObject(draft.data)?.events.slice(eventStart) || []) event.meta = { ...event.meta, actor: { id: actor.id, name: actor.name, verified: false } };
+            enforceMutationInvariants(draft.data, current.data, { restoreSnapshot, eventStart, actor: activeTeamMember(project, getState().localProfiles[project.id]) });
         } catch (error) {
             alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;

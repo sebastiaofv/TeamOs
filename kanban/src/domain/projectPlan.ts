@@ -1,8 +1,8 @@
 import type { BoardData, RoadmapKind, Task } from './types';
 import { getRoadmapExtension } from './roadmap';
 import { validateDatePair, type ProjectDates } from './project';
-import { eligibleLeafTasks } from './workitems';
-import { isTaskCompleted, getTaskWorkflow } from './workflow';
+import { eligibleLeafTasks, type WorkContext } from './workitems';
+import { isTaskCompleted, taskStatusCategory } from './workflow';
 import { collectDescendants, groupBy } from './util';
 
 export type PhasePlanDetails = { parentId: string; baseline?: ProjectDates; actual?: ProjectDates; baselineRevisions?: { at: string; reason: string; dates: ProjectDates }[] };
@@ -56,9 +56,9 @@ export function planWorkitems(data: BoardData, kind: RoadmapKind, id: string): T
     return data.board.tasks.filter((task) => task.workContext !== 'maintenance' && included.has(task));
 }
 
-export function executionProgress(data: BoardData, tasks: readonly Task[] = data.board.tasks, context: 'project' | 'maintenance' = 'project'): { eligible: Task[]; completed: Task[]; percent: number | null } {
+export function executionProgress(data: BoardData, tasks: readonly Task[] = data.board.tasks, context: WorkContext = 'project'): { eligible: Task[]; completed: Task[]; percent: number | null } {
     const ids = new Set(tasks.map((task) => task.id));
-    const eligible = eligibleLeafTasks(data, context).filter((task) => ids.has(task.id) && getTaskWorkflow(data, task).states.find((state) => state.id === task.status)?.category !== 'cancelled');
+    const eligible = eligibleLeafTasks(data, context).filter((task) => ids.has(task.id) && taskStatusCategory(data, task) !== 'cancelled');
     const completed = eligible.filter((task) => isTaskCompleted(data, task));
     return { eligible, completed, percent: eligible.length ? completed.length / eligible.length * 100 : null };
 }

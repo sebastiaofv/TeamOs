@@ -3,6 +3,7 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { getProjectInfo } from '@/domain/project';
 import { applyPortfolioUrlState } from '@/features/portfolio/commands/portfolioNavigation';
+import { taskWorkContext } from '@/domain/workitems';
 
 export function useWorkitemDeepLink() {
     const boards = useAppStore((s) => s.portfolioBoards);
@@ -15,7 +16,7 @@ export function useWorkitemDeepLink() {
         useAppStore.setState({ pendingTaskLink: null });
         actions.setSelectedPortfolioBoardId(board.id);
         const task = board.data.board.tasks.find((task) => task.id === pending.taskId);
-        if (task) useAppStore.setState({ selectedWorkContext: task.workContext || 'project' });
+        if (task) useAppStore.setState({ selectedWorkContext: taskWorkContext(task) });
         actions.openPortfolioTaskDetails(board.id, pending.taskId);
     }, [boards, pending, actions]);
     useEffect(() => {

@@ -12,9 +12,9 @@ import {
     layoutPlannerBlocks,
     plannerMinutes
 } from '@/domain/dayPlanner';
-import { isTaskCompleted, getTaskWorkflow } from '@/domain/workflow';
-import { taskWorkContext } from '@/domain/maintenance';
-import type { SelectorState } from './portfolioRowViews';
+import { isTaskCompleted, taskStatusCategory } from '@/domain/workflow';
+import { taskWorkContext } from '@/domain/workitems';
+import { activeWorkContext, type SelectorState } from './portfolioRowViews';
 import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './portfolioTimelineViews';
 
 export type PlannerTrayItem = {
@@ -75,7 +75,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
         const canEdit = Boolean(board.handle) && !isBoardInHistoricalPreview(state, board.id);
         return getDayPlannerBlocks(data).flatMap((block) => {
             const task = tasks.get(block.taskId);
-            if (!task || !dates.has(block.date) || taskWorkContext(task) !== (state?.selectedPortfolioBoardId ? state.selectedWorkContext || 'project' : 'project')) return [];
+            if (!task || !dates.has(block.date) || taskWorkContext(task) !== activeWorkContext(state)) return [];
             return [{
                 ...block,
                 boardId: board.id,
@@ -125,7 +125,7 @@ export function buildPortfolioPlannerViewModel(
         const status = row.task.status;
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;
-        const category = getTaskWorkflow(board.data, row.task).states.find((state) => state.id === status)?.category;
+        const category = taskStatusCategory(board.data, row.task);
         const trayStatus = category === 'completed' ? 'done' : category === 'in-progress' ? 'doing' : 'to-do';
         if (!statusSet.has(status) && !(board.data.extensions.workflow && !['backlog', 'to-do', 'doing', 'done'].includes(status) && statusSet.has(trayStatus))) return;
         let group = groups.get(board.id);

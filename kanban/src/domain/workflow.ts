@@ -1,7 +1,7 @@
 import type { BoardData, LooseBoardData, Task } from './types';
 import { isRecord } from './util';
 import { defaultColumns } from './constants';
-import { isAggregateWorkitem, synchronizeParentCompletion } from './workitems';
+import { isAggregateWorkitem, synchronizeParentCompletion, taskWorkContext, type WorkContext } from './workitems';
 
 export const WORKFLOW_CATEGORIES = ['not-started', 'in-progress', 'completed', 'cancelled'] as const;
 export type WorkflowCategory = typeof WORKFLOW_CATEGORIES[number];
@@ -51,36 +51,39 @@ export function getTaskWorkflow(data: BoardData, task: Pick<Task, 'workContext'>
     const maintenance = data.extensions.maintenance as { workflow?: Workflow } | undefined;
     return task.workContext === 'maintenance' ? maintenance?.workflow || getWorkflow(data) : getWorkflow(data);
 }
-export function isTaskCompleted(data: BoardData, task: Task): boolean { return getTaskWorkflow(data, task).states.find((state) => state.id === task.status)?.category === 'completed'; }
+export function taskStatusCategory(data: BoardData, task: Pick<Task, 'workContext' | 'status'>): WorkflowCategory | undefined {
+    return getTaskWorkflow(data, task).states.find((state) => state.id === task.status)?.category;
+}
+export function isTaskCompleted(data: BoardData, task: Task): boolean { return taskStatusCategory(data, task) === 'completed'; }
 export function assertTaskTransition(data: BoardData, task: Task, target: string): void {
     if (target === task.status) return;
     if (isAggregateWorkitem(task)) throw new Error('Epic and Story status is derived from children.');
     if (!getTaskWorkflow(data, task).transitions.some((transition) => transition.from === task.status && transition.to === target)) throw new Error('This workflow transition is not allowed.');
 }
 
-export function applyWorkflow(data: BoardData, workflow: Workflow, mapping: Record<string, string>): void {
+// Validates the new workflow and moves the context's tasks off removed states.
+function remapRemovedStates(data: BoardData, workflow: Workflow, mapping: Record<string, string>, context: WorkContext): void {
     validateWorkflow(workflow);
     const ids = new Set(workflow.states.map((state) => state.id));
-    for (const task of data.board.tasks) if (task.workContext !== 'maintenance' && !ids.has(task.status)) {
-        if (!mapping[task.status] || !ids.has(mapping[task.status])) throw new Error('Map every state in use before removing it.');
+    for (const task of data.board.tasks) if (taskWorkContext(task) === context && !ids.has(task.status)) {
+        if (!ids.has(mapping[task.status])) throw new Error(context === 'maintenance' ? 'Map every maintenance state in use before removing it.' : 'Map every state in use before removing it.');
         task.status = mapping[task.status];
     }
+}
+
+export function applyWorkflow(data: BoardData, workflow: Workflow, mapping: Record<string, string>): void {
+    remapRemovedStates(data, workflow, mapping, 'project');
     data.extensions.workflow = workflow;
     data.board.columns = workflow.states.map((state) => ({ status: state.id, title: state.name }));
 }
 
 export function applyMaintenanceWorkflow(data: BoardData, workflow: Workflow, mapping: Record<string, string>): void {
-    validateWorkflow(workflow);
-    const ids = new Set(workflow.states.map((state) => state.id));
-    for (const task of data.board.tasks) if (task.workContext === 'maintenance' && !ids.has(task.status)) {
-        if (!mapping[task.status] || !ids.has(mapping[task.status])) throw new Error('Map every maintenance state in use before removing it.');
-        task.status = mapping[task.status];
-    }
+    remapRemovedStates(data, workflow, mapping, 'maintenance');
     data.extensions.maintenance = { version: 1, enabled: true, workflow };
 }
 
 // Epic/Story status follows children: completed when every child is, else in progress.
-export function synchronizeAggregateStatuses(data: BoardData, context: NonNullable<Task['workContext']> = 'project'): void {
+export function synchronizeAggregateStatuses(data: BoardData, context: WorkContext = 'project'): void {
     const workflow = getTaskWorkflow(data, { workContext: context });
     const completed = workflow.states.find((state) => state.category === 'completed')?.id;
     const inProgress = workflow.states.find((state) => state.category === 'in-progress')?.id || workflow.initialStateId;

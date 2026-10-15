@@ -4,9 +4,9 @@ import type {
     PortfolioCalendarViewModel
 } from '@/features/portfolio/types';
 import type { BoardData, ProjectColor } from '@/domain/types';
-import { getBoardRecord, type SelectorState } from './portfolioRowViews';
+import { activeWorkContext, getBoardRecord, type SelectorState } from './portfolioRowViews';
 import { getSelectedPortfolioTimelineView } from './portfolioTimelineViews';
-import { taskWorkContext } from '@/domain/maintenance';
+import { taskWorkContext } from '@/domain/workitems';
 import {
     comparePortfolioCalendarItems,
     normalizeDueDate
@@ -85,7 +85,7 @@ function buildPortfolioCalendarItems(state: SelectorState): PortfolioCalendarIte
     const rows = Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
 
     rows.forEach((row) => {
-        if (taskWorkContext(row.task) !== (state?.selectedPortfolioBoardId ? state.selectedWorkContext || 'project' : 'project')) return;
+        if (taskWorkContext(row.task) !== activeWorkContext(state)) return;
         const dueDate = normalizeDueDate(row?.task?.dueDate);
         if (!dueDate) return;
         const boardRecord = getBoardRecord(state, row.boardId);

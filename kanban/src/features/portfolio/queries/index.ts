@@ -16,11 +16,13 @@ import {
 } from '@/domain/task';
 import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterSet } from '@/domain/portfolioFilters';
 import {
+    activeWorkContext,
     buildPortfolioRowsFromBoardData,
     buildPortfolioTasks,
     getBoardRecord,
     type SelectorState
 } from './portfolioRowViews';
+import { taskWorkContext } from '@/domain/workitems';
 import {
     buildPortfolioTimelineViewModel,
     getPortfolioBulkTaskIds,
@@ -61,6 +63,7 @@ export function getFilteredSortedPortfolioRows(state: SelectorState, options: { 
     const sortBy = normalizePortfolioSortKey(state?.portfolioSortKey);
     const sortDir = normalizePortfolioSortDir(state?.portfolioSortDir);
     const timelineView = getSelectedPortfolioTimelineView(state);
+    const workContext = activeWorkContext(state);
     const sourceRows = options.sourceRows
         || ((timelineView?.isPreview && timelineView.projectedBoard)
             ? buildPortfolioRowsFromBoardData(state, timelineView.boardRecord, timelineView.projectedBoard, {
@@ -73,7 +76,7 @@ export function getFilteredSortedPortfolioRows(state: SelectorState, options: { 
         .filter((item) => {
             const task = item.task;
             if (state?.selectedPortfolioBoardId && item.boardId !== state.selectedPortfolioBoardId) return false;
-            if ((task.workContext || 'project') !== (state?.selectedPortfolioBoardId ? state.selectedWorkContext || 'project' : 'project')) return false;
+            if (taskWorkContext(task) !== workContext) return false;
             if (archiveFilter === 'active' && task.archived) return false;
             if (archiveFilter === 'archived' && !task.archived) return false;
             if (priorityFilter && task.priority !== priorityFilter) return false;

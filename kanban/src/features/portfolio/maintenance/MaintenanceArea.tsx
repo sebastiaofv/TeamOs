@@ -7,6 +7,7 @@ import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { DashboardTaskList } from '@/features/portfolio/dashboard/DashboardTaskList';
 import { selectPortfolioBoard, setPortfolioViewMode } from '@/features/portfolio/commands/portfolioControls';
 import { useI18n } from '@/shared/i18n';
+import { formatPercent } from '@/shared/ui/format';
 
 export function MaintenanceArea({ hidden }: { hidden: boolean }) {
     const { t } = useI18n(), actions = usePortfolioActions();
@@ -33,7 +34,7 @@ export function MaintenanceArea({ hidden }: { hidden: boolean }) {
                 <button className="btn btn-primary" type="button" disabled={!source.handle} onClick={() => actions.openPortfolioCreateTaskModal(source.id, undefined, { workContext: 'maintenance', applicationId })}>{t('maintenance.create')}</button>
                 <button className="btn" type="button" onClick={() => actions.openWorkContext(source.id, 'maintenance', 'board')}>{t('toolbar.board')}</button><button className="btn" type="button" onClick={() => actions.openWorkContext(source.id, 'maintenance', 'table')}>{t('table.view')}</button>
             </>}</div>}
-            {groups.map(({ board, tasks, progress }) => <section key={board.id}><div className="workitem-link-row"><h2>{board.title}</h2><span className="muted">{board.fileName} · {t('maintenance.execution')} {progress.percent == null ? t('plan.na') : `${Math.round(progress.percent)}%`}</span><button className="btn-text" type="button" onClick={() => { selectPortfolioBoard(board.id); setPortfolioViewMode('dashboard'); }}>{t('maintenance.openProject')}</button></div><DashboardTaskList tasks={tasks} boardId={board.id} data={board.data} title={combined ? t('maintenance.combined') : t('maintenance.work')} /></section>)}
+            {groups.map(({ board, tasks, progress }) => <section key={board.id}><div className="workitem-link-row"><h2>{board.title}</h2><span className="muted">{board.fileName} · {t('maintenance.execution')} {formatPercent(progress.percent, t('plan.na'))}</span><button className="btn-text" type="button" onClick={() => { selectPortfolioBoard(board.id); setPortfolioViewMode('dashboard'); }}>{t('maintenance.openProject')}</button></div><DashboardTaskList tasks={tasks} boardId={board.id} data={board.data} title={combined ? t('maintenance.combined') : t('maintenance.work')} /></section>)}
         </>}
     </div>;
 }

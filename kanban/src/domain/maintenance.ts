@@ -3,18 +3,15 @@ import { getMaintenanceConfig, projectApplication } from './applications';
 import { getWorkflow, getTaskWorkflow } from './workflow';
 import { getProjectInfo } from './project';
 import { getRoadmapExtension } from './roadmap';
-import { nowIso } from './util';
+import { collectDescendants, groupBy, nowIso } from './util';
+import { taskWorkContext, type WorkContext } from './workitems';
 
-export type WorkContext = 'project' | 'maintenance';
 export type MaintenanceOrigin = { projectId: string; phaseId: string; milestoneId: string; sprintId: string; status: string; parentId: number | null };
-export function taskWorkContext(task: Pick<Task, 'workContext'>): WorkContext { return task.workContext || 'project'; }
+export { taskWorkContext, type WorkContext } from './workitems';
 export function workitemSubtree(data: BoardData, rootId: number): Task[] {
-    const included = new Set([rootId]), pending = [rootId];
-    while (pending.length) {
-        const parentId = pending.pop()!;
-        for (const task of data.board.tasks) if (task.parentId === parentId && !included.has(task.id)) { included.add(task.id); pending.push(task.id); }
-    }
-    return data.board.tasks.filter((task) => included.has(task.id));
+    const children = groupBy(data.board.tasks, (task) => task.parentId);
+    const included = collectDescendants(data.board.tasks.filter((task) => task.id === rootId), (task) => children.get(task.id) || []);
+    return data.board.tasks.filter((task) => included.has(task));
 }
 export function moveWorkitemContext(data: BoardData, taskId: number, target: WorkContext, mapping: Record<string, string>): number[] {
     const root = data.board.tasks.find((task) => task.id === taskId), app = projectApplication(data);
@@ -42,4 +39,4 @@ export function moveWorkitemContext(data: BoardData, taskId: number, target: Wor
     root.parentId = oldParent && data.board.tasks.some((task) => task.id === oldParent && taskWorkContext(task) === target) ? oldParent : null;
     return tasks.map((task) => task.id);
 }
-export function contextWorkflow(data: BoardData, context: WorkContext) { return getTaskWorkflow(data, { workContext: context } as Task); }
+export function contextWorkflow(data: BoardData, context: WorkContext) { return getTaskWorkflow(data, { workContext: context }); }
