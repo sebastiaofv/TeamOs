@@ -30,7 +30,7 @@ export function normalizePullRequest(input: Omit<PullRequestLink, 'id' | 'provid
 export function savePullRequest(data: BoardData, taskId: number, input: Omit<PullRequestLink, 'id' | 'provider'> & { id?: string }): PullRequestLink {
     if (!data.board.tasks.some((task) => task.id === taskId)) throw new Error('Workitem no longer exists.');
     const link = normalizePullRequest(input), extension = getPullRequests(data), existing = extension.byTaskId[taskId] || [];
-    if (existing.some((item) => item.id !== link.id && item.number === link.number && item.repository.toLowerCase() === link.repository.toLowerCase())) throw new Error('This PR is already linked to the workitem.');
+    if (existing.some((item) => item.id !== link.id && item.number === link.number && (!item.repository || !link.repository || item.repository.toLowerCase() === link.repository.toLowerCase()))) throw new Error('This PR is already linked to the workitem.');
     data.extensions.pullRequests = { version: 1, byTaskId: { ...extension.byTaskId, [taskId]: [...existing.filter((item) => item.id !== link.id), link] } } satisfies PullRequests;
     return link;
 }

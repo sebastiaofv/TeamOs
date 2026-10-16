@@ -4,6 +4,11 @@ import { areSerializableValuesEqual } from './serializable';
 import { groupBy } from './util';
 import { getProjectInfo } from './project';
 import { refKey, type TaskRef, type WorkitemRelation } from './relations';
+import { isRecord } from './util';
+
+function isTaskRef(value: unknown): value is TaskRef {
+    return isRecord(value) && typeof value.projectId === 'string' && Number.isSafeInteger(value.taskId);
+}
 
 // Fill audit gaps from board-level operations without duplicating task events
 // already recorded by the existing commands.
@@ -27,9 +32,11 @@ export function workitemHistory(boards: readonly BoardData[], ref: TaskRef): Tim
     for (const data of boards) {
         const own = getProjectInfo(data).id === ref.projectId;
         for (const event of getBoardTimelineData(data)?.events || []) {
-            const relation = event.meta?.relation as WorkitemRelation | undefined;
-            const linked = relation && (refKey(relation.from) === refKey(ref) || refKey(relation.to) === refKey(ref));
-            if (linked || own && (event.entityType === 'task' && event.entityId === String(ref.taskId) || event.meta?.taskIds?.some((id) => Number(id) === ref.taskId))) events.push(event);
+            const relation = event.meta?.relation as Partial<WorkitemRelation> | undefined;
+            // Imported files may carry malformed meta; only well-formed refs can match.
+            const linked = [relation?.from, relation?.to].some((side) => isTaskRef(side) && refKey(side) === refKey(ref));
+            const taskIds = Array.isArray(event.meta?.taskIds) ? event.meta.taskIds : [];
+            if (linked || own && (event.entityType === 'task' && event.entityId === String(ref.taskId) || taskIds.some((id) => Number(id) === ref.taskId))) events.push(event);
         }
     }
     return [...new Map(events.map((event) => [event.id, event])).values()].sort((a, b) => b.at.localeCompare(a.at) || b.id.localeCompare(a.id));

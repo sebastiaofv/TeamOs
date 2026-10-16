@@ -24,7 +24,10 @@ export function createMaintenanceActions(context: BoardMutationContext) {
     function openWorkContext(boardId: string, target: WorkContext, view: 'board' | 'table' = 'board') {
         if (!context.getBoardRecord(boardId)) return;
         context.closeDialogFn('taskDetail');
-        context.commitState({ portfolioDetailContext: null, selectedPortfolioBoardId: boardId, selectedWorkContext: target, selectedPortfolioViewMode: view });
+        // Selected tasks belong to the context being left and would no longer be visible.
+        const portfolioBulkSelectionByBoardId = { ...(context.getState().portfolioBulkSelectionByBoardId || {}) };
+        delete portfolioBulkSelectionByBoardId[boardId];
+        context.commitState({ portfolioDetailContext: null, selectedPortfolioBoardId: boardId, selectedWorkContext: target, selectedPortfolioViewMode: view, portfolioBulkSelectionByBoardId });
         const state = context.getState();
         const filters = state.portfolioTableFiltersByBoardId[boardId];
         if (filters) context.commitState({ portfolioTableFiltersByBoardId: { ...state.portfolioTableFiltersByBoardId, [boardId]: { ...filters, statuses: [], phaseId: '', milestoneId: '', sprintId: '' } } });

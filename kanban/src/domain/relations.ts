@@ -54,6 +54,12 @@ export function addRelation(owner: BoardData, boards: readonly BoardData[], inpu
     owner.extensions.relations = { version: 1, links: [...getRelations(owner), link] } satisfies RelationsExtension;
     return link;
 }
+// A deleted workitem must not keep blocking or linking from this board.
+export function removeTaskRelations(owner: BoardData, ref: TaskRef): void {
+    const links = getRelations(owner), key = refKey(ref);
+    const kept = links.filter((link) => refKey(link.from) !== key && refKey(link.to) !== key);
+    if (kept.length !== links.length) owner.extensions.relations = { version: 1, links: kept } satisfies RelationsExtension;
+}
 export function dependencyBlockers(boards: readonly BoardData[], ref: TaskRef): TaskRef[] {
     return boards.flatMap(getRelations).filter((link) => link.kind === 'blocks' && refKey(link.to) === refKey(ref)).filter((link) => {
         const predecessor = findReferencedTask(boards, link.from);

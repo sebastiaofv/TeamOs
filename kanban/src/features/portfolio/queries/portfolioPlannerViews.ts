@@ -12,7 +12,7 @@ import {
     layoutPlannerBlocks,
     plannerMinutes
 } from '@/domain/dayPlanner';
-import { isTaskCompleted, taskStatusCategory } from '@/domain/workflow';
+import { getTaskWorkflow, isTaskCompleted, taskStatusCategory } from '@/domain/workflow';
 import { taskWorkContext } from '@/domain/workitems';
 import { activeWorkContext, type SelectorState } from './portfolioRowViews';
 import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './portfolioTimelineViews';
@@ -127,7 +127,9 @@ export function buildPortfolioPlannerViewModel(
         if (!board) return;
         const category = taskStatusCategory(board.data, row.task);
         const trayStatus = category === 'completed' ? 'done' : category === 'in-progress' ? 'doing' : 'to-do';
-        if (!statusSet.has(status) && !(board.data.extensions.workflow && !['backlog', 'to-do', 'doing', 'done'].includes(status) && statusSet.has(trayStatus))) return;
+        // Custom states (project or maintenance workflow) map onto the tray by category.
+        const customState = !['backlog', 'to-do', 'doing', 'done'].includes(status) && getTaskWorkflow(board.data, row.task).states.some((state) => state.id === status);
+        if (!statusSet.has(status) && !(customState && statusSet.has(trayStatus))) return;
         let group = groups.get(board.id);
         if (!group) {
             group = { boardId: board.id, boardTitle: boardTitle(board), color: boardColor(board), items: [] };

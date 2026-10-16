@@ -1,6 +1,5 @@
 import type {
     BoardRecord,
-    PortfolioRow,
     SelectOption,
     TaskDetailViewModel,
     TaskDraft,
@@ -11,7 +10,6 @@ import type { BoardData, RoadmapItem, Task } from '@/domain/types';
 import { ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_MAX_COUNT, TASK_TITLE_MAX_LENGTH } from '@/domain/constants';
 import {
     formatAssignees,
-    normalizeAssignee,
     normalizeAssignees,
     normalizeBlockerReason,
     normalizeChecklist,
@@ -19,8 +17,7 @@ import {
     normalizePriority,
     normalizeTags,
     getBoardTagSuggestions,
-    normalizeTask,
-    taskAssignees
+    normalizeTask
 } from '@/domain/task';
 import {
     createEmptyRoadmapExtension,
@@ -38,7 +35,6 @@ import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/c
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 import { getProjectPlan } from '@/domain/projectPlan';
-import { getProjectInfo } from '@/domain/project';
 import { isSafeAttachmentPreview } from '@/domain/attachmentPolicy';
 import { declaredWorkflowStatuses, getTaskWorkflow } from '@/domain/workflow';
 import { type WorkContext } from '@/domain/workitems';
@@ -88,24 +84,9 @@ function buildRoadmapEntityOptions(items: RoadmapItem[] | null | undefined): Sel
     }));
 }
 
-function getTaskAssigneeSuggestions(portfolioTasks: readonly PortfolioRow[] | null | undefined): string[] {
-    const seen = new Set<string>();
-    const values: string[] = [];
-    const addName = (value: unknown) => {
-        const name = normalizeAssignee(value);
-        if (!name || seen.has(name.toLowerCase())) return;
-        seen.add(name.toLowerCase());
-        values.push(name);
-    };
-    (Array.isArray(portfolioTasks) ? portfolioTasks : [])
-        .forEach((item) => taskAssignees(item?.task).forEach(addName));
-    return values.sort((a, b) => a.localeCompare(b));
-}
-
 export function buildTaskEditorViewModel(
     boardRecord: BoardRecord,
     task: Task | null,
-    portfolioTasks: readonly PortfolioRow[] | null | undefined,
     openId: number,
     options: { taskId?: unknown; preferredDueDate?: string; workContext?: WorkContext } = {}
 ): TaskEditorViewModel {
@@ -161,7 +142,6 @@ export function buildTaskEditorViewModel(
         initial,
         phaseOptions,
         milestoneOptions,
-        assigneePool: getTaskAssigneeSuggestions(portfolioTasks).filter((name) => getProjectInfo(boardRecord.data).team.some((member) => member.active && member.name === name)),
         tagSuggestions: getBoardTagSuggestions(boardRecord.data),
         otherAttachmentBytes: calculateBoardAttachmentBytes(boardRecord.data, {
             excludeTaskId: normalized ? options.taskId : null

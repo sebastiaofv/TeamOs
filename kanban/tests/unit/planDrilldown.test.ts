@@ -11,6 +11,8 @@ it('includes direct workitems and unique inherited descendants, leaving unclassi
     const tree = buildDrilldownTree(result.tasks, result.directIds);
     expect(tree).toHaveLength(1); expect(tree[0].children[0].direct).toBe(false);
     expect(tree[0].children[0].children[0].task.id).toBe(3);
-    expect(unassociatedPlanTasks(data).map((t) => t.id)).toEqual([4]);
+    expect(unassociatedPlanTasks(data).tasks.map((t) => t.id)).toEqual([4]);
+    data.board.tasks.push(normalizeTask({ id: 6, title: 'Milestone only', milestoneId: 'm' }), normalizeTask({ id: 7, title: 'Sprint only', sprintId: 's' }));
+    expect(unassociatedPlanTasks(data).tasks.map((t) => t.id)).toEqual([4]);
     expect(planDrilldownTasks(data, 'phases', 'p', true).tasks.map((t) => t.id)).toEqual([1, 2, 3, 5]);
 });

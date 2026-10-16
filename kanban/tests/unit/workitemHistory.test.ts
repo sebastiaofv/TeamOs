@@ -27,3 +27,11 @@ it('fills board-level audit gaps once and filters by exact task identity', () =>
 it('renders attachment names rather than embedded file payloads', () => {
     expect(historyValue([{ name: 'screenshot.png', dataUrl: 'data:image/png;base64,secret' }])).toBe('screenshot.png');
 });
+
+it('ignores malformed relation and taskIds metadata from imported files', () => {
+    const data = serializeBoardDataFromObject(createEmptyProjectData('History'));
+    data.board.tasks = [normalizeTask({ id: 1, title: 'One' })];
+    ensureBoardTimelineBaseline(data);
+    appendTimelineEvent(data, { kind: 'workitem.relation.added', entityType: 'board', entityId: 'x', summary: 'Bad', meta: { relation: {}, taskIds: 'oops' as unknown as number[] } });
+    expect(() => workitemHistory([data], taskRef(data, 1))).not.toThrow();
+});

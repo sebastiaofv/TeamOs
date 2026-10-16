@@ -18,7 +18,7 @@ import {
 import { appendTimelineEvent, captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
 import { isAggregateWorkitem, taskWorkContext } from '@/domain/workitems';
-import { addRelation, taskRef } from '@/domain/relations';
+import { addRelation, removeTaskRelations, taskRef } from '@/domain/relations';
 import { getProjectInfo } from '@/domain/project';
 import { updatePortfolioUrlState } from './portfolioNavigation';
 import { filterTableRows, sortTableRows, DEFAULT_TABLE_FILTERS, DEFAULT_TABLE_SORT } from '@/features/portfolio/table/tableModel';
@@ -79,7 +79,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         openDialogFn('taskEditor', buildTaskEditorViewModel(
             source.boardRecord,
             source.task,
-            getState().portfolioTasks,
             ++taskEditorOpenCount,
             { taskId }
         ));
@@ -109,7 +108,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const vm = buildTaskEditorViewModel(
             boardRecord,
             null,
-            getState().portfolioTasks,
             ++taskEditorOpenCount,
             { preferredDueDate: options.preferredDueDate, workContext }
         );
@@ -187,6 +185,11 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
 
         const title = String(source.task.title || '').trim() || translateCurrent('messages.thisTask');
+        // Children would be left with a dangling parentId, which the hierarchy check rejects.
+        if (source.boardRecord.data.board.tasks.some((task) => Number(task.parentId) === Number(taskId))) {
+            await alert(translateCurrent('workitem.deleteHasChildren', { title }));
+            return;
+        }
         const confirmed = await confirm(translateCurrent('messages.deleteQuestion', { title }), {
             title: translateCurrent('messages.deleteTask'),
             confirmLabel: translateCurrent('messages.delete'),
@@ -220,6 +223,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             const before = captureTaskTimelineSnapshot(data, taskId);
             data.board.tasks.splice(index, 1);
             removeLegacyTaskAttachmentsFromExtensions(data, taskId);
+            removeTaskRelations(data, taskRef(data, Number(taskId)));
             recordTaskTimelineEvent(data, before, null);
             return true;
         });

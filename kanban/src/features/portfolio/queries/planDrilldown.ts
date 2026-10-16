@@ -21,17 +21,20 @@ export function planDrilldownTasks(data: BoardData, kind: RoadmapKind, id: strin
     return { tasks, directIds: new Set(tasks.filter((task) => task[PLAN_TASK_FIELD[kind]] === id).map((task) => task.id)) };
 }
 
-export function unassociatedPlanTasks(data: BoardData, includeArchived = false): Task[] {
+// Workitems with no phase, milestone or sprint on themselves or an ancestor.
+// Nothing here is inherited, so every listed task is a direct entry.
+export function unassociatedPlanTasks(data: BoardData, includeArchived = false): { tasks: Task[]; directIds: Set<number> } {
     const parents = new Map(data.board.tasks.map((task) => [task.id, task]));
-    return data.board.tasks.filter((task) => {
+    const tasks = data.board.tasks.filter((task) => {
         if (task.workContext === 'maintenance') return false;
         if (!includeArchived && task.archived) return false;
         let current: Task | undefined = task;
         const seen = new Set<number>();
         while (current && !seen.has(current.id)) {
-            if (current.phaseId) return false;
+            if (current.phaseId || current.milestoneId || current.sprintId) return false;
             seen.add(current.id); current = current.parentId ? parents.get(current.parentId) : undefined;
         }
         return true;
     });
+    return { tasks, directIds: new Set(tasks.map((task) => task.id)) };
 }

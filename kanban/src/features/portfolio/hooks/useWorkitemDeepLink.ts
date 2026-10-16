@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { getProjectInfo } from '@/domain/project';
-import { applyPortfolioUrlState } from '@/features/portfolio/commands/portfolioNavigation';
 import { taskWorkContext } from '@/domain/workitems';
 
 export function useWorkitemDeepLink() {
@@ -19,9 +18,4 @@ export function useWorkitemDeepLink() {
         if (task) useAppStore.setState({ selectedWorkContext: taskWorkContext(task) });
         actions.openPortfolioTaskDetails(board.id, pending.taskId);
     }, [boards, pending, actions]);
-    useEffect(() => {
-        const onPopState = () => applyPortfolioUrlState();
-        window.addEventListener('popstate', onPopState);
-        return () => window.removeEventListener('popstate', onPopState);
-    }, []);
 }

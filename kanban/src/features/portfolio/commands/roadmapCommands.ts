@@ -264,6 +264,9 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
 
         const parentPhaseId = normalizeRoadmapRef(input.parentPhaseId);
         const parentTasks = context.kind === 'phases' && parentPhaseId ? getBoardRecord(context.boardId)?.data.board.tasks.filter((task) => task.phaseId === parentPhaseId) || [] : [];
+        // The parent's workitems move into this phase, which only works while it is a leaf.
+        const hasSubphases = parentTasks.length > 0 && Boolean(draft.itemId) && Object.values(getProjectPlan(getBoardRecord(context.boardId)!.data).phases).some((detail) => detail?.parentId === draft.itemId);
+        if (hasSubphases) { await alert(translateCurrent('plan.reassignNotLeaf', { count: parentTasks.length })); return; }
         if (parentTasks.length && !(await confirm(translateCurrent('plan.reassignParent', { count: parentTasks.length })))) return;
         const changed = await runPortfolioBoardMutation(context.boardId, (boardData) => {
             const roadmap = getRoadmapExtensionObject(boardData, { create: true });

@@ -257,7 +257,7 @@ function PortfolioRoadmapView({ view, state }: { view: PortfolioRoadmapViewModel
                     includeArchived={includeArchived}
                 />
             ))}
-            {boardData && <section className="roadmap-section"><h3 className="roadmap-section-title">{t('drilldown.unassociated')}</h3><PlanDrilldown tasks={unassociatedPlanTasks(boardData, includeArchived)} directIds={new Set(unassociatedPlanTasks(boardData, includeArchived).map((task) => task.id))} descriptor="unassociated" board={boardRecord} data={boardData} historical={historical} state={state} /></section>}
+            {boardData && <section className="roadmap-section"><h3 className="roadmap-section-title">{t('drilldown.unassociated')}</h3><PlanDrilldown {...unassociatedPlanTasks(boardData, includeArchived)} descriptor="unassociated" board={boardRecord} data={boardData} historical={historical} state={state} /></section>}
         </div>
     );
 }

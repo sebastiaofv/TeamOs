@@ -14,10 +14,10 @@ import {
     type TableColumnId
 } from './tableModel';
 import { clearTableFilters, setTableSort } from './tableControls';
-import { PRIORITY_LABELS, STATUS_LABELS, COLUMN_LABELS } from './tableLabels';
+import { PRIORITY_LABELS, STATUS_LABELS, COLUMN_LABELS, WORKITEM_TYPE_LABELS } from './tableLabels';
 import { getTaskWorkflow } from '@/domain/workflow';
 import { useTableDisclosure } from './useTableDisclosure';
-import { taskWorkContext } from '@/domain/workitems';
+import { taskWorkContext, type WorkitemType } from '@/domain/workitems';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
     const state = useAppStore(useShallow((s) => ({
@@ -104,6 +104,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows: allSour
         if (!value) return t('table.notDefined');
         if (column === 'status') return context === 'project' && !boardData?.extensions.workflow && STATUS_LABELS[row.task.status] ? t(STATUS_LABELS[row.task.status]) : getTaskWorkflow(boardData, row.task).states.find((state) => state.id === row.task.status)?.name || row.task.status;
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
+        if (column === 'workitemType') return WORKITEM_TYPE_LABELS[value as WorkitemType] ? t(WORKITEM_TYPE_LABELS[value as WorkitemType]) : value;
         if (column === 'blocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
         return value;
     }

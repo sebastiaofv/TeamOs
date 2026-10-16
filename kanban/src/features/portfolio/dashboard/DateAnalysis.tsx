@@ -27,7 +27,7 @@ export function DateAnalysis({ boardId, data, readOnly }: { boardId: string; dat
     return <section className="date-analysis" id="projectDateAnalysis"><h2>{t('dates.title')}</h2>
         <p className="muted">{t('dates.formula')}</p>
         <div className="dashboard-controls"><label>{t('dates.reference')}<select aria-label={t('dates.reference')} value={reference} onChange={(e) => setReference(e.target.value as typeof reference)}><option value="original">{t('dates.original')}</option><option value="latest">{t('dates.latest')}</option></select></label>
-            <label>{t('dates.from')}<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label><label>{t('dates.to')}<input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} /></label>
+            <label>{t('dates.analysisFrom')}<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label><label>{t('dates.analysisTo')}<input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} /></label>
             <div className="date-legend"><span className="baseline">{t('project.baseline')}</span><span className="forecast">{t('project.forecast')}</span><span className="actual">{t('project.actual')}</span></div>
         </div>
         {!phases.length ? <p>{t('dates.empty')}</p> : <div className="dashboard-table-scroll"><table className="dashboard-table"><thead><tr><th>{t('task.phase')}</th><th>{t('project.baseline')}</th><th>{t('project.forecast')}</th><th>{t('project.actual')}</th><th>{t('dates.forecastVariance')}</th><th>{t('dates.actualVariance')}</th><th>Gantt</th><th>{t('table.actions')}</th></tr></thead><tbody>
@@ -42,7 +42,7 @@ export function DateAnalysis({ boardId, data, readOnly }: { boardId: string; dat
                 </div></td><td>{!readOnly && <><button type="button" className="btn-text" onClick={() => setEditingId(editingId === phase.id ? '' : phase.id)}>{t('dates.record')}</button><button type="button" className="btn-text" onClick={() => actions.openRoadmapEntityModal('phases', phase.id, { boardId })}>{t('project.forecast')}</button></>}</td></tr>;
             })}
         </tbody></table></div>}
-        {!readOnly && phases.some((phase) => !plan.phases[phase.id]?.baseline) && <form className="dashboard-controls" onSubmit={async (e) => { e.preventDefault(); if (await actions.approveProjectBaseline(boardId, approvalReason)) setApprovalReason(''); }}><label>{t('dates.reason')}<input required value={approvalReason} onChange={(e) => setApprovalReason(e.target.value)} /></label><button type="submit" className="btn btn-primary">{t('dates.approve')}</button></form>}
+        {!readOnly && orderedPhases(data).some((phase) => !plan.phases[phase.id]?.baseline) && <form className="dashboard-controls" onSubmit={async (e) => { e.preventDefault(); if (await actions.approveProjectBaseline(boardId, approvalReason)) setApprovalReason(''); }}><label>{t('dates.reason')}<input required value={approvalReason} onChange={(e) => setApprovalReason(e.target.value)} /></label><button type="submit" className="btn btn-primary">{t('dates.approve')}</button></form>}
         {!readOnly && editingId && <PhaseDatesForm key={`${editingId}:${JSON.stringify(plan.phases[editingId])}`} boardId={boardId} phaseId={editingId} data={data} />}
     </section>;
 }

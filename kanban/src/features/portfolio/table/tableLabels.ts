@@ -1,6 +1,7 @@
 import type { Priority, TaskStatus } from '@/domain/types';
 import type { TranslationKey } from '@/shared/i18n';
 import type { TableColumnId } from './tableModel';
+import type { WorkitemType } from '@/domain/workitems';
 
 export const COLUMN_LABELS: Record<TableColumnId, TranslationKey> = {
     workitemType: 'workitem.type',
@@ -11,6 +12,9 @@ export const COLUMN_LABELS: Record<TableColumnId, TranslationKey> = {
 };
 export const STATUS_LABELS: Record<TaskStatus, TranslationKey> = {
     backlog: 'board.backlog', 'to-do': 'board.toDo', doing: 'board.doing', done: 'board.done'
+};
+export const WORKITEM_TYPE_LABELS: Record<WorkitemType, TranslationKey> = {
+    epic: 'workitem.epic', story: 'workitem.story', task: 'workitem.task', bug: 'workitem.bug'
 };
 export const PRIORITY_LABELS: Record<Priority, TranslationKey> = {
     high: 'toolbar.high', medium: 'toolbar.medium', low: 'toolbar.low'

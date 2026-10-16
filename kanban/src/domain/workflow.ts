@@ -86,6 +86,8 @@ export function applyMaintenanceWorkflow(data: BoardData, workflow: Workflow, ma
 export function synchronizeAggregateStatuses(data: BoardData, context: WorkContext = 'project'): void {
     const workflow = getTaskWorkflow(data, { workContext: context });
     const completed = workflow.states.find((state) => state.category === 'completed')?.id;
-    const inProgress = workflow.states.find((state) => state.category === 'in-progress')?.id || workflow.initialStateId;
+    // Open parents must never land on a completed/cancelled state, even when no in-progress state exists.
+    const open = workflow.states.filter((state) => state.category === 'in-progress' || state.category === 'not-started');
+    const inProgress = (open.find((state) => state.category === 'in-progress') || open.find((state) => state.id === workflow.initialStateId) || open[0])?.id || workflow.initialStateId;
     synchronizeParentCompletion(data, (task) => isTaskCompleted(data, task), completed, inProgress, context);
 }

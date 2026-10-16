@@ -2,6 +2,7 @@ import type { BoardData, TaskStatus } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getRoadmapItemTitle } from '@/domain/roadmap';
 import { effortRank, priorityRank, taskScore } from '@/domain/scoring';
+import { getTaskWorkflow } from '@/domain/workflow';
 
 export type TableColumnId =
     | 'id' | 'title' | 'status' | 'assignees' | 'priority' | 'phase' | 'updatedAt'
@@ -82,7 +83,11 @@ function tableSortValue(row: PortfolioRow, column: TableSort['column'], boardDat
     if (!value.trim()) return null;
     switch (column) {
         case 'id': return row.task.id;
-        case 'status': return boardData?.board.columns.findIndex((column) => column.status === row.task.status) ?? statusRanks[row.task.status] ?? 99;
+        case 'status': {
+            // Rank by the task's own workflow: maintenance states are not project columns.
+            const rank = boardData ? getTaskWorkflow(boardData, row.task).states.findIndex((state) => state.id === row.task.status) : -1;
+            return rank >= 0 ? rank : statusRanks[row.task.status] ?? 99;
+        }
         case 'priority': return priorityRank(row.task.priority);
         case 'effort': return effortRank(row.task.effort);
         case 'blocked': return Number(row.task.blocked);

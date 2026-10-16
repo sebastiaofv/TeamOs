@@ -105,7 +105,6 @@ export type TaskEditorViewModel = {
     initial: TaskEditorFields;
     phaseOptions: SelectOption[];
     milestoneOptions: SelectOption[];
-    assigneePool: string[];
     tagSuggestions: string[];
     otherAttachmentBytes: number;
 };

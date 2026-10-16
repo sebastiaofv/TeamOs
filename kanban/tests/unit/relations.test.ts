@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { normalizeTask } from '../../src/domain/task';
-import { addRelation, dependencyBlockers, getRelations, taskRef } from '../../src/domain/relations';
+import { addRelation, dependencyBlockers, getRelations, removeTaskRelations, taskRef } from '../../src/domain/relations';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 
 function board() {
@@ -32,4 +32,13 @@ it('allows loaded same-product cross-project links and preserves unresolved refe
     expect(dependencyBlockers([a], taskRef(a, 2))).toEqual([taskRef(b, 1)]);
     p2.product = 'Other';
     expect(() => addRelation(a, [a, b], { kind: 'related', from: taskRef(a, 1), to: taskRef(b, 2) })).toThrow(/same product/);
+});
+
+it('drops relations that reference a removed workitem', () => {
+    const data = board(), ref = (id: number) => taskRef(data, id);
+    addRelation(data, [data], { kind: 'blocks', from: ref(1), to: ref(2) });
+    addRelation(data, [data], { kind: 'related', from: ref(2), to: ref(3) });
+    removeTaskRelations(data, ref(1));
+    expect(getRelations(data).map((link) => [link.from.taskId, link.to.taskId])).toEqual([[2, 3]]);
+    expect(dependencyBlockers([data], ref(2))).toEqual([]);
 });

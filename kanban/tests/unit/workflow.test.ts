@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { createEmptyProjectData, validateBoardData } from '../../src/domain/board';
 import { normalizeTask } from '../../src/domain/task';
-import { applyWorkflow, assertTaskTransition, getWorkflow, isTaskCompleted } from '../../src/domain/workflow';
+import { applyWorkflow, assertTaskTransition, getWorkflow, isTaskCompleted, synchronizeAggregateStatuses } from '../../src/domain/workflow';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 
 it('preserves legacy statuses and enforces transitions by immutable ID', () => {
@@ -29,4 +29,17 @@ it('requires explicit mapping for removed states in use', () => {
     expect(() => applyWorkflow(data, workflow, {})).toThrow(/Map every/);
     applyWorkflow(data, workflow, { doing: 'to-do' });
     expect(data.board.tasks[0].status).toBe('to-do');
+});
+
+it('keeps open aggregates out of completed states when no in-progress state exists', () => {
+    const data = createEmptyProjectData('Workflow');
+    data.board.tasks = [normalizeTask({ id: 1, title: 'Story', workitemType: 'story' }), normalizeTask({ id: 2, title: 'Open', parentId: 1, status: 'wf_open' })];
+    const workflow = {
+        version: 1 as const, initialStateId: 'wf_done',
+        states: [{ id: 'wf_done', name: 'Done', color: '#123456', category: 'completed' as const }, { id: 'wf_open', name: 'Open', color: '#123456', category: 'not-started' as const }],
+        transitions: []
+    };
+    data.extensions.workflow = workflow;
+    synchronizeAggregateStatuses(data);
+    expect(data.board.tasks[0].status).toBe('wf_open');
 });

@@ -20,3 +20,9 @@ it('rejects dangerous, mismatched and non-GitHub URLs', () => {
         expect(() => normalizePullRequest({ number: '1', repository: '', notes: '', url })).toThrow();
     }
 });
+
+it('treats a link without repository as a duplicate of the same PR number', () => {
+    const data = createEmptyProjectData('PRs'); data.board.tasks = [normalizeTask({ id: 1, title: 'Task' })];
+    savePullRequest(data, 1, { number: '#123', repository: '', url: '', notes: '' });
+    expect(() => savePullRequest(data, 1, { number: '123', repository: 'team/repo', url: '', notes: '' })).toThrow(/already linked/);
+});

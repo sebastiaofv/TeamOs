@@ -305,13 +305,17 @@ function quickCreate(ctx: Ctx): PaletteModel {
     });
     const preliminary = parse(allPeople(ctx));
     const board = findBoard(ctx, preliminary.projectId);
-    const draft = parse(board ? getProjectInfo(board.data).team.filter((member) => member.active).map((member) => member.name) : []);
+    const team = board ? getProjectInfo(board.data).team.filter((member) => member.active).map((member) => member.name) : [];
+    const draft = parse(team);
+    // A workitem has exactly one responsible, who must be an active team member;
+    // unknown names stay in the preview as warnings instead of failing the create.
+    const assignees = draft.assignees.filter((name) => team.includes(name)).slice(0, 1);
     const preview: PalettePreview = { ...draft, projectTitle: boardTitle(board) };
     const items: PaletteItem[] = draft.title && board ? [{
         key: 'create', icon: 'create', label: ctx.t('palette.create', { title: draft.title, project: boardTitle(board) }), ranges: [],
         hint: ['Enter'], color: boardColor(board),
         action: { type: 'createTask', boardId: board.id, fields: {
-            title: draft.title, assignees: draft.assignees, priority: draft.priority, tags: draft.tags, effort: draft.effort, dueDate: draft.dueDate
+            title: draft.title, assignees, priority: draft.priority, tags: draft.tags, effort: draft.effort, dueDate: draft.dueDate
         } }
     }] : [];
     return { sections: [{ id: 'create', title: ctx.t('palette.sectionCreate'), items }], breadcrumbs: [], preview };
