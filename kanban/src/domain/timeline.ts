@@ -3,6 +3,7 @@ import type {
     LooseBoardData,
     RoadmapItem,
     Task,
+    TaskRelation,
     TimelineChanges,
     TimelineEvent,
     TimelineEventInput,
@@ -18,6 +19,7 @@ import { createEmptyRoadmapExtension, getRoadmapExtension, normalizeRoadmapExten
 import { applyPlannerBlockChange, normalizeDayPlannerBlock } from './dayPlanner';
 import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
+import { getRelations } from './taskRelations';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
@@ -141,6 +143,11 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
     const tasks = board.tasks;
     const settings = board.settings;
 
+    if (event.kind === 'task.relations.updated' && event.changes?.relations) {
+        nextState.extensions = { ...(nextState.extensions || {}), taskRelations: { version: 1, relations: cloneSerializable(event.changes.relations.after) } };
+        return nextState;
+    }
+
     if (event.kind === 'task.created' && event.snapshot) {
         board.tasks = tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
         board.tasks.push(cloneSerializable(event.snapshot));
@@ -238,6 +245,17 @@ export function captureTaskTimelineSnapshot(boardData: LooseBoardData | null | u
         fallbackAttachments: getTaskAttachments(boardData, taskId),
         includeStatusChangedAt: false,
         roadmap: getRoadmapExtension(boardData)
+    });
+}
+
+export function recordTaskRelationsTimelineEvent(data: BoardData, taskId: number, before: TaskRelation[]): void {
+    const after = getRelations(data);
+    if (areSerializableValuesEqual(before, after)) return;
+    appendTimelineEvent(data, {
+        kind: 'task.relations.updated', entityType: 'task', entityId: String(taskId),
+        summary: `Relations updated: #${taskId}`,
+        changes: { relations: { before: cloneSerializable(before), after: cloneSerializable(after) } },
+        meta: { taskIds: [...new Set([...before, ...after].flatMap((relation) => [relation.sourceId, relation.targetId]))] }
     });
 }
 

@@ -12,6 +12,7 @@ import type {
     RoadmapRange,
     RoadmapTick,
     Task,
+    TaskRelationKind,
     TaskStatus,
     TaskEditorFields,
     TimelineEvent,
@@ -111,6 +112,7 @@ export type TaskEditorViewModel = {
     assigneePool: string[];
     tagSuggestions: string[];
     otherAttachmentBytes: number;
+    relationNotice?: string;
 };
 
 export type TaskDetailFields = Record<
@@ -119,8 +121,14 @@ export type TaskDetailFields = Record<
     string
 >;
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
+export type TaskRelationEntry = { id: number; title: string; status: string; archived: boolean };
 export type TaskDetailViewModel = {
     readOnly: boolean;
+    boardId: string;
+    taskId: number;
+    sourceBoardData: BoardData;
+    relations: Record<TaskRelationKind, TaskRelationEntry[]>;
+    relationCandidates: TaskRelationEntry[];
     fields: TaskDetailFields;
     checklist: ChecklistItem[];
     attachments: TaskDetailAttachment[];

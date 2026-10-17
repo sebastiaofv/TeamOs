@@ -37,6 +37,7 @@ import { createBoardStateSnapshot } from '@/domain/serialize';
 import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+import { getTaskRelations, isTaskBlocked } from '@/domain/taskRelations';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -161,14 +162,21 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     const task = normalizeTask(source.task);
     const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
     const roadmap = getRoadmapExtension(source.boardData);
+    const relationEntry = (other: Task) => ({ id: other.id, title: other.title, status: statusMap[other.status] || other.status, archived: other.archived });
+    const groups = getTaskRelations(source.boardData, task.id);
     return {
         readOnly,
+        boardId: source.boardRecord.id,
+        taskId: task.id,
+        sourceBoardData: source.boardData,
+        relations: { blockedBy: groups.blockedBy.map(relationEntry), blocks: groups.blocks.map(relationEntry), related: groups.related.map(relationEntry) },
+        relationCandidates: source.boardData.board.tasks.filter((other) => other.id !== task.id).map(relationEntry),
         fields: {
             title: task.title || '-',
             description: task.description || '-',
             assignees: formatAssignees(task.assignees) || '-',
             tags: normalizeTags(task.tags).join(', ') || '-',
-            blocked: task.blocked ? translateCurrent('common.yes') : translateCurrent('common.no'),
+            blocked: isTaskBlocked(source.boardData, task.id) ? translateCurrent('common.yes') : translateCurrent('common.no'),
             blockerReason: task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-',
             priority: task.priority
                 ? ({ high: translateCurrent('toolbar.high'), medium: translateCurrent('toolbar.medium'), low: translateCurrent('toolbar.low') }[task.priority] || task.priority)

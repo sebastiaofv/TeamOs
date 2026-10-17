@@ -118,3 +118,88 @@
     background: var(--bg-secondary);
     border-color: var(--text-secondary);
 }
+
+.task-relations {
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+    padding-top: 16px;
+}
+
+.task-relations h3,
+.task-relations h4 {
+    margin: 0 0 8px;
+}
+
+.relation-group {
+    margin: 16px 0;
+}
+
+.relation-help {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 6px 0;
+}
+
+.relation-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.relation-list li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.relation-item-link {
+    background: none;
+    border: 0;
+    color: var(--text-primary);
+    text-align: left;
+    text-decoration: underline;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    min-width: 0;
+    padding: 4px 0;
+}
+
+.relation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.relation-form {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.relation-form input,
+.relation-form select {
+    min-width: 0;
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font: inherit;
+}
+
+.relation-form label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.relation-preview {
+    padding: 12px;
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    overflow-wrap: anywhere;
+}

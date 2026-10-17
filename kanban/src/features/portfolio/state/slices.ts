@@ -18,14 +18,14 @@ import type {
     RoadmapEntityMode,
     SortDir
 } from '@/features/portfolio/types';
-import type { TaskStatus, RoadmapKind } from '@/domain/types';
+import type { TaskStatus, RoadmapKind, TaskRelationKind } from '@/domain/types';
 import type { AppMessage } from '@/app/types';
 import type { Language, Theme } from '@/shared/types/ui';
 import type { TableSort } from '@/features/portfolio/table/tableModel';
 import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 
 export type EditContext = { boardId: string; taskId: number };
-export type CreateContext = { boardId: string; status: TaskStatus };
+export type CreateContext = { boardId: string; status: TaskStatus; relatedTo?: { taskId: number; kind: TaskRelationKind } };
 export type DetailContext = { boardId: string; taskId: number; readOnly: boolean };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };

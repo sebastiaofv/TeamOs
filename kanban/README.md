@@ -7,6 +7,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
 - **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag cards between columns with a mouse or by touch (keyboard: `1`–`4`), add/edit/archive/delete tasks, undo after archiving.
 - **Tasks** — title, description, assignees, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
+- **Workitem relations** — link existing items by ID/title (including completed and archived items), or create a related Backlog item inheriting only phase/milestone. Details group links into Blocked by, Blocks and Related to, with navigation, explicit replacement and confirmed removal.
 - **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
 - **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
 - **Calendar view** — year and month calendars with tasks and roadmap spans, plus a heatmap mode.
@@ -25,9 +26,17 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 
 - Task titles are required and capped at 80 characters.
 - Assignees are saved as an `assignees` array; older single `assignee` strings still import.
-- Blocked tasks require `blockerReason`.
+- Manually blocked tasks require `blockerReason`. Dependency blocking is derived from unfinished direct blockers, including archived blockers, without changing status or overwriting manual blocking. Board/Table blocked filters include both sources.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
+
+### Relations extension (version 1)
+
+The optional `extensions.taskRelations` stores `{ version: 1, relations: [{ sourceId, targetId, kind }] }`. `kind` is `related` (symmetric) or `blocks` (source blocks target); inverse links are derived, never duplicated. IDs refer only to tasks in the same file, with one relation per unordered pair. Self-links, missing IDs, duplicate pairs and dependency cycles are rejected on import and mutation, as are unsupported extension versions.
+
+The base board schema remains version 1: this is an additive, separately versioned extension. Legacy files without it migrate to an empty relation set without changing task IDs, roadmap or other extension data; the extension is written when the first link is added and omitted after the last link is removed. The compatibility fixture is `tests/fixtures/task-relations-v1.board.json`.
+
+Creating an item and its link is one autosaved mutation; cancelling creates neither. Deleting an item confirms the related IDs and blocking impact, removes its links, and preserves other items. Relation changes use the existing timeline and are replayed in historical previews/restores. Read-only and historical details allow navigation but hide relation mutation controls.
 
 ## Keyboard shortcuts
 
