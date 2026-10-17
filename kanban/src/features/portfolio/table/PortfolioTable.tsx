@@ -139,11 +139,11 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
                 </div>
                 <div className="table-export">
                     <label htmlFor="tableCsvSeparator">{t('table.separator')}</label>
-                    <span className="table-csv-select">
+                    <span className="table-select table-csv-select">
                         <select id="tableCsvSeparator" value={separator} onChange={(event) => setSeparator(event.target.value === ';' ? ';' : ',')}>
                             <option value=",">{t('table.comma')}</option><option value=";">{t('table.semicolon')}</option>
                         </select>
-                        <svg className="table-csv-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+                        <svg className="table-select-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
                     </span>
                     <button className="btn" id="tableExportCsv" disabled={rows.length === 0} onClick={exportCsv}>{t('table.export')}</button>
                 </div>
@@ -170,7 +170,6 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
                                     {t(COLUMN_LABELS[column])}<span aria-hidden="true">{sort.column === column ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>
                                 </button>
                             </th>)}
-                            <th scope="col">{t('table.actions')}</th>
                         </tr></thead>
                         <tbody>{pageRows.map((row) => <tr key={`${boardId}:${row.taskId}`} data-board-id={boardId} data-task-id={row.taskId}
                             onClick={(event) => { if (!(event.target as HTMLElement).closest('button,input,a,label')) openDetails(row, event); }}>
@@ -181,15 +180,18 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
                                     ? <button className="table-item-link" type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
                                     : <span className={!tableCellValue(row, column, boardData) ? 'table-not-defined' : undefined}>{cellText(row, column)}</span>}
                             </td>)}
-                            <td><button className="btn" aria-label={t('common.edit')} disabled={!row.canMutate || row.historical}
-                                onClick={(event) => { event.currentTarget.focus({ preventScroll: true }); actions.editPortfolioTask(boardId, row.taskId); }}>{t('common.edit')}</button></td>
                         </tr>)}</tbody>
                     </table>
                 </div>
                 <nav className="table-pagination" aria-label={t('table.view')}>
-                    <label htmlFor="tablePageSize">{t('table.pageSize')} <select id="tablePageSize" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }}>
-                        {[25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
-                    </select></label>
+                    <label htmlFor="tablePageSize">{t('table.pageSize')}
+                        <span className="table-select table-page-size-select">
+                            <select id="tablePageSize" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }}>
+                                {[25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+                            </select>
+                            <svg className="table-select-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+                        </span>
+                    </label>
                     <button className="btn" id="tablePreviousPage" disabled={currentPage === 0} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage - 1); }}>{t('table.previous')}</button>
                     <span role="status">{t('table.page', { current: currentPage + 1, total: pageCount })}</span>
                     <button className="btn" id="tableNextPage" disabled={currentPage >= pageCount - 1} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage + 1); }}>{t('table.next')}</button>

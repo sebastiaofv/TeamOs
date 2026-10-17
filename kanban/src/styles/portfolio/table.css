@@ -51,9 +51,11 @@
     font-size: 12px;
 }
 .table-export select, .table-pagination select { width: auto; }
-.table-csv-select { position: relative; display: inline-block; flex: none; width: 132px; color: var(--text-primary); }
-#tableCsvSeparator { appearance: none; -webkit-appearance: none; display: block; width: 100%; min-height: 30px; padding: 5px 30px 5px 8px; line-height: 18px; box-sizing: border-box; }
-.table-csv-arrow { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; pointer-events: none; }
+.table-select { position: relative; display: inline-block; flex: none; color: var(--text-primary); }
+.table-csv-select { width: 132px; }
+.table-page-size-select { width: 72px; }
+.table-select select { appearance: none; -webkit-appearance: none; display: block; width: 100%; min-height: 30px; padding: 5px 30px 5px 8px; line-height: 18px; box-sizing: border-box; }
+.table-select-arrow { position: absolute; right: 9px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; pointer-events: none; }
 .table-column-panel { padding: 14px; }
 .table-column-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .table-column-option { display: flex; align-items: center; gap: 4px; }
@@ -76,6 +78,7 @@
 .table-empty { text-align: center; padding: 36px 16px; color: var(--text-secondary); }
 .table-empty .btn { margin-top: 12px; }
 .table-pagination { justify-content: flex-end; }
+.table-pagination label { display: flex; align-items: center; gap: 8px; }
 .table-heading, .table-tools, .table-summary, .table-pagination { flex-shrink: 0; }
 @media (max-width: 640px) {
     .portfolio-table { padding: 10px; }
