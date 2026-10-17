@@ -9,7 +9,6 @@ import {
     normalizePortfolioSortDir,
     normalizePortfolioSortKey
 } from '@/domain/board';
-import { normalizeAssignee } from '@/domain/task';
 import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterSet, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import {
     buildPortfolioRowsFromBoardData,
@@ -28,22 +27,9 @@ import { buildPortfolioRoadmapView } from './portfolioRoadmapViews';
 import { buildPortfolioCalendarViewModel } from './portfolioCalendarViews';
 import { buildPortfolioPlannerViewModel } from './portfolioPlannerViews';
 
-// Normalized filters for the current state; an assignee filter that matches no
-// loaded task is dropped.
+// Keep explicit people filters even when edits leave zero matching rows.
 export function normalizePortfolioFilters(state: SelectorState): PortfolioFilters {
-    const next = normalizePortfolioFilterSet(state?.portfolioFilters);
-    if ((state?.portfolioBoards || []).length > 0 && next.assignee) {
-        const names = new Set(
-            (state?.portfolioTasks || buildPortfolioTasks(state))
-                .flatMap((item) => item?.task?.assignees || [])
-                .map((name) => normalizeAssignee(name))
-                .filter(Boolean)
-        );
-        if (![...names].some((name) => name.toLowerCase() === next.assignee.toLowerCase())) {
-            next.assignee = '';
-        }
-    }
-    return next;
+    return normalizePortfolioFilterSet(state?.portfolioFilters);
 }
 
 export function getFilteredSortedPortfolioRows(state: SelectorState, options: { sourceRows?: PortfolioRow[] } = {}): PortfolioRow[] {

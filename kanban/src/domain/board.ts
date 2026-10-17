@@ -6,7 +6,7 @@ import type {
 } from './types';
 import type { PortfolioRow, PortfolioSortKey, PortfolioViewMode, SortDir } from '@/features/portfolio/types';
 import { compareText, hasExactKeys, normalizeTimestamp, nowIso } from './util';
-import { isAcceptedLegacyAssigneeValue, normalizeBlockerReason, normalizeTaskStatus, resolveKnownTaskStatus } from './task';
+import { isAcceptedLegacyAssigneeValue, normalizeAssignee, taskHasAssignee, normalizeBlockerReason, normalizeTaskStatus, resolveKnownTaskStatus } from './task';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, ROADMAP_EXTENSION_KEY, TASK_TITLE_MAX_LENGTH, TIMELINE_EXTENSION_KEY, defaultColumns, isArchiveFilter, isEffort } from './constants';
 import { comparePortfolioDueDateAsc } from './calendar';
 import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
@@ -203,7 +203,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid meta structure.');
     }
     const schemaVersion = data.meta.schemaVersion;
-    if (schemaVersion !== BOARD_SCHEMA_VERSION) {
+    if (schemaVersion !== 1 && schemaVersion !== BOARD_SCHEMA_VERSION) {
         throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
     }
     if (data.meta.appId !== BOARD_APP_ID) {
@@ -288,7 +288,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
+        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -343,6 +343,12 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         }
         if ('assignees' in task && (!Array.isArray(task.assignees) || task.assignees.some((name: unknown) => typeof name !== 'string'))) {
             throw new Error('Task assignees must be a string array.');
+        }
+        if ('responsible' in task && typeof task.responsible !== 'string') {
+            throw new Error('Task responsible must be a string.');
+        }
+        if (normalizeAssignee(task.responsible) && !taskHasAssignee(task, task.responsible)) {
+            throw new Error('Task responsible must also be a participant.');
         }
         if ('phaseId' in task && typeof task.phaseId !== 'string') {
             throw new Error('Task phaseId must be a string.');

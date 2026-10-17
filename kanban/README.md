@@ -6,8 +6,8 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 
 - **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
 - **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag cards between columns with a mouse or by touch (keyboard: `1`–`4`), add/edit/archive/delete tasks, undo after archiving.
-- **Tasks** — title, description, assignees, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
-- **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
+- **Tasks** — title, description, participants and an optional responsible person, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
+- **Filters and sort** — search (with highlighting), archive state, blocked, responsible person, participant, priority, effort and planning; sort by priority, effort, score (priority / effort) or name. Filters combine across every view and are kept in the URL.
 - **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
 - **Calendar view** — year and month calendars with tasks and roadmap spans, plus a heatmap mode.
 - **Command palette** — `⌘K` / `Ctrl+K`, `/` or the toolbar search box. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan, archive); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
@@ -24,7 +24,9 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 ### Task and schema invariants
 
 - Task titles are required and capped at 80 characters.
-- Assignees are saved as an `assignees` array; older single `assignee` strings still import.
+- Participants are saved as an `assignees` array; `responsible` is an optional name (empty string when unset) and always belongs to that array. Names are trimmed and deduplicated case-insensitively. Selecting, changing or clearing responsibility preserves existing participants; correcting the responsible participant's name updates both fields in that item. Removing that participant asks for confirmation before clearing responsibility. Neither field is required to save or change status.
+- Schema v2 adds responsibility. Version 1 files migrate on import/save without choosing a responsible person, even for one participant; older `assignee` strings/arrays still import. IDs, roadmap and existing timeline events are preserved. Assignment changes record before/after values in the same timeline. Regression fixture: `tests/fixtures/assignments-v1.board.json`.
+- Responsible/participant filters each offer All, no allocation, or a name; they combine with each other. The palette offers both participant toggles and Set responsible. Quick-create `@name` adds participants and leaves responsibility unset. The table has a separate configurable Responsible column.
 - Blocked tasks require `blockerReason`.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
@@ -104,7 +106,7 @@ The workflow can also be started by hand from the Actions tab (*Run workflow*).
 
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
 - `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
-- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if 4174 is already taken.
+- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if the port is already taken. Set `PLAYWRIGHT_PORT` for concurrent worktree runs.
 - `npm run lint` — ESLint with `typescript-eslint`.
 
 Visual baselines in `tests/visual.test.ts-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.ts --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.ts`; the browser globals they install are declared in `tests/support/testGlobals.d.ts`.

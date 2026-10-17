@@ -19,7 +19,7 @@ import {
   type SeedTask
 } from '../support/portfolio';
 
-const DEFAULT_COLUMNS = ['ID', 'Title', 'Status', 'Assignees', 'Priority', 'Phase', 'Updated'];
+const DEFAULT_COLUMNS = ['ID', 'Title', 'Status', 'Participants', 'Priority', 'Phase', 'Updated'];
 
 function tableRows(page: Page) {
   return page.locator('#workitemsTable tbody tr[data-task-id]');
@@ -726,7 +726,7 @@ test.describe('workitems table', () => {
     await page.locator('#tableColumns').getByRole('button', { name: 'Move Due right', exact: true }).click();
     await moveColumnBefore(page, 'Due', 'Phase');
     await expect(tableHeader(page, 'Priority')).toHaveCount(0);
-    await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Assignees', 'Due', 'Phase', 'Updated']);
+    await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Participants', 'Due', 'Phase', 'Updated']);
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
     expect(await readSavedBoard(page, 'prefs')).toEqual(original);
 
@@ -735,7 +735,7 @@ test.describe('workitems table', () => {
     await seedPortfolioBoards(page, [board], { selectedBoardId: 'prefs' });
     await openTable(page);
     await expect(tableHeader(page, 'Priority')).toHaveCount(0);
-    await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Assignees', 'Due', 'Phase', 'Updated']);
+    await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Participants', 'Due', 'Phase', 'Updated']);
     await openColumnOptions(page);
     await expect(page.locator('#tableColumn-priority')).not.toBeChecked();
     await expect(page.locator('#tableColumn-dueDate')).toBeChecked();

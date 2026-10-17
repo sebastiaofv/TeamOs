@@ -13,6 +13,7 @@ export const DEFAULT_PORTFOLIO_FILTERS: Readonly<PortfolioFilters> = Object.free
     archive: 'active',
     blocked: 'all',
     assignee: '',
+    responsible: '',
     priority: '',
     effort: '',
     statuses: [],
@@ -34,7 +35,7 @@ export function normalizePortfolioFilterValue<K extends PortfolioFilterName>(nam
     if (name === 'search') normalized = String(value ?? '');
     else if (name === 'archive') normalized = isArchiveFilter(value) ? value : 'active';
     else if (name === 'blocked') normalized = normalizePortfolioBlockedFilter(value);
-    else if (name === 'assignee') normalized = normalizeAssignee(value);
+    else if (name === 'assignee' || name === 'responsible') normalized = normalizeAssignee(value);
     else if (name === 'priority') normalized = includesValue(PRIORITY_FILTER_VALUES, value) ? value : '';
     else if (name === 'effort') normalized = includesValue(EFFORT_FILTER_VALUES, value) ? value : '';
     else if (name === 'statuses') {
@@ -60,7 +61,7 @@ export function normalizePortfolioFilterSet(filters: Partial<Record<PortfolioFil
 
 // The filters shown in the toolbar's Filters panel, in panel order. Search has
 // its own box and is not one of them.
-export const PANEL_PORTFOLIO_FILTERS = ['archive', 'blocked', 'assignee', 'priority', 'effort', 'statuses', 'phaseId', 'milestoneId', 'sprintId'] as const;
+export const PANEL_PORTFOLIO_FILTERS = ['archive', 'blocked', 'responsible', 'assignee', 'priority', 'effort', 'statuses', 'phaseId', 'milestoneId', 'sprintId'] as const;
 export type PanelPortfolioFilterName = typeof PANEL_PORTFOLIO_FILTERS[number];
 
 export function getActivePortfolioFilterNames(filters: Partial<Record<PortfolioFilterName, unknown>> | null | undefined): PanelPortfolioFilterName[] {
@@ -74,7 +75,8 @@ export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilter
     if (filters.archive === 'active' && task.archived) return false;
     if (filters.archive === 'archived' && !task.archived) return false;
     if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
-    if (filters.assignee && !taskHasAssignee(task, filters.assignee)) return false;
+    if (filters.assignee === '__none__' ? task.assignees.length > 0 : filters.assignee && !taskHasAssignee(task, filters.assignee)) return false;
+    if (filters.responsible === '__none__' ? Boolean(task.responsible) : filters.responsible && normalizeAssignee(task.responsible).toLowerCase() !== filters.responsible.toLowerCase()) return false;
     if (filters.phaseId && task.phaseId !== filters.phaseId) return false;
     if (filters.milestoneId && task.milestoneId !== filters.milestoneId) return false;
     if (filters.sprintId && task.sprintId !== filters.sprintId) return false;

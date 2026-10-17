@@ -1,10 +1,13 @@
 import { useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { flushSync } from 'react-dom';
 import type { TaskEditorFields, TaskEditorViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import type { TaskFocusField } from '@/features/portfolio/commands/taskCommands';
 import { buildTaskDraft } from '@/domain/taskDraft';
+import { editTaskParticipant, removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
+import { showConfirm } from '@/app/overlays/appMessages';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
@@ -17,7 +20,7 @@ import { useI18n } from '@/shared/i18n';
 type SubmitRef = RefObject<(() => Promise<void>) | null>;
 
 // The form fields edited through a plain input, textarea or select.
-type TextField = 'title' | 'description' | 'blockerReason' | 'dueDate' | 'priority' | 'effort' | 'phaseId' | 'milestoneId';
+type TextField = 'title' | 'description' | 'responsible' | 'blockerReason' | 'dueDate' | 'priority' | 'effort' | 'phaseId' | 'milestoneId';
 
 const PRIORITY_OPTIONS = [['', 'None'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low']];
 const EFFORT_OPTIONS = [['', 'None'], ['XS', 'XS'], ['S', 'S'], ['M', 'M'], ['L', 'L'], ['XL', 'XL']];
@@ -37,6 +40,8 @@ export function TaskEditorDialog() {
     const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
         if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key !== 'Enter') return;
         event.preventDefault();
+        // Commit the active row's local text before reading the latest draft.
+        flushSync(() => (event.target as HTMLElement).blur());
         submitRef.current?.();
     };
 
@@ -97,6 +102,14 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
         }
     };
 
+    const removeParticipant = async (index: number) => {
+        const result = removeTaskParticipant(form, index);
+        if (result.needsConfirmation && !(await showConfirm(t('task.removeResponsibleQuestion', { name: form.assignees[index] }), {
+            title: t('editor.removeAssignee'), confirmLabel: t('common.remove'), danger: true
+        }))) return;
+        setForm((current) => removeTaskParticipant(current, index, true).task);
+    };
+
     return (
         <>
             <div className="modal-header">
@@ -132,8 +145,18 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         />
                     </div>
                     <div className="form-group">
+                        <label htmlFor="taskResponsible">{t('task.responsible')}</label>
+                        <input type="text" id="taskResponsible" list="taskResponsibleSuggestions" placeholder={t('task.noResponsible')}
+                            {...bind('responsible')} onBlur={() => setForm((current) => setTaskResponsible(current, current.responsible))} />
+                        <datalist id="taskResponsibleSuggestions">
+                            {[...new Set([...form.assignees, ...vm.assigneePool])].map((name) => <option key={name} value={name} />)}
+                        </datalist>
+                    </div>
+                    <div className="form-group">
                         <label id="taskAssigneesLabel">{t('task.assignees')}</label>
-                        <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool} />
+                        <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool}
+                            onRename={(index, name) => setForm((current) => editTaskParticipant(current, index, name))}
+                            onRemove={removeParticipant} />
                     </div>
                     <div className="form-group">
                         <label id="taskTagsLabel">{t('task.tags')}</label>

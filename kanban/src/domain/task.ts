@@ -82,6 +82,7 @@ export function buildTaskFieldsFromDraft(draft: TaskDraft) {
         title: draft.title,
         description: draft.description,
         assignees: draft.assignees,
+        responsible: normalizeAssignee(draft.responsible),
         tags: normalizeTags(draft.tags),
         blocked: draft.blocked,
         blockerReason: draft.blocked ? draft.blockerReason : '',
@@ -237,6 +238,7 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
         title: task.title as string,
         description: (task.description || '') as string,
         assignees: taskAssignees(task),
+        responsible: normalizeAssignee(task.responsible),
         tags: normalizeTags(task.tags),
         blocked: normalizeTaskBlocked(task.blocked),
         blockerReason: normalizeTaskBlocked(task.blocked) ? normalizeBlockerReason(task.blockerReason) : '',
@@ -260,6 +262,11 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
         if (statusChangedAt) {
             normalizedTask.statusChangedAt = statusChangedAt;
         }
+    }
+    if (normalizedTask.responsible) {
+        const existing = normalizedTask.assignees.find((name) => name.toLowerCase() === normalizedTask.responsible.toLowerCase());
+        if (existing) normalizedTask.responsible = existing;
+        else normalizedTask.assignees.push(normalizedTask.responsible);
     }
     return clearInvalidRoadmapTaskRefs(normalizedTask, options.roadmap);
 }

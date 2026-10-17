@@ -177,7 +177,7 @@ describe('portfolio mutation actions', () => {
     await actions.saveTask({
       title: 'Created task',
       description: '',
-      assignees: [],
+      assignees: [], responsible: '',
       tags: [],
       blocked: false,
       blockerReason: '',

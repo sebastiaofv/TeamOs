@@ -184,7 +184,7 @@ test.describe('task editor', () => {
     const rows = page.locator('#taskAssigneeItems .assignee-editor-row');
     await expect(rows).toHaveCount(2);
     await rows.nth(0).locator('input[type="text"]').fill('Jamie');
-    await rows.nth(1).getByRole('button', { name: 'Remove assignee' }).click();
+    await rows.nth(1).getByRole('button', { name: 'Remove participant' }).click();
 
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();

@@ -54,7 +54,7 @@ test.describe('filters and sort', () => {
       };
     }));
     const expected = await readFields();
-    expect(expected).toHaveLength(9);
+    expect(expected).toHaveLength(10);
     await page.keyboard.press('Escape');
     await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
     await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching workitem');

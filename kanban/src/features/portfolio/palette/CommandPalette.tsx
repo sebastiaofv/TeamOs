@@ -96,6 +96,7 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         selectCard: (boardId, taskId) => actions.setSelectedPortfolioCard(boardId, taskId),
         moveTask: (boardId, taskId, status) => actions.movePortfolioTaskToStatus(boardId, taskId, status),
         toggleAssignee: (boardId, taskId, name) => actions.togglePortfolioTaskAssignee(boardId, taskId, name),
+        setResponsible: (boardId, taskId, name) => actions.setPortfolioTaskResponsible(boardId, taskId, name),
         setPriority: (boardId, taskId, priority) => actions.setPortfolioTaskPriority(boardId, taskId, priority),
         planTask: (boardId, taskId, date, startMinutes) => actions.addPlannerBlock(boardId, taskId, date, startMinutes),
         createTask: (boardId, fields) => actions.createPortfolioTaskFromFields(boardId, fields),

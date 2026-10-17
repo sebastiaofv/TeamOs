@@ -20,7 +20,7 @@ import { normalizeTaskStatus } from '@/domain/task';
 import { matchRanges, scoreText } from './paletteText';
 import { parseQuickCreate, type QuickCreateDraft } from './quickCreate';
 
-export type PaletteStep = 'status' | 'assignee' | 'priority' | 'plan';
+export type PaletteStep = 'status' | 'assignee' | 'responsible' | 'priority' | 'plan';
 export type PaletteFrame =
     | { kind: 'task'; boardId: string; taskId: number }
     | { kind: 'step'; step: PaletteStep; boardId: string; taskId: number };
@@ -40,6 +40,7 @@ export type PaletteAction =
     | { type: 'moveTask'; boardId: string; taskId: number; status: TaskStatus }
     | { type: 'toggleArchive'; boardId: string; taskId: number }
     | { type: 'toggleAssignee'; boardId: string; taskId: number; name: string }
+    | { type: 'setResponsible'; boardId: string; taskId: number; name: string }
     | { type: 'setPriority'; boardId: string; taskId: number; priority: Priority | null }
     | { type: 'planTask'; boardId: string; taskId: number; date: string; startMinutes: number }
     | { type: 'createTask'; boardId: string; fields: QuickCreateFields }
@@ -112,7 +113,7 @@ const PRIORITY_KEYS: [Priority | null, TranslationKey][] = [
     ['high', 'toolbar.high'], ['medium', 'toolbar.medium'], ['low', 'toolbar.low'], [null, 'palette.priorityNone']
 ];
 const STEP_KEYS: Record<PaletteStep, TranslationKey> = {
-    status: 'palette.stepMove', assignee: 'palette.stepAssign', priority: 'palette.stepPriority', plan: 'palette.stepPlan'
+    status: 'palette.stepMove', assignee: 'palette.stepAssign', responsible: 'task.responsible', priority: 'palette.stepPriority', plan: 'palette.stepPlan'
 };
 const ROADMAP_KEYS: Record<'milestones' | 'phases' | 'sprints', TranslationKey> = {
     milestones: 'roadmap.milestone', phases: 'roadmap.phase', sprints: 'roadmap.sprint'
@@ -211,6 +212,7 @@ function taskActionItems(ctx: Ctx, row: PortfolioRow, compact: boolean): Palette
         { type: 'moveTask', boardId, taskId, status }, [STATUS_SHORTCUTS[status]])));
     if (!compact) items.push(item('move', 'move', ctx.t('palette.moveToStep'), step('status')));
     items.push(item('assign', 'assign', ctx.t('palette.assign'), step('assignee')));
+    items.push(item('responsible', 'assign', ctx.t('palette.setResponsible'), step('responsible')));
     if (!compact) items.push(item('priority', 'priority', ctx.t('palette.setPriority'), step('priority')));
     items.push(item('plan', 'plan', ctx.t('palette.plan'), step('plan')));
     if (!compact) {
@@ -269,13 +271,16 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
                 { type: 'planTask', boardId, taskId, date: slot.date, startMinutes: slot.startMinutes }));
     }
     const assigned = new Set(row.task.assignees.map((name) => name.toLowerCase()));
+    const responsibleStep = frame.step === 'responsible';
+    const personAction = (name: string): PaletteAction => ({ type: responsibleStep ? 'setResponsible' : 'toggleAssignee', boardId, taskId, name });
     const people = allPeople(ctx).filter((name) => matches(name))
-        .map((name) => choice(name, 'person', name, { type: 'toggleAssignee', boardId, taskId, name }, { checked: assigned.has(name.toLowerCase()) }));
+        .map((name) => choice(name, 'person', name, personAction(name), { checked: responsibleStep ? row.task.responsible?.toLowerCase() === name.toLowerCase() : assigned.has(name.toLowerCase()) }));
     const typed = q.trim();
     if (typed && !allPeople(ctx).some((name) => name.toLowerCase() === typed.toLowerCase())) {
-        people.push(choice('new', 'person', ctx.t('palette.addPerson', { name: typed }), { type: 'toggleAssignee', boardId, taskId, name: typed },
+        people.push(choice('new', 'person', ctx.t('palette.addPerson', { name: typed }), personAction(typed),
             { checked: false, ranges: [] }));
     }
+    if (responsibleStep && matches(ctx.t('task.noResponsible'))) people.unshift(choice('none', 'person', ctx.t('task.noResponsible'), personAction(''), { checked: !row.task.responsible }));
     return people;
 }
 

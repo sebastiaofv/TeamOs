@@ -22,6 +22,7 @@ export type Task = {
     title: string;
     description: string;
     assignees: string[];
+    responsible: string;
     tags: string[];
     blocked: boolean;
     blockerReason: string;
@@ -150,6 +151,7 @@ export type TaskEditorFields = {
     blocked: boolean;
     blockerReason: string;
     assignees: string[];
+    responsible: string;
     tags: string[];
     checklist: ChecklistItem[];
     attachments: Attachment[];
@@ -164,6 +166,7 @@ export type TaskDraft = {
     title: string;
     description: string;
     assignees: string[];
+    responsible: string;
     tags: string[];
     blocked: boolean;
     blockerReason: string;

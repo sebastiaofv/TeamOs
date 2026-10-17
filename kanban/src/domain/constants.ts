@@ -1,7 +1,7 @@
 import type { BoardColumn, Effort } from './types';
 import type { ArchiveFilter } from '@/features/portfolio/types';
 
-export const BOARD_SCHEMA_VERSION = 1;
+export const BOARD_SCHEMA_VERSION = 2;
 export const BOARD_APP_ID = 'teamos-kanban';
 export const BOARD_FILE_EXTENSION = '.json';
 export const DEFAULT_BOARD_TITLE = 'Example Task Board';

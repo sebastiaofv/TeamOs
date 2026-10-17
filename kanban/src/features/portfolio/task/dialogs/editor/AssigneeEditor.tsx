@@ -3,10 +3,12 @@ import { addAssignee, availableAssigneeSuggestions } from '@/domain/taskDraft';
 import { useI18n } from '@/shared/i18n';
 
 // Assignee rows stay editable; blank rows are dropped when the draft is built.
-export function AssigneeEditor({ value, onChange, pool }: {
+export function AssigneeEditor({ value, onChange, pool, onRename, onRemove }: {
     value: string[];
     onChange: (next: string[]) => void;
     pool: string[];
+    onRename: (index: number, name: string) => void;
+    onRemove: (index: number) => unknown;
 }) {
     const { t } = useI18n();
     const [composer, setComposer] = useState('');
@@ -28,21 +30,14 @@ export function AssigneeEditor({ value, onChange, pool }: {
                         <div className="assignee-editor-empty">{t('editor.noAssignees')}</div>
                     ) : value.map((name, index) => (
                         <div className="assignee-editor-row" data-index={index} key={index}>
-                            <input
-                                type="text"
-                                value={name}
-                                list="taskAssigneeSuggestions"
-                                aria-label={t('editor.assigneeName')}
-                                data-index={index}
-                                onChange={(event) => onChange(value.map((item, i) => (i === index ? event.target.value : item)))}
-                            />
+                            <ParticipantName key={name} name={name} label={t('editor.assigneeName')} onRename={(next) => onRename(index, next)} />
                             <button
                                 type="button"
                                 className="assignee-editor-remove"
                                 aria-label={t('editor.removeAssignee')}
                                 title={t('common.remove')}
                                 data-index={index}
-                                onClick={() => onChange(value.filter((_, i) => i !== index))}
+                                onClick={() => onRemove(index)}
                             >
                                 ×
                             </button>
@@ -73,4 +68,12 @@ export function AssigneeEditor({ value, onChange, pool }: {
             </datalist>
         </>
     );
+}
+
+function ParticipantName({ name, label, onRename }: { name: string; label: string; onRename: (name: string) => void }) {
+    const [draft, setDraft] = useState(name);
+    return <input type="text" value={draft} list="taskAssigneeSuggestions" aria-label={label}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => { onRename(draft); setDraft(draft.trim() || name); }}
+        onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); event.currentTarget.blur(); } }} />;
 }

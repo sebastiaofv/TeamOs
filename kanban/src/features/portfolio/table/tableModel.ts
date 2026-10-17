@@ -7,12 +7,12 @@ import { effortRank, priorityRank, taskScore } from '@/domain/scoring';
 export type TableColumnId =
     | 'id' | 'title' | 'status' | 'assignees' | 'priority' | 'phase' | 'updatedAt'
     | 'milestone' | 'sprint' | 'dueDate' | 'createdAt' | 'blocked' | 'blockerReason'
-    | 'effort' | 'tags' | 'archived';
+    | 'effort' | 'tags' | 'archived' | 'responsible';
 
 export const TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze([
     'id', 'title', 'status', 'assignees', 'priority', 'phase', 'updatedAt',
     'milestone', 'sprint', 'dueDate', 'createdAt', 'blocked', 'blockerReason',
-    'effort', 'tags', 'archived'
+    'effort', 'tags', 'archived', 'responsible'
 ]);
 export const DEFAULT_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(TABLE_COLUMNS.slice(0, 7));
 export type TableSort = { column: TableColumnId | 'score'; direction: 'asc' | 'desc' };
