@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { openDialog } from '@/app/overlays/dialogs';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardRecord, PortfolioFilters, ProjectSaveState } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
@@ -252,6 +253,14 @@ function ChipList({ state }: { state: ChipState }) {
                             {board.title || board.fileName}
                             {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
                             {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
+                        </button>
+                        <button className="chip-link chip-settings" type="button" aria-label={`${t('project.settings')}: ${board.title || board.fileName}`}
+                            title={t('project.settings')} aria-haspopup="dialog" data-action="project-settings" data-board-id={board.id}
+                            onClick={() => openDialog('projectSettings', { boardId: board.id })}>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="m9.5 3-.6 2.4-1.4.8-2.4-.7-2.5 4.3 1.8 1.7v1.6l-1.8 1.7 2.5 4.3 2.4-.7 1.4.8.6 2.4h5l.6-2.4 1.4-.8 2.4.7 2.5-4.3-1.8-1.7v-1.6l1.8-1.7-2.5-4.3-2.4.7-1.4-.8L14.5 3Z" />
+                                <circle cx="12" cy="12.3" r="3" />
+                            </svg>
                         </button>
                         {board.handle && saveUi.canRetry && (
                             <button className="chip-link" type="button" title={t('toolbar.retrySave')} data-action="retry-save" data-board-id={board.id} onClick={() => retryPortfolioSave(board.id)}>{t('common.retry')}</button>

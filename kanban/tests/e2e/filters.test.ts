@@ -103,7 +103,7 @@ test.describe('filters and sort', () => {
     await setBoardSearch(page, 'task');
     await openFiltersPanel(page);
     await page.locator('#portfolioPriorityFilter').selectOption('high');
-    await page.locator('#portfolioBoardsChips .portfolio-chip').filter({ hasText: 'Bravo Project' }).getByRole('button', { name: /Bravo Project/ }).click();
+    await page.locator('#portfolioBoardsChips .portfolio-chip').filter({ hasText: 'Bravo Project' }).getByRole('button', { name: 'Bravo Project', exact: true }).click();
 
     await expect(page.locator('#portfolioSearchBtn')).toContainText('task');
     await openFiltersPanel(page);

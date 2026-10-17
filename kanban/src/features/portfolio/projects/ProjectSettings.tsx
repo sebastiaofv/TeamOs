@@ -1,4 +1,10 @@
 import { useState } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import type { DialogPropsByName } from '@/features/portfolio/types';
+import { closeDialog } from '@/app/overlays/dialogs';
+import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
+import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
+import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { getProjectInfo, newLocalId, PROJECT_STATES, type ProjectInfo } from '@/domain/project';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
@@ -7,14 +13,35 @@ import { useI18n } from '@/shared/i18n';
 import { WorkflowSettings } from './WorkflowSettings';
 import { getMaintenanceConfig } from '@/domain/applications';
 
-export function ProjectSettings() {
+export function ProjectWorkflowSettings() {
     const board = useAppStore((s) => s.portfolioBoards.find((b) => b.id === s.selectedPortfolioBoardId));
     const historical = useAppStore((s) => isBoardInHistoricalPreview(s, s.selectedPortfolioBoardId));
     if (!board) return null;
-    const project = getProjectInfo(board.data);
-    return <><ProjectSettingsForm key={`${board.id}:${JSON.stringify(project)}`} boardId={board.id} initial={project} readOnly={!board.handle || historical} />
-        <WorkflowSettings key={`${board.id}:${JSON.stringify(board.data.extensions.workflow)}`} board={board} readOnly={!board.handle || historical} />
+    return <><WorkflowSettings key={`${board.id}:${JSON.stringify(board.data.extensions.workflow)}`} board={board} readOnly={!board.handle || historical} />
         {getMaintenanceConfig(board.data)?.enabled && <WorkflowSettings key={`${board.id}:${JSON.stringify(board.data.extensions.maintenance)}`} board={board} readOnly={!board.handle || historical} maintenance />}</>;
+}
+
+export function ProjectSettingsDialog() {
+    const props = useAppStore((s) => s.activeDialog === 'projectSettings' ? s.dialogProps as DialogPropsByName['projectSettings'] : null);
+    const board = useAppStore((s) => s.portfolioBoards.find((b) => b.id === props?.boardId));
+    const historical = useAppStore((s) => isBoardInHistoricalPreview(s, props?.boardId || ''));
+    const returnFocus = useReturnFocus();
+    const { t } = useI18n();
+    return <Dialog.Root open={Boolean(props && board)} onOpenChange={(next) => { if (!next) closeDialog('projectSettings'); }}>
+        <Dialog.Portal>
+            <Dialog.Overlay className="modal active" id="projectSettingsModal">
+                <Dialog.Content className="modal-content project-settings project-settings-dialog" id="projectSettings" aria-describedby={undefined}
+                    onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={escapeAnswersAppMessage} {...returnFocus}>
+                    <div className="modal-header">
+                        <div><Dialog.Title className="modal-title">{t('project.settings')}</Dialog.Title>
+                            <p className="project-settings-name">{board?.title || board?.fileName}</p></div>
+                        <Dialog.Close className="modal-close" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
+                    </div>
+                    {board && <ProjectSettingsForm key={board.id} boardId={board.id} initial={getProjectInfo(board.data)} readOnly={!board.handle || historical} />}
+                </Dialog.Content>
+            </Dialog.Overlay>
+        </Dialog.Portal>
+    </Dialog.Root>;
 }
 
 function ProjectSettingsForm({ boardId, initial, readOnly }: { boardId: string; initial: ProjectInfo; readOnly: boolean }) {
@@ -23,10 +50,11 @@ function ProjectSettingsForm({ boardId, initial, readOnly }: { boardId: string; 
     const [info, setInfo] = useState(() => structuredClone(initial));
     const [saving, setSaving] = useState(false);
     const update = <K extends keyof ProjectInfo>(key: K, value: ProjectInfo[K]) => setInfo((current) => ({ ...current, [key]: value }));
-    return <details className="project-settings" id="projectSettings">
-        <summary>{t('project.settings')} · {initial.name}{initial.needsReview ? ` · ${t('project.review')}` : ''}</summary>
-        <form onSubmit={async (event) => { event.preventDefault(); setSaving(true); try { await saveProjectSettings(boardId, info); } finally { setSaving(false); } }}>
-            <p className="muted">{t('project.localIdentity')} · ID: {info.id}</p>
+    return <form onSubmit={async (event) => { event.preventDefault(); if (readOnly || saving) return; setSaving(true); try { if (await saveProjectSettings(boardId, info)) closeDialog('projectSettings'); } finally { setSaving(false); } }}>
+        <div className="modal-body">
+            {initial.needsReview && <p className="project-review-notice">{t('project.review')}</p>}
+            {readOnly && <p className="project-review-notice">{t('common.readOnlyProject')}</p>}
+            <p className="muted project-local-identity">{t('project.localIdentity')} · ID: {info.id}</p>
             <fieldset disabled={readOnly || saving}>
                 <div className="project-field-grid">
                     <label>{t('project.name')}<input required value={info.name} onChange={(e) => update('name', e.target.value)} /></label>
@@ -49,9 +77,12 @@ function ProjectSettingsForm({ boardId, initial, readOnly }: { boardId: string; 
                     {member.provisional && <span>{t('project.provisional')}</span>}
                 </div>)}
                 <div className="project-actions"><button className="btn" type="button" onClick={() => update('team', [...info.team, { id: newLocalId('member'), name: '', role: '', email: '', active: true }])}>{t('project.addMember')}</button>
-                    <button className="btn" type="button" onClick={() => setInfo(structuredClone(initial))}>{t('common.cancel')}</button>
-                    <button className="btn btn-primary" type="submit">{t('project.save')}</button></div>
+                    </div>
             </fieldset>
-        </form>
-    </details>;
+        </div>
+        <div className="modal-footer">
+            <Dialog.Close className="btn" disabled={saving}>{t(readOnly ? 'common.close' : 'common.cancel')}</Dialog.Close>
+            {!readOnly && <button className="btn btn-primary" type="submit" disabled={saving}>{t('project.save')}</button>}
+        </div>
+    </form>;
 }

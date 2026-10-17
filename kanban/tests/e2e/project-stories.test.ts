@@ -319,18 +319,76 @@ test('US11: edit master data and preserve legacy workitems', async ({ page }) =>
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'legacy', title: 'Legacy', hasHandle: true, tasks: [{ id: 42, title: 'Preserved', assignees: ['Ana'] }] }], { selectedBoardId: 'legacy' });
     const settings = page.locator('#projectSettings');
-    await settings.locator('summary').click();
+    await page.getByRole('button', { name: 'Project settings: Legacy', exact: true }).click();
+    await expect(settings).toHaveAttribute('role', 'dialog');
+    await expect(settings).toContainText('Review imported metadata');
     await settings.getByLabel('Name', { exact: true }).first().fill('Renamed project');
     await settings.getByLabel('Manager', { exact: true }).fill('Ana');
     await settings.getByLabel('Product / application').fill('Product A');
     await settings.getByLabel('Description', { exact: true }).fill('Project description');
     await settings.getByLabel('Tags', { exact: true }).fill('team');
     await settings.getByLabel('Forecast · Start').fill('2026-10-01');
+    await settings.getByLabel('End', { exact: true }).first().fill('2026-09-30');
+    await settings.getByRole('button', { name: 'Save project', exact: true }).click();
+    await expect(settings).toBeVisible();
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
     await settings.getByLabel('End', { exact: true }).first().fill('2026-12-31');
     await settings.getByRole('button', { name: 'Save project', exact: true }).click();
+    await expect(settings).toBeHidden();
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Renamed project');
     await expect.poll(async () => (await readSavedBoard(page, 'legacy')).extensions.project.name).toBe('Renamed project');
     const saved = await readSavedBoard(page, 'legacy');
     expect(saved.board.tasks[0].id).toBe(42);
     expect(saved.extensions.project.team[0].name).toBe('Ana');
 });
+
+
+test('US11: settings gears target their project and cancel discards the draft', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [
+        { id: 'alpha', title: 'Alpha', hasHandle: true },
+        { id: 'beta', title: 'Beta', hasHandle: true }
+    ], { selectedBoardId: 'alpha' });
+    const settings = page.getByRole('dialog', { name: 'Project settings', exact: true });
+    await expect(settings).toHaveCount(0);
+    const gear = page.getByRole('button', { name: 'Project settings: Beta', exact: true });
+    await gear.click();
+    await expect(settings.getByLabel('Name', { exact: true }).first()).toHaveValue('Beta');
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Alpha');
+    await settings.getByLabel('Name', { exact: true }).first().fill('Unsaved Beta');
+    await settings.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(settings).toHaveCount(0);
+    await expect(gear).toBeFocused();
+    await gear.click();
+    await expect(settings.getByLabel('Name', { exact: true }).first()).toHaveValue('Beta');
+    await settings.getByRole('button', { name: 'Close', exact: true }).focus();
+    await page.keyboard.press('n');
+    await expect(settings).toBeVisible();
+    await expect(page.locator('#appMessageModal')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(settings).toHaveCount(0);
+    await expect(gear).toBeFocused();
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
+});
+
+for (const theme of ['light', 'dark']) {
+    test(`US11: settings are themed, responsive and read-only (${theme})`, async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await gotoApp(page);
+        if (theme === 'dark') await page.locator('#themeToggleBtn').click();
+        await seedPortfolioBoards(page, [{ id: 'readonly', title: 'Read only', tasks: [{ title: 'Existing work', assignees: ['Ana'] }] }], { selectedBoardId: 'readonly' });
+        await page.getByRole('button', { name: 'Project settings: Read only', exact: true }).click();
+        const settings = page.getByRole('dialog', { name: 'Project settings', exact: true });
+        await expect(settings).toBeVisible();
+        await expect(settings.getByLabel('Name', { exact: true }).first()).toBeDisabled();
+        await expect(settings.getByRole('button', { name: 'Add team member', exact: true })).toBeDisabled();
+        await expect(settings.getByRole('button', { name: 'Save project', exact: true })).toHaveCount(0);
+        const dimensions = await settings.evaluate((element) => ({ width: element.clientWidth, scrollWidth: element.scrollWidth, background: getComputedStyle(element).backgroundColor }));
+        expect(dimensions.width).toBeLessThanOrEqual(390);
+        expect(dimensions.scrollWidth).toBe(dimensions.width);
+        expect(dimensions.background).toBe(theme === 'dark' ? 'rgb(37, 40, 45)' : 'rgb(255, 255, 255)');
+        await settings.getByRole('button', { name: 'Close', exact: true }).last().click();
+        await expect(settings).toHaveCount(0);
+        expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
+    });
+}

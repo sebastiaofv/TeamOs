@@ -15,7 +15,7 @@ import { PortfolioRoadmap } from '@/features/portfolio/roadmap/PortfolioRoadmap'
 import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
 import { PortfolioPlanner } from '@/features/portfolio/planner/PortfolioPlanner';
 import { PortfolioTable } from '@/features/portfolio/table/PortfolioTable';
-import { ProjectSettings } from '@/features/portfolio/projects/ProjectSettings';
+import { ProjectSettingsDialog, ProjectWorkflowSettings } from '@/features/portfolio/projects/ProjectSettings';
 import { LocalProfile } from '@/features/portfolio/projects/LocalProfile';
 import { ProjectDashboard } from '@/features/portfolio/dashboard/ProjectDashboard';
 import { PortfolioDashboard } from '@/features/portfolio/dashboard/PortfolioDashboard';
@@ -82,7 +82,7 @@ function AppContent() {
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
-                    {!portfolioDashboardActive && !maintenanceActive && <ProjectSettings />}
+                    {!portfolioDashboardActive && !maintenanceActive && <ProjectWorkflowSettings />}
                     {!portfolioDashboardActive && !maintenanceActive && <LocalProfile />}
                     {!portfolioDashboardActive && !maintenanceActive && <WorkContextBanner />}
                     <div className={`portfolio-board-wrap${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
@@ -102,6 +102,7 @@ function AppContent() {
                 <div className="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">{t('app.dropProjectFiles')}</div>
             </main>
             <ErrorBoundary name="Dialogs" onError={() => closeAllDialogs(actions)}>
+                <ProjectSettingsDialog />
                 <ShortcutsDialog />
                 <HelpDialog />
                 <CommandPalette />

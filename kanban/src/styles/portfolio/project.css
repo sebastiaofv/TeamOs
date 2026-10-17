@@ -90,3 +90,50 @@
 .portfolio-exclusions ul { padding-left: 20px; }
 @media (max-width: 700px) { .portfolio-view-toggle { flex-wrap: wrap; max-width: 100%; } .project-dashboard { padding: 12px; } }
 .work-context-banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; background: var(--bg-card); font-size: 12px; }
+
+.chip-settings {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    flex: none;
+}
+
+.chip-settings svg { width: 15px; height: 15px; }
+.chip-settings:hover { background: var(--bg-secondary); }
+.chip-settings:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.project-settings-dialog {
+    margin: 0;
+    border-radius: 0;
+    max-width: 860px;
+    max-height: calc(100dvh - 24px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.project-settings-name { color: var(--text-secondary); font-size: 13px; margin-top: 6px; overflow-wrap: anywhere; }
+.project-settings-dialog .modal-header { flex: none; gap: 16px; }
+.project-settings-dialog .modal-close { flex: none; }
+.project-settings-dialog form { display: flex; flex-direction: column; min-height: 0; max-height: none; padding: 0; overflow: hidden; }
+.project-settings-dialog .modal-body { overflow-y: auto; min-height: 0; }
+.project-settings-dialog .modal-footer { flex: none; }
+.project-settings-dialog .project-field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.project-settings-dialog .project-field-grid > .form-row { grid-column: 1 / -1; }
+.project-settings-dialog textarea { min-height: 88px; resize: vertical; font: inherit; }
+.project-settings-dialog input:focus-visible,
+.project-settings-dialog select:focus-visible,
+.project-settings-dialog textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; border-color: var(--accent); }
+.project-settings-dialog h3 { font-size: 13px; margin-top: 24px; }
+.project-settings-dialog .project-member-row { padding: 12px; border: 1px solid var(--border-light); background: var(--bg-primary); align-items: end; }
+.project-settings-dialog .project-member-row label { flex: 1 1 140px; min-width: 0; }
+.project-settings-dialog .project-member-row label:has(input[type=checkbox]) { flex: 0 0 auto; flex-direction: row; align-items: center; min-height: 34px; }
+.project-local-identity { margin-bottom: 20px; overflow-wrap: anywhere; }
+.project-review-notice { margin-bottom: 12px; padding: 10px 12px; border-left: 2px solid var(--accent); background: var(--bg-primary); font-size: 12px; }
+
+@media (max-width: 600px) {
+    .project-settings-dialog .project-field-grid { grid-template-columns: minmax(0, 1fr); }
+}

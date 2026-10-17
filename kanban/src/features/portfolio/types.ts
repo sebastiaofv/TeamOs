@@ -149,6 +149,7 @@ export type HelpTab = 'guide' | 'palette';
 export type HelpDialogProps = { tab?: HelpTab };
 
 export type DialogPropsByName = {
+    projectSettings: { boardId: string };
     commandPalette: CommandPaletteProps;
     taskEditor: TaskEditorViewModel;
     taskDetail: TaskDetailViewModel;
