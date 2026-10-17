@@ -9,12 +9,8 @@ import {
     normalizePortfolioSortDir,
     normalizePortfolioSortKey
 } from '@/domain/board';
-import {
-    normalizeAssignee,
-    normalizePortfolioBlockedFilter,
-    taskHasAssignee
-} from '@/domain/task';
-import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterSet } from '@/domain/portfolioFilters';
+import { normalizeAssignee } from '@/domain/task';
+import { DEFAULT_PORTFOLIO_FILTERS, normalizePortfolioFilterSet, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import {
     buildPortfolioRowsFromBoardData,
     buildPortfolioTasks,
@@ -52,12 +48,6 @@ export function normalizePortfolioFilters(state: SelectorState): PortfolioFilter
 
 export function getFilteredSortedPortfolioRows(state: SelectorState, options: { sourceRows?: PortfolioRow[] } = {}): PortfolioRow[] {
     const filters = { ...DEFAULT_PORTFOLIO_FILTERS, ...(state?.portfolioFilters || {}) };
-    const search = String(filters.search || '').trim().toLowerCase();
-    const priorityFilter = filters.priority || '';
-    const assigneeFilter = normalizeAssignee(filters.assignee || '');
-    const blockedFilter = normalizePortfolioBlockedFilter(filters.blocked || 'all');
-    const effortFilter = filters.effort || '';
-    const archiveFilter = filters.archive || 'active';
     const sortBy = normalizePortfolioSortKey(state?.portfolioSortKey);
     const sortDir = normalizePortfolioSortDir(state?.portfolioSortDir);
     const timelineView = getSelectedPortfolioTimelineView(state);
@@ -71,17 +61,8 @@ export function getFilteredSortedPortfolioRows(state: SelectorState, options: { 
 
     return sourceRows
         .filter((item) => {
-            const task = item.task;
             if (state?.selectedPortfolioBoardId && item.boardId !== state.selectedPortfolioBoardId) return false;
-            if (archiveFilter === 'active' && task.archived) return false;
-            if (archiveFilter === 'archived' && !task.archived) return false;
-            if (priorityFilter && task.priority !== priorityFilter) return false;
-            if (assigneeFilter && !taskHasAssignee(task, assigneeFilter)) return false;
-            if (blockedFilter === 'blocked' && !task.blocked) return false;
-            if (blockedFilter === 'unblocked' && task.blocked) return false;
-            if (effortFilter && task.effort !== effortFilter) return false;
-            if (search && !String(task.title || '').toLowerCase().includes(search)) return false;
-            return true;
+            return taskMatchesPortfolioFilters(item.task, filters);
         })
         .sort((a, b) => comparePortfolioRows(a, b, sortBy, sortDir));
 }

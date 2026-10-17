@@ -9,7 +9,7 @@ import { useI18n } from '@/shared/i18n';
 import { readTableColumnPreferences, saveTableColumnPreferences } from '@/infrastructure/browser/tablePreferences';
 import { downloadCsv } from '@/infrastructure/browser/downloadCsv';
 import {
-    TABLE_COLUMNS, DEFAULT_TABLE_COLUMNS, DEFAULT_TABLE_FILTERS, DEFAULT_TABLE_SORT,
+    TABLE_COLUMNS, DEFAULT_TABLE_COLUMNS, DEFAULT_TABLE_SORT,
     normalizeTableColumns, filterTableRows, sortTableRows, tableCellValue, buildTableCsv,
     type TableColumnId
 } from './tableModel';
@@ -45,7 +45,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     const { t } = useI18n();
     const actions = usePortfolioActions();
     const columnDisclosure = useTableDisclosure(hidden);
-    const filters = useAppStore((state) => state.portfolioTableFiltersByBoardId[boardId] || DEFAULT_TABLE_FILTERS);
+    const filters = useAppStore((state) => state.portfolioFilters);
     const [columns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences()));
     const sort = useAppStore((state) => state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT);
     const [page, setPage] = useState(0);

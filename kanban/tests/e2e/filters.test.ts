@@ -14,6 +14,81 @@ test.describe('filters and sort', () => {
     await gotoApp(page);
   });
 
+  test('shares the new filter fields, options and selections across every project view', async ({ page }) => {
+    const target = { status: 'doing', phaseId: 'build', milestoneId: 'launch', sprintId: 's1', dueDate: '2026-01-05' };
+    await seedPortfolioBoards(page, [{
+      id: 'shared', title: 'Shared filters', hasHandle: true,
+      tasks: [
+        { id: 1, title: 'Matching workitem', ...target },
+        { id: 2, title: 'Other status', ...target, status: 'done' },
+        { id: 3, title: 'Other phase', ...target, phaseId: 'design' },
+        { id: 4, title: 'Other milestone', ...target, milestoneId: 'review' },
+        { id: 5, title: 'Other sprint', ...target, sprintId: 's2' }
+      ],
+      extensions: { roadmap: {
+        version: 1,
+        phases: ['build', 'design'].map((id) => ({ id, title: id, startDate: '2026-01-01', endDate: '2026-01-30' })),
+        milestones: ['launch', 'review'].map((id) => ({ id, title: id, dueDate: '2026-01-10' })),
+        sprints: ['s1', 's2'].map((id) => ({ id, title: id, startDate: '2026-01-01', endDate: '2026-01-14' }))
+      } }
+    }], { selectedBoardId: 'shared' });
+
+    await page.locator('[data-view-mode="table"]').click();
+    await openFiltersPanel(page);
+    await page.locator('#portfolioStatusesFilter').selectOption(['doing']);
+    await page.locator('#portfolioPhaseFilter').selectOption('build');
+    await page.locator('#portfolioMilestoneFilter').selectOption('launch');
+    await page.locator('#portfolioSprintFilter').selectOption('s1');
+    const params = new URL(page.url()).searchParams;
+    expect(params.get('pst')).toBe('doing');
+    expect(params.get('pph')).toBe('build');
+    expect(params.get('pm')).toBe('launch');
+    expect(params.get('psp')).toBe('s1');
+    const fields = page.locator('#portfolioFiltersPanel select');
+    const readFields = () => fields.evaluateAll((nodes) => nodes.map((node) => {
+      const select = node as HTMLSelectElement;
+      return {
+        id: select.id, multiple: select.multiple,
+        options: Array.from(select.options, (option) => [option.value, option.text]),
+        selected: Array.from(select.selectedOptions, (option) => option.value)
+      };
+    }));
+    const expected = await readFields();
+    expect(expected).toHaveLength(9);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
+    await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching workitem');
+
+    for (const view of ['board', 'roadmap', 'calendar', 'planner', 'table']) {
+      await page.locator(`[data-view-mode="${view}"]`).click();
+      await openFiltersPanel(page);
+      expect(await readFields()).toEqual(expected);
+      await expect(page.locator('#portfolioFiltersBtn .portfolio-filters-badge')).toHaveText('4');
+      await page.keyboard.press('Escape');
+      if (view === 'board') {
+        await expect(page.locator('#portfolioBoard .task-title')).toHaveText(['Matching workitem']);
+      } else if (view === 'roadmap') {
+        await page.getByRole('button', { name: 'Show tasks for build', exact: true }).click();
+        await expect(page.locator('#portfolioRoadmapView .task-title')).toHaveText(['Matching workitem']);
+      } else if (view === 'calendar') {
+        await page.locator('[data-action="open-calendar-month"][data-month="0"]').click();
+        await page.locator('[data-calendar-day="2026-01-05"] .portfolio-calendar-item-overflow').click();
+        await expect(page.locator('#portfolioCalendarView [data-action="open-calendar-task"]')).toHaveCount(1);
+        await expect(page.locator('#portfolioCalendarView [data-action="open-calendar-task"]')).toContainText('Matching workitem');
+      } else if (view === 'planner') {
+        await expect(page.locator('#portfolioPlannerView .planner-tray-card-title')).toHaveText(['Matching workitem']);
+      }
+    }
+
+    await page.locator('#portfolioActiveFilters [data-filter="statuses"] button').click();
+    await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
+    await page.locator('#portfolioClearFilters').click();
+    await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(5);
+    await page.locator('[data-view-mode="board"]').click();
+    await expect(page.locator('#portfolioBoard .task-title')).toHaveCount(5);
+    await expect(page.locator('#portfolioFiltersBtn .portfolio-filters-badge')).toHaveCount(0);
+  });
+
   test('search highlights literal title text without changing escaped characters', async ({ page }) => {
     const title = 'R&D <amp> "quoted"';
     await seedPortfolioBoards(page, [

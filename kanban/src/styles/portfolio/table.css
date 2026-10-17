@@ -39,8 +39,6 @@
     background: var(--bg-card);
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14);
 }
-.table-filter-options { max-height: min(620px, calc(100dvh - 160px)); overflow: auto; overscroll-behavior: contain; }
-.portfolio-filter-hint { grid-column: 2; color: var(--text-muted); font-size: 11px; }
 .table-export select, .table-pagination select {
     width: 100%;
     min-width: 0;
@@ -82,7 +80,6 @@
 .table-heading, .table-tools, .table-summary, .table-pagination { flex-shrink: 0; }
 @media (max-width: 640px) {
     .portfolio-table { padding: 10px; }
-    .table-filter-options { max-height: calc(100dvh - 240px); }
     .table-export { gap: 8px; }
     .table-export label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
     .table-pagination { justify-content: flex-start; }

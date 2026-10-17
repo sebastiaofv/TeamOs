@@ -12,6 +12,7 @@ import type {
     RoadmapRange,
     RoadmapTick,
     Task,
+    TaskStatus,
     TaskEditorFields,
     TimelineEvent,
     TimelineExtension
@@ -59,6 +60,10 @@ export type PortfolioFilters = {
     assignee: string;
     priority: '' | Priority;
     effort: '' | Effort;
+    statuses: TaskStatus[];
+    phaseId: string;
+    milestoneId: string;
+    sprintId: string;
 };
 export type PortfolioSortKey = 'board' | 'task' | 'column' | 'priority' | 'effort' | 'score' | 'dueDate' | 'updatedAt';
 export type SortDir = 'asc' | 'desc';

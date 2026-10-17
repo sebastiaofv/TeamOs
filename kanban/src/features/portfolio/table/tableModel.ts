@@ -1,5 +1,6 @@
 import type { BoardData, TaskStatus } from '@/domain/types';
-import type { PortfolioRow } from '@/features/portfolio/types';
+import type { PortfolioFilters, PortfolioRow } from '@/features/portfolio/types';
+import { DEFAULT_PORTFOLIO_FILTERS, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import { getRoadmapItemTitle } from '@/domain/roadmap';
 import { effortRank, priorityRank, taskScore } from '@/domain/scoring';
 
@@ -17,42 +18,12 @@ export const DEFAULT_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(TAB
 export type TableSort = { column: TableColumnId | 'score'; direction: 'asc' | 'desc' };
 export const DEFAULT_TABLE_SORT: TableSort = Object.freeze({ column: 'id', direction: 'asc' });
 
-export type TableFilters = {
-    search: string;
-    archive: 'active' | 'all' | 'archived';
-    statuses: TaskStatus[];
-    assignee: string;
-    phaseId: string;
-    milestoneId: string;
-    sprintId: string;
-    priority: string;
-    effort: string;
-    blocked: 'all' | 'blocked' | 'unblocked';
-};
-
-export const DEFAULT_TABLE_FILTERS: Readonly<TableFilters> = Object.freeze({
-    search: '', archive: 'active', statuses: [], assignee: '', phaseId: '',
-    milestoneId: '', sprintId: '', priority: '', effort: '', blocked: 'all'
-});
+export type TableFilters = PortfolioFilters;
+export const DEFAULT_TABLE_FILTERS = DEFAULT_PORTFOLIO_FILTERS;
 
 /** Each populated filter is ANDed; statuses are ORed within their selection. */
 export function filterTableRows(rows: PortfolioRow[], filters: TableFilters): PortfolioRow[] {
-    const search = filters.search.trim().toLowerCase();
-    return rows.filter(({ task }) => {
-        if (filters.archive === 'active' && task.archived) return false;
-        if (filters.archive === 'archived' && !task.archived) return false;
-        if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
-        if (filters.assignee && !task.assignees?.includes(filters.assignee)) return false;
-        if (filters.phaseId && task.phaseId !== filters.phaseId) return false;
-        if (filters.milestoneId && task.milestoneId !== filters.milestoneId) return false;
-        if (filters.sprintId && task.sprintId !== filters.sprintId) return false;
-        if (filters.priority && task.priority !== filters.priority) return false;
-        if (filters.effort && task.effort !== filters.effort) return false;
-        if (filters.blocked === 'blocked' && !task.blocked) return false;
-        if (filters.blocked === 'unblocked' && task.blocked) return false;
-        return !search || [String(task.id), task.title || '', task.description || '']
-            .some((value) => value.toLowerCase().includes(search));
-    });
+    return rows.filter(({ task }) => taskMatchesPortfolioFilters(task, filters));
 }
 
 /** Raw, unlocalized cells. Roadmap IDs are resolved only against this project. */

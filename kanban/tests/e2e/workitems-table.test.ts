@@ -75,9 +75,10 @@ async function expectTableFilter(page: Page, id: string, value: string | string[
 }
 
 async function clearTableViewFilters(page: Page) {
-  const clear = page.locator('#tableClearFilters');
+  const clear = page.locator('#portfolioClearFilters');
   if (await clear.isVisible()) await clear.click();
-  else await page.locator('#portfolioSearchClearBtn').click();
+  const searchClear = page.locator('#portfolioSearchClearBtn');
+  if (await searchClear.isVisible()) await searchClear.click();
 }
 
 async function expectRowIds(page: Page, ids: number[]) {
@@ -87,7 +88,9 @@ async function expectRowIds(page: Page, ids: number[]) {
 }
 
 async function editTableTitle(page: Page, id: number, title: string) {
-  await tableRow(page, id).getByRole('button', { name: 'Edit', exact: true }).click();
+  await tableRow(page, id).locator('[data-column="id"] button').click();
+  await expect(page.locator('#taskDetailModal')).toBeVisible();
+  await page.keyboard.press('e');
   await expect(page.locator('#taskModal')).toBeVisible();
   await page.locator('#taskName').fill(title);
   await page.locator('#taskModal .btn-primary').click();
@@ -203,7 +206,7 @@ test.describe('workitems table', () => {
     await expect(page.locator('#portfolioToolbar #portfolioFiltersPanel')).toBeVisible();
     const fields = page.locator('#portfolioFiltersPanel .portfolio-filters-field');
     await expect(fields).toContainText(['Archive', 'Blocked', 'Assignee', 'Priority', 'Effort']);
-    await page.locator('#tableEffort').selectOption('S');
+    await page.locator('#portfolioEffortFilter').selectOption('S');
     await expectRowIds(page, [2]);
     await page.locator('#resetPortfolioFiltersBtn').click();
     await page.locator('#portfolioFiltersPanel').getByRole('button', { name: 'Done', exact: true }).click();
@@ -254,7 +257,7 @@ test.describe('workitems table', () => {
     await setBoardSearch(page, 'Visible');
     await openTable(page, false);
     await expect(page.locator('#portfolioSearchBtn')).toBeVisible();
-    await expectTableSearch(page, '');
+    await expectTableSearch(page, 'Visible');
     await setTableSearch(page, 'missing');
     await expect(tableRows(page)).toHaveCount(0);
     await page.locator('#portfolioSearchBtn').click();
@@ -266,7 +269,7 @@ test.describe('workitems table', () => {
     await expectRowIds(page, [1]);
     await setTableSearch(page, 'workitem');
     await page.locator('[data-view-mode="board"]').click();
-    await expect(page.locator('#portfolioSearchBtn')).toContainText('Visible');
+    await expect(page.locator('#portfolioSearchBtn')).toContainText('workitem');
     await openTable(page);
     await expectTableSearch(page, 'workitem');
     await page.locator('#portfolioSearchBtn').click();
@@ -275,7 +278,7 @@ test.describe('workitems table', () => {
     await expect(page.locator('#portfolioFiltersBtn')).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('[data-view-mode="table"]')).toHaveAttribute('aria-pressed', 'true');
     await page.keyboard.press('Escape');
-    await expect(page.locator('#tableArchive')).toBeHidden();
+    await expect(page.locator('#portfolioArchiveFilter')).toBeHidden();
   });
 
   test('keeps workitems in view on narrow screens instead of stacking all filters above them', async ({ page }) => {
@@ -285,11 +288,11 @@ test.describe('workitems table', () => {
       tasks: [{ id: 1, title: 'Visible workitem' }]
     }], { selectedBoardId: 'compact' });
     await openTable(page, false);
-    await expect(page.locator('#tableArchive')).toBeHidden();
+    await expect(page.locator('#portfolioArchiveFilter')).toBeHidden();
     await expect(page.locator('#portfolioToolbar #portfolioFiltersBtn')).toBeVisible();
     await expect(tableRow(page, 1)).toBeInViewport();
     await page.locator('#portfolioFiltersBtn').click();
-    await expect(page.locator('#tableArchive')).toBeVisible();
+    await expect(page.locator('#portfolioArchiveFilter')).toBeVisible();
     await expect.poll(() => page.locator('#portfolioFiltersPanel').evaluate((node) => node.getBoundingClientRect().bottom)).toBeLessThanOrEqual(844);
     const fields = await page.locator('#portfolioFiltersPanel .portfolio-filters-field').evaluateAll((nodes) => nodes.map((node) => {
       const rect = node.getBoundingClientRect();
@@ -303,9 +306,9 @@ test.describe('workitems table', () => {
         expect(field.right <= other.left || other.right <= field.left || field.bottom <= other.top || other.bottom <= field.top).toBe(true);
       }
     }
-    await page.locator('#tableArchive').focus();
+    await page.locator('#portfolioArchiveFilter').focus();
     await page.keyboard.press('Escape');
-    await expect(page.locator('#tableArchive')).toBeHidden();
+    await expect(page.locator('#portfolioArchiveFilter')).toBeHidden();
     await expect(page.locator('#portfolioFiltersBtn')).toBeFocused();
     await page.locator('#portfolioFiltersBtn').click();
     await page.locator('#tableColumns > summary').focus();
@@ -337,17 +340,17 @@ test.describe('workitems table', () => {
     await expect(page.locator('[data-view-mode="table"]')).toHaveAccessibleName('Table');
     await openTable(page);
 
-    await expectTableFilter(page, '#tableArchive', 'active');
+    await expectTableFilter(page, '#portfolioArchiveFilter', 'active');
     await expectRowIds(page, [1, 2, 3]);
     await expect(page.locator('#portfolioTable')).toContainText('3 of 5 workitems · 3 active · 2 archived');
     await expectColumnOrder(page, DEFAULT_COLUMNS);
     await expect(page.locator('#portfolioTable')).not.toContainText('Other project item');
 
-    await selectTableFilter(page, '#tableArchive', 'all');
+    await selectTableFilter(page, '#portfolioArchiveFilter', 'all');
     await expectRowIds(page, [1, 2, 3, 4, 5]);
     await expect(page.locator('#portfolioTable')).toContainText('5 of 5 workitems · 3 active · 2 archived');
 
-    await selectTableFilter(page, '#tableArchive', 'archived');
+    await selectTableFilter(page, '#portfolioArchiveFilter', 'archived');
     await expectRowIds(page, [4, 5]);
     await expect(page.locator('#portfolioTable')).toContainText('2 of 5 workitems · 3 active · 2 archived');
   });
@@ -365,9 +368,9 @@ test.describe('workitems table', () => {
     }], { selectedBoardId: 'filters' });
     await openTable(page);
 
-    await selectTableFilter(page, '#tableStatuses', ['doing', 'to-do']);
+    await selectTableFilter(page, '#portfolioStatusesFilter', ['doing', 'to-do']);
     await expectRowIds(page, [11, 12, 13]);
-    await selectTableFilter(page, '#tableAssignee', { label: 'Ana' });
+    await selectTableFilter(page, '#portfolioAssigneeFilter', { label: 'Ana' });
     await expectRowIds(page, [11, 12]);
     await setTableSearch(page, 'needle');
     await expectRowIds(page, [11]);
@@ -375,11 +378,11 @@ test.describe('workitems table', () => {
     await expectRowIds(page, [12]);
     await setTableSearch(page, 'unmatched-text');
     await expect(tableRows(page)).toHaveCount(0);
-    await expect(page.locator('#tableClearFilters')).toBeVisible();
+    await expect(page.locator('#portfolioClearFilters')).toBeVisible();
 
     await clearTableViewFilters(page);
     await expectTableSearch(page, '');
-    await expectTableFilter(page, '#tableArchive', 'active');
+    await expectTableFilter(page, '#portfolioArchiveFilter', 'active');
     await expectRowIds(page, [11, 12, 13, 14]);
   });
 
@@ -412,15 +415,15 @@ test.describe('workitems table', () => {
     }], { selectedBoardId: 'roadmap' });
     await openTable(page);
 
-    await selectTableFilter(page, '#tablePhase', 'p1');
+    await selectTableFilter(page, '#portfolioPhaseFilter', 'p1');
     await expectRowIds(page, [1, 3, 4, 5, 6]);
-    await selectTableFilter(page, '#tableMilestone', 'm1');
+    await selectTableFilter(page, '#portfolioMilestoneFilter', 'm1');
     await expectRowIds(page, [1, 4, 5, 6]);
-    await selectTableFilter(page, '#tableSprint', 's1');
+    await selectTableFilter(page, '#portfolioSprintFilter', 's1');
     await expectRowIds(page, [1, 5, 6]);
-    await selectTableFilter(page, '#tablePriority', 'high');
+    await selectTableFilter(page, '#portfolioPriorityFilter', 'high');
     await expectRowIds(page, [1, 6]);
-    await selectTableFilter(page, '#tableBlocked', 'blocked');
+    await selectTableFilter(page, '#portfolioBlockedFilter', 'blocked');
     await expectRowIds(page, [1]);
     await clearTableViewFilters(page);
     await expect(tableRows(page)).toHaveCount(6);
@@ -605,7 +608,7 @@ test.describe('workitems table', () => {
     await openTable(page);
     await expect(tableRow(page, 1)).toContainText('Original historical item');
     await expect(tableRow(page, 1)).not.toContainText('Live edited item');
-    await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toBeDisabled();
+    await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
     await setTableSearch(page, 'historical');
     await tableRow(page, 1).locator('[data-column="status"]').click();
     await expect(page.locator('#detailTitle')).toHaveText('Original historical item');
@@ -628,7 +631,7 @@ test.describe('workitems table', () => {
     await expect(tableRows(page)).toHaveCount(0);
     await clearTableViewFilters(page);
     await expect(tableRow(page, 1)).toContainText('Live edited item');
-    await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toBeEnabled();
+    await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
   });
 
   test('read-only imports allow filtering, detail, selection and export without edits or writes', async ({ page }) => {
@@ -640,9 +643,9 @@ test.describe('workitems table', () => {
       ]
     }], { selectedBoardId: 'readonly' });
     await openTable(page);
-    await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toBeDisabled();
-    await selectTableFilter(page, '#tableStatuses', 'doing');
-    await selectTableFilter(page, '#tableAssignee', { label: 'Ana' });
+    await expect(tableRow(page, 1).getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
+    await selectTableFilter(page, '#portfolioStatusesFilter', 'doing');
+    await selectTableFilter(page, '#portfolioAssigneeFilter', { label: 'Ana' });
     await setTableSearch(page, 'read-only');
     await expectRowIds(page, [1]);
     await tableRow(page, 1).getByRole('button', { name: 'Visible read-only item', exact: true }).click();
@@ -678,8 +681,8 @@ test.describe('workitems table', () => {
         ]
       }], { selectedBoardId: 'csv' });
       await openTable(page);
-      await selectTableFilter(page, '#tableStatuses', 'doing');
-      await selectTableFilter(page, '#tableAssignee', { label: 'Ana' });
+      await selectTableFilter(page, '#portfolioStatusesFilter', 'doing');
+      await selectTableFilter(page, '#portfolioAssigneeFilter', { label: 'Ana' });
       await page.locator('#tablePageSize').selectOption('25');
       await expect(tableRows(page)).toHaveCount(25);
       await tableHeader(page, 'ID').getByRole('button').click();
@@ -795,7 +798,7 @@ test.describe('workitems table', () => {
     await selectPortfolioBoard(page, 'Legado');
     await openTable(page);
     await expect(tableRow(page, 1)).toContainText('Não definido');
-    await expect(tableRow(page, 1).getByRole('button', { name: 'Editar', exact: true })).toBeDisabled();
+    await expect(tableRow(page, 1).getByRole('button', { name: 'Editar', exact: true })).toHaveCount(0);
     await setTableSearch(page, 'inexistente');
     await expect(tableRows(page)).toHaveCount(0);
     await expect(page.locator('#portfolioTable')).toContainText('Nenhum workitem corresponde aos filtros.');
@@ -850,7 +853,7 @@ test.describe('workitems table', () => {
       tasks: [{ id: 1, title: 'Original item', status: 'doing' }]
     }], { selectedBoardId: 'conflict' });
     await openTable(page);
-    await selectTableFilter(page, '#tableStatuses', 'doing');
+    await selectTableFilter(page, '#portfolioStatusesFilter', 'doing');
     await installControlledPortfolioWriter(page, { boardId: 'conflict', failWrites: 1 });
     await editTableTitle(page, 1, 'Local unsaved item');
     await expect(page.locator('.portfolio-chip.active')).toContainText('Save failed');
@@ -869,7 +872,7 @@ test.describe('workitems table', () => {
 
     await expect(tableRow(page, 1)).toContainText('External item');
     await expect(tableRow(page, 1)).not.toContainText('Local unsaved item');
-    await expectTableFilter(page, '#tableStatuses', ['doing']);
+    await expectTableFilter(page, '#portfolioStatusesFilter', ['doing']);
     await expect(page.locator('.portfolio-chip.active')).not.toContainText('Save failed');
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
   });

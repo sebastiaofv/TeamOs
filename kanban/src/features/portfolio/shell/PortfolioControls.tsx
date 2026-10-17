@@ -19,18 +19,16 @@ import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useI18n } from '@/shared/i18n';
-import { PortfolioActiveFilters, PortfolioFilterMenu } from './PortfolioFilterMenu';
+import { PortfolioActiveFilters, PortfolioToolbarFilters } from './PortfolioFilters';
 import { PALETTE_SHORTCUT_LABEL, openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
 import { setTableFilter, setTableSort } from '@/features/portfolio/table/tableControls';
 import { DEFAULT_TABLE_SORT } from '@/features/portfolio/table/tableModel';
 import { COLUMN_LABELS } from '@/features/portfolio/table/tableLabels';
-import { TableActiveFilters, TableToolbarFilters } from '@/features/portfolio/table/TableToolbarFilters';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
     | 'portfolioTasks'
     | 'portfolioFilters'
-    | 'portfolioTableFiltersByBoardId'
     | 'portfolioTableSortByBoardId'
     | 'portfolioSortKey'
     | 'selectedPortfolioBoardId'
@@ -131,9 +129,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
         : ['priority', 'effort', 'score'].includes(tableSort.column) ? tableSort.column : 'custom';
     const sortValue = viewMode === 'table' ? tableSortValue : portfolioSortSelectValueFromKey(state.portfolioSortKey);
     const sortRef = useFocusTarget<HTMLSelectElement>('portfolioSort');
-    const search = viewMode === 'table'
-        ? state.portfolioTableFiltersByBoardId[state.selectedPortfolioBoardId]?.search || ''
-        : filters.search;
+    const search = filters.search;
 
     return (
         <>
@@ -165,7 +161,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         >×</button>
                     )}
                 </div>
-                {viewMode === 'table' ? <TableToolbarFilters /> : <PortfolioFilterMenu filters={filters} tasks={state.portfolioTasks} />}
+                <PortfolioToolbarFilters />
                 <div className="filter-group">
                     <label htmlFor="portfolioSortSelect">{t('toolbar.sort')}</label>
                     <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => {
@@ -266,7 +262,6 @@ export function PortfolioToolbar() {
         portfolioBoards: state.portfolioBoards,
         portfolioTasks: state.portfolioTasks,
         portfolioFilters: state.portfolioFilters,
-        portfolioTableFiltersByBoardId: state.portfolioTableFiltersByBoardId,
         portfolioTableSortByBoardId: state.portfolioTableSortByBoardId,
         portfolioSortKey: state.portfolioSortKey,
         selectedPortfolioBoardId: state.selectedPortfolioBoardId,
@@ -283,7 +278,7 @@ export function PortfolioToolbar() {
                     {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
                 </span>
             </section>
-            {state.selectedPortfolioViewMode === 'table' ? <TableActiveFilters /> : <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />}
+            <PortfolioActiveFilters />
         </>
     );
 }

@@ -202,8 +202,6 @@ export function createPortfolioControlActions({
 
         const portfolioBulkSelectionByBoardId = { ...(state.portfolioBulkSelectionByBoardId || {}) };
         delete portfolioBulkSelectionByBoardId[boardId];
-        const portfolioTableFiltersByBoardId = { ...state.portfolioTableFiltersByBoardId };
-        delete portfolioTableFiltersByBoardId[boardId];
         const portfolioTableSortByBoardId = { ...state.portfolioTableSortByBoardId };
         delete portfolioTableSortByBoardId[boardId];
         const projectSaveStateById = new Map(state.projectSaveStateById || []);
@@ -213,7 +211,6 @@ export function createPortfolioControlActions({
         const partial: Partial<AppState> = {
             portfolioBoards: state.portfolioBoards.filter((board) => board.id !== boardId),
             portfolioBulkSelectionByBoardId,
-            portfolioTableFiltersByBoardId,
             portfolioTableSortByBoardId,
             projectSaveStateById
         };
