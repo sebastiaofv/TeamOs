@@ -10,6 +10,7 @@ import { useI18n } from '@/shared/i18n';
 import { clearPortfolioFilters, setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { DEFAULT_PORTFOLIO_FILTERS, type PanelPortfolioFilterName } from '@/domain/portfolioFilters';
 import { STATUS_LABELS, PRIORITY_LABELS } from '@/features/portfolio/table/tableLabels';
+import { NO_PERSON_FILTER, personFilterName, personNameFilter } from '@/domain/peopleFilters';
 
 function usePortfolioFilterFields() {
     const { t } = useI18n();
@@ -51,7 +52,7 @@ function usePortfolioFilterFields() {
         // An assignment edit can remove the last occurrence of a filtered name.
         // Keep that explicit filter visible rather than displaying "All".
         if ((key === 'assignee' || key === 'responsible') && typeof selected === 'string' && selected
-            && !options.some((option) => option.value === selected)) options = [...options, { value: selected, label: selected }];
+            && !options.some((option) => option.value === selected)) options = [...options, { value: selected, label: personFilterName(selected) }];
         return {
             key, id, label: label.replace(/:$/, ''), options, value: filters[key], multiple, hint,
             changed: key === 'statuses' ? filters.statuses.length > 0 : filters[key] !== DEFAULT_PORTFOLIO_FILTERS[key],
@@ -67,8 +68,8 @@ function usePortfolioFilterFields() {
         field('blocked', t('toolbar.blocked'), 'portfolioBlockedFilter', [
             { value: 'all', label: t('common.all') }, { value: 'blocked', label: t('toolbar.blockedOnly') }, { value: 'unblocked', label: t('toolbar.unblockedOnly') }
         ]),
-        field('responsible', t('task.responsible'), 'portfolioResponsibleFilter', [all, { value: '__none__', label: t('task.noResponsible') }, ...assignees.map((name) => ({ value: name, label: name }))]),
-        field('assignee', t('toolbar.participant'), 'portfolioAssigneeFilter', [all, { value: '__none__', label: t('task.noParticipants') }, ...assignees.map((name) => ({ value: name, label: name }))]),
+        field('responsible', t('task.responsible'), 'portfolioResponsibleFilter', [all, { value: NO_PERSON_FILTER, label: t('task.noResponsible') }, ...assignees.map((name) => ({ value: personNameFilter(name), label: name }))]),
+        field('assignee', t('toolbar.participant'), 'portfolioAssigneeFilter', [all, { value: NO_PERSON_FILTER, label: t('task.noParticipants') }, ...assignees.map((name) => ({ value: personNameFilter(name), label: name }))]),
         field('priority', t('toolbar.priority'), 'portfolioPriorityFilter', [all, ...Object.entries(PRIORITY_LABELS).map(([value, key]) => ({ value, label: t(key) }))]),
         field('effort', t('toolbar.effort'), 'portfolioEffortFilter', [all, ...EFFORT_BUCKETS.map((value) => ({ value, label: value }))]),
         field('statuses', t('task.status'), 'portfolioStatusesFilter', Object.entries(STATUS_LABELS).map(([value, key]) => ({ value, label: t(key) })), true, t('table.selectStatuses')),

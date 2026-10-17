@@ -5,6 +5,8 @@ import { validateBoardData } from '../../src/domain/board';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 import { readFileSync } from 'node:fs';
 import { captureTaskTimelineSnapshot, recordTaskTimelineEvent, reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
+import { personNameFilter, NO_PERSON_FILTER } from '../../src/domain/peopleFilters';
+import { DEFAULT_PORTFOLIO_FILTERS, taskMatchesPortfolioFilters } from '../../src/domain/portfolioFilters';
 
 describe('workitem participants and responsible person', () => {
   it('selecting, changing and clearing the responsible person preserves participation and status', () => {
@@ -55,5 +57,12 @@ describe('workitem participants and responsible person', () => {
     expect(latest.board.tasks[0]).toMatchObject({ assignees: ['Ana', 'Rui', 'Marta'], responsible: 'Marta' });
     expect(reconstructBoardStateFromTimeline(board, 0).board.tasks[0]).toMatchObject({ assignees: ['Ana', 'Rui'], responsible: '' });
     expect(board.extensions.timeline?.events[0]).toEqual(input.extensions.timeline.events[0]);
+  });
+
+  it('treats every free-text name as a name, even names matching filter control values', () => {
+    const task = normalizeTask({ id: 1, title: 'Names', assignees: ['__none__', 'name:Ana'], responsible: '__none__' });
+    expect(taskMatchesPortfolioFilters(task, { ...DEFAULT_PORTFOLIO_FILTERS, responsible: personNameFilter('__none__'), assignee: personNameFilter('name:Ana') })).toBe(true);
+    expect(taskMatchesPortfolioFilters(task, { ...DEFAULT_PORTFOLIO_FILTERS, responsible: NO_PERSON_FILTER })).toBe(false);
+    expect(taskMatchesPortfolioFilters(normalizeTask({ id: 2, title: 'Empty' }), { ...DEFAULT_PORTFOLIO_FILTERS, assignee: NO_PERSON_FILTER, responsible: NO_PERSON_FILTER })).toBe(true);
   });
 });

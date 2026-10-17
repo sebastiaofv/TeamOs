@@ -205,7 +205,7 @@ test.describe('workitems table', () => {
     await page.locator('#portfolioFiltersBtn').click();
     await expect(page.locator('#portfolioToolbar #portfolioFiltersPanel')).toBeVisible();
     const fields = page.locator('#portfolioFiltersPanel .portfolio-filters-field');
-    await expect(fields).toContainText(['Archive', 'Blocked', 'Assignee', 'Priority', 'Effort']);
+    await expect(fields).toContainText(['Archive', 'Blocked', 'Responsible', 'Participant', 'Priority', 'Effort']);
     await page.locator('#portfolioEffortFilter').selectOption('S');
     await expectRowIds(page, [2]);
     await page.locator('#resetPortfolioFiltersBtn').click();

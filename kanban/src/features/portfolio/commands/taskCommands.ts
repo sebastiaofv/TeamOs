@@ -284,6 +284,12 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     }
 
     // Adds `name` to the task's assignees, or removes it when already there.
+    async function confirmResponsibleParticipantRemoval(name: string): Promise<boolean> {
+        return Boolean(await confirm(translateCurrent('task.removeResponsibleQuestion', { name }), {
+            title: translateCurrent('editor.removeAssignee'), confirmLabel: translateCurrent('common.remove'), danger: true
+        }));
+    }
+
     async function togglePortfolioTaskAssignee(boardId: string, taskId: number, name: string): Promise<boolean> {
         const source = findPortfolioTaskSource(boardId, taskId);
         const trimmed = name.trim();
@@ -293,11 +299,11 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const index = before.assignees.findIndex((entry) => entry.toLowerCase() === trimmed.toLowerCase());
         const assigned = index >= 0;
         if (assigned && removeTaskParticipant(before, index).needsConfirmation
-            && !(await confirm(translateCurrent('task.removeResponsibleQuestion', { name: trimmed }), {
-                title: translateCurrent('editor.removeAssignee'), confirmLabel: translateCurrent('common.remove'), danger: true
-            }))) return false;
+            && !(await confirmResponsibleParticipantRemoval(trimmed))) return false;
         const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
-            Object.assign(task, assigned ? removeTaskParticipant(task, index, true).task
+            const currentIndex = task.assignees.findIndex((entry) => entry.toLowerCase() === trimmed.toLowerCase());
+            if (assigned && currentIndex < 0) return false;
+            Object.assign(task, assigned ? removeTaskParticipant(task, currentIndex, true).task
                 : { assignees: [...task.assignees, trimmed] });
             return true;
         });
@@ -421,6 +427,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         performUndo,
         showUndo,
         togglePortfolioTaskAssignee,
+        confirmResponsibleParticipantRemoval,
         setPortfolioTaskResponsible,
         setPortfolioTaskPriority,
         createPortfolioTaskFromFields,

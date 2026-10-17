@@ -1,13 +1,11 @@
 import { useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { flushSync } from 'react-dom';
 import type { TaskEditorFields, TaskEditorViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import type { TaskFocusField } from '@/features/portfolio/commands/taskCommands';
 import { buildTaskDraft } from '@/domain/taskDraft';
 import { editTaskParticipant, removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
-import { showConfirm } from '@/app/overlays/appMessages';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
@@ -40,8 +38,6 @@ export function TaskEditorDialog() {
     const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
         if (!(event.ctrlKey || event.metaKey) || event.altKey || event.key !== 'Enter') return;
         event.preventDefault();
-        // Commit the active row's local text before reading the latest draft.
-        flushSync(() => (event.target as HTMLElement).blur());
         submitRef.current?.();
     };
 
@@ -72,7 +68,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
     nameRef: RefObject<HTMLInputElement | null>;
     submitRef: SubmitRef;
 }) {
-    const { saveTask } = usePortfolioActions();
+    const { saveTask, confirmResponsibleParticipantRemoval } = usePortfolioActions();
     const { t } = useI18n();
     const [form, setForm] = useState<TaskEditorFields>(() => ({ ...vm.initial }));
     const blockerReasonRef = useRef<HTMLTextAreaElement>(null);
@@ -104,9 +100,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
 
     const removeParticipant = async (index: number) => {
         const result = removeTaskParticipant(form, index);
-        if (result.needsConfirmation && !(await showConfirm(t('task.removeResponsibleQuestion', { name: form.assignees[index] }), {
-            title: t('editor.removeAssignee'), confirmLabel: t('common.remove'), danger: true
-        }))) return;
+        if (result.needsConfirmation && !(await confirmResponsibleParticipantRemoval(form.assignees[index]))) return;
         setForm((current) => removeTaskParticipant(current, index, true).task);
     };
 

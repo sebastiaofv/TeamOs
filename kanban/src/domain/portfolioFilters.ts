@@ -4,7 +4,8 @@
 import type { PortfolioFilters } from '@/features/portfolio/types';
 import type { Task, TaskStatus } from './types';
 import { EFFORT_BUCKETS, isArchiveFilter } from './constants';
-import { normalizeAssignee, normalizePortfolioBlockedFilter, taskHasAssignee } from './task';
+import { normalizeAssignee, normalizePortfolioBlockedFilter, taskAssignees } from './task';
+import { matchesPeopleFilter } from './peopleFilters';
 
 export type PortfolioFilterName = keyof PortfolioFilters;
 
@@ -75,8 +76,8 @@ export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilter
     if (filters.archive === 'active' && task.archived) return false;
     if (filters.archive === 'archived' && !task.archived) return false;
     if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
-    if (filters.assignee === '__none__' ? task.assignees.length > 0 : filters.assignee && !taskHasAssignee(task, filters.assignee)) return false;
-    if (filters.responsible === '__none__' ? Boolean(task.responsible) : filters.responsible && normalizeAssignee(task.responsible).toLowerCase() !== filters.responsible.toLowerCase()) return false;
+    if (!matchesPeopleFilter(taskAssignees(task), filters.assignee)) return false;
+    if (!matchesPeopleFilter(task.responsible ? [task.responsible] : [], filters.responsible)) return false;
     if (filters.phaseId && task.phaseId !== filters.phaseId) return false;
     if (filters.milestoneId && task.milestoneId !== filters.milestoneId) return false;
     if (filters.sprintId && task.sprintId !== filters.sprintId) return false;

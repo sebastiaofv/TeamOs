@@ -122,3 +122,38 @@ test('keyboard saving commits a corrected responsible participant without requir
   await waitForBoardWrites(page, 2);
   expect((await readSavedBoard(page, 'p')).board.tasks[0]).toMatchObject({ assignees: ['Ana Silva'], responsible: 'Ana Silva' });
 });
+
+test('new workitems support responsibility, reopen read-only, and can progress without allocations', async ({ page }) => {
+  await gotoApp(page);
+  await seedPortfolioBoards(page, [{ id: 'p', title: 'Create assignments', hasHandle: true, tasks: [] }], { selectedBoardId: 'p' });
+  await page.locator('#portfolio-to-do-column .add-task-card').click();
+  await page.locator('#taskName').fill('New item');
+  await page.locator('#taskResponsible').fill(' Marta ');
+  await page.locator('#taskModalSaveBtn').click();
+  await expect(page.locator('#taskModal')).toBeHidden();
+  await waitForBoardWrites(page, 1);
+  const saved = await readSavedBoard(page, 'p');
+  expect(saved.board.tasks[0]).toMatchObject({ assignees: ['Marta'], responsible: 'Marta', status: 'to-do' });
+  await page.reload();
+  await seedPortfolioBoards(page, [{ id: 'reopened', title: saved.board.settings.title, hasHandle: false,
+    tasks: saved.board.tasks, extensions: saved.extensions }]);
+  await portfolioCard(page, 'New item').click();
+  await expect(page.locator('#detailResponsible')).toHaveText('Marta');
+  await expect(page.locator('#detailAssignees')).toHaveText('Marta');
+  await page.keyboard.press('Control+k');
+  await expect(page.locator('#commandPalette .palette-item').first()).toContainText('Open details');
+  await expect(page.locator('#commandPalette .palette-item').filter({ hasText: 'Set responsible' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  await page.reload();
+  await seedPortfolioBoards(page, [{ id: 'empty', title: 'Empty allocations', hasHandle: true, tasks: [{ id: 1, title: 'Unallocated', status: 'to-do' }] }]);
+  await portfolioCard(page, 'Unallocated').click();
+  await expect(page.locator('#detailResponsible')).toHaveText('No responsible person');
+  await expect(page.locator('#detailAssignees')).toHaveText('No participants');
+  await page.keyboard.press('Escape');
+  await portfolioCard(page, 'Unallocated').hover();
+  await page.keyboard.press('4');
+  await expect(page.locator('#portfolio-done-column')).toContainText('Unallocated');
+  await waitForBoardWrites(page, 1);
+  expect((await readSavedBoard(page, 'empty')).board.tasks[0]).toMatchObject({ assignees: [], responsible: '', status: 'done' });
+});

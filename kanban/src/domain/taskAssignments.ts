@@ -1,5 +1,19 @@
 import type { Task } from './types';
-import { normalizeAssignee, normalizeAssignees } from './task';
+
+export function normalizeAssignee(value: unknown): string {
+    if (value === null || value === undefined) return '';
+    return String(value).trim();
+}
+
+export function normalizeAssignees(value: unknown): string[] {
+    const source = Array.isArray(value) ? value : [value];
+    const seen = new Set<string>();
+    return source.map(normalizeAssignee).filter((name) => {
+        if (!name || seen.has(name.toLowerCase())) return false;
+        seen.add(name.toLowerCase());
+        return true;
+    });
+}
 
 export type TaskAssignments = Pick<Task, 'assignees' | 'responsible'>;
 

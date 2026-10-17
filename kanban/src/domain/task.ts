@@ -15,29 +15,11 @@ import { nowIso, normalizeTimestamp, todayLocalIsoDate } from './util';
 import { normalizeDueDate } from './calendar';
 import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
+import { normalizeAssignee, normalizeAssignees, setTaskResponsible } from './taskAssignments';
+export { normalizeAssignee, normalizeAssignees } from './taskAssignments';
 export { findTaskInBoardData } from './boardData';
 
 type BoardRecordLike = { data?: BoardData } | null | undefined;
-
-export function normalizeAssignee(value: unknown): string {
-    if (value === null || value === undefined) return '';
-    return String(value).trim();
-}
-
-export function normalizeAssignees(value: unknown): string[] {
-    const source = Array.isArray(value) ? value : [value];
-    const seen = new Set<string>();
-    const names: string[] = [];
-    source.forEach((entry) => {
-        const name = normalizeAssignee(entry);
-        if (!name) return;
-        const key = name.toLowerCase();
-        if (seen.has(key)) return;
-        seen.add(key);
-        names.push(name);
-    });
-    return names;
-}
 
 export function parseAssigneesInput(value: unknown): string[] {
     if (Array.isArray(value)) return normalizeAssignees(value);
@@ -263,10 +245,5 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
             normalizedTask.statusChangedAt = statusChangedAt;
         }
     }
-    if (normalizedTask.responsible) {
-        const existing = normalizedTask.assignees.find((name) => name.toLowerCase() === normalizedTask.responsible.toLowerCase());
-        if (existing) normalizedTask.responsible = existing;
-        else normalizedTask.assignees.push(normalizedTask.responsible);
-    }
-    return clearInvalidRoadmapTaskRefs(normalizedTask, options.roadmap);
+    return clearInvalidRoadmapTaskRefs(setTaskResponsible(normalizedTask, task.responsible), options.roadmap);
 }
