@@ -7,7 +7,7 @@ import { normalizeRoadmapExtension } from './roadmap';
 import { normalizeTask } from './task';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
-import { parseTaskRelations } from './taskRelations';
+import { parseTaskRelations } from '@/domain/taskRelations';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -35,7 +35,8 @@ export function normalizeBoardExtensionsValue(
         : {}) as BoardExtensions;
 
     const relations = parseTaskRelations(nextExtensions.taskRelations, options.taskIds);
-    if (relations) nextExtensions.taskRelations = relations;
+    if (relations?.relations.length) nextExtensions.taskRelations = relations;
+    else delete nextExtensions.taskRelations;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);

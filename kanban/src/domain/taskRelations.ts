@@ -1,5 +1,5 @@
-import type { BoardData, Task, TaskRelation, TaskRelationKind, TaskRelationsExtension } from './types';
-import { hasExactKeys } from './util';
+import type { BoardData, Task, TaskRelation, TaskRelationKind, TaskRelationsExtension } from '@/domain/types';
+import { hasExactKeys } from '@/domain/util';
 
 export class TaskRelationError extends Error {
     constructor(public readonly code: 'self' | 'missing' | 'duplicate' | 'cycle' | 'invalid') {

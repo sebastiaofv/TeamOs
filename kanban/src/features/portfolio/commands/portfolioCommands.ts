@@ -5,7 +5,7 @@ import { createTaskActions, type TaskActions } from './taskCommands';
 import { createRoadmapActions } from './roadmapCommands';
 import { createTimelineActions } from './timelineCommands';
 import { createPlannerActions } from './plannerCommands';
-import { createTaskRelationActions } from './taskRelationCommands';
+import { createTaskRelationActions } from '@/features/portfolio/commands/taskRelationCommands';
 
 export type { BoardMutationOptions } from './mutationContext';
 

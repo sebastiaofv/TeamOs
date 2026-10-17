@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fromPartial } from '@total-typescript/shoehorn';
-import { createEmptyProjectData } from '../../src/domain/board';
-import { normalizeTask } from '../../src/domain/task';
-import { isTaskBlocked, getRelations } from '../../src/domain/taskRelations';
-import { createAppStore } from '../../src/features/portfolio/state/store';
-import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
-import { reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
-import { buildTaskDraft } from '../../src/domain/taskDraft';
+import { createEmptyProjectData } from '@/domain/board';
+import { normalizeTask } from '@/domain/task';
+import { isTaskBlocked, getRelations } from '@/domain/taskRelations';
+import { createAppStore } from '@/features/portfolio/state/store';
+import { createPortfolioMutationActions } from '@/features/portfolio/commands/portfolioCommands';
+import { reconstructBoardStateFromTimeline } from '@/domain/timeline';
+import { buildTaskDraft } from '@/domain/taskDraft';
 
 function setup() {
   const data = createEmptyProjectData('Project');

@@ -3,12 +3,12 @@ import type {
     LooseBoardData,
     RoadmapItem,
     Task,
-    TaskRelation,
     TimelineChanges,
     TimelineEvent,
     TimelineEventInput,
     TimelineExtension
 } from './types';
+import type { TaskRelation } from '@/domain/types';
 import { ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION } from './constants';
 import { getTaskAttachments } from './attachments';
 import { createBoardStateSnapshot } from './serialize';
@@ -19,7 +19,7 @@ import { createEmptyRoadmapExtension, getRoadmapExtension, normalizeRoadmapExten
 import { applyPlannerBlockChange, normalizeDayPlannerBlock } from './dayPlanner';
 import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
-import { getRelations } from './taskRelations';
+import { getRelations } from '@/domain/taskRelations';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';

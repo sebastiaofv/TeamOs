@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createEmptyProjectData } from '../../src/domain/board';
-import { normalizeTask } from '../../src/domain/task';
-import { validateBoardData } from '../../src/domain/board';
-import { serializeBoardDataFromObject } from '../../src/domain/serialize';
+import { createEmptyProjectData, validateBoardData } from '@/domain/board';
+import { normalizeTask } from '@/domain/task';
+import { serializeBoardDataFromObject } from '@/domain/serialize';
 import fixture from '../fixtures/task-relations-v1.board.json';
-import { BoardRepository } from '../../src/infrastructure/persistence/boardRepository';
-import { getRelations, getTaskRelations, isTaskBlocked, removeTaskRelation, setTaskRelation } from '../../src/domain/taskRelations';
+import { BoardRepository } from '@/infrastructure/persistence/boardRepository';
+import { getRelations, getTaskRelations, isTaskBlocked, removeTaskRelation, setTaskRelation } from '@/domain/taskRelations';
 
 function project() {
   const data = createEmptyProjectData('Relations');
@@ -39,6 +38,7 @@ describe('workitem relations', () => {
     validateBoardData(saved);
     expect(saved.extensions.taskRelations).toEqual({ version: 1, relations: [{ sourceId: 1, targetId: 2, kind: 'blocks' }] });
     expect(isTaskBlocked(saved, 2)).toBe(true);
+    expect(serializeBoardDataFromObject({ ...saved, extensions: { taskRelations: { version: 1, relations: [] } } }).extensions.taskRelations).toBeUndefined();
     for (const invalid of [
       { version: 2, relations: [] },
       { version: 1, relations: [{ sourceId: 1, targetId: 99, kind: 'blocks' }] },

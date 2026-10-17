@@ -3,7 +3,7 @@ import { cloneSerializable } from '@/domain/serializable';
 import { getRelations, removeTaskRelation, setTaskRelation, TaskRelationError } from '@/domain/taskRelations';
 import { recordTaskRelationsTimelineEvent } from '@/domain/timeline';
 import { translateCurrent } from '@/shared/i18n';
-import type { BoardMutationContext } from './mutationContext';
+import type { BoardMutationContext } from '@/features/portfolio/commands/mutationContext';
 
 export function createTaskRelationActions({ runPortfolioBoardMutation, confirm }: BoardMutationContext) {
     async function associatePortfolioTasks(boardId: string, taskId: number, otherId: number, kind: TaskRelationKind, replace = false) {
