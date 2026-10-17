@@ -56,16 +56,13 @@ export function validateDatePair(dates: ProjectDates): void {
     if (dates.start && dates.end && dates.end < dates.start) throw new Error('End date cannot precede start date.');
 }
 
-export function validateProjectInfo(info: ProjectInfo, complete = false): void {
+export function validateProjectInfo(info: ProjectInfo): void {
     if (info.version !== 1 || !info.id || !info.name.trim() || !PROJECT_STATES.includes(info.state)) throw new Error('Invalid project identity or state.');
     for (const dates of [info.forecast, info.baseline, info.actual]) validateDatePair(dates);
     const ids = new Set<string>();
     for (const member of info.team) {
-        if (!member.id || ids.has(member.id) || !member.name.trim()) throw new Error('Team members need unique IDs and names.');
+        if (!member.id || ids.has(member.id)) throw new Error('Team members need unique IDs.');
         ids.add(member.id);
-    }
-    if (complete && (!info.description.trim() || !info.manager.trim() || !info.product.trim() || !info.team.length || !info.tags.length || !info.forecast.start || !info.forecast.end)) {
-        throw new Error('Complete description, manager, product, team, tags and planned start/end dates.');
     }
 }
 

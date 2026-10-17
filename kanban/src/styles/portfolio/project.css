@@ -131,7 +131,6 @@
 .project-settings-dialog .project-member-row { padding: 12px; border: 1px solid var(--border-light); background: var(--bg-primary); align-items: end; }
 .project-settings-dialog .project-member-row label { flex: 1 1 140px; min-width: 0; }
 .project-settings-dialog .project-member-row label:has(input[type=checkbox]) { flex: 0 0 auto; flex-direction: row; align-items: center; min-height: 34px; }
-.project-local-identity { margin-bottom: 20px; overflow-wrap: anywhere; }
 .project-review-notice { margin-bottom: 12px; padding: 10px 12px; border-left: 2px solid var(--accent); background: var(--bg-primary); font-size: 12px; }
 
 @media (max-width: 600px) {

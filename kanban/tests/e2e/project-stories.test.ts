@@ -321,7 +321,8 @@ test('US11: edit master data and preserve legacy workitems', async ({ page }) =>
     const settings = page.locator('#projectSettings');
     await page.getByRole('button', { name: 'Project settings: Legacy', exact: true }).click();
     await expect(settings).toHaveAttribute('role', 'dialog');
-    await expect(settings).toContainText('Review imported metadata');
+    await expect(settings).not.toContainText('Review imported metadata');
+    await expect(settings).not.toContainText('Local profiles are not authenticated');
     await settings.getByLabel('Name', { exact: true }).first().fill('Renamed project');
     await settings.getByLabel('Manager', { exact: true }).fill('Ana');
     await settings.getByLabel('Product / application').fill('Product A');
@@ -340,6 +341,29 @@ test('US11: edit master data and preserve legacy workitems', async ({ page }) =>
     const saved = await readSavedBoard(page, 'legacy');
     expect(saved.board.tasks[0].id).toBe(42);
     expect(saved.extensions.project.team[0].name).toBe('Ana');
+});
+
+
+test('US11: save with only a project name and leave all metadata optional', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'minimal', title: 'Minimal', hasHandle: true }], { selectedBoardId: 'minimal' });
+    await page.getByRole('button', { name: 'Project settings: Minimal', exact: true }).click();
+    const settings = page.getByRole('dialog', { name: 'Project settings', exact: true });
+    await settings.getByRole('button', { name: 'Add team member', exact: true }).click();
+    await expect(settings.locator('[required]')).toHaveCount(1);
+    const name = settings.getByLabel('Name', { exact: true }).first();
+    await expect(name).toHaveAttribute('required', '');
+    await name.fill('');
+    await settings.getByRole('button', { name: 'Save project', exact: true }).click();
+    await expect(settings).toBeVisible();
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
+    await name.fill('Name only');
+    await settings.getByRole('button', { name: 'Save project', exact: true }).click();
+    await expect(settings).toBeHidden();
+    const saved = await readSavedBoard(page, 'minimal');
+    expect(saved.extensions.project).toMatchObject({ name: 'Name only', manager: '', product: '', description: '', tags: [], forecast: { start: '', end: '' }, team: [{ name: '', role: '', email: '' }] });
+    await page.getByRole('button', { name: 'Project settings: Name only', exact: true }).click();
+    await expect(settings.getByLabel('Name', { exact: true }).first()).toHaveValue('Name only');
 });
 
 

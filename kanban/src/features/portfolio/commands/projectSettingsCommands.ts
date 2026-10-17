@@ -9,7 +9,7 @@ import { migrateApplications } from '@/domain/applications';
 export function createProjectSettingsActions(context: BoardMutationContext) {
     async function saveProjectSettings(boardId: string, info: ProjectInfo) {
         return context.runPortfolioBoardMutation(boardId, (data) => {
-            validateProjectInfo(info, true);
+            validateProjectInfo(info);
             if (info.id !== getProjectInfo(data).id) throw new Error('Project identity cannot change.');
             data.extensions.project = { ...info, needsReview: false };
             migrateApplications(data);

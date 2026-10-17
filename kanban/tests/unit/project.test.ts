@@ -22,10 +22,13 @@ describe('versioned project metadata migration', () => {
         expect(reopened.extensions.roadmap).toEqual(legacy.extensions.roadmap);
     });
 
-    it('requires the approved master data on edit but permits incomplete imported projects', () => {
+    it('requires only the project name while retaining date and identity validation', () => {
         const info = getProjectInfo(createEmptyProjectData('Incomplete'));
         expect(() => validateProjectInfo(info)).not.toThrow();
-        expect(() => validateProjectInfo(info, true)).toThrow(/Complete/);
+        info.team = [{ id: 'member-1', name: '', role: '', email: '', active: true }];
+        expect(() => validateProjectInfo(info)).not.toThrow();
+        expect(() => validateProjectInfo({ ...info, name: '   ' })).toThrow(/identity/);
+        expect(() => validateProjectInfo({ ...info, team: [...info.team, ...info.team] })).toThrow(/unique IDs/);
         info.forecast = { start: '2026-10-15', end: '2026-10-14' };
         expect(() => validateProjectInfo(info)).toThrow(/precede/);
     });
