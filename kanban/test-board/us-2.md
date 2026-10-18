@@ -1,6 +1,6 @@
 # US2 — Relações e bloqueios
 
-Board: [`us-2.board.json`](../../test-board/us-2.board.json). Branch: `us-2`. Issue: [#26](https://github.com/sebastiaofv/TeamOs/issues/26).
+Board: [`us-2.board.json`](us-2.board.json). Branch: `us-2`. Issue: [#26](https://github.com/sebastiaofv/TeamOs/issues/26).
 
 1. Importar uma cópia do board na implementação da US2. Por defeito há **10 itens ativos**; **Todos: 12**, incluindo os arquivados #208 e #209.
 2. #203 depende de #201 e #202. Concluir apenas um mantém o bloqueio; concluir ambos resolve-o; reabrir um volta a bloquear. Alterar o estado de #203 continua permitido.
