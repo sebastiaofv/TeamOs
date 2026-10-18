@@ -102,6 +102,8 @@ The workflow can also be started by hand from the Actions tab (*Run workflow*).
 
 ## Testing
 
+Manual boards and walkthroughs are in [`test-board/`](../test-board/README.md); each story supplies its own files in its matching branch and PR. Import a copy for writable tests; drag and drop for read-only tests.
+
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
 - `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
 - `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if 4174 is already taken.
