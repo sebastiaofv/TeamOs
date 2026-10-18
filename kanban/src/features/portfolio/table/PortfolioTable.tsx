@@ -74,12 +74,12 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
     return <details className="table-sprint-section" data-table-sprint={group.sprint.id}
         onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary>
-            <span className="table-sprint-name">{group.sprint.title}</span>
+            <span className="table-sprint-name">{t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}</span>
             <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
             <span>{completeness} ({group.completed}/{group.total})</span>
             <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
         </summary>
-        {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${group.sprint.title}`} boardData={group.boardData}
+        {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
             sourceRows={group.rows} canCreate={false} scope={`sprint-${group.sprint.id}`} />}
     </details>;
 }

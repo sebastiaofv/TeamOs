@@ -68,6 +68,43 @@ function createActions(overrides = {}) {
 }
 
 describe('portfolio mutation actions', () => {
+  it('assigns stable sprint creation numbers and dates through normal creation, editing and selection creation', async () => {
+    const { actions, store } = createActions();
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'First', startDate: '2026-12-01', endDate: '2026-12-14' });
+    const first = store.getState().portfolioBoards[0].data.extensions.sprintCatalog;
+    expect(first?.entries[0]).toMatchObject({ sprintId: 'first', number: 1, createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) });
+    actions.openRoadmapEntityModal('sprints', 'first', { boardId: 'p1' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 'first', title: 'Renamed', startDate: '2026-01-01', endDate: '2026-01-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.sprintCatalog).toEqual(first);
+    actions.togglePortfolioTaskBulkSelection('p1', 1, true);
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1', mode: 'create-sprint-from-selection' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'Second', startDate: '2026-02-01', endDate: '2026-02-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.sprintCatalog?.entries).toMatchObject([
+      { sprintId: 'first', number: 1 }, { sprintId: 'second', number: 2, createdAt: expect.any(String) }
+    ]);
+    await actions.deleteRoadmapEntity('sprints', 'second');
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'Second', startDate: '2026-03-01', endDate: '2026-03-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.sprintCatalog?.entries.at(-1)).toMatchObject({ sprintId: 'second-2', number: 3 });
+    actions.setPortfolioTimelineSelection('p1', 0);
+    await actions.restorePortfolioTimelineSelection();
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'First', startDate: '2026-04-01', endDate: '2026-04-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.sprintCatalog?.entries.at(-1)).toMatchObject({ sprintId: 'first-2', number: 4 });
+  });
+
+  it('starts sprint numbering independently in each loaded project', async () => {
+    const { actions, store } = createActions();
+    const second = { ...createBoard(), id: 'p2' };
+    store.setState({ portfolioBoards: [...store.getState().portfolioBoards, fromAny(second)] });
+    for (const boardId of ['p1', 'p1', 'p2']) {
+      actions.openRoadmapEntityModal('sprints', '', { boardId });
+      await actions.saveRoadmapEntity({ kind: 'sprints', title: 'Delivery', startDate: '2026-10-01', endDate: '2026-10-14' });
+    }
+    expect(store.getState().portfolioBoards.map(board => board.data.extensions.sprintCatalog?.entries.map(entry => entry.number))).toEqual([[1, 2], [1]]);
+  });
+
   it('rejects planning a stale selection if an item was completed after opening the sprint dialog', async () => {
     const alert = vi.fn();
     const { actions, store } = createActions({ alert });

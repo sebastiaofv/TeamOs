@@ -113,11 +113,14 @@ export type DayPlannerExtension = {
 };
 
 export type TeamOsExtensions = { [key: string]: unknown; taskAttachments?: Record<string, unknown> };
+export type SprintIdentity = { sprintId: string; number: number; createdAt: string | null };
+export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIdentity[] };
 export type BoardExtensions = {
     [key: string]: unknown;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;
+    sprintCatalog?: SprintCatalog;
     teamOsKanban?: TeamOsExtensions;
 };
 

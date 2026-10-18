@@ -27,6 +27,22 @@ describe('preconfigured table views', () => {
     expect(rows).toEqual(before);
   });
 
+  it('lists sprints newest-created first, regardless of planning dates, names or array order', () => {
+    const board = createEmptyProjectData('Project');
+    board.extensions.roadmap = { version: 1, phases: [], milestones: [], sprints: [
+      { id: 'second', title: 'Second', startDate: '2026-12-01', endDate: '2026-12-14' },
+      { id: 'first', title: 'First', startDate: '2026-10-01', endDate: '2026-10-14' },
+      { id: 'third', title: 'Third', startDate: '2026-01-01', endDate: '2026-01-14' }
+    ] };
+    board.extensions.sprintCatalog = { version: 1, lastNumber: 3, entries: [
+      { sprintId: 'first', number: 1, createdAt: '2026-10-01T10:00:00Z' },
+      { sprintId: 'second', number: 2, createdAt: '2026-10-02T10:00:00Z' },
+      { sprintId: 'third', number: 3, createdAt: '2026-10-03T10:00:00Z' }
+    ] };
+    const groups = buildSprintTableGroups(currentSprintRosters(board, []), '2026-10-18');
+    expect(groups.map(group => [group.sprint.id, group.number])).toEqual([['third', 3], ['second', 2], ['first', 1]]);
+  });
+
   it('groups each sprint independently, derives calendar status and uses all unique members for completeness', () => {
     const board = createEmptyProjectData('Project');
     board.extensions.roadmap = { version: 1, phases: [], milestones: [], sprints: [
@@ -38,7 +54,7 @@ describe('preconfigured table views', () => {
     rows[2].task.archived = true;
     const groups = buildSprintTableGroups(currentSprintRosters(board, rows), '2026-10-18');
     expect(groups.map(group => [group.sprint.id, group.status, group.completed, group.total, group.completeness])).toEqual([
-      ['past', 'done', 1, 1, 100], ['active', 'active', 1, 2, 50], ['future', 'planned', 0, 0, null]
+      ['future', 'planned', 0, 0, null], ['active', 'active', 1, 2, 50], ['past', 'done', 1, 1, 100]
     ]);
     expect(groups[1].rows.map(item => item.taskId)).toEqual([2, 3]);
     expect(buildSprintTableGroups(currentSprintRosters(board, rows), '2026-10-26')[1].status).toBe('active');
@@ -54,10 +70,11 @@ describe('preconfigured table views', () => {
       { sprint: { id: 'old', title: 'Old' }, rows: [closed], boardData: snapshot, source: 'closure' },
       { sprint: { id: 'new', title: 'New', startDate: '2026-10-01', endDate: '2026-10-31' }, rows: [live], boardData: board, source: 'current' }
     ], '2026-10-18');
-    expect(groups.map(group => [group.total, group.completeness])).toEqual([[1, 0], [1, 100]]);
-    expect(groups[0].rows[0]).toMatchObject({ taskId: 1, historical: true, canMutate: false, task: { status: 'doing' }, boardData: snapshot });
+    const historical = groups.find(group => group.sprint.id === 'old')!;
+    expect(groups.map(group => [group.total, group.completeness])).toEqual([[1, 100], [1, 0]]);
+    expect(historical.rows[0]).toMatchObject({ taskId: 1, historical: true, canMutate: false, task: { status: 'doing' }, boardData: snapshot });
     live.task.status = 'backlog';
-    expect(groups[0].rows[0].task.status).toBe('doing');
-    expect(groups[0].completeness).toBe(0);
+    expect(historical.rows[0].task.status).toBe('doing');
+    expect(historical.completeness).toBe(0);
   });
 });

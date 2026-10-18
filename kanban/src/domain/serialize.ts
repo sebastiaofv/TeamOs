@@ -7,6 +7,7 @@ import { normalizeRoadmapExtension } from './roadmap';
 import { normalizeTask } from './task';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
+import { normalizeSprintCatalog } from './sprintCatalog';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -41,6 +42,9 @@ export function normalizeBoardExtensionsValue(
             delete nextExtensions[ROADMAP_EXTENSION_KEY];
         }
     }
+
+    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || []);
+    if (sprintCatalog) nextExtensions.sprintCatalog = sprintCatalog;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, DAY_PLANNER_EXTENSION_KEY)) {
         const normalizedPlanner = normalizeDayPlannerExtension(nextExtensions[DAY_PLANNER_EXTENSION_KEY], options.taskIds);

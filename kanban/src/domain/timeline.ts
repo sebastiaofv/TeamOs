@@ -19,6 +19,7 @@ import { applyPlannerBlockChange, normalizeDayPlannerBlock } from './dayPlanner'
 import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
+import { normalizeSprintCatalog, parseSprintCatalog } from './sprintCatalog';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -190,6 +191,7 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         roadmap.sprints = Array.isArray(roadmap.sprints) ? roadmap.sprints : [];
         roadmap.sprints = roadmap.sprints.filter((entry) => entry?.id !== sprint.id);
         roadmap.sprints.push(sprint);
+        if (event.meta?.sprintCatalog !== undefined) extensions.sprintCatalog = parseSprintCatalog(event.meta.sprintCatalog);
 
         const taskIdSet = new Set(Array.isArray(event.meta?.taskIds) ? event.meta.taskIds.map((taskId) => Number(taskId)) : []);
         tasks.forEach((task) => {
@@ -284,7 +286,13 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     for (let index = 1; index <= targetIndex; index += 1) {
         state = applyTimelineEventToState(state, timeline.events[index]);
     }
-    return createBoardStateSnapshot(state);
+    const snapshot = createBoardStateSnapshot(state);
+    // Identities are project-wide reservations, not mutable planning state.
+    // Preview/restore may change membership, but must not renumber or reuse identities.
+    if (boardData?.extensions?.sprintCatalog !== undefined) {
+        snapshot.extensions.sprintCatalog = normalizeSprintCatalog(boardData.extensions.sprintCatalog, snapshot.extensions.roadmap?.sprints || []);
+    }
+    return snapshot;
 }
 
 export function appendTimelineEvent(boardData: LooseBoardData, eventInput: TimelineEventInput | null | undefined): TimelineEvent | null {

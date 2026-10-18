@@ -21,6 +21,7 @@ import { cloneSerializable, createBoardStateSnapshot } from '@/domain/serialize'
 import { appendTimelineEvent } from '@/domain/timeline';
 
 import { nowIso } from '@/domain/util';
+import { getSprintCatalog, registerSprintCreation } from '@/domain/sprintCatalog';
 import { getCurrentLanguage, translateCurrent, translateTimeline } from '@/shared/i18n';
 
 export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate' | 'endDate';
@@ -129,7 +130,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const roadmap = getRoadmapExtensionObject(boardData, { create: true });
             const items = roadmap[sprintConfig.itemsKey];
             const nextSprint: RoadmapItem = {
-                id: slugifyRoadmapEntityId(draft.title, items),
+                id: slugifyRoadmapEntityId(draft.title, getSprintCatalog(boardData).entries.map((entry) => ({ id: entry.sprintId }))),
                 title: draft.title,
                 startDate: draft.startDate,
                 endDate: draft.endDate
@@ -146,6 +147,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             });
             if (assignedCount === 0) return false;
 
+            registerSprintCreation(boardData, nextSprint.id, timestamp);
             items.push(nextSprint);
             appendTimelineEvent(boardData, {
                 kind: 'roadmap.bulk-assigned',
@@ -161,6 +163,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                     roadmapItemId: nextSprint.id,
                     action: 'create-from-selection',
                     sprint: cloneSerializable(nextSprint),
+                    sprintCatalog: cloneSerializable(boardData.extensions.sprintCatalog),
                     taskIds: [...taskIdSet]
                 }
             });
@@ -269,7 +272,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const roadmap = getRoadmapExtensionObject(boardData, { create: true });
             const items = roadmap[config.itemsKey];
             const index = draft.itemId ? items.findIndex((item) => item.id === draft.itemId) : -1;
-            const nextId = draft.itemId || slugifyRoadmapEntityId(draft.title, items);
+            const reservedIds = context.kind === 'sprints' ? getSprintCatalog(boardData).entries.map((entry) => ({ id: entry.sprintId })) : items;
+            const nextId = draft.itemId || slugifyRoadmapEntityId(draft.title, reservedIds);
             const previousItem = index >= 0 ? items[index] : null;
             const nextItem: RoadmapItem = config.dateMode === 'single'
                 ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
@@ -279,6 +283,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             if (index >= 0) {
                 items[index] = nextItem;
             } else {
+                if (context.kind === 'sprints') registerSprintCreation(boardData, nextId, nowIso());
                 items.push(nextItem);
             }
 

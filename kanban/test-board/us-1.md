@@ -18,8 +18,16 @@ Board: [`us-1.board.json`](us-1.board.json). Branch: `us-1`. Issue: [#25](https:
 11. Em **Workitems por planear**, só aparecem não concluídos sem sprint: **19 ativos**. Selecionar #105 e #106, criar um Sprint com o mesmo formulário do Board, e confirmar que ambos deixam esta vista sem mudar de estado. Cancelar antes de guardar não altera o board. Em modo só de leitura não existe a ação de criar sprint.
 12. Em **Sprints**, os cabeçalhos mantêm nome, estado, conclusão e datas mesmo colapsados. Expandir cada secção: apenas os respetivos membros; os filtros, paginação, detalhe e CSV aplicam-se à tabela desse sprint. Secções fechadas não montam as linhas.
 13. Com a data de referência **18/10/2026**, os resultados esperados são:
-    - Sprint 0: **Terminado**, **66,7% (2/3)**; inclui dois membros arquivados na métrica, mesmo quando as suas linhas estão ocultas pelo filtro de ativos.
-    - Sprint 1: **Ativo**, **25% (1/4)**.
-    - Sprint 2: **Planeado**, **0% (0/2)**.
-    - Sprint 3: **Planeado**, **N/D (0/0)**.
+    - Sprint 1 - Descoberta: **Terminado**, **66,7% (2/3)**; inclui dois membros arquivados na métrica, mesmo quando as suas linhas estão ocultas pelo filtro de ativos.
+    - Sprint 3 - Construção: **Ativo**, **25% (1/4)**.
+    - Sprint 2 - Validação: **Planeado**, **0% (0/2)**.
+    - Sprint 4 - Reserva: **Planeado**, **N/D (0/0)**.
 14. Mudar os filtros não altera a percentagem global do sprint. As datas determinam apenas o estado temporal; ainda não existe encerramento nem fotografia congelada. Os itens não regressam automaticamente ao Backlog. O adaptador de dados da vista admite futuros membros/fotografias por sprint, sem exigir que um workitem pertença historicamente a um só sprint.
+
+## Ordenação por criação e identidade sequencial
+
+15. Em **Tabela → Sprints**, a ordem é **Sprint 4 - Reserva**, **Sprint 3 - Construção**, **Sprint 2 - Validação**, **Sprint 1 - Descoberta**. Construção foi criado depois de Validação, apesar de começar antes; a ordenação não usa as datas do plano.
+16. Alterar o nome ou as datas de Construção no Roadmap: o cabeçalho mantém **Sprint 3 - [novo nome]** e a posição por criação. Guardar/reabrir preserva tudo.
+17. Criar um sprint novo, pelo Roadmap ou pela seleção em Por planear: recebe **Sprint 5 - [nome]**, mesmo com datas de início/fim anteriores, e aparece primeiro.
+18. Noutro projeto sem sprints, o primeiro recebe **Sprint 1**. Eliminar um sprint não permite reutilizar o seu número; previews/restauros da timeline também mantêm o registo de identidades já atribuídas.
+19. Para testar migração, importar `tests/fixtures/sprints-legacy-v1.board.json`: os dois sprints recebem 1 e 2 pela ordem existente, sem inventar datas de criação. O segundo aparece primeiro. A gravação acrescenta `extensions.sprintCatalog` v1; editar nomes/datas ou reabrir não muda os números.
