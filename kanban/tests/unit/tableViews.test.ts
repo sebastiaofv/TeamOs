@@ -11,7 +11,7 @@ function row(id: number, status: 'done' | 'doing' = 'doing', sprintId = ''): Por
 }
 
 describe('table presentation', () => {
-  it('formats timestamps in UTC, 24-hour time and second precision without changing date-only values', () => {
+  it('formats timestamps in UTC, 24-hour time and second precision, rejecting missing or invalid values', () => {
     expect(formatTableTimestamp('2026-10-17T10:27:42.462Z')).toBe('2026-10-17 10:27:42');
     expect(formatTableTimestamp('2026-10-17T23:05:01+02:00')).toBe('2026-10-17 21:05:01');
     expect(formatTableTimestamp('')).toBe('');

@@ -29,7 +29,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - Blocked tasks require `blockerReason`.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
-- Sprint status in the table is calendar-based (before start / within inclusive dates / after end), not a persisted closure. There is no automatic rollover or frozen closure data yet. `tableViews.ts` separates the current `sprintId` adapter from per-sprint rosters; future closure snapshots can supply independent read-only rows, board data and completion totals, including the same workitem in several sprints. The current file schema remains unchanged.
+- Sprint status in the table is calendar-based (before start / within inclusive dates / after end), refreshed at local midnight and when the tab resumes, not a persisted closure. There is no automatic rollover or frozen closure data yet. `tableViews.ts` separates the current `sprintId` adapter from per-sprint rosters; future closure snapshots can supply independent read-only rows, board data and completion totals, including the same workitem in several sprints. The current file schema remains unchanged.
 
 ## Keyboard shortcuts
 

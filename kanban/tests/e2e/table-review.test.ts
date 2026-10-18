@@ -133,10 +133,36 @@ test('planning cancellation preserves items and table selection stays independen
   const saved = await readSavedBoard(page, 'p');
   expect(saved.board.tasks[0].sprintId).toBe('only-table-selection');
   expect(saved.board.tasks[1].sprintId || '').toBe('');
+  await page.locator('[data-view-mode="board"]').click();
+  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toBeChecked();
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'readonly', title: 'Read only', hasHandle: false, tasks }], { selectedBoardId: 'readonly' });
   await page.locator('[data-view-mode="table"]').click();
   await page.getByRole('button', { name: 'Unplanned workitems', exact: true }).click();
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
   await expect(page.locator('#tableCreateSprint')).toHaveCount(0);
+});
+
+test.describe('calendar-derived sprint state', () => {
+  test.use({ timezoneId: 'UTC' });
+  test('refreshes inclusive sprint boundaries after midnight without a board mutation', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-10-18T23:59:58Z') });
+    await page.clock.pauseAt(new Date('2026-10-18T23:59:59Z'));
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Midnight', hasHandle: false, tasks: [], extensions: {
+      roadmap: { version: 1, phases: [], milestones: [], sprints: [
+        { id: 'ending', title: 'Ending', startDate: '2026-10-01', endDate: '2026-10-18' },
+        { id: 'starting', title: 'Starting', startDate: '2026-10-19', endDate: '2026-10-30' }
+      ] }
+    } }], { selectedBoardId: 'p' });
+    await page.locator('[data-view-mode="table"]').click();
+    await page.locator('[data-table-view="sprints"]').click();
+    const ending = page.locator('[data-table-sprint="ending"] > summary .table-status-badge');
+    const starting = page.locator('[data-table-sprint="starting"] > summary .table-status-badge');
+    await expect(ending).toHaveText('Active');
+    await expect(starting).toHaveText('Planned');
+    await page.clock.fastForward(2000);
+    await expect(ending).toHaveText('Done');
+    await expect(starting).toHaveText('Active');
+  });
 });

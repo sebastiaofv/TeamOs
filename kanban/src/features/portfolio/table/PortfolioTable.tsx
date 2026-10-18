@@ -18,7 +18,7 @@ import { PRIORITY_LABELS, STATUS_LABELS, COLUMN_LABELS } from './tableLabels';
 import { useTableDisclosure } from './useTableDisclosure';
 import { formatTableTimestamp } from './tablePresentation';
 import { buildSprintTableGroups, currentSprintRosters, unplannedTableRows, type SprintTableGroup, type TableView } from './tableViews';
-import { todayLocalIsoDate } from '@/domain/util';
+import { useLocalToday } from '@/shared/hooks/useLocalToday';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
     const state = useAppStore(useShallow((s) => ({
@@ -47,7 +47,8 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
 }) {
     const { t } = useI18n();
     const [view, setView] = useState<TableView>('all');
-    const groups = useMemo(() => buildSprintTableGroups(currentSprintRosters(boardData, sourceRows), todayLocalIsoDate()), [boardData, sourceRows]);
+    const today = useLocalToday();
+    const groups = useMemo(() => buildSprintTableGroups(currentSprintRosters(boardData, sourceRows), today), [boardData, sourceRows, today]);
     const viewLabels = { all: 'table.allWorkitems', unplanned: 'table.unplannedWorkitems', sprints: 'table.sprints' } as const;
     return <section id="portfolioTable" className={`portfolio-table${hidden ? ' hidden' : ''}`} aria-labelledby="tableTitle">
         <h2 id="tableTitle" className="sr-only">{t('table.title', { project })}</h2>

@@ -261,7 +261,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const changed = await createSprintFromSelection(context.boardId, draft);
             if (!changed) return;
             closeRoadmapEntity();
-            clearPortfolioBulkSelection(context.boardId);
+            if (!context.unplannedTaskIds) clearPortfolioBulkSelection(context.boardId);
             return;
         }
 
