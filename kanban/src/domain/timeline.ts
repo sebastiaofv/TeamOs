@@ -19,7 +19,7 @@ import { applyPlannerBlockChange, normalizeDayPlannerBlock } from './dayPlanner'
 import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
-import { normalizeSprintCatalog, parseSprintCatalog } from './sprintCatalog';
+import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -289,9 +289,8 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     const snapshot = createBoardStateSnapshot(state);
     // Identities are project-wide reservations, not mutable planning state.
     // Preview/restore may change membership, but must not renumber or reuse identities.
-    if (boardData?.extensions?.sprintCatalog !== undefined) {
-        snapshot.extensions.sprintCatalog = normalizeSprintCatalog(boardData.extensions.sprintCatalog, snapshot.extensions.roadmap?.sprints || []);
-    }
+    const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.timeline);
+    if (knownCatalog) snapshot.extensions.sprintCatalog = normalizeSprintCatalog(knownCatalog, snapshot.extensions.roadmap?.sprints || []);
     return snapshot;
 }
 

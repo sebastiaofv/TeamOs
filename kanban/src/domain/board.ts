@@ -12,7 +12,7 @@ import { comparePortfolioDueDateAsc } from './calendar';
 import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
-import { parseSprintCatalog } from './sprintCatalog';
+import { parseSprintCatalog } from '@/domain/sprintCatalog';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 

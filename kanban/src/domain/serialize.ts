@@ -7,7 +7,7 @@ import { normalizeRoadmapExtension } from './roadmap';
 import { normalizeTask } from './task';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
-import { normalizeSprintCatalog } from './sprintCatalog';
+import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -43,7 +43,7 @@ export function normalizeBoardExtensionsValue(
         }
     }
 
-    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || []);
+    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || [], nextExtensions.timeline);
     if (sprintCatalog) nextExtensions.sprintCatalog = sprintCatalog;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, DAY_PLANNER_EXTENSION_KEY)) {
