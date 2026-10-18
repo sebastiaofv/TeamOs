@@ -9,8 +9,18 @@ test('links archived workitems by ID, previews direction, navigates both ways, r
   await portfolioCard(page, 'Current item').click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   await relations.getByRole('button', { name: 'Link workitem', exact: true }).click();
-  await relations.getByLabel('Search this project by ID or title').fill('#2');
-  await relations.getByLabel('Select workitem').selectOption('2');
+  const picker = relations.getByRole('combobox', { name: 'Search this project by ID or title' });
+  await expect(relations.locator('input')).toHaveCount(1);
+  await expect(relations.locator('select')).toHaveCount(1);
+  await picker.click();
+  await expect(relations.getByRole('listbox').getByRole('option')).toHaveText([
+    '#2 Archived blocker · backlog · Archived', '#3 Other item · done'
+  ]);
+  await picker.fill('#2');
+  await expect(relations.getByRole('listbox').getByRole('option')).toHaveCount(1);
+  await relations.getByRole('option', { name: /#2 Archived blocker/ }).click();
+  await expect(picker).toHaveValue('#2 Archived blocker · backlog · Archived');
+  await expect(picker).toHaveAttribute('aria-expanded', 'false');
   await relations.getByLabel('Relation of the selected workitem').selectOption('blockedBy');
   await expect(relations.getByRole('status')).toHaveText('Workitem #1 is blocked by #2.');
   await relations.getByRole('button', { name: 'Confirm', exact: true }).click();
@@ -28,6 +38,82 @@ test('links archived workitems by ID, previews direction, navigates both ways, r
   await answerAppMessage(page, { button: 'Remove' });
   await expect.poll(async () => (await readSavedBoard(page, 'p1')).extensions.taskRelations).toBeUndefined();
   expect((await readSavedBoard(page, 'p1')).board.tasks).toHaveLength(3);
+});
+
+test('unified workitem picker filters immediately, supports keyboard selection and clears stale selections', async ({ page }) => {
+  await gotoApp(page);
+  await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project', hasHandle: true, tasks: [
+    { id: 1, title: 'Source' },
+    ...Array.from({ length: 20 }, (_, index) => ({ id: index + 2, title: `Candidate ${index + 2}` }))
+  ] }], { selectedBoardId: 'p1' });
+  await portfolioCard(page, 'Source').click();
+  const relations = page.getByRole('region', { name: 'Relations', exact: true });
+  await relations.getByRole('button', { name: 'Link workitem', exact: true }).click();
+  const picker = relations.getByRole('combobox', { name: 'Search this project by ID or title' });
+  const options = relations.getByRole('listbox').getByRole('option');
+  const confirm = relations.getByRole('button', { name: 'Confirm', exact: true });
+  await picker.focus();
+  await expect(options).toHaveCount(20);
+  await picker.press('ArrowUp');
+  await expect(picker).toHaveAttribute('aria-activedescendant', 'relation-option-21');
+  await expect(options.last()).toBeInViewport();
+  await picker.press('ArrowDown');
+  await expect(picker).toHaveAttribute('aria-activedescendant', 'relation-option-2');
+  await picker.fill('cAnDiDaTe 20');
+  await expect(options).toHaveText(['#20 Candidate 20 · backlog']);
+  await picker.press('ArrowDown');
+  await picker.press('Enter');
+  await expect(picker).toHaveValue('#20 Candidate 20 · backlog');
+  await expect(picker).toBeFocused();
+  await expect(relations.getByRole('listbox')).toHaveCount(0);
+  await relations.getByLabel('Relation of the selected workitem').selectOption('related');
+  await expect(confirm).toBeEnabled();
+  await picker.fill('does not exist');
+  await expect(relations.getByText('No workitems match your search.')).toBeVisible();
+  await expect(options).toHaveCount(0);
+  await expect(confirm).toBeDisabled();
+  await expect(relations.getByRole('status')).toHaveCount(0);
+  await picker.press('Enter');
+  expect(await page.evaluate(() => window.__portfolioTestWrites || [])).toEqual([]);
+  await picker.fill('');
+  await expect(options).toHaveCount(20);
+  await picker.press('Escape');
+  await expect(relations.getByRole('listbox')).toHaveCount(0);
+  await expect(page.locator('#detailTitle')).toHaveText('Source');
+  await picker.click();
+  await expect(options).toHaveCount(20);
+  await picker.press('Tab');
+  await expect(relations.getByRole('listbox')).toHaveCount(0);
+  await expect(relations.getByLabel('Relation of the selected workitem')).toBeFocused();
+});
+
+test('unified workitem picker allows direct selection on mobile and handles projects without other items', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoApp(page);
+  await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project', hasHandle: true, tasks: [
+    { id: 1, title: 'Source' }, { id: 2, title: 'Another workitem with a long title that should wrap within the dropdown' }
+  ] }], { selectedBoardId: 'p1' });
+  await portfolioCard(page, 'Source').click();
+  const relations = page.getByRole('region', { name: 'Relations', exact: true });
+  await relations.getByRole('button', { name: 'Link workitem', exact: true }).click();
+  await relations.getByRole('combobox', { name: 'Search this project by ID or title' }).click();
+  await relations.getByRole('option', { name: /#2 Another workitem/ }).click();
+  await relations.getByLabel('Relation of the selected workitem').selectOption('related');
+  await relations.getByRole('button', { name: 'Confirm', exact: true }).click();
+  await expect.poll(async () => (await readSavedBoard(page, 'p1')).extensions.taskRelations.relations).toEqual([
+    { sourceId: 1, targetId: 2, kind: 'related' }
+  ]);
+  const body = page.locator('#taskDetailModal .modal-body');
+  expect(await body.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+
+  await page.reload();
+  await seedPortfolioBoards(page, [{ id: 'p2', title: 'Empty choices', hasHandle: true, tasks: [{ id: 1, title: 'Only item' }] }], { selectedBoardId: 'p2' });
+  await portfolioCard(page, 'Only item').click();
+  await relations.getByRole('button', { name: 'Link workitem', exact: true }).click();
+  await relations.getByRole('combobox', { name: 'Search this project by ID or title' }).click();
+  await expect(relations.getByRole('listbox').getByRole('option')).toHaveCount(0);
+  await expect(relations.getByText('No workitems match your search.')).toBeVisible();
+  await expect(relations.getByRole('button', { name: 'Confirm', exact: true })).toBeDisabled();
 });
 
 test('creates a related item with editable inherited planning only, cancelling first leaves no partial item', async ({ page }) => {
@@ -120,8 +206,8 @@ test('rejects a circular dependency with a clear Portuguese message and leaves t
   await portfolioCard(page, 'Third').click();
   const relations = page.getByRole('region', { name: 'Relações', exact: true });
   await relations.getByRole('button', { name: 'Associar workitem', exact: true }).click();
-  await relations.getByLabel('Pesquisar neste projeto por ID ou título').fill('First');
-  await relations.getByLabel('Selecionar workitem').selectOption('1');
+  await relations.getByRole('combobox', { name: 'Pesquisar neste projeto por ID ou título' }).fill('First');
+  await relations.getByRole('option', { name: /#1 First/ }).click();
   await relations.getByLabel('Relação do workitem selecionado').selectOption('blocks');
   await expect(relations.getByRole('status')).toHaveText('O workitem #3 bloqueia #1.');
   await relations.locator('button[type="submit"]').click();
