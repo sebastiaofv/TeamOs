@@ -1,6 +1,6 @@
 # US3 — Participantes e responsável
 
-Board: [`us-3.board.json`](../../test-board/us-3.board.json). Branch: `us-3`. Issue: [#27](https://github.com/sebastiaofv/TeamOs/issues/27). Requer esquema v2.
+Board: [`us-3.board.json`](us-3.board.json). Branch: `us-3`. Issue: [#27](https://github.com/sebastiaofv/TeamOs/issues/27). Requer esquema v2.
 
 1. Importar uma cópia do board: **9 ativos / 10 no total**. No detalhe, os campos responsável/participantes são separados.
 2. Responsável **Ana** + participante **Rui**: **#301 e #307** nos ativos; incluir arquivados acrescenta **#308**. #302 não corresponde porque o responsável é Rui.
