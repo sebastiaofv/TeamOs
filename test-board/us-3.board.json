@@ -1,0 +1,32 @@
+{
+  "meta": { "schemaVersion": 2, "appId": "teamos-kanban", "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+  "board": {
+    "settings": { "title": "US3 · Participantes e responsável · 10 itens" },
+    "columns": [{ "status": "backlog", "title": "Backlog" }, { "status": "to-do", "title": "To Do" }, { "status": "doing", "title": "In Progress" }, { "status": "done", "title": "Done" }],
+    "tasks": [
+      { "id": 301, "title": "Ana responde · Rui participa", "description": "Responsável Ana + participante Rui deve encontrar este item e #307 (com ativos). Trocar responsável para Marta mantém Ana como participante. Limpar responsável mantém todos os participantes.", "assignees": ["Ana", "Rui"], "responsible": "Ana", "status": "doing", "priority": "high", "effort": "M", "phaseId": "build", "milestoneId": "release", "sprintId": "sprint-1", "dueDate": "2026-10-20", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 302, "title": "Rui responde · Ana participa", "description": "A ordem dos filtros importa: responsável Ana + participante Rui NÃO encontra este item. Corrigir Rui para Rui Silva atualiza o responsável apenas neste item.", "assignees": ["Ana", "Rui"], "responsible": "Rui", "status": "to-do", "priority": "medium", "effort": "S", "phaseId": "build", "milestoneId": "release", "sprintId": "sprint-1", "dueDate": "2026-10-21", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 303, "title": "Participante único · sem responsável", "description": "Ana participa mas ninguém responde. Deve aparecer em Sem responsável e em participante Ana, nunca em Sem participantes.", "assignees": ["Ana"], "responsible": "", "status": "to-do", "priority": "low", "phaseId": "build", "milestoneId": "release", "dueDate": "2026-10-22", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 304, "title": "Sem participantes e sem responsável", "description": "Guardar e alterar o estado deve funcionar. O detalhe distingue os dois estados vazios. Sem responsável + Sem participantes deve encontrar apenas este item.", "assignees": [], "responsible": "", "status": "to-do", "priority": null, "phaseId": "build", "dueDate": "2026-10-23", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 305, "title": "Marta responde · testar remoção com confirmação", "description": "Remover Marta exige confirmação de que o item fica sem responsável. Cancelar preserva ambos; confirmar deixa Rui participante e limpa responsável. Testar também pela palette e consultar a timeline.", "assignees": ["Marta", "Rui"], "responsible": "Marta", "status": "doing", "priority": "high", "phaseId": "build", "milestoneId": "release", "dueDate": "2026-10-24", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 306, "title": "Outros nomes · sugestões do portefólio", "description": "José Silva e Beatriz ficam disponíveis nas sugestões de participantes e responsável. Adicionar pessoa nova como responsável deve incluí-la nos participantes. Adicionar ANA não deve duplicar Ana num item que já a tenha.", "assignees": ["José Silva", "Beatriz"], "responsible": "José Silva", "status": "backlog", "priority": "medium", "phaseId": "build", "dueDate": "2026-10-26", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 307, "title": "Concluído · Ana responde e Rui participa", "description": "Concluído não é arquivado. Deve continuar nos resultados de responsável Ana + participante Rui.", "assignees": ["Ana", "Rui", "Marta"], "responsible": "Ana", "status": "done", "priority": "low", "phaseId": "build", "milestoneId": "release", "dueDate": "2026-10-19", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 308, "title": "Arquivado · Ana responde e Rui participa", "description": "Com filtro de arquivo Todos, responsável Ana + participante Rui encontra #301, #307 e este #308.", "assignees": ["Ana", "Rui"], "responsible": "Ana", "status": "done", "priority": "medium", "phaseId": "build", "milestoneId": "release", "dueDate": "2026-10-18", "checklist": [], "archived": true, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 309, "title": "Nomes livres · __none__ e name:Ana", "description": "Os nomes __none__ e name:Ana são pessoas reais neste exemplo. Selecionar __none__ pelo nome não deve ser confundido com Sem responsável/Sem participantes.", "assignees": ["__none__", "name:Ana"], "responsible": "__none__", "status": "doing", "priority": "low", "phaseId": "build", "dueDate": "2026-10-27", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" },
+      { "id": 310, "title": "Vários participantes · responsável por definir", "description": "Rui e Beatriz participam. Permite testar Sem responsável combinado com participante Rui e guardar/reabrir sem atribuir automaticamente ninguém.", "assignees": ["Rui", "Beatriz"], "responsible": "", "status": "backlog", "priority": "medium", "phaseId": "build", "dueDate": "2026-10-28", "checklist": [], "archived": false, "createdAt": "2026-10-01T09:00:00.000Z", "updatedAt": "2026-10-18T10:00:00.000Z" }
+    ]
+  },
+  "extensions": {
+    "roadmap": {
+      "version": 1,
+      "phases": [{ "id": "build", "title": "Construção", "startDate": "2026-10-12", "endDate": "2026-10-30" }],
+      "milestones": [{ "id": "release", "title": "Lançamento", "dueDate": "2026-10-30" }],
+      "sprints": [{ "id": "sprint-1", "title": "Sprint 1", "startDate": "2026-10-12", "endDate": "2026-10-23" }]
+    },
+    "dayPlanner": { "version": 1, "blocks": [
+      { "id": "plan-301", "taskId": 301, "date": "2026-10-19", "start": "09:00", "end": "10:00" },
+      { "id": "plan-302", "taskId": 302, "date": "2026-10-19", "start": "10:00", "end": "11:00" },
+      { "id": "plan-305", "taskId": 305, "date": "2026-10-19", "start": "11:00", "end": "12:00" }
+    ] }
+  }
+}
