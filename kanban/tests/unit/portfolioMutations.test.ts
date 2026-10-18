@@ -68,6 +68,17 @@ function createActions(overrides = {}) {
 }
 
 describe('portfolio mutation actions', () => {
+  it('rejects planning a stale selection if an item was completed after opening the sprint dialog', async () => {
+    const alert = vi.fn();
+    const { actions, store } = createActions({ alert });
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1', mode: 'create-sprint-from-selection', unplannedTaskIds: [1] });
+    await actions.movePortfolioTaskToStatus('p1', 1, 'done');
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'Stale sprint', startDate: '2026-11-01', endDate: '2026-11-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.roadmap?.sprints || []).toEqual([]);
+    expect(store.getState().portfolioBoards[0].data.board.tasks[0]).toMatchObject({ status: 'done' });
+    expect(alert).toHaveBeenCalledWith(expect.stringContaining('review your selection'));
+  });
+
   it('updates task state through the timeline mutation seam', async () => {
     const { actions, store, markDirty, enqueueSave } = createActions();
     store.setState({

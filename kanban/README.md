@@ -13,6 +13,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - **Command palette** — `⌘K` / `Ctrl+K`, `/` or the toolbar search box. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan, archive); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
 - **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
 - **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
+- **Table perspectives** (single project) — All workitems, Unplanned (not Done and no sprint) with selection-to-sprint creation, and collapsible per-sprint tables. Sprint headers retain dates, date-derived Planned/Active/Done status and completeness over all unique current members, including archived items. Filters affect rows/CSV, not the sprint denominator. Timestamps display as UTC `yyyy-mm-dd HH:mm:ss`; columns have minimum widths, two-line cells and horizontal scrolling, with colored status and blocked badges.
 - **Light and dark theme.**
 
 ## Data and persistence
@@ -28,6 +29,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - Blocked tasks require `blockerReason`.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
+- Sprint status in the table is calendar-based (before start / within inclusive dates / after end), not a persisted closure. There is no automatic rollover or frozen closure data yet. `tableViews.ts` separates the current `sprintId` adapter from per-sprint rosters; future closure snapshots can supply independent read-only rows, board data and completion totals, including the same workitem in several sprints. The current file schema remains unchanged.
 
 ## Keyboard shortcuts
 
@@ -106,7 +108,7 @@ Manual boards are in [`test-board/`](test-board/), which contains only JSON file
 
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
 - `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
-- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if 4174 is already taken.
+- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if the port is already taken. Set `PLAYWRIGHT_PORT` for concurrent worktree runs.
 - `npm run lint` — ESLint with `typescript-eslint`.
 
 Visual baselines in `tests/visual.test.ts-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.ts --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.ts`; the browser globals they install are declared in `tests/support/testGlobals.d.ts`.

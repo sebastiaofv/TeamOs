@@ -53,7 +53,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         });
     }
 
-    function openRoadmapEntityModal(kind: RoadmapKind, itemId = '', options: { boardId?: string; mode?: RoadmapEntityMode } = {}) {
+    function openRoadmapEntityModal(kind: RoadmapKind, itemId = '', options: { boardId?: string; mode?: RoadmapEntityMode; unplannedTaskIds?: number[] } = {}) {
         const boardId = options.boardId || getState().selectedPortfolioBoardId;
         const boardRecord = boardId ? getBoardRecord(boardId) : null;
         if (!boardRecord) return;
@@ -69,7 +69,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const mode = options.mode || 'default';
         const assignExistingMode = mode === 'assign-sprint-from-selection';
         commitState({
-            roadmapEntityContext: { boardId, kind, itemId: item?.id || '', mode }
+            roadmapEntityContext: { boardId, kind, itemId: item?.id || '', mode,
+                ...(options.unplannedTaskIds ? { unplannedTaskIds: [...new Set(options.unplannedTaskIds)] } : {}) }
         });
         openDialogFn('roadmapEntity', {
             kind,
@@ -115,8 +116,13 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
     function createSprintFromSelection(boardId: string, draft: RoadmapEntityDraft): Promise<boolean> | false {
         const boardRecord = getBoardRecord(boardId);
         if (!boardRecord) return false;
-        const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
+        const unplannedTaskIds = getState().roadmapEntityContext?.unplannedTaskIds;
+        const selectedTaskIds = unplannedTaskIds || getSelectedPortfolioBulkTaskIds(boardId);
         if (selectedTaskIds.length === 0) return false;
+        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && task.status !== 'done' && !task.sprintId))) {
+            alert(translateCurrent('table.selectionChanged'));
+            return false;
+        }
         const sprintConfig = getRoadmapEntityConfig('sprints');
         if (!sprintConfig) return false;
         return runPortfolioBoardMutation(boardId, (boardData) => {

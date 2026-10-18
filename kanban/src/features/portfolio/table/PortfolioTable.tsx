@@ -16,6 +16,9 @@ import {
 import { clearTableFilters, setTableSort } from './tableControls';
 import { PRIORITY_LABELS, STATUS_LABELS, COLUMN_LABELS } from './tableLabels';
 import { useTableDisclosure } from './useTableDisclosure';
+import { formatTableTimestamp } from './tablePresentation';
+import { buildSprintTableGroups, currentSprintRosters, unplannedTableRows, type SprintTableGroup, type TableView } from './tableViews';
+import { todayLocalIsoDate } from '@/domain/util';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
     const state = useAppStore(useShallow((s) => ({
@@ -43,6 +46,47 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean;
 }) {
     const { t } = useI18n();
+    const [view, setView] = useState<TableView>('all');
+    const groups = useMemo(() => buildSprintTableGroups(currentSprintRosters(boardData, sourceRows), todayLocalIsoDate()), [boardData, sourceRows]);
+    const viewLabels = { all: 'table.allWorkitems', unplanned: 'table.unplannedWorkitems', sprints: 'table.sprints' } as const;
+    return <section id="portfolioTable" className={`portfolio-table${hidden ? ' hidden' : ''}`} aria-labelledby="tableTitle">
+        <h2 id="tableTitle" className="sr-only">{t('table.title', { project })}</h2>
+        <div className="table-view-options" role="group" aria-label={t('table.perspectives')}>
+            {(['all', 'unplanned', 'sprints'] as const).map((key) => <button className={`btn${view === key ? ' active' : ''}`} type="button" key={key}
+                data-table-view={key} aria-pressed={view === key} onClick={() => setView(key)}>{t(viewLabels[key])}</button>)}
+        </div>
+        {view !== 'sprints' ? <WorkitemTable key={view} hidden={hidden} boardId={boardId} project={project} boardData={boardData}
+            sourceRows={view === 'unplanned' ? unplannedTableRows(sourceRows) : sourceRows} canCreate={canCreate} planning={view === 'unplanned'} />
+            : <>
+                <p className="table-sprint-note">{t('table.sprintDatesNote')}</p>
+                {groups.length === 0 && <p className="table-empty" role="status">{t('table.noSprints')}</p>}
+                {groups.map((group) => <SprintTableSection key={group.sprint.id} group={group} hidden={hidden} boardId={boardId} project={project} />)}
+            </>}
+    </section>;
+}
+
+function SprintTableSection({ group, hidden, boardId, project }: { group: SprintTableGroup; hidden: boolean; boardId: string; project: string }) {
+    const { t, language } = useI18n();
+    const [expanded, setExpanded] = useState(false);
+    const completeness = group.completeness === null ? t('table.noCompleteness')
+        : t('table.completeness', { percent: new Intl.NumberFormat(language === 'pt' ? 'pt-PT' : 'en', { maximumFractionDigits: 1 }).format(group.completeness) });
+    return <details className="table-sprint-section" data-table-sprint={group.sprint.id}
+        onToggle={(event) => setExpanded(event.currentTarget.open)}>
+        <summary>
+            <span className="table-sprint-name">{group.sprint.title}</span>
+            <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
+            <span>{completeness} ({group.completed}/{group.total})</span>
+            <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
+        </summary>
+        {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${group.sprint.title}`} boardData={group.boardData}
+            sourceRows={group.rows} canCreate={false} scope={`sprint-${group.sprint.id}`} />}
+    </details>;
+}
+
+function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, planning = false, scope = '' }: {
+    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; planning?: boolean; scope?: string;
+}) {
+    const { t } = useI18n();
     const actions = usePortfolioActions();
     const columnDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
@@ -53,6 +97,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     const [pageSize, setPageSize] = useState(50);
     const [selected, setSelected] = useState<Set<number>>(() => new Set());
     const [separator, setSeparator] = useState<',' | ';'>(',');
+    const scopedId = (id: string) => scope ? `${id}-${scope}` : id;
     const rows = useMemo(() => sortTableRows(filterTableRows(sourceRows, filters), sort.column, sort.direction, boardData),
         [sourceRows, filters, sort, boardData]);
     const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -100,6 +145,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
         if (column === 'status') return t(STATUS_LABELS[row.task.status]);
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
         if (column === 'blocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
+        if (column === 'createdAt' || column === 'updatedAt') return formatTableTimestamp(value) || t('table.notDefined');
         return value;
     }
     function exportCsv() {
@@ -111,11 +157,10 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     }
 
     return (
-        <section id="portfolioTable" className={`portfolio-table${hidden ? ' hidden' : ''}`} aria-labelledby="tableTitle">
-            <h2 id="tableTitle" className="sr-only">{t('table.title', { project })}</h2>
+        <div className="table-panel">
             <div className="table-heading">
                 <div className="table-tools">
-                    <details id="tableColumns" className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
+                    <details id={scopedId('tableColumns')} className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
                         <summary className="btn" ref={columnDisclosure.summaryRef}>{t('table.columns')}</summary>
                         <div className="table-column-panel" data-table-panel>
                             <div className="table-column-options">
@@ -124,7 +169,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
                                     const index = columns.indexOf(column);
                                     const label = t(COLUMN_LABELS[column]);
                                     return <div className="table-column-option" key={column}>
-                                        <label htmlFor={`tableColumn-${column}`}><input id={`tableColumn-${column}`} type="checkbox" checked={index >= 0} disabled={required}
+                                        <label htmlFor={scopedId(`tableColumn-${column}`)}><input id={scopedId(`tableColumn-${column}`)} type="checkbox" checked={index >= 0} disabled={required}
                                             onChange={(event) => changeColumns(event.target.checked ? [...columns, column] : columns.filter((entry) => entry !== column))} /> {label}
                                             {required && <span className="table-column-required"> ({t('table.mandatory')})</span>}
                                         </label>
@@ -138,34 +183,37 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
                     </details>
                 </div>
                 <div className="table-export">
-                    <label htmlFor="tableCsvSeparator">{t('table.separator')}</label>
+                    <label htmlFor={scopedId('tableCsvSeparator')}>{t('table.separator')}</label>
                     <span className="table-select table-csv-select">
-                        <select id="tableCsvSeparator" value={separator} onChange={(event) => setSeparator(event.target.value === ';' ? ';' : ',')}>
+                        <select id={scopedId('tableCsvSeparator')} value={separator} onChange={(event) => setSeparator(event.target.value === ';' ? ';' : ',')}>
                             <option value=",">{t('table.comma')}</option><option value=";">{t('table.semicolon')}</option>
                         </select>
                         <svg className="table-select-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
                     </span>
-                    <button className="btn" id="tableExportCsv" disabled={rows.length === 0} onClick={exportCsv}>{t('table.export')}</button>
+                    <button className="btn" id={scopedId('tableExportCsv')} disabled={rows.length === 0} onClick={exportCsv}>{t('table.export')}</button>
                 </div>
             </div>
             <div className="table-summary">
-                <p role="status" aria-live="polite" id="tableCounts">{t('table.counts', { visible: rows.length, total: sourceRows.length, active: activeCount, archived: sourceRows.length - activeCount })}</p>
+                <p role="status" aria-live="polite" id={scopedId('tableCounts')}>{t('table.counts', { visible: rows.length, total: sourceRows.length, active: activeCount, archived: sourceRows.length - activeCount })}</p>
                 <span role="status">{t('table.selected', { count: selectedCount })}</span>
                 {selectedCount > 0 && <button className="btn" onClick={() => setSelected(new Set())}>{t('table.clearSelection')}</button>}
+                {planning && canCreate && <button className="btn btn-primary" id="tableCreateSprint" disabled={selectedCount === 0}
+                    onClick={() => actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'create-sprint-from-selection',
+                        unplannedTaskIds: sourceRows.filter((row) => selected.has(row.taskId)).map((row) => row.taskId) })}>{t('toolbar.createSprint')}</button>}
             </div>
             {rows.length === 0 ? <div className="table-empty" role="status">
-                <p>{t(sourceRows.length === 0 ? 'table.empty' : 'table.noResults')}</p>
+                <p>{t(sourceRows.length === 0 ? scope ? 'table.emptySprint' : planning ? 'table.emptyPlanning' : 'table.empty' : 'table.noResults')}</p>
                 {sourceRows.length === 0 && canCreate
                     ? <button className="btn btn-primary" id="tableCreateTask" onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog')}>{t('table.create')}</button>
                     : sourceRows.length > 0 && <button className="btn" onClick={clearFilters}>{t('table.clearFilters')}</button>}
             </div> : <>
                 <div className="table-scroll" tabIndex={0} role="region" aria-label={t('table.view')}>
-                    <table id="workitemsTable">
+                    <table id={scopedId('workitemsTable')} className="workitems-table">
                         <caption className="sr-only">{t('table.title', { project })}</caption>
                         <thead><tr>
                             <th scope="col"><input type="checkbox" aria-label={t('table.selectPage')} checked={allPageSelected}
                                 onChange={(event) => toggleSelection(pageRows.map((row) => row.taskId), event.target.checked)} /></th>
-                            {columns.map((column) => <th scope="col" key={column} aria-sort={sort.column === column ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                            {columns.map((column) => <th scope="col" data-column={column} key={column} aria-sort={sort.column === column ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                                 <button type="button" onClick={() => { setTableSort(column, sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc'); setPage(0); }}>
                                     {t(COLUMN_LABELS[column])}<span aria-hidden="true">{sort.column === column ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>
                                 </button>
@@ -177,26 +225,26 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
                                 onChange={(event) => toggleSelection([row.taskId], event.target.checked)} /></td>
                             {columns.map((column) => <td key={column} data-column={column}>
                                 {column === 'id' || column === 'title'
-                                    ? <button className="table-item-link" type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
-                                    : <span className={!tableCellValue(row, column, boardData) ? 'table-not-defined' : undefined}>{cellText(row, column)}</span>}
+                                    ? <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
+                                    : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${column === 'status' ? ` table-status-badge status-${row.task.status}` : ''}${column === 'blocked' && row.task.blocked ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
                             </td>)}
                         </tr>)}</tbody>
                     </table>
                 </div>
                 <nav className="table-pagination" aria-label={t('table.view')}>
-                    <label htmlFor="tablePageSize">{t('table.pageSize')}
+                    <label htmlFor={scopedId('tablePageSize')}>{t('table.pageSize')}
                         <span className="table-select table-page-size-select">
-                            <select id="tablePageSize" value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }}>
+                            <select id={scopedId('tablePageSize')} value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }}>
                                 {[25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
                             </select>
                             <svg className="table-select-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
                         </span>
                     </label>
-                    <button className="btn" id="tablePreviousPage" disabled={currentPage === 0} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage - 1); }}>{t('table.previous')}</button>
+                    <button className="btn" id={scopedId('tablePreviousPage')} disabled={currentPage === 0} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage - 1); }}>{t('table.previous')}</button>
                     <span role="status">{t('table.page', { current: currentPage + 1, total: pageCount })}</span>
-                    <button className="btn" id="tableNextPage" disabled={currentPage >= pageCount - 1} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage + 1); }}>{t('table.next')}</button>
+                    <button className="btn" id={scopedId('tableNextPage')} disabled={currentPage >= pageCount - 1} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage + 1); }}>{t('table.next')}</button>
                 </nav>
             </>}
-        </section>
+        </div>
     );
 }
