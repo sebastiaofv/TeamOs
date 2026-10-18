@@ -1,6 +1,6 @@
 # US1 — Tabela de workitems
 
-Board: [`us-1.board.json`](us-1.board.json). Branch: `us-1`. Issue: [#25](https://github.com/sebastiaofv/TeamOs/issues/25).
+Board: [`us-1.board.json`](../../test-board/us-1.board.json). Branch: `us-1`. Issue: [#25](https://github.com/sebastiaofv/TeamOs/issues/25).
 
 1. Importar uma cópia do board, selecionar o projeto e abrir **Tabela**.
 2. Por defeito: **28 itens ativos** (inclui concluídos). **Todos: 30**. **Arquivados: 2** (#108 e #109).
