@@ -104,7 +104,7 @@ The workflow can also be started by hand from the Actions tab (*Run workflow*).
 
 ## Testing
 
-Manual feature boards and walkthroughs for US1, US2 and US3 are in [`test-board/`](../test-board/README.md). Import a copy for writable tests; drag and drop for read-only tests.
+Manual boards and walkthroughs are in [`test-board/`](../test-board/README.md); each story supplies its own files in its matching branch and PR. Import a copy for writable tests; drag and drop for read-only tests.
 
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
 - `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
