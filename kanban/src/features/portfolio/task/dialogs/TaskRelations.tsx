@@ -100,8 +100,22 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                         <ul className="relation-list">
                             {vm.relations[group].map((task) => (
                                 <li key={task.id}>
-                                    <button type="button" className="relation-item-link" onClick={() => openPortfolioTaskDetails(vm.boardId, task.id,
-                                        vm.readOnly ? { readOnly: true, boardData: vm.sourceBoardData } : {})}>{label(task)}</button>
+                                    <div className="relation-item-summary">
+                                        <button type="button" className="relation-item-link" onClick={() => openPortfolioTaskDetails(vm.boardId, task.id,
+                                            vm.readOnly ? { readOnly: true, boardData: vm.sourceBoardData } : {})}>
+                                            #{task.id} {task.title}{task.archived ? ` · ${t('table.archived')}` : ''}
+                                        </button>
+                                        <dl className="relation-item-meta">
+                                            <div>
+                                                <dt className="detail-label">{t('task.status')}</dt>
+                                                <dd className="detail-value">{task.status}</dd>
+                                            </div>
+                                            <div>
+                                                <dt className="detail-label">{t('task.assignees')}</dt>
+                                                <dd className="detail-value">{task.assignees.join(', ') || '—'}</dd>
+                                            </div>
+                                        </dl>
+                                    </div>
                                     {!vm.readOnly && <div className="relation-actions">
                                         <button type="button" className="btn" onClick={() => start('link', task)}>{t('relations.replace')}</button>
                                         <button type="button" className="btn" onClick={() => void removePortfolioTaskRelation(vm.boardId, vm.taskId, task.id)}>{t('common.remove')}</button>

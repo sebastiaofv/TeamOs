@@ -15,11 +15,37 @@ function setup() {
   const confirm = vi.fn((_text: string) => true);
   const alert = vi.fn();
   const enqueueSave = vi.fn(async () => true);
-  const actions = createPortfolioMutationActions({ store, confirm, alert, enqueueSave, markDirty: vi.fn(), openDialogFn: vi.fn(), closeDialogFn: vi.fn() });
-  return { store, actions, confirm, alert, enqueueSave, data: () => store.getState().portfolioBoards[0].data };
+  const openDialogFn = vi.fn();
+  const actions = createPortfolioMutationActions({ store, confirm, alert, enqueueSave, markDirty: vi.fn(), openDialogFn, closeDialogFn: vi.fn() });
+  return { store, actions, confirm, alert, enqueueSave, openDialogFn, data: () => store.getState().portfolioBoards[0].data };
 }
 
 describe('relation commands', () => {
+  it('refreshes the open detail with the current status and all assignees of related workitems after each mutation', async () => {
+    const { actions, openDialogFn } = setup();
+    await actions.associatePortfolioTasks('p1', 1, 2, 'related');
+    actions.openPortfolioTaskDetails('p1', 1);
+    const expectRelation = (status: string, assignees: string[]) => {
+      expect(openDialogFn).toHaveBeenLastCalledWith('taskDetail', expect.objectContaining({
+        taskId: 1,
+        relations: expect.objectContaining({ related: [expect.objectContaining({ id: 2, status, assignees })] })
+      }));
+    };
+    expectRelation('backlog', []);
+    await actions.movePortfolioTaskToStatus('p1', 2, 'doing');
+    expectRelation('in progress', []);
+    await actions.togglePortfolioTaskAssignee('p1', 2, 'Ana');
+    expectRelation('in progress', ['Ana']);
+    await actions.togglePortfolioTaskAssignee('p1', 2, 'Marta');
+    expectRelation('in progress', ['Ana', 'Marta']);
+    await actions.movePortfolioTaskToStatus('p1', 2, 'done');
+    expectRelation('done', ['Ana', 'Marta']);
+    await actions.togglePortfolioTaskAssignee('p1', 2, 'Ana');
+    expectRelation('done', ['Marta']);
+    await actions.togglePortfolioTaskAssignee('p1', 2, 'Marta');
+    expectRelation('done', []);
+  });
+
   it('discards a related creation if the source disappeared while editing', async () => {
     const { actions, data, store, enqueueSave, alert } = setup();
     actions.openPortfolioCreateRelatedTask('p1', 1, 'related');

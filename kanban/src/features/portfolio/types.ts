@@ -121,7 +121,7 @@ export type TaskDetailFields = Record<
     string
 >;
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
-export type TaskRelationEntry = { id: number; title: string; status: string; archived: boolean };
+export type TaskRelationEntry = { id: number; title: string; status: string; assignees: string[]; archived: boolean };
 export type TaskDetailViewModel = {
     readOnly: boolean;
     boardId: string;

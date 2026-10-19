@@ -1,5 +1,48 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, openTaskEditor } from '../support/portfolio';
+
+test('relation groups show current status and all assignees, including unassigned and archived items, after editing and reopening', async ({ page }) => {
+  await gotoApp(page);
+  await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project', hasHandle: true,
+    tasks: [
+      { id: 1, title: 'Source' },
+      { id: 2, title: 'Blocker', status: 'doing', assignees: ['Ana', 'Marta'] },
+      { id: 3, title: 'Archived dependent', status: 'done', archived: true, assignees: ['José Silva'] },
+      { id: 4, title: 'Unassigned item', status: 'to-do' }
+    ],
+    extensions: { taskRelations: { version: 1, relations: [
+      { sourceId: 2, targetId: 1, kind: 'blocks' },
+      { sourceId: 1, targetId: 3, kind: 'blocks' },
+      { sourceId: 1, targetId: 4, kind: 'related' }
+    ] } }
+  }], { selectedBoardId: 'p1' });
+  await portfolioCard(page, 'Source').click();
+  const relations = page.getByRole('region', { name: 'Relations', exact: true });
+  const blocker = relations.getByRole('group', { name: 'Blocked by', exact: true });
+  await expect(blocker.locator('dt')).toHaveText(['Status', 'Assignees']);
+  await expect(blocker.locator('dd')).toHaveText(['in progress', 'Ana, Marta']);
+  const dependent = relations.getByRole('group', { name: 'Blocks', exact: true });
+  await expect(dependent.locator('dd')).toHaveText(['done', 'José Silva']);
+  await expect(dependent.getByRole('button', { name: '#3 Archived dependent · Archived', exact: true })).toBeVisible();
+  await expect(relations.getByRole('group', { name: 'Related to', exact: true }).locator('dd')).toHaveText(['to-do', '—']);
+
+  await page.locator('#taskDetailModalCloseBtn').click();
+  await openTaskEditor(page, 'Blocker');
+  await page.getByLabel('Assignee name', { exact: true }).first().fill('Rui');
+  await page.locator('#taskModalSaveBtn').click();
+  await portfolioCard(page, 'Blocker').hover();
+  await page.keyboard.press('4');
+  await expect.poll(async () => (await readSavedBoard(page, 'p1')).board.tasks[1].status).toBe('done');
+  await portfolioCard(page, 'Source').click();
+  await expect(blocker.locator('dd')).toHaveText(['done', 'Rui, Marta']);
+
+  await page.locator('#taskDetailModalCloseBtn').click();
+  await page.locator('#languageToggleBtn').click();
+  await portfolioCard(page, 'Source').click();
+  const ptBlocker = page.getByRole('region', { name: 'Relações', exact: true }).getByRole('group', { name: 'É bloqueado por', exact: true });
+  await expect(ptBlocker.locator('dt')).toHaveText(['Estado', 'Responsáveis']);
+  await expect(ptBlocker.locator('dd')).toHaveText(['done', 'Rui, Marta']);
+});
 
 test('links archived workitems by ID, previews direction, navigates both ways, replaces and removes without losing items', async ({ page }) => {
   await gotoApp(page);
@@ -151,7 +194,7 @@ test('creates a related item with editable inherited planning only, cancelling f
 test('read-only relations remain navigable on mobile without mutation controls', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoApp(page);
-  await seedPortfolioBoards(page, [{ id: 'p1', title: 'Read only', hasHandle: false, tasks: [{ id: 1, title: 'Dependent' }, { id: 2, title: 'Done blocker', status: 'done', archived: true }],
+  await seedPortfolioBoards(page, [{ id: 'p1', title: 'Read only', hasHandle: false, tasks: [{ id: 1, title: 'Dependent' }, { id: 2, title: 'Done blocker with a long title that wraps on mobile', status: 'done', archived: true, assignees: ['Ana Maria com um nome de responsável bastante longo', 'Marta'] }],
     extensions: { taskRelations: { version: 1, relations: [{ sourceId: 2, targetId: 1, kind: 'blocks' }] } }
   }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Dependent').click();
@@ -160,11 +203,14 @@ test('read-only relations remain navigable on mobile without mutation controls',
   await expect(relations.getByRole('button', { name: 'Create related' })).toHaveCount(0);
   await expect(relations.getByRole('button', { name: 'Remove' })).toHaveCount(0);
   await expect(page.locator('#detailBlocked')).toHaveText('No');
-  await relations.getByRole('button', { name: /#2 Done blocker/ }).click();
-  await expect(page.locator('#detailTitle')).toHaveText('Done blocker');
-  await expect(relations).toContainText('#1 Dependent');
-  expect(await page.evaluate(() => window.__portfolioTestWrites || [])).toEqual([]);
+  await expect(relations.locator('dd')).toHaveText(['done', 'Ana Maria com um nome de responsável bastante longo, Marta']);
   const body = page.locator('#taskDetailModal .modal-body');
+  expect(await body.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await relations.getByRole('button', { name: /#2 Done blocker/ }).click();
+  await expect(page.locator('#detailTitle')).toHaveText('Done blocker with a long title that wraps on mobile');
+  await expect(relations).toContainText('#1 Dependent');
+  await expect(relations.locator('dd')).toHaveText(['backlog', '—']);
+  expect(await page.evaluate(() => window.__portfolioTestWrites || [])).toEqual([]);
   expect(await body.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
 

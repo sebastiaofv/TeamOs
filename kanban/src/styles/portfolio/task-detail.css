@@ -154,6 +154,27 @@
     padding: 8px 0;
 }
 
+.relation-item-summary {
+    flex: 1 1 240px;
+    min-width: 0;
+}
+
+.relation-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 4px 0 0;
+}
+
+.relation-item-meta > div {
+    min-width: 0;
+}
+
+.relation-item-meta dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+}
+
 .relation-item-link {
     background: none;
     border: 0;
