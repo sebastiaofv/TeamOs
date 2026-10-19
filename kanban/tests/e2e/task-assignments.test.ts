@@ -81,6 +81,32 @@ test('responsible and participant filters combine across all views, including em
   await expect(page.locator('#workitemsTable tbody tr')).toContainText('Empty item');
 });
 
+test('responsible and participant filters combine in planning and sprint tables without changing sprint totals', async ({ page }) => {
+  await gotoApp(page);
+  await seedPortfolioBoards(page, [{ id: 'p', title: 'Assignment planning', hasHandle: true, tasks: [
+    { id: 1, title: 'Matching unplanned', responsible: 'Ana', assignees: ['Ana', 'Rui'] },
+    { id: 2, title: 'Other unplanned', responsible: 'Ana', assignees: ['Ana'] },
+    { id: 3, title: 'Matching sprint item', responsible: 'Ana', assignees: ['Ana', 'Rui'], sprintId: 's1' },
+    { id: 4, title: 'Other sprint item', responsible: 'Rui', assignees: ['Rui'], sprintId: 's1', status: 'done' }
+  ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [
+    { id: 's1', title: 'Delivery', startDate: '2026-10-01', endDate: '2026-10-14' }
+  ] } } }], { selectedBoardId: 'p' });
+  await page.locator('[data-view-mode="table"]').click();
+  await openFiltersPanel(page);
+  await page.locator('#portfolioResponsibleFilter').selectOption('Ana');
+  await page.getByLabel('Participant', { exact: true }).selectOption('Rui');
+  await page.keyboard.press('Escape');
+  await page.locator('[data-table-view="unplanned"]').click();
+  await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
+  await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching unplanned');
+  await page.locator('[data-table-view="sprints"]').click();
+  const sprint = page.locator('[data-table-sprint="s1"]');
+  await expect(sprint.locator(':scope > summary')).toContainText('50% complete (1/2)');
+  await sprint.locator(':scope > summary').click();
+  await expect(sprint.locator('tbody tr')).toHaveCount(1);
+  await expect(sprint.locator('tbody tr')).toContainText('Matching sprint item');
+});
+
 test('palette can select and clear responsibility and confirms removing that participant', async ({ page }) => {
   await gotoApp(page);
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Palette assignments', hasHandle: true, tasks: [{ id: 1, title: 'Plan', status: 'doing', assignees: ['Ana'] }] }]);

@@ -11,6 +11,41 @@ const FIXED_TIME = '2026-02-26T12:00:00Z';
 
 test.describe('US-01 workitems table', () => {
   for (const theme of ['light', 'dark']) {
+    test(`delivery review perspectives and badges (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{ id: 'review', title: 'Sprint planning', hasHandle: true, tasks: [
+        { id: 1, title: 'Investigate delivery blocker', status: 'backlog', blocked: true, blockerReason: 'Waiting for access', assignees: ['Ana'] },
+        { id: 2, title: 'Previous delivery', status: 'done', sprintId: 'past' },
+        { id: 3, title: 'Build integration', status: 'doing', sprintId: 'active', assignees: ['Rui'] },
+        { id: 4, title: 'Review interface', status: 'done', sprintId: 'active', assignees: ['Marta'] },
+        { id: 5, title: 'Prepare next release', status: 'to-do', sprintId: 'future' },
+        { id: 6, title: 'Plan documentation', status: 'doing', assignees: ['Ana', 'Rui'] }
+      ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [
+        { id: 'past', title: 'Sprint 1', startDate: '2026-02-01', endDate: '2026-02-14' },
+        { id: 'active', title: 'Sprint 2', startDate: '2026-02-15', endDate: '2026-02-28' },
+        { id: 'future', title: 'Sprint 3', startDate: '2026-03-01', endDate: '2026-03-14' }
+      ] } } }], { selectedBoardId: 'review' });
+      await page.locator('[data-view-mode="table"]').click();
+      await page.locator('#tableColumns summary').click();
+      await page.locator('#tableColumn-blocked').check();
+      await page.keyboard.press('Escape');
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`table-review-all-${theme}.png`);
+      await page.locator('[data-table-view="unplanned"]').click();
+      await page.locator('#workitemsTable [data-task-id="1"] input').check();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`table-review-planning-${theme}.png`);
+      await page.locator('[data-table-view="sprints"]').click();
+      await page.locator('[data-table-sprint="active"] > summary').click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`table-review-sprints-${theme}.png`);
+    });
+  }
+
+  for (const theme of ['light', 'dark']) {
     test(`project table with default columns (${theme})`, async ({ page }) => {
       await gotoVisualApp(page, theme);
       await seedPortfolioBoards(page, [{

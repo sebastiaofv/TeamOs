@@ -13,6 +13,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - **Command palette** — `⌘K` / `Ctrl+K`, `/` or the toolbar search box. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan, archive); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
 - **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
 - **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
+- **Table perspectives** (single project) — All workitems, Unplanned (not Done and no sprint) with selection-to-sprint creation, and collapsible per-sprint tables. Sprint headers retain dates, date-derived Planned/Active/Done status and completeness over all unique current members, including archived items. Filters affect rows/CSV, not the sprint denominator. Timestamps display as UTC `yyyy-mm-dd HH:mm:ss`; columns have minimum widths, two-line cells and horizontal scrolling, with colored status and blocked badges.
 - **Light and dark theme.**
 
 ## Data and persistence
@@ -30,6 +31,8 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - Blocked tasks require `blockerReason`.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
+- Sprint status in the table is calendar-based (before start / within inclusive dates / after end), refreshed at local midnight and when the tab resumes, not a persisted closure. There is no automatic rollover or frozen closure data yet. `tableViews.ts` separates the current `sprintId` adapter from per-sprint rosters; future closure snapshots can supply independent read-only rows, board data and completion totals, including the same workitem in several sprints. The current file schema remains unchanged.
+- Table → Sprints displays `Sprint [number] - [user title]`, newest-created first, independently of planning dates. Project-local identities live in `extensions.sprintCatalog` v1 (`lastNumber`, entries with `sprintId`, `number`, `createdAt`). New sprints created from Roadmap, Board or Table receive the next number and creation timestamp; edits preserve both. Deleted IDs/numbers stay reserved, including across timeline preview/restore. Legacy migration reserves sprints by first appearance in existing history snapshots/events, then current-only sprints by array order, with `createdAt: null` (unknown); already assigned numbers are preserved. Unknown dates sort by descending assigned number after dated entries. No creation events or dates are fabricated, and workitem/roadmap IDs remain intact. See `tests/fixtures/sprints-legacy-v1.board.json`.
 
 ## Keyboard shortcuts
 
