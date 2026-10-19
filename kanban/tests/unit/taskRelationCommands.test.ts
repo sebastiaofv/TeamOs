@@ -12,7 +12,7 @@ function setup() {
   const data = createEmptyProjectData('Project');
   data.board.tasks = [1, 2].map((id) => normalizeTask({ id, title: `Item ${id}`, status: 'backlog' }));
   const store = createAppStore({ portfolioBoards: [{ id: 'p1', title: 'Project', fileName: 'p.board.json', colorSeed: 0, handle: fromPartial({}), data }], selectedPortfolioBoardId: 'p1' });
-  const confirm = vi.fn((_text: string) => true);
+  const confirm = vi.fn((_text: string): boolean | Promise<boolean> => true);
   const alert = vi.fn();
   const enqueueSave = vi.fn(async () => true);
   const openDialogFn = vi.fn();
@@ -21,29 +21,72 @@ function setup() {
 }
 
 describe('relation commands', () => {
-  it('refreshes the open detail with the current status and all assignees of related workitems after each mutation', async () => {
+  it('refreshes related workitems with current status and the responsible first name, not participants', async () => {
     const { actions, openDialogFn } = setup();
     await actions.associatePortfolioTasks('p1', 1, 2, 'related');
     actions.openPortfolioTaskDetails('p1', 1);
-    const expectRelation = (status: string, assignees: string[]) => {
+    const expectRelation = (status: string, responsible: string) => {
       expect(openDialogFn).toHaveBeenLastCalledWith('taskDetail', expect.objectContaining({
         taskId: 1,
-        relations: expect.objectContaining({ related: [expect.objectContaining({ id: 2, status, assignees })] })
+        relations: expect.objectContaining({ related: [expect.objectContaining({ id: 2, status, responsible })] })
       }));
     };
-    expectRelation('backlog', []);
+    expectRelation('backlog', '');
     await actions.movePortfolioTaskToStatus('p1', 2, 'doing');
-    expectRelation('in progress', []);
+    expectRelation('in progress', '');
     await actions.togglePortfolioTaskAssignee('p1', 2, 'Ana');
-    expectRelation('in progress', ['Ana']);
-    await actions.togglePortfolioTaskAssignee('p1', 2, 'Marta');
-    expectRelation('in progress', ['Ana', 'Marta']);
+    expectRelation('in progress', '');
+    await actions.setPortfolioTaskResponsible('p1', 2, 'Marta Sofia Costa');
+    expectRelation('in progress', 'Marta');
     await actions.movePortfolioTaskToStatus('p1', 2, 'done');
-    expectRelation('done', ['Ana', 'Marta']);
-    await actions.togglePortfolioTaskAssignee('p1', 2, 'Ana');
-    expectRelation('done', ['Marta']);
-    await actions.togglePortfolioTaskAssignee('p1', 2, 'Marta');
-    expectRelation('done', []);
+    expectRelation('done', 'Marta');
+    await actions.setPortfolioTaskResponsible('p1', 2, 'José Manuel Silva');
+    expectRelation('done', 'José');
+    await actions.setPortfolioTaskResponsible('p1', 2, '');
+    expectRelation('done', '');
+  });
+
+  it('waits for replacement confirmation, preserves both workitems and recalculates directional blocking', async () => {
+    const { actions, data, confirm, enqueueSave, openDialogFn } = setup();
+    await actions.associatePortfolioTasks('p1', 1, 2, 'blocks');
+    actions.openPortfolioTaskDetails('p1', 1);
+    const tasks = structuredClone(data().board.tasks);
+    enqueueSave.mockClear();
+    let answer!: (confirmed: boolean) => void;
+    confirm.mockReturnValueOnce(new Promise<boolean>((resolve) => { answer = resolve; }));
+    const pending = actions.associatePortfolioTasks('p1', 1, 2, 'blockedBy', true);
+    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('Workitem #1 is blocked by #2.'), { confirmLabel: 'Save' });
+    expect(getRelations(data())).toEqual([{ sourceId: 1, targetId: 2, kind: 'blocks' }]);
+    expect(enqueueSave).not.toHaveBeenCalled();
+    answer(true);
+    await expect(pending).resolves.toBe(true);
+    expect(getRelations(data())).toEqual([{ sourceId: 2, targetId: 1, kind: 'blocks' }]);
+    expect(data().board.tasks).toEqual(tasks);
+    expect(isTaskBlocked(data(), 1)).toBe(true);
+    expect(isTaskBlocked(data(), 2)).toBe(false);
+    expect(openDialogFn).toHaveBeenLastCalledWith('taskDetail', expect.objectContaining({
+      relations: { blockedBy: [expect.objectContaining({ id: 2 })], blocks: [], related: [] }
+    }));
+    expect(enqueueSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancelling replacement or removal changes nothing; confirmed removal deletes only the relation', async () => {
+    const { actions, data, confirm, enqueueSave } = setup();
+    await actions.associatePortfolioTasks('p1', 1, 2, 'blocks');
+    const before = structuredClone(data());
+    enqueueSave.mockClear();
+    confirm.mockReturnValueOnce(false);
+    await expect(actions.associatePortfolioTasks('p1', 1, 2, 'related', true)).resolves.toBe(false);
+    expect(data()).toEqual(before);
+    confirm.mockReturnValueOnce(false);
+    await expect(actions.removePortfolioTaskRelation('p1', 1, 2)).resolves.toBe(false);
+    expect(data()).toEqual(before);
+    expect(enqueueSave).not.toHaveBeenCalled();
+    await expect(actions.removePortfolioTaskRelation('p1', 1, 2)).resolves.toBe(true);
+    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('Both workitems will be preserved'), { confirmLabel: 'Remove' });
+    expect(getRelations(data())).toEqual([]);
+    expect(data().board.tasks).toEqual(before.board.tasks);
+    expect(isTaskBlocked(data(), 2)).toBe(false);
   });
 
   it('discards a related creation if the source disappeared while editing', async () => {

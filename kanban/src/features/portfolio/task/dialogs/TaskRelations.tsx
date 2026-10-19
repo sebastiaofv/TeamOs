@@ -9,7 +9,7 @@ const GROUPS: TaskRelationKind[] = ['blockedBy', 'blocks', 'related'];
 export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
     const { associatePortfolioTasks, removePortfolioTaskRelation, openPortfolioCreateRelatedTask, openPortfolioTaskDetails } = usePortfolioActions();
-    const [mode, setMode] = useState<'link' | 'create' | null>(null);
+    const [mode, setMode] = useState<'link' | 'create' | 'edit' | null>(null);
     const [search, setSearch] = useState('');
     const [otherId, setOtherId] = useState('');
     const [kind, setKind] = useState<TaskRelationKind | ''>('');
@@ -23,7 +23,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     const activeTask = pickerOpen ? candidates[activeIndex] : undefined;
     const existing = GROUPS.some((group) => vm.relations[group].some((task) => task.id === Number(otherId)));
     const label = (task: TaskRelationEntry) => `#${task.id} ${task.title} · ${task.status}${task.archived ? ` · ${t('table.archived')}` : ''}`;
-    const start = (nextMode: 'link' | 'create', task?: TaskRelationEntry) => {
+    const start = (nextMode: 'link' | 'create' | 'edit', task?: TaskRelationEntry) => {
         setMode(nextMode);
         setSearch(task ? label(task) : '');
         setOtherId(task ? String(task.id) : '');
@@ -88,6 +88,15 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
             setBusy(false);
         }
     };
+    const remove = async (taskId: number) => {
+        if (busy) return;
+        setBusy(true);
+        try {
+            if (await removePortfolioTaskRelation(vm.boardId, vm.taskId, taskId)) setMode(null);
+        } finally {
+            setBusy(false);
+        }
+    };
 
     return (
         <section className="task-relations" aria-labelledby="taskRelationsHeading">
@@ -100,26 +109,41 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                         <ul className="relation-list">
                             {vm.relations[group].map((task) => (
                                 <li key={task.id}>
-                                    <div className="relation-item-summary">
-                                        <button type="button" className="relation-item-link" onClick={() => openPortfolioTaskDetails(vm.boardId, task.id,
+                                    <div className="relation-row">
+                                        <button type="button" className="relation-item-link" aria-label={`#${task.id} ${task.title}${task.archived ? ` · ${t('table.archived')}` : ''}`}
+                                            onClick={() => openPortfolioTaskDetails(vm.boardId, task.id,
                                             vm.readOnly ? { readOnly: true, boardData: vm.sourceBoardData } : {})}>
-                                            #{task.id} {task.title}{task.archived ? ` · ${t('table.archived')}` : ''}
+                                            #{task.id}
                                         </button>
-                                        <dl className="relation-item-meta">
-                                            <div>
-                                                <dt className="detail-label">{t('task.status')}</dt>
-                                                <dd className="detail-value">{task.status}</dd>
-                                            </div>
-                                            <div>
-                                                <dt className="detail-label">{t('task.assignees')}</dt>
-                                                <dd className="detail-value">{task.assignees.join(', ') || '—'}</dd>
-                                            </div>
-                                        </dl>
+                                        <span className="relation-item-name" title={task.title}>
+                                            <span className="relation-item-title">{task.title}</span>
+                                            {task.archived && <span className="relation-item-archived">{t('table.archived')}</span>}
+                                        </span>
+                                        <span className="relation-item-status" aria-label={t('task.status')} title={task.status}>{task.status}</span>
+                                        <span className="relation-item-responsible" aria-label={t('task.responsible')} title={task.responsible || undefined}>{task.responsible || '—'}</span>
+                                        {!vm.readOnly && <div className="relation-row-actions">
+                                            <button type="button" className="task-action-btn" aria-label={t('relations.edit')} title={t('relations.edit')}
+                                                aria-expanded={mode === 'edit' && otherId === String(task.id)} disabled={busy}
+                                                onClick={() => start('edit', task)}><span aria-hidden="true">&#9998;</span></button>
+                                            <button type="button" className="task-action-btn task-action-danger" aria-label={t('common.remove')} title={t('common.remove')}
+                                                disabled={busy} onClick={() => void remove(task.id)}><span aria-hidden="true">🗑️</span></button>
+                                        </div>}
                                     </div>
-                                    {!vm.readOnly && <div className="relation-actions">
-                                        <button type="button" className="btn" onClick={() => start('link', task)}>{t('relations.replace')}</button>
-                                        <button type="button" className="btn" onClick={() => void removePortfolioTaskRelation(vm.boardId, vm.taskId, task.id)}>{t('common.remove')}</button>
-                                    </div>}
+                                    {!vm.readOnly && mode === 'edit' && otherId === String(task.id) &&
+                                        <form className="relation-form relation-inline-editor" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+                                            <label htmlFor={`relationEditKind-${task.id}`}>{t('relations.kind')}</label>
+                                            <select id={`relationEditKind-${task.id}`} value={kind} disabled={busy}
+                                                onChange={(event) => setKind(event.target.value as TaskRelationKind | '')} required>
+                                                <option value="">{t('common.choose')}</option>
+                                                {GROUPS.filter((choice) => choice !== group).map((choice) =>
+                                                    <option value={choice} key={choice}>{t(`relations.choice.${choice}`)}</option>)}
+                                            </select>
+                                            {kind && <p className="relation-preview" role="status">{t(`relations.sentence.${kind}`, { a: `#${vm.taskId}`, b: `#${task.id}` })}</p>}
+                                            <div className="relation-actions">
+                                                <button type="submit" className="btn btn-primary" disabled={busy || !kind}>{t('common.save')}</button>
+                                                <button type="button" className="btn" disabled={busy} onClick={() => setMode(null)}>{t('common.cancel')}</button>
+                                            </div>
+                                        </form>}
                                 </li>
                             ))}
                         </ul>
@@ -128,10 +152,10 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
             ))}
             {!vm.readOnly && <>
                 <div className="relation-actions">
-                    <button type="button" className="btn" onClick={() => start('link')}>{t('relations.link')}</button>
-                    <button type="button" className="btn" onClick={() => start('create')}>{t('relations.create')}</button>
+                    <button type="button" className="btn" disabled={busy} onClick={() => start('link')}>{t('relations.link')}</button>
+                    <button type="button" className="btn" disabled={busy} onClick={() => start('create')}>{t('relations.create')}</button>
                 </div>
-                {mode && <form className="relation-form" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+                {(mode === 'link' || mode === 'create') && <form className="relation-form" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                     {mode === 'link' && <>
                         <label htmlFor="relationSearch">{t('relations.search')}</label>
                         <div className="relation-picker" onBlur={(event) => {

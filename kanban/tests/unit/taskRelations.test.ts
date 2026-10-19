@@ -3,6 +3,7 @@ import { createEmptyProjectData, validateBoardData } from '@/domain/board';
 import { normalizeTask } from '@/domain/task';
 import { serializeBoardDataFromObject } from '@/domain/serialize';
 import fixture from '../fixtures/task-relations-v1.board.json';
+import manualBoard from '../../test-board/us-2.board.json';
 import { BoardRepository } from '@/infrastructure/persistence/boardRepository';
 import { getRelations, getTaskRelations, isTaskBlocked, removeTaskRelation, setTaskRelation } from '@/domain/taskRelations';
 
@@ -13,6 +14,15 @@ function project() {
 }
 
 describe('workitem relations', () => {
+  it('validates and round-trips the manual US2 board with full responsible names and compact relation scenarios', () => {
+    validateBoardData(manualBoard);
+    const saved = serializeBoardDataFromObject(manualBoard);
+    validateBoardData(saved);
+    expect(saved.board.tasks.map((task) => task.id)).toEqual(manualBoard.board.tasks.map((task) => task.id));
+    expect(saved.extensions.taskRelations).toEqual(manualBoard.extensions.taskRelations);
+    expect(saved.board.tasks.find((task) => task.id === 206)).toMatchObject({ responsible: 'Marta Sofia Costa', assignees: ['Ana', 'Marta Sofia Costa'] });
+    expect(saved.board.tasks.find((task) => task.id === 207)).toMatchObject({ responsible: '', assignees: ['Ana'] });
+  });
   it('imports the versioned file fixture and its legacy equivalent without losing IDs, roadmap, manual blocking or unknown extensions', async () => {
     for (const legacy of [false, true]) {
       const input = structuredClone(fixture);
