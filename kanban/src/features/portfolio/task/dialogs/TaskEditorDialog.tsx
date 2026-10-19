@@ -5,7 +5,6 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import type { TaskFocusField } from '@/features/portfolio/commands/taskCommands';
 import { buildTaskDraft } from '@/domain/taskDraft';
-import { editTaskParticipant, removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
@@ -18,7 +17,7 @@ import { useI18n } from '@/shared/i18n';
 type SubmitRef = RefObject<(() => Promise<void>) | null>;
 
 // The form fields edited through a plain input, textarea or select.
-type TextField = 'title' | 'description' | 'responsible' | 'blockerReason' | 'dueDate' | 'priority' | 'effort' | 'phaseId' | 'milestoneId';
+type TextField = 'title' | 'description' | 'blockerReason' | 'dueDate' | 'priority' | 'effort' | 'phaseId' | 'milestoneId';
 
 const PRIORITY_OPTIONS = [['', 'None'], ['high', 'High'], ['medium', 'Medium'], ['low', 'Low']];
 const EFFORT_OPTIONS = [['', 'None'], ['XS', 'XS'], ['S', 'S'], ['M', 'M'], ['L', 'L'], ['XL', 'XL']];
@@ -68,7 +67,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
     nameRef: RefObject<HTMLInputElement | null>;
     submitRef: SubmitRef;
 }) {
-    const { saveTask, confirmResponsibleParticipantRemoval } = usePortfolioActions();
+    const { saveTask } = usePortfolioActions();
     const { t } = useI18n();
     const [form, setForm] = useState<TaskEditorFields>(() => ({ ...vm.initial }));
     const blockerReasonRef = useRef<HTMLTextAreaElement>(null);
@@ -96,12 +95,6 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
         if (blocked) {
             requestAnimationFrame(() => blockerReasonRef.current?.focus());
         }
-    };
-
-    const removeParticipant = async (index: number) => {
-        const result = removeTaskParticipant(form, index);
-        if (result.needsConfirmation && !(await confirmResponsibleParticipantRemoval(form.assignees[index]))) return;
-        setForm((current) => removeTaskParticipant(current, index, true).task);
     };
 
     return (
@@ -139,18 +132,8 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="taskResponsible">{t('task.responsible')}</label>
-                        <input type="text" id="taskResponsible" list="taskResponsibleSuggestions" placeholder={t('task.noResponsible')}
-                            {...bind('responsible')} onBlur={() => setForm((current) => setTaskResponsible(current, current.responsible))} />
-                        <datalist id="taskResponsibleSuggestions">
-                            {[...new Set([...form.assignees, ...vm.assigneePool])].map((name) => <option key={name} value={name} />)}
-                        </datalist>
-                    </div>
-                    <div className="form-group">
                         <label id="taskAssigneesLabel">{t('task.assignees')}</label>
-                        <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool}
-                            onRename={(index, name) => setForm((current) => editTaskParticipant(current, index, name))}
-                            onRemove={removeParticipant} />
+                        <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool} />
                     </div>
                     <div className="form-group">
                         <label id="taskTagsLabel">{t('task.tags')}</label>

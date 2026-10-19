@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createAppStore } from '../../src/features/portfolio/state/store';
 import { buildPortfolioPlannerViewModel } from '../../src/features/portfolio/queries';
-import { DEFAULT_PORTFOLIO_FILTERS } from '../../src/domain/portfolioFilters';
 
 function task(id: number, title: string, status = 'to-do', extra: Record<string, unknown> = {}) {
   return fromPartial({
@@ -82,7 +81,7 @@ describe('buildPortfolioPlannerViewModel', () => {
     ], [
       { id: 'd', taskId: 1, date: TODAY, start: '09:00', end: '10:00' },
       { id: 'r', taskId: 2, date: TODAY, start: '10:00', end: '11:00' }
-    ], null)], { portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, archive: 'all' } });
+    ], null)]);
     const [done, archived] = buildPortfolioPlannerViewModel(s, { today: TODAY, trayStatuses: ACTIVE }).days[0].blocks;
     expect(done).toMatchObject({ done: true, archived: false, canEdit: false });
     expect(archived).toMatchObject({ done: false, archived: true });
@@ -102,19 +101,5 @@ describe('buildPortfolioPlannerViewModel', () => {
       ['Planned', true, true],
       ['Unplanned', false, true]
     ]);
-  });
-
-  it('applies shared status and roadmap filters to both scheduled blocks and the tray', () => {
-    const s = state([board('a', 'Alpha', [
-      task(1, 'Matching', 'doing', { phaseId: 'build', milestoneId: 'launch', sprintId: 's1' }),
-      task(2, 'Other status', 'to-do', { phaseId: 'build', milestoneId: 'launch', sprintId: 's1' }),
-      task(3, 'Other phase', 'doing', { phaseId: 'design', milestoneId: 'launch', sprintId: 's1' })
-    ], [1, 2, 3].map((taskId) => ({ id: `b${taskId}`, taskId, date: TODAY, start: '09:00', end: '10:00' })))], {
-      portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: ['doing'], phaseId: 'build', milestoneId: 'launch', sprintId: 's1' }
-    });
-    const model = buildPortfolioPlannerViewModel(s, { today: TODAY, trayStatuses: ACTIVE });
-    expect(model.days[0].blocks.map((block) => block.taskId)).toEqual([1]);
-    expect(model.trayGroups[0].items.map((item) => item.taskId)).toEqual([1]);
-    expect(model.plannedMinutes).toBe(60);
   });
 });

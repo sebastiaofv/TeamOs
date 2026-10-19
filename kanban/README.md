@@ -6,14 +6,13 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 
 - **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
 - **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag cards between columns with a mouse or by touch (keyboard: `1`–`4`), add/edit/archive/delete tasks, undo after archiving.
-- **Tasks** — title, description, participants and an optional responsible person, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
-- **Filters and sort** — search (with highlighting), archive state, blocked, responsible person, participant, priority, effort and planning; sort by priority, effort, score (priority / effort) or name. Filters combine across every view and are kept in the URL.
+- **Tasks** — title, description, assignees, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
+- **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
 - **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
 - **Calendar view** — year and month calendars with tasks and roadmap spans, plus a heatmap mode.
 - **Command palette** — `⌘K` / `Ctrl+K`, `/` or the toolbar search box. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan, archive); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
 - **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
 - **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
-- **Table perspectives** (single project) — All workitems, Unplanned (not Done and no sprint) with selection-to-sprint creation, and collapsible per-sprint tables. Sprint headers retain dates, date-derived Planned/Active/Done status and completeness over all unique current members, including archived items. Filters affect rows/CSV, not the sprint denominator. Timestamps display as UTC `yyyy-mm-dd HH:mm:ss`; columns have minimum widths, two-line cells and horizontal scrolling, with colored status and blocked badges.
 - **Light and dark theme.**
 
 ## Data and persistence
@@ -25,14 +24,10 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 ### Task and schema invariants
 
 - Task titles are required and capped at 80 characters.
-- Participants are saved as an `assignees` array; `responsible` is an optional name (empty string when unset) and always belongs to that array. Names are trimmed and deduplicated case-insensitively. Selecting, changing or clearing responsibility preserves existing participants; correcting the responsible participant's name updates both fields in that item. Removing that participant asks for confirmation before clearing responsibility. Neither field is required to save or change status.
-- Schema v2 adds responsibility. Version 1 files migrate on import/save without choosing a responsible person, even for one participant; older `assignee` strings/arrays still import. IDs, roadmap and existing timeline events are preserved. Assignment changes record before/after values in the same timeline. Regression fixture: `tests/fixtures/assignments-v1.board.json`.
-- Responsible/participant filters each offer All, no allocation, or a name; they combine with each other. The palette offers both participant toggles and Set responsible. Quick-create `@name` adds participants and leaves responsibility unset. The table has a separate configurable Responsible column.
+- Assignees are saved as an `assignees` array; older single `assignee` strings still import.
 - Blocked tasks require `blockerReason`.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
-- Sprint status in the table is calendar-based (before start / within inclusive dates / after end), refreshed at local midnight and when the tab resumes, not a persisted closure. There is no automatic rollover or frozen closure data yet. `tableViews.ts` separates the current `sprintId` adapter from per-sprint rosters; future closure snapshots can supply independent read-only rows, board data and completion totals, including the same workitem in several sprints. The current file schema remains unchanged.
-- Table → Sprints displays `Sprint [number] - [user title]`, newest-created first, independently of planning dates. Project-local identities live in `extensions.sprintCatalog` v1 (`lastNumber`, entries with `sprintId`, `number`, `createdAt`). New sprints created from Roadmap, Board or Table receive the next number and creation timestamp; edits preserve both. Deleted IDs/numbers stay reserved, including across timeline preview/restore. Legacy migration reserves sprints by first appearance in existing history snapshots/events, then current-only sprints by array order, with `createdAt: null` (unknown); already assigned numbers are preserved. Unknown dates sort by descending assigned number after dated entries. No creation events or dates are fabricated, and workitem/roadmap IDs remain intact. See `tests/fixtures/sprints-legacy-v1.board.json`.
 
 ## Keyboard shortcuts
 
@@ -86,7 +81,7 @@ open dist-standalone/index.html
 
 This produces one self-contained HTML file. The regular `npm run build` continues to generate the normal `dist/` bundle.
 
-`dist/` and `dist-standalone/` are committed build outputs, so each branch and PR includes its own runnable builds. Before committing app changes, run both `npm run build` and `npm run build:standalone`, and include the regenerated folders. CI also publishes builds as described below.
+`dist/` and `dist-standalone/` are build output and are not committed; CI publishes them (below).
 
 ## Continuous integration and downloads
 
@@ -107,11 +102,9 @@ The workflow can also be started by hand from the Actions tab (*Run workflow*).
 
 ## Testing
 
-Manual boards, walkthroughs and general instructions are together in [`test-board/`](test-board/README.md); each story supplies its JSON and `us-N.md` in its matching branch and PR. Import a copy for writable tests; drag and drop for read-only tests.
-
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
 - `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
-- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if the port is already taken. Set `PLAYWRIGHT_PORT` for concurrent worktree runs.
+- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if 4174 is already taken.
 - `npm run lint` — ESLint with `typescript-eslint`.
 
 Visual baselines in `tests/visual.test.ts-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.ts --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.ts`; the browser globals they install are declared in `tests/support/testGlobals.d.ts`.

@@ -179,8 +179,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
             {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
                 <div className="task-meta">
                     {showProjectBadge && <span className="portfolio-project-badge" style={{ background: color.bg, borderColor: color.border, color: color.text }} title={projectLabel}>{projectLabel}</span>}
-                    {task.responsible && <span className="task-tag task-tag-assignee" title={t('task.responsible')}>{t('task.responsible')}: {task.responsible}</span>}
-                    {assignees.map((name) => <span className="task-tag task-tag-assignee" title={t('toolbar.participant').replace(/:$/, '')} key={`assignee-${name}`}>{name}</span>)}
+                    {assignees.map((name) => <span className="task-tag task-tag-assignee" title={t('task.assignee')} key={`assignee-${name}`}>{name}</span>)}
                     {normalizeTags(task.tags).map((tag) => <span className="task-tag task-tag-label" key={`tag-${tag}`}>{tag}</span>)}
                     {task.blocked && <span className="task-tag task-tag-blocked" title={t('task.blocked')}>{t('task.blocked')}</span>}
                     {localizedStatusAge && <span className="task-tag task-tag-age" title={t('task.timeInStatus')}>{localizedStatusAge}</span>}

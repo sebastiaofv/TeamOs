@@ -3,7 +3,6 @@ import { createAppStore as createStore } from '../../src/features/portfolio/stat
 import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createPortfolioControlActions } from '../../src/features/portfolio/commands/portfolioControls';
-import { DEFAULT_PORTFOLIO_FILTERS } from '../../src/domain/portfolioFilters';
 
 function createBoard(id: string, title: string, options: { sprints?: any[]; handle?: any; sourceKey?: string } = {}) {
     const data = createEmptyProjectData(title);
@@ -95,10 +94,6 @@ describe('portfolio control actions', () => {
         actions.setPortfolioFilter('search', 'beta');
         actions.setPortfolioFilter('priority', 'high');
         actions.setPortfolioFilter('blocked', 'blocked');
-        actions.setPortfolioFilter('statuses', ['doing']);
-        actions.setPortfolioFilter('phaseId', 'build');
-        actions.setPortfolioFilter('milestoneId', 'launch');
-        actions.setPortfolioFilter('sprintId', 's1');
         actions.setPortfolioSort('score');
 
         actions.clearPortfolioFilter('priority');
@@ -106,7 +101,7 @@ describe('portfolio control actions', () => {
 
         actions.clearPortfolioFilters();
         expect(store.getState().portfolioFilters).toEqual({
-            ...DEFAULT_PORTFOLIO_FILTERS, search: 'beta'
+            search: 'beta', archive: 'active', blocked: 'all', assignee: '', priority: '', effort: ''
         });
         expect(store.getState().portfolioSortKey).toBe('score');
     });
@@ -160,7 +155,14 @@ describe('portfolio control actions', () => {
 
         actions.resetPortfolioFilters();
 
-        expect(store.getState().portfolioFilters).toEqual(DEFAULT_PORTFOLIO_FILTERS);
+        expect(store.getState().portfolioFilters).toEqual({
+            search: '',
+            archive: 'active',
+            blocked: 'all',
+            assignee: '',
+            priority: '',
+            effort: ''
+        });
         expect(store.getState().portfolioSortKey).toBe('priority');
         expect(store.getState().portfolioSortDir).toBe('asc');
         expect(store.getState().portfolioVisibleRows).toHaveLength(1);

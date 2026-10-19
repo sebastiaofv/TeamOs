@@ -21,13 +21,11 @@ import type {
 import type { TaskStatus, RoadmapKind } from '@/domain/types';
 import type { AppMessage } from '@/app/types';
 import type { Language, Theme } from '@/shared/types/ui';
-import type { TableSort } from '@/features/portfolio/table/tableModel';
-import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 
 export type EditContext = { boardId: string; taskId: number };
 export type CreateContext = { boardId: string; status: TaskStatus };
 export type DetailContext = { boardId: string; taskId: number; readOnly: boolean };
-export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode; unplannedTaskIds?: number[] };
+export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };
 
 export type PortfolioSlice = {
@@ -38,7 +36,6 @@ export type PortfolioSlice = {
     selectedPortfolioBoardId: string;
     selectedPortfolioViewMode: PortfolioViewMode;
     portfolioFilters: PortfolioFilters;
-    portfolioTableSortByBoardId: Record<string, TableSort>;
     portfolioSortKey: PortfolioSortKey;
     portfolioSortDir: SortDir;
     portfolioEditContext: EditContext | null;
@@ -89,8 +86,14 @@ export function createPortfolioSlice(): PortfolioSlice {
         portfolioVisibleRows: [],
         selectedPortfolioBoardId: '',
         selectedPortfolioViewMode: 'board',
-        portfolioTableSortByBoardId: {},
-        portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: [] },
+        portfolioFilters: {
+            search: '',
+            archive: 'active',
+            blocked: 'all',
+            assignee: '',
+            priority: '',
+            effort: ''
+        },
         portfolioSortKey: 'priority',
         portfolioSortDir: 'asc',
         portfolioEditContext: null,

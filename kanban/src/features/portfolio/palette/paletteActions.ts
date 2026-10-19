@@ -18,7 +18,6 @@ export type PaletteDeps = {
     selectCard: (boardId: string, taskId: number) => void;
     moveTask: (boardId: string, taskId: number, status: TaskStatus) => Promise<boolean>;
     toggleAssignee: (boardId: string, taskId: number, name: string) => Promise<boolean>;
-    setResponsible: (boardId: string, taskId: number, name: string) => Promise<boolean>;
     setPriority: (boardId: string, taskId: number, priority: Priority | null) => Promise<boolean>;
     planTask: (boardId: string, taskId: number, date: string, startMinutes: number) => Promise<boolean>;
     createTask: (boardId: string, fields: QuickCreateFields) => Promise<number | null>;
@@ -46,7 +45,6 @@ export async function runPaletteAction(action: PaletteAction, deps: PaletteDeps)
     case 'editTask': deps.editTask(action.boardId, action.taskId); return;
     case 'toggleArchive': await deps.toggleArchive(action.boardId, action.taskId); return;
     case 'toggleAssignee': await deps.toggleAssignee(action.boardId, action.taskId, action.name); return;
-    case 'setResponsible': await deps.setResponsible(action.boardId, action.taskId, action.name); return;
     case 'setPriority': await deps.setPriority(action.boardId, action.taskId, action.priority); return;
     case 'planTask': await deps.planTask(action.boardId, action.taskId, action.date, action.startMinutes); return;
     case 'selectProject': deps.selectBoard(action.boardId); return;
@@ -72,7 +70,6 @@ export async function runPaletteAction(action: PaletteAction, deps: PaletteDeps)
         switch (action.id) {
         case 'view-board': deps.setViewMode('board'); return;
         case 'view-roadmap': deps.setViewMode('roadmap'); return;
-        case 'view-table': deps.setViewMode('table'); return;
         case 'view-calendar': deps.setViewMode('calendar'); return;
         case 'view-planner': deps.setViewMode('planner'); return;
         case 'open-filters': deps.openFilters(); return;

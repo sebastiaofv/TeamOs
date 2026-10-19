@@ -271,9 +271,9 @@ describe('createEmptyProjectData', () => {
     expect(() => validateBoardData(createEmptyProjectData(''))).not.toThrow();
   });
 
-  it('sets meta.schemaVersion to 2 and meta.appId to teamos-kanban', () => {
+  it('sets meta.schemaVersion to 1 and meta.appId to teamos-kanban', () => {
     const data = createEmptyProjectData('Title');
-    expect(data.meta.schemaVersion).toBe(2);
+    expect(data.meta.schemaVersion).toBe(1);
     expect(data.meta.appId).toBe('teamos-kanban');
   });
 

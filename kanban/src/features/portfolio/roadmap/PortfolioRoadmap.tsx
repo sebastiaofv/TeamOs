@@ -16,7 +16,6 @@ import {
     getRoadmapTodayMarker
 } from '@/domain/roadmap';
 import { normalizeTask } from '@/domain/task';
-import { taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
 
@@ -134,8 +133,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                         const expandKey = `${config.singular}:${item.id}`;
                         const expanded = Boolean(expandedRows[expandKey]);
                         const placement = getRoadmapTimelinePlacement(item, range);
-                        const tasks = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id)
-                            .filter((task) => taskMatchesPortfolioFilters(task, state.portfolioFilters));
+                        const tasks = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id);
                         const rowId = `roadmap-row-${config.singular}-${item.id}`;
                         const taskListId = `roadmap-tasks-${config.singular}-${item.id}`;
                         return (

@@ -14,7 +14,6 @@ export type SeedTask = {
   status?: string;
   description?: string;
   assignees?: unknown[];
-  responsible?: string;
   assignee?: unknown;
   tags?: unknown[];
   blocked?: boolean;
@@ -68,7 +67,6 @@ function buildTaskPayload(task: SeedTask, index: number) {
     title: task.title,
     description: task.description || '',
     assignees,
-    ...(Object.hasOwn(task, 'responsible') ? { responsible: task.responsible } : {}),
     tags: Array.isArray(task.tags) ? task.tags : [],
     blocked: Boolean(task.blocked),
     blockerReason: task.blocked ? (task.blockerReason || '') : '',
@@ -90,7 +88,7 @@ function buildTaskPayload(task: SeedTask, index: number) {
 function buildBoardPayload({ title, tasks = [], extensions = {} }: { title: string; tasks?: SeedTask[]; extensions?: unknown }) {
   return {
     meta: {
-      schemaVersion: tasks.some((task) => Object.hasOwn(task, 'responsible')) ? 2 : BOARD_SCHEMA_VERSION,
+      schemaVersion: BOARD_SCHEMA_VERSION,
       appId: BOARD_APP_ID,
       createdAt: FIXED_TIMESTAMP,
       updatedAt: FIXED_TIMESTAMP

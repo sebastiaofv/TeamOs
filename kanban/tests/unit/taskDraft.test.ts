@@ -248,7 +248,7 @@ describe('buildTaskDraft', () => {
       description: '  Notes ',
       blocked: true,
       blockerReason: '  API down ',
-      assignees: ['Alex', ' ', 'alex', 'Sam, Jo'], responsible: '',
+      assignees: ['Alex', ' ', 'alex', 'Sam, Jo'],
       tags: ['bug', ' UI '],
       checklist: [{ text: ' First ', done: true }, { text: '   ', done: false }, { text: 'Second', done: false }],
       attachments: [fromAny(record())],
@@ -260,7 +260,6 @@ describe('buildTaskDraft', () => {
     });
 
     expect(draft).toEqual({
-      responsible: '',
       title: 'Ship it',
       description: 'Notes',
       assignees: ['Alex', 'Sam, Jo'],
@@ -293,7 +292,7 @@ describe('buildTaskDraft', () => {
 
   it('keeps an invalid raw due date so validation can reject it', () => {
     const draft = buildTaskDraft({
-      title: 'x', description: '', blocked: false, blockerReason: '', assignees: [], responsible: '', tags: [],
+      title: 'x', description: '', blocked: false, blockerReason: '', assignees: [], tags: [],
       checklist: [], attachments: [], dueDate: '05/03/2026', priority: '', effort: '', phaseId: '', milestoneId: ''
     });
     expect(draft.rawDueDate).toBe('05/03/2026');

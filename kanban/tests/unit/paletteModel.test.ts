@@ -59,7 +59,7 @@ describe('buildPaletteModel', () => {
     }));
     expect(model.sections.map((section) => section.id)).toEqual(['context', 'recent', 'commands']);
     expect(model.sections[0].title).toBe('Hero copy review');
-    expect(labels(model, 'context')).toEqual(['Open details', 'Move to In Progress', 'Move to Done', 'Assign…', 'Set responsible…', 'Plan in Day Planner…']);
+    expect(labels(model, 'context')).toEqual(['Open details', 'Move to In Progress', 'Move to Done', 'Assign…', 'Plan in Day Planner…']);
     expect(labels(model, 'recent')).toEqual(['Login bug on Android', 'Go to Day Planner']);
   });
 
@@ -110,7 +110,7 @@ describe('buildPaletteModel', () => {
     expect(model.breadcrumbs).toEqual(['#7 Login bug on Android']);
     expect(labels(model, 'actions')).toEqual([
       'Open details', 'Move to Backlog', 'Move to To Do', 'Move to Done', 'Move to…',
-      'Assign…', 'Set responsible…', 'Set priority…', 'Plan in Day Planner…', 'Edit', 'Archive'
+      'Assign…', 'Set priority…', 'Plan in Day Planner…', 'Edit', 'Archive'
     ]);
     const readOnly = buildPaletteModel(input({ stack: [{ kind: 'task', boardId: 'ops', taskId: 3 }] }));
     expect(labels(readOnly, 'actions')).toEqual(['Open details']);
