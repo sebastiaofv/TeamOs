@@ -6,7 +6,7 @@ Board: [`us-1.board.json`](us-1.board.json). Branch: `us-1`. Issue: [#25](https:
 2. Por defeito: **28 itens ativos** (inclui concluídos). **Todos: 30**. **Arquivados: 2** (#108 e #109).
 3. Ordenar por ID ascendente e selecionar **25 linhas por página**: duas páginas; #130 aparece na segunda. Abrir/fechar um detalhe deve manter página, ordenação e filtros.
 4. Pesquisar `OAuth`, `101` ou `acessibilidade` (esta última só está na descrição de #102).
-5. Combinar pessoa `Ana`, estado `doing`, prioridade alta e etapa `Construção`: apenas **#101**. Na US1, o filtro de pessoas chama-se Assignee/Responsável.
+5. Combinar **Participante = Ana**, estado `doing`, prioridade alta e etapa `Construção`: apenas **#101**. O filtro **Responsável** é separado; este board v1 migra sem atribuir responsáveis automaticamente, pelo que **Responsável = Ana** não devolve itens.
 6. Testar planeamento, esforço, bloqueados (#103), datas e campos em falta (#105). Mostrar, esconder e reordenar colunas e recarregar.
 7. Exportar CSV com vírgula e ponto e vírgula: respeita filtros, colunas e todas as páginas. #106 testa vírgulas/aspas/quebras de linha; #107 testa título semelhante a fórmula, exportado como texto.
 
@@ -42,3 +42,4 @@ Usar uma cópia nova e **editável** do board, antes de executar os passos que c
 23. Numa cópia nova, selecionar apenas #105 e adicioná-lo a Validação: associação individual funciona igualmente. Uma seleção prévia diferente no Board mantém-se independente da seleção da Tabela, incluindo após confirmar.
 24. Para o estado sem destinos, numa cópia de teste alterar os fins dos quatro sprints para datas passadas válidas (sem inverter início/fim), ou remover todos os sprints pelo Roadmap. Selecionar um item por planear: **Adicionar ao sprint** permanece desativado e o tooltip explica que não existem sprints planeados/ativos. **Criar sprint** continua disponível. Em importação só de leitura e preview histórico, nenhuma das duas ações de planeamento aparece.
 25. Se o destino terminar à meia-noite com o seletor aberto, desaparece da lista e a confirmação fica desativada até escolher outro destino elegível. Se o sprint for eliminado ou um dos itens entretanto for concluído/planeado, a validação ao guardar recusa toda a associação e apresenta uma mensagem; não há associação parcial. Os testes automatizados cobrem estes casos e a proteção de só de leitura/histórico.
+26. Repetir pelo **Board → seleção múltipla → Adicionar ao sprint existente**: os sprints terminados também não são oferecidos e a elegibilidade é revalidada ao guardar. O Board não permite contornar a restrição de destino da Tabela.

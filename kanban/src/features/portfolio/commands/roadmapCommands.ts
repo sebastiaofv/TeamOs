@@ -94,7 +94,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 startDate: item?.startDate || '',
                 endDate: item?.endDate || ''
             },
-            sprintOptions: assignExistingMode && options.unplannedTaskIds
+            sprintOptions: assignExistingMode
                 ? buildAssignableSprintOptions(boardRecord.data, todayLocalIsoDate(), getCurrentLanguage())
                 : buildRoadmapSprintOptions(roadmap.sprints || []),
             initialFocus: assignExistingMode ? 'existingSprint' : 'title'
@@ -187,7 +187,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const sprint = Array.isArray(roadmap.sprints)
                 ? roadmap.sprints.find((entry) => entry.id === normalizedSprintId)
                 : null;
-            if (!sprint || (unplannedTaskIds && getSprintCalendarStatus(sprint, todayLocalIsoDate()) === 'done')) {
+            if (!sprint || getSprintCalendarStatus(sprint, todayLocalIsoDate()) === 'done') {
                 alert(translateCurrent('roadmapDialog.sprintUnavailable'));
                 return false;
             }
