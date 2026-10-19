@@ -46,6 +46,7 @@ test.describe('roadmap', () => {
   });
 
   test('checked board tasks can be added to an existing sprint from the bulk action bar', async ({ page }) => {
+    await page.clock.setFixedTime(new Date('2026-04-07T12:00:00Z'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
       id: 'alpha',

@@ -93,30 +93,37 @@ for (const scenario of ['no sprints', 'all Done', 'read-only'] as const) {
   });
 }
 
-test('an open sprint picker removes a sprint when it becomes Done at midnight', async ({ page }) => {
-  await page.clock.install({ time: new Date('2026-10-19T23:59:58Z') });
-  await page.clock.pauseAt(new Date('2026-10-19T23:59:59Z'));
-  await gotoApp(page);
-  await seedPortfolioBoards(page, [{ id: 'p', title: 'Midnight assignment', hasHandle: true, tasks: [
-    { id: 1, title: 'Unplanned item', status: 'backlog' }
-  ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [
-    { id: 'ending', title: 'Ending', startDate: '2026-10-01', endDate: '2026-10-19' },
-    { id: 'next', title: 'Next', startDate: '2026-10-20', endDate: '2026-10-30' }
-  ] } } }], { selectedBoardId: 'p' });
-  await page.locator('[data-view-mode="table"]').click();
-  await page.locator('[data-table-view="unplanned"]').click();
-  await page.locator('#workitemsTable input[aria-label="Select Unplanned item"]').check();
-  await page.locator('#tableAddToSprint').click();
-  const select = page.locator('#roadmapEntityExistingSprint');
-  await select.selectOption('ending');
-  await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeEnabled();
-  await page.clock.fastForward(2000);
-  await expect(select.locator('option[value="ending"]')).toHaveCount(0);
-  await expect(select).toHaveValue('');
-  await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeDisabled();
-  expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
-  await select.selectOption('next');
-  await page.locator('#roadmapEntityModalSaveBtn').click();
-  await waitForBoardWrites(page);
-  expect((await readSavedBoard(page, 'p')).board.tasks[0].sprintId).toBe('next');
-});
+for (const view of ['Table', 'Board']) {
+  test(`an open ${view} sprint picker removes a sprint when it becomes Done at midnight`, async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-10-19T23:59:58Z') });
+    await page.clock.pauseAt(new Date('2026-10-19T23:59:59Z'));
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Midnight assignment', hasHandle: true, tasks: [
+      { id: 1, title: 'Unplanned item', status: 'backlog' }
+    ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [
+      { id: 'ending', title: 'Ending', startDate: '2026-10-01', endDate: '2026-10-19' },
+      { id: 'next', title: 'Next', startDate: '2026-10-20', endDate: '2026-10-30' }
+    ] } } }], { selectedBoardId: 'p' });
+    if (view === 'Table') {
+      await page.locator('[data-view-mode="table"]').click();
+      await page.locator('[data-table-view="unplanned"]').click();
+      await page.locator('#workitemsTable input[aria-label="Select Unplanned item"]').check();
+      await page.locator('#tableAddToSprint').click();
+    } else {
+      await portfolioCard(page, 'Unplanned item').locator('input[type="checkbox"]').check();
+      await page.locator('#portfolioBulkAssignSprintBtn').click();
+    }
+    const select = page.locator('#roadmapEntityExistingSprint');
+    await select.selectOption('ending');
+    await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeEnabled();
+    await page.clock.fastForward(2000);
+    await expect(select.locator('option[value="ending"]')).toHaveCount(0);
+    await expect(select).toHaveValue('');
+    await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeDisabled();
+    expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
+    await select.selectOption('next');
+    await page.locator('#roadmapEntityModalSaveBtn').click();
+    await waitForBoardWrites(page);
+    expect((await readSavedBoard(page, 'p')).board.tasks[0].sprintId).toBe('next');
+  });
+}

@@ -59,11 +59,11 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     const { saveRoadmapEntity } = usePortfolioActions();
     const { t, language } = useI18n();
     const today = useLocalToday();
-    const planningBoard = useAppStore((state) => {
+    const assignmentBoard = useAppStore((state) => {
         const context = state.roadmapEntityContext;
-        return context?.unplannedTaskIds ? state.portfolioBoards.find((board) => board.id === context.boardId)?.data : undefined;
+        return context?.mode === 'assign-sprint-from-selection' ? state.portfolioBoards.find((board) => board.id === context.boardId)?.data : undefined;
     });
-    const sprintOptions = planningBoard && vm.showExistingSprint ? buildAssignableSprintOptions(planningBoard, today, language) : vm.sprintOptions;
+    const sprintOptions = assignmentBoard && vm.showExistingSprint ? buildAssignableSprintOptions(assignmentBoard, today, language) : vm.sprintOptions;
     const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '' }));
     const selectedSprintId = sprintOptions.some((option) => option.value === draft.existingSprintId) ? draft.existingSprintId : '';
     const dueDateRef = useRef<HTMLInputElement>(null);
@@ -101,7 +101,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                                 <option key={option.value} value={option.value}>{option.label}</option>
                             ))}
                         </select>
-                        {planningBoard && sprintOptions.length === 0 && <p role="status">{t('roadmapDialog.noEligibleSprints')}</p>}
+                        {assignmentBoard && sprintOptions.length === 0 && <p role="status">{t('roadmapDialog.noEligibleSprints')}</p>}
                     </div>
                     <div className={`form-group${hideTitle ? ' hidden' : ''}`}>
                         <label className="required" htmlFor="roadmapEntityTitle">{t('roadmapDialog.title')}</label>
@@ -130,7 +130,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 <button
                     className="btn btn-primary"
                     id="roadmapEntityModalSaveBtn"
-                    disabled={Boolean(planningBoard && vm.showExistingSprint && !selectedSprintId)}
+                    disabled={Boolean(assignmentBoard && vm.showExistingSprint && !selectedSprintId)}
                     onClick={async () => {
                         const result = await saveRoadmapEntity({ kind: vm.kind, itemId: vm.itemId, ...draft });
                         if (result?.focusField) fieldRefs[result.focusField].current?.focus();

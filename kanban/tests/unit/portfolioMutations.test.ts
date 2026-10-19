@@ -68,6 +68,30 @@ function createActions(overrides = {}) {
 }
 
 describe('portfolio mutation actions', () => {
+  it('excludes Done sprint destinations for Board selections and revalidates them before saving', async () => {
+    const openDialogFn = vi.fn();
+    const alert = vi.fn();
+    const { actions, store, enqueueSave } = createActions({ openDialogFn, alert });
+    const board = createBoard();
+    board.data.extensions.roadmap = { version: 1, phases: [], milestones: [], sprints: [
+      { id: 'done', title: 'Finished sprint', startDate: '2000-01-01', endDate: '2000-01-14' },
+      { id: 'target', title: 'Planned sprint', startDate: '2099-01-01', endDate: '2099-01-14' }
+    ] };
+    store.setState({ portfolioBoards: [fromAny(board)] });
+    actions.togglePortfolioTaskBulkSelection('p1', 1, true);
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1', mode: 'assign-sprint-from-selection' });
+    expect(openDialogFn.mock.calls.at(-1)![1].sprintOptions.map((option: { value: string }) => option.value)).toEqual(['target']);
+    const changed = structuredClone(store.getState().portfolioBoards[0]);
+    Object.assign(changed.data.extensions.roadmap!.sprints[1], { startDate: '2000-02-01', endDate: '2000-02-14' });
+    store.setState({ portfolioBoards: [changed] });
+    const before = structuredClone(changed.data);
+    await actions.saveRoadmapEntity({ kind: 'sprints', existingSprintId: 'target' });
+    expect(store.getState().portfolioBoards[0].data).toEqual(before);
+    expect(enqueueSave).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledWith(expect.stringContaining('Done'));
+    expect(getPortfolioBulkTaskIds(store.getState(), 'p1')).toEqual([1]);
+  });
+
   it.each(['done sprint', 'deleted sprint', 'completed item', 'planned item', 'deleted item', 'read-only', 'history'])(
     'rejects an invalid table assignment atomically at save time: %s', async (change) => {
       const alert = vi.fn();

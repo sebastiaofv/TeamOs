@@ -71,6 +71,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
     const { saveTask, confirmResponsibleParticipantRemoval } = usePortfolioActions();
     const { t } = useI18n();
     const [form, setForm] = useState<TaskEditorFields>(() => ({ ...vm.initial }));
+    const pendingParticipantRename = useRef<{ index: number; name: string } | null>(null);
     const blockerReasonRef = useRef<HTMLTextAreaElement>(null);
     const dueDateRef = useRef<HTMLInputElement>(null);
     // Fields saveTask can send focus back to after a failed validation.
@@ -82,7 +83,11 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
         onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => update(field, event.target.value)
     });
     const submit = async () => {
-        const result = await saveTask(buildTaskDraft(form));
+        // Normalize a completed correction once, including keyboard saves that
+        // keep focus in the input. Intermediate names must not merge people.
+        const pending = pendingParticipantRename.current;
+        const completedForm = pending ? editTaskParticipant(form, pending.index, pending.name) : form;
+        const result = await saveTask(buildTaskDraft(completedForm));
         if (result?.focusField) fieldRefs[result.focusField].current?.focus();
     };
 
@@ -149,7 +154,11 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                     <div className="form-group">
                         <label id="taskAssigneesLabel">{t('task.assignees')}</label>
                         <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool}
-                            onRename={(index, name) => setForm((current) => editTaskParticipant(current, index, name))}
+                            onDraftRename={(index, name) => { pendingParticipantRename.current = { index, name }; }}
+                            onRename={(index, name) => {
+                                pendingParticipantRename.current = null;
+                                setForm((current) => editTaskParticipant(current, index, name));
+                            }}
                             onRemove={removeParticipant} />
                     </div>
                     <div className="form-group">
