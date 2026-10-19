@@ -36,16 +36,21 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (portfolioSearch) params.set('pq', portfolioSearch);
     if (portfolioPriority) params.set('pp', portfolioPriority);
     if (portfolioAssignee) params.set('pu', portfolioAssignee);
+    if (filters.responsible) params.set('pr', filters.responsible);
     if (portfolioBlocked !== 'all') params.set('pbk', portfolioBlocked);
     if (portfolioEffort) params.set('pe', portfolioEffort);
     if (portfolioArchive !== 'active') params.set('pa', portfolioArchive);
+    if (filters.statuses.length) params.set('pst', filters.statuses.join(','));
+    if (filters.phaseId) params.set('pph', filters.phaseId);
+    if (filters.milestoneId) params.set('pm', filters.milestoneId);
+    if (filters.sprintId) params.set('psp', filters.sprintId);
     if (state.portfolioSortKey !== 'priority') params.set('ps', state.portfolioSortKey);
     if (state.portfolioSortDir === 'desc') params.set('pd', state.portfolioSortDir);
     if (state.selectedPortfolioBoardId) params.set('pb', state.selectedPortfolioBoardId);
     const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner';
     if (aggregateView && (state.portfolioBoards || []).length > 0) {
         params.set('pv', state.selectedPortfolioViewMode);
-    } else if (state.selectedPortfolioBoardId && state.selectedPortfolioViewMode === 'roadmap') {
+    } else if (state.selectedPortfolioBoardId && (state.selectedPortfolioViewMode === 'roadmap' || state.selectedPortfolioViewMode === 'table')) {
         params.set('pv', state.selectedPortfolioViewMode);
     }
 
@@ -68,9 +73,14 @@ export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDef
             search: readQueryParam('pq', '', windowRef),
             priority: readQueryParam('pp', '', windowRef),
             assignee: readQueryParam('pu', '', windowRef),
+            responsible: readQueryParam('pr', '', windowRef),
             blocked: readQueryParam('pbk', 'all', windowRef),
             effort: readQueryParam('pe', '', windowRef),
-            archive: readQueryParam('pa', 'active', windowRef)
+            archive: readQueryParam('pa', 'active', windowRef),
+            statuses: readQueryParam('pst', '', windowRef).split(','),
+            phaseId: readQueryParam('pph', '', windowRef),
+            milestoneId: readQueryParam('pm', '', windowRef),
+            sprintId: readQueryParam('psp', '', windowRef)
         }),
         portfolioSortKey: normalizePortfolioSortKey(portfolioSort),
         portfolioSortDir: normalizePortfolioSortDir(portfolioSortDir),

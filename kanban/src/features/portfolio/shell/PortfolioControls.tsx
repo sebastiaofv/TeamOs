@@ -19,13 +19,17 @@ import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useI18n } from '@/shared/i18n';
-import { PortfolioActiveFilters, PortfolioFilterMenu } from './PortfolioFilterMenu';
+import { PortfolioActiveFilters, PortfolioToolbarFilters } from './PortfolioFilters';
 import { PALETTE_SHORTCUT_LABEL, openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
+import { setTableFilter, setTableSort } from '@/features/portfolio/table/tableControls';
+import { DEFAULT_TABLE_SORT } from '@/features/portfolio/table/tableModel';
+import { COLUMN_LABELS } from '@/features/portfolio/table/tableLabels';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
     | 'portfolioTasks'
     | 'portfolioFilters'
+    | 'portfolioTableSortByBoardId'
     | 'portfolioSortKey'
     | 'selectedPortfolioBoardId'
     | 'selectedPortfolioViewMode'
@@ -117,46 +121,56 @@ function getBulkViewModel(state: BulkState) {
 function ToolbarContent({ state }: { state: ToolbarState }) {
     const { t } = useI18n();
     const filters = getFilters(state);
-    const sortValue = portfolioSortSelectValueFromKey(state.portfolioSortKey);
     const hasBoards = state.portfolioBoards.length > 0;
     const hasSelectedBoard = Boolean(state.selectedPortfolioBoardId);
     const viewMode = normalizePortfolioViewMode(state.selectedPortfolioViewMode);
+    const tableSort = state.portfolioTableSortByBoardId[state.selectedPortfolioBoardId] || DEFAULT_TABLE_SORT;
+    const tableSortValue = tableSort.column === 'title' ? 'name'
+        : ['priority', 'effort', 'score'].includes(tableSort.column) ? tableSort.column : 'custom';
+    const sortValue = viewMode === 'table' ? tableSortValue : portfolioSortSelectValueFromKey(state.portfolioSortKey);
     const sortRef = useFocusTarget<HTMLSelectElement>('portfolioSort');
+    const search = filters.search;
 
     return (
         <>
             <div className="portfolio-toolbar-left">
                 <div className="search-box palette-search">
                     <button
-                        className={`palette-search-btn${filters.search ? ' has-value' : ''}`}
+                        className={`palette-search-btn${search ? ' has-value' : ''}`}
                         id="portfolioSearchBtn"
                         type="button"
                         aria-haspopup="dialog"
-                        aria-label={filters.search ? `${t('palette.openButton')}: ${filters.search}` : t('palette.openButton')}
+                        aria-label={search ? `${t('palette.openButton')}: ${search}` : t('palette.openButton')}
                         onClick={() => openCommandPalette()}
                     >
                         <svg className="palette-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
                             <circle cx="7" cy="7" r="4.5" />
                             <path d="M10.5 10.5 14 14" />
                         </svg>
-                        <span className="palette-search-text">{filters.search || t('toolbar.searchTasks')}</span>
-                        {!filters.search && <kbd className="palette-search-kbd">{PALETTE_SHORTCUT_LABEL}</kbd>}
+                        <span className="palette-search-text">{search || t('toolbar.searchTasks')}</span>
+                        {!search && <kbd className="palette-search-kbd">{PALETTE_SHORTCUT_LABEL}</kbd>}
                     </button>
-                    {filters.search && (
+                    {search && (
                         <button
                             className="palette-search-clear"
                             id="portfolioSearchClearBtn"
                             type="button"
-                            aria-label={t('palette.clearSearch')}
-                            title={t('palette.clearSearch')}
-                            onClick={() => setPortfolioFilter('search', '')}
+                            aria-label={viewMode === 'table' ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
+                            title={viewMode === 'table' ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
+                            onClick={() => viewMode === 'table' ? setTableFilter('search', '') : setPortfolioFilter('search', '')}
                         >×</button>
                     )}
                 </div>
-                <PortfolioFilterMenu filters={filters} tasks={state.portfolioTasks} />
+                <PortfolioToolbarFilters />
                 <div className="filter-group">
                     <label htmlFor="portfolioSortSelect">{t('toolbar.sort')}</label>
-                    <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => setPortfolioSort(event.target.value)}>
+                    <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => {
+                        const value = event.target.value;
+                        if (viewMode !== 'table') setPortfolioSort(value);
+                        else if (value === 'name') setTableSort('title');
+                        else if (value === 'priority' || value === 'effort' || value === 'score') setTableSort(value);
+                    }}>
+                        {viewMode === 'table' && tableSortValue === 'custom' && <option value="custom">{tableSort.column === 'score' ? t('toolbar.score') : t(COLUMN_LABELS[tableSort.column])}</option>}
                         <option value="name">{t('toolbar.name')}</option>
                         <option value="priority">{t('toolbar.priority').replace(':', '')}</option>
                         <option value="effort">{t('toolbar.effort').replace(':', '')}</option>
@@ -173,6 +187,13 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         aria-pressed={viewMode === 'board'}
                         onClick={() => setPortfolioViewMode('board')}
                     >{t('toolbar.board')}</button>
+                    <button
+                        className={`btn${viewMode === 'table' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`}
+                        type="button"
+                        data-view-mode="table"
+                        aria-pressed={viewMode === 'table'}
+                        onClick={() => setPortfolioViewMode('table')}
+                    >{t('table.view')}</button>
                     <button
                         className={`btn${viewMode === 'roadmap' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`}
                         type="button"
@@ -241,6 +262,7 @@ export function PortfolioToolbar() {
         portfolioBoards: state.portfolioBoards,
         portfolioTasks: state.portfolioTasks,
         portfolioFilters: state.portfolioFilters,
+        portfolioTableSortByBoardId: state.portfolioTableSortByBoardId,
         portfolioSortKey: state.portfolioSortKey,
         selectedPortfolioBoardId: state.selectedPortfolioBoardId,
         selectedPortfolioViewMode: state.selectedPortfolioViewMode,
@@ -252,11 +274,11 @@ export function PortfolioToolbar() {
             <section className="portfolio-toolbar" id="portfolioToolbar" aria-labelledby="portfolioToolbarTitle">
                 <h2 className="sr-only" id="portfolioToolbarTitle">{t('toolbar.filters')}</h2>
                 <ToolbarContent state={state} />
-                <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                <span className={`sr-only${state.selectedPortfolioViewMode === 'table' ? ' hidden' : ''}`} role="status" aria-live="polite" aria-atomic="true">
                     {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
                 </span>
             </section>
-            <PortfolioActiveFilters filters={getFilters(state)} tasks={state.portfolioTasks} />
+            <PortfolioActiveFilters />
         </>
     );
 }

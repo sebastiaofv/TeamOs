@@ -14,6 +14,7 @@ import { PortfolioTimeline } from '@/features/portfolio/timeline/PortfolioTimeli
 import { PortfolioRoadmap } from '@/features/portfolio/roadmap/PortfolioRoadmap';
 import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
 import { PortfolioPlanner } from '@/features/portfolio/planner/PortfolioPlanner';
+import { PortfolioTable } from '@/features/portfolio/table/PortfolioTable';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
@@ -60,6 +61,7 @@ function AppContent() {
     const roadmapActive = Boolean(selectedBoardId) && viewMode === 'roadmap';
     const calendarActive = hasBoards && viewMode === 'calendar';
     const plannerActive = hasBoards && viewMode === 'planner';
+    const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
 
     return (
         <>
@@ -69,11 +71,12 @@ function AppContent() {
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
-                    <div className="portfolio-board-wrap" id="portfolioBoardWrap">
+                    <div className={`portfolio-board-wrap${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <PortfolioTimeline />
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive} />
+                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive} />
+                        <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
                         <PortfolioCalendar hidden={!calendarActive} />
                         <PortfolioPlanner hidden={!plannerActive} />

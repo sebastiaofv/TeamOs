@@ -202,6 +202,8 @@ export function createPortfolioControlActions({
 
         const portfolioBulkSelectionByBoardId = { ...(state.portfolioBulkSelectionByBoardId || {}) };
         delete portfolioBulkSelectionByBoardId[boardId];
+        const portfolioTableSortByBoardId = { ...state.portfolioTableSortByBoardId };
+        delete portfolioTableSortByBoardId[boardId];
         const projectSaveStateById = new Map(state.projectSaveStateById || []);
         projectSaveStateById.delete(boardId);
         forgetFileState(boardId);
@@ -209,6 +211,7 @@ export function createPortfolioControlActions({
         const partial: Partial<AppState> = {
             portfolioBoards: state.portfolioBoards.filter((board) => board.id !== boardId),
             portfolioBulkSelectionByBoardId,
+            portfolioTableSortByBoardId,
             projectSaveStateById
         };
         if (state.selectedPortfolioCardRef?.boardId === boardId) {
@@ -249,7 +252,7 @@ export function createPortfolioControlActions({
         const state = getState();
         const normalized = normalizePortfolioViewMode(mode);
         if (normalized === 'calendar') return state.portfolioBoards.length > 0;
-        if (normalized === 'roadmap') return Boolean(state.selectedPortfolioBoardId);
+        if (normalized === 'roadmap' || normalized === 'table') return Boolean(state.selectedPortfolioBoardId);
         return state.portfolioBoards.length > 0;
     }
 

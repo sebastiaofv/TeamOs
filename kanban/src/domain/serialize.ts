@@ -5,8 +5,10 @@ import { normalizeColumns } from './board';
 import { normalizeDayPlannerExtension } from './dayPlanner';
 import { normalizeRoadmapExtension } from './roadmap';
 import { normalizeTask } from './task';
+import { migrateBoardData } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
+import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -42,6 +44,9 @@ export function normalizeBoardExtensionsValue(
         }
     }
 
+    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || [], nextExtensions.timeline);
+    if (sprintCatalog) nextExtensions.sprintCatalog = sprintCatalog;
+
     if (Object.prototype.hasOwnProperty.call(nextExtensions, DAY_PLANNER_EXTENSION_KEY)) {
         const normalizedPlanner = normalizeDayPlannerExtension(nextExtensions[DAY_PLANNER_EXTENSION_KEY], options.taskIds);
         if (normalizedPlanner) {
@@ -68,7 +73,7 @@ export function normalizeBoardExtensionsValue(
 }
 
 export function createBoardStateSnapshot(boardData: unknown): BoardData {
-    const input = (boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData;
+    const input = migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData);
     const meta = (input.meta && typeof input.meta === 'object' ? input.meta : {}) as LooseMeta;
     const board = (input.board && typeof input.board === 'object' ? input.board : {}) as LooseBoard;
     const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };
@@ -109,7 +114,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
 
 export function serializeBoardDataFromObject(boardData: unknown): BoardData {
     const now = nowIso();
-    const input = (boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData;
+    const input = migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData);
     const meta = (input.meta && typeof input.meta === 'object' ? input.meta : {}) as LooseMeta;
     const board = (input.board && typeof input.board === 'object' ? input.board : {}) as LooseBoard;
     const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };

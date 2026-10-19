@@ -22,6 +22,7 @@ export type Task = {
     title: string;
     description: string;
     assignees: string[];
+    responsible: string;
     tags: string[];
     blocked: boolean;
     blockerReason: string;
@@ -113,11 +114,14 @@ export type DayPlannerExtension = {
 };
 
 export type TeamOsExtensions = { [key: string]: unknown; taskAttachments?: Record<string, unknown> };
+export type SprintIdentity = { sprintId: string; number: number; createdAt: string | null };
+export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIdentity[] };
 export type BoardExtensions = {
     [key: string]: unknown;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;
+    sprintCatalog?: SprintCatalog;
     teamOsKanban?: TeamOsExtensions;
 };
 
@@ -150,6 +154,7 @@ export type TaskEditorFields = {
     blocked: boolean;
     blockerReason: string;
     assignees: string[];
+    responsible: string;
     tags: string[];
     checklist: ChecklistItem[];
     attachments: Attachment[];
@@ -164,6 +169,7 @@ export type TaskDraft = {
     title: string;
     description: string;
     assignees: string[];
+    responsible: string;
     tags: string[];
     blocked: boolean;
     blockerReason: string;

@@ -25,6 +25,7 @@ import { buildPaletteModel, type PaletteFrame, type PaletteIcon, type PaletteIte
 import { runPaletteAction, type PaletteDeps } from './paletteActions';
 import { loadRecentPaletteItems, rememberPaletteItem } from './recentItems';
 import { requestOpenFilters } from './openCommandPalette';
+import { clearTableFilters, setTableFilter } from '@/features/portfolio/table/tableControls';
 
 const ICONS: Record<PaletteIcon, string> = {
     task: '●', project: '■', roadmap: '◆', command: '›', filter: '⌕', create: '+', open: '↗', move: '→',
@@ -64,6 +65,7 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         boards: s.portfolioBoards,
         rows: s.portfolioTasks,
         selectedBoardId: s.selectedPortfolioBoardId,
+        tableView: s.selectedPortfolioViewMode === 'table',
         boardSearch: s.portfolioFilters.search
     })));
     const [query, setQuery] = useState(initialQuery);
@@ -94,14 +96,23 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         selectCard: (boardId, taskId) => actions.setSelectedPortfolioCard(boardId, taskId),
         moveTask: (boardId, taskId, status) => actions.movePortfolioTaskToStatus(boardId, taskId, status),
         toggleAssignee: (boardId, taskId, name) => actions.togglePortfolioTaskAssignee(boardId, taskId, name),
+        setResponsible: (boardId, taskId, name) => actions.setPortfolioTaskResponsible(boardId, taskId, name),
         setPriority: (boardId, taskId, priority) => actions.setPortfolioTaskPriority(boardId, taskId, priority),
         planTask: (boardId, taskId, date, startMinutes) => actions.addPlannerBlock(boardId, taskId, date, startMinutes),
         createTask: (boardId, fields) => actions.createPortfolioTaskFromFields(boardId, fields),
-        setBoardSearch: (text) => setPortfolioFilter('search', text),
+        setBoardSearch: (text) => {
+            if (useAppStore.getState().selectedPortfolioViewMode === 'table') setTableFilter('search', text);
+            else setPortfolioFilter('search', text);
+        },
         setViewMode: (mode) => setPortfolioViewMode(mode),
         selectBoard: (boardId) => selectPortfolioBoard(boardId),
-        resetFilters: () => resetPortfolioFilters(),
-        openFilters: () => requestOpenFilters(),
+        resetFilters: () => {
+            if (useAppStore.getState().selectedPortfolioViewMode === 'table') clearTableFilters();
+            else resetPortfolioFilters();
+        },
+        openFilters: () => {
+            requestOpenFilters();
+        },
         toggleTheme: () => toggleThemePreference(),
         toggleLanguage,
         openShortcuts: () => openDialog('shortcuts'),

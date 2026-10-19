@@ -193,6 +193,9 @@
     padding: 10px 14px;
 }
 
+.portfolio-filter-options { max-height: min(620px, calc(100dvh - 160px)); overflow: auto; overscroll-behavior: contain; }
+.portfolio-filter-hint { grid-column: 2; color: var(--text-muted); font-size: 11px; }
+
 .portfolio-filters-panel-head {
     border-bottom: 1px solid var(--border-light);
 }
@@ -319,6 +322,7 @@
 }
 
 @media (max-width: 760px) {
+    .portfolio-filter-options { max-height: calc(100dvh - 240px); }
     .portfolio-toolbar {
         align-items: stretch;
         padding: 10px 12px;
