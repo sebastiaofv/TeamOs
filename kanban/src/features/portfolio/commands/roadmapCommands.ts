@@ -11,6 +11,7 @@ import {
     getRoadmapEntityConfig,
     getRoadmapExtension,
     getRoadmapExtensionObject,
+    getSprintCalendarStatus,
     normalizeRoadmapDate,
     normalizeRoadmapRef,
     parseRoadmapIsoDate,
@@ -20,8 +21,10 @@ import {
 import { cloneSerializable, createBoardStateSnapshot } from '@/domain/serialize';
 import { appendTimelineEvent } from '@/domain/timeline';
 
-import { nowIso } from '@/domain/util';
+import { nowIso, todayLocalIsoDate } from '@/domain/util';
+import { getSprintCatalog, registerSprintCreation } from '@/domain/sprintCatalog';
 import { getCurrentLanguage, translateCurrent, translateTimeline } from '@/shared/i18n';
+import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 
 export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate' | 'endDate';
 
@@ -53,7 +56,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         });
     }
 
-    function openRoadmapEntityModal(kind: RoadmapKind, itemId = '', options: { boardId?: string; mode?: RoadmapEntityMode } = {}) {
+    function openRoadmapEntityModal(kind: RoadmapKind, itemId = '', options: { boardId?: string; mode?: RoadmapEntityMode; unplannedTaskIds?: number[] } = {}) {
         const boardId = options.boardId || getState().selectedPortfolioBoardId;
         const boardRecord = boardId ? getBoardRecord(boardId) : null;
         if (!boardRecord) return;
@@ -69,7 +72,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const mode = options.mode || 'default';
         const assignExistingMode = mode === 'assign-sprint-from-selection';
         commitState({
-            roadmapEntityContext: { boardId, kind, itemId: item?.id || '', mode }
+            roadmapEntityContext: { boardId, kind, itemId: item?.id || '', mode,
+                ...(options.unplannedTaskIds ? { unplannedTaskIds: [...new Set(options.unplannedTaskIds)] } : {}) }
         });
         openDialogFn('roadmapEntity', {
             kind,
@@ -90,7 +94,9 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 startDate: item?.startDate || '',
                 endDate: item?.endDate || ''
             },
-            sprintOptions: buildRoadmapSprintOptions(roadmap.sprints || []),
+            sprintOptions: assignExistingMode
+                ? buildAssignableSprintOptions(boardRecord.data, todayLocalIsoDate(), getCurrentLanguage())
+                : buildRoadmapSprintOptions(roadmap.sprints || []),
             initialFocus: assignExistingMode ? 'existingSprint' : 'title'
         });
     }
@@ -115,15 +121,20 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
     function createSprintFromSelection(boardId: string, draft: RoadmapEntityDraft): Promise<boolean> | false {
         const boardRecord = getBoardRecord(boardId);
         if (!boardRecord) return false;
-        const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
+        const unplannedTaskIds = getState().roadmapEntityContext?.unplannedTaskIds;
+        const selectedTaskIds = unplannedTaskIds || getSelectedPortfolioBulkTaskIds(boardId);
         if (selectedTaskIds.length === 0) return false;
+        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && task.status !== 'done' && !task.sprintId))) {
+            alert(translateCurrent('table.selectionChanged'));
+            return false;
+        }
         const sprintConfig = getRoadmapEntityConfig('sprints');
         if (!sprintConfig) return false;
         return runPortfolioBoardMutation(boardId, (boardData) => {
             const roadmap = getRoadmapExtensionObject(boardData, { create: true });
             const items = roadmap[sprintConfig.itemsKey];
             const nextSprint: RoadmapItem = {
-                id: slugifyRoadmapEntityId(draft.title, items),
+                id: slugifyRoadmapEntityId(draft.title, getSprintCatalog(boardData).entries.map((entry) => ({ id: entry.sprintId }))),
                 title: draft.title,
                 startDate: draft.startDate,
                 endDate: draft.endDate
@@ -140,6 +151,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             });
             if (assignedCount === 0) return false;
 
+            registerSprintCreation(boardData, nextSprint.id, timestamp);
             items.push(nextSprint);
             appendTimelineEvent(boardData, {
                 kind: 'roadmap.bulk-assigned',
@@ -155,6 +167,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                     roadmapItemId: nextSprint.id,
                     action: 'create-from-selection',
                     sprint: cloneSerializable(nextSprint),
+                    sprintCatalog: cloneSerializable(boardData.extensions.sprintCatalog),
                     taskIds: [...taskIdSet]
                 }
             });
@@ -166,14 +179,22 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const boardRecord = getBoardRecord(boardId);
         if (!boardRecord) return false;
         const normalizedSprintId = normalizeRoadmapRef(sprintId);
-        const selectedTaskIds = getSelectedPortfolioBulkTaskIds(boardId);
+        const unplannedTaskIds = getState().roadmapEntityContext?.unplannedTaskIds;
+        const selectedTaskIds = unplannedTaskIds || getSelectedPortfolioBulkTaskIds(boardId);
         if (!normalizedSprintId || selectedTaskIds.length === 0) return false;
         return runPortfolioBoardMutation(boardId, (boardData) => {
             const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
             const sprint = Array.isArray(roadmap.sprints)
                 ? roadmap.sprints.find((entry) => entry.id === normalizedSprintId)
                 : null;
-            if (!sprint) return false;
+            if (!sprint || getSprintCalendarStatus(sprint, todayLocalIsoDate()) === 'done') {
+                alert(translateCurrent('roadmapDialog.sprintUnavailable'));
+                return false;
+            }
+            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && task.status !== 'done' && !task.sprintId))) {
+                alert(translateCurrent('table.selectionChanged'));
+                return false;
+            }
 
             const taskIdSet = new Set(selectedTaskIds.map((taskId) => Number(taskId)));
             let assignedCount = 0;
@@ -229,7 +250,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const changed = await assignSelectionToExistingSprint(context.boardId, draft.existingSprintId);
             if (!changed) return;
             closeRoadmapEntity();
-            clearPortfolioBulkSelection(context.boardId);
+            if (!context.unplannedTaskIds) clearPortfolioBulkSelection(context.boardId);
             return;
         }
         if (!draft.title) {
@@ -255,7 +276,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const changed = await createSprintFromSelection(context.boardId, draft);
             if (!changed) return;
             closeRoadmapEntity();
-            clearPortfolioBulkSelection(context.boardId);
+            if (!context.unplannedTaskIds) clearPortfolioBulkSelection(context.boardId);
             return;
         }
 
@@ -263,7 +284,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const roadmap = getRoadmapExtensionObject(boardData, { create: true });
             const items = roadmap[config.itemsKey];
             const index = draft.itemId ? items.findIndex((item) => item.id === draft.itemId) : -1;
-            const nextId = draft.itemId || slugifyRoadmapEntityId(draft.title, items);
+            const reservedIds = context.kind === 'sprints' ? getSprintCatalog(boardData).entries.map((entry) => ({ id: entry.sprintId })) : items;
+            const nextId = draft.itemId || slugifyRoadmapEntityId(draft.title, reservedIds);
             const previousItem = index >= 0 ? items[index] : null;
             const nextItem: RoadmapItem = config.dateMode === 'single'
                 ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
@@ -273,6 +295,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             if (index >= 0) {
                 items[index] = nextItem;
             } else {
+                if (context.kind === 'sprints') registerSprintCreation(boardData, nextId, nowIso());
                 items.push(nextItem);
             }
 

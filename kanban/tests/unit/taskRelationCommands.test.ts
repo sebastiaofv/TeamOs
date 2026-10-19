@@ -51,7 +51,7 @@ describe('relation commands', () => {
     actions.openPortfolioCreateRelatedTask('p1', 1, 'related');
     const record = store.getState().portfolioBoards[0];
     store.setState({ portfolioBoards: [{ ...record, data: { ...record.data, board: { ...record.data.board, tasks: record.data.board.tasks.filter((task) => task.id !== 1) } } }] });
-    await actions.saveTask(buildTaskDraft({ title: 'Never partially created', description: '', blocked: false, blockerReason: '', assignees: [], tags: [], checklist: [], attachments: [], dueDate: '', priority: '', effort: '', phaseId: '', milestoneId: '' }));
+    await actions.saveTask(buildTaskDraft({ title: 'Never partially created', description: '', blocked: false, blockerReason: '', assignees: [], responsible: '', tags: [], checklist: [], attachments: [], dueDate: '', priority: '', effort: '', phaseId: '', milestoneId: '' }));
     expect(data().board.tasks.map((task) => task.id)).toEqual([2]);
     expect(getRelations(data())).toEqual([]);
     expect(enqueueSave).not.toHaveBeenCalled();
@@ -78,7 +78,7 @@ describe('relation commands', () => {
   it('creates a related backlog workitem atomically, inheriting only planning references, and cancellation creates nothing', async () => {
     const { actions, data, store } = setup();
     data().extensions.roadmap = { version: 1, phases: [{ id: 'phase', title: 'Phase', startDate: '2026-01-01', endDate: '2026-02-01' }], milestones: [{ id: 'mile', title: 'Milestone', dueDate: '2026-03-01' }], sprints: [] };
-    Object.assign(data().board.tasks[0], { phaseId: 'phase', milestoneId: 'mile', assignees: ['Ana'], tags: ['original'], priority: 'high', description: 'Original', blocked: true, blockerReason: 'Manual' });
+    Object.assign(data().board.tasks[0], { phaseId: 'phase', milestoneId: 'mile', assignees: ['Ana'], responsible: 'Ana', tags: ['original'], priority: 'high', description: 'Original', blocked: true, blockerReason: 'Manual' });
     actions.openPortfolioCreateRelatedTask('p1', 1, 'blockedBy');
     actions.closeTaskEditor();
     expect(data().board.tasks).toHaveLength(2);
@@ -86,8 +86,8 @@ describe('relation commands', () => {
     actions.openPortfolioCreateRelatedTask('p1', 1, 'blockedBy');
     const initial = store.getState().portfolioCreateContext;
     expect(initial?.relatedTo).toEqual({ taskId: 1, kind: 'blockedBy' });
-    await actions.saveTask(buildTaskDraft({ title: 'New item', description: 'Own description', blocked: false, blockerReason: '', assignees: [], tags: [], checklist: [], attachments: [], dueDate: '', priority: '', effort: '', phaseId: 'phase', milestoneId: 'mile' }));
-    expect(data().board.tasks[2]).toMatchObject({ id: 3, title: 'New item', description: 'Own description', status: 'backlog', phaseId: 'phase', milestoneId: 'mile', sprintId: '', assignees: [], tags: [], priority: null, blocked: false });
+    await actions.saveTask(buildTaskDraft({ title: 'New item', description: 'Own description', blocked: false, blockerReason: '', assignees: [], responsible: '', tags: [], checklist: [], attachments: [], dueDate: '', priority: '', effort: '', phaseId: 'phase', milestoneId: 'mile' }));
+    expect(data().board.tasks[2]).toMatchObject({ id: 3, title: 'New item', description: 'Own description', status: 'backlog', phaseId: 'phase', milestoneId: 'mile', sprintId: '', assignees: [], responsible: '', tags: [], priority: null, blocked: false });
     expect(data().board.tasks.map((task) => task.id)).toEqual([1, 2, 3]);
     expect(getRelations(data())).toEqual([{ sourceId: 3, targetId: 1, kind: 'blocks' }]);
     expect(store.getState().portfolioCreateContext).toBeNull();

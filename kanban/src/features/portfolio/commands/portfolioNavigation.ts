@@ -36,6 +36,7 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (portfolioSearch) params.set('pq', portfolioSearch);
     if (portfolioPriority) params.set('pp', portfolioPriority);
     if (portfolioAssignee) params.set('pu', portfolioAssignee);
+    if (filters.responsible) params.set('pr', filters.responsible);
     if (portfolioBlocked !== 'all') params.set('pbk', portfolioBlocked);
     if (portfolioEffort) params.set('pe', portfolioEffort);
     if (portfolioArchive !== 'active') params.set('pa', portfolioArchive);
@@ -72,6 +73,7 @@ export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDef
             search: readQueryParam('pq', '', windowRef),
             priority: readQueryParam('pp', '', windowRef),
             assignee: readQueryParam('pu', '', windowRef),
+            responsible: readQueryParam('pr', '', windowRef),
             blocked: readQueryParam('pbk', 'all', windowRef),
             effort: readQueryParam('pe', '', windowRef),
             archive: readQueryParam('pa', 'active', windowRef),

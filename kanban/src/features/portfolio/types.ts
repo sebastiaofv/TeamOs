@@ -59,6 +59,7 @@ export type PortfolioFilters = {
     archive: ArchiveFilter;
     blocked: BlockedFilter;
     assignee: string;
+    responsible: string;
     priority: '' | Priority;
     effort: '' | Effort;
     statuses: TaskStatus[];
@@ -116,7 +117,7 @@ export type TaskEditorViewModel = {
 };
 
 export type TaskDetailFields = Record<
-    | 'title' | 'description' | 'assignees' | 'tags' | 'blocked' | 'blockerReason' | 'priority' | 'effort'
+    | 'title' | 'description' | 'assignees' | 'responsible' | 'tags' | 'blocked' | 'blockerReason' | 'priority' | 'effort'
     | 'status' | 'createdAt' | 'updatedAt' | 'dueDate' | 'phase' | 'milestone' | 'sprint',
     string
 >;

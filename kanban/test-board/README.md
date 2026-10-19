@@ -1,14 +1,14 @@
 # Boards de teste manual
 
-Cada história inclui o seu board e roteiro no respetivo branch:
+As histórias integradas têm os boards e roteiros nesta pasta em `main`; histórias pendentes apontam para o respetivo branch:
 
 | História | Board | Roteiro |
 | --- | --- | --- |
-| US1 · branch `us-1` · PR #44 | [us-1.board.json](https://github.com/sebastiaofv/TeamOs/blob/us-1/kanban/test-board/us-1.board.json) | [us-1.md](https://github.com/sebastiaofv/TeamOs/blob/us-1/kanban/test-board/us-1.md) |
+| US1 · integrada em `main` · PR #44 | [us-1.board.json](us-1.board.json) | [us-1.md](us-1.md) |
 | US2 · branch `us-2` · PR #45 | [us-2.board.json](https://github.com/sebastiaofv/TeamOs/blob/us-2/kanban/test-board/us-2.board.json) | [us-2.md](https://github.com/sebastiaofv/TeamOs/blob/us-2/kanban/test-board/us-2.md) |
-| US3 · branch `us-3` · PR #46 | [us-3.board.json](https://github.com/sebastiaofv/TeamOs/blob/us-3/kanban/test-board/us-3.board.json) | [us-3.md](https://github.com/sebastiaofv/TeamOs/blob/us-3/kanban/test-board/us-3.md) |
+| US3 · integrada em `main` · PR #46 | [us-3.board.json](us-3.board.json) | [us-3.md](us-3.md) |
 
-Usar a aplicação do branch correspondente. Os boards das histórias anteriores podem estar presentes por herança do branch base; cada nova história acrescenta apenas os seus próprios ficheiros.
+Para US1 e US3, usar a aplicação de `main`. Para histórias pendentes, usar o branch correspondente. Os boards das histórias anteriores podem estar presentes por herança do branch base; cada nova história acrescenta apenas os seus próprios ficheiros.
 
 Copiar os ficheiros antes de testar: **Import Projects** abre-os com escrita e cada alteração é gravada automaticamente. Arrastar os ficheiros para a aplicação permite testar em modo só de leitura. Todos os dados são fictícios.
 

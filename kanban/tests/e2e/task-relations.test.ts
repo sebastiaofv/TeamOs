@@ -19,7 +19,7 @@ test('relation groups show current status and all assignees, including unassigne
   await portfolioCard(page, 'Source').click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   const blocker = relations.getByRole('group', { name: 'Blocked by', exact: true });
-  await expect(blocker.locator('dt')).toHaveText(['Status', 'Assignees']);
+  await expect(blocker.locator('dt')).toHaveText(['Status', 'Participants']);
   await expect(blocker.locator('dd')).toHaveText(['in progress', 'Ana, Marta']);
   const dependent = relations.getByRole('group', { name: 'Blocks', exact: true });
   await expect(dependent.locator('dd')).toHaveText(['done', 'José Silva']);
@@ -28,7 +28,7 @@ test('relation groups show current status and all assignees, including unassigne
 
   await page.locator('#taskDetailModalCloseBtn').click();
   await openTaskEditor(page, 'Blocker');
-  await page.getByLabel('Assignee name', { exact: true }).first().fill('Rui');
+  await page.getByLabel('Participant name', { exact: true }).first().fill('Rui');
   await page.locator('#taskModalSaveBtn').click();
   await portfolioCard(page, 'Blocker').hover();
   await page.keyboard.press('4');
@@ -40,7 +40,7 @@ test('relation groups show current status and all assignees, including unassigne
   await page.locator('#languageToggleBtn').click();
   await portfolioCard(page, 'Source').click();
   const ptBlocker = page.getByRole('region', { name: 'Relações', exact: true }).getByRole('group', { name: 'É bloqueado por', exact: true });
-  await expect(ptBlocker.locator('dt')).toHaveText(['Estado', 'Responsáveis']);
+  await expect(ptBlocker.locator('dt')).toHaveText(['Estado', 'Participantes']);
   await expect(ptBlocker.locator('dd')).toHaveText(['done', 'Rui, Marta']);
 });
 

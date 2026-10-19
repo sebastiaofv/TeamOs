@@ -6,14 +6,15 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 
 - **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
 - **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag cards between columns with a mouse or by touch (keyboard: `1`–`4`), add/edit/archive/delete tasks, undo after archiving.
-- **Tasks** — title, description, assignees, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
+- **Tasks** — title, description, participants and an optional responsible person, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
 - **Workitem relations** — link existing items by ID/title (including completed and archived items), or create a related Backlog item inheriting only phase/milestone. Details group links into Blocked by, Blocks and Related to, with navigation, explicit replacement and confirmed removal.
-- **Filters and sort** — search (with highlighting), archive state, blocked, assignee, priority, effort; sort by priority, effort, score (priority / effort) or name. Filters are kept in the URL.
+- **Filters and sort** — search (with highlighting), archive state, blocked, responsible person, participant, priority, effort and planning; sort by priority, effort, score (priority / effort) or name. Filters combine across every view and are kept in the URL.
 - **Roadmap view** (single project) — phases, milestones and sprints on a time axis; bulk-select tasks to create or join a sprint.
 - **Calendar view** — year and month calendars with tasks and roadmap spans, plus a heatmap mode.
 - **Command palette** — `⌘K` / `Ctrl+K`, `/` or the toolbar search box. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan, archive); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
 - **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
 - **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
+- **Table perspectives** (single project) — All workitems, Unplanned (not Done and no sprint) with selection-to-sprint creation, and collapsible per-sprint tables. Sprint headers retain dates, date-derived Planned/Active/Done status and completeness over all unique current members, including archived items. Filters affect rows/CSV, not the sprint denominator. Timestamps display as UTC `yyyy-mm-dd HH:mm:ss`; columns have minimum widths, two-line cells and horizontal scrolling, with colored status and blocked badges.
 - **Light and dark theme.**
 
 ## Data and persistence
@@ -25,16 +26,20 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 ### Task and schema invariants
 
 - Task titles are required and capped at 80 characters.
-- Assignees are saved as an `assignees` array; older single `assignee` strings still import.
+- Participants are saved as an `assignees` array; `responsible` is an optional name (empty string when unset) and always belongs to that array. Names are trimmed and deduplicated case-insensitively. Selecting, changing or clearing responsibility preserves existing participants; correcting the responsible participant's name updates both fields in that item. Removing that participant asks for confirmation before clearing responsibility. Neither field is required to save or change status.
+- Schema v2 adds responsibility. Version 1 files migrate on import/save without choosing a responsible person, even for one participant; older `assignee` strings/arrays still import. IDs, roadmap and existing timeline events are preserved. Assignment changes record before/after values in the same timeline. Regression fixture: `tests/fixtures/assignments-v1.board.json`.
+- Responsible/participant filters each offer All, no allocation, or a name; they combine with each other. The palette offers both participant toggles and Set responsible. Quick-create `@name` adds participants and leaves responsibility unset. The table has a separate configurable Responsible column.
 - Manually blocked tasks require `blockerReason`. Dependency blocking is derived from unfinished direct blockers, including archived blockers, without changing status or overwriting manual blocking. Board/Table blocked filters include both sources.
 - Attachments are embedded as `dataUrl`s, capped per task with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
 - Serialization normalizes tasks, columns and timestamps before save.
+- Sprint status in the table is calendar-based (before start / within inclusive dates / after end), refreshed at local midnight and when the tab resumes, not a persisted closure. There is no automatic rollover or frozen closure data yet. `tableViews.ts` separates the current `sprintId` adapter from per-sprint rosters; future closure snapshots can supply independent read-only rows, board data and completion totals, including the same workitem in several sprints. The current file schema remains unchanged.
+- Table → Sprints displays `Sprint [number] - [user title]`, newest-created first, independently of planning dates. Project-local identities live in `extensions.sprintCatalog` v1 (`lastNumber`, entries with `sprintId`, `number`, `createdAt`). New sprints created from Roadmap, Board or Table receive the next number and creation timestamp; edits preserve both. Deleted IDs/numbers stay reserved, including across timeline preview/restore. Legacy migration reserves sprints by first appearance in existing history snapshots/events, then current-only sprints by array order, with `createdAt: null` (unknown); already assigned numbers are preserved. Unknown dates sort by descending assigned number after dated entries. No creation events or dates are fabricated, and workitem/roadmap IDs remain intact. See `tests/fixtures/sprints-legacy-v1.board.json`.
 
 ### Relations extension (version 1)
 
 The optional `extensions.taskRelations` stores `{ version: 1, relations: [{ sourceId, targetId, kind }] }`. `kind` is `related` (symmetric) or `blocks` (source blocks target); inverse links are derived, never duplicated. IDs refer only to tasks in the same file, with one relation per unordered pair. Self-links, missing IDs, duplicate pairs and dependency cycles are rejected on import and mutation, as are unsupported extension versions.
 
-The base board schema remains version 1: this is an additive, separately versioned extension. Legacy files without it migrate to an empty relation set without changing task IDs, roadmap or other extension data; the extension is written when the first link is added and omitted after the last link is removed. The compatibility fixture is `tests/fixtures/task-relations-v1.board.json`.
+Relations are an additive, separately versioned extension to the base board schema (currently version 2). Legacy files without it migrate to an empty relation set without changing task IDs, roadmap or other extension data; the extension is written when the first link is added and omitted after the last link is removed. The compatibility fixture is `tests/fixtures/task-relations-v1.board.json`.
 
 Creating an item and its link is one autosaved mutation; cancelling creates neither. Deleting an item confirms the related IDs and blocking impact, removes its links, and preserves other items. Relation changes use the existing timeline and are replayed in historical previews/restores. Read-only and historical details allow navigation but hide relation mutation controls.
 
@@ -115,7 +120,7 @@ Manual boards, walkthroughs and general instructions are together in [`test-boar
 
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
 - `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
-- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if 4174 is already taken.
+- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if the port is already taken. Set `PLAYWRIGHT_PORT` for concurrent worktree runs.
 - `npm run lint` — ESLint with `typescript-eslint`.
 
 Visual baselines in `tests/visual.test.ts-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.ts --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.ts`; the browser globals they install are declared in `tests/support/testGlobals.d.ts`.

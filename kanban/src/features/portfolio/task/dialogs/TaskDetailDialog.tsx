@@ -11,6 +11,7 @@ import { TaskRelations } from '@/features/portfolio/task/dialogs/TaskRelations';
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
     { label: 'task.description', id: 'detailDescription', key: 'description' },
+    { label: 'task.responsible', id: 'detailResponsible', key: 'responsible' },
     { label: 'task.assignees', id: 'detailAssignees', key: 'assignees' },
     { label: 'task.tags', id: 'detailTags', key: 'tags' },
     { label: 'task.blocked', id: 'detailBlocked', key: 'blocked' },
