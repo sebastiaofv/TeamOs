@@ -17,6 +17,13 @@ import type { Language } from '@/shared/types/ui';
 type RoadmapItemLike = Partial<RoadmapItem> | null | undefined;
 type RangeLike = Partial<RoadmapRange> | null | undefined;
 export type RoadmapTaskField = 'milestoneId' | 'phaseId' | 'sprintId';
+export type SprintCalendarStatus = 'planned' | 'active' | 'done';
+
+/** Start and end days are inclusive, using the project's local calendar day. */
+export function getSprintCalendarStatus(sprint: RoadmapItem, today: string): SprintCalendarStatus {
+    return sprint.endDate && sprint.endDate < today ? 'done'
+        : sprint.startDate && sprint.startDate > today ? 'planned' : 'active';
+}
 
 export type RoadmapEntityConfig = {
     label: string;

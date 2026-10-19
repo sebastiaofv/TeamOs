@@ -68,6 +68,114 @@ function createActions(overrides = {}) {
 }
 
 describe('portfolio mutation actions', () => {
+  it.each(['done sprint', 'deleted sprint', 'completed item', 'planned item', 'deleted item', 'read-only', 'history'])(
+    'rejects an invalid table assignment atomically at save time: %s', async (change) => {
+      const alert = vi.fn();
+      const { actions, store, enqueueSave, markDirty } = createActions({ alert });
+      const board = createBoard();
+      board.data.board.tasks.push({ ...board.data.board.tasks[0], id: 2, title: 'Second item' });
+      board.data.extensions.roadmap = { version: 1, phases: [], milestones: [], sprints: [
+        { id: 'target', title: 'Target', startDate: '2099-01-01', endDate: '2099-01-14' }
+      ] };
+      store.setState({ portfolioBoards: [fromAny(board)] });
+      actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1', mode: 'assign-sprint-from-selection', unplannedTaskIds: [1, 2] });
+      // Simulate an external reload or session change while the dialog is open.
+      const changed = structuredClone(board.data);
+      if (change === 'done sprint') Object.assign(changed.extensions.roadmap!.sprints[0], { startDate: '2000-01-01', endDate: '2000-01-14' });
+      if (change === 'deleted sprint') changed.extensions.roadmap!.sprints = [];
+      if (change === 'completed item') changed.board.tasks[1].status = 'done';
+      if (change === 'planned item') changed.board.tasks[1].sprintId = 'another';
+      if (change === 'deleted item') changed.board.tasks.pop();
+      store.setState({ portfolioBoards: [{ ...store.getState().portfolioBoards[0], data: changed,
+        ...(change === 'read-only' ? { handle: null } : {}) }],
+        ...(change === 'history' ? { portfolioTimelineSelection: { boardId: 'p1', eventIndex: 0 } } : {}) });
+      if (change === 'history') {
+        await actions.movePortfolioTaskToStatus('p1', 1, 'doing');
+        actions.setPortfolioTimelineSelection('p1', 0);
+        enqueueSave.mockClear();
+        markDirty.mockClear();
+      }
+      const before = structuredClone(store.getState().portfolioBoards[0].data);
+      await actions.saveRoadmapEntity({ kind: 'sprints', existingSprintId: 'target' });
+      expect(store.getState().portfolioBoards[0].data).toEqual(before);
+      expect(enqueueSave).not.toHaveBeenCalled();
+      expect(markDirty).not.toHaveBeenCalled();
+      expect(store.getState().roadmapEntityContext).not.toBeNull();
+      expect(alert).toHaveBeenCalled();
+    });
+
+  it('adds the table selection to an existing sprint in one save, independently of Board selection', async () => {
+    const { actions, store, enqueueSave } = createActions();
+    const board = createBoard();
+    board.data.board.tasks.push({ ...board.data.board.tasks[0], id: 2, title: 'Second item', status: 'doing' },
+      { ...board.data.board.tasks[0], id: 3, title: 'Board selection' });
+    board.data.extensions.roadmap = { version: 1, phases: [], milestones: [], sprints: [
+      { id: 'target', title: 'Existing sprint', startDate: '2099-01-01', endDate: '2099-01-14' }
+    ] };
+    store.setState({ portfolioBoards: [fromAny(board)] });
+    actions.togglePortfolioTaskBulkSelection('p1', 3, true);
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1', mode: 'assign-sprint-from-selection', unplannedTaskIds: [1, 2, 1] });
+    await actions.saveRoadmapEntity({ kind: 'sprints', existingSprintId: 'target' });
+    const saved = store.getState().portfolioBoards[0].data;
+    expect(saved.board.tasks).toMatchObject([
+      { id: 1, status: 'backlog', sprintId: 'target' }, { id: 2, status: 'doing', sprintId: 'target' }, { id: 3, title: 'Board selection' }
+    ]);
+    expect(saved.board.tasks[2].sprintId || '').toBe('');
+    expect(saved.extensions.roadmap?.sprints).toHaveLength(1);
+    expect(saved.extensions.timeline?.events.at(-1)?.meta).toMatchObject({ action: 'assign-existing', taskIds: [1, 2] });
+    expect(enqueueSave).toHaveBeenCalledTimes(1);
+    expect(getPortfolioBulkTaskIds(store.getState(), 'p1')).toEqual([3]);
+    expect(store.getState().roadmapEntityContext).toBeNull();
+  });
+
+  it('assigns stable sprint creation numbers and dates through normal creation, editing and selection creation', async () => {
+    const { actions, store } = createActions();
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'First', startDate: '2026-12-01', endDate: '2026-12-14' });
+    const first = store.getState().portfolioBoards[0].data.extensions.sprintCatalog;
+    expect(first?.entries[0]).toMatchObject({ sprintId: 'first', number: 1, createdAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/) });
+    actions.openRoadmapEntityModal('sprints', 'first', { boardId: 'p1' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 'first', title: 'Renamed', startDate: '2026-01-01', endDate: '2026-01-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.sprintCatalog).toEqual(first);
+    actions.togglePortfolioTaskBulkSelection('p1', 1, true);
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1', mode: 'create-sprint-from-selection' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'Second', startDate: '2026-02-01', endDate: '2026-02-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.sprintCatalog?.entries).toMatchObject([
+      { sprintId: 'first', number: 1 }, { sprintId: 'second', number: 2, createdAt: expect.any(String) }
+    ]);
+    await actions.deleteRoadmapEntity('sprints', 'second');
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'Second', startDate: '2026-03-01', endDate: '2026-03-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.sprintCatalog?.entries.at(-1)).toMatchObject({ sprintId: 'second-2', number: 3 });
+    actions.setPortfolioTimelineSelection('p1', 0);
+    await actions.restorePortfolioTimelineSelection();
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1' });
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'First', startDate: '2026-04-01', endDate: '2026-04-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.sprintCatalog?.entries.at(-1)).toMatchObject({ sprintId: 'first-2', number: 4 });
+  });
+
+  it('starts sprint numbering independently in each loaded project', async () => {
+    const { actions, store } = createActions();
+    const second = { ...createBoard(), id: 'p2' };
+    store.setState({ portfolioBoards: [...store.getState().portfolioBoards, fromAny(second)] });
+    for (const boardId of ['p1', 'p1', 'p2']) {
+      actions.openRoadmapEntityModal('sprints', '', { boardId });
+      await actions.saveRoadmapEntity({ kind: 'sprints', title: 'Delivery', startDate: '2026-10-01', endDate: '2026-10-14' });
+    }
+    expect(store.getState().portfolioBoards.map(board => board.data.extensions.sprintCatalog?.entries.map(entry => entry.number))).toEqual([[1, 2], [1]]);
+  });
+
+  it('rejects planning a stale selection if an item was completed after opening the sprint dialog', async () => {
+    const alert = vi.fn();
+    const { actions, store } = createActions({ alert });
+    actions.openRoadmapEntityModal('sprints', '', { boardId: 'p1', mode: 'create-sprint-from-selection', unplannedTaskIds: [1] });
+    await actions.movePortfolioTaskToStatus('p1', 1, 'done');
+    await actions.saveRoadmapEntity({ kind: 'sprints', title: 'Stale sprint', startDate: '2026-11-01', endDate: '2026-11-14' });
+    expect(store.getState().portfolioBoards[0].data.extensions.roadmap?.sprints || []).toEqual([]);
+    expect(store.getState().portfolioBoards[0].data.board.tasks[0]).toMatchObject({ status: 'done' });
+    expect(alert).toHaveBeenCalledWith(expect.stringContaining('review your selection'));
+  });
+
   it('updates task state through the timeline mutation seam', async () => {
     const { actions, store, markDirty, enqueueSave } = createActions();
     store.setState({
@@ -177,7 +285,7 @@ describe('portfolio mutation actions', () => {
     await actions.saveTask({
       title: 'Created task',
       description: '',
-      assignees: [],
+      assignees: [], responsible: '',
       tags: [],
       blocked: false,
       blockerReason: '',

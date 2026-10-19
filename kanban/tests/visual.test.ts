@@ -9,6 +9,92 @@ import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload,
 
 const FIXED_TIME = '2026-02-26T12:00:00Z';
 
+test.describe('US-01 workitems table', () => {
+  for (const theme of ['light', 'dark']) {
+    test(`delivery review perspectives and badges (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{ id: 'review', title: 'Sprint planning', hasHandle: true, tasks: [
+        { id: 1, title: 'Investigate delivery blocker', status: 'backlog', blocked: true, blockerReason: 'Waiting for access', assignees: ['Ana'] },
+        { id: 2, title: 'Previous delivery', status: 'done', sprintId: 'past' },
+        { id: 3, title: 'Build integration', status: 'doing', sprintId: 'active', assignees: ['Rui'] },
+        { id: 4, title: 'Review interface', status: 'done', sprintId: 'active', assignees: ['Marta'] },
+        { id: 5, title: 'Prepare next release', status: 'to-do', sprintId: 'future' },
+        { id: 6, title: 'Plan documentation', status: 'doing', assignees: ['Ana', 'Rui'] }
+      ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [
+        { id: 'past', title: 'Sprint 1', startDate: '2026-02-01', endDate: '2026-02-14' },
+        { id: 'active', title: 'Sprint 2', startDate: '2026-02-15', endDate: '2026-02-28' },
+        { id: 'future', title: 'Sprint 3', startDate: '2026-03-01', endDate: '2026-03-14' }
+      ] } } }], { selectedBoardId: 'review' });
+      await page.locator('[data-view-mode="table"]').click();
+      await page.locator('#tableColumns summary').click();
+      await page.locator('#tableColumn-blocked').check();
+      await page.keyboard.press('Escape');
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`table-review-all-${theme}.png`);
+      await page.locator('[data-table-view="unplanned"]').click();
+      await page.locator('#workitemsTable [data-task-id="1"] input').check();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`table-review-planning-${theme}.png`);
+      await page.locator('#tableAddToSprint').click();
+      await expect(page).toHaveScreenshot(`table-review-assign-${theme}.png`);
+      await page.locator('#roadmapEntityModalCancelBtn').click();
+      await page.locator('[data-table-view="sprints"]').click();
+      await page.locator('[data-table-sprint="active"] > summary').click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`table-review-sprints-${theme}.png`);
+    });
+  }
+
+  for (const theme of ['light', 'dark']) {
+    test(`project table with default columns (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{
+        id: 'table', title: 'Delivery project', hasHandle: true,
+        tasks: [
+          { id: 1, title: 'Prepare delivery', status: 'doing', assignees: ['Ana', 'Rui'], priority: 'high', phaseId: 'p1' },
+          { id: 2, title: 'Review feedback', status: 'to-do', priority: null },
+          { id: 3, title: 'Archived delivery', status: 'done', archived: true }
+        ],
+        extensions: ROADMAP
+      }], { selectedBoardId: 'table' });
+      await page.locator('[data-view-mode="table"]').click();
+      await page.locator('#tableCsvSeparator').selectOption(';');
+      await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`workitems-table-${theme}.png`, { fullPage: true });
+      await page.locator('#portfolioFiltersBtn').click();
+      await expect(page.locator('#portfolioFiltersPanel')).toBeVisible();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`workitems-table-filters-${theme}.png`, { fullPage: true });
+    });
+  }
+
+  test('compact table and filter panel on a narrow screen', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await seedPortfolioBoards(page, [{
+      id: 'compact-table', title: 'Delivery', hasHandle: true,
+      tasks: [{ id: 1, title: 'Prepare delivery', status: 'doing', assignees: ['Ana'], priority: 'high' }]
+    }], { selectedBoardId: 'compact-table' });
+    await page.locator('[data-view-mode="table"]').click();
+    await page.locator('#tableCsvSeparator').selectOption(';');
+    await expect(page.locator('#portfolioSearchBtn')).toBeVisible();
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot('workitems-table-mobile.png', { fullPage: true });
+    await page.locator('#portfolioFiltersBtn').click();
+    await expect(page.locator('#portfolioFiltersPanel')).toBeVisible();
+    await page.mouse.move(1, 1);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await expect(page).toHaveScreenshot('workitems-table-filters-mobile.png', { fullPage: true });
+  });
+});
+
 const ONE_PIXEL_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==';
 
 const ROADMAP = {

@@ -8,6 +8,8 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n } from '@/shared/i18n';
+import { useLocalToday } from '@/shared/hooks/useLocalToday';
+import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 
 type RoadmapEntityFormDraft = RoadmapEntityDates & { existingSprintId: string };
 
@@ -55,8 +57,15 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     sprintRef: RefObject<HTMLSelectElement | null>;
 }) {
     const { saveRoadmapEntity } = usePortfolioActions();
-    const { t } = useI18n();
+    const { t, language } = useI18n();
+    const today = useLocalToday();
+    const planningBoard = useAppStore((state) => {
+        const context = state.roadmapEntityContext;
+        return context?.unplannedTaskIds ? state.portfolioBoards.find((board) => board.id === context.boardId)?.data : undefined;
+    });
+    const sprintOptions = planningBoard && vm.showExistingSprint ? buildAssignableSprintOptions(planningBoard, today, language) : vm.sprintOptions;
     const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '' }));
+    const selectedSprintId = sprintOptions.some((option) => option.value === draft.existingSprintId) ? draft.existingSprintId : '';
     const dueDateRef = useRef<HTMLInputElement>(null);
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
@@ -86,12 +95,13 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                     <input type="hidden" id="roadmapEntityId" value={vm.itemId} />
                     <div className={`form-group${vm.showExistingSprint ? '' : ' hidden'}`} id="roadmapEntityExistingSprintRow">
                         <label className="required" htmlFor="roadmapEntityExistingSprint">{t('task.sprint')}</label>
-                        <select id="roadmapEntityExistingSprint" ref={sprintRef} {...bind('existingSprintId')}>
+                        <select id="roadmapEntityExistingSprint" ref={sprintRef} {...bind('existingSprintId')} value={selectedSprintId}>
                             <option value="">{t('roadmapDialog.selectSprint')}</option>
-                            {vm.sprintOptions.map((option) => (
+                            {sprintOptions.map((option) => (
                                 <option key={option.value} value={option.value}>{option.label}</option>
                             ))}
                         </select>
+                        {planningBoard && sprintOptions.length === 0 && <p role="status">{t('roadmapDialog.noEligibleSprints')}</p>}
                     </div>
                     <div className={`form-group${hideTitle ? ' hidden' : ''}`}>
                         <label className="required" htmlFor="roadmapEntityTitle">{t('roadmapDialog.title')}</label>
@@ -120,6 +130,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 <button
                     className="btn btn-primary"
                     id="roadmapEntityModalSaveBtn"
+                    disabled={Boolean(planningBoard && vm.showExistingSprint && !selectedSprintId)}
                     onClick={async () => {
                         const result = await saveRoadmapEntity({ kind: vm.kind, itemId: vm.itemId, ...draft });
                         if (result?.focusField) fieldRefs[result.focusField].current?.focus();

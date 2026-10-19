@@ -18,6 +18,7 @@ import {
 import { focusTarget } from '@/shared/ui/focusTargets';
 import { openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
+import { clearTableFilters, setTableSort } from '@/features/portfolio/table/tableControls';
 
 export type ShortcutContext = 'global' | 'taskModal' | 'detailModal' | 'roadmapEntityModal' | 'shortcutsModal' | 'helpModal' | 'paletteModal';
 
@@ -172,7 +173,12 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
     {
         id: 'reset-filters', section: 'Global', keys: ['R'], description: 'Reset filters and sort', contexts: ['global'],
         match: (event) => noModifiers(event) && isKey(event, 'r'),
-        handler: () => resetPortfolioFilters()
+        handler: () => {
+            if (getState().selectedPortfolioViewMode === 'table') {
+                clearTableFilters();
+                setTableSort('id');
+            } else resetPortfolioFilters();
+        }
     },
     {
         id: 'focus-sort', section: 'Global', keys: ['S'], description: 'Focus sort control', contexts: ['global'],
@@ -335,6 +341,9 @@ export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMu
         : createPortfolioShortcuts(actions);
     for (const entry of shortcuts) {
         if (!entry.contexts.includes(contextName)) continue;
+        // Card shortcuts must not target the hidden Board's independent rows.
+        if (contextName === 'global' && getState().selectedPortfolioViewMode === 'table'
+            && entry.section === 'Cards') continue;
         if (contextName === 'global' && !areSingleKeyShortcutsEnabled() && isSingleKeyShortcut(entry)) continue;
         if (typing && !entry.allowWhileTyping) continue;
         if (!entry.match(event)) continue;

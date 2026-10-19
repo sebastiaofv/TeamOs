@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 // Not the dev server's 4173, so a running `npm run dev` is never mistaken for
 // the build under test.
-const PORT = 4174;
+const PORT = Number(process.env.PLAYWRIGHT_PORT || 4174);
 
 export default defineConfig({
   testDir: './tests',

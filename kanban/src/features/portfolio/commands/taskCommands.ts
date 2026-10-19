@@ -19,6 +19,7 @@ import {
 import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
+import { removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
 import {
@@ -203,7 +204,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             await alert(validation.message);
             return { focusField: validation.focusField };
         }
-        const commonFields = buildTaskFieldsFromDraft(draft);
+        const commonFields = setTaskResponsible(buildTaskFieldsFromDraft(draft), draft.responsible);
         const state = getState();
 
         if (state.portfolioCreateContext?.boardId) {
@@ -283,24 +284,54 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     }
 
     // Adds `name` to the task's assignees, or removes it when already there.
+    async function confirmResponsibleParticipantRemoval(name: string): Promise<boolean> {
+        return Boolean(await confirm(translateCurrent('task.removeResponsibleQuestion', { name }), {
+            title: translateCurrent('editor.removeAssignee'), confirmLabel: translateCurrent('common.remove'), danger: true
+        }));
+    }
+
     async function togglePortfolioTaskAssignee(boardId: string, taskId: number, name: string): Promise<boolean> {
         const source = findPortfolioTaskSource(boardId, taskId);
         const trimmed = name.trim();
         if (!source || !trimmed) return false;
-        const before = [...source.task.assignees];
-        const assigned = before.some((entry) => entry.toLowerCase() === trimmed.toLowerCase());
-        const next = assigned ? before.filter((entry) => entry.toLowerCase() !== trimmed.toLowerCase()) : [...before, trimmed];
+        if (!canUsePortfolioTaskMutations(boardId)) { notifyPortfolioMutationUnavailable(boardId); return false; }
+        const before = { assignees: [...source.task.assignees], responsible: source.task.responsible || '' };
+        const index = before.assignees.findIndex((entry) => entry.toLowerCase() === trimmed.toLowerCase());
+        const assigned = index >= 0;
+        if (assigned && removeTaskParticipant(before, index).needsConfirmation
+            && !(await confirmResponsibleParticipantRemoval(trimmed))) return false;
         const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
-            task.assignees = next;
+            const currentIndex = task.assignees.findIndex((entry) => entry.toLowerCase() === trimmed.toLowerCase());
+            if (assigned && currentIndex < 0) return false;
+            Object.assign(task, assigned ? removeTaskParticipant(task, currentIndex, true).task
+                : { assignees: [...task.assignees, trimmed] });
             return true;
         });
         if (!changed) return false;
         showUndo(translateCurrent(assigned ? 'palette.unassigned' : 'palette.assigned', { name: trimmed, title: source.task.title }), () => (
             runPortfolioTaskMutation(boardId, taskId, (task) => {
-                task.assignees = before;
+                Object.assign(task, before);
                 return true;
             })
         ));
+        return true;
+    }
+
+    async function setPortfolioTaskResponsible(boardId: string, taskId: number, name: string): Promise<boolean> {
+        const source = findPortfolioTaskSource(boardId, taskId);
+        if (!source) return false;
+        const before = { assignees: [...source.task.assignees], responsible: source.task.responsible || '' };
+        const next = setTaskResponsible(before, name);
+        if (next.responsible === before.responsible) return false;
+        const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
+            Object.assign(task, setTaskResponsible(task, name));
+            return true;
+        });
+        if (!changed) return false;
+        showUndo(translateCurrent('palette.responsibleSet', { title: source.task.title }), () => runPortfolioTaskMutation(boardId, taskId, (task) => {
+            Object.assign(task, before);
+            return true;
+        }));
         return true;
     }
 
@@ -396,6 +427,8 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         performUndo,
         showUndo,
         togglePortfolioTaskAssignee,
+        confirmResponsibleParticipantRemoval,
+        setPortfolioTaskResponsible,
         setPortfolioTaskPriority,
         createPortfolioTaskFromFields,
         refreshTaskDetail,
