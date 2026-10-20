@@ -50,7 +50,11 @@ function WorkflowEditor({ board, readOnly, close }: { board: BoardRecord; readOn
                     <label>{t('workflow.color')}<input type="color" value={state.color} onChange={(e) => update((d) => { d.states[index].color = e.target.value; })} /></label>
                     <label>{t('workflow.category')}<select value={state.category} disabled={state.id === 'backlog' || readOnly} onChange={(e) => update((d) => { d.states[index].category = e.target.value as typeof state.category; })}>{WORKFLOW_CATEGORIES.map((c) => <option key={c} value={c}>{t(`workflow.${c}`)}</option>)}</select></label>
                     <button type="button" className="btn" disabled={index === 0} aria-label={t('workflow.up')} onClick={() => update((d) => { [d.states[index - 1], d.states[index]] = [d.states[index], d.states[index - 1]]; })}>↑</button>
-                    <button type="button" className="btn" disabled={state.id === 'backlog'} onClick={() => update((d) => { d.states.splice(index, 1); delete d.transitions[state.id]; Object.keys(d.transitions).forEach((id) => { d.transitions[id] = d.transitions[id].filter((target) => target !== state.id); }); })}>{t('common.remove')}</button>
+                    <button type="button" className="btn" disabled={state.id === 'backlog'} onClick={() => update((d) => {
+                        d.states.splice(index, 1); delete d.transitions[state.id];
+                        Object.keys(d.transitions).forEach((id) => { d.transitions[id] = d.transitions[id].filter((target) => target !== state.id); });
+                        if (!d.states.some((remaining) => remaining.category === state.category)) delete d.references[state.category];
+                    })}>{t('common.remove')}</button>
                 </div>
                 <div className="workflow-transitions"><span>{t('workflow.destinations')}</span>{draft.states.filter((s) => s.id !== state.id).map((target) => <label key={target.id}><input type="checkbox" checked={(draft.transitions[state.id] || []).includes(target.id)} onChange={(e) => update((d) => { d.transitions[state.id] = e.target.checked ? [...(d.transitions[state.id] || []), target.id] : (d.transitions[state.id] || []).filter((id) => id !== target.id); })} />{target.name}</label>)}</div>
                 {!['completed', 'cancelled'].includes(state.category) && !(draft.transitions[state.id] || []).length && <p className="workflow-warning" role="status">{t('workflow.noOutgoing', { name: state.name || state.id })}</p>}

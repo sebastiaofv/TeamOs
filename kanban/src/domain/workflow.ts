@@ -88,6 +88,9 @@ export function workflowErrors(workflow: Workflow): string[] {
     for (const category of WORKFLOW_CATEGORIES) {
         if (workflow.states.some((s) => s.category === category) && workflow.states.find((s) => s.id === workflow.references[category])?.category !== category) errors.push(`Choose a reference state: ${category}.`);
     }
+    for (const [category, id] of Object.entries(workflow.references)) {
+        if (!WORKFLOW_CATEGORIES.includes(category as WorkflowCategory) || !workflow.states.some((state) => state.id === id && state.category === category)) errors.push(`Invalid reference state: ${category}.`);
+    }
     if (workflow.references['to-do'] !== workflow.entryStateId || workflow.references.backlog !== 'backlog') errors.push('The To do reference must equal the Board entry; Backlog must reference the reserved state.');
     for (const [id, targets] of Object.entries(workflow.transitions)) {
         if (!ids.has(id) || !Array.isArray(targets) || targets.some((target) => !ids.has(target) || target === id) || new Set(targets).size !== targets.length) errors.push('Invalid transitions.');

@@ -38,6 +38,18 @@ describe('project workflows', () => {
         expect(workflowErrors(w).join(' ')).toMatch(/unique/);
         expect(workflowErrors(w).join(' ')).toMatch(/reachable/);
     });
+    it('rejects references to a removed optional category instead of persisting dangling IDs', () => {
+        const workflow = defaultWorkflow();
+        const removed = new Set(workflow.states.filter((state) => state.category === 'cancelled').map((state) => state.id));
+        workflow.states = workflow.states.filter((state) => !removed.has(state.id));
+        for (const id of Object.keys(workflow.transitions)) {
+            if (removed.has(id)) delete workflow.transitions[id];
+            else workflow.transitions[id] = workflow.transitions[id].filter((target) => !removed.has(target));
+        }
+        expect(workflowErrors(workflow).join(' ')).toMatch(/Invalid reference state/);
+        delete workflow.references.cancelled;
+        expect(workflowErrors(workflow)).toEqual([]);
+    });
     it('has directional transitions and cancellation is not completion or overdue', () => {
         const data = createEmptyProjectData('Test');
         const w = legacyWorkflow();
