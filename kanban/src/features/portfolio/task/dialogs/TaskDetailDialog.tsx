@@ -51,7 +51,6 @@ export function TaskDetailDialog() {
                         </div>
                         <div className="modal-body">
                             {vm && <TaskDetailList vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
-                            {vm && <TaskPlanning readOnly={vm.readOnly} />}
                         </div>
                         <div className="modal-footer">
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>
@@ -76,6 +75,7 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
                     <dd className="detail-value" id={row.id}>{vm.fields[row.key]}</dd>
                 </div>
             ))}
+            {!vm.readOnly && <div className="detail-planning-associations"><dt className="sr-only">{t('roadmap.planning')}</dt><dd><TaskPlanning readOnly={vm.readOnly} /></dd></div>}
             <div className="detail-item">
                 <dt className="detail-label">{t('task.todoList')}</dt>
                 <ul className="detail-checklist" id="detailChecklist">

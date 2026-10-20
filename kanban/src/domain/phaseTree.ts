@@ -61,7 +61,7 @@ export function phaseTreeRows(phases: readonly RoadmapItem[], collapsed: Readonl
 /** A compatibility seam for US-4. Until merged, the persisted `done` state is completed. */
 export function planningTaskCategory(task: Task, data?: LooseBoardData | null): string {
     const workflow = data?.extensions?.workflow as { states?: { id: string; category: string }[] } | undefined;
-    return workflow?.states?.find((state) => state.id === task.status)?.category || (task.status === 'done' ? 'completed' : 'not-started');
+    return (Array.isArray(workflow?.states) ? workflow.states.find((state) => state.id === task.status)?.category : undefined) || (task.status === 'done' ? 'completed' : 'not-started');
 }
 
 export function planningProgress(tasks: readonly Task[], data?: LooseBoardData | null) {

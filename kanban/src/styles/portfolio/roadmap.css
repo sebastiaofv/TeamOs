@@ -414,3 +414,4 @@
 .task-planning { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
 .task-planning h3 { font-size: 13px; margin-bottom: 12px; }
 .task-planning label { display: grid; gap: 6px; flex: 1; }
+.detail-planning-associations dd { margin: 0; }
