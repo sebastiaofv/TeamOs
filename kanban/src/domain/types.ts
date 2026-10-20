@@ -1,4 +1,5 @@
 // Stable domain values: board files, tasks, roadmap and timeline data.
+import type { Conversations } from './comments';
 
 export type TaskStatus = 'backlog' | 'to-do' | 'doing' | 'done';
 export type Priority = 'high' | 'medium' | 'low';
@@ -118,6 +119,7 @@ export type SprintIdentity = { sprintId: string; number: number; createdAt: stri
 export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIdentity[] };
 export type BoardExtensions = {
     [key: string]: unknown;
+    conversations?: Conversations;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;

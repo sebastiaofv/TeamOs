@@ -39,13 +39,16 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     let taskEditorOpenCount = 0;
     let undoTimer: ReturnType<typeof setTimeout> | null = null;
 
-    function openPortfolioTaskDetails(boardId: string, taskId: number, options: { boardData?: unknown; readOnly?: boolean } = {}) {
-        const source = findPortfolioTaskDetailSource(getBoardRecord, boardId, taskId, options);
+    function openPortfolioTaskDetails(boardId: string, taskId: number, options: { boardData?: unknown; readOnly?: boolean; historyEventIndex?: number } = {}) {
+        const view = getState().selectedPortfolioBoardId === boardId ? getSelectedPortfolioTimelineView(getState()) : null;
+        const historyEventIndex = options.historyEventIndex ?? (view?.isPreview ? view.selectedIndex ?? undefined : undefined);
+        const effective = view?.isPreview ? { ...options, boardData: options.boardData || view.projectedBoard, readOnly: true } : options;
+        const source = findPortfolioTaskDetailSource(getBoardRecord, boardId, taskId, effective);
         if (!source) return;
         setSelectedPortfolioCard(boardId, taskId);
-        const readOnly = options.readOnly === true || !canUsePortfolioTaskMutations(boardId);
-        commitState({ portfolioDetailContext: { boardId, taskId, readOnly } });
-        openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly));
+        const readOnly = effective.readOnly === true || !canUsePortfolioTaskMutations(boardId);
+        commitState({ portfolioDetailContext: { boardId, taskId, readOnly, ...(historyEventIndex !== undefined ? { historyEventIndex } : {}) } });
+        openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly, historyEventIndex));
     }
 
     function editPortfolioTask(boardId: string, taskId: number) {

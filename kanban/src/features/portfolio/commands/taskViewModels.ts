@@ -159,12 +159,13 @@ export function buildTaskEditorViewModel(
     };
 }
 
-export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean): TaskDetailViewModel {
+export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, historyEventIndex?: number): TaskDetailViewModel {
     const task = normalizeTask(source.task);
     const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
+        conversationContext: { boardId: source.boardRecord.id, task: source.task, readOnly, eventIndex: historyEventIndex },
         fields: {
             title: task.title || '-',
             description: task.description || '-',

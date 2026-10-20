@@ -26,7 +26,7 @@ import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 
 export type EditContext = { boardId: string; taskId: number };
 export type CreateContext = { boardId: string; status: TaskStatus };
-export type DetailContext = { boardId: string; taskId: number; readOnly: boolean };
+export type DetailContext = { boardId: string; taskId: number; readOnly: boolean; historyEventIndex?: number };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode; unplannedTaskIds?: number[] };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };
 

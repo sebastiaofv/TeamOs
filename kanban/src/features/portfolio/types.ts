@@ -121,6 +121,7 @@ export type TaskDetailFields = Record<
 >;
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
 export type TaskDetailViewModel = {
+    conversationContext?: { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };
     readOnly: boolean;
     fields: TaskDetailFields;
     checklist: ChecklistItem[];

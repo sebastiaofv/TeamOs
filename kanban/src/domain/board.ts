@@ -13,6 +13,8 @@ import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
+import { parseTaskIdentityReservation } from './taskIdentity';
+import { parseConversations } from './comments';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -250,6 +252,8 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid extensions structure.');
     }
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
+    parseTaskIdentityReservation((extensions as Record<string, unknown>).taskIdentity);
+    parseConversations((extensions as Record<string, unknown>).conversations, normalizeTimelineExtension((extensions as Record<string, unknown>).timeline)?.events);
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {

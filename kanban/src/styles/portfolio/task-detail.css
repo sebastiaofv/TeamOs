@@ -118,3 +118,30 @@
     background: var(--bg-secondary);
     border-color: var(--text-secondary);
 }
+.task-conversation { border-top: 1px solid var(--border); margin-top: 24px; padding-top: 18px; }
+.task-conversation h3 { font-size: 14px; margin-bottom: 10px; }
+.comment-note, .comment-empty { color: var(--text-secondary); font-size: 11px; margin-block: 8px; }
+.comment-list { display: grid; list-style: none; gap: 12px; margin-block: 14px; }
+.comment-publication { padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 8px; }
+.comment-publication header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.comment-publication header span, .comment-publication time { color: var(--text-secondary); font-size: 11px; }
+.comment-publication time { margin-left: auto; }
+.comment-text { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 10px; }
+.comment-text a { color: var(--accent); }
+.comment-images { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 10px; }
+.comment-image { display: grid; gap: 6px; width: 140px; min-width: 0; }
+.comment-image > button:first-child { border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); cursor: zoom-in; }
+.comment-image img { width: 100%; height: 100px; object-fit: contain; border-radius: 6px; }
+.comment-image a { color: var(--accent); font-size: 10px; overflow-wrap: anywhere; }
+.comment-composer { display: grid; gap: 8px; border-top: 1px solid var(--border-light); padding-top: 16px; }
+.comment-composer label { font-size: 12px; font-weight: 600; }
+.comment-composer input, .comment-composer textarea { width: 100%; padding: 9px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font: inherit; }
+.comment-composer textarea { resize: vertical; min-height: 96px; }
+.comment-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.comment-error { color: var(--priority-high); }
+.comment-warning { color: var(--text-primary); background: var(--bg-secondary); border: 1px solid var(--border); padding: 10px; }
+.comment-image-overlay { z-index: 1500; }
+.comment-image-viewer { width: min(1000px, 95vw); }
+.comment-image-viewer img { display: block; max-width: 100%; max-height: 70vh; object-fit: contain; margin: 0 auto 12px; }
+.conversation-recovery { max-height: 30vh; overflow: auto; border-bottom: 1px solid var(--border); background: var(--bg-secondary); padding: 10px 16px; }
+.conversation-recovery textarea { width: 100%; margin-block: 10px; color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border); }

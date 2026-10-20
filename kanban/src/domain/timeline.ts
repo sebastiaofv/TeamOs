@@ -20,6 +20,8 @@ import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
+import { reserveTaskIdentities } from './taskIdentity';
+import { commentsThrough } from './comments';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -141,6 +143,11 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
+    if (event.kind === 'task.comment.published' && typeof event.meta?.commentId === 'string') {
+        const previous = nextState.extensions?.conversationRefs;
+        nextState.extensions = { ...nextState.extensions, conversationRefs: [...new Set([...(Array.isArray(previous) ? previous : []), event.meta.commentId])] };
+        return nextState;
+    }
 
     if (event.kind === 'task.created' && event.snapshot) {
         board.tasks = tasks.filter((task) => Number(task?.id) !== Number(event.entityId));
@@ -291,6 +298,14 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     // Preview/restore may change membership, but must not renumber or reuse identities.
     const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.timeline);
     if (knownCatalog) snapshot.extensions.sprintCatalog = normalizeSprintCatalog(knownCatalog, snapshot.extensions.roadmap?.sprints || []);
+    reserveTaskIdentities(snapshot, boardData || undefined);
+    const conversations = boardData && commentsThrough(boardData, targetIndex);
+    if (conversations) {
+        snapshot.extensions.conversations = conversations;
+        // A projected board remains self-contained and validates its publication references.
+        // Persistent snapshots still strip both the timeline and conversation payloads.
+        snapshot.extensions.timeline = { version: timeline.version, baselineEventId: timeline.baselineEventId, events: cloneSerializable(timeline.events.slice(0, targetIndex + 1)) };
+    }
     return snapshot;
 }
 

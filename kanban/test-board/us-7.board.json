@@ -1,0 +1,1996 @@
+{
+  "meta": {
+    "schemaVersion": 2,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-01T09:00:00.000Z",
+    "updatedAt": "2026-10-19T10:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "To Do"
+      },
+      {
+        "status": "doing",
+        "title": "Doing"
+      },
+      {
+        "status": "done",
+        "title": "Done"
+      }
+    ],
+    "settings": {
+      "title": "US-7 · Offline workitem conversations"
+    },
+    "tasks": [
+      {
+        "id": 701,
+        "title": "Delivery conversation · 55 comments",
+        "description": "Description stays independent from the conversation.",
+        "status": "done",
+        "archived": false,
+        "checklist": [],
+        "priority": null,
+        "dueDate": "",
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "assignees": [
+          "Ana",
+          "Bruno"
+        ],
+        "responsible": "Ana"
+      },
+      {
+        "id": 702,
+        "title": "Archived discussion",
+        "description": "Description stays independent from the conversation.",
+        "status": "to-do",
+        "archived": true,
+        "checklist": [],
+        "priority": null,
+        "dueDate": "",
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z"
+      },
+      {
+        "id": 703,
+        "title": "Empty conversation and session drafts",
+        "description": "Description stays independent from the conversation.",
+        "status": "to-do",
+        "archived": false,
+        "checklist": [],
+        "priority": null,
+        "dueDate": "",
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z"
+      }
+    ]
+  },
+  "extensions": {
+    "taskIdentity": {
+      "version": 1,
+      "highWaterMark": 703
+    },
+    "conversations": {
+      "version": 1,
+      "entries": [
+        {
+          "id": "us7-comment-1",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-1",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 01 · publication order is canonical, not timestamp order.",
+          "images": [
+            {
+              "id": "us7-image-1",
+              "name": "Screenshot-1.png",
+              "mime": "image/png",
+              "sizeBytes": 70,
+              "kind": "image",
+              "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==",
+              "createdAt": "2026-10-19T10:00:00.000Z"
+            }
+          ]
+        },
+        {
+          "id": "us7-comment-2",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-2",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 02 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-3",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-3",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 03 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-4",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-4",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 04 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-5",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-5",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 05 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-6",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-6",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 06 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-7",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-7",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 07 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-8",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-8",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 08 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-9",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-9",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 09 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-10",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-10",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 10 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-11",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-11",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 11 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-12",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-12",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 12 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-13",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-13",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 13 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-14",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-14",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 14 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-15",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-15",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 15 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-16",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-16",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 16 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-17",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-17",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 17 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-18",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-18",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 18 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-19",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-19",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 19 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-20",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-20",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 20 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-21",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-21",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 21 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-22",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-22",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 22 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-23",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-23",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 23 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-24",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-24",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 24 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-25",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-25",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 25 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-26",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-26",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 26 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-27",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-27",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 27 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-28",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-28",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 28 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-29",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-29",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 29 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-30",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-30",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 30 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-31",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-31",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 31 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-32",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-32",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 32 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-33",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-33",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 33 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-34",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-34",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 34 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-35",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-35",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 35 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-36",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-36",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 36 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-37",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-37",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 37 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-38",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-38",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 38 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-39",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-39",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 39 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-40",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-40",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 40 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-41",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-41",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 41 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-42",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-42",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 42 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-43",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-43",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 43 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-44",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-44",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 44 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-45",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-45",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 45 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-46",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-46",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 46 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-47",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-47",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 47 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-48",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-48",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 48 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-49",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-49",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 49 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-50",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-50",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 50 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-51",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-51",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 51 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-52",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-52",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 52 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-53",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-53",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 53 · publication order is canonical, not timestamp order.",
+          "images": []
+        },
+        {
+          "id": "us7-comment-54",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-54",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "",
+          "images": [
+            {
+              "id": "us7-image-54",
+              "name": "Screenshot-54.png",
+              "mime": "image/png",
+              "sizeBytes": 70,
+              "kind": "image",
+              "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==",
+              "createdAt": "2026-10-19T09:30:00.000Z"
+            }
+          ]
+        },
+        {
+          "id": "us7-comment-55",
+          "taskId": 701,
+          "workitemKey": "baseline:us7-baseline:701",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-55",
+          "at": "2026-10-19T10:00:00.000Z",
+          "author": {
+            "name": "Ana (demo)",
+            "kind": "local"
+          },
+          "text": "Final clarification.\n@Bruno remains plain text. https://code.example.test/review?q=demo#discussion\n<img src=x onerror=alert(1)> is text, not HTML.",
+          "images": [
+            {
+              "id": "us7-image-55",
+              "name": "Screenshot-55.png",
+              "mime": "image/png",
+              "sizeBytes": 70,
+              "kind": "image",
+              "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==",
+              "createdAt": "2026-10-19T10:00:00.000Z"
+            }
+          ]
+        },
+        {
+          "id": "us7-comment-56",
+          "taskId": 702,
+          "workitemKey": "baseline:us7-baseline:702",
+          "workitemCreatedAt": "2026-10-01T09:00:00.000Z",
+          "eventId": "comment-event-us7-comment-56",
+          "at": "2026-10-19T09:30:00.000Z",
+          "author": {
+            "name": "Bruno (demo)",
+            "kind": "local"
+          },
+          "text": "Comment 56 · publication order is canonical, not timestamp order.",
+          "images": []
+        }
+      ]
+    },
+    "timeline": {
+      "version": 1,
+      "baselineEventId": "us7-baseline",
+      "events": [
+        {
+          "id": "us7-baseline",
+          "at": "2026-10-19T09:00:00.000Z",
+          "kind": "board.baseline",
+          "entityType": "board",
+          "entityId": "board",
+          "summary": "Baseline snapshot created",
+          "snapshot": {
+            "meta": {
+              "schemaVersion": 2,
+              "appId": "teamos-kanban",
+              "createdAt": "2026-10-01T09:00:00.000Z",
+              "updatedAt": "2026-10-19T10:00:00.000Z"
+            },
+            "board": {
+              "columns": [
+                {
+                  "status": "backlog",
+                  "title": "Backlog"
+                },
+                {
+                  "status": "to-do",
+                  "title": "To Do"
+                },
+                {
+                  "status": "doing",
+                  "title": "Doing"
+                },
+                {
+                  "status": "done",
+                  "title": "Done"
+                }
+              ],
+              "settings": {
+                "title": "US-7 · Offline workitem conversations"
+              },
+              "tasks": [
+                {
+                  "id": 701,
+                  "title": "Delivery conversation · 55 comments",
+                  "description": "Description stays independent from the conversation.",
+                  "status": "done",
+                  "archived": false,
+                  "checklist": [],
+                  "priority": null,
+                  "dueDate": "",
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "assignees": [
+                    "Ana",
+                    "Bruno"
+                  ],
+                  "responsible": "Ana"
+                },
+                {
+                  "id": 702,
+                  "title": "Archived discussion",
+                  "description": "Description stays independent from the conversation.",
+                  "status": "to-do",
+                  "archived": true,
+                  "checklist": [],
+                  "priority": null,
+                  "dueDate": "",
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z"
+                },
+                {
+                  "id": 703,
+                  "title": "Empty conversation and session drafts",
+                  "description": "Description stays independent from the conversation.",
+                  "status": "to-do",
+                  "archived": false,
+                  "checklist": [],
+                  "priority": null,
+                  "dueDate": "",
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z"
+                }
+              ]
+            },
+            "extensions": {}
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-1",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-1",
+            "commentId": "us7-comment-1",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-2",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-2",
+            "commentId": "us7-comment-2",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-3",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-3",
+            "commentId": "us7-comment-3",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-4",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-4",
+            "commentId": "us7-comment-4",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-5",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-5",
+            "commentId": "us7-comment-5",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-6",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-6",
+            "commentId": "us7-comment-6",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-7",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-7",
+            "commentId": "us7-comment-7",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-8",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-8",
+            "commentId": "us7-comment-8",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-9",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-9",
+            "commentId": "us7-comment-9",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-10",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-10",
+            "commentId": "us7-comment-10",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-11",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-11",
+            "commentId": "us7-comment-11",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-12",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-12",
+            "commentId": "us7-comment-12",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-13",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-13",
+            "commentId": "us7-comment-13",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-14",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-14",
+            "commentId": "us7-comment-14",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-15",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-15",
+            "commentId": "us7-comment-15",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-16",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-16",
+            "commentId": "us7-comment-16",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-17",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-17",
+            "commentId": "us7-comment-17",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-18",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-18",
+            "commentId": "us7-comment-18",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-19",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-19",
+            "commentId": "us7-comment-19",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-20",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-20",
+            "commentId": "us7-comment-20",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-21",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-21",
+            "commentId": "us7-comment-21",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-22",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-22",
+            "commentId": "us7-comment-22",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-23",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-23",
+            "commentId": "us7-comment-23",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-24",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-24",
+            "commentId": "us7-comment-24",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-25",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-25",
+            "commentId": "us7-comment-25",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-26",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-26",
+            "commentId": "us7-comment-26",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-27",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-27",
+            "commentId": "us7-comment-27",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-28",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-28",
+            "commentId": "us7-comment-28",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-29",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-29",
+            "commentId": "us7-comment-29",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-30",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-30",
+            "commentId": "us7-comment-30",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-31",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-31",
+            "commentId": "us7-comment-31",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-32",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-32",
+            "commentId": "us7-comment-32",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-33",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-33",
+            "commentId": "us7-comment-33",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-34",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-34",
+            "commentId": "us7-comment-34",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-35",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-35",
+            "commentId": "us7-comment-35",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-36",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-36",
+            "commentId": "us7-comment-36",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-37",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-37",
+            "commentId": "us7-comment-37",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-38",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-38",
+            "commentId": "us7-comment-38",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-39",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-39",
+            "commentId": "us7-comment-39",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-40",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-40",
+            "commentId": "us7-comment-40",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-41",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-41",
+            "commentId": "us7-comment-41",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-42",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-42",
+            "commentId": "us7-comment-42",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-43",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-43",
+            "commentId": "us7-comment-43",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-44",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-44",
+            "commentId": "us7-comment-44",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-45",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-45",
+            "commentId": "us7-comment-45",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-46",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-46",
+            "commentId": "us7-comment-46",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-47",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-47",
+            "commentId": "us7-comment-47",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-48",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-48",
+            "commentId": "us7-comment-48",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-49",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-49",
+            "commentId": "us7-comment-49",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-50",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-50",
+            "commentId": "us7-comment-50",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-51",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-51",
+            "commentId": "us7-comment-51",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-52",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-52",
+            "commentId": "us7-comment-52",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-53",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-53",
+            "commentId": "us7-comment-53",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-54",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-54",
+            "commentId": "us7-comment-54",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-55",
+          "at": "2026-10-19T10:00:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "701",
+          "summary": "Comment published: #701 · Ana (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-55",
+            "commentId": "us7-comment-55",
+            "workitemKey": "baseline:us7-baseline:701",
+            "author": {
+              "name": "Ana (demo)",
+              "kind": "local"
+            }
+          }
+        },
+        {
+          "id": "comment-event-us7-comment-56",
+          "at": "2026-10-19T09:30:00.000Z",
+          "kind": "task.comment.published",
+          "entityType": "task",
+          "entityId": "702",
+          "summary": "Comment published: #702 · Bruno (demo)",
+          "meta": {
+            "historyVersion": 1,
+            "operationId": "comment-event-us7-comment-56",
+            "commentId": "us7-comment-56",
+            "workitemKey": "baseline:us7-baseline:702",
+            "author": {
+              "name": "Bruno (demo)",
+              "kind": "local"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

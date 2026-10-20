@@ -14,6 +14,7 @@ import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persisten
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
+import { reserveTaskIdentities } from '@/domain/taskIdentity';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -82,6 +83,7 @@ export function createBoardMutationContext({
         try {
             ensureBoardTimelineBaseline(draft.data);
             if (mutator(draft.data, draft) === false) return false;
+            reserveTaskIdentities(draft.data, current.data);
         } catch (error) {
             alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;

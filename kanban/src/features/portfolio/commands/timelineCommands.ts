@@ -74,7 +74,9 @@ export function createTimelineActions(
         closeTaskDetail();
         closeTaskEditor();
         return runPortfolioBoardMutation(view.boardRecord.id, (_, draft) => {
+            const conversations = cloneSerializable(draft.data.extensions.conversations);
             draft.data = createBoardStateSnapshot(view.projectedBoard);
+            if (conversations) draft.data.extensions.conversations = conversations;
             getBoardExtensionsObject(draft.data, { create: true })[TIMELINE_EXTENSION_KEY] = cloneSerializable(currentTimeline);
             recordBoardRestoreTimelineEvent(draft.data, view.selectedEvent);
             return true;
