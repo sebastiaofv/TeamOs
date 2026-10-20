@@ -1,0 +1,36 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "board": {
+    "columns": [{ "status": "backlog", "title": "Backlog" }, { "status": "done", "title": "Done" }],
+    "settings": { "title": "Relations compatibility fixture" },
+    "tasks": [
+      {
+        "id": 41, "title": "Archived blocker", "description": "Preserve original data", "assignee": "Ana",
+        "checklist": [{ "text": "Original step", "done": false }], "archived": true,
+        "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z",
+        "dueDate": "", "priority": "high", "status": "backlog", "phaseId": "phase", "milestoneId": "milestone"
+      },
+      {
+        "id": 72, "title": "Dependent", "description": "Manual blocker is independent",
+        "blocked": true, "blockerReason": "Awaiting decision", "checklist": [], "archived": false,
+        "createdAt": "2026-01-01T00:00:00.000Z", "updatedAt": "2026-01-01T00:00:00.000Z",
+        "dueDate": "", "priority": null, "status": "backlog"
+      }
+    ]
+  },
+  "extensions": {
+    "taskRelations": { "version": 1, "relations": [{ "sourceId": 41, "targetId": 72, "kind": "blocks" }] },
+    "roadmap": {
+      "version": 1,
+      "phases": [{ "id": "phase", "title": "Original phase", "startDate": "2026-01-01", "endDate": "2026-02-01" }],
+      "milestones": [{ "id": "milestone", "title": "Original milestone", "dueDate": "2026-02-01" }],
+      "sprints": []
+    },
+    "customExtension": { "preserve": "Unknown extension data" }
+  }
+}

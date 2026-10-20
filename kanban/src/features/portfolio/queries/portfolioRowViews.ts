@@ -3,6 +3,7 @@ import type { BoardData } from '@/domain/types';
 import type { AppState } from '@/features/portfolio/state/slices';
 import { normalizeTask } from '@/domain/task';
 import { createBoardStateSnapshot } from '@/domain/serialize';
+import { getDependencyBlockedTaskIds } from '@/domain/taskRelations';
 
 // Selectors accept any slice of the store: components pass the fields they
 // subscribe to.
@@ -23,6 +24,7 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
     return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : []).flatMap((board, boardIndex) => {
         if (!board?.data?.board) return [];
         const statusMap = getBoardStatusMap(board.data);
+        const dependencyBlocked = getDependencyBlockedTaskIds(board.data);
         return (board.data.board.tasks || []).map((task, taskIndex) => ({
             boardIndex,
             boardId: board.id,
@@ -32,7 +34,7 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
             boardFileName: board.fileName,
             columnTitle: statusMap[task.status] || task.status,
             canMutate: Boolean(board.handle),
-            task: normalizeTask(task)
+            task: { ...normalizeTask(task), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
         }));
     });
 }
@@ -48,6 +50,7 @@ export function buildPortfolioRowsFromBoardData(
     const statusMap = getBoardStatusMap(normalizedBoard);
     const canMutate = Boolean(boardRecord.handle) && options.canMutate !== false;
     const historical = Boolean(options.historical);
+    const dependencyBlocked = getDependencyBlockedTaskIds(normalizedBoard);
     return (normalizedBoard.board.tasks || []).map((task, taskIndex) => ({
         boardIndex: (state?.portfolioBoards || []).findIndex((board) => board.id === boardRecord.id),
         boardId: boardRecord.id,
@@ -58,6 +61,6 @@ export function buildPortfolioRowsFromBoardData(
         columnTitle: statusMap[task.status] || task.status,
         canMutate,
         historical,
-        task: normalizeTask(task)
+        task: { ...normalizeTask(task), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
     }));
 }
