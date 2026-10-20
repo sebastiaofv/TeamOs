@@ -70,6 +70,13 @@ export function getWorkflow(data?: LooseBoardData | null): Workflow {
     return data?.extensions?.workflow ? parseWorkflow(data.extensions.workflow) : legacyWorkflow(data?.board?.columns);
 }
 
+export function unreachableWorkflowStateIds(workflow: Workflow): Set<string> {
+    const reachable = new Set(['backlog']);
+    const queue = ['backlog'];
+    while (queue.length) for (const target of workflow.transitions[queue.shift()!] || []) if (!reachable.has(target)) { reachable.add(target); queue.push(target); }
+    return new Set(workflow.states.filter((state) => !reachable.has(state.id)).map((state) => state.id));
+}
+
 export function workflowErrors(workflow: Workflow): string[] {
     const errors: string[] = [];
     if (!workflow || workflow.version !== 2 || !Array.isArray(workflow.states) || !workflow.transitions || !workflow.references) return ['Invalid workflow structure.'];
@@ -95,10 +102,8 @@ export function workflowErrors(workflow: Workflow): string[] {
     for (const [id, targets] of Object.entries(workflow.transitions)) {
         if (!ids.has(id) || !Array.isArray(targets) || targets.some((target) => !ids.has(target) || target === id) || new Set(targets).size !== targets.length) errors.push('Invalid transitions.');
     }
-    const reachable = new Set(['backlog']);
-    const queue = ['backlog'];
-    while (queue.length) for (const target of workflow.transitions[queue.shift()!] || []) if (!reachable.has(target)) { reachable.add(target); queue.push(target); }
-    const unreachable = workflow.states.filter((s) => !reachable.has(s.id));
+    const unreachableIds = unreachableWorkflowStateIds(workflow);
+    const unreachable = workflow.states.filter((state) => unreachableIds.has(state.id));
     if (unreachable.length) errors.push(`Every state must be reachable from Backlog: ${unreachable.map((state) => state.name || state.id).join(', ')}.`);
     return [...new Set(errors)];
 }
