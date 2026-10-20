@@ -1,4 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { useState, type KeyboardEvent } from 'react';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -6,6 +7,7 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
+import { TaskHistory } from './TaskHistory';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -49,7 +51,7 @@ export function TaskDetailDialog() {
                             <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                         </div>
                         <div className="modal-body">
-                            {vm && <TaskDetailList vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
+                            {vm && <TaskDetailContent key={vm.historyKey} vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
                         </div>
                         <div className="modal-footer">
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>
@@ -59,6 +61,23 @@ export function TaskDetailDialog() {
             </Dialog.Portal>
         </Dialog.Root>
     );
+}
+
+function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewModel; onToggleChecklistItem: (index: number, checked: boolean) => unknown }) {
+    const [tab, setTab] = useState<'details' | 'history'>('details');
+    const { t } = useI18n();
+    const tabs = ['details', 'history'] as const;
+    function navigate(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : event.key === 'ArrowRight' || event.key === 'ArrowLeft' ? 1 - index : null;
+        if (next === null) return;
+        event.preventDefault(); setTab(tabs[next]);
+        (event.currentTarget.parentElement?.querySelectorAll('button')[next] as HTMLButtonElement)?.focus();
+    }
+    return <><div className="detail-tabs" role="tablist" aria-label={t('history.navigation')}>
+        {tabs.map((value, index) => <button key={value} id={`task-tab-${value}`} role="tab" type="button" aria-selected={tab === value} aria-controls={`task-panel-${value}`} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setTab(value)}>{t(value === 'details' ? 'history.details' : 'history.title')}</button>)}
+    </div><div role="tabpanel" id={`task-panel-${tab}`} aria-labelledby={`task-tab-${tab}`} tabIndex={0}>
+        {tab === 'details' ? <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /> : <TaskHistory history={vm.history} />}
+    </div></>;
 }
 
 function TaskDetailList({ vm, onToggleChecklistItem }: {

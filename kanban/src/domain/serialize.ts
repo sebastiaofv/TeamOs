@@ -9,6 +9,7 @@ import { migrateBoardData } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
+import { reserveTaskIdentities } from './taskIdentity';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -115,6 +116,8 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
 export function serializeBoardDataFromObject(boardData: unknown): BoardData {
     const now = nowIso();
     const input = migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData);
+    const reservedInput = { ...input, extensions: { ...input.extensions } };
+    reserveTaskIdentities(reservedInput);
     const meta = (input.meta && typeof input.meta === 'object' ? input.meta : {}) as LooseMeta;
     const board = (input.board && typeof input.board === 'object' ? input.board : {}) as LooseBoard;
     const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };
@@ -146,7 +149,7 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
                 title
             }
         },
-        extensions: normalizeBoardExtensionsValue(input.extensions, {
+        extensions: normalizeBoardExtensionsValue(reservedInput.extensions, {
             taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
         })
     };

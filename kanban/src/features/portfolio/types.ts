@@ -18,6 +18,7 @@ import type {
     TimelineExtension
 } from '@/domain/types';
 import type { BoardFileHandle } from '@/infrastructure/browser/types';
+import type { TaskHistoryProjection } from '@/domain/taskHistory';
 
 export type { DraftMessage, TaskDraft, TaskEditorFields } from '@/domain/types';
 
@@ -121,6 +122,8 @@ export type TaskDetailFields = Record<
 >;
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
 export type TaskDetailViewModel = {
+    history?: TaskHistoryProjection;
+    historyKey?: string;
     readOnly: boolean;
     fields: TaskDetailFields;
     checklist: ChecklistItem[];

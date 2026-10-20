@@ -1,0 +1,9 @@
+{
+  "meta":{"schemaVersion":1,"appId":"teamos-kanban","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-19T10:00:00.000Z"},
+  "board":{"columns":[{"status":"to-do","title":"Current Ready"},{"status":"done","title":"Current Done"}],"settings":{"title":"US-6 · Partial legacy evidence"},"tasks":[{"id":701,"title":"Partial item","description":"Only a partial recorded operation is known.","status":"done","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-19T10:00:00.000Z"}]},
+  "extensions":{"timeline":{"version":1,"baselineEventId":"partial-baseline","events":[
+    {"id":"partial-baseline","at":"2026-10-18T10:00:00.000Z","kind":"board.baseline","entityType":"board","entityId":"board","summary":"Legacy baseline without snapshot"},
+    {"id":"partial-status","at":"2026-10-19T10:00:00.000Z","kind":"task.status.changed","entityType":"task","entityId":"701","summary":"Status changed: Partial item","changes":{"status":{"before":"to-do","after":"done"}}},
+    {"id":"partial-update","at":"2026-10-19T10:00:00.000Z","kind":"task.updated","entityType":"task","entityId":"701","summary":"Legacy update with missing details"}
+  ]}}
+}

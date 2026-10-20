@@ -1,0 +1,31 @@
+{
+  "meta":{"schemaVersion":2,"appId":"teamos-kanban","createdAt":"2026-10-19T09:00:00.000Z","updatedAt":"2026-10-19T11:00:00.000Z"},
+  "board":{
+    "columns":[{"status":"backlog","title":"Backlog"},{"status":"to-do","title":"Ready"},{"status":"doing","title":"Doing"},{"status":"done","title":"Current delivery name"}],
+    "settings":{"title":"US-6 · Local workitem history"},
+    "tasks":[
+      {"id":601,"title":"Release ready","description":"Clarified acceptance","assignees":["Ana"],"responsible":"Ana","status":"done","phaseId":"build","milestoneId":"release","archived":false,"checklist":[],"priority":"high","dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-19T10:00:00.000Z"},
+      {"id":602,"title":"Archived investigation","description":"Available with the archive filter.","status":"to-do","archived":true,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-19T11:00:00.000Z"},
+      {"id":603,"title":"Initial snapshot only","description":"No creation or edits are invented.","status":"to-do","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z"}
+    ]
+  },
+  "extensions":{
+    "taskIdentity":{"version":1,"highWaterMark":603},
+    "roadmap":{"version":1,"phases":[{"id":"build","title":"Build at date","startDate":"2026-10-01","endDate":"2026-10-30"}],"milestones":[{"id":"release","title":"Release at date","dueDate":"2026-11-01"}],"sprints":[]},
+    "dayPlanner":{"version":1,"blocks":[{"id":"block601","taskId":601,"date":"2026-10-19","start":"09:00","end":"10:00"}]},
+    "timeline":{"version":1,"baselineEventId":"us6-baseline","events":[
+      {"id":"us6-baseline","at":"2026-10-19T09:00:00.000Z","kind":"board.baseline","entityType":"board","entityId":"board","summary":"Baseline snapshot created","snapshot":{
+        "board":{"columns":[{"status":"backlog","title":"Backlog"},{"status":"to-do","title":"Ready"},{"status":"doing","title":"Doing"},{"status":"done","title":"Delivered at date"}],"settings":{"title":"US-6 · Local workitem history"},"tasks":[
+          {"id":601,"title":"Release draft","description":"Draft acceptance","assignees":[],"responsible":"","status":"to-do","phaseId":"build","milestoneId":"release","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z"},
+          {"id":602,"title":"Archived investigation","description":"Available with the archive filter.","status":"to-do","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z"},
+          {"id":603,"title":"Initial snapshot only","description":"No creation or edits are invented.","status":"to-do","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z"}
+        ]},
+        "extensions":{"roadmap":{"version":1,"phases":[{"id":"build","title":"Build at date","startDate":"2026-10-01","endDate":"2026-10-30"}],"milestones":[{"id":"release","title":"Release at date","dueDate":"2026-11-01"}],"sprints":[]}}
+      }},
+      {"id":"us6-save","at":"2026-10-19T10:00:00.000Z","kind":"task.updated","entityType":"task","entityId":"601","summary":"Task updated: Release ready","changes":{"title":{"before":"Release draft","after":"Release ready"},"description":{"before":"Draft acceptance","after":"Clarified acceptance"},"priority":{"before":null,"after":"high"},"assignees":{"before":[],"after":["Ana"]},"responsible":{"before":"","after":"Ana"}},"meta":{"historyVersion":1,"operationId":"us6-op-save"}},
+      {"id":"us6-status","at":"2026-10-19T09:30:00.000Z","kind":"task.status.changed","entityType":"task","entityId":"601","summary":"Status changed: Release ready","changes":{"status":{"before":"to-do","after":"done"}},"meta":{"historyVersion":1,"operationId":"us6-op-state","labels":{"before":{"status":{"to-do":"Ready"}},"after":{"status":{"done":"Delivered at date"}}}}},
+      {"id":"us6-plan","at":"2026-10-19T10:00:00.000Z","kind":"planner.block.added","entityType":"task","entityId":"601","summary":"Day Planner block added","changes":{"block":{"before":null,"after":{"id":"block601","taskId":601,"date":"2026-10-19","start":"09:00","end":"10:00"}}},"meta":{"operationId":"us6-op-plan","historyVersion":1}},
+      {"id":"us6-archive","at":"2026-10-19T10:00:00.000Z","kind":"task.archived","entityType":"task","entityId":"602","summary":"Task archived: Archived investigation","changes":{"archived":{"before":false,"after":true}},"meta":{"historyVersion":1,"operationId":"us6-op-archive"}}
+    ]}
+  }
+}

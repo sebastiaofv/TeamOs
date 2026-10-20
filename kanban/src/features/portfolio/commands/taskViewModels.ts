@@ -37,6 +37,7 @@ import { createBoardStateSnapshot } from '@/domain/serialize';
 import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+import { projectTaskHistory } from '@/domain/taskHistory';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -159,12 +160,14 @@ export function buildTaskEditorViewModel(
     };
 }
 
-export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean): TaskDetailViewModel {
+export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, historyEventIndex?: number): TaskDetailViewModel {
     const task = normalizeTask(source.task);
     const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
+        history: projectTaskHistory(source.boardRecord.data, source.task, historyEventIndex),
+        historyKey: `${source.boardRecord.id}:${taskId}:${historyEventIndex ?? 'current'}`,
         fields: {
             title: task.title || '-',
             description: task.description || '-',
