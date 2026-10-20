@@ -14,6 +14,7 @@ Usar `us-8`, criado de `main`, não dos branches anteriores. Copiar o JSON antes
 10. Em leitura e fotografias históricas, só consultar/abrir; não há ações de mutação, e o comando também as impede. Gravar/reabrir/exportar/importar preserva URLs; ficheiros v1/v2 migram para v3 com lista vazia onde não existia informação, sem inventar associações.
 11. Falhar a gravação após confirmar: associação/evento já aplicados permanecem em memória. Retry grava os mesmos dados, sem duplicar link/evento. Conflitos seguem a escolha do ficheiro completo já existente.
 12. Testar PT-PT/inglês, teclado, URLs compridos e temas claro/escuro.
+13. Confirmar linhas e campos com contornos retos, labels em maiúsculas, ações compactas e cores/foco iguais aos restantes formulários. A 390 px, URLs quebram linhas e as ações ficam abaixo, sem scroll horizontal. Com teclado, abrir **Adicionar**, cancelar e confirmar uma adição: o foco regressa a Adicionar. Corrigir um URL, cancelar ou confirmar (incluindo sem alterações): o foco regressa à ação Corrigir dessa mesma linha, mesmo quando o URL muda.
 
 US-6 é um PR separado: após integração, `task.updated` com alterações `pullRequests` aparece no Histórico, incluindo anterior/posterior e uma única operação quando guardado com outros campos. Este branch não cria um histórico paralelo nem implementa GitHub API, OAuth, tokens, webhooks, sincronização ou deteção de merge. US-17 poderá reutilizar o componente.
 

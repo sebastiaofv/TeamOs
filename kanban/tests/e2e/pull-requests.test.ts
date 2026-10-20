@@ -11,6 +11,43 @@ async function add(scope: Locator, value: string) {
     await scope.getByRole('button', { name: 'Confirm link', exact: true }).click();
 }
 
+test('closing URL editing returns keyboard focus to Add or the corrected link action', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Keyboard links', hasHandle: true, tasks: [{ id: 1, title: 'Links', pullRequests: [first] }] }], { selectedBoardId: 'p' });
+    await portfolioCard(page, 'Links').click();
+    const scope = page.locator('#taskDetailModal .pull-request-links');
+    const addButton = scope.getByRole('button', { name: 'Add pull request link', exact: true });
+    const input = scope.getByLabel('Full URL', { exact: true });
+    const cancel = scope.getByRole('button', { name: 'Cancel', exact: true });
+    await addButton.focus();
+    await addButton.press('Enter');
+    await expect(input).toBeFocused();
+    await cancel.focus();
+    await cancel.press('Enter');
+    await expect(addButton).toBeFocused();
+
+    await addButton.press('Enter');
+    await input.fill(second);
+    await input.press('Enter');
+    await expect(addButton).toBeFocused();
+    const editButton = scope.getByRole('button', { name: `Correct ${second}`, exact: true });
+    await editButton.focus();
+    await editButton.press('Enter');
+    await expect(input).toBeFocused();
+    await cancel.focus();
+    await cancel.press('Enter');
+    await expect(editButton).toBeFocused();
+
+    await editButton.press('Enter');
+    await input.press('Enter');
+    await expect(editButton).toBeFocused();
+    await editButton.press('Enter');
+    await input.fill(internal);
+    await input.press('Enter');
+    await expect(scope.getByRole('button', { name: `Correct ${internal}`, exact: true })).toBeFocused();
+    await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[0].pullRequests).toEqual([first, internal]);
+});
+
 test('detail links validate locally, preserve spelling, and support explicit correction/removal without network metadata', async ({ page }) => {
     const network: string[] = [];
     page.on('request', (request) => { if (/github\.com|example\.test|git\.internal/.test(request.url())) network.push(request.url()); });

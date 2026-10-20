@@ -121,14 +121,17 @@
 .detail-pull-requests { display: block; margin-top: 14px; }
 .detail-pull-requests dd { margin: 0; }
 .pull-request-links { min-width: 0; padding-top: 14px; margin-block: 12px; border-top: 1px solid var(--border); }
-.pull-request-links h3 { font-size: 14px; margin-bottom: 8px; }
+.pull-request-links h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 .pull-request-note, .pull-request-empty { color: var(--text-secondary); font-size: 11px; margin-block: 8px; }
-.pull-request-list { list-style: none; display: grid; gap: 10px; margin-block: 14px; }
-.pull-request-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 10px; background: var(--bg-secondary); border: 1px solid var(--border-light); border-radius: 6px; }
-.pull-request-list a { min-width: 0; color: var(--accent); overflow-wrap: anywhere; }
+.pull-request-list { list-style: none; display: grid; gap: 8px; margin-block: 12px; }
+.pull-request-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; min-width: 0; padding: 8px 10px; background: var(--bg-card); border: 1px solid var(--border); }
+.pull-request-list a, .pull-request-list li > span { min-width: 0; overflow-wrap: anywhere; font-size: 12px; }
+.pull-request-list a { color: var(--accent); }
 .pull-request-actions { display: flex; flex: 0 0 auto; gap: 6px; flex-wrap: wrap; }
+.pull-request-actions .btn { min-height: 28px; padding: 4px 8px; font-size: 11px; }
 .pull-request-form { display: grid; gap: 8px; margin-top: 12px; }
-.pull-request-form label { font-size: 12px; font-weight: 600; }
-.pull-request-form input { padding: 9px; width: 100%; border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); background: var(--bg-card); font: inherit; }
+.pull-request-form label { color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.pull-request-form input { min-width: 0; padding: 8px 12px; width: 100%; border: 1px solid var(--border); border-radius: 0; color: var(--text-primary); background: var(--bg-card); font: inherit; }
+.pull-request-form input:focus { border-color: var(--accent); outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .pull-request-error { color: var(--priority-high); font-size: 12px; }
 @media (max-width: 600px) { .pull-request-list li { flex-direction: column; } }
