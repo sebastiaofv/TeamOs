@@ -1,5 +1,5 @@
 import type { LooseBoardData, TaskInput } from './types';
-import { defaultWorkflow } from './workflow';
+import { getWorkflow } from './workflow';
 
 /** v1 → v2: legacy allocations are participants; responsibility stays undefined.
  * History and IDs are preserved rather than fabricating assignment events.
@@ -7,7 +7,7 @@ import { defaultWorkflow } from './workflow';
  */
 export function migrateBoardData(input: LooseBoardData): LooseBoardData {
     if (input.meta?.schemaVersion !== 1 && input.meta?.schemaVersion !== 2) return input;
-    const workflow = defaultWorkflow();
+    const workflow = getWorkflow(input);
     return {
         ...input,
         meta: { ...input.meta, schemaVersion: 3 },

@@ -179,7 +179,7 @@ test('new workitems support responsibility, reopen read-only, and can progress w
   await page.keyboard.press('Escape');
   await portfolioCard(page, 'Unallocated').hover();
   await page.keyboard.press('4');
-  await expect(page.locator('#portfolio-completed-column')).toContainText('Unallocated');
+  await expect(page.locator('#portfolio-done-column')).toContainText('Unallocated');
   await waitForBoardWrites(page, 1);
   expect((await readSavedBoard(page, 'empty')).board.tasks[0]).toMatchObject({ assignees: [], responsible: '', status: 'done' });
 });

@@ -458,3 +458,13 @@
 .workflow-transitions { margin-top: 12px; }
 .workflow-transitions label { display: flex; align-items: center; }
 .task-actions select { max-width: 110px; font-size: 11px; }
+.workflow-state-badge { display: inline-flex; align-items: center; min-height: 26px; padding: 4px 9px; border-radius: 5px; background: var(--state-color); color: var(--state-foreground); font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
+.workflow-state-control { display: inline-flex; position: relative; align-items: center; gap: 4px; max-width: 100%; }
+.workflow-state-control select { position: absolute; inset: 0; width: 100%; max-width: none; height: 100%; opacity: 0; cursor: pointer; }
+.workflow-state-control:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 5px; }
+.task-workflow-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 9px; }
+.task-workflow-controls > div, .task-workflow-controls > label { min-width: 0; display: grid; align-content: start; gap: 4px; }
+.task-workflow-label { color: var(--text-secondary); font-size: 10px; }
+.task-workflow-controls > label > select { width: 100%; min-width: 0; max-width: 100%; padding: 4px; font-size: 11px; color: var(--text-primary); background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 5px; }
+.portfolio-cancelled { flex: 0 0 auto; max-height: 30%; overflow: auto; padding: 10px 16px; background: var(--bg-card); border-top: 1px solid var(--border); }
+.workflow-warning { margin-top: 8px; color: var(--text-secondary); font-size: 11px; }

@@ -1,10 +1,24 @@
-import type { Workflow } from '@/domain/types';
+import type { Workflow, WorkflowCategory } from '@/domain/types';
 import type { BoardMutationContext } from './mutationContext';
-import { applyWorkflow, getWorkflow } from '@/domain/workflow';
+import { allowedWorkflowDestinations, applyWorkflow, getWorkflow, statusCategory } from '@/domain/workflow';
 import { appendTimelineEvent } from '@/domain/timeline';
 import { createBoardStateSnapshot } from '@/domain/serialize';
+import { translateCurrent } from '@/shared/i18n';
 
-export function createWorkflowActions({ runPortfolioBoardMutation }: BoardMutationContext) {
+export function createWorkflowActions({ runPortfolioBoardMutation, getBoardRecord, canUsePortfolioTaskMutations, notifyPortfolioMutationUnavailable, alert, choose }: BoardMutationContext,
+    moveTask: (boardId: string, taskId: number, status: unknown) => Promise<boolean>) {
+    async function movePortfolioTaskToCategory(boardId: string, taskId: number, category: WorkflowCategory): Promise<boolean> {
+        if (!canUsePortfolioTaskMutations(boardId)) { notifyPortfolioMutationUnavailable(boardId); return false; }
+        const data = getBoardRecord(boardId)?.data;
+        const task = data?.board.tasks.find((item) => item.id === taskId);
+        if (!data || !task || statusCategory(task.status, data) === category) return false;
+        const eligible = allowedWorkflowDestinations(data, task.status, category);
+        if (!eligible.length) { await alert(translateCurrent('workflow.transitionDenied')); return false; }
+        const target = eligible.length === 1 ? eligible[0].id : await choose(translateCurrent('workflow.chooseDestination'), eligible.map((state) => ({ value: state.id, label: state.name })));
+        if (!target) return false;
+        if (getBoardRecord(boardId)?.data.board.tasks.find((item) => item.id === taskId)?.status !== task.status) return false;
+        return moveTask(boardId, taskId, target);
+    }
     function saveWorkflow(boardId: string, workflow: Workflow, relocations: Record<string, string>, onMutated: () => void) {
         return runPortfolioBoardMutation(boardId, (data) => {
             const before = getWorkflow(data);
@@ -15,5 +29,5 @@ export function createWorkflowActions({ runPortfolioBoardMutation }: BoardMutati
             return true;
         }, { onMutated });
     }
-    return { saveWorkflow };
+    return { saveWorkflow, movePortfolioTaskToCategory };
 }

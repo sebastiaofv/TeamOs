@@ -9,7 +9,7 @@ import { migrateBoardData } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
-import { getWorkflow } from './workflow';
+import { getWorkflow, parseWorkflow } from './workflow';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -35,6 +35,7 @@ export function normalizeBoardExtensionsValue(
     const nextExtensions = ((base && typeof base === 'object' && !Array.isArray(base))
         ? { ...base }
         : {}) as BoardExtensions;
+    if (nextExtensions.workflow) nextExtensions.workflow = parseWorkflow(nextExtensions.workflow);
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);

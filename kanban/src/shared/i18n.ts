@@ -6,8 +6,12 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'workflow.backlog': 'Backlog',
+    'workflow.to-do': 'To do',
+    'workflow.noDestinations': 'No permitted destination states. Reopening can be configured in Workflow settings.',
+    'workflow.noOutgoing': '{name} has no outgoing transitions.',
     'workflow.settings': 'Project settings · Workflow',
-    'workflow.help': 'All new workitems start in Backlog. Choose directional transitions; every state must be reachable from Backlog.',
+    'workflow.help': 'Five fixed categories, configurable states and directed transitions. New projects include development, testing/reanalysis and cancellation paths; Done and Cancelled start terminal. Existing workflows retain their recorded transitions.',
     'workflow.not-started': 'Not started',
     'workflow.in-progress': 'In progress',
     'workflow.completed': 'Completed',
@@ -601,8 +605,12 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'workflow.backlog': 'Backlog',
+    'workflow.to-do': 'Por iniciar',
+    'workflow.noDestinations': 'Sem estados de destino permitidos. Pode configurar a reabertura nas definições do Workflow.',
+    'workflow.noOutgoing': '{name} não tem transições de saída.',
     'workflow.settings': 'Definições do projeto · Workflow',
-    'workflow.help': 'Novos workitems começam no Backlog. Escolha transições direcionais; todos os estados têm de ser acessíveis a partir do Backlog.',
+    'workflow.help': 'Cinco categorias fixas, estados configuráveis e transições direcionais. Novos projetos incluem desenvolvimento, testes/reanálise e cancelamento; Done e Cancelled são inicialmente terminais. Os workflows existentes conservam as transições registadas.',
     'workflow.not-started': 'Não iniciado',
     'workflow.in-progress': 'Em curso',
     'workflow.completed': 'Concluído',

@@ -20,7 +20,7 @@ export function createPortfolioMutationActions(options: BoardMutationOptions = {
     const roadmap = createRoadmapActions(context, interactions);
     const timeline = createTimelineActions(context, tasks);
     const planner = createPlannerActions(context, tasks);
-    return { ...tasks, ...roadmap, ...timeline, ...planner, ...interactions, ...createWorkflowActions(context) };
+    return { ...tasks, ...roadmap, ...timeline, ...planner, ...interactions, ...createWorkflowActions(context, tasks.movePortfolioTaskToStatus) };
 }
 
 export type PortfolioMutationActions = ReturnType<typeof createPortfolioMutationActions>;

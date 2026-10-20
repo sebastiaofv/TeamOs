@@ -127,7 +127,7 @@ export function buildPortfolioPlannerViewModel(
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;
         const category = statusCategory(status, row.boardData || board.data);
-        const trayStatus = status === 'backlog' ? 'backlog' : ({ 'not-started': 'to-do', 'in-progress': 'doing', completed: 'done', cancelled: 'cancelled' })[category];
+        const trayStatus = ({ backlog: 'backlog', 'to-do': 'to-do', 'in-progress': 'doing', completed: 'done', cancelled: 'cancelled' })[category];
         if (!statusSet.has(trayStatus)) return;
         let group = groups.get(board.id);
         if (!group) {
