@@ -10,14 +10,22 @@ const FIELDS: Record<string, TranslationKey> = {
     planner: 'history.planner', relations: 'history.relations', existence: 'history.existence', pullRequests: 'history.pullRequests'
 };
 
-function operation(entry: TaskHistoryEntry): TranslationKey {
-    if (entry.kinds.includes('board.restored')) return 'history.projectRestore';
-    if (entry.kinds.includes('task.created')) return 'history.created';
-    if (entry.kinds.includes('task.deleted')) return 'history.deleted';
-    if (entry.kinds.includes('task.archived')) return 'history.archived';
-    if (entry.kinds.includes('task.restored')) return 'history.unarchived';
-    if (entry.kinds.includes('task.comment.published')) return 'history.commentPublished';
-    return 'history.updated';
+function operation(entry: TaskHistoryEntry, t: ReturnType<typeof useI18n>['t']): string {
+    if (entry.kinds.includes('board.restored')) return t('history.projectRestore');
+    if (entry.kinds.includes('task.created')) return t('history.created');
+    if (entry.kinds.includes('task.deleted')) return t('history.deleted');
+    if (entry.kinds.includes('task.archived')) return t('history.archived');
+    if (entry.kinds.includes('task.restored')) return t('history.unarchived');
+    if (entry.kinds.includes('task.comment.published')) return t('history.commentPublished');
+    const categories = [...new Set(entry.categories)];
+    const count = entry.changes.length;
+    // Partial legacy operations may have no recorded changes to count.
+    if (!count || !categories.length) return t('history.updated');
+    const category = categories.length === 1
+        ? t(`history.category.${categories[0]}`)
+        : t('history.categoryCount', { count: categories.length });
+    if (categories.length === 1 && count === 1) return category;
+    return `${category} · ${t(count === 1 ? 'history.changeCount.one' : 'history.changeCount.other', { count })}`;
 }
 
 function readable(value: unknown, field: string, t: ReturnType<typeof useI18n>['t']): string {
@@ -59,7 +67,7 @@ export function TaskHistory({ history }: { history?: TaskHistoryProjection }) {
         </div> : <ol className="history-entries">{entries.map((entry) => <li key={entry.id}>
             <details className="history-entry"><summary>
                 <span className="history-entry-heading">
-                    <span className="history-operation">{t(operation(entry))}{entry.bulk && <span className="history-bulk">{t('history.bulk')}</span>}</span>
+                    <span className="history-operation">{operation(entry, t)}{entry.bulk && <span className="history-bulk">{t('history.bulk')}</span>}</span>
                     <span className="history-entry-meta">
                         <time dateTime={entry.at}>{date(entry.at)}</time>
                         <span className="history-author">{entry.author || t('history.unknown')}{entry.localAuthor && ` · ${t('history.localAuthor')}`}</span>
