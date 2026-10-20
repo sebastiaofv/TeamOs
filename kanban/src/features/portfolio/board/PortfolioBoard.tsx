@@ -23,7 +23,6 @@ import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { getWorkflow, statusCategory, WORKFLOW_CATEGORIES } from '@/domain/workflow';
 import { showAlert, showChoice } from '@/app/overlays/appMessages';
-import { normalizeTaskStatus } from '@/domain/task';
 import { isBoardInHistoricalPreview, getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
 import { useI18n, translateCurrent } from '@/shared/i18n';
@@ -62,7 +61,8 @@ function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCar
         data: {
             boardId: item.boardId,
             taskId: Number(item.taskId ?? item.task.id),
-            status: normalizeTaskStatus(item.task.status),
+            status: item.task.status,
+            bucketStatus: state.selectedPortfolioBoardId ? item.task.status : statusCategory(item.task.status, item.boardData || state.portfolioBoards.find((board) => board.id === item.boardId)?.data),
             title: item.task.title
         },
         attributes: { role: 'group', roleDescription: 'draggable task', tabIndex: 0 },
@@ -77,7 +77,7 @@ function DroppableColumnBody({ column, children }: { column: BoardColumn; childr
         id: `column:${column.status}`,
         data: { status: column.status, title: column.title }
     });
-    const highlight = isOver && active?.data.current?.status !== column.status;
+    const highlight = isOver && (active?.data.current?.bucketStatus || active?.data.current?.status) !== column.status;
     return (
         <div
             ref={setNodeRef}
@@ -136,6 +136,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
         const source = state.portfolioBoards.find((b) => b.id === card.boardId);
         if (!source) return;
         const sourceWorkflow = getWorkflow(source.data);
+        if (sourceWorkflow.states.find((s) => s.id === card.status)?.category === targetStatus) return;
         const eligible = sourceWorkflow.states.filter((s) => s.id !== 'backlog' && s.category === targetStatus as WorkflowCategory && sourceWorkflow.transitions[card.status]?.includes(s.id));
         if (!eligible.length) { await showAlert(t('workflow.transitionDenied')); return; }
         const target = eligible.length === 1 ? eligible[0].id : await showChoice(t('workflow.chooseDestination'), eligible.map((s) => ({ value: s.id, label: s.name })));

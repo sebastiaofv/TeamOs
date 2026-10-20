@@ -359,7 +359,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         return true;
     }
 
-    // Creates a task in To Do (or the board's first column) from quick-create
+    // All quick-created tasks start in the reserved Backlog state.
     // fields. Returns the new task id, or null when nothing was created.
     async function createPortfolioTaskFromFields(boardId: string, fields: {
         title: string; assignees: string[]; priority: Priority | null; tags: string[]; effort: Effort | null; dueDate: string;

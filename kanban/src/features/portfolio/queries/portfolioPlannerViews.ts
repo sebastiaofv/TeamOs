@@ -12,7 +12,6 @@ import {
     layoutPlannerBlocks,
     plannerMinutes
 } from '@/domain/dayPlanner';
-import { normalizeTaskStatus } from '@/domain/task';
 import { statusCategory } from '@/domain/workflow';
 import { DEFAULT_PORTFOLIO_FILTERS, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import type { SelectorState } from './portfolioRowViews';
@@ -124,7 +123,7 @@ export function buildPortfolioPlannerViewModel(
     const statusSet = new Set(trayStatuses);
     const groups = new Map<string, PlannerTrayGroup>();
     (Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : []).forEach((row) => {
-        const status = normalizeTaskStatus(row.task.status);
+        const status = row.task.status;
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;
         const category = statusCategory(status, row.boardData || board.data);

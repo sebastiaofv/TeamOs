@@ -10,6 +10,24 @@ import { createPortfolioMutationActions } from '../../src/features/portfolio/com
 import { reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
 
 describe('project workflows', () => {
+    it('round-trips workflows beyond the legacy column cap and preserves arbitrary stable IDs', () => {
+        const data = createEmptyProjectData('Many states');
+        const workflow = defaultWorkflow();
+        for (let index = 0; index < 101; index++) {
+            const id = `extra-${index}`;
+            workflow.states.push({ id, name: `Extra ${index}`, color: '#123456', category: 'not-started' });
+            workflow.transitions.backlog.push(id);
+        }
+        workflow.states.find((state) => state.id === 'doing')!.id = 'in-progress';
+        workflow.references['in-progress'] = 'in-progress';
+        workflow.transitions['in-progress'] = workflow.transitions.doing; delete workflow.transitions.doing;
+        Object.keys(workflow.transitions).forEach((id) => { workflow.transitions[id] = workflow.transitions[id].map((target) => target === 'doing' ? 'in-progress' : target); });
+        applyWorkflow(data, workflow, {});
+        data.board.tasks = [normalizeTask({ id: 1, title: 'Custom ID', status: 'in-progress' }, { workflow })];
+        const reopened = serializeBoardDataFromObject(data); validateBoardData(reopened);
+        expect(reopened.board.columns).toHaveLength(105);
+        expect(reopened.board.tasks[0].status).toBe('in-progress');
+    });
     it('validates references, names, reserved Backlog and reachability', () => {
         expect(workflowErrors(defaultWorkflow())).toEqual([]);
         const w = defaultWorkflow();

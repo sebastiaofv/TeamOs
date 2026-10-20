@@ -37,6 +37,7 @@ import { createBoardStateSnapshot } from '@/domain/serialize';
 import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+import { getWorkflow } from '@/domain/workflow';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -111,7 +112,7 @@ export function buildTaskEditorViewModel(
         const ref = normalizeRoadmapRef(value);
         return optionList.some((option) => option.value === ref) ? ref : '';
     };
-    const normalized = task ? normalizeTask(task) : null;
+    const normalized = task ? normalizeTask(task, { workflow: getWorkflow(boardRecord.data) }) : null;
     const initial: TaskEditorFields = normalized
         ? {
             title: normalized.title || '',
@@ -160,7 +161,7 @@ export function buildTaskEditorViewModel(
 }
 
 export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean): TaskDetailViewModel {
-    const task = normalizeTask(source.task);
+    const task = normalizeTask(source.task, { workflow: getWorkflow(source.boardData) });
     const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {
