@@ -6,6 +6,10 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'board.columns': 'Board columns',
+    'board.columnsHint': 'Choose which states to show. Saved in this project file; hiding a column does not move or delete workitems.',
+    'board.allColumnsHidden': 'All columns are hidden. Use Board columns to show them again.',
+    'board.columnVisibilityChanged': 'Board column visibility changed',
     'workflow.backlog': 'Backlog',
     'workflow.to-do': 'To do',
     'workflow.noDestinations': 'No permitted destination states. Reopening can be configured in Workflow settings.',
@@ -605,6 +609,10 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'board.columns': 'Colunas do Board',
+    'board.columnsHint': 'Escolha os estados a mostrar. Guardado no ficheiro deste projeto; ocultar uma coluna não move nem elimina workitems.',
+    'board.allColumnsHidden': 'Todas as colunas estão ocultas. Utilize Colunas do Board para voltar a mostrá-las.',
+    'board.columnVisibilityChanged': 'Visibilidade das colunas do Board alterada',
     'workflow.backlog': 'Backlog',
     'workflow.to-do': 'Por iniciar',
     'workflow.noDestinations': 'Sem estados de destino permitidos. Pode configurar a reabertura nas definições do Workflow.',

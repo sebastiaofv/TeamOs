@@ -16,8 +16,6 @@ import {
 import { formatTaskScore } from '@/domain/scoring';
 import { escapeRegExp } from '@/domain/util';
 import { useI18n } from '@/shared/i18n';
-import { getWorkflow } from '@/domain/workflow';
-import { WorkflowStateControl } from './WorkflowStateControl';
 
 // The store fields a task card reads.
 export type TaskCardState = Pick<AppState,
@@ -92,7 +90,6 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     const readOnlyTitle = item.historical ? t('task.readOnlyHistorical') : t('task.readOnlyNoHandle');
     const archiveButtonTitle = task.archived ? t('common.restore') : t('common.archive');
     const boardData = item.boardData || state.portfolioBoards.find((b) => b.id === item.boardId)?.data;
-    const workflow = getWorkflow(boardData);
     const cardRef = useRef<HTMLElement | null>(null);
     const setCardRef = useCallback((node: HTMLElement | null) => {
         cardRef.current = node;
@@ -117,7 +114,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     }
 
     function handleCardClick(event: MouseEvent<HTMLElement>) {
-        if ((event.target as Element).closest('button, input, label, select')) return;
+        if ((event.target as Element).closest('button, input, label')) return;
         if (Date.now() < state.suppressPortfolioCardClickUntil) return;
         event.currentTarget.focus({ preventScroll: true });
         openDetails();
@@ -174,19 +171,10 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     </span>
                 </div>
                 <div className="task-actions">
-                    {!overlay && task.status === 'backlog' && canMutate && <button className="task-action-btn" title={t('workflow.sendToBoard')} aria-label={t('workflow.sendToBoard')} onClick={() => void actions.movePortfolioTaskToStatus(item.boardId, taskId, workflow.entryStateId)}>→</button>}
                     <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? t('task.editAction') : readOnlyTitle} aria-label={canMutate ? t('task.editAction') : readOnlyTitle} data-action="edit-task" onClick={() => actions.editPortfolioTask(item.boardId, taskId)}>&#9998;</button>
                     <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} aria-label={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task" onClick={() => actions.togglePortfolioArchiveTask(item.boardId, taskId)}><span aria-hidden="true">{task.archived ? '↶' : '🗄️'}</span></button>
                     <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}><span aria-hidden="true">🗑️</span></button>
                 </div>
-            </div>
-            <div className="task-workflow-controls">
-                <div><span className="task-workflow-label">{t('task.status')}</span><WorkflowStateControl workflow={workflow} status={task.status} readOnly={!canMutate || Boolean(overlay)} onChange={(status) => actions.movePortfolioTaskToStatus(item.boardId, taskId, status)} /></div>
-                <label><span className="task-workflow-label">{t('task.responsible')}</span>
-                    {canMutate && !overlay ? <select aria-label={t('task.responsible')} value={task.responsible || ''} onChange={(event) => void actions.setPortfolioTaskResponsible(item.boardId, taskId, event.target.value)}>
-                        <option value="">{t('task.noResponsible')}</option>{assignees.map((name) => <option value={name} key={name}>{name}</option>)}
-                    </select> : <span>{task.responsible || t('task.noResponsible')}</span>}
-                </label>
             </div>
             {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task, boardData || undefined) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
                 <div className="task-meta">

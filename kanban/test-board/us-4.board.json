@@ -14,7 +14,7 @@
       {"id":408,"title":"Delivered work","description":"Done is terminal unless reopening transitions are explicitly configured.","status":"done","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"}
     ]
   },
-  "extensions":{"workflow":{
+  "extensions":{"boardView":{"version":1,"hiddenStateIds":[]},"workflow":{
     "version":2,"entryStateId":"to-do","references":{"backlog":"backlog","to-do":"to-do","in-progress":"doing","completed":"done","cancelled":"cancelled"},
     "states":[{"id":"backlog","name":"Backlog","color":"#94a3b8","category":"backlog"},{"id":"to-do","name":"To Do","color":"#60a5fa","category":"to-do"},{"id":"doing","name":"In progress","color":"#fbbf24","category":"in-progress"},{"id":"ready-to-test","name":"Ready to test","color":"#a78bfa","category":"in-progress"},{"id":"testing","name":"Testing","color":"#38bdf8","category":"in-progress"},{"id":"re-analysis","name":"Re-analysis","color":"#fb923c","category":"in-progress"},{"id":"done","name":"Done","color":"#34d399","category":"completed"},{"id":"cancelled","name":"Cancelled","color":"#f87171","category":"cancelled"},{"id":"duplication","name":"Duplication","color":"#e879f9","category":"cancelled"}],
     "transitions":{"backlog":["to-do","cancelled","duplication"],"to-do":["doing","cancelled","duplication"],"doing":["ready-to-test","done","cancelled","duplication"],"ready-to-test":["testing","cancelled","duplication"],"testing":["done","re-analysis","cancelled","duplication"],"re-analysis":["doing","cancelled","duplication"],"done":[],"cancelled":[],"duplication":[]}

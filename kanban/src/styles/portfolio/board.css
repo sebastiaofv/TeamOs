@@ -446,25 +446,24 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-.portfolio-board-grid { flex-direction: column; }
-.workflow-board-columns { display: flex; flex: 1; min-height: 0; overflow-x: auto; gap: 1px; }
-.portfolio-backlog { flex: 0 0 auto; max-height: 32%; overflow: auto; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
-.portfolio-backlog-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-block: 12px; }
-.modal-content.workflow-dialog { width: min(1000px, 95vw); max-width: min(1000px, 95vw); }
+.modal-content.workflow-dialog { width: min(1000px, 95vw); max-width: min(1000px, 95vw); display: flex; flex-direction: column; overflow: hidden; }
+.workflow-dialog .modal-header, .workflow-dialog .modal-footer { flex-shrink: 0; }
+.workflow-dialog .modal-body { overflow-y: auto; }
 .workflow-editor fieldset { border: 0; padding: 0; display: grid; gap: 16px; }
-.workflow-state { border: 1px solid var(--border); padding: 12px; border-radius: 10px; }
+.workflow-state { border: 1px solid var(--border); padding: 12px; background: var(--bg-primary); }
 .workflow-state-fields, .workflow-transitions { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
 .workflow-editor label { display: grid; gap: 6px; }
+.workflow-editor input:not([type="checkbox"]), .workflow-editor select { min-width: 0; max-width: 100%; padding: 8px 12px; border: 1px solid var(--border); color: var(--text-primary); background: var(--bg-card); font: inherit; }
+.workflow-editor input[type="color"] { width: 48px; height: 34px; padding: 3px; }
+.workflow-editor label { font-size: 11px; color: var(--text-secondary); }
+.workflow-editor input:focus-visible, .workflow-editor select:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .workflow-transitions { margin-top: 12px; }
 .workflow-transitions label { display: flex; align-items: center; }
-.task-actions select { max-width: 110px; font-size: 11px; }
-.workflow-state-badge { display: inline-flex; align-items: center; min-height: 26px; padding: 4px 9px; border-radius: 5px; background: var(--state-color); color: var(--state-foreground); font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
-.workflow-state-control { display: inline-flex; position: relative; align-items: center; gap: 4px; max-width: 100%; }
-.workflow-state-control select { position: absolute; inset: 0; width: 100%; max-width: none; height: 100%; opacity: 0; cursor: pointer; }
-.workflow-state-control:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: 5px; }
-.task-workflow-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 9px; }
-.task-workflow-controls > div, .task-workflow-controls > label { min-width: 0; display: grid; align-content: start; gap: 4px; }
-.task-workflow-label { color: var(--text-secondary); font-size: 10px; }
-.task-workflow-controls > label > select { width: 100%; min-width: 0; max-width: 100%; padding: 4px; font-size: 11px; color: var(--text-primary); background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 5px; }
-.portfolio-cancelled { flex: 0 0 auto; max-height: 30%; overflow: auto; padding: 10px 16px; background: var(--bg-card); border-top: 1px solid var(--border); }
 .workflow-warning { margin-top: 8px; color: var(--text-secondary); font-size: 11px; }
+.board-column-menu { position: relative; }
+.board-column-menu > summary { list-style: none; cursor: pointer; }
+.board-column-menu > summary::-webkit-details-marker { display: none; }
+.board-column-panel { position: absolute; z-index: 25; right: 0; top: calc(100% + 6px); min-width: 240px; max-width: min(360px, 90vw); max-height: var(--table-panel-height, 50vh); overflow: auto; border: 1px solid var(--border); background: var(--bg-card); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14); padding: 12px; }
+.board-column-panel p { margin-bottom: 10px; color: var(--text-secondary); font-size: 11px; }
+.board-column-panel label { display: flex; align-items: center; gap: 8px; padding: 6px 0; color: var(--text-primary); font-size: 12px; }
+.board-columns-empty { width: 100%; padding: 24px; color: var(--text-secondary); background: var(--bg-primary); }

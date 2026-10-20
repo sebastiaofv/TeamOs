@@ -1,4 +1,5 @@
 // Stable domain values: board files, tasks, roadmap and timeline data.
+import type { BoardViewPreferences } from './boardView';
 
 export type TaskStatus = string;
 export type WorkflowCategory = 'backlog' | 'to-do' | 'in-progress' | 'completed' | 'cancelled';
@@ -127,6 +128,7 @@ export type SprintIdentity = { sprintId: string; number: number; createdAt: stri
 export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIdentity[] };
 export type BoardExtensions = {
     [key: string]: unknown;
+    boardView?: BoardViewPreferences;
     workflow?: Workflow;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;

@@ -6,7 +6,6 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
-import { TaskWorkflowHeader } from './TaskWorkflowHeader';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -68,8 +67,6 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
 }) {
     const { t } = useI18n();
     return (
-        <>
-        {vm.workflowContext && <TaskWorkflowHeader {...vm.workflowContext} readOnly={vm.readOnly} />}
         <dl className="detail-list">
             {FIELD_ROWS.map((row) => (
                 <div className="detail-item" key={row.id}>
@@ -118,6 +115,5 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
                 </dd>
             </div>
         </dl>
-        </>
     );
 }

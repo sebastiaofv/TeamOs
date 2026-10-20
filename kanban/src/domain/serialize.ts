@@ -10,6 +10,7 @@ import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
 import { getWorkflow, parseWorkflow } from './workflow';
+import { parseBoardView } from './boardView';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -36,6 +37,7 @@ export function normalizeBoardExtensionsValue(
         ? { ...base }
         : {}) as BoardExtensions;
     if (nextExtensions.workflow) nextExtensions.workflow = parseWorkflow(nextExtensions.workflow);
+    if (nextExtensions.boardView !== undefined) nextExtensions.boardView = parseBoardView(nextExtensions.boardView, nextExtensions.workflow ? new Set(nextExtensions.workflow.states.map((state) => state.id)) : undefined);
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);

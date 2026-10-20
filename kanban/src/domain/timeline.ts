@@ -21,6 +21,7 @@ import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
 import { getWorkflow } from './workflow';
+import { parseBoardView } from './boardView';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -142,6 +143,10 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
+    if (event.kind === 'board.columns.visibility.changed' && event.changes?.boardView) {
+        nextState.extensions = { ...nextState.extensions, boardView: parseBoardView(event.changes.boardView.after) };
+        return nextState;
+    }
 
     if (event.kind === 'task.created' && event.snapshot) {
         board.tasks = tasks.filter((task) => Number(task?.id) !== Number(event.entityId));

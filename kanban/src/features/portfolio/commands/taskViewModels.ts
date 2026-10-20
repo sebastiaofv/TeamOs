@@ -166,7 +166,6 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
-        workflowContext: { boardId: source.boardRecord.id, task, boardData: source.boardData },
         fields: {
             title: task.title || '-',
             description: task.description || '-',

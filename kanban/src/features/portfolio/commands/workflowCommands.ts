@@ -4,6 +4,8 @@ import { allowedWorkflowDestinations, applyWorkflow, getWorkflow, statusCategory
 import { appendTimelineEvent } from '@/domain/timeline';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { translateCurrent } from '@/shared/i18n';
+import { setBoardColumnVisibility } from '@/domain/boardView';
+import { cloneSerializable } from '@/domain/serializable';
 
 export function createWorkflowActions({ runPortfolioBoardMutation, getBoardRecord, canUsePortfolioTaskMutations, notifyPortfolioMutationUnavailable, alert, choose }: BoardMutationContext,
     moveTask: (boardId: string, taskId: number, status: unknown) => Promise<boolean>) {
@@ -29,5 +31,14 @@ export function createWorkflowActions({ runPortfolioBoardMutation, getBoardRecor
             return true;
         }, { onMutated });
     }
-    return { saveWorkflow, movePortfolioTaskToCategory };
+    function setPortfolioBoardColumnVisibility(boardId: string, stateId: string, visible: boolean) {
+        return runPortfolioBoardMutation(boardId, (data) => {
+            const before = cloneSerializable(data.extensions.boardView || { version: 1, hiddenStateIds: [] });
+            if (!setBoardColumnVisibility(data, stateId, visible)) return false;
+            appendTimelineEvent(data, { kind: 'board.columns.visibility.changed', entityType: 'board', entityId: 'board', summary: translateCurrent('board.columnVisibilityChanged'),
+                changes: { boardView: { before, after: cloneSerializable(data.extensions.boardView) } } });
+            return true;
+        });
+    }
+    return { saveWorkflow, movePortfolioTaskToCategory, setPortfolioBoardColumnVisibility };
 }

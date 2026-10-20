@@ -133,4 +133,5 @@ export function applyWorkflow(data: BoardData, workflow: Workflow, relocations: 
     data.board.tasks.forEach((task) => { if (!ids.has(task.status)) { task.status = relocations[task.status]; task.updatedAt = at; } });
     data.extensions.workflow = cloneSerializable(workflow);
     data.board.columns = workflow.states.map((s) => ({ status: s.id, title: s.name }));
+    if (data.extensions.boardView) data.extensions.boardView.hiddenStateIds = data.extensions.boardView.hiddenStateIds.filter((id) => ids.has(id));
 }

@@ -13,6 +13,7 @@ import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
+import { parseBoardView } from './boardView';
 import { parseWorkflow, defaultWorkflow, getWorkflow } from './workflow';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
@@ -245,6 +246,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     }
     if (!('workflow' in extensions) && data.board.columns.length > MAX_COLUMNS) throw new Error(`Board cannot have more than ${MAX_COLUMNS} legacy columns.`);
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
+    parseBoardView((extensions as Record<string, unknown>).boardView, new Set(getWorkflow({ extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } }).states.map((state) => state.id)));
     if ('workflow' in extensions) {
         const workflow = parseWorkflow(extensions.workflow);
         if (data.board.columns.length !== workflow.states.length || data.board.columns.some((col, index) => col.status !== workflow.states[index].id || col.title !== workflow.states[index].name)) throw new Error('Workflow columns do not match states.');

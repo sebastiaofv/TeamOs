@@ -16,10 +16,10 @@ export function WorkflowSettings() {
     const [open, setOpen] = useState(false);
     const { t } = useI18n();
     if (!board) return null;
-    return <><button className="btn" onClick={() => setOpen(true)}>{t('workflow.settings')}</button>
+    return <><button className="btn" aria-label={t('workflow.settings')} title={t('workflow.settings')} onClick={() => setOpen(true)}>Workflow</button>
         <Dialog.Root open={open} onOpenChange={setOpen}><Dialog.Portal><Dialog.Overlay className="modal active">
             <Dialog.Content className="modal-content workflow-dialog" aria-describedby={undefined} onKeyDown={(event) => event.stopPropagation()}>
-                <div className="modal-header"><Dialog.Title>{t('workflow.settings')}</Dialog.Title><Dialog.Close className="modal-close" aria-label={t('common.close')}>×</Dialog.Close></div>
+                <div className="modal-header"><Dialog.Title className="modal-title">{t('workflow.settings')}</Dialog.Title><Dialog.Close className="modal-close" aria-label={t('common.close')}>×</Dialog.Close></div>
                 {open && <WorkflowEditor board={board} readOnly={!board.handle || historical} close={() => setOpen(false)} />}
             </Dialog.Content>
         </Dialog.Overlay></Dialog.Portal></Dialog.Root></>;

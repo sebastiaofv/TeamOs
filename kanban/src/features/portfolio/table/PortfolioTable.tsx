@@ -21,7 +21,7 @@ import { buildSprintTableGroups, currentSprintRosters, unplannedTableRows, type 
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 import { getWorkflow } from '@/domain/workflow';
-import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateControl';
+import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
     const state = useAppStore(useShallow((s) => ({
@@ -238,7 +238,7 @@ function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCre
                                 {column === 'id' || column === 'title'
                                     ? <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
                                     : column === 'status' && workflow.states.some((state) => state.id === row.task.status)
-                                        ? <WorkflowStateBadge state={workflow.states.find((state) => state.id === row.task.status)!} table />
+                                        ? <WorkflowStateBadge state={workflow.states.find((state) => state.id === row.task.status)!} />
                                         : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${column === 'blocked' && row.task.blocked ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
                             </td>)}
                         </tr>)}</tbody>

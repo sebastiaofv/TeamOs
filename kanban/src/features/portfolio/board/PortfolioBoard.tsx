@@ -17,19 +17,27 @@ import {
     type UniqueIdentifier
 } from '@dnd-kit/core';
 import { useShallow } from 'zustand/react/shallow';
-import type { BoardColumn, WorkflowCategory } from '@/domain/types';
+import type { BoardColumn } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
-import { statusCategory } from '@/domain/workflow';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
 import { useI18n, translateCurrent } from '@/shared/i18n';
+import { buildPortfolioBoardView } from '@/features/portfolio/queries/portfolioBoardView';
 
 export { PortfolioTaskCard } from '@/features/portfolio/task/TaskCard';
 export type { CardDrag, TaskCardState } from '@/features/portfolio/task/TaskCard';
 
 type BoardViewState = TaskCardState & Pick<AppState, 'portfolioVisibleRows'>;
+
+function columnTitle(column: BoardColumn, t: ReturnType<typeof useI18n>['t']): string {
+    if (column.status === 'backlog' && ['backlog', 'Backlog'].includes(column.title)) return t('board.backlog');
+    if (column.status === 'to-do' && ['to-do', 'To Do'].includes(column.title)) return t('board.toDo');
+    if (column.status === 'doing' && ['in progress', 'In progress', 'Doing'].includes(column.title)) return t('board.doing');
+    if (column.status === 'done' && ['done', 'Done'].includes(column.title)) return t('board.done');
+    return column.title;
+}
 
 const cardDragId = (item: PortfolioRow) => `${item.boardId}:${item.taskId ?? item.task.id}`;
 
@@ -53,7 +61,6 @@ function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCar
             boardId: item.boardId,
             taskId: Number(item.taskId ?? item.task.id),
             status: item.task.status,
-            bucketStatus: statusCategory(item.task.status, item.boardData || state.portfolioBoards.find((board) => board.id === item.boardId)?.data),
             title: item.task.title
         },
         attributes: { role: 'group', roleDescription: 'draggable task', tabIndex: 0 },
@@ -63,12 +70,12 @@ function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCar
 }
 
 // Highlights only when the dragged card would change status here.
-function DroppableColumnBody({ column, children }: { column: BoardColumn & { category: WorkflowCategory }; children: ReactNode }) {
+function DroppableColumnBody({ column, children }: { column: BoardColumn; children: ReactNode }) {
     const { setNodeRef, isOver, active } = useDroppable({
         id: `column:${column.status}`,
-        data: { category: column.category, title: column.title }
+        data: { status: column.status, title: column.title }
     });
-    const highlight = isOver && active?.data.current?.bucketStatus !== column.category;
+    const highlight = isOver && active?.data.current?.status !== column.status;
     return (
         <div
             ref={setNodeRef}
@@ -96,17 +103,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
-    const columns: (BoardColumn & { category: WorkflowCategory })[] = [
-        { status: 'to-do', category: 'to-do', title: t('board.toDo') },
-        { status: 'doing', category: 'in-progress', title: t('board.doing') },
-        { status: 'done', category: 'completed', title: t('board.done') }
-    ];
-    const buckets: Record<string, PortfolioRow[]> = {};
-    rows.forEach((item) => {
-        const status = statusCategory(item.task.status, item.boardData || state.portfolioBoards.find((b) => b.id === item.boardId)?.data);
-        if (!buckets[status]) buckets[status] = [];
-        buckets[status].push(item);
-    });
+    const { columns, buckets } = buildPortfolioBoardView(state);
     const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
@@ -120,8 +117,8 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     const onDragEnd = ({ active, over }: DragEndEvent) => {
         finishDrag();
         const card = active.data.current;
-        const category = over?.data.current?.category;
-        if (card && category) void actions.movePortfolioTaskToCategory(card.boardId, card.taskId, category);
+        const status = over?.data.current?.status;
+        if (card && status && status !== card.status) void actions.dropPortfolioTaskOnColumn(card.boardId, card.taskId, status);
     };
 
     return (
@@ -133,22 +130,17 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
             onDragEnd={onDragEnd}
             onDragCancel={finishDrag}
         >
-            <section className="portfolio-backlog" id="portfolio-backlog-column" aria-label={t('board.backlog')}>
-                <details open><summary>{t('board.backlog')} · {(buckets.backlog || []).length}</summary>
-                    <div className="portfolio-backlog-items">{(buckets.backlog || []).map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />)}</div>
-                </details>
-                {canAddTasks && <button className="btn add-task-card" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog')}>{t('board.addTask')}</button>}
-            </section>
-            <div className="workflow-board-columns">{columns.map((column) => {
-                const items = buckets[column.category] || [];
-                const columnTitle = column.title;
+            {!columns.length && <p className="board-columns-empty" role="status">{t(state.portfolioBoards.length ? 'board.allColumnsHidden' : 'toolbar.noProjectsLoaded')}</p>}
+            {columns.map((column) => {
+                const items = buckets[column.status] || [];
+                const title = columnTitle(column, t);
                 return (
-                    <section className="portfolio-column" data-status={column.status} data-category={column.category} aria-labelledby={`portfolio-${column.status}-heading`} key={column.status}>
+                    <section className="portfolio-column" data-status={column.status} aria-labelledby={`portfolio-${column.status}-heading`} key={column.status}>
                         <div className="portfolio-column-header">
-                            <h2 className="column-title" id={`portfolio-${column.status}-heading`}>{columnTitle}</h2>
-                            <span className="column-count" aria-label={t('board.columnLabel', { title: columnTitle, count: items.length })}>{items.length}</span>
+                            <h2 className="column-title" id={`portfolio-${column.status}-heading`}>{title}</h2>
+                            <span className="column-count" aria-label={t('board.columnLabel', { title, count: items.length })}>{items.length}</span>
                         </div>
-                        <DroppableColumnBody column={{ ...column, title: columnTitle }}>
+                        <DroppableColumnBody column={{ ...column, title }}>
                             {canAddTasks && (
                                 <button className="add-task-card" type="button" data-action="add-task" data-status={column.status} onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, column.status)}>{t('board.addTask')}</button>
                             )}
@@ -158,11 +150,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                         </DroppableColumnBody>
                     </section>
                 );
-            })}</div>
-            {(buckets.cancelled || []).length > 0 && <section className="portfolio-cancelled" aria-label={t('workflow.cancelled')}><details>
-                <summary>{t('workflow.cancelled')} · {buckets.cancelled.length}</summary>
-                <div className="portfolio-backlog-items">{buckets.cancelled.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />)}</div>
-            </details></section>}
+            })}
             {/* In a portal, so the column's scroll area never clips the card being dragged. */}
             {createPortal(
                 <DragOverlay dropAnimation={null}>

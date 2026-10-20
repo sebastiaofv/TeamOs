@@ -25,6 +25,7 @@ import { setTableFilter, setTableSort } from '@/features/portfolio/table/tableCo
 import { DEFAULT_TABLE_SORT } from '@/features/portfolio/table/tableModel';
 import { COLUMN_LABELS } from '@/features/portfolio/table/tableLabels';
 import { WorkflowSettings } from '@/features/portfolio/board/WorkflowSettings';
+import { BoardColumnMenu } from '@/features/portfolio/board/BoardColumnMenu';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
@@ -181,6 +182,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
             </div>
             <div className="portfolio-toolbar-right">
                 <WorkflowSettings />
+                <BoardColumnMenu />
                 <div className={`portfolio-view-toggle${hasBoards ? '' : ' hidden'}`} id="portfolioViewModeToggle" role="group" aria-label={t('toolbar.selectedProjectViewMode')}>
                     <button
                         className={`btn${viewMode === 'board' ? ' active' : ''}`}

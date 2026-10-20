@@ -1,6 +1,21 @@
 import { test, expect, type Page } from '@playwright/test';
 import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
 
+test.describe('US-4 persisted Board column chooser', () => {
+  for (const theme of ['light', 'dark']) {
+    test(`column visibility (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{ id: 'columns', title: 'Column preferences', hasHandle: true, tasks: [
+        { id: 1, title: 'Original card layout', status: 'doing', assignees: ['Ana'], responsible: 'Ana', tags: ['ui'] }
+      ] }], { selectedBoardId: 'columns' });
+      await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+      await page.getByRole('checkbox', { name: 'done', exact: true }).uncheck();
+      await page.mouse.move(1, 1);
+      await expect(page).toHaveScreenshot(`board-column-visibility-${theme}.png`, { fullPage: true });
+    });
+  }
+});
+
 // Pixel baselines for pieces being ported to React. They are captured against
 // the legacy implementation first; a port must match them unchanged. Baselines
 // are platform-specific (generated on macOS). Only update them deliberately
