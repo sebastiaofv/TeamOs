@@ -60,12 +60,12 @@ test.describe('timeline', () => {
       await viewMode('roadmap');
       const rows = page.locator('#portfolioRoadmapView .roadmap-row[data-roadmap-kind="sprint"]');
       const titles = (await rows.locator('.roadmap-row-title').allTextContents()).map((text) => text.trim());
-      const usage = (await rows.locator('.roadmap-row-usage span').allTextContents()).map((text) => text.trim());
+      const usage = await rows.locator('.roadmap-disclosure-btn').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('title')));
       return { titles, usage };
     };
 
     expect(await sprintRowsAt(0)).toEqual({ titles: [], usage: [] });
-    expect(await sprintRowsAt(1)).toEqual({ titles: ['Sprint 12'], usage: ['2 linked tasks'] });
+    expect(await sprintRowsAt(1)).toEqual({ titles: ['Sprint 12'], usage: ['2 of 2 associated workitems'] });
   });
 
   test('roadmap timeline replays CRUD changes and cleared refs in historical preview state', async ({ page }) => {
@@ -91,12 +91,16 @@ test.describe('timeline', () => {
     await page.locator('#roadmapEntityDate').fill('2026-05-01');
     await page.getByRole('button', { name: 'Save Item' }).click();
 
-    await page.getByRole('button', { name: 'Edit Beta' }).click();
+    await page.locator('.milestone-annotation[data-roadmap-id="beta"]').click();
+    await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Edit', exact: true }).click();
     await page.locator('#roadmapEntityTitle').fill('Beta Renamed');
     await page.getByRole('button', { name: 'Save Item' }).click();
 
-    await page.getByRole('button', { name: 'Delete Alpha' }).click();
-    await answerAppMessage(page, { button: 'Delete' });
+    await page.locator('#milestoneWorkitemsModal .modal-close').click();
+    await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
+    await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
+    await page.locator('#appMessageModal').getByRole('button', { name: 'Delete', exact: true }).click();
+    await answerAppMessage(page, { button: 'Clear assignments · None' });
 
     await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.map((event: any) => event.kind))
       .toEqual(['board.baseline', 'roadmap.updated', 'roadmap.updated', 'roadmap.updated']);
@@ -109,9 +113,14 @@ test.describe('timeline', () => {
       await viewMode('board');
       await setTimelineSlider(page, index);
       await viewMode('roadmap');
-      const rows = page.locator('#portfolioRoadmapView .roadmap-row[data-roadmap-kind="milestone"]');
-      const titles = (await rows.locator('.roadmap-row-title').allTextContents()).map((text) => text.trim());
-      const usage = (await rows.locator('.roadmap-row-usage span').allTextContents()).map((text) => text.trim());
+      const rows = page.locator('#portfolioRoadmapView .milestone-annotation');
+      const titles = (await rows.locator('.milestone-annotation-label strong').allTextContents()).map((text) => text.trim());
+      const usage: string[] = [];
+      for (let index = 0; index < await rows.count(); index++) {
+        await rows.nth(index).click();
+        usage.push((await page.locator('#milestoneWorkitemsModal .roadmap-scope-summary > span').first().innerText()).trim());
+        await page.locator('#milestoneWorkitemsModal .modal-close').click();
+      }
       return { titles, usage };
     };
 
@@ -119,9 +128,9 @@ test.describe('timeline', () => {
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
 
-    expect(await replayedStateAt(1)).toEqual({ titles: ['Alpha', 'Beta'], usage: ['1 linked task', '0 linked tasks'] });
-    expect(await replayedStateAt(2)).toEqual({ titles: ['Alpha', 'Beta Renamed'], usage: ['1 linked task', '0 linked tasks'] });
-    expect(await replayedStateAt(3)).toEqual({ titles: ['Beta Renamed'], usage: ['0 linked tasks'] });
+    expect(await replayedStateAt(1)).toEqual({ titles: ['Alpha', 'Beta'], usage: ['1 of 1 associated workitems', '0 of 0 associated workitems'] });
+    expect(await replayedStateAt(2)).toEqual({ titles: ['Alpha', 'Beta Renamed'], usage: ['1 of 1 associated workitems', '0 of 0 associated workitems'] });
+    expect(await replayedStateAt(3)).toEqual({ titles: ['Beta Renamed'], usage: ['0 of 0 associated workitems'] });
   });
 
   test('task edits create timeline events in extensions.timeline', async ({ page }) => {

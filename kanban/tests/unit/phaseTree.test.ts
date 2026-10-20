@@ -57,7 +57,7 @@ describe('hierarchical planning', () => {
     it('orders siblings chronologically then by title and collapses a branch independently', () => {
         const phases = fixture().extensions.roadmap!.phases;
         recalculatePhaseDates(phases);
-        expect(phaseTreeRows(phases).map((row) => row.depth)).toEqual([0, 1, 2, 2, 0]);
-        expect(phaseTreeRows(phases, new Set(['engineering'])).map((row) => row.item.id)).toEqual(['delivery', 'engineering', 'future']);
+        expect(phaseTreeRows(phases).map((row) => row.depth)).toEqual([0, 1, 2, 2, 0, 0]);
+        expect(phaseTreeRows(phases, new Set(['engineering'])).map((row) => row.item.id)).toEqual(['delivery', 'engineering', 'empty-phase', 'future']);
     });
 });

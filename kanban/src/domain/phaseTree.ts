@@ -1,4 +1,5 @@
 import type { BoardData, LooseBoardData, RoadmapItem, Task } from './types';
+import { nowIso } from './util';
 
 export function phaseDescendants(phases: readonly RoadmapItem[], id: string): Set<string> {
     const result = new Set([id]);
@@ -59,7 +60,7 @@ export function phaseTreeRows(phases: readonly RoadmapItem[], collapsed: Readonl
 }
 
 /** A compatibility seam for US-4. Until merged, the persisted `done` state is completed. */
-export function planningTaskCategory(task: Task, data?: LooseBoardData | null): string {
+export function planningTaskCategory(task: Pick<Task, 'status'>, data?: LooseBoardData | null): string {
     const workflow = data?.extensions?.workflow as { states?: { id: string; category: string }[] } | undefined;
     return (Array.isArray(workflow?.states) ? workflow.states.find((state) => state.id === task.status)?.category : undefined) || (task.status === 'done' ? 'completed' : 'not-started');
 }
@@ -71,6 +72,8 @@ export function planningProgress(tasks: readonly Task[], data?: LooseBoardData |
     const completed = unique.filter((task) => planningTaskCategory(task, data) === 'completed').length;
     return { associated: unique.length, eligible, completed, cancelled, percent: eligible ? completed / eligible * 100 : null };
 }
+
+export type PlanningProgress = ReturnType<typeof planningProgress>;
 
 export function updatePhase(data: BoardData, next: RoadmapItem, relocation?: string): void {
     const roadmap = data.extensions.roadmap!;
@@ -84,7 +87,8 @@ export function updatePhase(data: BoardData, next: RoadmapItem, relocation?: str
     if (affected.length) {
         const branch = phaseDescendants(phases, next.id);
         if (relocation === undefined || (relocation && (!branch.has(relocation) || !isLeafPhase(phases, relocation)))) throw new Error('Choose a leaf in the introduced branch, or explicitly clear the affected assignments.');
-        affected.forEach((task) => { task.phaseId = relocation; });
+        const at = nowIso();
+        affected.forEach((task) => { task.phaseId = relocation; task.updatedAt = at; });
     }
     roadmap.phases = phases;
     recalculatePhaseDates(roadmap.phases);
@@ -97,7 +101,8 @@ export function deletePlanningGroup(data: BoardData, kind: 'phases' | 'milestone
     const affected = data.board.tasks.filter((task) => task[field] === id);
     const destinations = roadmap[kind].filter((item) => item.id !== id && (kind !== 'phases' || isLeafPhase(roadmap.phases, item.id)));
     if (affected.length && (relocation === undefined || (relocation && !destinations.some((item) => item.id === relocation)))) throw new Error('Choose a valid destination, or explicitly clear the affected assignments.');
-    affected.forEach((task) => { task[field] = relocation || ''; });
+    const at = nowIso();
+    affected.forEach((task) => { task[field] = relocation || ''; task.updatedAt = at; });
     roadmap[kind] = roadmap[kind].filter((item) => item.id !== id);
     recalculatePhaseDates(roadmap.phases);
 }

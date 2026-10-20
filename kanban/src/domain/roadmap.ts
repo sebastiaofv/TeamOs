@@ -13,12 +13,16 @@ import { ROADMAP_VERSION, ROADMAP_EXTENSION_KEY } from './constants';
 import { getBoardExtensionsObject } from './extensions';
 import { hasExactKeys, isRecord, todayLocalIsoDate } from './util';
 import type { Language } from '@/shared/types/ui';
-import { phaseDescendants, recalculatePhaseDates } from './phaseTree';
+import { isLeafPhase, phaseDescendants, recalculatePhaseDates } from './phaseTree';
 
 type RoadmapItemLike = Partial<RoadmapItem> | null | undefined;
 type RangeLike = Partial<RoadmapRange> | null | undefined;
 export type RoadmapTaskField = 'milestoneId' | 'phaseId' | 'sprintId';
 export type SprintCalendarStatus = 'planned' | 'active' | 'done';
+
+export function isValidRoadmapAssignment(roadmap: RoadmapExtension | null | undefined, field: 'phaseId' | 'milestoneId', value: string): boolean {
+    return !value || Boolean(roadmap && (field === 'phaseId' ? isLeafPhase(roadmap.phases, value) : roadmap.milestones.some((item) => item.id === value)));
+}
 
 /** Start and end days are inclusive, using the project's local calendar day. */
 export function getSprintCalendarStatus(sprint: RoadmapItem, today: string): SprintCalendarStatus {

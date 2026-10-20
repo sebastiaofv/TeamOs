@@ -1,22 +1,36 @@
-# US-5 · Roadmap hierárquico
+# US-5 · Plano, progresso e drilldown no Roadmap
 
-Usar `us-5`, criado de `main`, não de `us-4`. Copiar o board antes de importar. Arrastar outra cópia testa leitura.
+Usar `us-5`, criado de `main`, não de `us-4`. Copiar o JSON antes de importar com escrita; arrastar outra cópia testa leitura. Todos os dados são fictícios.
 
-1. Abrir Roadmap: um único eixo e secções Milestones/Etapas/Sprints. Delivery → Engineering → API/Interface. Controlos separados recolhem subetapas e abrem trabalho inline.
-2. Delivery e Public release: **25% (1/4 elegíveis)**. O item arquivado #503 conta na métrica. Com filtro Ativos aparecem 3 de 4; com filtro Done aparece 1 de 4, mantendo 25%. Sem folhas: N/D.
-3. Public release é posterior ao intervalo das etapas, contém trabalho de ramos diferentes e não depende do sprint.
-4. Abrir #505 e atribuir API e Public release no detalhe. Sprint e estado mantêm-se. No editor, só API/Interface/Future work são destinos de etapa; pais continuam disponíveis como filtros. Sem etapa/Sem milestone encontram itens não associados.
-5. Criar uma subetapa em API: datas iniciais copiam o intervalo de API; Guardar exige realocação explícita dos dois itens diretos, incluindo arquivados quando aplicável. Cancelar mantém tudo. Escolher limpar ou a nova folha aplica a árvore e associações numa operação.
-6. Editar/mover ramos: não é permitido escolher a própria etapa/descendente. Datas de pais são calculadas; mover preserva datas das folhas. Se o pai perde o último filho, conserva o intervalo calculado como editável.
-7. Eliminar Engineering é impedido enquanto tem filhos. Eliminar folha/milestone em uso exige confirmação e escolha explícita de outra folha/milestone ou Nenhuma. Cancelar não altera nada; restantes dimensões e estados mantêm-se.
-8. Guardar/reabrir preserva IDs, árvore, datas, associações, timeline e sprint. Ficheiros roadmap v1 migram para extensão v2 sem eventos inventados.
-9. Em leitura/histórico, consultar árvore, progresso, listas e detalhes sem alterar. Testar teclado e temas claro/escuro.
+## Referências incorporadas
+
+Os comentários de #29 integram o drilldown da US-15 nesta história. O comentário visual mais recente prevalece sobre os pontos contraditórios anteriores: **sem secção independente de milestones e sem árvore Epic → Story → Task nesta vista**. As consultas usam a mesma `WorkitemTable` da vista Table, organizada pela pertença efetiva ao âmbito selecionado.
+
+## Cenários executáveis
+
+1. Abrir Roadmap: só existem secções de **Fases/Sprints**, com linhas compactas e nome/datas na mesma linha. Delivery → Engineering → API/Interface. Controlos independentes recolhem subfases e abrem tabelas de trabalho.
+2. As barras temporais incluem a percentagem: **Delivery 25% (1/4 elegíveis)** e October execution 25%. A parte concluída é colorida e o restante esbatido/cinzento. O avanço do relógio não aumenta o progresso. Exploration without work apresenta N/D.
+3. O item arquivado #503 conta na métrica. Por defeito Delivery mostra 3 de 4; incluir arquivados mostra 4 de 4; filtrar Done mostra 1 de 4. A barra mantém 25% em todos os casos.
+4. Expandir API ou October execution: tabelas do mesmo componente/estilo da vista Table, incluindo ID/título/estado/responsável e opções de colunas, ordenação, seleção, CSV e paginação. **Não há cartões nem timelines individuais de workitems.**
+5. Delivery → **Por sprint**: October execution só inclui #501/#502. Não inclui #506 sem fase nem #507 da Future work, apesar de pertencerem ao mesmo sprint. Sem sprint inclui #504 e, ao incluir arquivados, #503.
+6. Delivery → **Por milestone**: Public release inclui #501/#502/#503 (arquivo conforme filtro), enquanto Sem milestone contém #504. Consultar a milestone diretamente inclui também #506 sem fase. As perspetivas não mudam associações nem duplicam métricas globais.
+7. Expandir **Por classificar / Sem etapa**: #505 e #506. #506 mantém milestone Public release e sprint October execution: ausência de fase, milestone e sprint são dimensões independentes. Abrir o detalhe conserva o âmbito e permite atribuição de planeamento quando gravável.
+8. Milestones são **losangos com percentagem no eixo temporal**, nome/data e guias verticais tracejadas através do Gantt, não linhas de dados próprias. Public release mostra 25%; Nearby review checkpoint, na mesma data, e Unassigned decision mostram N/D. Anotações próximas são separadas; uma grande quantidade pode ser percorrida no próprio espaço de anotações do eixo.
+9. Clicar Public release abre modal com nome/data/percentagem e a mesma tabela. Inicialmente mostra #501/#502/#506; incluir arquivados acrescenta #503. Abrir um workitem e regressar conserva seleção/página da tabela e o modal. Escape fecha só o detalhe superior; outro Escape fecha a milestone e devolve foco ao marcador.
+10. A linha azul Hoje percorre a área temporal, adapta-se à altura das tabelas expandidas e não tapa percentagens/texto. Alterar largura de identificação ou zoom mantém eixo, barras, guias e marcadores alinhados numa escala única. Abrir/fechar detalhe preserva largura, zoom, filtros, expansão e scroll.
+11. Editar Future work alterando **só o pai** para Delivery deve guardar. O ID, datas da folha, estado, responsável e sprint de #507 mantêm-se; o intervalo de Delivery e o progresso agregado recalculam-se.
+12. Criar primeira subfase em Interface: datas iniciais copiadas da fase, ajustáveis. Guardar mostra IDs/títulos dos dois itens afetados, incluindo #503 arquivado, e exige realocação para uma folha válida ou limpeza explícita. Cancelar não altera nada.
+13. Eliminar Engineering é impedido enquanto tem filhos. Eliminar folha/milestone em uso identifica os itens afetados e exige decisão explícita; não elimina ramos em cascata. As restantes dimensões mantêm-se. Se o conjunto afetado mudar durante a confirmação, a operação é recusada para nova revisão.
+14. Guardar/reabrir preserva IDs, árvore, datas, associações, timeline e sprints. Ficheiros roadmap v1 migram para extensão v2 sem eventos inventados. Em fotografia histórica, consultar dados reconstruídos sem alterar a fotografia ou a timeline global.
+15. Leitura: consultar fases, sprints, milestones e tabelas, sem controlos graváveis. Testar temas claro/escuro, PT-PT/inglês, teclado, nomes profundos/compridos, datas sobrepostas e estados vazios/filtros sem resultados.
 
 ## Integrações condicionais
 
-- #28/US-4: após integração, o cálculo usa categorias do workflow, exclui Cancelados e mostra contagem própria; neste branch independente, `done` representa conclusão. Acrescentar uma folha cancelada após integrar #28 não altera o exemplo 1/4.
-- #36/US-12: hierarquia de workitems ainda não existe em `main`. Herança/Nenhuma/substituição e exclusão de workitems-pai aguardam essa estrutura; não foi criada uma segunda hierarquia de trabalho nesta história.
+- **US-4 / #28:** ao integrar, utilizar categorias semânticas de Done/Cancelled. Cancelados mantêm consulta/contagem própria e são excluídos da execução; neste branch independente, `done` é a conclusão compatível com `main`.
+- **US-12 / #36:** ainda não fornece tipos/hierarquia em `main`. Herança/Nenhuma/substituição e exclusão de workitems-pai do cálculo aguardam essa estrutura. Não foi criada outra hierarquia de workitems nem dados fictícios de tipos; mesmo quando disponível, a consulta aqui é por pertença efetiva, não uma árvore obrigatória de Epics.
+- **US-17 / #40:** reutilizará o mesmo comando de abertura de detalhe quando o painel lateral existir. Entretanto usa-se o modal atual, preservando o contexto do Roadmap e do modal de milestone.
+- **US-15 / #38:** o drilldown pedido nos comentários está incorporado nesta US-5; não é criada outra implementação ou motor de Gantt.
 
 ## Verificação
 
-`npm run typecheck`, `npm run lint`, `npm run test:unit` e `npx playwright test tests/e2e/roadmap.test.ts tests/e2e/phase-tree.test.ts`.
+`npm run typecheck`, `npm run lint`, `npm run test:unit` e `npx playwright test tests/e2e/roadmap-clarifications.test.ts tests/e2e/roadmap.test.ts tests/e2e/phase-tree.test.ts tests/e2e/timeline.test.ts tests/e2e/task-detail.test.ts tests/e2e/workitems-table.test.ts tests/e2e/table-review.test.ts`.

@@ -19,6 +19,7 @@ import type {
     TimelineExtension
 } from '@/domain/types';
 import type { BoardFileHandle } from '@/infrastructure/browser/types';
+import type { PlanningProgress } from '@/domain/phaseTree';
 
 export type { DraftMessage, TaskDraft, TaskEditorFields } from '@/domain/types';
 
@@ -176,6 +177,20 @@ export type PortfolioTimelineViewModel = {
     isExpanded: boolean;
 };
 
+export type RoadmapWorkScope = {
+    key: string;
+    item: RoadmapItem | null;
+    referenceId?: string;
+    tasks: Task[];
+    rows: PortfolioRow[];
+    visibleCount: number;
+    progress: PlanningProgress;
+};
+export type RoadmapPlanningRow = RoadmapWorkScope & {
+    kind: 'phases' | 'sprints'; depth: number; hasChildren: boolean; treeCollapsed: boolean; expanded: boolean;
+    sprintGroups: RoadmapWorkScope[]; milestoneGroups: RoadmapWorkScope[];
+};
+export type RoadmapMilestoneMarker = RoadmapWorkScope & { position: number; lane: number; labelAtEnd: boolean };
 export type PortfolioRoadmapViewModel = {
     boardId: string;
     boardTitle: string;
@@ -185,6 +200,12 @@ export type PortfolioRoadmapViewModel = {
     range: RoadmapRange;
     axisTicks: RoadmapTick[];
     historical: boolean;
+    phaseRows: RoadmapPlanningRow[];
+    sprintRows: RoadmapPlanningRow[];
+    milestones: RoadmapMilestoneMarker[];
+    unclassified: RoadmapWorkScope;
+    labelWidth: number;
+    annotationLanes: number;
 };
 
 export type PortfolioCalendarViewModel = {

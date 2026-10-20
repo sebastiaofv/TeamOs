@@ -159,7 +159,8 @@ test.describe('roadmap', () => {
 
     await expect(page.locator('#portfolioRoadmapView')).toContainText('Beta');
 
-    await page.getByRole('button', { name: 'Delete Alpha' }).click();
+    await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
+    await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageModal')).toContainText('choose how to reallocate or clear');
     await page.locator('#appMessageModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await answerAppMessage(page, { button: 'Clear assignments · None', expectText: '1 directly assigned workitems' });
@@ -201,7 +202,8 @@ test.describe('roadmap', () => {
     }], { selectedBoardId: 'alpha' });
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
-    await page.getByRole('button', { name: 'Edit Alpha' }).click();
+    await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
+    await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Edit', exact: true }).click();
     await page.locator('#roadmapEntityTitle').fill('Alpha Renamed');
     await page.getByRole('button', { name: 'Save Item' }).click();
 
@@ -241,11 +243,12 @@ test.describe('roadmap', () => {
     }], { selectedBoardId: 'alpha' });
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
-    await expect(page.locator('#portfolioRoadmapView')).toContainText('Milestones');
-    await expect(page.locator('#portfolioRoadmapView > .portfolio-roadmap-timeline')).toHaveCount(1);
+    await expect(page.locator('.milestone-annotation-label')).toContainText('Alpha Release');
+    await expect(page.locator('#portfolioRoadmapView .portfolio-roadmap-timeline')).toHaveCount(1);
     await expect(page.locator('#portfolioRoadmapView .portfolio-roadmap-header')).toHaveCount(0);
     await expect(page.locator('[data-roadmap-axis="shared"]')).toHaveCount(1);
-    await expect(page.locator('.roadmap-row[data-roadmap-kind="milestone"]')).toHaveCount(1);
+    await expect(page.locator('.roadmap-row[data-roadmap-kind="milestone"]')).toHaveCount(0);
+    await expect(page.locator('.milestone-annotation')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="sprint"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"] .roadmap-row-labels > .roadmap-row-actions')).toHaveCount(1);
@@ -268,20 +271,9 @@ test.describe('roadmap', () => {
 
     await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
     await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
-    const taskListLayout = await page.locator('[data-roadmap-task-list="phase:p1"]').evaluate((node) => {
-      const styles = getComputedStyle(node);
-      return {
-        columns: styles.gridTemplateColumns.split(' ').filter(Boolean).length,
-        paddingLeft: styles.paddingLeft
-      };
-    });
-    expect(taskListLayout.columns).toBe(2);
-    expect(taskListLayout.paddingLeft).toBe('0px');
-    const taskGridColumns = await page.locator('[data-roadmap-task-list="phase:p1"] .roadmap-task-list-track').evaluate((node) => {
-      const columns = getComputedStyle(node).gridTemplateColumns.split(' ').filter(Boolean);
-      return columns.length;
-    });
-    expect(taskGridColumns).toBeGreaterThan(1);
+    await expect(page.locator('[data-roadmap-task-list="phase:p1"] table.workitems-table')).toHaveCount(1);
+    await expect(page.locator('[data-roadmap-task-list="phase:p1"] th[data-column="responsible"]')).toHaveCount(1);
+    await expect(page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card, [data-roadmap-task-list="phase:p1"] .roadmap-row-timeline-bar')).toHaveCount(0);
   });
 
   test('roadmap rows are sorted by date within each section', async ({ page }) => {
@@ -313,7 +305,7 @@ test.describe('roadmap', () => {
     await page.getByRole('button', { name: 'Roadmap' }).click();
 
     const titles = await page.evaluate(() => ({
-      milestones: Array.from(document.querySelectorAll('[data-roadmap-kind="milestones"] .roadmap-row-title')).map((node) => node.textContent?.trim()),
+      milestones: Array.from(document.querySelectorAll('.milestone-annotation-label strong')).map((node) => node.textContent?.trim()),
       phases: Array.from(document.querySelectorAll('[data-roadmap-kind="phases"] .roadmap-row-title')).map((node) => node.textContent?.trim()),
       sprints: Array.from(document.querySelectorAll('[data-roadmap-kind="sprints"] .roadmap-row-title')).map((node) => node.textContent?.trim())
     }));
@@ -354,7 +346,7 @@ test.describe('roadmap', () => {
       const disclosureBtn = document.querySelector('.roadmap-disclosure-btn');
       const track = document.querySelector('.roadmap-row-track');
       const timelineBar = document.querySelector('.roadmap-row[data-roadmap-kind="phase"] .roadmap-row-timeline-bar');
-      const milestonePoint = document.querySelector('.roadmap-row[data-roadmap-kind="milestone"] .roadmap-row-timeline-point');
+      const milestonePoint = document.querySelector('.milestone-annotation .milestone-diamond');
       if (!(timeline instanceof HTMLElement)
         || !(header instanceof HTMLElement)
         || !(row instanceof HTMLElement)
@@ -402,22 +394,14 @@ test.describe('roadmap', () => {
     expect(styles!.sectionBtn.backgroundColor).toBe('rgb(255, 255, 255)');
     expect(styles!.sectionBtn.borderColor).toBe('rgb(208, 208, 208)');
     expect(styles!.disclosureBtn.color).toBe('rgb(102, 102, 102)');
-    expect(styles!.axisLine.height).toBe('20px');
-    expect(styles!.track.height).toBe('20px');
-    expect(styles!.track.borderColor).toBe('rgb(224, 224, 224)');
-    expect(styles!.timelineBar.height).toBe('10px');
+    expect(styles!.axisLine.height).toBe('44px');
+    expect(styles!.track.height).toBe('28px');
+    expect(styles!.timelineBar.height).toBe('21px');
     expect(styles!.milestonePoint.backgroundColor).toBe('rgb(0, 102, 204)');
 
-    await page.getByRole('button', { name: 'Show tasks for Alpha Release' }).click();
-    const taskListSpacing = await page.locator('[data-roadmap-task-list="milestone:m1"]').evaluate((node) => {
-      const styles = getComputedStyle(node);
-      return {
-        marginTop: styles.marginTop,
-        marginBottom: styles.marginBottom
-      };
-    });
-    expect(taskListSpacing.marginTop).toBe('10px');
-    expect(taskListSpacing.marginBottom).toBe('10px');
+    await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
+    await expect(page.locator('#milestoneWorkitemsModal table.workitems-table')).toHaveCount(1);
+    await expect(page.locator('#milestoneWorkitemsModal')).toContainText('Task A');
   });
 
   test('roadmap timeline bars stay contained within the track at edge dates', async ({ page }) => {
@@ -521,9 +505,10 @@ test.describe('roadmap', () => {
 
     const alignment = await page.evaluate(() => {
       const ticks = Array.from(document.querySelectorAll('.roadmap-axis-tick'));
-      const guides = Array.from(document.querySelectorAll('.roadmap-axis-line .roadmap-grid-guide'));
+      const guides = Array.from(document.querySelectorAll('.roadmap-temporal-overlay .roadmap-grid-guide'));
       const tick = ticks.find((node) => node.textContent?.trim() === 'Apr 08');
-      const guide = guides[0];
+      if (!(tick instanceof HTMLElement)) return null;
+      const guide = guides.find((node) => node instanceof HTMLElement && node.style.left === tick.style.left);
       if (!(tick instanceof HTMLElement) || !(guide instanceof HTMLElement)) return null;
       const tickRect = tick.getBoundingClientRect();
       const guideRect = guide.getBoundingClientRect();
@@ -583,7 +568,7 @@ test.describe('roadmap', () => {
       const axisRect = axisLine.getBoundingClientRect();
       const markerRect = markerNode.getBoundingClientRect();
       return {
-        label: markerNode.textContent?.trim() || '',
+        label: document.querySelector('.roadmap-today-marker-label')?.textContent?.trim() || '',
         markerPosition: ((markerRect.left + (markerRect.width / 2)) - axisRect.left) / axisRect.width * 100
       };
     });
@@ -694,7 +679,7 @@ test.describe('roadmap', () => {
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
-    await page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card').click();
+    await page.locator('[data-roadmap-task-list="phase:p1"]').getByRole('button', { name: 'Task A', exact: true }).click();
 
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await expect(page.locator('#detailTitle')).toHaveText('Task A');
@@ -710,7 +695,7 @@ test.describe('roadmap', () => {
     expect(saved.board.tasks.find((task: any) => task.id === 1)?.title).toBe('Task A Updated');
   });
 
-  test('roadmap task cards support hovered edit shortcuts', async ({ page }) => {
+  test('roadmap shared-table rows support keyboard detail and edit navigation', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
       id: 'alpha',
@@ -732,14 +717,16 @@ test.describe('roadmap', () => {
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
-    await page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card').filter({ hasText: 'Task B' }).hover();
+    await page.locator('[data-roadmap-task-list="phase:p1"]').getByRole('button', { name: 'Task B', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
     await page.keyboard.press('e');
 
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect(page.locator('#taskName')).toHaveValue('Task B');
   });
 
-  test('clicking a roadmap task card renders it as selected', async ({ page }) => {
+  test('closing detail returns focus to the selected shared-table workitem', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{
       id: 'alpha',
@@ -760,11 +747,12 @@ test.describe('roadmap', () => {
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
-    await page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card').click();
+    const trigger = page.locator('[data-roadmap-task-list="phase:p1"]').getByRole('button', { name: 'Task A', exact: true });
+    await trigger.click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await page.keyboard.press('Escape');
 
-    await expect(page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card.selected')).toHaveCount(1);
+    await expect(trigger).toBeFocused();
   });
 
   test('roadmap entity modal traps shortcut context and Escape closes it', async ({ page }) => {

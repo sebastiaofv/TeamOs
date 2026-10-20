@@ -640,6 +640,10 @@ test.describe('2.5 roadmap and 2.6 calendar views', () => {
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`portfolio-roadmap-expanded-${theme}.png`, { fullPage: true });
+      await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
+      await expect(page.locator('#milestoneWorkitemsModal .workitems-table')).toBeVisible();
+      await page.mouse.move(1, 1);
+      await expect(page).toHaveScreenshot(`portfolio-roadmap-milestone-${theme}.png`, { fullPage: true });
     });
 
     test(`calendar year view (${theme})`, async ({ page }) => {

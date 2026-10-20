@@ -1,6 +1,6 @@
 // Roadmap editing, sprint assignment, and row expansion.
 
-import type { RoadmapItem, RoadmapKind } from '@/domain/types';
+import type { RoadmapItem, RoadmapKind, Task } from '@/domain/types';
 import type { RoadmapEntityMode, SelectOption } from '@/features/portfolio/types';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
@@ -16,6 +16,7 @@ import {
     normalizeRoadmapRef,
     parseRoadmapIsoDate,
     slugifyRoadmapEntityId,
+    isValidRoadmapAssignment,
 } from '@/domain/roadmap';
 
 import { cloneSerializable, createBoardStateSnapshot } from '@/domain/serialize';
@@ -45,6 +46,7 @@ type RoadmapEntityDraft = {
 export function createRoadmapActions({ getState, commitState, getBoardRecord, canUsePortfolioTaskMutations,
     notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, runPortfolioTaskMutation, alert, confirm, choose, closeDialogFn, openDialogFn }: BoardMutationContext,
 { getSelectedPortfolioBulkTaskIds, clearPortfolioBulkSelection }: Pick<BoardInteractions, 'getSelectedPortfolioBulkTaskIds' | 'clearPortfolioBulkSelection'>) {
+    const impactText = (tasks: Task[]) => tasks.length ? `\n\n${tasks.map((task) => `#${task.id} · ${task.title}${task.archived ? ` · ${translateCurrent('table.archived')}` : ''}`).join('\n')}` : '';
     const getRoadmapLabel = (kind: RoadmapKind, tr: typeof translateCurrent = translateCurrent): string => kind === 'milestones'
         ? tr('roadmap.milestone')
         : kind === 'phases'
@@ -295,15 +297,17 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         }
 
         let relocation: string | undefined;
+        let expectedParentImpact: number[] | undefined;
         if (context.kind === 'phases' && draft.parentId) {
             const data = getBoardRecord(context.boardId)?.data;
             const roadmap = getRoadmapExtension(data);
             const affected = data?.board.tasks.filter((task) => task.phaseId === draft.parentId) || [];
             if (affected.length && roadmap) {
+                expectedParentImpact = affected.map((task) => task.id).sort((a, b) => a - b);
                 const id = draft.itemId || slugifyRoadmapEntityId(draft.title, roadmap.phases);
                 const phases = roadmap.phases.filter((phase) => phase.id !== id).concat({ id, title: draft.title, parentId: draft.parentId });
                 const branch = phaseDescendants(phases, id);
-                const choice = await choose(translateCurrent('roadmap.reassignImpact', { count: affected.length }), [
+                const choice = await choose(translateCurrent('roadmap.reassignImpact', { count: affected.length }) + impactText(affected), [
                     { value: '', label: translateCurrent('roadmap.clearAssignments') },
                     ...phases.filter((phase) => branch.has(phase.id) && isLeafPhase(phases, phase.id)).map((phase) => ({ value: phase.id, label: phase.title }))
                 ]);
@@ -321,10 +325,12 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const nextItem: RoadmapItem = config.dateMode === 'single'
                 ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
                 : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
+            if (context.kind === 'phases' && draft.parentId) nextItem.parentId = draft.parentId;
             if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) return false;
 
             if (context.kind === 'phases') {
-                if (draft.parentId) nextItem.parentId = draft.parentId;
+                const actual = boardData.board.tasks.filter((task) => task.phaseId === draft.parentId).map((task) => task.id).sort((a, b) => a - b);
+                if (expectedParentImpact && JSON.stringify(actual) !== JSON.stringify(expectedParentImpact)) throw new Error(translateCurrent('roadmap.impactChanged'));
                 updatePhase(boardData, nextItem, relocation);
             } else if (index >= 0) {
                 items[index] = nextItem;
@@ -354,7 +360,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (changed) closeRoadmapEntity();
     }
 
-    async function deleteRoadmapEntity(kind: RoadmapKind, itemId: string) {
+    async function deleteRoadmapEntity(kind: RoadmapKind, itemId: string, options: { onApplied?: () => void } = {}) {
         const boardId = getState().selectedPortfolioBoardId;
         const boardRecord = boardId ? getBoardRecord(boardId) : null;
         const config = getRoadmapEntityConfig(kind);
@@ -369,16 +375,16 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (!item) return;
         if (kind === 'phases' && roadmap.phases.some((phase) => phase.parentId === itemId)) { await alert(translateCurrent('roadmap.hasChildren')); return; }
         const label = getRoadmapLabel(kind);
-        const confirmed = await confirm(translateCurrent(kind === 'sprints' ? 'roadmap.deleteQuestion' : 'roadmap.deletePlanningQuestion', { title: item.title }), {
+        const affected = boardRecord.data.board.tasks.filter((task) => task[config.taskField] === itemId);
+        const confirmed = await confirm(translateCurrent(kind === 'sprints' ? 'roadmap.deleteQuestion' : 'roadmap.deletePlanningQuestion', { title: item.title }) + impactText(affected), {
             title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
             confirmLabel: translateCurrent('common.delete'),
             danger: true
         });
         if (!confirmed) return;
-        const affected = boardRecord.data.board.tasks.filter((task) => task[config.taskField] === itemId);
         let relocation: string | undefined;
         if (kind !== 'sprints' && affected.length) {
-            const choice = await choose(translateCurrent('roadmap.reassignImpact', { count: affected.length }), [
+            const choice = await choose(translateCurrent('roadmap.reassignImpact', { count: affected.length }) + impactText(affected), [
                 { value: '', label: translateCurrent('roadmap.clearAssignments') },
                 ...roadmap[kind].filter((target) => target.id !== itemId && (kind !== 'phases' || isLeafPhase(roadmap.phases, target.id))).map((target) => ({ value: target.id, label: target.title }))
             ]);
@@ -391,6 +397,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const items = mutableRoadmap[config.itemsKey];
             const index = items.findIndex((entry) => entry.id === itemId);
             if (index === -1) return false;
+            const actual = boardData.board.tasks.filter((task) => task[config.taskField] === itemId).map((task) => task.id).sort((a, b) => a - b);
+            if (JSON.stringify(actual) !== JSON.stringify(affected.map((task) => task.id).sort((a, b) => a - b))) throw new Error(translateCurrent('roadmap.impactChanged'));
             const removed = items[index];
             if (kind !== 'sprints') deletePlanningGroup(boardData, kind, itemId, relocation);
             else items.splice(index, 1);
@@ -417,13 +425,13 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 }
             });
             return true;
-        });
+        }, { onMutated: options.onApplied });
     }
     return {
         setPortfolioTaskPlanning(boardId: string, taskId: number, field: 'phaseId' | 'milestoneId', value: string) {
             return runPortfolioTaskMutation(boardId, taskId, (task, draft) => {
                 const roadmap = getRoadmapExtension(draft.data);
-                if (value && (!roadmap || (field === 'phaseId' ? !isLeafPhase(roadmap.phases, value) : !roadmap.milestones.some((item) => item.id === value)))) throw new Error(translateCurrent('roadmap.invalidAssignment'));
+                if (!isValidRoadmapAssignment(roadmap, field, value)) throw new Error(translateCurrent('roadmap.invalidAssignment'));
                 if (task[field] === value) return false;
                 task[field] = value;
                 return true;

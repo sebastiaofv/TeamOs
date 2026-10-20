@@ -9,7 +9,7 @@ test('first child relocation is explicit and atomic; progress is global and tree
     }], { selectedBoardId: 'p' });
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     await expect(page.locator('#roadmap-row-phase-phase')).toContainText('50%');
-    await expect(page.locator('#roadmap-row-phase-phase')).toContainText('1 of 2 associated');
+    await expect(page.getByRole('button', { name: 'Show tasks for Delivery', exact: true })).toHaveAttribute('title', '1 of 2 associated workitems');
     await setBoardSearch(page, 'Complete');
     await expect(page.locator('#roadmap-row-phase-phase')).toContainText('50%');
     await setBoardSearch(page, '');

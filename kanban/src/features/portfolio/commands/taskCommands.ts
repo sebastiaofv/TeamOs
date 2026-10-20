@@ -19,8 +19,7 @@ import {
 import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
-import { getRoadmapExtension } from '@/domain/roadmap';
-import { isLeafPhase } from '@/domain/phaseTree';
+import { getRoadmapExtension, isValidRoadmapAssignment } from '@/domain/roadmap';
 import { removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -211,7 +210,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const state = getState();
         const editingBoardId = state.portfolioCreateContext?.boardId || state.portfolioEditContext?.boardId;
         const roadmap = getRoadmapExtension(editingBoardId ? getBoardRecord(editingBoardId)?.data : null);
-        if ((draft.phaseId && (!roadmap || !isLeafPhase(roadmap.phases, draft.phaseId))) || (draft.milestoneId && !roadmap?.milestones.some((item) => item.id === draft.milestoneId))) {
+        if (!isValidRoadmapAssignment(roadmap, 'phaseId', draft.phaseId) || !isValidRoadmapAssignment(roadmap, 'milestoneId', draft.milestoneId)) {
             await alert(translateCurrent('roadmap.invalidAssignment'));
             return;
         }
