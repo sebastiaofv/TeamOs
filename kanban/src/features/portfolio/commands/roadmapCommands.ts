@@ -27,10 +27,11 @@ import { getSprintCatalog, registerSprintCreation } from '@/domain/sprintCatalog
 import { getCurrentLanguage, translateCurrent, translateTimeline } from '@/shared/i18n';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 import { deletePlanningGroup, isLeafPhase, phaseDescendants, updatePhase } from '@/domain/phaseTree';
+import { isMilestoneColor, milestoneColor, nextMilestoneColor } from '@/domain/milestonePresentation';
 
 export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate' | 'endDate';
 
-export type RoadmapEntityInput = Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate' | 'parentId', unknown>>;
+export type RoadmapEntityInput = Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate' | 'parentId' | 'color', unknown>>;
 
 type RoadmapEntityDraft = {
     kind: unknown;
@@ -96,7 +97,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 title: item?.title || '',
                 dueDate: item?.dueDate || '',
                 startDate: item?.startDate || '',
-                endDate: item?.endDate || ''
+                endDate: item?.endDate || '',
+                ...(kind === 'milestones' ? { color: item ? milestoneColor(item, items.indexOf(item)) : nextMilestoneColor(items) } : {})
             },
             parentId: item?.parentId || '',
             phaseOptions: roadmap.phases.filter((phase) => !item || !phaseDescendants(roadmap.phases, item.id).has(phase.id)).map((phase) => ({ value: phase.id, label: phase.title })),
@@ -325,6 +327,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const nextItem: RoadmapItem = config.dateMode === 'single'
                 ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
                 : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
+            if (context.kind === 'milestones') nextItem.color = isMilestoneColor(input.color) ? input.color
+                : previousItem ? milestoneColor(previousItem, index) : nextMilestoneColor(items);
             if (context.kind === 'phases' && draft.parentId) nextItem.parentId = draft.parentId;
             if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) return false;
 

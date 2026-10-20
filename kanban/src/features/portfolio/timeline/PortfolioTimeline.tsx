@@ -123,9 +123,9 @@ function PortfolioTimelineView({ view, actions }: {
     return (
         <>
             <div className="timeline-panel-header">
-                <div>
+                <div className="timeline-header-summary">
                     <h2 className="timeline-panel-title" id={`timeline-title-${view.boardId}`}>{t('roadmap.timeline')}</h2>
-                    <div className="timeline-panel-subtitle" role="status" aria-live="polite">{subtitleText}</div>
+                    <div className="timeline-panel-subtitle" role="status" aria-live="polite" title={subtitleText}>{subtitleText}</div>
                 </div>
                 <div className="timeline-panel-actions">
                     <div className={`timeline-preview-banner${view.isPreview ? ' active' : ''}`} role="status" aria-live="polite">{t('timeline.historicalPreview')}</div>

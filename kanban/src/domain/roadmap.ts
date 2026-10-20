@@ -14,6 +14,7 @@ import { getBoardExtensionsObject } from './extensions';
 import { hasExactKeys, isRecord, todayLocalIsoDate } from './util';
 import type { Language } from '@/shared/types/ui';
 import { isLeafPhase, phaseDescendants, recalculatePhaseDates } from './phaseTree';
+import { isMilestoneColor } from '@/domain/milestonePresentation';
 
 type RoadmapItemLike = Partial<RoadmapItem> | null | undefined;
 type RangeLike = Partial<RoadmapRange> | null | undefined;
@@ -198,13 +199,13 @@ export function getRoadmapTaskFieldTasks(boardData: LooseBoardData | null | unde
     return tasks.filter((task) => task && refs.has(normalizeRoadmapRef(task[fieldName])));
 }
 
-export function normalizeRoadmapItems(value: unknown, dateKeys: readonly RoadmapDateKey[], requiredDateKeys: readonly RoadmapDateKey[], allowParent = false): RoadmapItem[] | null {
+export function normalizeRoadmapItems(value: unknown, dateKeys: readonly RoadmapDateKey[], requiredDateKeys: readonly RoadmapDateKey[], allowParent = false, allowColor = false): RoadmapItem[] | null {
     if (!Array.isArray(value)) return null;
     const normalized: RoadmapItem[] = [];
     const seenIds = new Set<string>();
     for (const item of value) {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-        const allowedKeys: string[] = ['id', 'title', ...dateKeys, ...(allowParent ? ['parentId'] : [])];
+        const allowedKeys: string[] = ['id', 'title', ...dateKeys, ...(allowParent ? ['parentId'] : []), ...(allowColor ? ['color'] : [])];
         const keys = Object.keys(item);
         const hasRequiredKeys = typeof item.id === 'string' && item.id.trim()
             && typeof item.title === 'string' && item.title.trim();
@@ -216,6 +217,10 @@ export function normalizeRoadmapItems(value: unknown, dateKeys: readonly Roadmap
         seenIds.add(id);
 
         const normalizedItem: RoadmapItem = { id, title: item.title.trim() };
+        if ('color' in item) {
+            if (!allowColor || !isMilestoneColor(item.color)) return null;
+            normalizedItem.color = item.color;
+        }
         if ('parentId' in item) {
             if (!allowParent || typeof item.parentId !== 'string') return null;
             if (item.parentId.trim()) normalizedItem.parentId = item.parentId.trim();
@@ -347,10 +352,10 @@ export function getVisibleRoadmapDateRange(roadmap: RoadmapExtension | null | un
 
 export function normalizeRoadmapExtension(value: unknown): RoadmapExtension | null {
     if (!isRecord(value)) return null;
-    if (Number(value.version) !== 1 && Number(value.version) !== ROADMAP_VERSION) return null;
+    if (![1, 2, ROADMAP_VERSION].includes(Number(value.version))) return null;
     if (!hasExactKeys(value, ['version', 'milestones', 'phases', 'sprints'])) return null;
 
-    const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate']);
+    const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate'], false, Number(value.version) >= 3);
     const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate'], ['startDate', 'endDate'], true);
     const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate']);
     if (!milestones || !phases || !sprints) return null;

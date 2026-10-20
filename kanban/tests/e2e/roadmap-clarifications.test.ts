@@ -40,6 +40,111 @@ test('compact phase/sprint rows share tables and execution progress; Today spans
     expect(line!.height).toBeGreaterThan(400); expect(line!.y + line!.height).toBeGreaterThanOrEqual(sprint!.y + sprint!.height);
 });
 
+test('review adjustments keep the axis compact, guides above bars and progress at the filled edge', async ({ page }) => {
+    await seed(page);
+    await expect(page.locator('[data-roadmap-kind="phases"] .roadmap-section-header')).toHaveCount(0);
+    await expect(page.locator('.roadmap-view-controls button').last()).toHaveAccessibleName('Add Phase');
+    await expect(page.locator('.roadmap-view-controls button').nth(-2)).toHaveAccessibleName('Add Milestone');
+    await expect(page.locator('.roadmap-today-marker-label')).toHaveText('T');
+    const axis = await page.locator('.roadmap-axis-line').boundingBox();
+    const annotations = await page.locator('.milestone-annotations').boundingBox();
+    expect(annotations!.y).toBe(axis!.y + axis!.height);
+    expect(annotations!.height).toBeLessThanOrEqual(64);
+    const boxes = await page.locator('.milestone-annotation').evaluateAll((items) => items.map((item) => {
+        const box = item.getBoundingClientRect(); return { x: box.x, y: box.y, right: box.right, bottom: box.bottom };
+    }));
+    boxes.forEach((box, index) => boxes.slice(index + 1).forEach((other) => expect(box.right <= other.x || other.right <= box.x || box.bottom <= other.y || other.bottom <= box.y).toBe(true)));
+    for (const id of ['phase-delivery', 'phase-api', 'sprint-october', 'phase-empty-phase']) {
+        const geometry = await page.locator(`#roadmap-row-${id} .roadmap-row-timeline-bar`).evaluate((bar) => {
+            const fill = bar.querySelector('.roadmap-bar-fill')!.getBoundingClientRect();
+            const label = bar.querySelector('.roadmap-bar-value')!;
+            const box = label.getBoundingClientRect();
+            if (getComputedStyle(bar).zIndex !== 'auto') throw new Error('Bar stacking context hides its text behind date guides');
+            if (Number(getComputedStyle(label).zIndex) <= 4) throw new Error('Percentage is below the date guides');
+            return { inside: label.classList.contains('roadmap-value-inside'), right: box.right, left: box.left, edge: fill.right };
+        });
+        expect(Math.abs((geometry.inside ? geometry.right : geometry.left) - geometry.edge)).toBeLessThanOrEqual(5);
+    }
+    const line = await page.locator('.roadmap-today-marker').evaluate((element) => {
+        const css = getComputedStyle(element);
+        return { style: css.borderLeftStyle, color: css.borderLeftColor, overlayZ: getComputedStyle(element.parentElement!).zIndex };
+    });
+    expect(line.style).toBe('solid'); expect(line.color).toBe('rgb(37, 99, 235)'); expect(Number(line.overlayZ)).toBeGreaterThan(2);
+    for (const id of ['release', 'empty', 'checkpoint']) {
+        const guide = page.locator(`[data-milestone-guide="${id}"]`);
+        const diamond = page.locator(`.milestone-annotation[data-roadmap-id="${id}"] .milestone-diamond`);
+        const guideBox = await guide.boundingBox(); const diamondBox = await diamond.boundingBox();
+        expect(Math.abs(guideBox!.x - diamondBox!.x - diamondBox!.width / 2)).toBeLessThanOrEqual(1);
+        const color = await diamond.evaluate((element) => getComputedStyle(element, '::before').backgroundColor);
+        await expect(guide).toHaveCSS('color', color); await expect(guide.locator('line')).toHaveAttribute('stroke-dasharray', /4 \d+/);
+    }
+});
+
+test('fractional milestone progress stays inside the small coloured diamond in both themes', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'fraction', title: 'Fractional progress', hasHandle: true, tasks: [
+        { id: 1, title: 'Done', status: 'done', milestoneId: 'm' },
+        { id: 2, title: 'In progress', status: 'doing', milestoneId: 'm' },
+        { id: 3, title: 'Pending', status: 'to-do', milestoneId: 'm' }
+    ], extensions: { roadmap: { version: 3, milestones: [{ id: 'm', title: 'One third', dueDate: '2026-10-20', color: '#b45309' }], phases: [], sprints: [] } } }], { selectedBoardId: 'fraction' });
+    await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    for (const theme of ['light', 'dark']) {
+        if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+        const diamond = page.locator('.milestone-annotation .milestone-diamond');
+        await expect(diamond).toHaveText('33.3%');
+        const geometry = await diamond.evaluate((element) => {
+            const text = element.querySelector('span')!.getBoundingClientRect();
+            const shape = getComputedStyle(element, '::before');
+            return { textWidth: text.width, textHeight: text.height, diagonal: parseFloat(shape.width) * Math.SQRT2 };
+        });
+        // A centred text rectangle is contained by a diamond iff width + height <= diagonal.
+        expect(geometry.textWidth + geometry.textHeight).toBeLessThanOrEqual(geometry.diagonal);
+    }
+});
+
+test('leaf arrows expose workitems and parent work/table expansion remains independent', async ({ page }) => {
+    await seed(page);
+    const leaf = page.getByRole('button', { name: 'Expand/collapse workitems of API', exact: true });
+    await leaf.focus(); await page.keyboard.press('Enter');
+    await expect(leaf).toHaveAttribute('aria-expanded', 'true');
+    await expect(area(page, 'phase:api')).toBeVisible();
+    await page.getByRole('button', { name: 'Show tasks for Engineering', exact: true }).click();
+    await page.getByRole('button', { name: 'Hide tasks for Engineering', exact: true }).click();
+    await expect(area(page, 'phase:api')).toBeVisible();
+    const parent = page.getByRole('button', { name: 'Expand/collapse subphases of Engineering', exact: true });
+    await parent.click(); await expect(area(page, 'phase:api')).toHaveCount(0);
+    await parent.click(); await expect(area(page, 'phase:api')).toBeVisible();
+    await expect(leaf).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('milestone colours are suggested, editable and persisted; history collapses across project views without writes', async ({ page }) => {
+    await seed(page);
+    await page.getByRole('button', { name: 'Add Milestone', exact: true }).click();
+    await expect(page.getByRole('radio', { name: 'Amber', exact: true })).toBeChecked();
+    await page.getByRole('radio', { name: 'Blue', exact: true }).check();
+    await page.locator('#roadmapEntityTitle').fill('Review colour'); await page.locator('#roadmapEntityDate').fill('2026-11-01');
+    await page.getByRole('button', { name: 'Save Item', exact: true }).click();
+    await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap.milestones.find((item: { id: string }) => item.id === 'review-colour').color).toBe('#2563eb');
+    await page.locator('.milestone-annotation[data-roadmap-id="review-colour"]').click();
+    await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Edit', exact: true }).click();
+    await expect(page.getByRole('radio', { name: 'Blue', exact: true })).toBeChecked();
+    await page.getByRole('radio', { name: 'Rose', exact: true }).check();
+    await page.getByRole('button', { name: 'Save Item', exact: true }).click();
+    await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap.milestones.find((item: { id: string }) => item.id === 'review-colour').color).toBe('#be123c');
+    await page.locator('#milestoneWorkitemsModal .modal-close').click();
+    const before = await readSavedBoard(page, 'p');
+    const panel = page.locator('#portfolioTimelinePanel');
+    await expect(panel).toHaveClass(/collapsed/); await expect(panel.locator('.timeline-panel-subtitle')).toContainText('Review colour');
+    for (const mode of ['board', 'table', 'calendar', 'planner', 'roadmap']) {
+        await page.locator(`#portfolioViewModeToggle [data-view-mode="${mode}"]`).click();
+        await expect(panel.locator('.timeline-body')).toBeHidden();
+        await panel.locator('.timeline-toggle-btn').click(); await expect(panel.locator('.timeline-body')).toBeVisible();
+        await panel.locator('.timeline-toggle-btn').click(); await expect(panel.locator('.timeline-controls')).toBeHidden();
+        expect((await panel.boundingBox())!.height).toBeLessThan(60);
+    }
+    expect(await readSavedBoard(page, 'p')).toEqual(before);
+});
+
 test('phase-scoped sprint/milestone perspectives exclude other work and keep absent associations independent', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
@@ -110,7 +215,7 @@ test('nearby milestones remain separately accessible, empty groups use N/A, and 
     const release = await page.locator('.milestone-annotation[data-roadmap-id="release"] .milestone-diamond').boundingBox();
     const checkpoint = await page.locator('.milestone-annotation[data-roadmap-id="checkpoint"] .milestone-diamond').boundingBox();
     expect(Math.abs(release!.x + release!.width / 2 - checkpoint!.x - checkpoint!.width / 2)).toBeLessThan(1);
-    expect(Math.abs(release!.y - checkpoint!.y)).toBeGreaterThan(40);
+    expect(Math.abs(release!.y - checkpoint!.y)).toBeGreaterThanOrEqual(32);
     await page.locator('.milestone-annotation[data-roadmap-id="checkpoint"]').click();
     const modal = page.locator('#milestoneWorkitemsModal');
     await expect(modal.locator('.milestone-diamond')).toHaveText('N/A');

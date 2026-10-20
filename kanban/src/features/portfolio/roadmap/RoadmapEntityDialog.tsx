@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
+import { useRef, useState, type ChangeEvent, type CSSProperties, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { RoadmapEntityDates, RoadmapEntityViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -10,6 +10,7 @@ import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMes
 import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
+import { MILESTONE_PALETTE } from '@/domain/milestonePresentation';
 
 type RoadmapEntityFormDraft = RoadmapEntityDates & { existingSprintId: string; parentId: string };
 
@@ -122,6 +123,11 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                             <input type="date" id="roadmapEntityDate" ref={dueDateRef} {...bind('dueDate')} />
                         </div>
                     </div>
+                    {vm.kind === 'milestones' && <fieldset className="form-group milestone-color-picker"><legend>{t('roadmap.milestoneColor')}</legend>
+                        {MILESTONE_PALETTE.map((color) => <label key={color.id} style={{ '--milestone-color': color.value } as CSSProperties}>
+                            <input type="radio" name="milestoneColor" value={color.value} checked={draft.color === color.value} aria-label={t(`roadmap.color.${color.id}`)} onChange={() => setDraft((current) => ({ ...current, color: color.value }))} /><span aria-hidden="true" />
+                        </label>)}
+                    </fieldset>}
                     <div className={`roadmap-entity-date-row${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityStartDate">{t('roadmapDialog.startDate')}</label>

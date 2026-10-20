@@ -177,7 +177,8 @@ test.describe('roadmap', () => {
     expect(result.roadmap.milestones).toEqual([{
       id: 'beta',
       title: 'Beta',
-      dueDate: '2026-05-01'
+      dueDate: '2026-05-01',
+      color: '#7c3aed'
     }]);
     expect(result.task.milestoneId).toBe('');
     expect(result.lastTimelineKind).toBe('roadmap.updated');
@@ -217,7 +218,8 @@ test.describe('roadmap', () => {
     expect(result.milestone).toEqual({
       id: 'm1',
       title: 'Alpha Renamed',
-      dueDate: '2026-04-15'
+      dueDate: '2026-04-15',
+      color: '#2563eb'
     });
     expect(result.task.milestoneId).toBe('m1');
   });
@@ -379,7 +381,7 @@ test.describe('roadmap', () => {
         disclosureBtn: getComputedStyle(disclosureBtn),
         track: getComputedStyle(track),
         timelineBar: getComputedStyle(timelineBar),
-        milestonePoint: getComputedStyle(milestonePoint)
+        milestonePoint: getComputedStyle(milestonePoint, '::before')
       };
     });
 
@@ -390,14 +392,14 @@ test.describe('roadmap', () => {
     expect(styles!.header.borderBottomColor).toBe('rgb(208, 208, 208)');
     expect(styles!.row.rowGap).toBe('0px');
     expect(styles!.actionBtn.backgroundColor).toBe('rgb(255, 255, 255)');
-    expect(styles!.actionBtn.borderColor).toBe('rgb(208, 208, 208)');
+    expect(styles!.actionBtn.borderColor).toBe('rgba(0, 0, 0, 0)');
     expect(styles!.sectionBtn.backgroundColor).toBe('rgb(255, 255, 255)');
     expect(styles!.sectionBtn.borderColor).toBe('rgb(208, 208, 208)');
     expect(styles!.disclosureBtn.color).toBe('rgb(102, 102, 102)');
     expect(styles!.axisLine.height).toBe('44px');
     expect(styles!.track.height).toBe('28px');
     expect(styles!.timelineBar.height).toBe('21px');
-    expect(styles!.milestonePoint.backgroundColor).toBe('rgb(0, 102, 204)');
+    expect(styles!.milestonePoint.backgroundColor).toBe('rgb(37, 99, 235)');
 
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
     await expect(page.locator('#milestoneWorkitemsModal table.workitems-table')).toHaveCount(1);
@@ -574,7 +576,7 @@ test.describe('roadmap', () => {
     });
 
     expect(marker).not.toBeNull();
-    expect(marker!.label).toContain('Today');
+    expect(marker!.label).toBe('T');
     expect(Math.abs(marker!.markerPosition - expectedPosition)).toBeLessThanOrEqual(1);
   });
 

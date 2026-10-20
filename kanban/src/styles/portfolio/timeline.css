@@ -15,6 +15,22 @@
     display: none;
 }
 
+.timeline-panel.collapsed .timeline-header-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.timeline-panel.collapsed .timeline-header-summary .timeline-panel-title { flex-shrink: 0; }
+.timeline-panel.collapsed .timeline-header-summary .timeline-panel-subtitle {
+    margin-top: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.timeline-toggle-btn { flex-shrink: 0; }
+
 .timeline-panel-header {
     display: flex;
     justify-content: space-between;

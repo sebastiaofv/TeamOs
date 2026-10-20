@@ -62,7 +62,7 @@ export type BoardMeta = {
 export type RoadmapKind = 'milestones' | 'phases' | 'sprints';
 export type RoadmapDateKey = 'dueDate' | 'startDate' | 'endDate';
 // Milestones carry a dueDate; phases and sprints a startDate and endDate.
-export type RoadmapItem = { id: string; title: string; parentId?: string } & Partial<Record<RoadmapDateKey, string>>;
+export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string } & Partial<Record<RoadmapDateKey, string>>;
 export type RoadmapExtension = {
     version: number;
     milestones: RoadmapItem[];

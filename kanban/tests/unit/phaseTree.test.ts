@@ -14,7 +14,7 @@ describe('hierarchical planning', () => {
         const next = serializeBoardDataFromObject(data); validateBoardData(next);
         expect(next.extensions.roadmap).toEqual(data.extensions.roadmap);
         expect(next.board.tasks.map((task) => task.id)).toEqual(data.board.tasks.map((task) => task.id));
-        expect(normalizeRoadmapExtension({ version: 1, phases: [], milestones: [], sprints: [] })?.version).toBe(2);
+        expect(normalizeRoadmapExtension({ version: 1, phases: [], milestones: [], sprints: [] })?.version).toBe(3);
     });
     it('rejects cycles and unknown parents and exposes only leaf destinations', () => {
         const phases = fixture().extensions.roadmap!.phases;

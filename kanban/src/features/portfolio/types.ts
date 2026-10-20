@@ -138,7 +138,7 @@ export type TaskDetailViewModel = {
 };
 
 export type RoadmapEntityMode = 'default' | 'create-sprint-from-selection' | 'assign-sprint-from-selection';
-export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string };
+export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string; color?: string };
 export type RoadmapEntityViewModel = {
     parentId?: string;
     phaseOptions?: SelectOption[];
@@ -198,7 +198,7 @@ export type RoadmapPlanningRow = RoadmapWorkScope & {
     kind: 'phases' | 'sprints'; depth: number; hasChildren: boolean; treeCollapsed: boolean; expanded: boolean;
     sprintGroups: RoadmapWorkScope[]; milestoneGroups: RoadmapWorkScope[];
 };
-export type RoadmapMilestoneMarker = RoadmapWorkScope & { position: number; lane: number; labelAtEnd: boolean };
+export type RoadmapMilestoneMarker = RoadmapWorkScope & { position: number };
 export type PortfolioRoadmapViewModel = {
     boardId: string;
     boardTitle: string;
@@ -213,7 +213,6 @@ export type PortfolioRoadmapViewModel = {
     milestones: RoadmapMilestoneMarker[];
     unclassified: RoadmapWorkScope;
     labelWidth: number;
-    annotationLanes: number;
 };
 
 export type PortfolioCalendarViewModel = {

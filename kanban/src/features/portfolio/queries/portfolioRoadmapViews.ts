@@ -15,6 +15,7 @@ import {
 } from '@/domain/roadmap';
 import { phaseTreeRows, planningProgress } from '@/domain/phaseTree';
 import { DEFAULT_PORTFOLIO_FILTERS, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
+import { milestoneColor } from '@/domain/milestonePresentation';
 
 export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadmapViewModel | null {
     const timelineView = getSelectedPortfolioTimelineView(state);
@@ -51,16 +52,8 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
     });
     const sprintRows: RoadmapPlanningRow[] = [...roadmap.sprints].sort(compareRoadmapItemsByDate).map((item) => ({ ...scope(`sprint:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'sprintId', item.id)),
         kind: 'sprints', depth: 0, hasChildren: false, treeCollapsed: false, expanded: Boolean(expanded[`sprint:${item.id}`]), sprintGroups: [], milestoneGroups: [] }));
-    const laneEnds: number[] = [];
-    const milestones: RoadmapMilestoneMarker[] = [...roadmap.milestones].sort(compareRoadmapItemsByDate).map((item) => {
-        const position = getRoadmapTimelinePlacement(item, range)?.point || 0;
-        const labelAtEnd = position >= 76;
-        const start = labelAtEnd ? position - 27 : position - 2;
-        const end = labelAtEnd ? position + 2 : position + 27;
-        let lane = laneEnds.findIndex((lastEnd) => lastEnd + 2 < start);
-        if (lane < 0) lane = laneEnds.length;
-        laneEnds[lane] = end;
-        return { ...scope(`milestone:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'milestoneId', item.id)), position, lane, labelAtEnd };
+    const milestones: RoadmapMilestoneMarker[] = roadmap.milestones.map((item, index) => ({ ...item, color: milestoneColor(item, index) })).sort(compareRoadmapItemsByDate).map((item) => {
+        return { ...scope(`milestone:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'milestoneId', item.id)), position: getRoadmapTimelinePlacement(item, range)?.point || 0 };
     });
     const unclassified = scope('unclassified', null, (boardData?.board.tasks || []).filter((task) => !task.phaseId));
     const deepest = Math.max(0, ...phaseTreeRows(roadmap.phases).map((row) => row.depth));
@@ -75,7 +68,7 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
         range,
         axisTicks: getRoadmapAxisTicks(range, state?.activeLanguage || 'en'),
         historical, phaseRows, sprintRows, milestones, unclassified,
-        labelWidth: Math.ceil(Math.min(640, 360 + Math.min(deepest, 12) * 14 + Math.min(longest * 2, 100)) / 10) * 10, annotationLanes: laneEnds.length
+        labelWidth: Math.ceil(Math.min(640, 360 + Math.min(deepest, 12) * 14 + Math.min(longest * 2, 100)) / 10) * 10
     };
 }
 

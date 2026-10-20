@@ -40,11 +40,11 @@ describe('Roadmap clarification view models', () => {
         try { expect(view().phaseRows.find((row) => row.item?.id === 'delivery')!.progress).toEqual(initial.progress); }
         finally { vi.useRealTimers(); }
     });
-    it('separates colliding milestone annotations without creating milestone data rows', () => {
+    it('preserves same-day milestone positions and colours without creating milestone data rows', () => {
         const { view } = setup(); const model = view();
         const release = model.milestones.find((marker) => marker.item?.id === 'release')!;
         const checkpoint = model.milestones.find((marker) => marker.item?.id === 'checkpoint')!;
-        expect(release.position).toBe(checkpoint.position); expect(release.lane).not.toBe(checkpoint.lane);
+        expect(release.position).toBe(checkpoint.position); expect(release.item?.color).not.toBe(checkpoint.item?.color);
         expect(checkpoint.progress.percent).toBeNull();
         expect(model.phaseRows.every((row) => row.kind === 'phases')).toBe(true);
         expect(model.sprintRows.every((row) => row.kind === 'sprints')).toBe(true);

@@ -13,8 +13,8 @@
       {"id":507,"title":"Other phase in the same sprint","description":"Must not leak into Delivery when grouping by the shared October sprint.","status":"to-do","assignees":["Bruno"],"responsible":"Bruno","phaseId":"future","sprintId":"october","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"}
     ]
   },
-  "extensions":{"roadmap":{"version":2,
-    "milestones":[{"id":"release","title":"Public release","dueDate":"2026-12-15"},{"id":"empty","title":"Unassigned decision","dueDate":"2026-11-10"},{"id":"checkpoint","title":"Nearby review checkpoint","dueDate":"2026-12-15"}],
+  "extensions":{"roadmap":{"version":3,
+    "milestones":[{"id":"release","title":"Public release","dueDate":"2026-12-15","color":"#2563eb"},{"id":"empty","title":"Unassigned decision","dueDate":"2026-11-10","color":"#7c3aed"},{"id":"checkpoint","title":"Nearby review checkpoint","dueDate":"2026-12-15","color":"#0f766e"}],
     "phases":[
       {"id":"delivery","title":"Delivery","startDate":"2026-10-01","endDate":"2026-11-15"},
       {"id":"engineering","parentId":"delivery","title":"Engineering","startDate":"2026-10-01","endDate":"2026-11-15"},
