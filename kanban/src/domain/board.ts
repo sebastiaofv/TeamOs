@@ -12,6 +12,7 @@ import { comparePortfolioDueDateAsc } from './calendar';
 import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
+import { parseTaskRelations } from '@/domain/taskRelations';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
 import { parsePullRequestLinks, validatePullRequestTimeline } from './pullRequests';
 
@@ -429,4 +430,5 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
             });
         }
     });
+    parseTaskRelations((extensions as Record<string, unknown>).taskRelations, taskIds);
 }

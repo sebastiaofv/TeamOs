@@ -8,6 +8,7 @@ import { normalizeTask } from './task';
 import { migrateBoardData } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
+import { parseTaskRelations } from '@/domain/taskRelations';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
 import { validatePullRequestTimeline } from './pullRequests';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
@@ -35,6 +36,10 @@ export function normalizeBoardExtensionsValue(
     const nextExtensions = ((base && typeof base === 'object' && !Array.isArray(base))
         ? { ...base }
         : {}) as BoardExtensions;
+
+    const relations = parseTaskRelations(nextExtensions.taskRelations, options.taskIds);
+    if (relations?.relations.length) nextExtensions.taskRelations = relations;
+    else delete nextExtensions.taskRelations;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);

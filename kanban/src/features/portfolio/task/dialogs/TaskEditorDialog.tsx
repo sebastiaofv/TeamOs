@@ -120,6 +120,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
             </div>
             <div className="modal-body">
                 <form id="taskForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
+                    {vm.relationNotice && <p className="relation-preview" role="status">{vm.relationNotice} · Backlog</p>}
                     <div className="form-group">
                         <label className="required" htmlFor="taskName">{t('task.taskName')}</label>
                         <input type="text" id="taskName" ref={nameRef} required maxLength={80} {...bind('title')} />
