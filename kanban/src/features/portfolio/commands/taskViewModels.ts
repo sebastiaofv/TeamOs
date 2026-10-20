@@ -37,6 +37,7 @@ import { createBoardStateSnapshot } from '@/domain/serialize';
 import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+import { parsePullRequestLinks, PullRequestLinkError } from '@/domain/pullRequests';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -115,6 +116,7 @@ export function buildTaskEditorViewModel(
     const initial: TaskEditorFields = normalized
         ? {
             title: normalized.title || '',
+            pullRequests: parsePullRequestLinks(normalized.pullRequests),
             description: normalized.description || '',
             blocked: Boolean(normalized.blocked),
             blockerReason: normalized.blocked ? normalizeBlockerReason(normalized.blockerReason) : '',
@@ -131,6 +133,7 @@ export function buildTaskEditorViewModel(
         }
         : {
             title: '',
+            pullRequests: [],
             description: '',
             blocked: false,
             blockerReason: '',
@@ -165,6 +168,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
+        pullRequestContext: { boardId: source.boardRecord.id, taskId: Number(taskId), links: parsePullRequestLinks(task.pullRequests) },
         fields: {
             title: task.title || '-',
             description: task.description || '-',
@@ -199,6 +203,8 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
 }
 
 export function validateTaskDraft(draft: TaskDraft | null | undefined): TaskDraftValidation {
+    try { parsePullRequestLinks(draft?.pullRequests); }
+    catch (error) { return { ok: false, message: translateCurrent(`pullRequests.error.${error instanceof PullRequestLinkError ? error.code : 'invalid'}`) }; }
     const attachments = Array.isArray(draft?.attachments) ? draft.attachments : [];
     if (!draft?.title) {
         return { ok: false, silent: true };

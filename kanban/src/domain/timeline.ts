@@ -35,7 +35,7 @@ type ReplayState = {
     extensions?: Record<string, unknown>;
 };
 
-const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status'] as const;
+const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests'] as const;
 
 export function createEmptyTimelineData(): TimelineExtension {
     return {

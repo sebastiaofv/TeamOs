@@ -13,6 +13,7 @@ import { AssigneeEditor } from './editor/AssigneeEditor';
 import { TagEditor } from './editor/TagEditor';
 import { ChecklistEditor } from './editor/ChecklistEditor';
 import { AttachmentsEditor } from './editor/AttachmentsEditor';
+import { PullRequestLinks } from './PullRequestLinks';
 import { useI18n } from '@/shared/i18n';
 
 type SubmitRef = RefObject<(() => Promise<void>) | null>;
@@ -177,6 +178,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             otherAttachmentBytes={vm.otherAttachmentBytes}
                         />
                     </div>
+                    <PullRequestLinks value={form.pullRequests || []} onChange={(next) => update('pullRequests', next)} draft />
                     <div className="form-group">
                         <label htmlFor="taskDueDate">{t('task.due')}</label>
                         <input type="date" id="taskDueDate" ref={dueDateRef} {...bind('dueDate')} />

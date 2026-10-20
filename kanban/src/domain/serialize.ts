@@ -9,6 +9,7 @@ import { migrateBoardData } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
+import { validatePullRequestTimeline } from './pullRequests';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -64,6 +65,7 @@ export function normalizeBoardExtensionsValue(
     if (Object.prototype.hasOwnProperty.call(nextExtensions, TIMELINE_EXTENSION_KEY)) {
         const normalizedTimeline = normalizeTimelineExtension(nextExtensions[TIMELINE_EXTENSION_KEY]);
         if (normalizedTimeline) {
+            validatePullRequestTimeline(normalizedTimeline.events);
             nextExtensions[TIMELINE_EXTENSION_KEY] = normalizedTimeline;
         } else {
             delete nextExtensions[TIMELINE_EXTENSION_KEY];

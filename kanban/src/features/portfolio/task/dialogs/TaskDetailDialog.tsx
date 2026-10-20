@@ -6,6 +6,7 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
+import { TaskPullRequestLinks } from './PullRequestLinks';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -114,6 +115,10 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
                         ))}
                 </dd>
             </div>
+            {vm.pullRequestContext && <div className="detail-item detail-pull-requests">
+                <dt className="sr-only">{t('pullRequests.title')}</dt>
+                <dd><TaskPullRequestLinks {...vm.pullRequestContext} readOnly={vm.readOnly} /></dd>
+            </div>}
         </dl>
     );
 }

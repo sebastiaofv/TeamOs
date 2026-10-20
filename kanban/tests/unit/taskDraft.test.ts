@@ -260,6 +260,7 @@ describe('buildTaskDraft', () => {
     });
 
     expect(draft).toEqual({
+      pullRequests: [],
       responsible: '',
       title: 'Ship it',
       description: 'Notes',
