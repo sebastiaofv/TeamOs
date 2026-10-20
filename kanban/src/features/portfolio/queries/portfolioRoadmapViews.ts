@@ -55,7 +55,6 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
     const milestones: RoadmapMilestoneMarker[] = roadmap.milestones.map((item, index) => ({ ...item, color: milestoneColor(item, index) })).sort(compareRoadmapItemsByDate).map((item) => {
         return { ...scope(`milestone:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'milestoneId', item.id)), position: getRoadmapTimelinePlacement(item, range)?.point || 0 };
     });
-    const unclassified = scope('unclassified', null, (boardData?.board.tasks || []).filter((task) => !task.phaseId));
     const deepest = Math.max(0, ...phaseTreeRows(roadmap.phases).map((row) => row.depth));
     const longest = Math.max(0, ...[...roadmap.phases, ...roadmap.sprints].map((item) => item.title.length));
 
@@ -67,7 +66,7 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
         roadmap,
         range,
         axisTicks: getRoadmapAxisTicks(range, state?.activeLanguage || 'en'),
-        historical, phaseRows, sprintRows, milestones, unclassified,
+        historical, phaseRows, sprintRows, milestones,
         labelWidth: Math.ceil(Math.min(640, 360 + Math.min(deepest, 12) * 14 + Math.min(longest * 2, 100)) / 10) * 10
     };
 }

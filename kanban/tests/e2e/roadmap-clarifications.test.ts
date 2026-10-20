@@ -38,13 +38,11 @@ test('compact phase/sprint rows share tables and execution progress; Today spans
     const line = await page.locator('.roadmap-today-marker').boundingBox();
     const sprint = await page.locator('#roadmap-row-sprint-october').boundingBox();
     expect(line!.height).toBeGreaterThan(400); expect(line!.y + line!.height).toBeGreaterThanOrEqual(sprint!.y + sprint!.height);
-    const unclassified = page.locator('.roadmap-unclassified');
-    for (const expanded of [true, false]) {
-        await unclassified.getByRole('button', { name: expanded ? 'Show tasks' : 'Hide tasks', exact: true }).click();
-        const boundary = (await unclassified.boundingBox())!.y;
-        const ends = await page.locator('.roadmap-date-overlay > span, .roadmap-temporal-overlay > span').evaluateAll((guides) => guides.map((guide) => guide.getBoundingClientRect().bottom));
-        ends.forEach((end) => expect(Math.abs(end - boundary)).toBeLessThanOrEqual(1));
-    }
+    await expect(page.locator('.roadmap-unclassified')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Unclassified / No phase', exact: true })).toHaveCount(0);
+    const boundary = sprint!.y + sprint!.height;
+    const ends = await page.locator('.roadmap-date-overlay > span, .roadmap-temporal-overlay > span').evaluateAll((guides) => guides.map((guide) => guide.getBoundingClientRect().bottom));
+    ends.forEach((end) => expect(Math.abs(end - boundary)).toBeLessThanOrEqual(1));
 });
 
 test('review adjustments keep the axis compact, guides above bars and progress at the filled edge', async ({ page }) => {
@@ -171,24 +169,24 @@ test('phase-scoped sprint/milestone perspectives exclude other work and keep abs
     expect((await readSavedBoard(page, 'p')).extensions.timeline).toBeUndefined();
 });
 
-test('unclassified work remains accessible and detail navigation preserves zoom, width, selection and scroll', async ({ page }) => {
+test('phase detail navigation preserves zoom, width, selection and scroll', async ({ page }) => {
     await seed(page);
     await page.getByLabel('Timeline zoom', { exact: true }).selectOption('1.5');
     await page.getByLabel('Identification column width', { exact: true }).fill('500');
-    await page.locator('.roadmap-unclassified').getByRole('button', { name: 'Show tasks', exact: true }).click();
-    const work = page.locator('.roadmap-unclassified');
-    expect(await ids(work)).toEqual([505, 506]);
-    await work.getByRole('checkbox', { name: 'Select Release item without a phase', exact: true }).check();
-    const trigger = work.getByRole('button', { name: 'Release item without a phase', exact: true });
+    await page.getByRole('button', { name: 'Show tasks for API', exact: true }).click();
+    const work = area(page, 'phase:api');
+    expect(await ids(work)).toEqual([501, 502]);
+    await work.getByRole('checkbox', { name: 'Select API contracts', exact: true }).check();
+    const trigger = work.getByRole('button', { name: 'API contracts', exact: true });
     await trigger.scrollIntoViewIfNeeded();
     const before = await page.locator('#portfolioRoadmapView').evaluate((element) => ({ top: element.scrollTop, left: element.scrollLeft }));
     await trigger.click();
-    await expect(page.locator('#detailPhase')).toHaveText('-');
+    await expect(page.locator('#detailPhase')).toHaveText('API');
     await expect(page.locator('#detailMilestone')).toHaveText('Public release');
     await expect(page.locator('#detailSprint')).toHaveText('October execution');
     await page.keyboard.press('Escape');
     await expect(trigger).toBeFocused();
-    await expect(work.getByRole('checkbox', { name: 'Select Release item without a phase', exact: true })).toBeChecked();
+    await expect(work.getByRole('checkbox', { name: 'Select API contracts', exact: true })).toBeChecked();
     await expect(page.getByLabel('Timeline zoom', { exact: true })).toHaveValue('1.5');
     await expect(page.getByLabel('Identification column width', { exact: true })).toHaveValue('500');
     const after = await page.locator('#portfolioRoadmapView').evaluate((element) => ({ top: element.scrollTop, left: element.scrollLeft }));

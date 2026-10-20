@@ -25,7 +25,6 @@ describe('Roadmap clarification view models', () => {
         expect(delivery.milestoneGroups.find((group) => !group.referenceId)!.tasks.map((task) => task.id)).toEqual([504]);
         expect(model.sprintRows[0].tasks.map((task) => task.id)).toEqual([501, 502, 506, 507]);
         expect(model.milestones.find((item) => item.item?.id === 'release')!.tasks.map((task) => task.id)).toEqual([501, 502, 503, 506]);
-        expect(model.unclassified.tasks.map((task) => task.id)).toEqual([505, 506]);
     });
     it('keeps global progress stable under archive/status filters and passing time', () => {
         const { store, view } = setup();

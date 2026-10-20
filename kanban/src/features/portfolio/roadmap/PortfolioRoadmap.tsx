@@ -80,13 +80,13 @@ function ScopeSummary({ scope }: { scope: RoadmapWorkScope }) {
     </div>;
 }
 
-function ScopeTable({ scope, view, scopeId, emptyLabel }: { scope: RoadmapWorkScope; view: PortfolioRoadmapViewModel; scopeId: string; emptyLabel?: string }) {
+function ScopeTable({ scope, view, scopeId }: { scope: RoadmapWorkScope; view: PortfolioRoadmapViewModel; scopeId: string }) {
     const { t } = useI18n();
     if (!view.boardData) return null;
     return <div className="roadmap-scope-table">
         <ScopeSummary scope={scope} />
         <WorkitemTable compact hidden={false} boardId={view.boardId} project={`${view.boardTitle}${scope.item ? ` · ${scope.item.title}` : ''}`} boardData={view.boardData}
-            sourceRows={scope.rows} canCreate={false} scope={domId(scopeId)} emptyLabel={emptyLabel || t('roadmap.noTasksAssigned')} />
+            sourceRows={scope.rows} canCreate={false} scope={domId(scopeId)} emptyLabel={t('roadmap.noTasksAssigned')} />
     </div>;
 }
 
@@ -172,7 +172,7 @@ function MilestoneDialog({ marker, view, canEdit, close }: { marker?: RoadmapMil
     </Dialog.Overlay></Dialog.Portal></Dialog.Root>;
 }
 
-function PortfolioRoadmapView({ view, expanded }: { view: PortfolioRoadmapViewModel; expanded: Record<string, boolean> }) {
+function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
     const { t } = useI18n(); const percent = useProgressText(); const actions = usePortfolioActions();
     const canEdit = useAppStore((state) => Boolean(state.portfolioBoards.find((board) => board.id === view.boardId)?.handle)) && !view.historical;
     const [milestoneId, setMilestoneId] = useState('');
@@ -194,7 +194,7 @@ function PortfolioRoadmapView({ view, expanded }: { view: PortfolioRoadmapViewMo
             <button className="btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.milestone') })} onClick={() => actions.openRoadmapEntityModal('milestones')}>{t('roadmap.add', { label: t('roadmap.milestone') })}</button>
             <button className="btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.phase') })} onClick={() => actions.openRoadmapEntityModal('phases')}>{t('roadmap.add', { label: t('roadmap.phase') })}</button>
         </div>
-        <div className="portfolio-roadmap-timeline surface-page surface-border" style={style}><div className="roadmap-planned-area">
+        <div className="portfolio-roadmap-timeline surface-page surface-border" style={style}>
             <div className="roadmap-temporal-overlay" aria-hidden="true">
                 {view.axisTicks.map((tick) => <span className="roadmap-grid-guide" key={tick.label} style={{ left: `${tick.position}%`, top: 18 }} />)}
             </div>
@@ -224,10 +224,6 @@ function PortfolioRoadmapView({ view, expanded }: { view: PortfolioRoadmapViewMo
                 </section>;
             })}
         </div>
-            <section className="roadmap-unclassified" aria-labelledby="roadmapUnclassifiedHeading"><header><h3 id="roadmapUnclassifiedHeading">{t('roadmap.unclassified')}</h3><ScopeSummary scope={view.unclassified} /><button className="btn" type="button" aria-expanded={Boolean(expanded.unclassified)} onClick={() => actions.togglePortfolioRoadmapRowExpanded(view.boardId, 'unclassified')}>{t(expanded.unclassified ? 'roadmap.hideTasks' : 'roadmap.showTasks')}</button></header>
-                {expanded.unclassified && <ScopeTable scope={view.unclassified} view={view} scopeId="roadmap-unclassified" emptyLabel={t('roadmap.emptyUnclassified')} />}
-            </section>
-        </div>
         <MilestoneDialog marker={selected} view={view} canEdit={canEdit} close={() => setMilestoneId('')} />
     </div>;
 }
@@ -237,7 +233,7 @@ function ConnectedRoadmap() {
         portfolioTimelineSelection: value.portfolioTimelineSelection, portfolioRoadmapExpandedRowsByBoardId: value.portfolioRoadmapExpandedRowsByBoardId,
         portfolioFilters: value.portfolioFilters, activeLanguage: value.activeLanguage })));
     const view = buildPortfolioRoadmapView(state);
-    return view ? <PortfolioRoadmapView key={view.boardId} view={view} expanded={state.portfolioRoadmapExpandedRowsByBoardId[view.boardId] || {}} /> : null;
+    return view ? <PortfolioRoadmapView key={view.boardId} view={view} /> : null;
 }
 
 export function PortfolioRoadmap({ hidden }: { hidden: boolean }) {

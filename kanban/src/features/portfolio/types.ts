@@ -211,7 +211,6 @@ export type PortfolioRoadmapViewModel = {
     phaseRows: RoadmapPlanningRow[];
     sprintRows: RoadmapPlanningRow[];
     milestones: RoadmapMilestoneMarker[];
-    unclassified: RoadmapWorkScope;
     labelWidth: number;
 };
 
