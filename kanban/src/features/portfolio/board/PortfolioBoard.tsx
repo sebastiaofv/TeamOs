@@ -133,11 +133,11 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
             onDragEnd={onDragEnd}
             onDragCancel={finishDrag}
         >
-            <section className="portfolio-backlog" aria-label={t('board.backlog')}>
+            <section className="portfolio-backlog" id="portfolio-backlog-column" aria-label={t('board.backlog')}>
                 <details open><summary>{t('board.backlog')} · {(buckets.backlog || []).length}</summary>
                     <div className="portfolio-backlog-items">{(buckets.backlog || []).map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />)}</div>
                 </details>
-                {canAddTasks && <button className="btn" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog')}>{t('board.addTask')}</button>}
+                {canAddTasks && <button className="btn add-task-card" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog')}>{t('board.addTask')}</button>}
             </section>
             <div className="workflow-board-columns">{columns.map((column) => {
                 const items = buckets[column.category] || [];

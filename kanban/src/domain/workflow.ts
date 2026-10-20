@@ -29,12 +29,20 @@ export function defaultWorkflow(): Workflow {
 /** Existing files keep their states, labels and permissive transitions, not a new process imposed retroactively. */
 export function legacyWorkflow(columns?: unknown): Workflow {
     const workflow = defaultWorkflow();
-    workflow.states = workflow.states.filter((state) => ['backlog', 'to-do', 'doing', 'done'].includes(state.id));
-    workflow.states.find((state) => state.id === 'doing')!.name = 'Doing';
+    const defaults = workflow.states.filter((state) => ['backlog', 'to-do', 'doing', 'done'].includes(state.id));
+    defaults.find((state) => state.id === 'doing')!.name = 'Doing';
+    workflow.states = [];
+    const ids = new Set<string>();
+    for (const column of Array.isArray(columns) ? columns : []) {
+        if (!column || typeof column.status !== 'string' || !column.status.trim() || ids.has(column.status)) continue;
+        const known = defaults.find((state) => state.id === column.status);
+        workflow.states.push({ ...(known || { color: '#60a5fa', category: 'to-do' as const }), id: column.status,
+            name: typeof column.title === 'string' && column.title.trim() ? column.title.trim() : known?.name || column.status });
+        ids.add(column.status);
+    }
+    workflow.states.push(...defaults.filter((state) => !ids.has(state.id)));
     const names = new Set<string>();
     for (const state of workflow.states) {
-        const column = Array.isArray(columns) ? columns.find((item) => item?.status === state.id) : null;
-        if (typeof column?.title === 'string' && column.title.trim()) state.name = column.title.trim();
         if (names.has(state.name.toLowerCase())) state.name += ` [${state.id}]`;
         names.add(state.name.toLowerCase());
     }

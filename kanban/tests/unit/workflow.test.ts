@@ -106,6 +106,17 @@ describe('project workflows', () => {
         expect(next.states[0].category).toBe('backlog'); expect(next.states[1].category).toBe('to-do');
         expect(next.references['to-do']).toBe('to-do');
     });
+    it('preserves valid legacy custom columns and their workitem statuses instead of replacing them', () => {
+        const legacy = createEmptyProjectData('Legacy custom board');
+        legacy.meta.schemaVersion = 2; delete legacy.extensions.workflow;
+        legacy.board.columns = [{ status: 'qa', title: 'Quality gate' }, { status: 'done', title: 'Shipped' }];
+        legacy.board.tasks = [normalizeTask({ id: 1, title: 'Existing identity', status: 'qa' })];
+        validateBoardData(legacy);
+        const next = serializeBoardDataFromObject(legacy); validateBoardData(next);
+        expect(next.board.tasks[0]).toMatchObject({ id: 1, status: 'qa' });
+        expect(next.extensions.workflow!.states.find((state) => state.id === 'qa')!.name).toBe('Quality gate');
+        expect(next.extensions.workflow!.states.find((state) => state.id === 'done')!.name).toBe('Shipped');
+    });
     it('resolves zero, one and multiple category destinations in the same command for every Board', async () => {
         const data = createEmptyProjectData('Category destinations');
         data.board.tasks = [normalizeTask({ id: 1, title: 'Intake', status: 'backlog' })];

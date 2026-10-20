@@ -450,7 +450,7 @@
 .workflow-board-columns { display: flex; flex: 1; min-height: 0; overflow-x: auto; gap: 1px; }
 .portfolio-backlog { flex: 0 0 auto; max-height: 32%; overflow: auto; padding: 10px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); }
 .portfolio-backlog-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-block: 12px; }
-.workflow-dialog { width: min(1000px, 95vw); }
+.modal-content.workflow-dialog { width: min(1000px, 95vw); max-width: min(1000px, 95vw); }
 .workflow-editor fieldset { border: 0; padding: 0; display: grid; gap: 16px; }
 .workflow-state { border: 1px solid var(--border); padding: 12px; border-radius: 10px; }
 .workflow-state-fields, .workflow-transitions { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
