@@ -29,7 +29,7 @@ function readable(value: unknown, field: string, t: ReturnType<typeof useI18n>['
     if (value && typeof value === 'object') {
         const item = value as Record<string, unknown>;
         if (typeof item.historical === 'boolean' && typeof item.id === 'string') return `${item.label || item.id} [${item.id}]${item.label && !item.historical ? ` · ${t('history.currentName')}` : ''}`;
-        if (field === 'attachments') return `${item.name || item.id} · ${item.mime || item.kind || ''} · ${typeof item.sizeBytes === 'number' ? formatFileSize(item.sizeBytes) : t('history.unavailable')}`;
+        if (field === 'attachments') return item.unavailable ? t('history.detailsUnavailable') : `${item.name || item.id} · ${item.mime || item.kind || ''} · ${typeof item.sizeBytes === 'number' ? formatFileSize(item.sizeBytes) : t('history.unavailable')}`;
         if (field === 'checklist') return `${item.done ? '☑' : '☐'} ${item.text || ''}`;
         if (field === 'planner') return `${item.date || ''} ${item.start || ''}–${item.end || ''} [${item.id || ''}]`;
         if (field === 'relations') return `${t(item.direction === 'blocks' ? 'history.blocks' : item.direction === 'blockedBy' ? 'history.blockedBy' : 'history.related')} #${item.id}${item.title ? ` · ${item.title}` : ''}`;

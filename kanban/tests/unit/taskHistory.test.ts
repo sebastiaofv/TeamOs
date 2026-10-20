@@ -25,6 +25,22 @@ function update(data: BoardData, id: number, values: Partial<Task>) {
 }
 
 describe('workitem history projection', () => {
+    it('ignores relation-array ordering and never renders corrupt legacy attachment payloads', () => {
+        const data = setup();
+        const before = [{ sourceId: 1, targetId: 2, kind: 'blocks' }, { sourceId: 1, targetId: 3, kind: 'related' }];
+        data.extensions.taskRelations = { version: 1, relations: before }; ensureBoardTimelineBaseline(data);
+        appendTimelineEvent(data, { kind: 'task.relations.updated', entityType: 'task', entityId: '1', summary: 'Reordered only', changes: { relations: { before, after: [before[1], before[0]] } } });
+        expect(projectTaskHistory(data, data.board.tasks[0]).entries).toEqual([]);
+        appendTimelineEvent(data, { kind: 'task.updated', entityType: 'task', entityId: '1', summary: 'Partial legacy attachments', changes: { attachments: { before: [], after: [null, 'data:image/png;base64,SECRET'] } } });
+        expect(JSON.stringify(projectTaskHistory(data, data.board.tasks[0]).entries)).not.toContain('SECRET');
+    });
+    it('does not silently attach a reintroduced current row to a deleted recorded lifecycle', () => {
+        const data = setup(); ensureBoardTimelineBaseline(data);
+        const old = data.board.tasks[0];
+        recordTaskTimelineEvent(data, old, null);
+        const history = projectTaskHistory(data, old);
+        expect(history.ambiguous).toBe(true); expect(history.entries).toEqual([]);
+    });
     it('has no fabricated creation or recording boundary for files without a timeline', () => {
         const data = setup();
         expect(projectTaskHistory(data, data.board.tasks[0]).entries).toEqual([]);

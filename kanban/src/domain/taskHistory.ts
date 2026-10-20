@@ -24,7 +24,7 @@ type Relations = { sourceId: number; targetId: number; kind: string }[];
 const OMIT_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'statusChangedAt', 'assignee']);
 
 function taskIn(state: State | null | undefined, id: number): Record<string, unknown> | undefined {
-    return state?.board?.tasks?.find((task) => Number(task.id) === id);
+    return Array.isArray(state?.board?.tasks) ? state.board.tasks.find((task) => task && typeof task === 'object' && Number(task.id) === id) : undefined;
 }
 function signature(task: Record<string, unknown> | Task): string {
     const timestamp = typeof task.createdAt === 'string' && !Number.isNaN(Date.parse(task.createdAt)) ? new Date(task.createdAt).toISOString() : 'unknown';
@@ -40,8 +40,8 @@ function fields(task: Record<string, unknown>): Record<string, unknown> {
 export function historicalLabels(data: LooseBoardData | State | null | undefined): Labels {
     const columns = data?.board?.columns as { status: string; title: string }[] | undefined;
     const roadmap = data?.extensions?.roadmap as { phases?: { id: string; title: string }[]; milestones?: { id: string; title: string }[]; sprints?: { id: string; title: string }[] } | undefined;
-    const result: Labels = { status: Object.fromEntries((columns || []).map((column) => [column.status, column.title])) };
-    for (const [field, kind] of [['phaseId', 'phases'], ['milestoneId', 'milestones'], ['sprintId', 'sprints']] as const) result[field] = Object.fromEntries((roadmap?.[kind] || []).map((item) => [item.id, item.title]));
+    const result: Labels = { status: Object.fromEntries((Array.isArray(columns) ? columns : []).filter((column) => column && typeof column.status === 'string' && typeof column.title === 'string').map((column) => [column.status, column.title])) };
+    for (const [field, kind] of [['phaseId', 'phases'], ['milestoneId', 'milestones'], ['sprintId', 'sprints']] as const) result[field] = Object.fromEntries((Array.isArray(roadmap?.[kind]) ? roadmap[kind]! : []).filter((item) => item && typeof item.id === 'string' && typeof item.title === 'string').map((item) => [item.id, item.title]));
     return result;
 }
 
@@ -58,22 +58,27 @@ function reference(field: string, value: unknown, event: TimelineEvent, side: 'b
     const id = String(value);
     const stored = event.meta?.labels as { before?: Labels; after?: Labels } | undefined;
     const oldStatusLabels = event.meta?.statusLabels as Record<string, string> | undefined;
-    const known = stored?.[side]?.[field]?.[id] || (field === 'status' ? oldStatusLabels?.[id] : undefined) || historicalLabels(state)[field]?.[id];
+    const candidate = stored?.[side]?.[field]?.[id] || (field === 'status' ? oldStatusLabels?.[id] : undefined) || historicalLabels(state)[field]?.[id];
+    const known = typeof candidate === 'string' && candidate.trim() ? candidate : undefined;
     return { id, label: known || historicalLabels(current)[field]?.[id], historical: Boolean(known) } satisfies HistoryReference;
 }
 
 function safeValue(field: string, value: unknown): unknown {
-    if (field === 'attachments' && Array.isArray(value)) return value.map((item) => ({ id: item.id, name: item.name, mime: item.mime, sizeBytes: item.sizeBytes, kind: item.kind }));
+    if (field === 'attachments') {
+        if (value === undefined || value === null) return value;
+        if (!Array.isArray(value)) return { unavailable: true };
+        return value.map((item) => item && typeof item === 'object' ? { id: item.id, name: item.name, mime: item.mime, sizeBytes: item.sizeBytes, kind: item.kind } : { unavailable: true });
+    }
     return value;
 }
 
 function associations(state: State | null | undefined, id: number) {
     const extension = state?.extensions?.taskRelations as { relations?: Relations } | undefined;
     const relations = Array.isArray(extension?.relations) ? extension.relations : [];
-    const blocks = state?.extensions?.dayPlanner as { blocks?: { taskId: number }[] } | undefined;
+    const blocks = state?.extensions?.dayPlanner as { blocks?: { taskId: number; id?: string }[] } | undefined;
     return {
-        relations: relations.filter((relation) => relation.sourceId === id || relation.targetId === id),
-        planner: Array.isArray(blocks?.blocks) ? blocks.blocks.filter((block) => block.taskId === id) : []
+        relations: relations.filter((relation) => relation && ['related', 'blocks'].includes(relation.kind) && (relation.sourceId === id || relation.targetId === id)).map((relation) => relation.kind === 'related' ? { ...relation, sourceId: Math.min(relation.sourceId, relation.targetId), targetId: Math.max(relation.sourceId, relation.targetId) } : relation).sort((a, b) => a.sourceId - b.sourceId || a.targetId - b.targetId || a.kind.localeCompare(b.kind)),
+        planner: Array.isArray(blocks?.blocks) ? blocks.blocks.filter((block) => block && block.taskId === id).sort((a, b) => String(a.id).localeCompare(String(b.id))) : []
     };
 }
 
@@ -137,6 +142,7 @@ export function projectTaskHistory(data: BoardData, selectedTask: Task, eventInd
         const own = event.entityType === 'task' && Number(event.entityId) === id;
         if (sameLife && (beforeTask || afterTask)) {
             for (const field of new Set([...Object.keys(rawBefore), ...Object.keys(rawAfter)])) {
+                if (field === 'pullRequests' && [rawBefore[field], rawAfter[field]].every((value) => value === undefined || (Array.isArray(value) && value.length === 0))) continue;
                 if (areSerializableValuesEqual(rawBefore[field], rawAfter[field])) continue;
                 changes.push({ field,
                     before: reference(field, safeValue(field, rawBefore[field]), event, 'before', beforeState, data),
@@ -171,9 +177,9 @@ export function projectTaskHistory(data: BoardData, selectedTask: Task, eventInd
         candidates.push({ token: active || previousToken, entry });
     }
     const matching = registry.get(signature(selectedTask));
-    let target = active && taskIn(state, id) && signature(taskIn(state, id)!) === signature(selectedTask) ? active : matching?.size === 1 ? [...matching][0] : null;
+    let target = active && taskIn(state, id) && signature(taskIn(state, id)!) === signature(selectedTask) ? active : null;
     if (!target && matching && matching.size > 1) result.ambiguous = true;
-    if (!target && registry.size && !matching) result.ambiguous = true;
+    if (!target && registry.size) result.ambiguous = true;
     // No snapshot evidence: only a single, unambiguous legacy lifecycle can be queried by numeric ID.
     if (!target && !registry.size && !timeline.events.slice(1, end + 1).some((e) => Number(e.entityId) === id && ['task.created', 'task.deleted'].includes(e.kind))) target = `partial:${id}`;
     if (!target && timeline.events.slice(1, end + 1).some((e) => Number(e.entityId) === id && ['task.created', 'task.deleted'].includes(e.kind))) result.ambiguous = true;
