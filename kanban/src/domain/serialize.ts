@@ -8,6 +8,7 @@ import { normalizeTask } from './task';
 import { migrateBoardData } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
+import { parseTaskRelations } from '@/domain/taskRelations';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
 import { reserveTaskIdentities } from './taskIdentity';
 import { parseConversations } from './comments';
@@ -42,6 +43,10 @@ export function normalizeBoardExtensionsValue(
         const conversations = parseConversations(nextExtensions.conversations, normalizeTimelineExtension(nextExtensions.timeline)?.events);
         if (conversations) nextExtensions.conversations = conversations;
     }
+
+    const relations = parseTaskRelations(nextExtensions.taskRelations, options.taskIds);
+    if (relations?.relations.length) nextExtensions.taskRelations = relations;
+    else delete nextExtensions.taskRelations;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);

@@ -115,6 +115,11 @@ export type DayPlannerExtension = {
 };
 
 export type TeamOsExtensions = { [key: string]: unknown; taskAttachments?: Record<string, unknown> };
+export type TaskRelationKind = 'related' | 'blocks' | 'blockedBy';
+// Dependencies are stored once, from blocker to dependent. Related pairs use ascending IDs.
+export type TaskRelation = { sourceId: number; targetId: number; kind: 'related' | 'blocks' };
+export type TaskRelationsExtension = { version: 1; relations: TaskRelation[] };
+
 export type SprintIdentity = { sprintId: string; number: number; createdAt: string | null };
 export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIdentity[] };
 export type BoardExtensions = {
@@ -123,6 +128,7 @@ export type BoardExtensions = {
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;
+    taskRelations?: TaskRelationsExtension;
     sprintCatalog?: SprintCatalog;
     teamOsKanban?: TeamOsExtensions;
 };
