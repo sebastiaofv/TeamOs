@@ -16,6 +16,7 @@ Usar o branch `us-7`, criado de `main`. Copiar o JSON antes de importar com escr
 12. Publicar com gravação falhada e criar conflito externo: escolher recarregar exige aviso adicional antes de perder comentários locais; descarregar cópia permite recuperar primeiro e não aplica o reload. Só a confirmação explícita substitui o registo. Os rascunhos não enviados mantêm-se.
 13. Os avisos de tamanho do projeto contam imagens canónicas de todas as conversas, incluindo itens eliminados, sem contar referências da timeline como novas imagens. Publicações e imagens não são copiadas integralmente para diffs/snapshots.
 14. Testar temas claro/escuro, teclado e gravação/reabertura. O JSON continua editável externamente; a imutabilidade da interface não promete proteção contra substituição do ficheiro nem recuperação de conteúdo ausente.
+15. Confirmar cartões, miniaturas e campos com contornos retos, labels do compositor em maiúsculas e foco igual aos restantes formulários. O título da imagem ampliada segue a tipografia dos modais. A 390 px, publicar um autor com 150 letras sem espaços: o nome quebra linhas sem alargar a conversa nem criar scroll horizontal. Repetir em claro/escuro.
 
 ## Integrações condicionais
 

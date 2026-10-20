@@ -4,6 +4,23 @@ import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, installCon
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
 
+test('a long unbroken author name wraps without widening the mobile conversation', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Mobile comments', hasHandle: true, tasks: [{ id: 1, title: 'Conversation' }] }], { selectedBoardId: 'p' });
+    await portfolioCard(page, 'Conversation').click();
+    const author = 'A'.repeat(150);
+    await page.locator('#commentAuthor').fill(author);
+    await page.locator('#commentText').fill('A comment with a long local author name.');
+    await page.getByRole('button', { name: 'Publish comment', exact: true }).click();
+    const publication = page.locator('.comment-publication');
+    await expect(publication.locator('header strong')).toHaveText(author);
+    await publication.scrollIntoViewIfNeeded();
+    expect(await page.locator('#taskDetailModal .modal-body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
+    expect(await publication.evaluate((item) => item.scrollWidth <= item.clientWidth)).toBe(true);
+    await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.conversations.entries[0].author.name).toBe(author);
+});
+
 test('drafts survive closing, publication requires an author, and text stays safe and independent', async ({ page }) => {
     const destinations: string[] = [];
     page.on('request', (request) => { if (request.url().includes('example.test')) destinations.push(request.url()); });
