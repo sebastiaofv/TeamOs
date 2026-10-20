@@ -42,7 +42,7 @@ function usePortfolioFilterFields() {
                 value: item.id, label: sources.length > 1 ? `${item.title} — ${board.title || board.fileName}` : item.title
             });
         }));
-        return [all, ...options.values()];
+        return [all, ...(kind === 'sprints' ? [] : [{ value: '__none__', label: t(kind === 'phases' ? 'roadmap.noPhase' : 'roadmap.noMilestone') }]), ...options.values()];
     }
 
     function field<K extends PanelPortfolioFilterName>(

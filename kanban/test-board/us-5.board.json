@@ -1,0 +1,25 @@
+{
+  "meta":{"schemaVersion":2,"appId":"teamos-kanban","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+  "board":{
+    "columns":[{"status":"backlog","title":"Backlog"},{"status":"to-do","title":"To Do"},{"status":"doing","title":"Doing"},{"status":"done","title":"Done"}],
+    "settings":{"title":"US-5 · Atlas delivery plan"},
+    "tasks":[
+      {"id":501,"title":"Completed foundation","description":"One of four eligible leaves.","status":"done","phaseId":"api","milestoneId":"release","sprintId":"october","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":502,"title":"API contracts","description":"Independent sprint, phase and milestone.","status":"doing","phaseId":"api","milestoneId":"release","sprintId":"october","archived":false,"checklist":[],"priority":"high","dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":503,"title":"Archived research","description":"Included in global progress despite archive filter.","status":"to-do","phaseId":"ui","milestoneId":"release","archived":true,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":504,"title":"UI build","description":"Fourth eligible leaf.","status":"backlog","phaseId":"ui","milestoneId":"release","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":505,"title":"Unplanned follow-up","description":"Try associating this item from its detail.","status":"backlog","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"}
+    ]
+  },
+  "extensions":{"roadmap":{"version":2,
+    "milestones":[{"id":"release","title":"Public release","dueDate":"2026-12-15"},{"id":"empty","title":"Unassigned decision","dueDate":"2026-11-10"}],
+    "phases":[
+      {"id":"delivery","title":"Delivery","startDate":"2026-10-01","endDate":"2026-11-15"},
+      {"id":"engineering","parentId":"delivery","title":"Engineering","startDate":"2026-10-01","endDate":"2026-11-15"},
+      {"id":"api","parentId":"engineering","title":"API","startDate":"2026-10-01","endDate":"2026-10-30"},
+      {"id":"ui","parentId":"engineering","title":"Interface","startDate":"2026-10-10","endDate":"2026-11-15"},
+      {"id":"future","title":"Future work","startDate":"2026-12-01","endDate":"2026-12-20"}
+    ],
+    "sprints":[{"id":"october","title":"October execution","startDate":"2026-10-01","endDate":"2026-10-14"}]
+  }}
+}

@@ -160,7 +160,9 @@ test.describe('roadmap', () => {
     await expect(page.locator('#portfolioRoadmapView')).toContainText('Beta');
 
     await page.getByRole('button', { name: 'Delete Alpha' }).click();
-    await answerAppMessage(page, { button: 'Delete', expectText: 'Linked task references will be cleared.' });
+    await expect(page.locator('#appMessageModal')).toContainText('choose how to reallocate or clear');
+    await page.locator('#appMessageModal').getByRole('button', { name: 'Delete', exact: true }).click();
+    await answerAppMessage(page, { button: 'Clear assignments · None', expectText: '1 directly assigned workitems' });
 
     await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.at(-1)?.summary || '').toContain('Milestone deleted');
     const board = await readSavedBoard(page, 'alpha');

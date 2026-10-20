@@ -19,6 +19,7 @@ import { normalizeTask } from '@/domain/task';
 import { taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
+import { phaseTreeRows, planningProgress, planningTaskCategory } from '@/domain/phaseTree';
 
 type RoadmapState = TaskCardState & Pick<AppState, 'portfolioRoadmapExpandedRowsByBoardId'>;
 
@@ -47,7 +48,13 @@ function RoadmapTaskList({ tasks, descriptor, boardRecord, boardData, historical
         <div className="roadmap-task-list" data-roadmap-task-list={descriptor} id={`roadmap-tasks-${descriptor.replace(/[:\s]/g, '-')}`}>
             <div className="roadmap-task-list-gutter" aria-hidden="true" />
             <div className="roadmap-task-list-track">
-                {tasks.map((task, taskIndex) => (
+                {(['open', 'completed', 'cancelled'] as const).map((category) => {
+                    const members = tasks.filter((task) => {
+                        const value = planningTaskCategory(task, boardData);
+                        return category === 'open' ? !['completed', 'cancelled'].includes(value) : value === category;
+                    });
+                    return members.length > 0 && <section className="roadmap-status-group" key={category}><h5>{t(category === 'open' ? 'roadmap.notCompleted' : category === 'completed' ? 'roadmap.completed' : 'roadmap.cancelled')}</h5>
+                    {members.map((task, taskIndex) => (
                     <PortfolioTaskCard
                         key={`${boardRecord.id}:${task.id}`}
                         state={state}
@@ -64,7 +71,8 @@ function RoadmapTaskList({ tasks, descriptor, boardRecord, boardData, historical
                             task: normalizeTask(task)
                         }}
                     />
-                ))}
+                    ))}</section>;
+                })}
             </div>
         </div>
     );
@@ -84,10 +92,12 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
     const { t, language } = useI18n();
     const config = getRoadmapEntityConfig(kind);
     if (!config) return null;
-    const sortedItems = Array.isArray(items) ? [...items].sort(compareRoadmapItemsByDate) : [];
     const label = kind === 'milestones' ? t('roadmap.milestone') : kind === 'phases' ? t('roadmap.phase') : t('roadmap.sprint');
     const pluralLabel = kind === 'milestones' ? t('roadmap.milestones') : kind === 'phases' ? t('roadmap.phases') : t('roadmap.sprints');
     const expandedRows = state.portfolioRoadmapExpandedRowsByBoardId?.[boardId] || {};
+    const treeRows = kind === 'phases' ? phaseTreeRows(items || [], new Set((items || []).filter((item) => expandedRows[`tree:${item.id}`]).map((item) => item.id)))
+        : [...(items || [])].sort(compareRoadmapItemsByDate).map((item) => ({ item, depth: 0, hasChildren: false }));
+    const canEdit = Boolean(state.portfolioBoards.find((board) => board.id === boardId)?.handle) && !historical;
     const gridGuides = axisTicks
         .filter((tick) => Number.isFinite(tick?.position) && tick.position > 0 && tick.position < 100)
         .map((tick) => (
@@ -122,20 +132,22 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                     aria-label={t('roadmap.addAria', { label })}
                     data-action="add-roadmap-item"
                     data-roadmap-kind={kind}
+                    disabled={!canEdit}
                     onClick={() => actions.openRoadmapEntityModal(kind)}
                 >
                     {t('roadmap.add', { label })}
                 </button>
             </div>
             <div className="roadmap-list">
-                {sortedItems.length === 0
+                {treeRows.length === 0
                     ? <div className="roadmap-empty">{t('roadmap.noItems', { label: config.singular === 'milestone' ? t('roadmap.milestone').toLowerCase() : config.singular === 'phase' ? t('roadmap.phase').toLowerCase() : t('roadmap.sprint').toLowerCase() })}</div>
-                    : sortedItems.map((item) => {
+                    : treeRows.map(({ item, depth, hasChildren }) => {
                         const expandKey = `${config.singular}:${item.id}`;
                         const expanded = Boolean(expandedRows[expandKey]);
                         const placement = getRoadmapTimelinePlacement(item, range);
-                        const tasks = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id)
-                            .filter((task) => taskMatchesPortfolioFilters(task, state.portfolioFilters));
+                        const associatedTasks = getRoadmapTaskFieldTasks(boardData, config.taskField, item.id);
+                        const progress = planningProgress(associatedTasks, boardData);
+                        const tasks = associatedTasks.filter((task) => taskMatchesPortfolioFilters(task, state.portfolioFilters, boardData));
                         const rowId = `roadmap-row-${config.singular}-${item.id}`;
                         const taskListId = `roadmap-tasks-${config.singular}-${item.id}`;
                         return (
@@ -155,7 +167,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                 key={item.id}
                             >
                                 <div className="roadmap-row-main">
-                                    <div className="roadmap-row-labels">
+                                    <div className="roadmap-row-labels" style={{ paddingInlineStart: 16 + depth * 18 }}>
                                         <div className="roadmap-row-actions">
                                             <button
                                                 className="roadmap-action-btn"
@@ -165,6 +177,7 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 data-action="edit-roadmap-item"
                                                 data-roadmap-kind={kind}
                                                 data-roadmap-id={item.id}
+                                                disabled={!canEdit}
                                                 onClick={() => actions.openRoadmapEntityModal(kind, item.id)}
                                             >
                                                 {'✎'}
@@ -177,15 +190,19 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 data-action="delete-roadmap-item"
                                                 data-roadmap-kind={kind}
                                                 data-roadmap-id={item.id}
+                                                disabled={!canEdit}
                                                 onClick={() => actions.deleteRoadmapEntity(kind, item.id)}
                                             >
                                                 {String.fromCodePoint(128465)}
                                             </button>
                                         </div>
-                                        <h4 className="roadmap-row-title" id={`${rowId}-title`}>{item.title}</h4>
+                                        <div className="roadmap-tree-title">
+                                            {hasChildren && <button className="roadmap-action-btn" type="button" aria-expanded={!expandedRows[`tree:${item.id}`]} aria-label={t('roadmap.toggleSubphases', { title: item.title })} onClick={() => actions.togglePortfolioRoadmapRowExpanded(boardId, `tree:${item.id}`)}>{expandedRows[`tree:${item.id}`] ? '▸' : '▾'}</button>}
+                                            <h4 className="roadmap-row-title" id={`${rowId}-title`}>{item.title}</h4>
+                                        </div>
                                         <div className="roadmap-row-meta">{formatRoadmapDateRange(item, language) || t('common.noDates')}</div>
                                         <div className="roadmap-row-usage">
-                                                <span>{tasks.length === 1 ? t('roadmap.linkedTask') : t('roadmap.linkedTasks', { count: tasks.length })}</span>
+                                            <span>{t('roadmap.visibleAssociated', { visible: tasks.length, total: progress.associated })}</span>
                                             <button
                                                 className="roadmap-disclosure-btn"
                                                 type="button"
@@ -200,6 +217,11 @@ function RoadmapSection({ boardId, boardData, historical, kind, items, range, ax
                                                 {expanded ? t('roadmap.hideTasks') : t('roadmap.showTasks')}
                                             </button>
                                         </div>
+                                        {kind !== 'sprints' && <div className="roadmap-progress" aria-label={t('roadmap.progress')}>
+                                            <strong>{progress.percent === null ? t('roadmap.notApplicable') : `${new Intl.NumberFormat(language === 'pt' ? 'pt-PT' : 'en', { maximumFractionDigits: 1 }).format(progress.percent)}%`}</strong>
+                                            <span>{t('roadmap.progressCounts', { done: progress.completed, eligible: progress.eligible, cancelled: progress.cancelled })}</span>
+                                            {progress.percent !== null && <progress max="100" value={progress.percent} aria-label={t('roadmap.progress')} />}
+                                        </div>}
                                     </div>
                                     <div className="roadmap-row-track">
                                         {gridGuides}

@@ -61,7 +61,7 @@ describe('addRoadmapDays', () => {
 describe('createEmptyRoadmapExtension', () => {
   it('returns an empty roadmap extension shape with the current version', () => {
     expect(createEmptyRoadmapExtension()).toEqual({
-      version: 1,
+      version: ROADMAP_VERSION,
       milestones: [],
       phases: [],
       sprints: []

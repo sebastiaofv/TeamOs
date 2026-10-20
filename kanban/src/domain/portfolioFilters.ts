@@ -2,7 +2,9 @@
 // Used by the controls, the URL state, and the filtered-rows selector.
 
 import type { PortfolioFilters } from '@/features/portfolio/types';
-import type { Task, TaskStatus } from './types';
+import type { Task, TaskStatus, LooseBoardData } from './types';
+import { getRoadmapExtension } from './roadmap';
+import { phaseDescendants } from './phaseTree';
 import { EFFORT_BUCKETS, isArchiveFilter } from './constants';
 import { normalizeAssignee, normalizePortfolioBlockedFilter, taskAssignees } from './task';
 import { matchesPeopleFilter } from './peopleFilters';
@@ -72,14 +74,14 @@ export function getActivePortfolioFilterNames(filters: Partial<Record<PortfolioF
 }
 
 /** Shared by every view: filters are ANDed, selected statuses are ORed. */
-export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilters): boolean {
+export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilters, data?: LooseBoardData | null): boolean {
     if (filters.archive === 'active' && task.archived) return false;
     if (filters.archive === 'archived' && !task.archived) return false;
     if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
     if (!matchesPeopleFilter(taskAssignees(task), filters.assignee)) return false;
     if (!matchesPeopleFilter(task.responsible ? [task.responsible] : [], filters.responsible)) return false;
-    if (filters.phaseId && task.phaseId !== filters.phaseId) return false;
-    if (filters.milestoneId && task.milestoneId !== filters.milestoneId) return false;
+    if (filters.phaseId === '__none__' ? Boolean(task.phaseId) : filters.phaseId && !phaseDescendants(getRoadmapExtension(data)?.phases || [], filters.phaseId).has(task.phaseId)) return false;
+    if (filters.milestoneId === '__none__' ? Boolean(task.milestoneId) : filters.milestoneId && task.milestoneId !== filters.milestoneId) return false;
     if (filters.sprintId && task.sprintId !== filters.sprintId) return false;
     if (filters.priority && task.priority !== filters.priority) return false;
     if (filters.effort && task.effort !== filters.effort) return false;

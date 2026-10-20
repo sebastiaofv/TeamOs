@@ -105,7 +105,7 @@ export function buildTaskEditorViewModel(
     options: { taskId?: unknown; preferredDueDate?: string } = {}
 ): TaskEditorViewModel {
     const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
-    const phaseOptions = buildRoadmapEntityOptions(roadmap.phases);
+    const phaseOptions = buildRoadmapEntityOptions(roadmap.phases.filter((phase) => !roadmap.phases.some((child) => child.parentId === phase.id)));
     const milestoneOptions = buildRoadmapEntityOptions(roadmap.milestones);
     const knownRef = (optionList: SelectOption[], value: unknown) => {
         const ref = normalizeRoadmapRef(value);

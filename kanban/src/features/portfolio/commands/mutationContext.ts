@@ -12,7 +12,7 @@ import { touchTask } from '@/domain/task';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persistence/projectFiles';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
-import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
+import { showAlert, showConfirm, showChoice, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
 
 // A board mutator edits the cloned board data in place; returning false
@@ -28,6 +28,7 @@ export type BoardMutationOptions = {
     openDialogFn?: typeof openDialog;
     alert?: (text: string, options?: { title?: string }) => unknown;
     confirm?: (text: string, options?: ConfirmOptions) => unknown;
+    choose?: typeof showChoice;
     onBoardChanged?: (boardId: string) => void;
 };
 
@@ -40,6 +41,7 @@ export function createBoardMutationContext({
     openDialogFn = openDialog,
     alert = showAlert,
     confirm = showConfirm,
+    choose = showChoice,
     onBoardChanged = () => {}
 }: BoardMutationOptions = {}) {
     const getState = store.getState;
@@ -123,7 +125,7 @@ export function createBoardMutationContext({
         getState, commitState, getBoardRecord, findPortfolioTaskSource,
         isPortfolioBoardMutable, canUsePortfolioTaskMutations, notifyPortfolioMutationUnavailable,
         runPortfolioBoardMutation, runPortfolioTaskMutation,
-        alert, confirm, closeDialogFn, openDialogFn
+        alert, confirm, choose, closeDialogFn, openDialogFn
     };
 }
 

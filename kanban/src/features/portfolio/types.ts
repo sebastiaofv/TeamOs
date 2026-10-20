@@ -8,6 +8,7 @@ import type {
     Priority,
     ProjectColor,
     RoadmapExtension,
+    RoadmapItem,
     RoadmapKind,
     RoadmapRange,
     RoadmapTick,
@@ -130,6 +131,10 @@ export type TaskDetailViewModel = {
 export type RoadmapEntityMode = 'default' | 'create-sprint-from-selection' | 'assign-sprint-from-selection';
 export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string };
 export type RoadmapEntityViewModel = {
+    parentId?: string;
+    phaseOptions?: SelectOption[];
+    phases?: RoadmapItem[];
+    datesCalculated?: boolean;
     kind: RoadmapKind;
     itemId: string;
     mode: RoadmapEntityMode;
