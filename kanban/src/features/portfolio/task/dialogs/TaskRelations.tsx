@@ -119,7 +119,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                                             <span className="relation-item-title">{task.title}</span>
                                             {task.archived && <span className="relation-item-archived">{t('table.archived')}</span>}
                                         </span>
-                                        <span className="relation-item-status" aria-label={t('task.status')} title={task.status}>{task.status}</span>
+                                        <span className={`relation-item-status table-status-badge status-${task.statusKey}`} aria-label={t('task.status')} title={task.status}>{task.status}</span>
                                         <span className="relation-item-responsible" aria-label={t('task.responsible')} title={task.responsible || undefined}>{task.responsible || '—'}</span>
                                         {!vm.readOnly && <div className="relation-row-actions">
                                             <button type="button" className="task-action-btn" aria-label={t('relations.edit')} title={t('relations.edit')}

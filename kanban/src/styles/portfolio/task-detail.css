@@ -177,6 +177,10 @@
     color: var(--text-muted);
 }
 
+.relation-item-status {
+    justify-self: start;
+}
+
 .relation-row-actions {
     display: flex;
     gap: 4px;
