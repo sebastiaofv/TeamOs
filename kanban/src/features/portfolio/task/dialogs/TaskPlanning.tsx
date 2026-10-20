@@ -13,11 +13,12 @@ export function TaskPlanning({ readOnly }: { readOnly: boolean }) {
     if (!context || !task || readOnly) return null;
     const roadmap = getRoadmapExtension(board?.data);
     return <section className="task-planning"><h3>{t('roadmap.planning')}</h3><div className="form-row">
-        {(['phaseId', 'milestoneId'] as const).map((field) => <label key={field}>{t(field === 'phaseId' ? 'task.phase' : 'task.milestone')}
-            <select aria-label={t(field === 'phaseId' ? 'task.phase' : 'task.milestone')} value={task[field] || ''} onChange={(e) => void setPortfolioTaskPlanning(context.boardId, task.id, field, e.target.value)}>
+        {(['phaseId', 'milestoneId'] as const).map((field) => <div className="form-group" key={field}>
+            <label htmlFor={`detailPlanning-${field}`}>{t(field === 'phaseId' ? 'task.phase' : 'task.milestone')}</label>
+            <select id={`detailPlanning-${field}`} value={task[field] || ''} onChange={(e) => void setPortfolioTaskPlanning(context.boardId, task.id, field, e.target.value)}>
                 <option value="">{t('common.none')}</option>
                 {(field === 'phaseId' ? roadmap?.phases.filter((phase) => isLeafPhase(roadmap.phases, phase.id)) : roadmap?.milestones)?.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
             </select>
-        </label>)}
+        </div>)}
     </div></section>;
 }

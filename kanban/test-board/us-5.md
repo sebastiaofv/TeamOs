@@ -23,6 +23,7 @@ Os comentários de #29 integram o drilldown da US-15 nesta história. O comentá
 13. Eliminar Engineering é impedido enquanto tem filhos. Eliminar folha/milestone em uso identifica os itens afetados e exige decisão explícita; não elimina ramos em cascata. As restantes dimensões mantêm-se. Se o conjunto afetado mudar durante a confirmação, a operação é recusada para nova revisão.
 14. Guardar/reabrir preserva IDs, árvore, datas, associações, timeline e sprints. Ficheiros roadmap v1 migram para extensão v2 sem eventos inventados. Em fotografia histórica, consultar dados reconstruídos sem alterar a fotografia ou a timeline global.
 15. Leitura: consultar fases, sprints, milestones e tabelas, sem controlos graváveis. Testar temas claro/escuro, PT-PT/inglês, teclado, nomes profundos/compridos, datas sobrepostas e estados vazios/filtros sem resultados.
+16. Verificar o tema: ações e painéis de agrupamento com contornos retos; filtros com as superfícies e dimensões dos controlos da aplicação. No detalhe, **Planeamento** usa campos com labels em maiúsculas, padding e foco iguais ao formulário de edição, empilhados em mobile. O título do modal de milestone segue a tipografia dos restantes modais e nomes longos não tapam o botão de fechar. Confirmar em claro/escuro.
 
 ## Integrações condicionais
 
