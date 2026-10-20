@@ -58,9 +58,13 @@ export function TaskHistory({ history }: { history?: TaskHistoryProjection }) {
             {category !== 'all' && <button className="btn" onClick={() => setCategory('all')}>{t('history.category.all')}</button>}
         </div> : <ol className="history-entries">{entries.map((entry) => <li key={entry.id}>
             <details className="history-entry"><summary>
-                <span className="history-operation">{t(operation(entry))}{entry.bulk && ` · ${t('history.bulk')}`}</span>
-                <time dateTime={entry.at}>{date(entry.at)}</time>
-                <span className="history-author">{entry.author || t('history.unknown')}{entry.localAuthor && ` · ${t('history.localAuthor')}`}</span>
+                <span className="history-entry-heading">
+                    <span className="history-operation">{t(operation(entry))}{entry.bulk && <span className="history-bulk">{t('history.bulk')}</span>}</span>
+                    <span className="history-entry-meta">
+                        <time dateTime={entry.at}>{date(entry.at)}</time>
+                        <span className="history-author">{entry.author || t('history.unknown')}{entry.localAuthor && ` · ${t('history.localAuthor')}`}</span>
+                    </span>
+                </span>
             </summary>
                 <p className="history-summary">{entry.summary}</p>
                 {entry.cause && <p>{t('history.cause')}: {entry.cause}</p>}
@@ -71,7 +75,7 @@ export function TaskHistory({ history }: { history?: TaskHistoryProjection }) {
                     <dd><div><span>{t('common.before')}</span><pre>{change.before === undefined && entry.kinds.includes('task.created') ? '—' : readable(change.before, change.field, t)}</pre></div>
                         <div><span>{t('common.after')}</span><pre>{change.after === undefined && entry.kinds.includes('task.deleted') ? t('common.none') : readable(change.after, change.field, t)}</pre></div></dd>
                 </div>)}</dl>
-                <p className="history-note">{entry.eventIds.join(' · ')}</p>
+                <p className="history-event-ids">{entry.eventIds.join(' · ')}</p>
             </details>
         </li>)}</ol>}
     </section>;

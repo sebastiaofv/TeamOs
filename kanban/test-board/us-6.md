@@ -14,6 +14,7 @@ Usar `us-6` (base `main`). Copiar o JSON antes de importar com escrita; arrastar
 10. Eliminar o maior ID, guardar/reabrir ou restaurar fotografia antiga e criar outro item: o ID anterior não é reutilizado. A reserva versionada está no JSON e os eventos de eliminação não desaparecem.
 11. Importar `tests/fixtures/us-6-partial.board.json`: detalhes em falta explícitos; nomes resolvidos do estado atual são identificados como atuais. `us-6-reused-id.board.json` mostra apenas a nova vida de #801; nas fotografias anteriores, a vida antiga. Restauros sem evidência suficiente sinalizam ambiguidade em vez de combinar históricos.
 12. Consultar em leitura/histórico, testar teclado dos separadores, filtros, tema claro/escuro, falha/retry e conflito de ficheiro. Não existem ações de editar/apagar entradas nem restauro individual.
+13. Verificar a apresentação em claro/escuro e a 390 px: separadores com a mesma linguagem visual dos separadores da Ajuda (maiúsculas, contorno reto e destaque superior), seletor de categoria com as cores e dimensões dos controlos da aplicação, operações compactas sem cantos arredondados, metadados secundários e valores Antes/Depois em painéis neutros. Em mobile, os valores ficam empilhados sem scroll horizontal; Tab evidencia o foco nos separadores, filtro e cabeçalhos expansíveis, e Enter/Espaço expande as entradas. Estados vazios e avisos históricos usam as superfícies do tema.
 
 ## Condicionais
 
