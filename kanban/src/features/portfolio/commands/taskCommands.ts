@@ -1,6 +1,6 @@
 // Task editing, details, validation, and undo.
 
-import type { Effort, Priority, Task } from '@/domain/types';
+import type { Effort, Priority, TaskRelationKind } from '@/domain/types';
 import type { TaskDraft } from '@/features/portfolio/types';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
@@ -16,7 +16,9 @@ import {
     removeLegacyTaskAttachmentsFromExtensions,
     setTaskAttachments,
 } from '@/domain/attachments';
-import { captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
+import { captureTaskTimelineSnapshot, recordTaskTimelineEvent, recordTaskRelationsTimelineEvent } from '@/domain/timeline';
+import { getRelations, getTaskRelations, removeTaskRelation, setTaskRelation, TaskRelationError } from '@/domain/taskRelations';
+import { cloneSerializable } from '@/domain/serializable';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
 import { removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
@@ -107,6 +109,22 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         closeDialogFn('taskEditor');
     }
 
+    function openPortfolioCreateRelatedTask(boardId: string, taskId: number, kind: TaskRelationKind) {
+        const source = findPortfolioTaskSource(boardId, taskId);
+        if (!source || !['related', 'blocks', 'blockedBy'].includes(kind)) return;
+        if (!canUsePortfolioTaskMutations(boardId)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return;
+        }
+        closeTaskDetail();
+        commitState({ portfolioCreateContext: { boardId, status: 'backlog', relatedTo: { taskId, kind } }, portfolioEditContext: null });
+        const vm = buildTaskEditorViewModel(source.boardRecord, null, getState().portfolioTasks, ++taskEditorOpenCount);
+        vm.initial.phaseId = source.task.phaseId;
+        vm.initial.milestoneId = source.task.milestoneId;
+        vm.relationNotice = translateCurrent(`relations.sentence.${kind}`, { a: `#${taskId}`, b: translateCurrent('relations.newItem') });
+        openDialogFn('taskEditor', vm);
+    }
+
     function closeTaskDetail() {
         commitState({ portfolioDetailContext: null });
         closeDialogFn('taskDetail');
@@ -162,7 +180,12 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
 
         const title = String(source.task.title || '').trim() || translateCurrent('messages.thisTask');
-        const confirmed = await confirm(translateCurrent('messages.deleteQuestion', { title }), {
+        const related = getTaskRelations(source.boardRecord.data, taskId);
+        const affected = [...related.blockedBy, ...related.blocks, ...related.related];
+        const impact = affected.length ? '\n\n' + translateCurrent('relations.deleteImpact', {
+            items: affected.map((task) => `#${task.id} ${task.title}`).join(', ')
+        }) : '';
+        const confirmed = await confirm(translateCurrent('messages.deleteQuestion', { title }) + impact, {
             title: translateCurrent('messages.deleteTask'),
             confirmLabel: translateCurrent('messages.delete'),
             danger: true
@@ -193,6 +216,9 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             const index = data.board.tasks.findIndex((task) => Number(task.id) === Number(taskId));
             if (index < 0) return false;
             const before = captureTaskTimelineSnapshot(data, taskId);
+            const beforeRelations = cloneSerializable(getRelations(data));
+            removeTaskRelation(data, taskId);
+            recordTaskRelationsTimelineEvent(data, taskId, beforeRelations);
             data.board.tasks.splice(index, 1);
             removeLegacyTaskAttachmentsFromExtensions(data, taskId);
             recordTaskTimelineEvent(data, before, null);
@@ -211,7 +237,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const state = getState();
 
         if (state.portfolioCreateContext?.boardId) {
-            const { boardId } = state.portfolioCreateContext;
+            const { boardId, relatedTo } = state.portfolioCreateContext;
             const boardRecord = getBoardRecord(boardId);
             if (!boardRecord) return;
             if (!canUsePortfolioTaskMutations(boardId)) {
@@ -220,18 +246,26 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             }
 
             const now = nowIso();
-            const nextId = nextTaskIdForBoard(boardRecord);
-            const status = resolveCreateTaskStatus(boardRecord, state.portfolioCreateContext.status);
+            const status = relatedTo ? 'backlog' : resolveCreateTaskStatus(boardRecord, state.portfolioCreateContext.status);
             setSelectedPortfolioBoardId(boardId, { resetViewModeWhenEmpty: false });
             await runPortfolioBoardMutation(boardId, (data) => {
-                // Attachments are set just below; serialization fills in the
-                // remaining defaults.
-                data.board.tasks.push({
+                const nextId = nextTaskIdForBoard({ data });
+                data.board.tasks.push(normalizeTask({
                     id: nextId, ...commonFields, archived: false,
                     createdAt: now, updatedAt: now, status
-                } as Task);
+                }, { roadmap: data.extensions.roadmap, includeStatusChangedAt: false }));
                 setTaskAttachments(data, nextId, draft.attachments);
                 recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, nextId));
+                if (relatedTo) {
+                    const beforeRelations = cloneSerializable(getRelations(data));
+                    try {
+                        setTaskRelation(data, relatedTo.taskId, nextId, relatedTo.kind);
+                    } catch (error) {
+                        if (error instanceof TaskRelationError) throw new Error(translateCurrent(`relations.error.${error.code}`));
+                        throw error;
+                    }
+                    recordTaskRelationsTimelineEvent(data, relatedTo.taskId, beforeRelations);
+                }
                 return true;
             }, { onMutated: closeTaskEditor });
             return;
@@ -385,6 +419,9 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             const before = captureTaskTimelineSnapshot(data, id);
             const index = data.board.tasks.findIndex((task) => Number(task.id) === id);
             if (index < 0) return false;
+            const beforeRelations = cloneSerializable(getRelations(data));
+            removeTaskRelation(data, id);
+            recordTaskRelationsTimelineEvent(data, id, beforeRelations);
             data.board.tasks.splice(index, 1);
             recordTaskTimelineEvent(data, before, null);
             return true;
@@ -419,6 +456,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         openPortfolioTaskDetails,
         editPortfolioTask,
         openPortfolioCreateTaskModal,
+        openPortfolioCreateRelatedTask,
         closeTaskEditor,
         closeTaskDetail,
         openPortfolioTaskDetailsForCalendar,

@@ -8,6 +8,7 @@ import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
 import { TaskHistory } from './TaskHistory';
+import { TaskRelations } from '@/features/portfolio/task/dialogs/TaskRelations';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.title', id: 'detailTitle', key: 'title' },
@@ -76,7 +77,7 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
     return <><div className="detail-tabs" role="tablist" aria-label={t('history.navigation')}>
         {tabs.map((value, index) => <button key={value} id={`task-tab-${value}`} role="tab" type="button" aria-selected={tab === value} aria-controls={`task-panel-${value}`} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setTab(value)}>{t(value === 'details' ? 'history.details' : 'history.title')}</button>)}
     </div><div role="tabpanel" id={`task-panel-${tab}`} aria-labelledby={`task-tab-${tab}`} tabIndex={0}>
-        {tab === 'details' ? <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /> : <TaskHistory history={vm.history} />}
+        {tab === 'details' ? <><TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations key={`${vm.boardId}:${vm.taskId}`} vm={vm} /></> : <TaskHistory history={vm.history} />}
     </div></>;
 }
 

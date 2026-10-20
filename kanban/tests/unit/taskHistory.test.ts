@@ -9,7 +9,7 @@ import { createBoardStateSnapshot, serializeBoardDataFromObject } from '../../sr
 import { reserveTaskIdentities } from '../../src/domain/taskIdentity';
 import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
 import { createAppStore } from '../../src/features/portfolio/state/store';
-import type { Task, BoardData } from '../../src/domain/types';
+import type { Task, BoardData, TaskRelation } from '../../src/domain/types';
 
 const stamp = '2026-10-19T10:00:00.000Z';
 function setup() {
@@ -27,7 +27,7 @@ function update(data: BoardData, id: number, values: Partial<Task>) {
 describe('workitem history projection', () => {
     it('ignores relation-array ordering and never renders corrupt legacy attachment payloads', () => {
         const data = setup();
-        const before = [{ sourceId: 1, targetId: 2, kind: 'blocks' }, { sourceId: 1, targetId: 3, kind: 'related' }];
+        const before: TaskRelation[] = [{ sourceId: 1, targetId: 2, kind: 'blocks' }, { sourceId: 1, targetId: 3, kind: 'related' }];
         data.extensions.taskRelations = { version: 1, relations: before }; ensureBoardTimelineBaseline(data);
         appendTimelineEvent(data, { kind: 'task.relations.updated', entityType: 'task', entityId: '1', summary: 'Reordered only', changes: { relations: { before, after: [before[1], before[0]] } } });
         expect(projectTaskHistory(data, data.board.tasks[0]).entries).toEqual([]);
@@ -76,8 +76,8 @@ describe('workitem history projection', () => {
     });
     it('attributes legacy relation changes to exactly the changed endpoints, in the correct direction', () => {
         const data = setup();
-        const before = [{ sourceId: 1, targetId: 2, kind: 'blocks' }, { sourceId: 4, targetId: 5, kind: 'related' }];
-        const after = [{ sourceId: 1, targetId: 3, kind: 'blocks' }, before[1]];
+        const before: TaskRelation[] = [{ sourceId: 1, targetId: 2, kind: 'blocks' }, { sourceId: 4, targetId: 5, kind: 'related' }];
+        const after: TaskRelation[] = [{ sourceId: 1, targetId: 3, kind: 'blocks' }, before[1]];
         data.extensions.taskRelations = { version: 1, relations: before }; ensureBoardTimelineBaseline(data);
         data.extensions.taskRelations = { version: 1, relations: after };
         appendTimelineEvent(data, { kind: 'task.relations.updated', entityType: 'task', entityId: '1', summary: 'Relations updated', changes: { relations: { before, after } }, meta: { taskIds: [1, 2, 3, 4, 5] } });
