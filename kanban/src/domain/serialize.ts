@@ -8,6 +8,7 @@ import { normalizeTask } from './task';
 import { migrateBoardData } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
+import { parseTaskRelations } from '@/domain/taskRelations';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
 import { getWorkflow, parseWorkflow } from './workflow';
 import { parseBoardView } from './boardView';
@@ -38,6 +39,10 @@ export function normalizeBoardExtensionsValue(
         : {}) as BoardExtensions;
     if (nextExtensions.workflow) nextExtensions.workflow = parseWorkflow(nextExtensions.workflow);
     if (nextExtensions.boardView !== undefined) nextExtensions.boardView = parseBoardView(nextExtensions.boardView, nextExtensions.workflow ? new Set(nextExtensions.workflow.states.map((state) => state.id)) : undefined);
+
+    const relations = parseTaskRelations(nextExtensions.taskRelations, options.taskIds);
+    if (relations?.relations.length) nextExtensions.taskRelations = relations;
+    else delete nextExtensions.taskRelations;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension(nextExtensions[ROADMAP_EXTENSION_KEY]);

@@ -31,6 +31,7 @@ const DESCRIPTORS: Record<string, readonly Descriptor[]> = {
     'task.restored': [{ key: 'timeline.taskRestored' }],
     'task.status.changed': [{ key: 'timeline.statusChanged' }],
     'task.updated': [{ key: 'timeline.taskUpdated' }],
+    'task.relations.updated': [{ key: 'relations.event' }],
     'roadmap.updated': [{ key: 'roadmap.entityUpdatedSummary', words: ROADMAP_WORDS }],
     'roadmap.bulk-assigned': [
         { key: 'roadmap.sprintCreatedSummary', words: TASK_COUNT_WORDS },

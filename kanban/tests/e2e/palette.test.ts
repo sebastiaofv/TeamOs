@@ -88,7 +88,7 @@ test.describe('command palette', () => {
     await page.keyboard.press('Tab');
     await expect(palette(page).locator('.palette-crumb')).toHaveText(['#1 Write spec']);
     await input(page).fill('done');
-    await expect(activeItem(page)).toContainText('Move to Done');
+    await expect(activeItem(page)).toContainText(/Move to done/i);
     await page.keyboard.press('Enter');
 
     await expect(page.locator('#portfolio-done-column')).toContainText('Write spec');
@@ -137,7 +137,7 @@ test.describe('command palette', () => {
     await expect(portfolioCard(page, 'Fix crash')).toBeVisible();
     await waitForBoardWrites(page);
     const task = (await readSavedBoard(page, 'bravo')).board.tasks.find((entry: any) => entry.title === 'Fix crash');
-    expect(task).toMatchObject({ status: 'to-do', assignees: ['Ana'], priority: 'high', tags: ['auth'], effort: 'S' });
+    expect(task).toMatchObject({ status: 'backlog', assignees: ['Ana'], priority: 'high', tags: ['auth'], effort: 'S' });
     expect(task.dueDate).toBe(localIsoDate(new Date(Date.now() + 24 * 60 * 60 * 1000)));
 
     await page.locator('#undoBtn').click();

@@ -38,6 +38,8 @@ import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/c
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 import { getWorkflow } from '@/domain/workflow';
+import { isTaskBlocked } from '@/domain/taskRelations';
+import { buildTaskRelationView } from '@/features/portfolio/queries/taskRelationViews';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -166,13 +168,17 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
+        boardId: source.boardRecord.id,
+        taskId: task.id,
+        sourceBoardData: source.boardData,
+        ...buildTaskRelationView(source.boardData, task.id),
         fields: {
             title: task.title || '-',
             description: task.description || '-',
             assignees: formatAssignees(task.assignees) || translateCurrent('task.noParticipants'),
             responsible: task.responsible || translateCurrent('task.noResponsible'),
             tags: normalizeTags(task.tags).join(', ') || '-',
-            blocked: task.blocked ? translateCurrent('common.yes') : translateCurrent('common.no'),
+            blocked: isTaskBlocked(source.boardData, task.id) ? translateCurrent('common.yes') : translateCurrent('common.no'),
             blockerReason: task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-',
             priority: task.priority
                 ? ({ high: translateCurrent('toolbar.high'), medium: translateCurrent('toolbar.medium'), low: translateCurrent('toolbar.low') }[task.priority] || task.priority)

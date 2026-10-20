@@ -324,7 +324,8 @@ test.describe('2.1a modals and toast', () => {
     await portfolioCard(page, 'Prepare launch checklist').click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     // The modal body scrolls; bring the attachment rows into view.
-    await page.locator('#taskDetailModal .modal-body').evaluate((body) => { body.scrollTop = body.scrollHeight; });
+    await page.locator('#detailAttachments').scrollIntoViewIfNeeded();
+    await expect(page.locator('#detailAttachments')).toBeVisible();
     await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
     await expect(page).toHaveScreenshot('task-detail-attachments-light.png', { fullPage: true });
   });
