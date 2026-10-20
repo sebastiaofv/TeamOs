@@ -69,7 +69,7 @@ export function PlannerTray({ groups, statuses, onToggleStatus }: {
                         className={`planner-chip${statuses.includes(status) ? ' active' : ''}`}
                         aria-pressed={statuses.includes(status)}
                         onClick={() => onToggleStatus(status)}
-                    >{t(STATUS_LABEL_KEYS[status])}</button>
+                    >{t(STATUS_LABEL_KEYS[status as keyof typeof STATUS_LABEL_KEYS])}</button>
                 ))}
             </div>
             <div className="planner-tray-list">

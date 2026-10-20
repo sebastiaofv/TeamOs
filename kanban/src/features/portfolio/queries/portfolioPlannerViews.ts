@@ -13,6 +13,7 @@ import {
     plannerMinutes
 } from '@/domain/dayPlanner';
 import { normalizeTaskStatus } from '@/domain/task';
+import { statusCategory } from '@/domain/workflow';
 import { DEFAULT_PORTFOLIO_FILTERS, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import type { SelectorState } from './portfolioRowViews';
 import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './portfolioTimelineViews';
@@ -85,7 +86,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
                 startMinutes: plannerMinutes(block.start),
                 endMinutes: plannerMinutes(block.end),
                 color: boardColor(board),
-                done: normalizeTaskStatus(task.status) === 'done',
+                done: statusCategory(task.status, data) === 'completed',
                 archived: Boolean(task.archived),
                 canEdit,
                 column: 0,
@@ -124,9 +125,11 @@ export function buildPortfolioPlannerViewModel(
     const groups = new Map<string, PlannerTrayGroup>();
     (Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : []).forEach((row) => {
         const status = normalizeTaskStatus(row.task.status);
-        if (!statusSet.has(status)) return;
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;
+        const category = statusCategory(status, row.boardData || board.data);
+        const trayStatus = status === 'backlog' ? 'backlog' : ({ 'not-started': 'to-do', 'in-progress': 'doing', completed: 'done', cancelled: 'cancelled' })[category];
+        if (!statusSet.has(trayStatus)) return;
         let group = groups.get(board.id);
         if (!group) {
             group = { boardId: board.id, boardTitle: boardTitle(board), color: boardColor(board), items: [] };

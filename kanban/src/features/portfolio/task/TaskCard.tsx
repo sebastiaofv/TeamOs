@@ -17,6 +17,7 @@ import {
 import { formatTaskScore } from '@/domain/scoring';
 import { escapeRegExp } from '@/domain/util';
 import { useI18n } from '@/shared/i18n';
+import { getWorkflow } from '@/domain/workflow';
 
 // The store fields a task card reads.
 export type TaskCardState = Pick<AppState,
@@ -90,6 +91,8 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     const localizedStatusAge = statusAge ? t('task.age', { value: statusAge.replace(/^Age\s*/, '') }) : '';
     const readOnlyTitle = item.historical ? t('task.readOnlyHistorical') : t('task.readOnlyNoHandle');
     const archiveButtonTitle = task.archived ? t('common.restore') : t('common.archive');
+    const boardData = item.boardData || state.portfolioBoards.find((b) => b.id === item.boardId)?.data;
+    const workflow = getWorkflow(boardData);
     const cardRef = useRef<HTMLElement | null>(null);
     const setCardRef = useCallback((node: HTMLElement | null) => {
         cardRef.current = node;
@@ -114,7 +117,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     }
 
     function handleCardClick(event: MouseEvent<HTMLElement>) {
-        if ((event.target as Element).closest('button, input, label')) return;
+        if ((event.target as Element).closest('button, input, label, select')) return;
         if (Date.now() < state.suppressPortfolioCardClickUntil) return;
         event.currentTarget.focus({ preventScroll: true });
         openDetails();
@@ -171,12 +174,16 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     </span>
                 </div>
                 <div className="task-actions">
+                    {!overlay && task.status === 'backlog' && canMutate && <button className="task-action-btn" title={t('workflow.sendToBoard')} aria-label={t('workflow.sendToBoard')} onClick={() => void actions.movePortfolioTaskToStatus(item.boardId, taskId, workflow.entryStateId)}>→</button>}
+                    {!overlay && <select aria-label={t('task.status')} value={task.status} disabled={!canMutate} onChange={(event) => void actions.movePortfolioTaskToStatus(item.boardId, taskId, event.target.value)}>
+                        {getWorkflow(item.boardData || state.portfolioBoards.find((b) => b.id === item.boardId)?.data).states.filter((s) => s.id === task.status || getWorkflow(state.portfolioBoards.find((b) => b.id === item.boardId)?.data).transitions[task.status]?.includes(s.id)).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>}
                     <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? t('task.editAction') : readOnlyTitle} aria-label={canMutate ? t('task.editAction') : readOnlyTitle} data-action="edit-task" onClick={() => actions.editPortfolioTask(item.boardId, taskId)}>&#9998;</button>
                     <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} aria-label={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task" onClick={() => actions.togglePortfolioArchiveTask(item.boardId, taskId)}><span aria-hidden="true">{task.archived ? '↶' : '🗄️'}</span></button>
                     <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}><span aria-hidden="true">🗑️</span></button>
                 </div>
             </div>
-            {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
+            {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task, state.portfolioBoards.find((b) => b.id === item.boardId)?.data) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
                 <div className="task-meta">
                     {showProjectBadge && <span className="portfolio-project-badge" style={{ background: color.bg, borderColor: color.border, color: color.text }} title={projectLabel}>{projectLabel}</span>}
                     {task.responsible && <span className="task-tag task-tag-assignee" title={t('task.responsible')}>{t('task.responsible')}: {task.responsible}</span>}
@@ -184,7 +191,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     {normalizeTags(task.tags).map((tag) => <span className="task-tag task-tag-label" key={`tag-${tag}`}>{tag}</span>)}
                     {task.blocked && <span className="task-tag task-tag-blocked" title={t('task.blocked')}>{t('task.blocked')}</span>}
                     {localizedStatusAge && <span className="task-tag task-tag-age" title={t('task.timeInStatus')}>{localizedStatusAge}</span>}
-                    {isTaskOverdue(task) && <span className="task-tag" title={t('task.overdue')}><span className="due-dot" />{t('task.overdue')}</span>}
+                    {isTaskOverdue(task, state.portfolioBoards.find((b) => b.id === item.boardId)?.data) && <span className="task-tag" title={t('task.overdue')}><span className="due-dot" />{t('task.overdue')}</span>}
                     {priority && <span className="task-tag"><span className={`priority-dot priority-${task.priority}`} />{priority === 'high' ? t('toolbar.high') : priority === 'medium' ? t('toolbar.medium') : priority === 'low' ? t('toolbar.low') : priority}</span>}
                     {effort && <span className="task-tag" title={t('task.effort')}><span className={`effort-dot effort-${effort.toLowerCase()}`} />{effort}</span>}
                     {score !== '-' && <span className="task-tag task-tag-score" title={t('task.scoreTitle')}>{t('task.score', { score })}</span>}

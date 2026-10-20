@@ -159,7 +159,7 @@ test('new workitems support responsibility, reopen read-only, and can progress w
   await expect(page.locator('#taskModal')).toBeHidden();
   await waitForBoardWrites(page, 1);
   const saved = await readSavedBoard(page, 'p');
-  expect(saved.board.tasks[0]).toMatchObject({ assignees: ['Marta'], responsible: 'Marta', status: 'to-do' });
+  expect(saved.board.tasks[0]).toMatchObject({ assignees: ['Marta'], responsible: 'Marta', status: 'backlog' });
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'reopened', title: saved.board.settings.title, hasHandle: false,
     tasks: saved.board.tasks, extensions: saved.extensions }]);
@@ -179,7 +179,7 @@ test('new workitems support responsibility, reopen read-only, and can progress w
   await page.keyboard.press('Escape');
   await portfolioCard(page, 'Unallocated').hover();
   await page.keyboard.press('4');
-  await expect(page.locator('#portfolio-done-column')).toContainText('Unallocated');
+  await expect(page.locator('#portfolio-completed-column')).toContainText('Unallocated');
   await waitForBoardWrites(page, 1);
   expect((await readSavedBoard(page, 'empty')).board.tasks[0]).toMatchObject({ assignees: [], responsible: '', status: 'done' });
 });

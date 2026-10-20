@@ -1,13 +1,13 @@
 import type { BoardColumn, Effort } from './types';
 import type { ArchiveFilter } from '@/features/portfolio/types';
 
-export const BOARD_SCHEMA_VERSION = 2;
+export const BOARD_SCHEMA_VERSION = 3;
 export const BOARD_APP_ID = 'teamos-kanban';
 export const BOARD_FILE_EXTENSION = '.json';
 export const DEFAULT_BOARD_TITLE = 'Example Task Board';
 export const TASK_TITLE_MAX_LENGTH = 80;
 export const EFFORT_BUCKETS: readonly Effort[] = ['XS', 'S', 'M', 'L', 'XL'];
-export const MAX_COLUMNS = 5;
+export const MAX_COLUMNS = 100;
 export const BOARD_ARCHIVE_FILTER_VALUES: readonly ArchiveFilter[] = ['active', 'all', 'archived'];
 export const TEAMOS_EXTENSIONS_KEY = 'teamOsKanban';
 export const TASK_ATTACHMENTS_EXTENSIONS_KEY = 'taskAttachments';

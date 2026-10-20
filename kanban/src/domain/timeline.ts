@@ -20,6 +20,7 @@ import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
+import { getWorkflow } from './workflow';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -127,7 +128,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
-    if (event.kind === 'board.restored' && event.snapshot) {
+    if ((event.kind === 'board.restored' || event.kind === 'workflow.updated') && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
 
@@ -239,6 +240,7 @@ export function captureTaskTimelineSnapshot(boardData: LooseBoardData | null | u
     return normalizeTask(task, {
         fallbackAttachments: getTaskAttachments(boardData, taskId),
         includeStatusChangedAt: false,
+        workflow: getWorkflow(boardData),
         roadmap: getRoadmapExtension(boardData)
     });
 }
@@ -337,5 +339,9 @@ export function recordBoardRestoreTimelineEvent(boardData: LooseBoardData, resto
 export function recordTaskTimelineEvent(boardData: LooseBoardData, beforeTask: Task | null | undefined, afterTask: Task | null | undefined): TimelineEvent | null {
     const event = buildTaskTimelineEvent(beforeTask, afterTask);
     if (!event) return null;
+    if (event.changes?.status) {
+        const workflow = getWorkflow(boardData);
+        event.meta = { ...event.meta, statusLabels: Object.fromEntries(workflow.states.map((s) => [s.id, s.name])) };
+    }
     return appendTimelineEvent(boardData, event);
 }

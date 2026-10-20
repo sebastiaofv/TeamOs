@@ -6,7 +6,7 @@ import type { Priority, RoadmapItem, TaskStatus } from '@/domain/types';
 import type { BoardRecord, PortfolioRow } from '@/features/portfolio/types';
 import type { Language } from '@/shared/types/ui';
 import type { TranslationKey } from '@/shared/i18n';
-import { defaultColumns } from '@/domain/constants';
+import { getWorkflow } from '@/domain/workflow';
 import { createPortfolioProjectColor } from '@/domain/board';
 import {
     PLANNER_DAY_END,
@@ -147,7 +147,7 @@ const rowKey = (row: PortfolioRow) => `${row.boardId}:${Number(row.taskId ?? row
 const findRow = (ctx: Ctx, boardId: string, taskId: number) => ctx.rows.find((row) => row.boardId === boardId && Number(row.taskId ?? row.task.id) === Number(taskId)) || null;
 const canEdit = (row: PortfolioRow) => Boolean(row.canMutate) && !row.historical;
 const findBoard = (ctx: Ctx, boardId: string) => ctx.boards.find((board) => board.id === boardId);
-const statusLabel = (ctx: Ctx, status: TaskStatus) => ctx.t(STATUS_KEYS[status]);
+const statusLabel = (ctx: Ctx, status: TaskStatus, boardId?: string) => getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data).states.find((s) => s.id === status)?.name || (STATUS_KEYS[status] ? ctx.t(STATUS_KEYS[status]) : status);
 
 function taskDetail(ctx: Ctx, row: PortfolioRow): string {
     const board = findBoard(ctx, row.boardId);
@@ -206,9 +206,9 @@ function taskActionItems(ctx: Ctx, row: PortfolioRow, compact: boolean): Palette
     if (!canEdit(row)) return items;
 
     const current = normalizeTaskStatus(row.task.status);
-    const statuses = defaultColumns.map((column) => column.status);
-    const targets = compact ? statuses.slice(statuses.indexOf(current) + 1) : statuses.filter((status) => status !== current);
-    targets.forEach((status) => items.push(item(`move-${status}`, 'move', ctx.t('palette.moveTo', { status: statusLabel(ctx, status) }),
+    const statuses = getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data).transitions[current] || [];
+    const targets = statuses;
+    targets.forEach((status) => items.push(item(`move-${status}`, 'move', ctx.t('palette.moveTo', { status: statusLabel(ctx, status, boardId) }),
         { type: 'moveTask', boardId, taskId, status }, [STATUS_SHORTCUTS[status]])));
     if (!compact) items.push(item('move', 'move', ctx.t('palette.moveToStep'), step('status')));
     items.push(item('assign', 'assign', ctx.t('palette.assign'), step('assignee')));
@@ -255,9 +255,9 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
     const matches = (label: string) => scoreText(label, q) > 0;
     if (frame.step === 'status') {
         const current = normalizeTaskStatus(row.task.status);
-        return defaultColumns.map((column) => column.status)
-            .filter((status) => matches(statusLabel(ctx, status)))
-            .map((status) => choice(status, 'move', statusLabel(ctx, status), { type: 'moveTask', boardId, taskId, status },
+        return [current, ...(getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data).transitions[current] || [])]
+            .filter((status) => matches(statusLabel(ctx, status, boardId)))
+            .map((status) => choice(status, 'move', statusLabel(ctx, status, boardId), { type: 'moveTask', boardId, taskId, status },
                 { checked: status === current, hint: [STATUS_SHORTCUTS[status]] }));
     }
     if (frame.step === 'priority') {

@@ -9,6 +9,7 @@ import { migrateBoardData } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
+import { getWorkflow } from './workflow';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -79,11 +80,12 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
     const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };
     const now = nowIso();
     const roadmap = normalizeRoadmapExtension(input.extensions?.[ROADMAP_EXTENSION_KEY]);
-    const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
+    const normalizedColumns = input.extensions?.workflow ? getWorkflow(input).states.map((s) => ({ status: s.id, title: s.name })) : normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
     const normalizedTasks = Array.isArray(board.tasks)
         ? board.tasks.map((task) => normalizeTask(task, {
             fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
             includeStatusChangedAt: false,
+            workflow: getWorkflow(input),
             roadmap
         }))
         : [];
@@ -120,11 +122,12 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
     const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };
     const roadmap = normalizeRoadmapExtension(input.extensions?.[ROADMAP_EXTENSION_KEY]);
 
-    const normalizedColumns = normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
+    const normalizedColumns = input.extensions?.workflow ? getWorkflow(input).states.map((s) => ({ status: s.id, title: s.name })) : normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
     const normalizedTasks = Array.isArray(board.tasks)
         ? board.tasks.map(task => normalizeTask(task, {
             fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
             includeStatusChangedAt: false,
+            workflow: getWorkflow(input),
             roadmap
         }))
         : [];

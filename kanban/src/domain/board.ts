@@ -13,6 +13,7 @@ import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
+import { assertWorkflow, defaultWorkflow } from './workflow';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -122,13 +123,13 @@ export function createEmptyProjectData(title: string | null | undefined): BoardD
             updatedAt: now
         },
         board: {
-            columns: normalizeColumns(defaultColumns).map(col => ({ status: col.status, title: col.title })),
+            columns: defaultWorkflow().states.map(s => ({ status: s.id, title: s.name })),
             tasks: [],
             settings: {
                 title: projectTitle
             }
         },
-        extensions: {}
+        extensions: { workflow: defaultWorkflow() }
     };
 }
 
@@ -204,7 +205,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid meta structure.');
     }
     const schemaVersion = data.meta.schemaVersion;
-    if (schemaVersion !== 1 && schemaVersion !== BOARD_SCHEMA_VERSION) {
+    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== BOARD_SCHEMA_VERSION) {
         throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
     }
     if (data.meta.appId !== BOARD_APP_ID) {
@@ -250,6 +251,11 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid extensions structure.');
     }
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
+    if ('workflow' in extensions) {
+        assertWorkflow(extensions.workflow);
+        const workflow = extensions.workflow;
+        if (data.board.columns.length !== workflow.states.length || data.board.columns.some((col, index) => col.status !== workflow.states[index].id || col.title !== workflow.states[index].name)) throw new Error('Workflow columns do not match states.');
+    }
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {

@@ -88,15 +88,16 @@ function buildTaskPayload(task: SeedTask, index: number) {
 }
 
 function buildBoardPayload({ title, tasks = [], extensions = {} }: { title: string; tasks?: SeedTask[]; extensions?: unknown }) {
+  const workflow = (extensions as { workflow?: { states: { id: string; name: string }[] } }).workflow;
   return {
     meta: {
-      schemaVersion: tasks.some((task) => Object.hasOwn(task, 'responsible')) ? 2 : BOARD_SCHEMA_VERSION,
+      schemaVersion: workflow ? 3 : tasks.some((task) => Object.hasOwn(task, 'responsible')) ? 2 : BOARD_SCHEMA_VERSION,
       appId: BOARD_APP_ID,
       createdAt: FIXED_TIMESTAMP,
       updatedAt: FIXED_TIMESTAMP
     },
     board: {
-      columns: buildDefaultColumns(),
+      columns: workflow ? workflow.states.map((state) => ({ status: state.id, title: state.name })) : buildDefaultColumns(),
       tasks: tasks.map(buildTaskPayload),
       settings: {
         title,

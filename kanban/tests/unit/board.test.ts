@@ -145,7 +145,8 @@ describe('normalizeColumns', () => {
       { status: 'backlog', title: 'Ideas' },
       { status: 'to-do', title: 'Ready' },
       { status: 'doing', title: 'Working' },
-      { status: 'done', title: 'done' }
+      { status: 'done', title: 'done' },
+      { status: 'custom', title: 'Ignored custom' }
     ]);
   });
 
@@ -273,7 +274,7 @@ describe('createEmptyProjectData', () => {
 
   it('sets meta.schemaVersion to 2 and meta.appId to teamos-kanban', () => {
     const data = createEmptyProjectData('Title');
-    expect(data.meta.schemaVersion).toBe(2);
+    expect(data.meta.schemaVersion).toBe(3);
     expect(data.meta.appId).toBe('teamos-kanban');
   });
 
@@ -290,7 +291,7 @@ describe('createEmptyProjectData', () => {
   it('starts with no tasks and no extensions', () => {
     const data = createEmptyProjectData('Title');
     expect(data.board.tasks).toEqual([]);
-    expect(data.extensions).toEqual({});
+    expect(data.extensions.workflow?.entryStateId).toBe('to-do');
   });
 
   it('sets createdAt and updatedAt to the same timestamp', () => {
@@ -300,7 +301,7 @@ describe('createEmptyProjectData', () => {
 
   it('derives board.columns from the default columns via normalizeColumns, keeping only status/title', () => {
     const data = createEmptyProjectData('Title');
-    const expected = normalizeColumns(undefined).map((col) => ({ status: col.status, title: col.title }));
+    const expected = data.extensions.workflow!.states.map((s) => ({ status: s.id, title: s.name }));
     expect(data.board.columns).toEqual(expected);
     expect(data.board.columns.every((col) => Object.keys(col).sort().join(',') === 'status,title')).toBe(true);
   });

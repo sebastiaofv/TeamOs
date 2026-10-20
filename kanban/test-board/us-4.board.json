@@ -1,0 +1,18 @@
+{
+  "meta": {"schemaVersion": 3, "appId": "teamos-kanban", "createdAt": "2026-10-19T09:00:00Z", "updatedAt": "2026-10-19T09:00:00Z"},
+  "board": {
+    "columns": [{"status":"backlog","title":"Backlog"},{"status":"to-do","title":"Ready"},{"status":"doing","title":"Development"},{"status":"review","title":"Review"},{"status":"done","title":"Delivered"},{"status":"cancelled","title":"Abandoned"}],
+    "settings": {"title":"US-4 · Atlas workflow"},
+    "tasks": [
+      {"id":401,"title":"Unplanned intake","description":"Send to Board without a sprint.","status":"backlog","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":402,"title":"Blocked but movable","description":"Manual blockers do not prevent transitions.","status":"doing","blocked":true,"blockerReason":"Waiting for clarification","archived":false,"checklist":[],"priority":"high","dueDate":"2026-10-01","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":403,"title":"Archived review","description":"Must be included when removing Review.","status":"review","archived":true,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":404,"title":"Cancelled overdue date","description":"Not completed and not overdue.","status":"cancelled","archived":false,"checklist":[],"priority":null,"dueDate":"2020-01-01","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"}
+    ]
+  },
+  "extensions": {"workflow": {
+    "version":1,"entryStateId":"to-do","references":{"not-started":"to-do","in-progress":"doing","completed":"done","cancelled":"cancelled"},
+    "states":[{"id":"backlog","name":"Backlog","color":"#94a3b8","category":"not-started"},{"id":"to-do","name":"Ready","color":"#60a5fa","category":"not-started"},{"id":"doing","name":"Development","color":"#fbbf24","category":"in-progress"},{"id":"review","name":"Review","color":"#a78bfa","category":"in-progress"},{"id":"done","name":"Delivered","color":"#34d399","category":"completed"},{"id":"cancelled","name":"Abandoned","color":"#f87171","category":"cancelled"}],
+    "transitions":{"backlog":["to-do"],"to-do":["doing","cancelled"],"doing":["review","cancelled"],"review":["doing","done","cancelled"],"done":["doing"],"cancelled":["to-do"]}
+  }}
+}

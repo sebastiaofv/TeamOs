@@ -14,7 +14,7 @@ import {
     type TableColumnId
 } from './tableModel';
 import { clearTableFilters, setTableSort } from './tableControls';
-import { PRIORITY_LABELS, STATUS_LABELS, COLUMN_LABELS } from './tableLabels';
+import { PRIORITY_LABELS, COLUMN_LABELS } from './tableLabels';
 import { useTableDisclosure } from './useTableDisclosure';
 import { formatTableTimestamp } from './tablePresentation';
 import { buildSprintTableGroups, currentSprintRosters, unplannedTableRows, type SprintTableGroup, type TableView } from './tableViews';
@@ -77,7 +77,7 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
         <summary>
             <span className="table-sprint-name">{t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}</span>
             <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
-            <span>{completeness} ({group.completed}/{group.total})</span>
+            <span>{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
             <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
         </summary>
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
@@ -146,7 +146,7 @@ function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCre
     function cellText(row: PortfolioRow, column: TableColumnId): string {
         const value = tableCellValue(row, column, boardData);
         if (!value) return t('table.notDefined');
-        if (column === 'status') return t(STATUS_LABELS[row.task.status]);
+        if (column === 'status') return row.columnTitle || row.task.status;
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
         if (column === 'blocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
         if (column === 'createdAt' || column === 'updatedAt') return formatTableTimestamp(value) || t('table.notDefined');

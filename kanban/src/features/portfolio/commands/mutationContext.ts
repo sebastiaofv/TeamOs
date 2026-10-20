@@ -9,6 +9,7 @@ import {
     recordTaskTimelineEvent,
 } from '@/domain/timeline';
 import { touchTask } from '@/domain/task';
+import { canTransition } from '@/domain/workflow';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persistence/projectFiles';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
@@ -114,6 +115,7 @@ export function createBoardMutationContext({
             const task = data.board.tasks.find((entry) => Number(entry.id) === Number(taskId)) as Task;
             const before = captureTaskTimelineSnapshot(data, taskId);
             if (mutator(task, draft) === false) return false;
+            if (before && task.status !== before.status && !canTransition(data, before.status, task.status)) throw new Error(translateCurrent('workflow.transitionDenied'));
             touchTask(task);
             recordTaskTimelineEvent(data, before, captureTaskTimelineSnapshot(data, taskId));
             return true;

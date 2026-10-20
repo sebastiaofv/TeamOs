@@ -1,0 +1,67 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it, vi } from 'vitest';
+import { fromPartial } from '@total-typescript/shoehorn';
+import { createEmptyProjectData, validateBoardData } from '../../src/domain/board';
+import { applyWorkflow, canTransition, defaultWorkflow, statusCategory, workflowErrors } from '../../src/domain/workflow';
+import { normalizeTask, isTaskOverdue } from '../../src/domain/task';
+import { serializeBoardDataFromObject } from '../../src/domain/serialize';
+import { createAppStore } from '../../src/features/portfolio/state/store';
+import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
+import { reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
+
+describe('project workflows', () => {
+    it('validates references, names, reserved Backlog and reachability', () => {
+        expect(workflowErrors(defaultWorkflow())).toEqual([]);
+        const w = defaultWorkflow();
+        w.states[0].category = 'completed';
+        w.states[1].name = w.states[2].name;
+        w.transitions.backlog = [];
+        expect(workflowErrors(w).join(' ')).toMatch(/Backlog/);
+        expect(workflowErrors(w).join(' ')).toMatch(/unique/);
+        expect(workflowErrors(w).join(' ')).toMatch(/reachable/);
+    });
+    it('has directional transitions and cancellation is not completion or overdue', () => {
+        const data = createEmptyProjectData('Test');
+        const w = defaultWorkflow();
+        w.transitions['to-do'] = ['done'];
+        applyWorkflow(data, w, {});
+        expect(canTransition(data, 'to-do', 'backlog')).toBe(false);
+        expect(canTransition(data, 'backlog', 'to-do')).toBe(true);
+        w.states.push({ id: 'cancel', name: 'Abandoned', color: '#ff0000', category: 'cancelled' });
+        w.transitions.backlog.push('cancel'); w.references.cancelled = 'cancel';
+        applyWorkflow(data, w, {});
+        expect(statusCategory('cancel', data)).toBe('cancelled');
+        expect(isTaskOverdue(normalizeTask({ id: 1, title: 'Old', status: 'cancel', dueDate: '2000-01-01' }), data)).toBe(false);
+    });
+    it('requires an explicit relocation, including archived workitems, and round-trips a custom state', () => {
+        const data = createEmptyProjectData('Test');
+        data.board.tasks = [normalizeTask({ id: 1, title: 'Archived', status: 'doing', archived: true })];
+        const w = defaultWorkflow();
+        w.states = w.states.filter((s) => s.id !== 'doing');
+        delete w.transitions.doing; delete w.references['in-progress'];
+        Object.keys(w.transitions).forEach((id) => { w.transitions[id] = w.transitions[id].filter((s) => s !== 'doing'); });
+        expect(() => applyWorkflow(data, w, {})).toThrow(/destination/);
+        applyWorkflow(data, w, { doing: 'to-do' });
+        expect(data.board.tasks[0]).toMatchObject({ id: 1, status: 'to-do', archived: true });
+        const reopened = serializeBoardDataFromObject(JSON.parse(JSON.stringify(data)));
+        validateBoardData(reopened); expect(reopened.extensions.workflow).toEqual(w);
+    });
+    it('enforces transitions in commands and keeps historical names and replay', async () => {
+        const data = createEmptyProjectData('Test');
+        data.board.tasks = [normalizeTask({ id: 1, title: 'Blocked', status: 'to-do', blocked: true, blockerReason: 'Informative only' })];
+        const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Test', handle: {}, data })] });
+        const actions = createPortfolioMutationActions({ store, enqueueSave: async () => true, markDirty: vi.fn(), alert: vi.fn(), openDialogFn: vi.fn() });
+        expect(await actions.movePortfolioTaskToStatus('p', 1, 'done')).toBe(true);
+        const saved = store.getState().portfolioBoards[0].data;
+        expect(saved.extensions.timeline?.events.at(-1)?.meta?.statusLabels).toMatchObject({ 'to-do': 'To Do', done: 'Done' });
+        expect(reconstructBoardStateFromTimeline(saved, 1).board.tasks[0].status).toBe('done');
+        saved.extensions.workflow!.transitions.done = [];
+        expect(await actions.movePortfolioTaskToStatus('p', 1, 'to-do')).toBe(false);
+    });
+    it('validates the manual test board and preserves its identities', () => {
+        const input = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+        validateBoardData(input);
+        const output = serializeBoardDataFromObject(input); validateBoardData(output);
+        expect(output.board.tasks.map((t) => [t.id, t.status])).toEqual(input.board.tasks.map((t: { id: number; status: string }) => [t.id, t.status]));
+    });
+});

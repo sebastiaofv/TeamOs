@@ -35,13 +35,13 @@ describe('workitem participants and responsible person', () => {
     const input = JSON.parse(readFileSync(new URL('../fixtures/assignments-v1.board.json', import.meta.url), 'utf8'));
     validateBoardData(input);
     const migrated = serializeBoardDataFromObject(input);
-    expect(migrated.meta.schemaVersion).toBe(2);
+    expect(migrated.meta.schemaVersion).toBe(3);
     expect(migrated.board.tasks[0]).toMatchObject({ id: 17, assignees: ['Ana', 'Rui'], responsible: '' });
     migrated.board.tasks[0] = setTaskResponsible(migrated.board.tasks[0], 'Marta');
     const reopened = serializeBoardDataFromObject(JSON.parse(JSON.stringify(migrated)));
     validateBoardData(reopened);
     expect(reopened.board.tasks).toEqual(migrated.board.tasks);
-    expect(reopened.extensions).toEqual(input.extensions);
+    expect(reopened.extensions).toMatchObject(input.extensions);
     const invalid = structuredClone(reopened);
     invalid.board.tasks[0].responsible = 'Unknown';
     expect(() => validateBoardData(invalid)).toThrow(/participant/i);
