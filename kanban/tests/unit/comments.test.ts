@@ -91,6 +91,12 @@ describe('offline immutable conversations', () => {
         expect(conversationWorkitemKey(data, fresh)).not.toBe(getComments(data)[0].workitemKey);
         expect(visibleComments(data, fresh)).toHaveLength(0);
     });
+    it('does not attach old comments to an unrecorded reintroduction after deletion', () => {
+        const data = setup(); publish(data);
+        const old = data.board.tasks[0]; recordTaskTimelineEvent(data, old, null);
+        expect(conversationWorkitemKey(data, old)).toBeNull();
+        expect(visibleComments(data, old)).toEqual([]);
+    });
     it('publishes atomically once even when saving fails and retains the applied ID/timestamp', async () => {
         const data = setup();
         const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Conversation', handle: {}, data })] });

@@ -22,15 +22,19 @@ export function conversationWorkitemKey(data: LooseBoardData, task: Pick<Task, '
     const registry = new Map<string, Set<string>>();
     let currentSignature = ''; let active: string | null = null;
     const register = (item: Pick<Task, 'id' | 'createdAt'>, key: string) => { currentSignature = signature(item); registry.set(currentSignature, new Set([...(registry.get(currentSignature) || []), key])); active = key; };
-    const initial = sequence[0]?.snapshot?.board?.tasks?.find((item) => item.id === task.id);
+    const initialTasks = sequence[0]?.snapshot?.board?.tasks;
+    const initial = Array.isArray(initialTasks) ? initialTasks.find((item) => item && item.id === task.id) : undefined;
     if (initial) register(initial, `baseline:${sequence[0].id}:${task.id}`);
     const end = cutoff === undefined ? sequence.length - 1 : Math.min(cutoff, sequence.length - 1);
     for (let index = 1; index <= end; index++) {
         const event = sequence[index];
-        if (event.kind === 'task.created' && Number(event.entityId) === task.id && event.snapshot) register(event.snapshot as Task, `created:${event.id}:${index}`);
+        if (event.kind === 'task.created' && Number(event.entityId) === task.id) {
+            if (event.snapshot && Number(event.snapshot.id) === task.id && normalizeTimestamp(event.snapshot.createdAt)) register(event.snapshot as Task, `created:${event.id}:${index}`);
+            else { active = null; currentSignature = ''; }
+        }
         else if (event.kind === 'task.deleted' && Number(event.entityId) === task.id) { active = null; currentSignature = ''; }
-        else if (event.kind === 'board.restored' && event.snapshot?.board) {
-            const restored = event.snapshot.board.tasks.find((item) => item.id === task.id);
+        else if (event.kind === 'board.restored' && Array.isArray(event.snapshot?.board?.tasks)) {
+            const restored = event.snapshot.board.tasks.find((item) => item && item.id === task.id);
             if (!restored) { active = null; currentSignature = ''; continue; }
             const known = registry.get(signature(restored));
             if (known?.size === 1) { active = [...known][0]; currentSignature = signature(restored); }
@@ -39,8 +43,6 @@ export function conversationWorkitemKey(data: LooseBoardData, task: Pick<Task, '
         }
     }
     if (active && currentSignature === signature(task)) return active;
-    const matching = registry.get(signature(task));
-    if (matching?.size === 1) return [...matching][0];
     if (registry.size || sequence.slice(0, end + 1).some((event) => Number(event.entityId) === task.id && ['task.created', 'task.deleted'].includes(event.kind))) return null;
     return `legacy:${signature(task)}`;
 }
@@ -64,6 +66,8 @@ export function parseConversations(value: unknown, sequence?: readonly TimelineE
     if (value.entries.length && !sequence) throw new CommentError('record');
     const ids = new Set<string>(); const imageIds = new Set<string>();
     const eventIndices = new Map(sequence?.map((event, index) => [event.id, index]));
+    const eventCounts = new Map<string, number>();
+    sequence?.forEach((event) => eventCounts.set(event.id, (eventCounts.get(event.id) || 0) + 1));
     let previousIndex = -1;
     for (const item of value.entries) {
         if (!hasExactKeys(item, ['id', 'taskId', 'workitemKey', 'workitemCreatedAt', 'eventId', 'at', 'author', 'text', 'images']) || typeof item.id !== 'string' || !item.id || ids.has(item.id) || !Number.isSafeInteger(item.taskId) || Number(item.taskId) <= 0 || typeof item.workitemKey !== 'string' || !item.workitemKey || typeof item.eventId !== 'string' || !item.eventId || !normalizeTimestamp(item.at) || !normalizeTimestamp(item.workitemCreatedAt)) throw new CommentError('record');
@@ -76,7 +80,7 @@ export function parseConversations(value: unknown, sequence?: readonly TimelineE
             const index = eventIndices.get(item.eventId);
             if (index === undefined || index <= previousIndex) throw new CommentError('record');
             const event = sequence[index];
-            if (sequence.filter((entry) => entry.id === item.eventId).length !== 1) throw new CommentError('record');
+            if (eventCounts.get(item.eventId) !== 1) throw new CommentError('record');
             if (event.kind !== 'task.comment.published' || event.entityId !== String(item.taskId) || event.meta?.commentId !== item.id || event.meta.workitemKey !== item.workitemKey || normalizeTimestamp(event.at) !== normalizeTimestamp(item.at)) throw new CommentError('record');
             previousIndex = index;
         }
