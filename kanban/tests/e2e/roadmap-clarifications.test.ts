@@ -38,6 +38,13 @@ test('compact phase/sprint rows share tables and execution progress; Today spans
     const line = await page.locator('.roadmap-today-marker').boundingBox();
     const sprint = await page.locator('#roadmap-row-sprint-october').boundingBox();
     expect(line!.height).toBeGreaterThan(400); expect(line!.y + line!.height).toBeGreaterThanOrEqual(sprint!.y + sprint!.height);
+    const unclassified = page.locator('.roadmap-unclassified');
+    for (const expanded of [true, false]) {
+        await unclassified.getByRole('button', { name: expanded ? 'Show tasks' : 'Hide tasks', exact: true }).click();
+        const boundary = (await unclassified.boundingBox())!.y;
+        const ends = await page.locator('.roadmap-date-overlay > span, .roadmap-temporal-overlay > span').evaluateAll((guides) => guides.map((guide) => guide.getBoundingClientRect().bottom));
+        ends.forEach((end) => expect(Math.abs(end - boundary)).toBeLessThanOrEqual(1));
+    }
 });
 
 test('review adjustments keep the axis compact, guides above bars and progress at the filled edge', async ({ page }) => {

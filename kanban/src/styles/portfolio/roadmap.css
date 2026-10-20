@@ -7,6 +7,7 @@
 .roadmap-completion-controls .btn { font-size: 10px; padding: 4px 7px; }
 .roadmap-completion-controls [aria-pressed="true"], .roadmap-perspectives [aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--bg-secondary); }
 .portfolio-roadmap-timeline { --roadmap-label-width: 440px; --roadmap-temporal-min: 640px; width: 100%; min-width: calc(var(--roadmap-label-width) + var(--roadmap-temporal-min) + 16px); position: relative; border: 1px solid var(--border); background: var(--bg-primary); }
+.roadmap-planned-area { position: relative; }
 .roadmap-axis-shell, .roadmap-row-main { display: grid; grid-template-columns: var(--roadmap-label-width) minmax(0, 1fr); gap: 0; padding-right: 16px; }
 .roadmap-axis-shell { position: sticky; top: 0; z-index: 7; border-bottom: 1px solid var(--border); background: var(--bg-card); }
 .roadmap-axis-label { display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 12px; font-size: 12px; font-weight: 600; }

@@ -194,7 +194,7 @@ function PortfolioRoadmapView({ view, expanded }: { view: PortfolioRoadmapViewMo
             <button className="btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.milestone') })} onClick={() => actions.openRoadmapEntityModal('milestones')}>{t('roadmap.add', { label: t('roadmap.milestone') })}</button>
             <button className="btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.phase') })} onClick={() => actions.openRoadmapEntityModal('phases')}>{t('roadmap.add', { label: t('roadmap.phase') })}</button>
         </div>
-        <div className="portfolio-roadmap-timeline surface-page surface-border" style={style}>
+        <div className="portfolio-roadmap-timeline surface-page surface-border" style={style}><div className="roadmap-planned-area">
             <div className="roadmap-temporal-overlay" aria-hidden="true">
                 {view.axisTicks.map((tick) => <span className="roadmap-grid-guide" key={tick.label} style={{ left: `${tick.position}%`, top: 18 }} />)}
             </div>
@@ -223,6 +223,7 @@ function PortfolioRoadmapView({ view, expanded }: { view: PortfolioRoadmapViewMo
                     <div className="roadmap-list">{!rows.length ? <p className="roadmap-empty">{t('roadmap.noItems', { label: label.toLowerCase() })}</p> : rows.map((row) => <PlanningRow key={row.key} row={row} view={view} canEdit={canEdit} perspective={perspectives[row.key] || 'workitems'} setPerspective={(value) => setPerspectives((current) => ({ ...current, [row.key]: value }))} />)}</div>
                 </section>;
             })}
+        </div>
             <section className="roadmap-unclassified" aria-labelledby="roadmapUnclassifiedHeading"><header><h3 id="roadmapUnclassifiedHeading">{t('roadmap.unclassified')}</h3><ScopeSummary scope={view.unclassified} /><button className="btn" type="button" aria-expanded={Boolean(expanded.unclassified)} onClick={() => actions.togglePortfolioRoadmapRowExpanded(view.boardId, 'unclassified')}>{t(expanded.unclassified ? 'roadmap.hideTasks' : 'roadmap.showTasks')}</button></header>
                 {expanded.unclassified && <ScopeTable scope={view.unclassified} view={view} scopeId="roadmap-unclassified" emptyLabel={t('roadmap.emptyUnclassified')} />}
             </section>
