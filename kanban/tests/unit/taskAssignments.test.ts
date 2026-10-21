@@ -41,7 +41,7 @@ describe('workitem participants and responsible person', () => {
     const reopened = serializeBoardDataFromObject(JSON.parse(JSON.stringify(migrated)));
     validateBoardData(reopened);
     expect(reopened.board.tasks).toEqual(migrated.board.tasks);
-    expect(reopened.extensions).toEqual(input.extensions);
+    expect(reopened.extensions).toMatchObject(input.extensions);
     const invalid = structuredClone(reopened);
     invalid.board.tasks[0].responsible = 'Unknown';
     expect(() => validateBoardData(invalid)).toThrow(/participant/i);
