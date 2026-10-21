@@ -54,7 +54,7 @@ test('review adjustments keep the axis compact, guides above bars and progress a
     const axis = await page.locator('.roadmap-axis-line').boundingBox();
     const annotations = await page.locator('.milestone-annotations').boundingBox();
     expect(annotations!.y).toBe(axis!.y + axis!.height);
-    expect(annotations!.height).toBeLessThanOrEqual(64);
+    expect(annotations!.height).toBeLessThanOrEqual(76);
     const boxes = await page.locator('.milestone-annotation').evaluateAll((items) => items.map((item) => {
         const box = item.getBoundingClientRect(); return { x: box.x, y: box.y, right: box.right, bottom: box.bottom };
     }));

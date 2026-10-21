@@ -21,7 +21,7 @@ export function nextMilestoneColor(items: RoadmapItem[]): string {
     return MILESTONE_COLORS.find((color) => !used.has(color)) || MILESTONE_COLORS[0];
 }
 
-export const MILESTONE_LANE_HEIGHT = 32;
+export const MILESTONE_LANE_HEIGHT = 38;
 export const MILESTONE_LABEL_WIDTH = 140;
 
 /** Pack complete marker/label footprints, in pixels, on either side of the date. */

@@ -35,7 +35,7 @@ function ProgressBar({ row, left, width, toggle }: { row: RoadmapPlanningRow; le
     const bar = useElementWidth<HTMLButtonElement>();
     const value = percent(row);
     const progress = row.progress.percent || 0;
-    const inside = bar.width * progress / 100 >= value.length * 6 + 12;
+    const inside = bar.width * progress / 100 >= value.length * 6.6 + 12;
     return <button ref={bar.ref} className="roadmap-row-timeline-bar" type="button" data-progress={row.progress.percent ?? 'na'} data-start={row.item!.startDate} data-end={row.item!.endDate}
         style={{ left: `${left}%`, width: `${width}%` }} title={`${row.item!.title} · ${formatRoadmapDateRange(row.item!, language)} · ${value}`} aria-label={t('roadmap.openBar', { title: row.item!.title, percent: value })} onClick={toggle}>
         <span className="roadmap-bar-fill" style={{ width: `${progress}%` }} /><span className={`roadmap-bar-value${inside ? ' roadmap-value-inside' : ''}`} style={{ left: `${progress}%` }}>{value}</span>
@@ -144,7 +144,7 @@ function MilestoneDiamond({ marker }: { marker: RoadmapMilestoneMarker }) {
     const percent = useProgressText();
     const value = percent(marker);
     // Keep fractional percentages within the coloured shape while short values retain the compact marker.
-    const size = Math.max(16, (value.length * 4.8 + 8) / Math.SQRT2);
+    const size = Math.max(16, (value.length * 5.5 + 9) / Math.SQRT2);
     return <span className="milestone-diamond" style={{ '--milestone-color': marker.item!.color, '--milestone-size': `${size}px` } as CSSProperties}><span>{value}</span></span>;
 }
 
@@ -199,7 +199,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
                 {view.axisTicks.map((tick) => <span className="roadmap-grid-guide" key={tick.label} style={{ left: `${tick.position}%`, top: 18 }} />)}
             </div>
             <div className="roadmap-date-overlay" aria-hidden="true">
-                {milestones.map((milestone) => <MilestoneGuide marker={milestone} markers={milestones} key={milestone.key} top={44 + Math.min(milestone.lane * MILESTONE_LANE_HEIGHT + 16, annotationHeight)} />)}
+                {milestones.map((milestone) => <MilestoneGuide marker={milestone} markers={milestones} key={milestone.key} top={44 + Math.min(milestone.lane * MILESTONE_LANE_HEIGHT + MILESTONE_LANE_HEIGHT / 2, annotationHeight)} />)}
                 {marker && <span className="roadmap-today-marker" style={{ left: `${marker.position}%` }} />}
             </div>
             <div className="roadmap-axis-shell"><div className="roadmap-axis-label">{t('roadmap.timeline')}<span>{view.range.start.toISOString().slice(0, 10)} — {view.range.end.toISOString().slice(0, 10)}</span></div>
@@ -207,7 +207,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
                     {marker && <span className="roadmap-today-axis-line" style={{ left: `${marker.position}%` }} aria-hidden="true" />}
                     <div className="roadmap-axis-line">{marker && <span className="roadmap-today-marker-label" style={{ left: `${marker.position}%` }} aria-label={t('roadmap.todayAria', { date: marker.iso })}>T</span>}<div className="roadmap-axis-ticks">{view.axisTicks.map((tick) => <span className="roadmap-axis-tick" key={tick.label} style={{ left: `${tick.position}%` }}>{tick.label}</span>)}</div></div>
                     {milestones.length > 0 && <div className="milestone-annotations" role="region" aria-label={t('roadmap.milestones')} tabIndex={0} style={{ height: annotationHeight }}><div className="milestone-annotation-canvas" style={{ height: annotationLanes * MILESTONE_LANE_HEIGHT }}>
-                        {milestones.map((milestone) => <MilestoneGuide marker={milestone} markers={milestones} key={`guide-${milestone.key}`} local top={milestone.lane * MILESTONE_LANE_HEIGHT + 16} />)}
+                        {milestones.map((milestone) => <MilestoneGuide marker={milestone} markers={milestones} key={`guide-${milestone.key}`} local top={milestone.lane * MILESTONE_LANE_HEIGHT + MILESTONE_LANE_HEIGHT / 2} />)}
                         {milestones.map((milestone) => <button className={`milestone-annotation${milestone.labelAtEnd ? ' milestone-at-end' : ''}`} type="button" key={milestone.key} data-roadmap-kind="milestone" data-roadmap-id={milestone.item!.id}
                             style={{ left: `${milestone.position}%`, top: milestone.lane * MILESTONE_LANE_HEIGHT, '--milestone-label-width': `${MILESTONE_LABEL_WIDTH}px` } as CSSProperties} aria-label={t('roadmap.openMilestone', { title: milestone.item!.title, date: milestone.item!.dueDate || '', percent: percent(milestone) })} onClick={() => setMilestoneId(milestone.item!.id)}>
                             <MilestoneDiamond marker={milestone} /><span className="milestone-annotation-label" title={`${milestone.item!.title} · ${milestone.item!.dueDate}`}><strong>{milestone.item!.title}</strong><span>{formatDueDateForUi(milestone.item!.dueDate)}</span></span>
