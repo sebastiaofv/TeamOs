@@ -65,7 +65,7 @@ describe('palette task commands', () => {
     });
     expect(id).toBe(5);
     expect(task(5)).toMatchObject({
-      title: 'Fix login crash', status: 'to-do', assignees: ['Marta'], priority: 'high',
+      title: 'Fix login crash', status: 'backlog', assignees: ['Marta'], priority: 'high',
       tags: ['auth'], effort: 'S', dueDate: '2026-10-02', archived: false
     });
     expect(events().at(-1)).toMatchObject({ kind: 'task.created', entityId: '5' });

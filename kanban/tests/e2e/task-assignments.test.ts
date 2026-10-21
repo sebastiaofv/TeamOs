@@ -159,7 +159,7 @@ test('new workitems support responsibility, reopen read-only, and can progress w
   await expect(page.locator('#taskModal')).toBeHidden();
   await waitForBoardWrites(page, 1);
   const saved = await readSavedBoard(page, 'p');
-  expect(saved.board.tasks[0]).toMatchObject({ assignees: ['Marta'], responsible: 'Marta', status: 'to-do' });
+  expect(saved.board.tasks[0]).toMatchObject({ assignees: ['Marta'], responsible: 'Marta', status: 'backlog' });
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'reopened', title: saved.board.settings.title, hasHandle: false,
     tasks: saved.board.tasks, extensions: saved.extensions }]);

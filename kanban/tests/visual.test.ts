@@ -1,5 +1,47 @@
 import { test, expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
+
+test.describe('US-4 persisted Board column chooser', () => {
+  for (const theme of ['light', 'dark']) {
+    test(`column visibility (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await seedPortfolioBoards(page, [{ id: 'columns', title: 'Column preferences', hasHandle: true, tasks: [
+        { id: 1, title: 'Original card layout', status: 'doing', assignees: ['Ana'], responsible: 'Ana', tags: ['ui'] }
+      ] }], { selectedBoardId: 'columns' });
+      await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+      await page.getByRole('checkbox', { name: 'done', exact: true }).uncheck();
+      await page.mouse.move(1, 1);
+      await expect(page).toHaveScreenshot(`board-column-visibility-${theme}.png`, { fullPage: true });
+    });
+  }
+});
+
+test.describe('US-4 workflow configuration layout', () => {
+  test.use({ locale: 'en-US', timezoneId: 'UTC' });
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1280, 390]) {
+      test(`state editor and references at ${width}px (${theme})`, async ({ page }) => {
+        await gotoVisualApp(page, theme);
+        await page.setViewportSize({ width, height: 900 });
+        const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+        await seedPortfolioBoards(page, [{ id: 'workflow', title: fixture.board.settings.title, hasHandle: true,
+          tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'workflow' });
+        await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
+        const dialog = page.locator('.workflow-dialog');
+        expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(width);
+        await dialog.locator('[data-state-choice="doing"]').click();
+        await page.mouse.move(1, 1);
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await expect(dialog).toHaveScreenshot(`workflow-editor-states-${theme}-${width}.png`);
+        await dialog.getByRole('tab', { name: 'Entry & references', exact: true }).click();
+        await page.mouse.move(1, 1);
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await expect(dialog).toHaveScreenshot(`workflow-editor-references-${theme}-${width}.png`);
+      });
+    }
+  }
+});
 
 // Pixel baselines for pieces being ported to React. They are captured against
 // the legacy implementation first; a port must match them unchanged. Baselines

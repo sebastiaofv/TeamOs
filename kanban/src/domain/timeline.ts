@@ -22,6 +22,8 @@ import { normalizeTask } from './task';
 import { getRelations } from '@/domain/taskRelations';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
+import { getWorkflow } from './workflow';
+import { parseBoardView } from './boardView';
 import { reserveTaskIdentities } from './taskIdentity';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
@@ -130,7 +132,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
-    if (event.kind === 'board.restored' && event.snapshot) {
+    if ((event.kind === 'board.restored' || event.kind === 'workflow.updated') && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
 
@@ -144,8 +146,8 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
-    if (event.kind === 'task.relations.updated' && event.changes?.relations) {
-        nextState.extensions = { ...(nextState.extensions || {}), taskRelations: { version: 1, relations: cloneSerializable(event.changes.relations.after) } };
+    if (event.kind === 'board.columns.visibility.changed' && event.changes?.boardView) {
+        nextState.extensions = { ...nextState.extensions, boardView: parseBoardView(event.changes.boardView.after) };
         return nextState;
     }
 
@@ -251,6 +253,7 @@ export function captureTaskTimelineSnapshot(boardData: LooseBoardData | null | u
     return normalizeTask(task, {
         fallbackAttachments: getTaskAttachments(boardData, taskId),
         includeStatusChangedAt: false,
+        workflow: getWorkflow(boardData),
         roadmap: getRoadmapExtension(boardData)
     });
 }
@@ -361,5 +364,9 @@ export function recordBoardRestoreTimelineEvent(boardData: LooseBoardData, resto
 export function recordTaskTimelineEvent(boardData: LooseBoardData, beforeTask: Task | null | undefined, afterTask: Task | null | undefined): TimelineEvent | null {
     const event = buildTaskTimelineEvent(beforeTask, afterTask);
     if (!event) return null;
+    if (event.changes?.status) {
+        const workflow = getWorkflow(boardData);
+        event.meta = { ...event.meta, statusLabels: Object.fromEntries(workflow.states.map((s) => [s.id, s.name])) };
+    }
     return appendTimelineEvent(boardData, event);
 }

@@ -9,6 +9,7 @@ import type {
     TaskInput,
     TaskStatus
 } from './types';
+import type { Workflow } from './types';
 import type { BlockedFilter } from '@/features/portfolio/types';
 import { defaultColumns, isEffort } from './constants';
 import { nowIso, normalizeTimestamp, todayLocalIsoDate } from './util';
@@ -16,6 +17,7 @@ import { normalizeDueDate } from './calendar';
 import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
 import { normalizeAssignee, normalizeAssignees, setTaskResponsible } from './taskAssignments';
+import { statusCategory } from './workflow';
 import { reservedTaskHighWaterMark } from './taskIdentity';
 export { normalizeAssignee, normalizeAssignees } from './taskAssignments';
 export { findTaskInBoardData } from './boardData';
@@ -138,7 +140,7 @@ export function resolveKnownTaskStatus(status: unknown): TaskStatus | null {
     if (raw === 'to-do' || raw === 'todo' || raw === 'nextup') return 'to-do';
     if (raw === 'doing' || raw === 'inprogress' || raw === 'in-progress') return 'doing';
     if (raw === 'done' || raw === 'concluid') return 'done';
-    return null;
+    return String(status).trim();
 }
 
 export function getBoardTagSuggestions(boardData: LooseBoardData | null | undefined): string[] {
@@ -175,9 +177,9 @@ export function getTaskStatusAgeBaseTimestamp(task: TaskInput | null | undefined
         || '';
 }
 
-export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived'>): boolean {
+export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived'>, data?: LooseBoardData): boolean {
     const due = normalizeDueDate(task.dueDate);
-    if (!due || task.status === 'done' || task.archived) return false;
+    if (!due || ['completed', 'cancelled'].includes(statusCategory(task.status, data)) || task.archived) return false;
     const today = todayLocalIsoDate();
     return due < today;
 }
@@ -200,13 +202,12 @@ export function formatTaskStatusAge(task: TaskInput | null | undefined): string 
 }
 
 export function resolveCreateTaskStatus(boardRecord: BoardRecordLike, preferredStatus: unknown): TaskStatus {
-    const validStatuses = new Set((boardRecord?.data?.board?.columns || []).map(col => normalizeTaskStatus(col.status)));
-    const fallbackStatus = normalizeTaskStatus((boardRecord?.data?.board?.columns || [defaultColumns[0]])[0]?.status);
-    const normalizedPreferred = normalizeTaskStatus(preferredStatus);
-    return validStatuses.has(normalizedPreferred) ? normalizedPreferred : fallbackStatus;
+    void boardRecord; void preferredStatus;
+    return 'backlog';
 }
 
 export type NormalizeTaskOptions = {
+    workflow?: Workflow;
     fallbackAttachments?: unknown;
     includeStatusChangedAt?: boolean;
     roadmap?: unknown;
@@ -237,7 +238,7 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
         phaseId: normalizeRoadmapRef(task.phaseId),
         milestoneId: normalizeRoadmapRef(task.milestoneId),
         sprintId: normalizeRoadmapRef(task.sprintId),
-        status: normalizeTaskStatus(task.status)
+        status: options.workflow?.states.some((s) => s.id === task.status) ? String(task.status) : normalizeTaskStatus(task.status)
     };
     if (includeStatusChangedAt) {
         const statusChangedAt = normalizeTimestamp(task.statusChangedAt);

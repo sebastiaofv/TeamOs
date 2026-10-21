@@ -21,6 +21,7 @@ import { getRelations, getTaskRelations, removeTaskRelation, setTaskRelation, Ta
 import { cloneSerializable } from '@/domain/serializable';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
+import { canTransition } from '@/domain/workflow';
 import { removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -306,15 +307,20 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         if (!boardId || taskId === null || taskId === undefined || !isPortfolioBoardMutable(boardId)) return false;
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return false;
-        const normalizedTargetStatus = normalizeTaskStatus(targetStatus);
+        const normalizedTargetStatus = String(targetStatus || '').trim();
         const validStatuses = new Set(
             (source.boardRecord.data.board.columns || defaultColumns)
-                .map((column) => normalizeTaskStatus(column.status))
+                .map((column) => column.status)
         );
         if (!validStatuses.has(normalizedTargetStatus)) return false;
-        if (normalizeTaskStatus(source.task.status) === normalizedTargetStatus) return false;
+        if (source.task.status === normalizedTargetStatus) return false;
+        if (!canTransition(source.boardRecord.data, source.task.status, normalizedTargetStatus)) {
+            await alert(translateCurrent('workflow.transitionDenied'));
+            return false;
+        }
         return Boolean(await runPortfolioTaskMutation(boardId, taskId, (task) => {
-            if (normalizeTaskStatus(task.status) === normalizedTargetStatus) return false;
+            if (!canTransition(source.boardRecord.data, task.status, normalizedTargetStatus)) return false;
+            if (task.status === normalizedTargetStatus) return false;
             task.status = normalizedTargetStatus;
             return true;
         }));
@@ -390,7 +396,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         return true;
     }
 
-    // Creates a task in To Do (or the board's first column) from quick-create
+    // All quick-created tasks start in the reserved Backlog state.
     // fields. Returns the new task id, or null when nothing was created.
     async function createPortfolioTaskFromFields(boardId: string, fields: {
         title: string; assignees: string[]; priority: Priority | null; tags: string[]; effort: Effort | null; dueDate: string;

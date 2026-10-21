@@ -21,16 +21,23 @@ import type { BoardColumn } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
-import { defaultColumns } from '@/domain/constants';
-import { normalizeTaskStatus } from '@/domain/task';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
 import { useI18n, translateCurrent } from '@/shared/i18n';
+import { buildPortfolioBoardView } from '@/features/portfolio/queries/portfolioBoardView';
 
 export { PortfolioTaskCard } from '@/features/portfolio/task/TaskCard';
 export type { CardDrag, TaskCardState } from '@/features/portfolio/task/TaskCard';
 
 type BoardViewState = TaskCardState & Pick<AppState, 'portfolioVisibleRows'>;
+
+function columnTitle(column: BoardColumn, t: ReturnType<typeof useI18n>['t']): string {
+    if (column.status === 'backlog' && ['backlog', 'Backlog'].includes(column.title)) return t('board.backlog');
+    if (column.status === 'to-do' && ['to-do', 'To Do'].includes(column.title)) return t('board.toDo');
+    if (column.status === 'doing' && ['in progress', 'In progress', 'Doing'].includes(column.title)) return t('board.doing');
+    if (column.status === 'done' && ['done', 'Done'].includes(column.title)) return t('board.done');
+    return column.title;
+}
 
 const cardDragId = (item: PortfolioRow) => `${item.boardId}:${item.taskId ?? item.task.id}`;
 
@@ -46,14 +53,6 @@ const BOARD_DRAG_ANNOUNCEMENTS: Announcements = {
     onDragCancel: ({ active }) => translateCurrent('drag.movingCancelled', { title: draggedTitle(active) })
 };
 
-function getColumnTitle(status: string, title: string, t: ReturnType<typeof useI18n>['t']): string {
-    if (status === 'backlog') return t('board.backlog');
-    if (status === 'to-do') return t('board.toDo');
-    if (status === 'doing') return t('board.doing');
-    if (status === 'done') return t('board.done');
-    return title;
-}
-
 function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCardState }) {
     const canDrag = Boolean(item.canMutate) && !item.historical;
     const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
@@ -61,7 +60,7 @@ function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCar
         data: {
             boardId: item.boardId,
             taskId: Number(item.taskId ?? item.task.id),
-            status: normalizeTaskStatus(item.task.status),
+            status: item.task.status,
             title: item.task.title
         },
         attributes: { role: 'group', roleDescription: 'draggable task', tabIndex: 0 },
@@ -103,15 +102,10 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     );
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
-    const buckets: Record<string, PortfolioRow[]> = Object.fromEntries(defaultColumns.map((column) => [column.status, []]));
-    rows.forEach((item) => {
-        const status = normalizeTaskStatus(item.task.status);
-        if (!buckets[status]) buckets[status] = [];
-        buckets[status].push(item);
-    });
+    const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
+    const { columns, buckets } = buildPortfolioBoardView(state);
     const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 
-    const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
         && Boolean(selectedBoard?.handle)
         && !isBoardInHistoricalPreview(state, state.selectedPortfolioBoardId);
@@ -123,9 +117,8 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     const onDragEnd = ({ active, over }: DragEndEvent) => {
         finishDrag();
         const card = active.data.current;
-        const targetStatus = over?.data.current?.status;
-        if (!card || !targetStatus || targetStatus === card.status) return;
-        void actions.dropPortfolioTaskOnColumn(card.boardId, card.taskId, targetStatus);
+        const status = over?.data.current?.status;
+        if (card && status && status !== card.status) void actions.dropPortfolioTaskOnColumn(card.boardId, card.taskId, status);
     };
 
     return (
@@ -137,16 +130,17 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
             onDragEnd={onDragEnd}
             onDragCancel={finishDrag}
         >
-            {defaultColumns.map((column) => {
+            {!columns.length && <p className="board-columns-empty" role="status">{t(state.portfolioBoards.length ? 'board.allColumnsHidden' : 'toolbar.noProjectsLoaded')}</p>}
+            {columns.map((column) => {
                 const items = buckets[column.status] || [];
-                const columnTitle = getColumnTitle(column.status, column.title, t);
+                const title = columnTitle(column, t);
                 return (
                     <section className="portfolio-column" data-status={column.status} aria-labelledby={`portfolio-${column.status}-heading`} key={column.status}>
                         <div className="portfolio-column-header">
-                            <h2 className="column-title" id={`portfolio-${column.status}-heading`}>{columnTitle}</h2>
-                            <span className="column-count" aria-label={t('board.columnLabel', { title: columnTitle, count: items.length })}>{items.length}</span>
+                            <h2 className="column-title" id={`portfolio-${column.status}-heading`}>{title}</h2>
+                            <span className="column-count" aria-label={t('board.columnLabel', { title, count: items.length })}>{items.length}</span>
                         </div>
-                        <DroppableColumnBody column={{ ...column, title: columnTitle }}>
+                        <DroppableColumnBody column={{ ...column, title }}>
                             {canAddTasks && (
                                 <button className="add-task-card" type="button" data-action="add-task" data-status={column.status} onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, column.status)}>{t('board.addTask')}</button>
                             )}

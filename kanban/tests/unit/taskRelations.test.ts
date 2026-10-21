@@ -14,6 +14,25 @@ function project() {
 }
 
 describe('workitem relations', () => {
+  it('recalculates dependency blocking using workflow categories for custom completion states', () => {
+    const data = project();
+    const workflow = data.extensions.workflow!;
+    workflow.states.push({ id: 'released', name: 'Published', color: '#34d399', category: 'completed' });
+    workflow.transitions.doing.push('released');
+    workflow.transitions.released = [];
+    setTaskRelation(data, 1, 2, 'blocks');
+    expect(isTaskBlocked(data, 2)).toBe(true);
+    data.board.tasks[0].status = 'released';
+    expect(isTaskBlocked(data, 2)).toBe(false);
+    workflow.states.find((state) => state.id === 'released')!.category = 'in-progress';
+    expect(isTaskBlocked(data, 2)).toBe(true);
+    data.board.tasks[0].status = 'done';
+    expect(isTaskBlocked(data, 2)).toBe(false);
+    workflow.states.find((state) => state.id === 'released')!.category = 'completed';
+    workflow.references.completed = 'released';
+    workflow.states.find((state) => state.id === 'done')!.category = 'in-progress';
+    expect(isTaskBlocked(data, 2)).toBe(true);
+  });
   it('validates and round-trips the manual US2 board with full responsible names and compact relation scenarios', () => {
     validateBoardData(manualBoard);
     const saved = serializeBoardDataFromObject(manualBoard);
