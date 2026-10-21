@@ -1,0 +1,23 @@
+{
+  "meta":{"schemaVersion":3,"appId":"teamos-kanban","createdAt":"2026-10-19T09:00:00.000Z","updatedAt":"2026-10-19T10:00:00.000Z"},
+  "board":{
+    "columns":[{"status":"backlog","title":"Backlog"},{"status":"to-do","title":"To Do"},{"status":"doing","title":"Doing"},{"status":"done","title":"Done"}],
+    "settings":{"title":"US-8 · Local pull request links"},
+    "tasks":[
+      {"id":801,"title":"Delivery with multiple servers","description":"Links only; there is no GitHub API integration.","status":"doing","archived":false,"checklist":[],"priority":"high","dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-19T10:00:00.000Z","pullRequests":["https://github.com/example-atlas/platform/pull/81?view=full#review","http://git.internal:8080/teams/runtime/change/12?Q=One%2FTwo#Diff","https://code.example.test:8443/org/repo/pull/99?draft=yes#discussion"]},
+      {"id":802,"title":"Same URL on another workitem","description":"The project does not impose global URL uniqueness.","status":"to-do","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z","pullRequests":["https://github.com/example-atlas/platform/pull/81?view=full#review"]},
+      {"id":803,"title":"Empty list and new associations","description":"Try adding, correcting and canceling links here.","status":"backlog","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z","pullRequests":[]},
+      {"id":804,"title":"Archived offline reference","description":"No availability checks are performed; the link stays until explicitly changed.","status":"done","archived":true,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z","pullRequests":["http://unavailable.example.test:8081/a/nonstandard/path?offline=true#keep"]}
+    ]
+  },
+  "extensions":{"timeline":{"version":1,"baselineEventId":"us8-baseline","events":[
+    {"id":"us8-baseline","at":"2026-10-19T09:00:00.000Z","kind":"board.baseline","entityType":"board","entityId":"board","summary":"Baseline snapshot created","snapshot":{"board":{
+      "columns":[{"status":"backlog","title":"Backlog"},{"status":"to-do","title":"To Do"},{"status":"doing","title":"Doing"},{"status":"done","title":"Done"}],"settings":{"title":"US-8 · Local pull request links"},"tasks":[
+        {"id":801,"title":"Delivery with multiple servers","description":"Links only; there is no GitHub API integration.","status":"doing","archived":false,"checklist":[],"priority":"high","dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z","pullRequests":["https://github.com/example-atlas/platform/pull/81?view=full#review"]},
+        {"id":802,"title":"Same URL on another workitem","description":"The project does not impose global URL uniqueness.","status":"to-do","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z","pullRequests":["https://github.com/example-atlas/platform/pull/81?view=full#review"]},
+        {"id":803,"title":"Empty list and new associations","description":"Try adding, correcting and canceling links here.","status":"backlog","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z","pullRequests":[]},
+        {"id":804,"title":"Archived offline reference","description":"No availability checks are performed; the link stays until explicitly changed.","status":"done","archived":true,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z","pullRequests":["http://unavailable.example.test:8081/a/nonstandard/path?offline=true#keep"]}
+      ]},"extensions":{}}},
+    {"id":"us8-links-added","at":"2026-10-19T10:00:00.000Z","kind":"task.updated","entityType":"task","entityId":"801","summary":"Task updated: Delivery with multiple servers","changes":{"pullRequests":{"before":["https://github.com/example-atlas/platform/pull/81?view=full#review"],"after":["https://github.com/example-atlas/platform/pull/81?view=full#review","http://git.internal:8080/teams/runtime/change/12?Q=One%2FTwo#Diff","https://code.example.test:8443/org/repo/pull/99?draft=yes#discussion"]}},"meta":{"operationId":"us8-op-links","historyVersion":1}}
+  ]}}
+}

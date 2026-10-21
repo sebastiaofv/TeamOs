@@ -40,6 +40,7 @@ export type Task = {
     milestoneId: string;
     sprintId: string;
     status: TaskStatus;
+    pullRequests?: string[];
 };
 
 // A task as it may appear in a file before normalization, including the legacy
@@ -157,6 +158,7 @@ export type ProjectColor = { bg: string; border: string; text: string };
 // current consumer. Keeping them here lets the pure draft rules avoid a
 // dependency on the React feature layer.
 export type TaskEditorFields = {
+    pullRequests?: string[];
     title: string;
     description: string;
     blocked: boolean;
@@ -174,6 +176,7 @@ export type TaskEditorFields = {
 };
 
 export type TaskDraft = {
+    pullRequests?: string[];
     title: string;
     description: string;
     assignees: string[];

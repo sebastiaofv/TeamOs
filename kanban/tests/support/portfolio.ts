@@ -30,6 +30,7 @@ export type SeedTask = {
   milestoneId?: string;
   sprintId?: string;
   attachments?: unknown[];
+  pullRequests?: string[];
 };
 
 export type SeedBoard = {
@@ -83,6 +84,7 @@ function buildTaskPayload(task: SeedTask, index: number) {
     milestoneId: Object.hasOwn(task, 'milestoneId') ? task.milestoneId : undefined,
     sprintId: Object.hasOwn(task, 'sprintId') ? task.sprintId : undefined,
     ...(Array.isArray(task.attachments) ? { attachments: task.attachments } : {}),
+    ...(Object.hasOwn(task, 'pullRequests') ? { pullRequests: task.pullRequests } : {}),
     status: task.status || 'backlog'
   };
 }
@@ -90,7 +92,7 @@ function buildTaskPayload(task: SeedTask, index: number) {
 function buildBoardPayload({ title, tasks = [], extensions = {} }: { title: string; tasks?: SeedTask[]; extensions?: unknown }) {
   return {
     meta: {
-      schemaVersion: tasks.some((task) => Object.hasOwn(task, 'responsible')) ? 2 : BOARD_SCHEMA_VERSION,
+      schemaVersion: tasks.some((task) => Object.hasOwn(task, 'pullRequests')) ? 3 : tasks.some((task) => Object.hasOwn(task, 'responsible')) ? 2 : BOARD_SCHEMA_VERSION,
       appId: BOARD_APP_ID,
       createdAt: FIXED_TIMESTAMP,
       updatedAt: FIXED_TIMESTAMP

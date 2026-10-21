@@ -31,6 +31,7 @@ import { normalizeDueDate } from './calendar';
 import { normalizeRoadmapRef } from './roadmap';
 import { translateCurrent } from '@/shared/i18n';
 import { setTaskResponsible } from './taskAssignments';
+import { parsePullRequestLinks } from './pullRequests';
 
 const TAG_MAX_LENGTH = 30;
 const TAG_MAX_COUNT = 10;
@@ -173,6 +174,7 @@ export function buildAttachmentWarnings(attachments: readonly unknown[], otherAt
 // Normalize the structured React draft without a lossy text conversion.
 export function buildTaskDraft(form: TaskEditorFields): TaskDraft {
     return {
+        pullRequests: parsePullRequestLinks(form.pullRequests),
         title: String(form.title ?? '').trim(),
         description: String(form.description ?? '').trim(),
         ...setTaskResponsible({ assignees: normalizeAssignees(form.assignees), responsible: '' }, form.responsible),
