@@ -167,11 +167,15 @@ test('Pull Requests lives in its own accessible tab and retains an unconfirmed U
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Tabs', hasHandle: true, tasks: [{ id: 1, title: 'Selected item', pullRequests: [first] }] }], { selectedBoardId: 'p' });
     await portfolioCard(page, 'Selected item').click();
     const details = page.getByRole('tab', { name: 'Details', exact: true });
+    const comments = page.getByRole('tab', { name: 'Comments', exact: true });
     const links = page.getByRole('tab', { name: 'Pull Requests', exact: true });
     const history = page.getByRole('tab', { name: 'History', exact: true });
     await expect(page.locator('#task-panel-details .pull-request-links')).toHaveCount(0);
     await expect(page.locator('#taskDetailModal .pull-request-links')).toBeHidden();
     await details.press('ArrowRight');
+    await expect(comments).toBeFocused();
+    await expect(comments).toHaveAttribute('aria-selected', 'true');
+    await comments.press('ArrowRight');
     await expect(links).toBeFocused();
     await expect(links).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('tabpanel', { name: 'Pull Requests', exact: true })).toBeVisible();

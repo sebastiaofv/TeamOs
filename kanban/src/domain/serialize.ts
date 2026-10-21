@@ -12,6 +12,7 @@ import { parseTaskRelations } from '@/domain/taskRelations';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
 import { validatePullRequestTimeline } from './pullRequests';
 import { reserveTaskIdentities } from './taskIdentity';
+import { parseConversations } from './comments';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
 
@@ -37,6 +38,12 @@ export function normalizeBoardExtensionsValue(
     const nextExtensions = ((base && typeof base === 'object' && !Array.isArray(base))
         ? { ...base }
         : {}) as BoardExtensions;
+    delete nextExtensions.conversationRefs;
+    if (!includeTimeline) delete nextExtensions.conversations;
+    else if (nextExtensions.conversations !== undefined || normalizeTimelineExtension(nextExtensions.timeline)?.events.some((event) => event.kind === 'task.comment.published')) {
+        const conversations = parseConversations(nextExtensions.conversations, normalizeTimelineExtension(nextExtensions.timeline)?.events);
+        if (conversations) nextExtensions.conversations = conversations;
+    }
 
     const relations = parseTaskRelations(nextExtensions.taskRelations, options.taskIds);
     if (relations?.relations.length) nextExtensions.taskRelations = relations;

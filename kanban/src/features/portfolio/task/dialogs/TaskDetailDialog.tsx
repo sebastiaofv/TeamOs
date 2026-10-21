@@ -7,6 +7,7 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
+import { TaskConversation } from './TaskConversation';
 import { TaskPullRequestLinks } from './PullRequestLinks';
 import { TaskHistory } from './TaskHistory';
 import { TaskRelations } from '@/features/portfolio/task/dialogs/TaskRelations';
@@ -68,6 +69,7 @@ export function TaskDetailDialog() {
 function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewModel; onToggleChecklistItem: (index: number, checked: boolean) => unknown }) {
     const tabs = [
         { id: 'details', label: 'history.details' },
+        { id: 'comments', label: 'comments.title' },
         { id: 'pullRequests', label: 'pullRequests.title' },
         { id: 'history', label: 'history.title' }
     ] as const;
@@ -86,6 +88,9 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
     </div>
         <div role="tabpanel" id="task-panel-details" aria-labelledby="task-tab-details" tabIndex={0} hidden={tab !== 'details'}>
             <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations key={`${vm.boardId}:${vm.taskId}`} vm={vm} />
+        </div>
+        <div role="tabpanel" id="task-panel-comments" aria-labelledby="task-tab-comments" tabIndex={0} hidden={tab !== 'comments'}>
+            {vm.conversationContext && <TaskConversation key={`${vm.conversationContext.boardId}:${vm.conversationContext.task.id}:${vm.conversationContext.eventIndex ?? 'current'}`} context={vm.conversationContext} />}
         </div>
         <div role="tabpanel" id="task-panel-pullRequests" aria-labelledby="task-tab-pullRequests" tabIndex={0} hidden={tab !== 'pullRequests'}>
             {vm.pullRequestContext && <TaskPullRequestLinks {...vm.pullRequestContext} readOnly={vm.readOnly} />}

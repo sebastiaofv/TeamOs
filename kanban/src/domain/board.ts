@@ -16,6 +16,7 @@ import { parseTaskRelations } from '@/domain/taskRelations';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
 import { parsePullRequestLinks, validatePullRequestTimeline } from './pullRequests';
 import { parseTaskIdentityReservation } from './taskIdentity';
+import { parseConversations } from './comments';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -254,6 +255,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     }
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
     parseTaskIdentityReservation((extensions as Record<string, unknown>).taskIdentity);
+    parseConversations((extensions as Record<string, unknown>).conversations, normalizeTimelineExtension((extensions as Record<string, unknown>).timeline)?.events);
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {

@@ -12,6 +12,8 @@ import {
 } from '@/domain/constants';
 import { formatErrorMessage } from '@/domain/util';
 import { hashTextContent } from '@/domain/serialize';
+import { areSerializableValuesEqual } from '@/domain/serializable';
+import { getComments, type WorkitemComment } from '@/domain/comments';
 import { BoardRepository, type BoardSnapshot } from './boardRepository';
 import {
     applySnapshotToBoardRecord,
@@ -29,6 +31,7 @@ import {
 export type ConflictCallbacks = {
     chooseConflict: (boardId: string) => unknown;
     onReload: (boardId: string) => void;
+    beforeDiscardLocalComments?: (boardId: string, comments: WorkitemComment[]) => Promise<boolean>;
 };
 
 let watchRunning = false;
@@ -117,13 +120,13 @@ async function checkProjectFileForExternalChanges(boardRecord: BoardRecord | nul
 
 // The caller owns user interaction. Persistence only consumes a canonical
 // conflict choice (local/reload/null/unresolved) and reports impending reloads.
-export async function checkProjectFilesNow({ chooseConflict = () => null, onReload = () => {} }: Partial<ConflictCallbacks> = {}): Promise<boolean> {
+export async function checkProjectFilesNow({ chooseConflict = () => null, onReload = () => {}, beforeDiscardLocalComments }: Partial<ConflictCallbacks> = {}): Promise<boolean> {
     if (watchRunning) return false;
     watchRunning = true;
     try {
         const boards = useAppStore.getState().portfolioBoards.filter(board => board && board.handle);
         for (const board of boards) {
-            await checkProjectFileForExternalChanges(board, { chooseConflict, onReload });
+            await checkProjectFileForExternalChanges(board, { chooseConflict, onReload, beforeDiscardLocalComments });
         }
         return true;
     } finally {
@@ -135,7 +138,7 @@ async function resolveExternalChangeConflict(
     boardRecord: BoardRecord,
     snapshot: BoardSnapshot,
     fileState: ProjectFileState,
-    { chooseConflict, onReload }: ConflictCallbacks
+    { chooseConflict, onReload, beforeDiscardLocalComments }: ConflictCallbacks
 ): Promise<boolean> {
     const boardId = boardRecord.id;
     setProjectWatchStatus(
@@ -152,6 +155,18 @@ async function resolveExternalChangeConflict(
     }
 
     if (choice === 'reload') {
+        const diskComments = new Map(getComments(snapshot.parsed).map((comment) => [comment.id, comment]));
+        const latestLocalComments = () => getComments(useAppStore.getState().portfolioBoards.find((board) => board.id === boardId)?.data || boardRecord.data);
+        const missing = latestLocalComments().filter((comment) => !areSerializableValuesEqual(comment, diskComments.get(comment.id)));
+        if (missing.length && (!beforeDiscardLocalComments || !(await beforeDiscardLocalComments(boardId, missing)))) {
+            fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
+            return false;
+        }
+        const confirmed = new Set(missing.map((comment) => comment.id));
+        if (fileState.inFlight || latestLocalComments().some((comment) => !areSerializableValuesEqual(comment, diskComments.get(comment.id)) && !confirmed.has(comment.id))) {
+            fileState.suppressedUntilMs = Date.now() + PROJECT_FILE_CONFLICT_SUPPRESS_MS;
+            return false;
+        }
         onReload(boardId);
         updateFileBaseline(fileState, snapshot);
         applySnapshotToBoardRecord(boardRecord, snapshot.parsed, { discardLocalChanges: true });

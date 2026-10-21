@@ -3,6 +3,7 @@ import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_
 import { isRecord, normalizeTimestamp, nowIso } from './util';
 import { getTeamOsExtensionsObject, getBoardExtensionsObject } from './extensions';
 import { findTaskInBoardData } from './boardData';
+import { getComments } from './comments';
 
 const isAttachment = (item: Attachment | null): item is Attachment => item !== null;
 
@@ -161,7 +162,7 @@ export function calculateBoardAttachmentBytes(boardData: LooseBoardData | null |
     const excludeTaskNum = excludeTaskId === null || excludeTaskId === undefined || excludeTaskId === ''
         ? null
         : Number(excludeTaskId);
-    let total = 0;
+    let total = [...new Map(getComments(boardData).flatMap((comment) => comment.images).map((image) => [image.id, image])).values()].reduce((sum, image) => sum + image.sizeBytes, 0);
 
     const taskList = boardData?.board?.tasks;
     if (Array.isArray(taskList)) {
@@ -179,7 +180,7 @@ export function calculateBoardAttachmentBytes(boardData: LooseBoardData | null |
     }
 
     const map = getTaskAttachmentsMap(boardData);
-    if (!map) return 0;
+    if (!map) return total;
     Object.entries(map).forEach(([key, list]) => {
         if (excludeTaskNum !== null && key === attachmentTaskKey(excludeTaskNum)) return;
         if (!Array.isArray(list)) return;

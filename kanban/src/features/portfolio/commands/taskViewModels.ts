@@ -171,6 +171,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
+        conversationContext: { boardId: source.boardRecord.id, task: source.task, readOnly, eventIndex: historyEventIndex },
         pullRequestContext: { boardId: source.boardRecord.id, taskId: Number(taskId), links: parsePullRequestLinks(task.pullRequests) },
         history: projectTaskHistory(source.boardRecord.data, source.task, historyEventIndex),
         historyKey: `${source.boardRecord.id}:${taskId}:${historyEventIndex ?? 'current'}`,

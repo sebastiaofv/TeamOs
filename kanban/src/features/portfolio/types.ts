@@ -125,6 +125,7 @@ export type TaskDetailFields = Record<
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
 export type TaskRelationEntry = { id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
 export type TaskDetailViewModel = {
+    conversationContext?: { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };
     pullRequestContext?: { boardId: string; taskId: number; links: string[] };
     history?: TaskHistoryProjection;
     historyKey?: string;

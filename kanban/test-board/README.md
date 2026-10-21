@@ -7,6 +7,7 @@ As histórias integradas têm os boards e roteiros nesta pasta em `main`; histó
 | US1 · integrada em `main` · PR #44 | [us-1.board.json](us-1.board.json) | [us-1.md](us-1.md) |
 | US2 · branch `us-2` · PR #45 | [us-2.board.json](https://github.com/sebastiaofv/TeamOs/blob/us-2/kanban/test-board/us-2.board.json) | [us-2.md](https://github.com/sebastiaofv/TeamOs/blob/us-2/kanban/test-board/us-2.md) |
 | US3 · integrada em `main` · PR #46 | [us-3.board.json](us-3.board.json) | [us-3.md](us-3.md) |
+| US7 · branch `us-7` | [us-7.board.json](us-7.board.json) | [us-7.md](us-7.md) |
 | US8 · branch `us-8` | [us-8.board.json](us-8.board.json) | [us-8.md](us-8.md) |
 | US6 · branch `us-6` | [us-6.board.json](us-6.board.json) | [us-6.md](us-6.md) |
 
