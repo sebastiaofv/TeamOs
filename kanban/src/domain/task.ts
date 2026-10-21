@@ -18,6 +18,7 @@ import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
 import { normalizeAssignee, normalizeAssignees, setTaskResponsible } from './taskAssignments';
 import { statusCategory } from './workflow';
+import { reservedTaskHighWaterMark } from './taskIdentity';
 export { normalizeAssignee, normalizeAssignees } from './taskAssignments';
 export { findTaskInBoardData } from './boardData';
 
@@ -159,10 +160,9 @@ export function isAcceptedLegacyAssigneeValue(value: unknown): boolean {
 }
 
 export function nextTaskIdForBoard(boardRecord: BoardRecordLike): number {
-    const existingIds = (boardRecord?.data?.board?.tasks || [])
-        .map(task => Number(task?.id))
-        .filter(Number.isFinite);
-    return existingIds.length > 0 ? Math.max(...existingIds) + 1 : Date.now();
+    const reserved = reservedTaskHighWaterMark(boardRecord?.data);
+    if (reserved >= Number.MAX_SAFE_INTEGER) throw new Error('No more safe workitem IDs are available in this project.');
+    return reserved ? reserved + 1 : Date.now();
 }
 
 export function touchTask(task: { updatedAt: string }): void {

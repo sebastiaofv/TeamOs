@@ -16,6 +16,7 @@ import { parseTaskRelations } from '@/domain/taskRelations';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
 import { parseBoardView } from './boardView';
 import { parseWorkflow, defaultWorkflow, getWorkflow } from './workflow';
+import { parseTaskIdentityReservation } from './taskIdentity';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
 
@@ -252,6 +253,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         const workflow = parseWorkflow(extensions.workflow);
         if (data.board.columns.length !== workflow.states.length || data.board.columns.some((col, index) => col.status !== workflow.states[index].id || col.title !== workflow.states[index].name)) throw new Error('Workflow columns do not match states.');
     }
+    parseTaskIdentityReservation((extensions as Record<string, unknown>).taskIdentity);
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {
