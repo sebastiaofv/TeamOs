@@ -301,6 +301,7 @@ test('milestone names and dates hug either side of their diamond, with small mat
             }));
             for (const label of labels) {
                 expect(label.nameSize).toBe(label.dateSize);
+                expect(parseFloat(label.nameSize)).toBeGreaterThanOrEqual(10);
                 expect(parseFloat(label.nameSize)).toBeLessThan(11);
                 expect(label.dateGap).toBeCloseTo(6, 0);
                 if (label.id !== 'long') { expect(label.nameGap).toBeCloseTo(6, 0); expect(label.width).toBeLessThan(140); }

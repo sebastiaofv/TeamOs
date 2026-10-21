@@ -28,7 +28,7 @@
 .milestone-annotation { position: absolute; transform: translateX(-16px); display: inline-flex; align-items: center; width: max-content; gap: 6px; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--text-primary); cursor: pointer; text-align: left; }
 .milestone-annotation.milestone-at-end { flex-direction: row-reverse; transform: translateX(calc(-100% + 16px)); }
 .milestone-annotation { z-index: 3; }
-.milestone-annotation-label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; width: max-content; max-width: var(--milestone-label-width); font-size: 6px; }
+.milestone-annotation-label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; width: max-content; max-width: var(--milestone-label-width); font-size: 10px; }
 .milestone-at-end .milestone-annotation-label { text-align: right; }
 .milestone-annotation-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .milestone-annotation-label > span { color: var(--text-secondary); }
