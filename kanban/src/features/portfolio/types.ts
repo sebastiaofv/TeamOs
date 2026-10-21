@@ -19,6 +19,7 @@ import type {
     TimelineExtension
 } from '@/domain/types';
 import type { BoardFileHandle } from '@/infrastructure/browser/types';
+import type { TaskHistoryProjection } from '@/domain/taskHistory';
 
 export type { DraftMessage, TaskDraft, TaskEditorFields } from '@/domain/types';
 
@@ -125,6 +126,8 @@ export type TaskDetailAttachment = { id: string; name: string; isImage: boolean;
 export type TaskRelationEntry = { id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
 export type TaskDetailViewModel = {
     pullRequestContext?: { boardId: string; taskId: number; links: string[] };
+    history?: TaskHistoryProjection;
+    historyKey?: string;
     readOnly: boolean;
     boardId: string;
     taskId: number;

@@ -38,6 +38,7 @@ import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/c
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 import { parsePullRequestLinks, PullRequestLinkError } from '@/domain/pullRequests';
+import { projectTaskHistory } from '@/domain/taskHistory';
 import { isTaskBlocked } from '@/domain/taskRelations';
 import { buildTaskRelationView } from '@/features/portfolio/queries/taskRelationViews';
 
@@ -164,13 +165,15 @@ export function buildTaskEditorViewModel(
     };
 }
 
-export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean): TaskDetailViewModel {
+export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, historyEventIndex?: number): TaskDetailViewModel {
     const task = normalizeTask(source.task);
     const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
         pullRequestContext: { boardId: source.boardRecord.id, taskId: Number(taskId), links: parsePullRequestLinks(task.pullRequests) },
+        history: projectTaskHistory(source.boardRecord.data, source.task, historyEventIndex),
+        historyKey: `${source.boardRecord.id}:${taskId}:${historyEventIndex ?? 'current'}`,
         boardId: source.boardRecord.id,
         taskId: task.id,
         sourceBoardData: source.boardData,
