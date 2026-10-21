@@ -28,9 +28,10 @@
 .milestone-annotation { position: absolute; transform: translateX(-16px); display: inline-flex; align-items: center; width: max-content; gap: 6px; min-height: 32px; padding: 0; border: 0; background: transparent; color: var(--text-primary); cursor: pointer; text-align: left; }
 .milestone-annotation.milestone-at-end { flex-direction: row-reverse; transform: translateX(calc(-100% + 16px)); }
 .milestone-annotation { z-index: 3; }
-.milestone-annotation-label { display: grid; gap: 1px; width: var(--milestone-label-width); font-size: 12px; }
+.milestone-annotation-label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1px; width: max-content; max-width: var(--milestone-label-width); font-size: 6px; }
+.milestone-at-end .milestone-annotation-label { text-align: right; }
 .milestone-annotation-label strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.milestone-annotation-label > span { color: var(--text-secondary); font-size: 6px; }
+.milestone-annotation-label > span { color: var(--text-secondary); }
 .milestone-diamond { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 32px; width: 32px; height: 32px; color: #fff; }
 .milestone-diamond::before { content: ''; position: absolute; width: var(--milestone-size, 16px); height: var(--milestone-size, 16px); transform: rotate(45deg); border-radius: 2px; background: var(--milestone-color, #2563eb); }
 .milestone-diamond > span { position: relative; font-size: 7px; line-height: 1; font-weight: 700; white-space: nowrap; }

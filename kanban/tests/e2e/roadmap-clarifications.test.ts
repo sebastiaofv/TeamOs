@@ -265,3 +265,58 @@ test('clarified Roadmap stays readable in the existing light and dark themes', a
     await expect(page.locator('#milestoneWorkitemsModal .workitems-table')).toBeVisible();
     await page.mouse.move(10, 10); await page.screenshot({ path: testInfo.outputPath('milestone-dark.png'), fullPage: true });
 });
+
+
+test('milestone names and dates hug either side of their diamond, with small matching type and ellipsis', async ({ page }, testInfo) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'labels', title: 'Milestone label spacing', hasHandle: true, tasks: [], extensions: {
+        roadmap: { version: 3, phases: [{ id: 'phase', title: 'Phase title', startDate: '2026-10-01', endDate: '2026-10-31' }], sprints: [], milestones: [
+            { id: 'right', title: 'Short', dueDate: '2026-10-01' },
+            { id: 'long', title: 'A milestone name that is deliberately much longer than the available label width '.repeat(3), dueDate: '2026-10-30' },
+            { id: 'left', title: 'End', dueDate: '2026-10-31' },
+            { id: 'nearby', title: 'Nearby', dueDate: '2026-10-31' }
+        ] }
+    } }], { selectedBoardId: 'labels' });
+    await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 900 });
+        for (const zoom of ['1', '2']) {
+            await page.getByLabel('Timeline zoom', { exact: true }).selectOption(zoom);
+            await expect(page.locator('[data-roadmap-id="left"]')).toHaveClass(/milestone-at-end/);
+            await expect(page.locator('[data-roadmap-id="right"]')).not.toHaveClass(/milestone-at-end/);
+            const labels = await page.locator('.milestone-annotation').evaluateAll((items) => items.map((item) => {
+                const diamond = item.querySelector('.milestone-diamond')!.getBoundingClientRect();
+                const label = item.querySelector('.milestone-annotation-label')!;
+                const name = label.querySelector('strong')!;
+                const date = label.querySelector('span')!;
+                const textBox = (node: Element) => { const range = document.createRange(); range.selectNodeContents(node); return range.getBoundingClientRect(); };
+                const nameBox = textBox(name); const dateBox = textBox(date);
+                const left = item.classList.contains('milestone-at-end');
+                return { id: item.getAttribute('data-roadmap-id'), left,
+                    nameGap: left ? diamond.left - nameBox.right : nameBox.left - diamond.right,
+                    dateGap: left ? diamond.left - dateBox.right : dateBox.left - diamond.right,
+                    width: label.getBoundingClientRect().width,
+                    nameSize: getComputedStyle(name).fontSize, dateSize: getComputedStyle(date).fontSize,
+                    truncated: name.scrollWidth > name.clientWidth, overflow: getComputedStyle(name).textOverflow };
+            }));
+            for (const label of labels) {
+                expect(label.nameSize).toBe(label.dateSize);
+                expect(parseFloat(label.nameSize)).toBeLessThan(11);
+                expect(label.dateGap).toBeCloseTo(6, 0);
+                if (label.id !== 'long') { expect(label.nameGap).toBeCloseTo(6, 0); expect(label.width).toBeLessThan(140); }
+                else { expect(label.width).toBe(140); expect(label.truncated).toBe(true); expect(label.overflow).toBe('ellipsis'); }
+            }
+            const boxes = await page.locator('.milestone-annotation').evaluateAll((items) => items.map((item) => {
+                const box = item.getBoundingClientRect(); return { x: box.x, y: box.y, right: box.right, bottom: box.bottom };
+            }));
+            boxes.forEach((box, index) => boxes.slice(index + 1).forEach((other) => expect(box.right <= other.x || other.right <= box.x || box.bottom <= other.y || other.bottom <= box.y).toBe(true)));
+        }
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.getByLabel('Timeline zoom', { exact: true }).selectOption('1');
+    for (const theme of ['light', 'dark']) {
+        if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+        await page.mouse.move(1, 1);
+        await page.screenshot({ path: testInfo.outputPath(`milestone-labels-${theme}.png`), fullPage: true });
+    }
+});
