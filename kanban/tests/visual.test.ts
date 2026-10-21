@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
 
@@ -679,4 +680,25 @@ test.describe('2.5 roadmap and 2.6 calendar views', () => {
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await expect(page).toHaveScreenshot('portfolio-calendar-month-heatmap-light.png', { fullPage: true });
   });
+});
+
+
+test.describe('US-7 dedicated Comments tab', () => {
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1280, 390]) {
+      test(`composer and recent publications at ${width}px (${theme})`, async ({ page }) => {
+        await gotoVisualApp(page, theme);
+        await page.setViewportSize({ width, height: 900 });
+        const fixture = JSON.parse(readFileSync('test-board/us-7.board.json', 'utf8'));
+        await seedPortfolioBoards(page, [{ id: 'comments', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'comments' });
+        await portfolioCard(page, 'Delivery conversation').click();
+        await page.getByRole('tab', { name: 'Comments', exact: true }).click();
+        await page.mouse.move(1, 1);
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        const dialog = page.locator('#taskDetailModal .modal-content');
+        expect(await dialog.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+        await expect(dialog).toHaveScreenshot(`comments-tab-${theme}-${width}.png`);
+      });
+    }
+  }
 });

@@ -18,7 +18,7 @@ export const sessionDraftWorkitemKey = (key: string, task: Pick<Task, 'id' | 'cr
 export function useConversationDraftRevision() { return useSyncExternalStore(subscribe, () => revision, () => 0); }
 export function getConversationDraft(key: string) { return drafts.get(key); }
 export function allConversationDrafts() { return [...drafts.entries()]; }
-export function lastCommentAuthor(projectId: string) { return authors.get(projectId) || ''; }
+export function lastCommentAuthor(projectId: string) { return authors.get(projectId) ?? 'Anonymous'; }
 export function rememberCommentAuthor(projectId: string, name: string) { authors.set(projectId, name); }
 export function updateConversationDraft(key: string, context: Omit<ConversationDraft, 'id' | 'text' | 'author' | 'images'>, changes: Partial<ConversationDraft>) {
     const previous = drafts.get(key) || { ...context, id: `comment-${crypto.randomUUID()}`, text: '', author: lastCommentAuthor(context.projectId), images: [] };

@@ -118,33 +118,45 @@
     background: var(--bg-secondary);
     border-color: var(--text-secondary);
 }
-.task-conversation { border-top: 1px solid var(--border); margin-top: 20px; padding-top: 16px; min-width: 0; }
-.task-conversation h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+.task-conversation { min-width: 0; }
+.task-conversation h3 { font-size: 13px; margin: 0; }
 .comment-note, .comment-empty { color: var(--text-secondary); font-size: 11px; margin-block: 8px; }
-.comment-list { display: grid; list-style: none; gap: 8px; margin-block: 12px; min-width: 0; }
+.comment-list-heading, .comment-composer-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; }
+.comment-list-heading { margin-top: 18px; }
+.comment-list-heading > span, .comment-posting-as { color: var(--text-secondary); font-size: 11px; }
+.comment-posting-as { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.comment-posting-as span { min-width: 0; overflow-wrap: anywhere; }
+.comment-posting-as strong { color: var(--text-primary); }
+.comment-change-author { color: var(--accent); border: 0; padding: 0; background: none; font: inherit; cursor: pointer; }
+.comment-change-author:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.comment-list { display: grid; list-style: none; padding: 0; gap: 10px; margin-block: 12px; min-width: 0; }
 .comment-list:empty, .comment-images:empty { display: none; }
-.comment-publication { min-width: 0; padding: 10px 12px; background: var(--bg-card); border: 1px solid var(--border); }
-.comment-publication header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.comment-publication { min-width: 0; padding: 12px; background: var(--bg-card); border: 1px solid var(--border-light); }
+.comment-publication header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
 .comment-publication header strong { min-width: 0; overflow-wrap: anywhere; font-size: 12px; }
-.comment-publication header span, .comment-publication time { color: var(--text-muted); font-size: 11px; }
+.comment-publication header span, .comment-publication time { color: var(--text-muted); font-size: 10px; }
 .comment-publication time { margin-left: auto; }
 .comment-text { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 8px; font-size: 12px; }
 .comment-text a { color: var(--accent); }
 .comment-images { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 8px; min-width: 0; }
-.comment-image { display: grid; gap: 6px; width: 140px; max-width: 100%; min-width: 0; }
-.comment-image > button:first-child { border: 1px solid var(--border); background: var(--bg-primary); cursor: zoom-in; }
-.comment-image img { display: block; width: 100%; height: 100px; object-fit: contain; }
-.comment-image a { color: var(--text-primary); border: 1px solid var(--border); background: var(--bg-card); padding: 4px 6px; font-size: 11px; overflow-wrap: anywhere; text-decoration: none; }
-.comment-image a:hover { background: var(--bg-secondary); border-color: var(--text-secondary); }
-.comment-composer { display: grid; gap: 8px; border-top: 1px solid var(--border-light); padding-top: 16px; }
+.comment-image { display: grid; gap: 6px; width: 240px; max-width: 100%; min-width: 0; }
+.comment-image > button:first-child { border: 1px solid var(--border); background: var(--bg-primary); cursor: zoom-in; padding: 4px; }
+.comment-image img { display: block; width: 100%; height: 160px; object-fit: contain; }
+.comment-composer { display: grid; gap: 10px; border-bottom: 1px solid var(--border-light); padding-bottom: 16px; }
 .comment-composer label { color: var(--text-secondary); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.comment-author-editor { display: grid; gap: 6px; }
 .comment-composer input, .comment-composer textarea { min-width: 0; width: 100%; padding: 8px 12px; border-radius: 0; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font: inherit; }
 .comment-composer input:focus, .comment-composer textarea:focus { border-color: var(--accent); outline: 2px solid var(--focus-ring); outline-offset: 1px; }
-.comment-composer .comment-image img { border: 1px solid var(--border); background: var(--bg-primary); }
-.comment-composer textarea { resize: vertical; min-height: 96px; }
+.comment-composer .comment-image { width: 140px; }
+.comment-composer .comment-image img { height: 100px; border: 1px solid var(--border); background: var(--bg-primary); }
+.comment-composer textarea { resize: vertical; min-height: 80px; }
+.comment-composer .comment-note { margin: 0; font-size: 10px; }
 .comment-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.comment-actions .btn-primary { margin-left: auto; }
 .comment-error { color: var(--priority-high); font-size: 12px; overflow-wrap: anywhere; }
 .comment-warning { color: var(--text-primary); background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 10px; font-size: 12px; }
+.comment-record-note { color: var(--text-secondary); font-size: 11px; margin-top: 16px; }
+.comment-record-note summary { cursor: pointer; }
 .comment-image-overlay { z-index: 1500; }
 .comment-image-viewer { width: min(1000px, 95vw); }
 .comment-image-viewer .modal-title { min-width: 0; overflow-wrap: anywhere; }

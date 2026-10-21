@@ -7,6 +7,12 @@ type TranslationValues = Record<string, string | number>;
 
 const en = {
     'comments.title': 'Comments',
+    'comments.addComment': 'Add a comment',
+    'comments.postingAs': 'Posting as',
+    'comments.changeAuthor': 'Change',
+    'comments.placeholder': 'Write a comment…',
+    'comments.newestFirst': 'Most recent first',
+    'comments.recordInfo': 'About this local record',
     'comments.localNote': 'Published comments cannot be edited or deleted in the app, including after project restore. This is a local record, not authentication or tamper-proof auditing; choosing another JSON file can replace the available record.',
     'comments.localAuthor': 'Local / unverified',
     'comments.author': 'Local author',
@@ -16,7 +22,7 @@ const en = {
     'comments.inputHelp': 'Plain text · Enter adds a line · Ctrl/⌘+Enter publishes · @mentions are text only',
     'comments.imageLimits': '{count} / 10 images · PNG, JPEG or WebP · 10 MiB per image · paste screenshots or select files',
     'comments.addImages': 'Add images',
-    'comments.publish': 'Publish comment',
+    'comments.publish': 'Post comment',
     'comments.reading': 'Reading images…',
     'comments.discard': 'Discard draft',
     'comments.enlarge': 'Enlarge {name}',
@@ -691,6 +697,12 @@ type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
     'comments.title': 'Comentários',
+    'comments.addComment': 'Adicionar um comentário',
+    'comments.postingAs': 'A publicar como',
+    'comments.changeAuthor': 'Alterar',
+    'comments.placeholder': 'Escreva um comentário…',
+    'comments.newestFirst': 'Mais recentes primeiro',
+    'comments.recordInfo': 'Sobre este registo local',
     'comments.localNote': 'As publicações não podem ser editadas ou eliminadas na aplicação, incluindo após restauro do projeto. É um registo local, não autenticação nem auditoria inviolável; escolher outro JSON pode substituir o registo disponível.',
     'comments.localAuthor': 'Local / não verificada',
     'comments.author': 'Autor local',
