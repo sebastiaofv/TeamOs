@@ -7,14 +7,16 @@ import {
     ensureBoardTimelineBaseline,
     getBoardTimelineData,
     recordTaskTimelineEvent,
+    createTimelineEventId,
 } from '@/domain/timeline';
+import { annotateTimelineOperation } from '@/domain/taskHistory';
+import { reserveTaskIdentities } from '@/domain/taskIdentity';
 import { touchTask } from '@/domain/task';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persistence/projectFiles';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
-import { reserveTaskIdentities } from '@/domain/taskIdentity';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -82,7 +84,9 @@ export function createBoardMutationContext({
         const draft: BoardRecord = { ...current, data: cloneSerializable(current.data) };
         try {
             ensureBoardTimelineBaseline(draft.data);
+            const firstEvent = draft.data.extensions.timeline?.events.length || 0;
             if (mutator(draft.data, draft) === false) return false;
+            annotateTimelineOperation(current.data, draft.data, firstEvent, createTimelineEventId());
             reserveTaskIdentities(draft.data, current.data);
         } catch (error) {
             alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));

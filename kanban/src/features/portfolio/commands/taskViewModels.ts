@@ -37,6 +37,7 @@ import { createBoardStateSnapshot } from '@/domain/serialize';
 import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
+import { projectTaskHistory } from '@/domain/taskHistory';
 import { isTaskBlocked } from '@/domain/taskRelations';
 import { buildTaskRelationView } from '@/features/portfolio/queries/taskRelationViews';
 
@@ -168,6 +169,8 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     return {
         readOnly,
         conversationContext: { boardId: source.boardRecord.id, task: source.task, readOnly, eventIndex: historyEventIndex },
+        history: projectTaskHistory(source.boardRecord.data, source.task, historyEventIndex),
+        historyKey: `${source.boardRecord.id}:${taskId}:${historyEventIndex ?? 'current'}`,
         boardId: source.boardRecord.id,
         taskId: task.id,
         sourceBoardData: source.boardData,
