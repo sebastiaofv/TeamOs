@@ -14,6 +14,7 @@ import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { parseTaskRelations } from '@/domain/taskRelations';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
+import { parsePullRequestLinks, validatePullRequestTimeline } from './pullRequests';
 import { parseTaskIdentityReservation } from './taskIdentity';
 
 const PORTFOLIO_SORT_KEYS: readonly PortfolioSortKey[] = ['board', 'task', 'column', 'priority', 'effort', 'score', 'dueDate', 'updatedAt'];
@@ -206,7 +207,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid meta structure.');
     }
     const schemaVersion = data.meta.schemaVersion;
-    if (schemaVersion !== 1 && schemaVersion !== BOARD_SCHEMA_VERSION) {
+    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== BOARD_SCHEMA_VERSION) {
         throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
     }
     if (data.meta.appId !== BOARD_APP_ID) {
@@ -264,6 +265,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if (!normalizedTimeline) {
             throw new Error('Invalid extensions.timeline structure.');
         }
+        validatePullRequestTimeline(normalizedTimeline.events);
         if (normalizedTimeline.events.length > 0) {
             if (normalizedTimeline.events[0].kind !== 'board.baseline') {
                 throw new Error('Timeline must start with board.baseline.');
@@ -293,7 +295,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId']);
+        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests']);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -310,6 +312,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
             throw new Error('Task ids must be unique.');
         }
         taskIds.add(task.id);
+        parsePullRequestLinks(task.pullRequests);
         if (typeof task.title !== 'string' || !task.title.trim()) {
             throw new Error('Task title must be a non-empty string.');
         }

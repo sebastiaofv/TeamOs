@@ -7,6 +7,7 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
+import { TaskPullRequestLinks } from './PullRequestLinks';
 import { TaskHistory } from './TaskHistory';
 import { TaskRelations } from '@/features/portfolio/task/dialogs/TaskRelations';
 
@@ -65,20 +66,32 @@ export function TaskDetailDialog() {
 }
 
 function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewModel; onToggleChecklistItem: (index: number, checked: boolean) => unknown }) {
-    const [tab, setTab] = useState<'details' | 'history'>('details');
+    const tabs = [
+        { id: 'details', label: 'history.details' },
+        { id: 'pullRequests', label: 'pullRequests.title' },
+        { id: 'history', label: 'history.title' }
+    ] as const;
+    const [tab, setTab] = useState<(typeof tabs)[number]['id']>('details');
     const { t } = useI18n();
-    const tabs = ['details', 'history'] as const;
     function navigate(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-        const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : event.key === 'ArrowRight' || event.key === 'ArrowLeft' ? 1 - index : null;
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+            : event.key === 'ArrowRight' ? (index + 1) % tabs.length
+                : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : null;
         if (next === null) return;
-        event.preventDefault(); setTab(tabs[next]);
+        event.preventDefault(); setTab(tabs[next].id);
         (event.currentTarget.parentElement?.querySelectorAll('button')[next] as HTMLButtonElement)?.focus();
     }
     return <><div className="detail-tabs" role="tablist" aria-label={t('history.navigation')}>
-        {tabs.map((value, index) => <button key={value} id={`task-tab-${value}`} role="tab" type="button" aria-selected={tab === value} aria-controls={`task-panel-${value}`} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setTab(value)}>{t(value === 'details' ? 'history.details' : 'history.title')}</button>)}
-    </div><div role="tabpanel" id={`task-panel-${tab}`} aria-labelledby={`task-tab-${tab}`} tabIndex={0}>
-        {tab === 'details' ? <><TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations key={`${vm.boardId}:${vm.taskId}`} vm={vm} /></> : <TaskHistory history={vm.history} />}
-    </div></>;
+        {tabs.map((value, index) => <button key={value.id} id={`task-tab-${value.id}`} role="tab" type="button" aria-selected={tab === value.id} aria-controls={`task-panel-${value.id}`} tabIndex={tab === value.id ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setTab(value.id)}>{t(value.label)}</button>)}
+    </div>
+        <div role="tabpanel" id="task-panel-details" aria-labelledby="task-tab-details" tabIndex={0} hidden={tab !== 'details'}>
+            <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations key={`${vm.boardId}:${vm.taskId}`} vm={vm} />
+        </div>
+        <div role="tabpanel" id="task-panel-pullRequests" aria-labelledby="task-tab-pullRequests" tabIndex={0} hidden={tab !== 'pullRequests'}>
+            {vm.pullRequestContext && <TaskPullRequestLinks {...vm.pullRequestContext} readOnly={vm.readOnly} />}
+        </div>
+        <div role="tabpanel" id="task-panel-history" aria-labelledby="task-tab-history" tabIndex={0} hidden={tab !== 'history'}><TaskHistory history={vm.history} /></div>
+    </>;
 }
 
 function TaskDetailList({ vm, onToggleChecklistItem }: {
@@ -134,6 +147,7 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
                         ))}
                 </dd>
             </div>
+
         </dl>
     );
 }

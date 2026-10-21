@@ -34,6 +34,7 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
             boardFileName: board.fileName,
             columnTitle: statusMap[task.status] || task.status,
             canMutate: Boolean(board.handle),
+            boardData: board.data,
             task: { ...normalizeTask(task), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
         }));
     });
@@ -61,6 +62,7 @@ export function buildPortfolioRowsFromBoardData(
         columnTitle: statusMap[task.status] || task.status,
         canMutate,
         historical,
+        boardData: normalizedBoard,
         task: { ...normalizeTask(task), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
     }));
 }
