@@ -22,6 +22,7 @@ import { normalizeTask } from './task';
 import { getRelations } from '@/domain/taskRelations';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
+import { reserveTaskIdentities } from './taskIdentity';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -143,6 +144,10 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
+    if (event.kind === 'task.relations.updated' && event.changes?.relations) {
+        nextState.extensions = { ...(nextState.extensions || {}), taskRelations: { version: 1, relations: cloneSerializable(event.changes.relations.after) } };
+        return nextState;
+    }
 
     if (event.kind === 'task.relations.updated' && event.changes?.relations) {
         nextState.extensions = { ...(nextState.extensions || {}), taskRelations: { version: 1, relations: cloneSerializable(event.changes.relations.after) } };
@@ -309,6 +314,7 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     // Preview/restore may change membership, but must not renumber or reuse identities.
     const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.timeline);
     if (knownCatalog) snapshot.extensions.sprintCatalog = normalizeSprintCatalog(knownCatalog, snapshot.extensions.roadmap?.sprints || []);
+    reserveTaskIdentities(snapshot, boardData || undefined);
     return snapshot;
 }
 

@@ -1,0 +1,10 @@
+{
+  "meta":{"schemaVersion":1,"appId":"teamos-kanban","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-20T10:00:00.000Z"},
+  "board":{"columns":[{"status":"to-do","title":"Ready"}],"settings":{"title":"US-6 · Reused legacy identity"},"tasks":[{"id":801,"title":"New lifecycle","description":"Must not display the old workitem history.","status":"to-do","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-20T10:00:00.000Z","updatedAt":"2026-10-20T10:00:00.000Z"}]},
+  "extensions":{"timeline":{"version":1,"baselineEventId":"reused-baseline","events":[
+    {"id":"reused-baseline","at":"2026-10-01T09:00:00.000Z","kind":"board.baseline","entityType":"board","entityId":"board","summary":"Baseline snapshot created","snapshot":{"board":{"columns":[{"status":"to-do","title":"Ready"}],"settings":{"title":"US-6 · Reused legacy identity"},"tasks":[{"id":801,"title":"Old lifecycle","description":"Old work","status":"to-do","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-01T09:00:00.000Z","updatedAt":"2026-10-01T09:00:00.000Z"}]},"extensions":{}}},
+    {"id":"reused-old-edit","at":"2026-10-19T09:00:00.000Z","kind":"task.updated","entityType":"task","entityId":"801","summary":"Task updated: Old lifecycle","changes":{"description":{"before":"Old work","after":"Old work changed"}}},
+    {"id":"reused-delete","at":"2026-10-19T10:00:00.000Z","kind":"task.deleted","entityType":"task","entityId":"801","summary":"Task deleted: Old lifecycle"},
+    {"id":"reused-create","at":"2026-10-20T10:00:00.000Z","kind":"task.created","entityType":"task","entityId":"801","summary":"Task created: New lifecycle","snapshot":{"id":801,"title":"New lifecycle","description":"Must not display the old workitem history.","status":"to-do","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-20T10:00:00.000Z","updatedAt":"2026-10-20T10:00:00.000Z"}}
+  ]}}
+}

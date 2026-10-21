@@ -7,7 +7,10 @@ import {
     ensureBoardTimelineBaseline,
     getBoardTimelineData,
     recordTaskTimelineEvent,
+    createTimelineEventId,
 } from '@/domain/timeline';
+import { annotateTimelineOperation } from '@/domain/taskHistory';
+import { reserveTaskIdentities } from '@/domain/taskIdentity';
 import { touchTask } from '@/domain/task';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persistence/projectFiles';
@@ -83,7 +86,10 @@ export function createBoardMutationContext({
         const draft: BoardRecord = { ...current, data: cloneSerializable(current.data) };
         try {
             ensureBoardTimelineBaseline(draft.data);
+            const firstEvent = draft.data.extensions.timeline?.events.length || 0;
             if (mutator(draft.data, draft) === false) return false;
+            annotateTimelineOperation(current.data, draft.data, firstEvent, createTimelineEventId());
+            reserveTaskIdentities(draft.data, current.data);
         } catch (error) {
             alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;
