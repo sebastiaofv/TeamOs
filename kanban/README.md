@@ -5,6 +5,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 ## What it does
 
 - **Projects** — create a new project file or import existing ones (picker or drag and drop). Project chips switch between all projects and a single one.
+- **Project settings** — the gear beside each top project chip opens name, description, lifecycle status, members and curated tags without changing selection. Save applies the draft; Cancel, close, Escape and outside-click discard it. Historical and read-only settings remain consultable.
 - **Board view** — fixed columns (`backlog`, `to-do`, `in progress`, `done`), drag cards between columns with a mouse or by touch (keyboard: `1`–`4`), add/edit/archive/delete tasks, undo after archiving.
 - **Tasks** — title, description, participants and an optional responsible person, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
 - **Workitem relations** — link existing items by ID/title (including completed and archived items), or create a related Backlog item inheriting only phase/milestone. Details group compact, aligned rows into Blocked by, Blocks and Related to, showing ID navigation, truncated title, plain-text status and the responsible person's first name. Direct edit/remove icons support inline relation changes and confirmed replacement/removal, preserving both items and recalculating blocking.
@@ -26,7 +27,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 ### Task and schema invariants
 
 - Task titles are required and capped at 80 characters.
-- Participants are saved as an `assignees` array; `responsible` is an optional name (empty string when unset) and always belongs to that array. Names are trimmed and deduplicated case-insensitively. Selecting, changing or clearing responsibility preserves existing participants; correcting the responsible participant's name updates both fields in that item. Removing that participant asks for confirmation before clearing responsibility. Neither field is required to save or change status.
+- Participants are saved as an `assignees` array; `responsible` is an optional name (empty string when unset) and always belongs to that array. Stable project-local references are stored in `assigneeIds`/`responsibleId`; names remain readable projections. Selecting, changing or clearing responsibility preserves existing participants. Rename members in Project settings to update all current assignments, including archived tasks. Removing the responsible participant asks for confirmation before clearing responsibility. Neither field is required to save or change status.
 - Schema v2 adds responsibility. Version 1 files migrate on import/save without choosing a responsible person, even for one participant; older `assignee` strings/arrays still import. IDs, roadmap and existing timeline events are preserved. Assignment changes record before/after values in the same timeline. Regression fixture: `tests/fixtures/assignments-v1.board.json`.
 - Responsible/participant filters each offer All, no allocation, or a name; they combine with each other. The palette offers both participant toggles and Set responsible. Quick-create `@name` adds participants and leaves responsibility unset. The table has a separate configurable Responsible column.
 - Manually blocked tasks require `blockerReason`. Dependency blocking is derived from unfinished direct blockers, including archived blockers, without changing status or overwriting manual blocking. Board/Table blocked filters include both sources.
@@ -39,9 +40,17 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 
 The optional `extensions.taskRelations` stores `{ version: 1, relations: [{ sourceId, targetId, kind }] }`. `kind` is `related` (symmetric) or `blocks` (source blocks target); inverse links are derived, never duplicated. IDs refer only to tasks in the same file, with one relation per unordered pair. Self-links, missing IDs, duplicate pairs and dependency cycles are rejected on import and mutation, as are unsupported extension versions.
 
-Relations are an additive, separately versioned extension to the base board schema (currently version 2). Legacy files without it migrate to an empty relation set without changing task IDs, roadmap or other extension data; the extension is written when the first link is added and omitted after the last link is removed. The compatibility fixture is `tests/fixtures/task-relations-v1.board.json`.
+Relations are an additive, separately versioned extension to the base board schema (currently version 3). Legacy files without it migrate to an empty relation set without changing task IDs, roadmap or other extension data; the extension is written when the first link is added and omitted after the last link is removed. The compatibility fixture is `tests/fixtures/task-relations-v1.board.json`.
 
 Creating an item and its link is one autosaved mutation; cancelling creates neither. Deleting an item confirms the related IDs and blocking impact, removes its links, and preserves other items. Relation changes use the existing timeline and are replayed in historical previews/restores. Read-only and historical details allow navigation but hide relation mutation controls.
+
+### Project extension (version 1)
+
+`extensions.project` stores `{ version: 1, id, description, status, members: [{ id, name }], tags }`. Only the project name is required. New projects start `planned` with no members and removable `bug`, `feature`, `improvement`, `documentation` tags. Status (`planned`, `active`, `paused`, `completed`, `archived`) is manual and informational: even Archived does not hide projects, block edits or archive tasks.
+
+Legacy projects migrate with `status: null` (not defined), empty description and catalogs derived only from existing assignments/tags. Saving persists project/member identities; renaming the project or file does not change them. Settings changes use timeline snapshots; historical preview/restore recovers coherent catalogs and assignments while retaining project identity.
+
+Task editors, palette actions and quick-create accept only the target project's curated members/tags. Add members/tags only in Project settings (US-21 supersedes US-11's original inline creation). Member names must be non-blank and unique ignoring case/outer spaces; renaming preserves identity and never merges members. Members/tags used by current tasks, including archived ones, cannot be removed until their assignments are replaced or removed. Empty catalogs are valid. See the [US-11](test-board/us-11.md) and [US-21](test-board/us-21.md) manual walkthroughs.
 
 ## Keyboard shortcuts
 

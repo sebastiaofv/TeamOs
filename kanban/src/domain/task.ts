@@ -224,6 +224,8 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
         description: (task.description || '') as string,
         assignees: taskAssignees(task),
         responsible: normalizeAssignee(task.responsible),
+        ...(Array.isArray(task.assigneeIds) ? { assigneeIds: [...task.assigneeIds] as string[] } : {}),
+        ...(typeof task.responsibleId === 'string' ? { responsibleId: task.responsibleId } : {}),
         tags: normalizeTags(task.tags),
         blocked: normalizeTaskBlocked(task.blocked),
         blockerReason: normalizeTaskBlocked(task.blocked) ? normalizeBlockerReason(task.blockerReason) : '',

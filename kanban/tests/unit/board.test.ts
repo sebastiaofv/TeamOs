@@ -287,10 +287,10 @@ describe('createEmptyProjectData', () => {
     expect(createEmptyProjectData(undefined).board.settings.title).toBe('Untitled Project');
   });
 
-  it('starts with no tasks and no extensions', () => {
+  it('starts with no tasks and a planned project with removable default tags', () => {
     const data = createEmptyProjectData('Title');
     expect(data.board.tasks).toEqual([]);
-    expect(data.extensions).toEqual({});
+    expect(data.extensions.project).toMatchObject({ version: 1, id: expect.any(String), status: 'planned', description: '', members: [], tags: ['bug', 'feature', 'improvement', 'documentation'] });
   });
 
   it('sets createdAt and updatedAt to the same timestamp', () => {

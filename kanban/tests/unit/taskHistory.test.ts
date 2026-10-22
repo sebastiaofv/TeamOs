@@ -14,6 +14,7 @@ import type { Task, BoardData, TaskRelation } from '../../src/domain/types';
 const stamp = '2026-10-19T10:00:00.000Z';
 function setup() {
     const data = createEmptyProjectData('History');
+    data.extensions.project!.members = [{ id: 'ana', name: 'Ana' }];
     data.board.tasks = [1, 2, 3, 4, 5].map((id) => normalizeTask({ id, title: `Task ${id}`, createdAt: stamp, updatedAt: stamp, status: 'to-do' }));
     return data;
 }

@@ -24,6 +24,9 @@ export type Task = {
     description: string;
     assignees: string[];
     responsible: string;
+    // Stable references; assignees/responsible remain readable name projections.
+    assigneeIds?: string[];
+    responsibleId?: string;
     tags: string[];
     blocked: boolean;
     blockerReason: string;
@@ -123,9 +126,20 @@ export type TaskRelationsExtension = { version: 1; relations: TaskRelation[] };
 
 export type SprintIdentity = { sprintId: string; number: number; createdAt: string | null };
 export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIdentity[] };
+export type ProjectStatus = 'planned' | 'active' | 'paused' | 'completed' | 'archived';
+export type ProjectMember = { id: string; name: string };
+export type ProjectData = {
+    version: 1;
+    id: string;
+    description: string;
+    status: ProjectStatus | null;
+    members: ProjectMember[];
+    tags: string[];
+};
 export type BoardExtensions = {
     [key: string]: unknown;
     conversations?: Conversations;
+    project?: ProjectData;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;

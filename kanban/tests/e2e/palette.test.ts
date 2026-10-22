@@ -19,13 +19,13 @@ const activeItem = (page: Page) => palette(page).locator('.palette-item.active')
 async function seed(page: Page) {
   await seedPortfolioBoards(page, [
     {
-      id: 'alpha', hasHandle: true, title: 'Alpha',
+      id: 'alpha', hasHandle: true, title: 'Alpha', members: ['Ana', 'Zoe'],
       tasks: [
         { id: 1, title: 'Write spec', status: 'to-do', assignees: ['Ana'] },
         { id: 2, title: 'Login bug', status: 'doing', tags: ['auth'] }
       ]
     },
-    { id: 'bravo', hasHandle: true, title: 'Bravo', tasks: [{ id: 5, title: 'Ship release', status: 'backlog' }] },
+    { id: 'bravo', hasHandle: true, title: 'Bravo', members: ['Ana'], tags: ['auth'], tasks: [{ id: 5, title: 'Ship release', status: 'backlog' }] },
     { id: 'charlie', hasHandle: false, title: 'Charlie', tasks: [{ id: 9, title: 'Read-only note', status: 'to-do' }] }
   ]);
 }
@@ -96,7 +96,7 @@ test.describe('command palette', () => {
     await expect(page.locator('#portfolio-to-do-column')).toContainText('Write spec');
   });
 
-  test('starts with actions for the selected card and adds a new assignee step by step', async ({ page }) => {
+  test('starts with actions for the selected card and selects a curated assignee step by step', async ({ page }) => {
     await portfolioCard(page, 'Login bug').click();
     await page.keyboard.press('Control+k');
     await expect(palette(page).locator('.palette-section').first()).toHaveText('Login bug');
@@ -104,7 +104,7 @@ test.describe('command palette', () => {
     await page.keyboard.press('Enter');
     await expect(palette(page).locator('.palette-crumb')).toHaveText(['#2 Login bug', 'Assign']);
     await input(page).fill('Zoe');
-    await expect(activeItem(page)).toContainText('Add "Zoe"');
+    await expect(activeItem(page)).toContainText('Zoe');
     await page.keyboard.press('Enter');
 
     await expect(portfolioCard(page, 'Login bug')).toContainText('Zoe');

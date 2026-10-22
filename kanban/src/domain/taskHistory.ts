@@ -21,7 +21,7 @@ export type TaskHistoryProjection = {
 type State = NonNullable<Parameters<typeof applyTimelineEventToState>[0]>;
 type Labels = Record<string, Record<string, string>>;
 type Relations = { sourceId: number; targetId: number; kind: string }[];
-const OMIT_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'statusChangedAt', 'assignee']);
+const OMIT_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'statusChangedAt', 'assignee', 'assigneeIds', 'responsibleId']);
 
 function taskIn(state: State | null | undefined, id: number): Record<string, unknown> | undefined {
     return Array.isArray(state?.board?.tasks) ? state.board.tasks.find((task) => task && typeof task === 'object' && Number(task.id) === id) : undefined;

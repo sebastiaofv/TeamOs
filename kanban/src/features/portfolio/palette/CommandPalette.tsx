@@ -227,7 +227,7 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
                             {model.preview.dueDate && <span className="palette-chip strong">{t('palette.dueOn', { date: formatPlannerDateLabel(language, model.preview.dueDate, 'medium') })}</span>}
                             {model.preview.warnings.map((warning) => (
                                 <span className="palette-chip warn" key={`${warning.kind}:${warning.value}`}>
-                                    {t(warning.kind === 'newPerson' ? 'palette.warnNewPerson' : warning.kind === 'unknownProject' ? 'palette.warnProject' : 'palette.warnDate', { value: warning.value })}
+                                    {t(warning.kind === 'newPerson' ? 'palette.warnNewPerson' : warning.kind === 'unknownTag' ? 'palette.warnTag' : warning.kind === 'unknownProject' ? 'palette.warnProject' : 'palette.warnDate', { value: warning.value })}
                                 </span>
                             ))}
                         </div>

@@ -1,0 +1,55 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-22T09:00:00.000Z",
+    "updatedAt": "2026-10-22T09:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      { "status": "backlog", "title": "Backlog" },
+      { "status": "to-do", "title": "To Do" },
+      { "status": "doing", "title": "In Progress" },
+      { "status": "done", "title": "Done" }
+    ],
+    "settings": { "title": "US-11 · Projeto legado fictício" },
+    "tasks": [
+      {
+        "id": 11,
+        "title": "Preparar demonstração",
+        "description": "Dados fictícios para validar a migração de nomes.",
+        "assignees": ["Ana", "Rui"],
+        "tags": ["demo"],
+        "checklist": [],
+        "archived": false,
+        "createdAt": "2026-10-22T09:00:00.000Z",
+        "updatedAt": "2026-10-22T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "status": "doing"
+      },
+      {
+        "id": 12,
+        "title": "Registo arquivado",
+        "description": "A atribuição arquivada também impede remover o membro.",
+        "assignees": ["ana"],
+        "tags": [],
+        "checklist": [],
+        "archived": true,
+        "createdAt": "2026-10-22T09:00:00.000Z",
+        "updatedAt": "2026-10-22T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "status": "done"
+      }
+    ]
+  },
+  "extensions": {
+    "roadmap": {
+      "version": 1,
+      "phases": [{ "id": "phase-demo", "title": "Demonstração", "startDate": "2026-10-20", "endDate": "2026-10-30" }],
+      "milestones": [],
+      "sprints": []
+    }
+  }
+}

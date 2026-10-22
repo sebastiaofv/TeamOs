@@ -11,16 +11,13 @@ import type { BoardData, RoadmapItem, Task } from '@/domain/types';
 import { ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_MAX_COUNT, TASK_TITLE_MAX_LENGTH } from '@/domain/constants';
 import {
     formatAssignees,
-    normalizeAssignee,
     normalizeAssignees,
     normalizeBlockerReason,
     normalizeChecklist,
     normalizeEffort,
     normalizePriority,
     normalizeTags,
-    getBoardTagSuggestions,
-    normalizeTask,
-    taskAssignees
+    normalizeTask
 } from '@/domain/task';
 import {
     createEmptyRoadmapExtension,
@@ -41,6 +38,7 @@ import { parsePullRequestLinks, PullRequestLinkError } from '@/domain/pullReques
 import { projectTaskHistory } from '@/domain/taskHistory';
 import { isTaskBlocked } from '@/domain/taskRelations';
 import { buildTaskRelationView } from '@/features/portfolio/queries/taskRelationViews';
+import { getProjectData } from '@/domain/projectData';
 
 export type TaskFocusField = 'title' | 'blockerReason' | 'dueDate';
 
@@ -87,24 +85,10 @@ function buildRoadmapEntityOptions(items: RoadmapItem[] | null | undefined): Sel
     }));
 }
 
-function getTaskAssigneeSuggestions(portfolioTasks: readonly PortfolioRow[] | null | undefined): string[] {
-    const seen = new Set<string>();
-    const values: string[] = [];
-    const addName = (value: unknown) => {
-        const name = normalizeAssignee(value);
-        if (!name || seen.has(name.toLowerCase())) return;
-        seen.add(name.toLowerCase());
-        values.push(name);
-    };
-    (Array.isArray(portfolioTasks) ? portfolioTasks : [])
-        .forEach((item) => taskAssignees(item?.task).forEach(addName));
-    return values.sort((a, b) => a.localeCompare(b));
-}
-
 export function buildTaskEditorViewModel(
     boardRecord: BoardRecord,
     task: Task | null,
-    portfolioTasks: readonly PortfolioRow[] | null | undefined,
+    _portfolioTasks: readonly PortfolioRow[] | null | undefined,
     openId: number,
     options: { taskId?: unknown; preferredDueDate?: string } = {}
 ): TaskEditorViewModel {
@@ -157,8 +141,8 @@ export function buildTaskEditorViewModel(
         initial,
         phaseOptions,
         milestoneOptions,
-        assigneePool: getTaskAssigneeSuggestions(portfolioTasks),
-        tagSuggestions: getBoardTagSuggestions(boardRecord.data),
+        assigneePool: getProjectData(boardRecord.data).members.map((member) => member.name),
+        tagSuggestions: getProjectData(boardRecord.data).tags,
         otherAttachmentBytes: calculateBoardAttachmentBytes(boardRecord.data, {
             excludeTaskId: normalized ? options.taskId : null
         })

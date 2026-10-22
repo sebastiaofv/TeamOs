@@ -308,6 +308,7 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
 export const SHORTCUTS: Shortcut[] = createPortfolioShortcuts();
 
 const SHORTCUT_CONTEXT_BY_DIALOG: Record<DialogName, ShortcutContext> = {
+    projectSettings: 'roadmapEntityModal',
     taskEditor: 'taskModal',
     taskDetail: 'detailModal',
     roadmapEntity: 'roadmapEntityModal',

@@ -40,6 +40,8 @@ export type SeedBoard = {
   fileName?: string;
   tasks?: SeedTask[];
   extensions?: Record<string, unknown>;
+  members?: string[];
+  tags?: string[];
 };
 
 type SeededBoard = { label: string; title: string; hasHandle: boolean; fileName: string; text: string };
@@ -69,6 +71,8 @@ function buildTaskPayload(task: SeedTask, index: number) {
     title: task.title,
     description: task.description || '',
     assignees,
+    ...(Array.isArray(task.assigneeIds) ? { assigneeIds: task.assigneeIds } : {}),
+    ...(typeof task.responsibleId === 'string' ? { responsibleId: task.responsibleId } : {}),
     ...(Object.hasOwn(task, 'responsible') ? { responsible: task.responsible } : {}),
     tags: Array.isArray(task.tags) ? task.tags : [],
     blocked: Boolean(task.blocked),
@@ -89,8 +93,8 @@ function buildTaskPayload(task: SeedTask, index: number) {
   };
 }
 
-function buildBoardPayload({ title, tasks = [], extensions = {} }: { title: string; tasks?: SeedTask[]; extensions?: unknown }) {
-  return {
+function buildBoardPayload({ title, tasks = [], extensions = {}, members, tags }: { title: string; tasks?: SeedTask[]; extensions?: Record<string, unknown>; members?: string[]; tags?: string[] }) {
+  const payload = {
     meta: {
       schemaVersion: tasks.some((task) => Object.hasOwn(task, 'pullRequests')) ? 3 : tasks.some((task) => Object.hasOwn(task, 'responsible')) ? 2 : BOARD_SCHEMA_VERSION,
       appId: BOARD_APP_ID,
@@ -109,6 +113,17 @@ function buildBoardPayload({ title, tasks = [], extensions = {} }: { title: stri
     },
     extensions: JSON.parse(JSON.stringify(extensions))
   };
+  if (members || tags) {
+    const names = [...new Set([...(members || []), ...payload.board.tasks.flatMap((task) => task.assignees)])];
+    const directory = names.map((name, index) => ({ id: `member-${index}`, name }));
+    payload.extensions.project = { version: 1, id: `project-${title}`, description: '', status: null, members: directory,
+      tags: [...new Set([...(tags || []), ...payload.board.tasks.flatMap((task) => task.tags)])] };
+    payload.board.tasks = payload.board.tasks.map((task) => ({ ...task,
+      assigneeIds: task.assignees.map((name) => directory.find((member) => member.name === name)!.id),
+      responsibleId: directory.find((member) => member.name === task.responsible)?.id || ''
+    }));
+  }
+  return payload;
 }
 
 async function gotoApp(page: Page) {
@@ -138,7 +153,7 @@ async function seedPortfolioBoards(
     text: JSON.stringify(buildBoardPayload({
       title: board.title,
       tasks: board.tasks || [],
-      extensions: board.extensions || {}
+      extensions: board.extensions || {}, members: board.members, tags: board.tags
     }), null, 2)
   }));
   const writableBoards = seededBoards.filter((board) => board.hasHandle);

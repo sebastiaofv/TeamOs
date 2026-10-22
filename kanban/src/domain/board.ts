@@ -14,6 +14,7 @@ import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { parseTaskRelations } from '@/domain/taskRelations';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
+import { createProjectData, parseProjectData, validateProjectReferences } from '@/domain/projectData';
 import { parsePullRequestLinks, validatePullRequestTimeline } from './pullRequests';
 import { parseTaskIdentityReservation } from './taskIdentity';
 import { parseConversations } from './comments';
@@ -132,7 +133,7 @@ export function createEmptyProjectData(title: string | null | undefined): BoardD
                 title: projectTitle
             }
         },
-        extensions: {}
+        extensions: { project: createProjectData() }
     };
 }
 
@@ -297,7 +298,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests']);
+        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests']);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -435,4 +436,6 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         }
     });
     parseTaskRelations((extensions as Record<string, unknown>).taskRelations, taskIds);
+    const project = parseProjectData((extensions as Record<string, unknown>).project);
+    if (project) validateProjectReferences(project, data.board.tasks);
 }

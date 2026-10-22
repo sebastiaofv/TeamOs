@@ -5,6 +5,7 @@ import { ShortcutsDialog } from '@/app/overlays/ShortcutsDialog';
 import { RoadmapEntityDialog } from '@/features/portfolio/roadmap/RoadmapEntityDialog';
 import { TaskDetailDialog } from '@/features/portfolio/task/dialogs/TaskDetailDialog';
 import { TaskEditorDialog } from '@/features/portfolio/task/dialogs/TaskEditorDialog';
+import { ProjectSettingsDialog } from '@/features/portfolio/projects/ProjectSettingsDialog';
 import { ConversationDraftRecovery } from '@/features/portfolio/task/ConversationDraftRecovery';
 import { AppMessageDialog } from '@/app/overlays/AppMessageDialog';
 import { UndoToast } from '@/features/portfolio/shell/UndoToast';
@@ -93,6 +94,7 @@ function AppContent() {
                 <TaskDetailDialog />
                 <RoadmapEntityDialog />
                 <TaskEditorDialog />
+                <ProjectSettingsDialog />
                 <AppMessageDialog />
                 <UndoToast />
             </ErrorBoundary>
