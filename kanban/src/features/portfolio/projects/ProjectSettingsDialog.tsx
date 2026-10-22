@@ -30,6 +30,8 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
     const [original] = useState(() => ({ name: vm.data.board.settings.title, project: getProjectData(vm.data) }));
     const [name, setName] = useState(original.name);
     const [project, setProject] = useState(original.project);
+    const [member, setMember] = useState('');
+    const [memberError, setMemberError] = useState('');
     const [tag, setTag] = useState('');
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
@@ -40,6 +42,15 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
         setSaving(true);
         try { await saveProjectSettings(vm.boardId, { name, project }, original); }
         finally { setSaving(false); }
+    };
+    const addMember = () => {
+        const value = member.trim();
+        if (!value) { setMemberError(t('project.error.name')); return; }
+        if (project.members.some((entry) => projectNameKey(entry.name) === projectNameKey(value))) {
+            setMemberError(t('project.error.duplicateMember')); return;
+        }
+        setProject({ ...project, members: [...project.members, { id: createProjectIdentity('member'), name: value }] });
+        setMember(''); setMemberError('');
     };
     const addTag = () => {
         const value = projectNameKey(tag);
@@ -92,7 +103,12 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                                 </div>
                                 {memberUsed(member.id) && <p id={`projectMemberUse-${index}`} className="project-settings-use">{t('project.memberInUseHelp')}</p>}
                             </div>)}
-                            <button className="btn" type="button" onClick={() => setProject({ ...project, members: [...project.members, { id: createProjectIdentity('member'), name: '' }] })}>{t('project.addMember')}</button>
+                            <div className="project-settings-row">
+                                <input id="projectNewMember" aria-label={t('project.newMember')} value={member} onChange={(event) => setMember(event.target.value)}
+                                    onKeyDown={(event) => { if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) { event.preventDefault(); addMember(); } }} />
+                                <button className="btn" type="button" onClick={addMember}>{t('project.addMember')}</button>
+                            </div>
+                            {memberError && <p role="alert">{memberError}</p>}
                         </section>
                         <section className="form-group project-settings-catalog" aria-labelledby="projectTagsLabel">
                             <h3 id="projectTagsLabel">{t('task.tags')}</h3>

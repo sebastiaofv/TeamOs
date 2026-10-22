@@ -1,6 +1,37 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, waitForBoardWrites, answerAppMessage, openFiltersPanel } from '../support/portfolio';
 
+test('adding members matches tags: validate input, add by button or Enter, and clear without saving', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Members', hasHandle: true, members: ['Ana'] }]);
+    await page.getByRole('button', { name: 'Settings for Members', exact: true }).click();
+    const modal = page.locator('#projectSettingsModal');
+    const input = page.getByLabel('New project member', { exact: true });
+    const add = modal.getByRole('button', { name: 'Add member', exact: true });
+    await add.click();
+    await expect(modal.getByRole('alert')).toContainText('non-blank');
+    await expect(page.getByLabel('Member 2 name', { exact: true })).toHaveCount(0);
+    await input.fill(' ANA ');
+    await input.press('Enter');
+    await expect(modal.getByRole('alert')).toContainText('must be unique');
+    await expect(input).toHaveValue(' ANA ');
+    await input.fill(' Rui Silva ');
+    await add.click();
+    await expect(page.getByLabel('Member 2 name', { exact: true })).toHaveValue('Rui Silva');
+    await expect(input).toHaveValue('');
+    await expect(modal.getByRole('alert')).toHaveCount(0);
+    await input.fill('Marta');
+    await input.press('Enter');
+    await expect(page.getByLabel('Member 3 name', { exact: true })).toHaveValue('Marta');
+    await expect(input).toHaveValue('');
+    await expect(modal).toBeVisible();
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
+    await modal.getByRole('button', { name: 'Save', exact: true }).click();
+    await waitForBoardWrites(page);
+    const saved = await readSavedBoard(page, 'p');
+    expect(saved.extensions.project.members.map((member: { name: string }) => member.name)).toEqual(['Ana', 'Rui Silva', 'Marta']);
+});
+
 for (const { width, dark } of [1280, 390].flatMap((width) => [false, true].map((dark) => ({ width, dark })))) {
 test(`settings rows fit and unused values can be removed at ${width}px (${dark ? 'dark' : 'light'})`, async ({ page }) => {
     await page.setViewportSize({ width, height: 720 });
@@ -52,8 +83,8 @@ test('settings edit the intended project without changing selection and persist 
     await page.locator('#projectDescription').fill('Reusable description');
     await page.locator('#projectStatus').selectOption('paused');
     await page.getByLabel('Member 1 name', { exact: true }).fill('Ana Silva');
+    await page.getByLabel('New project member', { exact: true }).fill('Rui');
     await modal.getByRole('button', { name: 'Add member', exact: true }).click();
-    await page.getByLabel('Member 2 name', { exact: true }).fill('Rui');
     await page.locator('#projectNewTag').fill(' Delivery ');
     await modal.getByRole('button', { name: 'Add tag', exact: true }).click();
     await modal.getByRole('button', { name: 'Save', exact: true }).click();
