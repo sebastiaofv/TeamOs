@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { addTag } from '@/domain/taskDraft';
 import { showAlert } from '@/app/overlays/appMessages';
 import { useI18n } from '@/shared/i18n';
+import { EditorSelect } from './EditorSelect';
 
 export function TagEditor({ value, onChange, suggestions }: {
     value: string[]; onChange: (next: string[]) => void; suggestions: string[];
@@ -25,10 +26,10 @@ export function TagEditor({ value, onChange, suggestions }: {
             </div>)}
         </div>
         <div className="tag-editor-add">
-            <select id="taskTagNewItem" aria-label={t('editor.addTagPlaceholder')} value={selected} onChange={(event) => setSelected(event.target.value)}>
+            <EditorSelect id="taskTagNewItem" aria-label={t('editor.addTagPlaceholder')} value={selected} onChange={(event) => setSelected(event.target.value)}>
                 <option value="">{t('common.choose')}</option>
                 {available.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
-            </select>
+            </EditorSelect>
             <button type="button" className="btn" id="taskTagAddBtn" disabled={!selected} onClick={add}>{t('common.add')}</button>
         </div>
     </div>;

@@ -11,6 +11,7 @@ import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { AssigneeEditor } from './editor/AssigneeEditor';
 import { TagEditor } from './editor/TagEditor';
+import { EditorSelect } from './editor/EditorSelect';
 import { ChecklistEditor } from './editor/ChecklistEditor';
 import { AttachmentsEditor } from './editor/AttachmentsEditor';
 import { PullRequestLinks } from './PullRequestLinks';
@@ -142,10 +143,10 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                     </div>
                     <div className="form-group">
                         <label htmlFor="taskResponsible">{t('task.responsible')}</label>
-                        <select id="taskResponsible" value={form.responsible} onChange={(event) => setForm((current) => setTaskResponsible(current, event.target.value))}>
+                        <EditorSelect id="taskResponsible" value={form.responsible} onChange={(event) => setForm((current) => setTaskResponsible(current, event.target.value))}>
                             <option value="">{t('task.noResponsible')}</option>
                             {vm.assigneePool.map((name) => <option key={name} value={name}>{name}</option>)}
-                        </select>
+                        </EditorSelect>
                     </div>
                     <div className="form-group">
                         <label id="taskAssigneesLabel">{t('task.assignees')}</label>

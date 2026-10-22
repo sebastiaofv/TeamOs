@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useI18n } from '@/shared/i18n';
+import { EditorSelect } from './EditorSelect';
 
 export function AssigneeEditor({ value, onChange, pool, onRemove }: {
     value: string[]; onChange: (next: string[]) => void; pool: string[]; onRemove: (index: number) => unknown;
@@ -22,11 +23,11 @@ export function AssigneeEditor({ value, onChange, pool, onRemove }: {
             </div>)}
         </div>
         <div className="assignee-editor-add">
-            <select id="taskAssigneeNewItem" aria-label={t('editor.addAssigneePlaceholder')} value={selected}
+            <EditorSelect id="taskAssigneeNewItem" aria-label={t('editor.addAssigneePlaceholder')} value={selected}
                 onChange={(event) => setSelected(event.target.value)}>
                 <option value="">{t('common.choose')}</option>
                 {available.map((name) => <option key={name} value={name}>{name}</option>)}
-            </select>
+            </EditorSelect>
             <button type="button" className="btn" id="taskAssigneeAddBtn" disabled={!selected} onClick={add}>{t('common.add')}</button>
         </div>
         <p>{t('project.curatedHelp')}</p>
