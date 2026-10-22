@@ -7,6 +7,8 @@ type TranslationValues = Record<string, string | number>;
 
 const en = {
     'project.settings': 'Project settings',
+    'project.memberInUseHelp': 'In use · remove this person’s task assignments before removing the member.',
+    'project.tagInUseHelp': 'In use · remove this tag from tasks before removing it here.',
     'project.settingsFor': 'Settings for {name}',
     'project.name': 'Project name',
     'project.members': 'Members',
@@ -746,6 +748,8 @@ type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
     'project.settings': 'Definições do projeto',
+    'project.memberInUseHelp': 'Em uso · retire as atribuições desta pessoa nas tarefas antes de remover o membro.',
+    'project.tagInUseHelp': 'Em uso · retire esta tag das tarefas antes de a remover aqui.',
     'project.settingsFor': 'Definições de {name}',
     'project.name': 'Nome do projeto',
     'project.members': 'Membros',

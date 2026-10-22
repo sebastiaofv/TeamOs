@@ -252,8 +252,7 @@ function ChipList({ state }: { state: ChipState }) {
                             aria-label={t('project.settingsFor', { name: board.title || board.fileName })} title={t('project.settings')}
                             aria-haspopup="dialog" onClick={() => openProjectSettings(board.id)}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                                <path d="m9 3-1 3-3 1-2 3 2 2-1 3 3 2 3-1 2 3 3-1 1-3 3-1 2-3-2-2 1-3-3-2-3 1-2-3Z" />
-                                <circle cx="11.5" cy="11" r="3" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h6m0 0h10M4 12h12m0 0h4M4 18h4m0 0h12M10 3v6m6 0v6M8 15v6" />
                             </svg>
                         </button>
                         {board.handle && saveUi.canRetry && (

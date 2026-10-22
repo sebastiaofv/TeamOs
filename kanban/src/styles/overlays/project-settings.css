@@ -1,3 +1,26 @@
+#projectSettingsModal .modal-content {
+    max-width: 760px;
+    max-height: calc(100dvh - 24px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#projectSettingsModal .modal-header,
+#projectSettingsModal .modal-footer { flex-shrink: 0; }
+
+#projectSettingsModal .modal-body {
+    overflow-y: auto;
+    min-height: 0;
+}
+
+#projectSettingsHelp {
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
 .project-settings-fields {
     border: 0;
     padding: 0;
@@ -5,7 +28,53 @@
     min-width: 0;
 }
 
-.project-settings-fields h3 { font-size: 1rem; margin-bottom: 8px; }
-.project-settings-fields .assignee-editor-row,
-.project-settings-fields .tag-editor-row { margin-bottom: 8px; }
-.chip-settings { display: inline-flex; align-items: center; justify-content: center; }
+.project-settings-metadata {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+}
+
+.project-settings-catalogs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+}
+
+.project-settings-catalog h3 { font-size: 13px; margin: 0 0 12px; }
+.project-settings-entry { margin-bottom: 10px; }
+.project-settings-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+}
+.project-settings-row > span { font-size: 13px; overflow-wrap: anywhere; }
+.project-settings-row > input { min-width: 0; }
+.project-settings-row .btn { min-height: 36px; white-space: nowrap; }
+.project-settings-remove:not(:disabled):hover { color: var(--priority-high); border-color: var(--priority-high); }
+#projectSettingsModal button:disabled { opacity: .4; cursor: not-allowed; }
+.project-settings-use,
+.project-settings-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+.project-settings-use { margin: 4px 0 0; }
+.project-settings-note { margin: 0; }
+.chip-settings {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 3px;
+}
+.chip-settings:hover { background: var(--bg-secondary); }
+.chip-settings svg { width: 14px; height: 14px; }
+
+@media (max-width: 600px) {
+    .project-settings-metadata { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .project-settings-catalogs { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}

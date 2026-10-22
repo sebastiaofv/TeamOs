@@ -1,6 +1,39 @@
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, waitForBoardWrites, answerAppMessage, openFiltersPanel } from '../support/portfolio';
 
+for (const { width, dark } of [1280, 390].flatMap((width) => [false, true].map((dark) => ({ width, dark })))) {
+test(`settings rows fit and unused values can be removed at ${width}px (${dark ? 'dark' : 'light'})`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 720 });
+    await gotoApp(page);
+    if (dark) await page.locator('#themeToggleBtn').click();
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Settings layout', hasHandle: true,
+        members: ['Ana', 'Unused member'], tags: ['bug', 'unused-tag'],
+        tasks: [{ id: 1, title: 'Assigned', assignees: ['Ana'], tags: ['bug'] }] }]);
+    await page.getByRole('button', { name: 'Settings for Settings layout', exact: true }).click();
+    await page.screenshot({ path: `test-results/project-settings-${width}-${dark ? 'dark' : 'light'}.png`, fullPage: true });
+    const saveBox = await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).boundingBox();
+    expect(saveBox!.y + saveBox!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
+    const row = page.getByLabel('Member 2 name', { exact: true }).locator('..');
+    const inputBox = await page.getByLabel('Member 2 name', { exact: true }).boundingBox();
+    const removeBox = await row.getByRole('button').boundingBox();
+    expect(inputBox!.x + inputBox!.width).toBeLessThanOrEqual(removeBox!.x);
+    expect(removeBox!.width).toBeGreaterThanOrEqual(32);
+    expect(removeBox!.x + removeBox!.width).toBeLessThanOrEqual(width);
+    await expect(page.locator('.project-settings-use')).toHaveCount(2);
+    await expect(page.getByRole('button', { name: 'Remove member 1', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Remove tag bug', exact: true })).toBeDisabled();
+    await page.getByRole('button', { name: 'Remove member 2', exact: true }).click();
+    await expect(page.getByLabel('Member 2 name', { exact: true })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Remove tag unused-tag', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Remove tag unused-tag', exact: true })).toHaveCount(0);
+    await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
+    await waitForBoardWrites(page);
+    const saved = await readSavedBoard(page, 'p');
+    expect(saved.extensions.project.members.map((member: { name: string }) => member.name)).toEqual(['Ana']);
+    expect(saved.extensions.project.tags).toEqual(['bug']);
+});
+}
+
 test('settings edit the intended project without changing selection and persist identity, members, tags and status', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [

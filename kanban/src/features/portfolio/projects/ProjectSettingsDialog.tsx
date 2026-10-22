@@ -60,50 +60,62 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                     if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); void submit(); }
                 }}>
                 <fieldset disabled={vm.readOnly || saving} className="project-settings-fields">
-                    <div className="form-group">
-                        <label htmlFor="projectName" className="required">{t('project.name')}</label>
-                        <input id="projectName" value={name} onChange={(event) => setName(event.target.value)} required />
+                    <div className="project-settings-metadata">
+                        <div className="form-group">
+                            <label htmlFor="projectName" className="required">{t('project.name')}</label>
+                            <input id="projectName" value={name} onChange={(event) => setName(event.target.value)} required />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="projectStatus">{t('task.status')}</label>
+                            <select id="projectStatus" value={project.status || ''} onChange={(event) => setProject({ ...project, status: event.target.value as typeof project.status })}>
+                                {project.status === null && <option value="" disabled>{t('project.undefined')}</option>}
+                                {PROJECT_STATUSES.map((status) => <option key={status} value={status}>{t(`project.status.${status}`)}</option>)}
+                            </select>
+                        </div>
                     </div>
                     <div className="form-group">
                         <label htmlFor="projectDescription">{t('task.description')}</label>
                         <textarea id="projectDescription" value={project.description} onChange={(event) => setProject({ ...project, description: event.target.value })} />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="projectStatus">{t('task.status')}</label>
-                        <select id="projectStatus" value={project.status || ''} onChange={(event) => setProject({ ...project, status: event.target.value as typeof project.status })}>
-                            {project.status === null && <option value="" disabled>{t('project.undefined')}</option>}
-                            {PROJECT_STATUSES.map((status) => <option key={status} value={status}>{t(`project.status.${status}`)}</option>)}
-                        </select>
+                    <div className="project-settings-catalogs">
+                        <section className="form-group project-settings-catalog" aria-labelledby="projectMembersLabel">
+                            <h3 id="projectMembersLabel">{t('project.members')}</h3>
+                            {!project.members.length && <p>{t('project.noMembers')}</p>}
+                            {project.members.map((member, index) => <div className="project-settings-entry" key={member.id}>
+                                <div className="project-settings-row">
+                                    <input aria-label={t('project.memberName', { index: index + 1 })} value={member.name}
+                                        aria-describedby={memberUsed(member.id) ? `projectMemberUse-${index}` : undefined}
+                                        onChange={(event) => setProject({ ...project, members: project.members.map((entry) => entry.id === member.id ? { ...entry, name: event.target.value } : entry) })} />
+                                    <button type="button" className="btn project-settings-remove" aria-label={t('project.removeMember', { index: index + 1 })}
+                                        disabled={memberUsed(member.id)} title={memberUsed(member.id) ? t('project.error.memberInUse') : t('common.remove')}
+                                        onClick={() => setProject({ ...project, members: project.members.filter((entry) => entry.id !== member.id) })}>{t('common.remove')}</button>
+                                </div>
+                                {memberUsed(member.id) && <p id={`projectMemberUse-${index}`} className="project-settings-use">{t('project.memberInUseHelp')}</p>}
+                            </div>)}
+                            <button className="btn" type="button" onClick={() => setProject({ ...project, members: [...project.members, { id: createProjectIdentity('member'), name: '' }] })}>{t('project.addMember')}</button>
+                        </section>
+                        <section className="form-group project-settings-catalog" aria-labelledby="projectTagsLabel">
+                            <h3 id="projectTagsLabel">{t('task.tags')}</h3>
+                            {!project.tags.length && <p>{t('editor.noTags')}</p>}
+                            {project.tags.map((value, index) => <div className="project-settings-entry" key={value}>
+                                <div className="project-settings-row">
+                                    <span>{value}</span>
+                                    <button className="btn project-settings-remove" type="button" aria-label={t('project.removeTag', { tag: value })}
+                                        aria-describedby={tagUsed(value) ? `projectTagUse-${index}` : undefined}
+                                        disabled={tagUsed(value)} title={tagUsed(value) ? t('project.error.tagInUse') : t('common.remove')}
+                                        onClick={() => setProject({ ...project, tags: project.tags.filter((entry) => entry !== value) })}>{t('common.remove')}</button>
+                                </div>
+                                {tagUsed(value) && <p id={`projectTagUse-${index}`} className="project-settings-use">{t('project.tagInUseHelp')}</p>}
+                            </div>)}
+                            <div className="project-settings-row">
+                                <input id="projectNewTag" aria-label={t('project.newTag')} value={tag} onChange={(event) => setTag(event.target.value)}
+                                    onKeyDown={(event) => { if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) { event.preventDefault(); addTag(); } }} />
+                                <button type="button" className="btn" onClick={addTag}>{t('project.addTag')}</button>
+                            </div>
+                            {error && <p role="alert">{error}</p>}
+                        </section>
                     </div>
-                    <section className="form-group" aria-labelledby="projectMembersLabel">
-                        <h3 id="projectMembersLabel">{t('project.members')}</h3>
-                        {!project.members.length && <p>{t('project.noMembers')}</p>}
-                        {project.members.map((member, index) => <div className="assignee-editor-row" key={member.id}>
-                            <input aria-label={t('project.memberName', { index: index + 1 })} value={member.name}
-                                onChange={(event) => setProject({ ...project, members: project.members.map((entry) => entry.id === member.id ? { ...entry, name: event.target.value } : entry) })} />
-                            <button type="button" className="btn" aria-label={t('project.removeMember', { index: index + 1 })}
-                                disabled={memberUsed(member.id)} title={memberUsed(member.id) ? t('project.error.memberInUse') : t('common.remove')}
-                                onClick={() => setProject({ ...project, members: project.members.filter((entry) => entry.id !== member.id) })}>&times;</button>
-                        </div>)}
-                        <button className="btn" type="button" onClick={() => setProject({ ...project, members: [...project.members, { id: createProjectIdentity('member'), name: '' }] })}>{t('project.addMember')}</button>
-                    </section>
-                    <section className="form-group" aria-labelledby="projectTagsLabel">
-                        <h3 id="projectTagsLabel">{t('task.tags')}</h3>
-                        {!project.tags.length && <p>{t('editor.noTags')}</p>}
-                        {project.tags.map((value) => <div className="tag-editor-row" key={value}>
-                            <span>{value}</span>
-                            <button className="btn" type="button" aria-label={t('project.removeTag', { tag: value })}
-                                disabled={tagUsed(value)} title={tagUsed(value) ? t('project.error.tagInUse') : t('common.remove')}
-                                onClick={() => setProject({ ...project, tags: project.tags.filter((entry) => entry !== value) })}>&times;</button>
-                        </div>)}
-                        <div className="tag-editor-add">
-                            <input id="projectNewTag" aria-label={t('project.newTag')} value={tag} onChange={(event) => setTag(event.target.value)}
-                                onKeyDown={(event) => { if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) { event.preventDefault(); addTag(); } }} />
-                            <button type="button" className="btn" onClick={addTag}>{t('project.addTag')}</button>
-                        </div>
-                        {error && <p role="alert">{error}</p>}
-                    </section>
-                    <p>{t('project.removalHelp')}</p>
+                    <p className="project-settings-note">{t('project.removalHelp')}</p>
                 </fieldset>
             </form>
         </div>
