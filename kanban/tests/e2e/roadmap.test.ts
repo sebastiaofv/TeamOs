@@ -161,9 +161,8 @@ test.describe('roadmap', () => {
 
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
-    await expect(page.locator('#appMessageModal')).toContainText('choose how to reallocate or clear');
-    await page.locator('#appMessageModal').getByRole('button', { name: 'Delete', exact: true }).click();
-    await answerAppMessage(page, { button: 'Clear assignments · None', expectText: '1 directly assigned workitems' });
+    await expect(page.locator('#appMessageSelection')).toHaveValue('0');
+    await answerAppMessage(page, { button: 'Confirm', expectText: '1 directly assigned workitems' });
 
     await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.at(-1)?.summary || '').toContain('Milestone deleted');
     const board = await readSavedBoard(page, 'alpha');

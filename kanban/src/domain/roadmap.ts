@@ -268,20 +268,31 @@ export function compareRoadmapItemsByDate(a: RoadmapItemLike, b: RoadmapItemLike
     return String(a?.title || '').localeCompare(String(b?.title || ''));
 }
 
-export function getRoadmapAxisTicks(range: RangeLike, language: Language = 'en'): RoadmapTick[] {
+export function getRoadmapAxisTicks(range: RangeLike, language: Language = 'en', width = 320): RoadmapTick[] {
     if (!range?.start || !range?.end) return [];
     const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
-    const tickCount = Math.min(5, totalDays + 1);
+    const tickCount = Math.min(Math.max(2, Math.floor(width / 72) + 1), totalDays + 1);
     const ticks: RoadmapTick[] = [];
     for (let index = 0; index < tickCount; index += 1) {
         const offsetDays = Math.round((totalDays * index) / Math.max(1, tickCount - 1));
         const date = addRoadmapDays(range.start, offsetDays);
         const label = formatRoadmapAxisDate(date, language);
-        if (ticks.some((tick) => tick.label === label)) continue;
         ticks.push({
             label,
             position: getRoadmapDatePosition(date, range)
         });
+    }
+    return ticks;
+}
+
+/** First visible year and each January boundary, positioned on the shared date scale. */
+export function getRoadmapYearTicks(range: RangeLike): RoadmapTick[] {
+    if (!range?.start || !range.end) return [];
+    const ticks = [{ label: String(range.start.getUTCFullYear()), position: 0 }];
+    for (let year = range.start.getUTCFullYear() + 1; year <= range.end.getUTCFullYear(); year++) {
+        const date = new Date(range.start);
+        date.setUTCFullYear(year, 0, 1);
+        ticks.push({ label: String(year), position: getRoadmapDatePosition(date, range) });
     }
     return ticks;
 }
@@ -352,11 +363,11 @@ export function getVisibleRoadmapDateRange(roadmap: RoadmapExtension | null | un
 
 export function normalizeRoadmapExtension(value: unknown): RoadmapExtension | null {
     if (!isRecord(value)) return null;
-    if (![1, 2, ROADMAP_VERSION].includes(Number(value.version))) return null;
+    if (![1, 2, 3, ROADMAP_VERSION].includes(Number(value.version))) return null;
     if (!hasExactKeys(value, ['version', 'milestones', 'phases', 'sprints'])) return null;
 
     const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate'], false, Number(value.version) >= 3);
-    const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate'], ['startDate', 'endDate'], true);
+    const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate'], ['startDate', 'endDate'], true, Number(value.version) >= 4);
     const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate']);
     if (!milestones || !phases || !sprints) return null;
     try { recalculatePhaseDates(phases); } catch { return null; }

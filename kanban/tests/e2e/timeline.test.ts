@@ -99,8 +99,8 @@ test.describe('timeline', () => {
     await page.locator('#milestoneWorkitemsModal .modal-close').click();
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
-    await page.locator('#appMessageModal').getByRole('button', { name: 'Delete', exact: true }).click();
-    await answerAppMessage(page, { button: 'Clear assignments · None' });
+    await expect(page.locator('#appMessageSelection')).toHaveValue('0');
+    await answerAppMessage(page, { button: 'Confirm' });
 
     await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.timeline?.events?.map((event: any) => event.kind))
       .toEqual(['board.baseline', 'roadmap.updated', 'roadmap.updated', 'roadmap.updated']);

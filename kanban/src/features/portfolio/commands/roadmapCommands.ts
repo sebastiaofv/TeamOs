@@ -98,7 +98,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 dueDate: item?.dueDate || '',
                 startDate: item?.startDate || '',
                 endDate: item?.endDate || '',
-                ...(kind === 'milestones' ? { color: item ? milestoneColor(item, items.indexOf(item)) : nextMilestoneColor(items) } : {})
+                ...(kind !== 'sprints' ? { color: item ? milestoneColor(item, items.indexOf(item)) : nextMilestoneColor(items) } : {})
             },
             parentId: item?.parentId || '',
             phaseOptions: roadmap.phases.filter((phase) => !item || !phaseDescendants(roadmap.phases, item.id).has(phase.id)).map((phase) => ({ value: phase.id, label: phase.title })),
@@ -327,7 +327,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const nextItem: RoadmapItem = config.dateMode === 'single'
                 ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
                 : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
-            if (context.kind === 'milestones') nextItem.color = isMilestoneColor(input.color) ? input.color
+            if (context.kind !== 'sprints') nextItem.color = isMilestoneColor(input.color) ? input.color
                 : previousItem ? milestoneColor(previousItem, index) : nextMilestoneColor(items);
             if (context.kind === 'phases' && draft.parentId) nextItem.parentId = draft.parentId;
             if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) return false;
@@ -380,20 +380,20 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (kind === 'phases' && roadmap.phases.some((phase) => phase.parentId === itemId)) { await alert(translateCurrent('roadmap.hasChildren')); return; }
         const label = getRoadmapLabel(kind);
         const affected = boardRecord.data.board.tasks.filter((task) => task[config.taskField] === itemId);
-        const confirmed = await confirm(translateCurrent(kind === 'sprints' ? 'roadmap.deleteQuestion' : 'roadmap.deletePlanningQuestion', { title: item.title }) + impactText(affected), {
-            title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
-            confirmLabel: translateCurrent('common.delete'),
-            danger: true
-        });
-        if (!confirmed) return;
         let relocation: string | undefined;
         if (kind !== 'sprints' && affected.length) {
             const choice = await choose(translateCurrent('roadmap.reassignImpact', { count: affected.length }) + impactText(affected), [
                 { value: '', label: translateCurrent('roadmap.clearAssignments') },
                 ...roadmap[kind].filter((target) => target.id !== itemId && (kind !== 'phases' || isLeafPhase(roadmap.phases, target.id))).map((target) => ({ value: target.id, label: target.title }))
-            ]);
+            ], { title: `${translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() })} · ${item.title}`, selectionLabel: translateCurrent('roadmap.assignmentDestination') });
             if (choice === null) return;
             relocation = choice;
+        } else {
+            const confirmed = await confirm(translateCurrent(kind === 'sprints' ? 'roadmap.deleteQuestion' : 'roadmap.deletePlanningQuestion', { title: item.title }) + impactText(affected), {
+                title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
+                confirmLabel: translateCurrent('common.delete'), danger: true
+            });
+            if (!confirmed) return;
         }
 
         await runPortfolioBoardMutation(boardId, (boardData) => {

@@ -5,7 +5,7 @@ import type { PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanning
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
-import { formatRoadmapDateRange, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '@/domain/roadmap';
+import { formatRoadmapDateRange, getRoadmapAxisTicks, getRoadmapYearTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '@/domain/roadmap';
 import { planningTaskCategory } from '@/domain/phaseTree';
 import { formatDueDateForUi } from '@/domain/calendar';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
@@ -17,27 +17,28 @@ import { layoutMilestones, MILESTONE_LANE_HEIGHT, MILESTONE_LABEL_WIDTH } from '
 type Perspective = 'workitems' | 'sprints' | 'milestones';
 const domId = (value: string) => encodeURIComponent(value);
 
-function useElementWidth<T extends HTMLElement>(initial = 0) {
+function useElementSize<T extends HTMLElement>(initial = 0) {
     const ref = useRef<T>(null);
     const [width, setWidth] = useState(initial);
+    const [height, setHeight] = useState(0);
     useEffect(() => {
         const element = ref.current;
         if (!element) return;
-        const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+        const observer = new ResizeObserver(([entry]) => { setWidth(entry.contentRect.width); setHeight(element.getBoundingClientRect().height); });
         observer.observe(element);
         return () => observer.disconnect();
     }, []);
-    return { ref, width };
+    return { ref, width, height };
 }
 
 function ProgressBar({ row, left, width, toggle }: { row: RoadmapPlanningRow; left: number; width: number; toggle: () => void }) {
     const { t, language } = useI18n(); const percent = useProgressText();
-    const bar = useElementWidth<HTMLButtonElement>();
+    const bar = useElementSize<HTMLButtonElement>();
     const value = percent(row);
     const progress = row.progress.percent || 0;
     const inside = bar.width * progress / 100 >= value.length * 6.6 + 12;
-    return <button ref={bar.ref} className="roadmap-row-timeline-bar" type="button" data-progress={row.progress.percent ?? 'na'} data-start={row.item!.startDate} data-end={row.item!.endDate}
-        style={{ left: `${left}%`, width: `${width}%` }} title={`${row.item!.title} · ${formatRoadmapDateRange(row.item!, language)} · ${value}`} aria-label={t('roadmap.openBar', { title: row.item!.title, percent: value })} onClick={toggle}>
+    return <button ref={bar.ref} className={`roadmap-row-timeline-bar${row.kind === 'phases' && row.item!.color ? ' roadmap-custom-phase-color' : ''}`} type="button" data-progress={row.progress.percent ?? 'na'} data-start={row.item!.startDate} data-end={row.item!.endDate}
+        style={{ left: `${left}%`, width: `${width}%`, ...(row.kind === 'phases' && row.item!.color ? { '--phase-color': row.item!.color } : {}) } as CSSProperties} title={`${row.item!.title} · ${formatRoadmapDateRange(row.item!, language)} · ${value}`} aria-label={t('roadmap.openBar', { title: row.item!.title, percent: value })} onClick={toggle}>
         <span className="roadmap-bar-fill" style={{ width: `${progress}%` }} /><span className={`roadmap-bar-value${inside ? ' roadmap-value-inside' : ''}`} style={{ left: `${progress}%` }}>{value}</span>
     </button>;
 }
@@ -173,13 +174,16 @@ function MilestoneDialog({ marker, view, canEdit, close }: { marker?: RoadmapMil
 }
 
 function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
-    const { t } = useI18n(); const percent = useProgressText(); const actions = usePortfolioActions();
+    const { t, language } = useI18n(); const percent = useProgressText(); const actions = usePortfolioActions();
     const canEdit = useAppStore((state) => Boolean(state.portfolioBoards.find((board) => board.id === view.boardId)?.handle)) && !view.historical;
     const [milestoneId, setMilestoneId] = useState('');
     const [perspectives, setPerspectives] = useState<Record<string, Perspective>>({});
     const [labelWidth, setLabelWidth] = useState<number | null>(null);
     const [zoom, setZoom] = useState(1);
-    const axis = useElementWidth<HTMLDivElement>(640);
+    const axis = useElementSize<HTMLDivElement>(640);
+    const controls = useElementSize<HTMLDivElement>();
+    const axisTicks = getRoadmapAxisTicks(view.range, language, axis.width);
+    const yearTicks = getRoadmapYearTicks(view.range);
     const layout = layoutMilestones(view.milestones.map((milestone) => milestone.position), axis.width);
     const milestones = view.milestones.map((milestone, index) => ({ ...milestone, ...layout[index] }));
     const marker = getRoadmapTodayMarker(view.range);
@@ -187,8 +191,8 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
     const annotationHeight = Math.min(96, annotationLanes * MILESTONE_LANE_HEIGHT);
     const style = { '--roadmap-label-width': `${labelWidth ?? view.labelWidth}px`, '--roadmap-temporal-min': `${640 * zoom}px` } as CSSProperties;
     const selected = milestones.find((item) => item.item?.id === milestoneId);
-    return <div className="roadmap-workspace">
-        <div className="roadmap-view-controls"><ArchiveControl /><CompletionControl view={view} />
+    return <div className="roadmap-workspace" style={{ '--roadmap-controls-height': `${controls.height}px` } as CSSProperties}>
+        <div ref={controls.ref} className="roadmap-view-controls"><ArchiveControl /><CompletionControl view={view} />
             <label>{t('roadmap.labelWidth')}<input aria-label={t('roadmap.labelWidth')} type="range" min="280" max="720" step="10" value={labelWidth ?? view.labelWidth} onChange={(event) => setLabelWidth(Number(event.target.value))} /></label>
             <label>{t('roadmap.zoom')}<select aria-label={t('roadmap.zoom')} value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{[1, 1.25, 1.5, 2].map((value) => <option value={value} key={value}>{value * 100}%</option>)}</select></label>
             <button className="btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.milestone') })} onClick={() => actions.openRoadmapEntityModal('milestones')}>{t('roadmap.add', { label: t('roadmap.milestone') })}</button>
@@ -196,16 +200,21 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
         </div>
         <div className="portfolio-roadmap-timeline surface-page surface-border" style={style}>
             <div className="roadmap-temporal-overlay" aria-hidden="true">
-                {view.axisTicks.map((tick) => <span className="roadmap-grid-guide" key={tick.label} style={{ left: `${tick.position}%`, top: 18 }} />)}
+                {axisTicks.map((tick) => <span className="roadmap-grid-guide" key={tick.position} style={{ left: `${tick.position}%`, top: 18 }} />)}
             </div>
             <div className="roadmap-date-overlay" aria-hidden="true">
+                {yearTicks.slice(1).map((tick) => <span className="roadmap-grid-guide roadmap-year-guide" key={tick.label} style={{ left: `${tick.position}%`, top: 0 }} />)}
                 {milestones.map((milestone) => <MilestoneGuide marker={milestone} markers={milestones} key={milestone.key} top={44 + Math.min(milestone.lane * MILESTONE_LANE_HEIGHT + MILESTONE_LANE_HEIGHT / 2, annotationHeight)} />)}
                 {marker && <span className="roadmap-today-marker" style={{ left: `${marker.position}%` }} />}
             </div>
             <div className="roadmap-axis-shell"><div className="roadmap-axis-label">{t('roadmap.timeline')}<span>{view.range.start.toISOString().slice(0, 10)} — {view.range.end.toISOString().slice(0, 10)}</span></div>
                 <div ref={axis.ref} className="roadmap-axis" data-roadmap-axis="shared">
                     {marker && <span className="roadmap-today-axis-line" style={{ left: `${marker.position}%` }} aria-hidden="true" />}
-                    <div className="roadmap-axis-line">{marker && <span className="roadmap-today-marker-label" style={{ left: `${marker.position}%` }} aria-label={t('roadmap.todayAria', { date: marker.iso })}>T</span>}<div className="roadmap-axis-ticks">{view.axisTicks.map((tick) => <span className="roadmap-axis-tick" key={tick.label} style={{ left: `${tick.position}%` }}>{tick.label}</span>)}</div></div>
+                    <div className="roadmap-axis-line">
+                        <div className="roadmap-axis-years">{yearTicks.map((tick) => <span className="roadmap-axis-year" key={tick.label} style={{ left: `${tick.position}%`, ...(tick.position > 95 ? { transform: 'translateX(-100%)' } : {}) }}>{tick.label}</span>)}</div>
+                        {marker && <span className="roadmap-today-marker-label" style={{ left: `${marker.position}%` }} aria-label={t('roadmap.todayAria', { date: marker.iso })}>T</span>}
+                        <div className="roadmap-axis-ticks">{axisTicks.map((tick) => <span className={`roadmap-axis-tick${tick.position === 0 ? ' roadmap-tick-first' : tick.position === 100 ? ' roadmap-tick-last' : ''}`} key={tick.position} style={{ left: `${tick.position}%` }}><span className="roadmap-axis-date-label">{tick.label}</span></span>)}</div>
+                    </div>
                     {milestones.length > 0 && <div className="milestone-annotations" role="region" aria-label={t('roadmap.milestones')} tabIndex={0} style={{ height: annotationHeight }}><div className="milestone-annotation-canvas" style={{ height: annotationLanes * MILESTONE_LANE_HEIGHT }}>
                         {milestones.map((milestone) => <MilestoneGuide marker={milestone} markers={milestones} key={`guide-${milestone.key}`} local top={milestone.lane * MILESTONE_LANE_HEIGHT + MILESTONE_LANE_HEIGHT / 2} />)}
                         {milestones.map((milestone) => <button className={`milestone-annotation${milestone.labelAtEnd ? ' milestone-at-end' : ''}`} type="button" key={milestone.key} data-roadmap-kind="milestone" data-roadmap-id={milestone.item!.id}

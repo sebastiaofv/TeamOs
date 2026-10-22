@@ -6,14 +6,15 @@ import { normalizeRoadmapExtension } from '../../src/domain/roadmap';
 import { layoutMilestones, MILESTONE_COLORS, milestoneColor, nextMilestoneColor } from '../../src/domain/milestonePresentation';
 
 describe('milestone colours and compatibility', () => {
-    it.each([1, 2])('migrates v%i without changing work, IDs or historical events', (version) => {
+    it.each([1, 2, 3])('migrates v%i without changing work, IDs or historical events', (version) => {
         const board = JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
         board.extensions.roadmap.version = version;
         board.extensions.roadmap.milestones.forEach((item: { color?: string }) => delete item.color);
+        board.extensions.roadmap.phases.forEach((item: { color?: string }) => delete item.color);
         const original = structuredClone(board);
         const saved = serializeBoardDataFromObject(board);
         validateBoardData(saved);
-        expect(saved.extensions.roadmap).toEqual({ ...original.extensions.roadmap, version: 3 });
+        expect(saved.extensions.roadmap).toEqual({ ...original.extensions.roadmap, version: 4 });
         expect(saved.board.tasks.map((task) => [task.id, task.phaseId, task.milestoneId, task.sprintId, task.status])).toEqual(
             original.board.tasks.map((task: { id: number; phaseId?: string; milestoneId?: string; sprintId?: string; status: string }) => [task.id, task.phaseId || '', task.milestoneId || '', task.sprintId || '', task.status]));
         expect(saved.extensions.timeline).toEqual(original.extensions.timeline);

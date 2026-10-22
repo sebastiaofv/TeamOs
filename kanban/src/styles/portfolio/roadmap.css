@@ -1,4 +1,6 @@
+.portfolio-roadmap-view { padding: 0; }
 .roadmap-workspace { min-width: 0; }
+.roadmap-view-controls { position: sticky; top: 0; z-index: 9; }
 .roadmap-view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg-card); font-size: 12px; }
 .roadmap-view-controls > label, .roadmap-archive-control { display: inline-flex; align-items: center; gap: 6px; }
 .roadmap-view-controls input[type="range"] { width: 90px; accent-color: var(--accent); }
@@ -8,16 +10,22 @@
 .roadmap-completion-controls [aria-pressed="true"], .roadmap-perspectives [aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--bg-secondary); }
 .portfolio-roadmap-timeline { --roadmap-label-width: 440px; --roadmap-temporal-min: 640px; width: 100%; min-width: calc(var(--roadmap-label-width) + var(--roadmap-temporal-min) + 16px); position: relative; border: 1px solid var(--border); background: var(--bg-primary); }
 .roadmap-axis-shell, .roadmap-row-main { display: grid; grid-template-columns: var(--roadmap-label-width) minmax(0, 1fr); gap: 0; padding-right: 16px; }
-.roadmap-axis-shell { position: sticky; top: 0; z-index: 7; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.roadmap-axis-shell { position: sticky; top: calc(var(--roadmap-controls-height, 0px) + 1px); z-index: 8; isolation: isolate; border-bottom: 1px solid var(--border); background: var(--bg-card); }
 .roadmap-axis-label { display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 12px; font-size: 13px; font-weight: 600; }
 .roadmap-axis-label span { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
 .roadmap-axis { position: relative; min-width: 0; }
 .roadmap-axis-line { position: relative; height: 44px; }
 .roadmap-axis-ticks { position: absolute; inset: 0; }
-.roadmap-axis-tick { position: absolute; top: 19px; transform: translateX(-50%); font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+.roadmap-axis-tick { position: absolute; top: 19px; width: 0; font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
 .roadmap-axis-tick::before { content: ''; display: block; height: 6px; width: 1px; background: var(--border); margin: 0 auto 2px; }
+.roadmap-axis-date-label { display: block; width: max-content; transform: translateX(-50%); }
+.roadmap-tick-first .roadmap-axis-date-label { transform: none; }
+.roadmap-tick-last .roadmap-axis-date-label { transform: translateX(-100%); }
+.roadmap-axis-years { position: absolute; inset: 0 0 auto; height: 17px; border-bottom: 1px solid var(--border-light); }
+.roadmap-axis-year { position: absolute; top: 2px; padding-left: 4px; font-size: 10px; color: var(--text-muted); border-left: 1px solid var(--border-light); }
 .roadmap-temporal-overlay { position: absolute; top: 0; bottom: 0; left: var(--roadmap-label-width); right: 16px; pointer-events: none; z-index: 1; }
 .roadmap-grid-guide, .milestone-date-guide { position: absolute; bottom: 0; width: 0; border-left: 1px solid var(--border-light); pointer-events: none; }
+.roadmap-year-guide { border-color: var(--text-muted); opacity: 0.45; }
 .milestone-date-guide { border: 0; width: 1px; opacity: 0.8; }
 .roadmap-date-overlay { position: absolute; top: 0; bottom: 0; left: var(--roadmap-label-width); right: 16px; pointer-events: none; z-index: 4; }
 .roadmap-today-marker, .roadmap-today-axis-line { position: absolute; top: 14px; bottom: 0; width: 0; border-left: 1px solid #2563eb; pointer-events: none; z-index: 2; }
@@ -58,6 +66,7 @@
 .roadmap-bar-fill { position: absolute; top: 0; bottom: 0; left: 0; background: color-mix(in srgb, var(--accent) 35%, var(--bg-card)); }
 .roadmap-row[data-roadmap-kind="sprint"] .roadmap-bar-fill { background: color-mix(in srgb, var(--effort-xs) 35%, var(--bg-card)); }
 .roadmap-row[data-depth="1"] .roadmap-bar-fill { background: color-mix(in srgb, var(--effort-m) 35%, var(--bg-card)); }
+.roadmap-row .roadmap-custom-phase-color .roadmap-bar-fill { background: color-mix(in srgb, var(--phase-color) 55%, var(--bg-card)); }
 .roadmap-bar-fill { border-radius: 4px; }
 .roadmap-bar-value { position: absolute; top: 0; margin-left: 4px; display: block; font-size: 11px; line-height: 19px; font-weight: 700; white-space: nowrap; z-index: 6; text-shadow: 0 0 2px var(--bg-card), 0 0 2px var(--bg-card); }
 .roadmap-value-inside { transform: translateX(-100%); margin-left: -4px; }

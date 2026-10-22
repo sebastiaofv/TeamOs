@@ -379,7 +379,7 @@ describe('createBoardStateSnapshot', () => {
     };
     const out = createBoardStateSnapshot(input);
     expect('timeline' in out.extensions).toBe(false);
-    expect(out.extensions.roadmap).toEqual({ version: 3, milestones: [], phases: [], sprints: [] });
+    expect(out.extensions.roadmap).toEqual({ version: 4, milestones: [], phases: [], sprints: [] });
   });
 
   it('tolerates entirely absent boardData', () => {
@@ -451,7 +451,7 @@ describe('serializeBoardDataFromObject — ported from the Playwright suite', ()
     expect(() => validateBoardData(source)).not.toThrow();
 
     const s = serializeBoardDataFromObject(source);
-    expect(s.extensions.roadmap!.version).toBe(3);
+    expect(s.extensions.roadmap!.version).toBe(4);
     expect(s.extensions.roadmap!.milestones).toEqual([
       { id: 'milestone_alpha', title: 'Alpha', dueDate: '2026-04-15' }
     ]);
