@@ -21,6 +21,7 @@ import { getRelations, getTaskRelations, removeTaskRelation, setTaskRelation, Ta
 import { cloneSerializable } from '@/domain/serializable';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
+import { getRoadmapExtension, isValidRoadmapAssignment } from '@/domain/roadmap';
 import { removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -193,6 +194,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         if (!confirmed) return;
 
         const state = getState();
+
         if (
             state.portfolioDetailContext?.boardId === boardId
             && Number(state.portfolioDetailContext.taskId) === Number(taskId)
@@ -235,6 +237,12 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
         const commonFields = setTaskResponsible(buildTaskFieldsFromDraft(draft), draft.responsible);
         const state = getState();
+        const editingBoardId = state.portfolioCreateContext?.boardId || state.portfolioEditContext?.boardId;
+        const roadmap = getRoadmapExtension(editingBoardId ? getBoardRecord(editingBoardId)?.data : null);
+        if (!isValidRoadmapAssignment(roadmap, 'phaseId', draft.phaseId) || !isValidRoadmapAssignment(roadmap, 'milestoneId', draft.milestoneId)) {
+            await alert(translateCurrent('roadmap.invalidAssignment'));
+            return;
+        }
 
         if (state.portfolioCreateContext?.boardId) {
             const { boardId, relatedTo } = state.portfolioCreateContext;

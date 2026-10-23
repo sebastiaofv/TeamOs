@@ -8,6 +8,7 @@ import type {
     Priority,
     ProjectColor,
     RoadmapExtension,
+    RoadmapItem,
     RoadmapKind,
     RoadmapRange,
     RoadmapTick,
@@ -19,6 +20,7 @@ import type {
     TimelineExtension
 } from '@/domain/types';
 import type { BoardFileHandle } from '@/infrastructure/browser/types';
+import type { PlanningProgress } from '@/domain/phaseTree';
 import type { TaskHistoryProjection } from '@/domain/taskHistory';
 
 export type { DraftMessage, TaskDraft, TaskEditorFields } from '@/domain/types';
@@ -141,8 +143,12 @@ export type TaskDetailViewModel = {
 };
 
 export type RoadmapEntityMode = 'default' | 'create-sprint-from-selection' | 'assign-sprint-from-selection';
-export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string };
+export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string; color?: string };
 export type RoadmapEntityViewModel = {
+    parentId?: string;
+    phaseOptions?: SelectOption[];
+    phases?: RoadmapItem[];
+    datesCalculated?: boolean;
     kind: RoadmapKind;
     itemId: string;
     mode: RoadmapEntityMode;
@@ -184,6 +190,20 @@ export type PortfolioTimelineViewModel = {
     isExpanded: boolean;
 };
 
+export type RoadmapWorkScope = {
+    key: string;
+    item: RoadmapItem | null;
+    referenceId?: string;
+    tasks: Task[];
+    rows: PortfolioRow[];
+    visibleCount: number;
+    progress: PlanningProgress;
+};
+export type RoadmapPlanningRow = RoadmapWorkScope & {
+    kind: 'phases' | 'sprints'; depth: number; hasChildren: boolean; treeCollapsed: boolean; expanded: boolean;
+    sprintGroups: RoadmapWorkScope[]; milestoneGroups: RoadmapWorkScope[];
+};
+export type RoadmapMilestoneMarker = RoadmapWorkScope & { position: number };
 export type PortfolioRoadmapViewModel = {
     boardId: string;
     boardTitle: string;
@@ -193,6 +213,10 @@ export type PortfolioRoadmapViewModel = {
     range: RoadmapRange;
     axisTicks: RoadmapTick[];
     historical: boolean;
+    phaseRows: RoadmapPlanningRow[];
+    sprintRows: RoadmapPlanningRow[];
+    milestones: RoadmapMilestoneMarker[];
+    labelWidth: number;
 };
 
 export type PortfolioCalendarViewModel = {

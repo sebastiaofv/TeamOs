@@ -1,0 +1,28 @@
+{
+  "meta":{"schemaVersion":2,"appId":"teamos-kanban","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+  "board":{
+    "columns":[{"status":"backlog","title":"Backlog"},{"status":"to-do","title":"To Do"},{"status":"doing","title":"Doing"},{"status":"done","title":"Done"}],
+    "settings":{"title":"US-5 · Atlas delivery plan"},
+    "tasks":[
+      {"id":501,"title":"Completed foundation","description":"One of four eligible leaves.","status":"done","phaseId":"api","milestoneId":"release","sprintId":"october","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":502,"title":"API contracts","description":"Independent sprint, phase and milestone.","status":"doing","assignees":["Ana","Bruno"],"responsible":"Ana","phaseId":"api","milestoneId":"release","sprintId":"october","archived":false,"checklist":[],"priority":"high","dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":503,"title":"Archived research","description":"Included in global progress despite archive filter.","status":"to-do","phaseId":"ui","milestoneId":"release","archived":true,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":504,"title":"UI build","description":"Fourth eligible phase leaf; independently has no milestone and no sprint.","status":"backlog","phaseId":"ui","milestoneId":"","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":505,"title":"Unplanned follow-up","description":"Try associating this item from its detail.","status":"backlog","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":506,"title":"Release item without a phase","description":"Has milestone and sprint, but no phase; accessible through either association.","status":"doing","milestoneId":"release","sprintId":"october","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":507,"title":"Other phase in the same sprint","description":"Must not leak into Delivery when grouping by the shared October sprint.","status":"to-do","assignees":["Bruno"],"responsible":"Bruno","phaseId":"future","sprintId":"october","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"}
+    ]
+  },
+  "extensions":{"roadmap":{"version":4,
+    "milestones":[{"id":"release","title":"Public release","dueDate":"2026-12-15","color":"#2563eb"},{"id":"empty","title":"Unassigned decision","dueDate":"2026-11-10","color":"#7c3aed"},{"id":"checkpoint","title":"Nearby review checkpoint","dueDate":"2026-12-15","color":"#0f766e"}],
+    "phases":[
+      {"id":"delivery","title":"Delivery","startDate":"2026-10-01","endDate":"2026-11-15"},
+      {"id":"engineering","parentId":"delivery","title":"Engineering","startDate":"2026-10-01","endDate":"2026-11-15"},
+      {"id":"api","parentId":"engineering","title":"API","startDate":"2026-10-01","endDate":"2026-10-30","color":"#7c3aed"},
+      {"id":"ui","parentId":"engineering","title":"Interface","startDate":"2026-10-10","endDate":"2026-11-15"},
+      {"id":"future","title":"Future work","startDate":"2026-12-01","endDate":"2027-02-20","color":"#0f766e"},
+      {"id":"empty-phase","title":"Exploration without work","startDate":"2026-11-20","endDate":"2026-11-25"}
+    ],
+    "sprints":[{"id":"october","title":"October execution","startDate":"2026-10-01","endDate":"2026-10-14"}]
+  }}
+}

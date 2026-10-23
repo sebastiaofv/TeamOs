@@ -76,7 +76,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
         return getDayPlannerBlocks(data).flatMap((block) => {
             const task = tasks.get(block.taskId);
             if (!task || !dates.has(block.date)
-                || !taskMatchesPortfolioFilters(task, { ...DEFAULT_PORTFOLIO_FILTERS, ...state?.portfolioFilters })) return [];
+                || !taskMatchesPortfolioFilters(task, { ...DEFAULT_PORTFOLIO_FILTERS, ...state?.portfolioFilters }, data)) return [];
             return [{
                 ...block,
                 boardId: board.id,

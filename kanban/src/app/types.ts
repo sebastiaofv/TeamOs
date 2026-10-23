@@ -5,6 +5,7 @@ export type AppMessageButton = {
     danger?: boolean;
     cancel?: boolean;
     submitsInput?: boolean;
+    submitsSelection?: boolean;
 };
 
 export type AppMessage = {
@@ -12,7 +13,7 @@ export type AppMessage = {
     title: string;
     text: string;
     input?: { defaultValue: string };
+    selection?: { label: string; options: { value: unknown; label: string }[] };
     buttons: AppMessageButton[];
     cancelValue: unknown;
 };
-

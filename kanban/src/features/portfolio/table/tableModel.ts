@@ -23,7 +23,7 @@ export const DEFAULT_TABLE_FILTERS = DEFAULT_PORTFOLIO_FILTERS;
 
 /** Each populated filter is ANDed; statuses are ORed within their selection. */
 export function filterTableRows(rows: PortfolioRow[], filters: TableFilters): PortfolioRow[] {
-    return rows.filter(({ task }) => taskMatchesPortfolioFilters(task, filters));
+    return rows.filter(({ task, boardData }) => taskMatchesPortfolioFilters(task, filters, boardData));
 }
 
 /** Raw, unlocalized cells. Roadmap IDs are resolved only against this project. */
