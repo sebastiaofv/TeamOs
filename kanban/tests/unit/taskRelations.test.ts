@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
 import { normalizeTask } from '@/domain/task';
 import { serializeBoardDataFromObject } from '@/domain/serialize';
+import { ROADMAP_VERSION } from '@/domain/constants';
 import fixture from '../fixtures/task-relations-v1.board.json';
 import manualBoard from '../../test-board/us-2.board.json';
 import { BoardRepository } from '@/infrastructure/persistence/boardRepository';
@@ -33,7 +34,7 @@ describe('workitem relations', () => {
       expect(saved.board.tasks.map((task) => task.id)).toEqual([41, 72]);
       expect(saved.board.tasks[0]).toMatchObject({ assignees: ['Ana'], archived: true, description: 'Preserve original data', phaseId: 'phase', milestoneId: 'milestone', checklist: [{ text: 'Original step', done: false }] });
       expect(saved.board.tasks[1]).toMatchObject({ blocked: true, blockerReason: 'Awaiting decision' });
-      expect(saved.extensions.roadmap).toEqual(fixture.extensions.roadmap);
+      expect(saved.extensions.roadmap).toEqual({ ...fixture.extensions.roadmap, version: ROADMAP_VERSION });
       expect(saved.extensions.customExtension).toEqual({ preserve: 'Unknown extension data' });
       expect(saved.extensions.taskRelations).toEqual(legacy ? undefined : fixture.extensions.taskRelations);
     }

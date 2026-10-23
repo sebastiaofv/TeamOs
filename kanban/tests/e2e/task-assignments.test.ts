@@ -64,7 +64,7 @@ test('responsible and participant filters combine across all views, including em
     if (view === 'table') await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching item');
     if (view === 'roadmap') {
       await page.getByRole('button', { name: 'Show tasks for Build', exact: true }).click();
-      await expect(page.locator('#portfolioRoadmapView .task-title')).toHaveText(['Matching item']);
+      await expect(page.locator('#portfolioRoadmapView .workitems-table tbody [data-column="title"]')).toHaveText(['Matching item']);
     }
     if (view === 'calendar') {
       await page.locator('[data-action="open-calendar-month"][data-month="0"]').click();

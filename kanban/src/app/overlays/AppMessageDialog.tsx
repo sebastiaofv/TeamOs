@@ -55,7 +55,8 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
     primaryRef: RefObject<HTMLButtonElement | null>;
 }) {
     const [inputValue, setInputValue] = useState(message.input?.defaultValue ?? '');
-    const answer = (button: AppMessageButton) => resolveAppMessage(button.submitsInput ? inputValue : button.value);
+    const [selection, setSelection] = useState(0);
+    const answer = (button: AppMessageButton) => resolveAppMessage(button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value);
     // Every message is built with a primary button (see appMessages.ts).
     const primary = message.buttons.find((button) => button.primary)!;
 
@@ -70,6 +71,12 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
                 <Dialog.Description asChild>
                     <p className="app-message-text" id="appMessageText">{message.text}</p>
                 </Dialog.Description>
+                {message.selection && <div className="form-group app-message-field">
+                    <label htmlFor="appMessageSelection">{message.selection.label}</label>
+                    <select id="appMessageSelection" value={selection} onChange={(event) => setSelection(Number(event.target.value))}>
+                        {message.selection.options.map((option, index) => <option key={index} value={index}>{option.label}</option>)}
+                    </select>
+                </div>}
                 {message.input && (
                     <div className="form-group app-message-field">
                         <label className="sr-only" htmlFor="appMessageInput">{message.title}</label>

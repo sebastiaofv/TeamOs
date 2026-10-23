@@ -61,7 +61,7 @@ describe('addRoadmapDays', () => {
 describe('createEmptyRoadmapExtension', () => {
   it('returns an empty roadmap extension shape with the current version', () => {
     expect(createEmptyRoadmapExtension()).toEqual({
-      version: 1,
+      version: ROADMAP_VERSION,
       milestones: [],
       phases: [],
       sprints: []
@@ -653,10 +653,7 @@ describe('getRoadmapAxisTicks', () => {
     expect(ticks[ticks.length - 1].position).toBe(100);
   });
 
-  it('skips a tick whose formatted label duplicates an earlier tick (a range spanning exactly one year)', () => {
-    // 2023 is not a leap year, so start + 365 days lands on the same
-    // month/day one year later -- the 5th tick's "Jan 01" label collides
-    // with the 1st tick's, so it is skipped and only 4 ticks are returned.
+  it('keeps matching day/month labels in different years, identified by the separate year scale', () => {
     const start = parseRoadmapIsoDate('2023-01-01')!;
     const end = parseRoadmapIsoDate('2024-01-01')!;
     const ticks = getRoadmapAxisTicks({ start, end, totalDays: getRoadmapDayDiff(start, end) });
@@ -664,7 +661,8 @@ describe('getRoadmapAxisTicks', () => {
       { label: 'Jan 01', position: 0 },
       { label: 'Apr 02', position: 24.93150684931507 },
       { label: 'Jul 03', position: 50.136986301369866 },
-      { label: 'Oct 02', position: 75.06849315068493 }
+      { label: 'Oct 02', position: 75.06849315068493 },
+      { label: 'Jan 01', position: 100 }
     ]);
   });
 });

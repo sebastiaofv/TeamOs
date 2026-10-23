@@ -15,6 +15,7 @@ import { normalizeTimelineExtension } from './timelineSchema';
 import { parseTaskRelations } from '@/domain/taskRelations';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
 import { createProjectData, parseProjectData, validateProjectReferences } from '@/domain/projectData';
+import { isLeafPhase } from './phaseTree';
 import { parsePullRequestLinks, validatePullRequestTimeline } from './pullRequests';
 import { parseTaskIdentityReservation } from './taskIdentity';
 import { parseConversations } from './comments';
@@ -364,6 +365,9 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if ('phaseId' in task && typeof task.phaseId !== 'string') {
             throw new Error('Task phaseId must be a string.');
         }
+        const roadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>).roadmap);
+        if (roadmap && task.phaseId && !isLeafPhase(roadmap.phases, task.phaseId)) throw new Error('Workitems can only be assigned to existing leaf phases.');
+        if (roadmap && task.milestoneId && !roadmap.milestones.some((item) => item.id === task.milestoneId)) throw new Error('Workitem milestone does not exist.');
         if ('milestoneId' in task && typeof task.milestoneId !== 'string') {
             throw new Error('Task milestoneId must be a string.');
         }

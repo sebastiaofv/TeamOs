@@ -115,7 +115,7 @@ test('cancel, close, Escape and outside-click discard settings drafts and restor
         await trigger.click();
         await page.locator('#projectName').fill('Discard');
         if (action === 'Escape') await page.keyboard.press('Escape');
-        else if (action === 'Outside') await page.mouse.click(5, 5);
+        else if (action === 'Outside') await modal.click({ position: { x: 5, y: 5 } });
         else await modal.getByRole('button', { name: action, exact: true }).click();
         await expect(modal).toBeHidden();
         await expect(trigger).toBeFocused();

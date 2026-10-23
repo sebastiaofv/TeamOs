@@ -7,6 +7,7 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
+import { TaskPlanning } from './TaskPlanning';
 import { TaskConversation } from './TaskConversation';
 import { TaskPullRequestLinks } from './PullRequestLinks';
 import { TaskHistory } from './TaskHistory';
@@ -112,6 +113,7 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
                     <dd className="detail-value" id={row.id}>{vm.fields[row.key]}</dd>
                 </div>
             ))}
+            {!vm.readOnly && <div className="detail-planning-associations"><dt className="sr-only">{t('roadmap.planning')}</dt><dd><TaskPlanning readOnly={vm.readOnly} /></dd></div>}
             <div className="detail-item">
                 <dt className="detail-label">{t('task.todoList')}</dt>
                 <ul className="detail-checklist" id="detailChecklist">

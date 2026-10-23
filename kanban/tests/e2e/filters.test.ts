@@ -69,7 +69,7 @@ test.describe('filters and sort', () => {
         await expect(page.locator('#portfolioBoard .task-title')).toHaveText(['Matching workitem']);
       } else if (view === 'roadmap') {
         await page.getByRole('button', { name: 'Show tasks for build', exact: true }).click();
-        await expect(page.locator('#portfolioRoadmapView .task-title')).toHaveText(['Matching workitem']);
+        await expect(page.locator('#portfolioRoadmapView .workitems-table tbody [data-column="title"]')).toHaveText(['Matching workitem']);
       } else if (view === 'calendar') {
         await page.locator('[data-action="open-calendar-month"][data-month="0"]').click();
         await page.locator('[data-calendar-day="2026-01-05"] .portfolio-calendar-item-overflow').click();

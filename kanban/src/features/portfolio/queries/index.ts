@@ -48,7 +48,7 @@ export function getFilteredSortedPortfolioRows(state: SelectorState, options: { 
     return sourceRows
         .filter((item) => {
             if (state?.selectedPortfolioBoardId && item.boardId !== state.selectedPortfolioBoardId) return false;
-            return taskMatchesPortfolioFilters(item.task, filters);
+            return taskMatchesPortfolioFilters(item.task, filters, item.boardData || getBoardRecord(state, item.boardId)?.data);
         })
         .sort((a, b) => comparePortfolioRows(a, b, sortBy, sortDir));
 }

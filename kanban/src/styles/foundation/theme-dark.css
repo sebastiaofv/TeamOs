@@ -69,7 +69,7 @@
 }
 
 :root[data-theme="dark"] .roadmap-row-timeline-bar {
-    background: linear-gradient(90deg, #7890a8, #b1c1d1);
+    background: var(--bg-secondary);
 }
 
 :root[data-theme="dark"] .roadmap-row-timeline-point {

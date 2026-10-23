@@ -83,14 +83,17 @@ export function showPrompt(text: string, defaultValue: unknown = '', { title, co
 }
 
 // Resolves with the chosen value, or null when cancelled. `choices` are
-// { value, label, primary? } entries, shown after Cancel.
-export function showChoice<T>(text: string, choices: readonly Choice<T>[], { title }: { title?: string } = {}): Promise<T | null> {
+// { value, label, primary? } entries, shown after Cancel, or in a dropdown
+// with an explicit confirmation when selectionLabel is supplied.
+export function showChoice<T>(text: string, choices: readonly Choice<T>[], { title, selectionLabel }: { title?: string; selectionLabel?: string } = {}): Promise<T | null> {
     return request({
         title: title || translateCurrent('messages.choose'),
         text,
+        ...(selectionLabel ? { selection: { label: selectionLabel, options: choices.map(({ value, label }) => ({ value, label })) } } : {}),
         buttons: [
             { label: translateCurrent('messages.cancel'), value: null, cancel: true },
-            ...choices.map(({ value, label, primary = false }) => ({ label, value, primary }))
+            ...(selectionLabel ? [{ label: translateCurrent('messages.confirm'), primary: true, submitsSelection: true }]
+                : choices.map(({ value, label, primary = false }) => ({ label, value, primary })))
         ],
         cancelValue: null
     });

@@ -85,8 +85,8 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
     </details>;
 }
 
-function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, planning = false, scope = '' }: {
-    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; planning?: boolean; scope?: string;
+export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, planning = false, scope = '', compact = false, emptyLabel }: {
+    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; planning?: boolean; scope?: string; compact?: boolean; emptyLabel?: string;
 }) {
     const { t, language } = useI18n();
     const today = useLocalToday();
@@ -94,7 +94,7 @@ function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCre
     const actions = usePortfolioActions();
     const columnDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
-    const [columns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences()));
+    const [columns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
     const sort = useAppStore((state) => state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT);
     const [page, setPage] = useState(0);
     const [pageScope, setPageScope] = useState({ filters, sort });
@@ -161,7 +161,9 @@ function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCre
     }
 
     return (
-        <div className="table-panel">
+        <div className={`table-panel${compact ? ' table-panel-compact' : ''}`}>
+            <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
+                <summary className="btn" hidden={!compact}>{t('roadmap.tableOptions')}</summary>
             <div className="table-heading">
                 <div className="table-tools">
                     <details id={scopedId('tableColumns')} className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
@@ -197,6 +199,7 @@ function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCre
                     <button className="btn" id={scopedId('tableExportCsv')} disabled={rows.length === 0} onClick={exportCsv}>{t('table.export')}</button>
                 </div>
             </div>
+            </details>
             <div className="table-summary">
                 <p role="status" aria-live="polite" id={scopedId('tableCounts')}>{t('table.counts', { visible: rows.length, total: sourceRows.length, active: activeCount, archived: sourceRows.length - activeCount })}</p>
                 <span role="status">{t('table.selected', { count: selectedCount })}</span>
@@ -210,7 +213,7 @@ function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCre
                         unplannedTaskIds: sourceRows.filter((row) => selected.has(row.taskId)).map((row) => row.taskId) })}>{t('table.addToSprint')}</button>}
             </div>
             {rows.length === 0 ? <div className="table-empty" role="status">
-                <p>{t(sourceRows.length === 0 ? scope ? 'table.emptySprint' : planning ? 'table.emptyPlanning' : 'table.empty' : 'table.noResults')}</p>
+                <p>{sourceRows.length === 0 && emptyLabel ? emptyLabel : t(sourceRows.length === 0 ? scope ? 'table.emptySprint' : planning ? 'table.emptyPlanning' : 'table.empty' : 'table.noResults')}</p>
                 {sourceRows.length === 0 && canCreate
                     ? <button className="btn btn-primary" id="tableCreateTask" onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog')}>{t('table.create')}</button>
                     : sourceRows.length > 0 && <button className="btn" onClick={clearFilters}>{t('table.clearFilters')}</button>}

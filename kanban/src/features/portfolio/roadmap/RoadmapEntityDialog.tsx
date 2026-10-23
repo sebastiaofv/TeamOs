@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
+import { useRef, useState, type ChangeEvent, type CSSProperties, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { RoadmapEntityDates, RoadmapEntityViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -10,8 +10,9 @@ import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMes
 import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
+import { MILESTONE_PALETTE } from '@/domain/milestonePresentation';
 
-type RoadmapEntityFormDraft = RoadmapEntityDates & { existingSprintId: string };
+type RoadmapEntityFormDraft = RoadmapEntityDates & { existingSprintId: string; parentId: string };
 
 export function RoadmapEntityDialog() {
     const { closeRoadmapEntity } = usePortfolioActions();
@@ -64,7 +65,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
         return context?.mode === 'assign-sprint-from-selection' ? state.portfolioBoards.find((board) => board.id === context.boardId)?.data : undefined;
     });
     const sprintOptions = assignmentBoard && vm.showExistingSprint ? buildAssignableSprintOptions(assignmentBoard, today, language) : vm.sprintOptions;
-    const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '' }));
+    const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '', parentId: vm.parentId || '' }));
     const selectedSprintId = sprintOptions.some((option) => option.value === draft.existingSprintId) ? draft.existingSprintId : '';
     const dueDateRef = useRef<HTMLInputElement>(null);
     const startDateRef = useRef<HTMLInputElement>(null);
@@ -93,6 +94,15 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 <form id="roadmapEntityForm" onSubmit={(event) => event.preventDefault()}>
                     <input type="hidden" id="roadmapEntityKind" value={vm.kind} />
                     <input type="hidden" id="roadmapEntityId" value={vm.itemId} />
+                    {vm.kind === 'phases' && <div className="form-group">
+                        <label htmlFor="roadmapPhaseParent">{t('roadmap.parentPhase')}</label>
+                        <select id="roadmapPhaseParent" value={draft.parentId} onChange={(event) => {
+                            const parentId = event.target.value;
+                            const parent = vm.phases?.find((phase) => phase.id === parentId);
+                            setDraft((current) => ({ ...current, parentId, ...(!vm.itemId && parent ? { startDate: parent.startDate || '', endDate: parent.endDate || '' } : {}) }));
+                        }}><option value="">{t('common.none')}</option>{vm.phaseOptions?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+                        {vm.datesCalculated && <p className="field-hint">{t('roadmap.calculatedDates')}</p>}
+                    </div>}
                     <div className={`form-group${vm.showExistingSprint ? '' : ' hidden'}`} id="roadmapEntityExistingSprintRow">
                         <label className="required" htmlFor="roadmapEntityExistingSprint">{t('task.sprint')}</label>
                         <select id="roadmapEntityExistingSprint" ref={sprintRef} {...bind('existingSprintId')} value={selectedSprintId}>
@@ -113,14 +123,19 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                             <input type="date" id="roadmapEntityDate" ref={dueDateRef} {...bind('dueDate')} />
                         </div>
                     </div>
+                    {vm.kind !== 'sprints' && <fieldset className="form-group milestone-color-picker"><legend>{t(vm.kind === 'phases' ? 'roadmap.phaseColor' : 'roadmap.milestoneColor')}</legend>
+                        {MILESTONE_PALETTE.map((color) => <label key={color.id} style={{ '--milestone-color': color.value } as CSSProperties}>
+                            <input type="radio" name="milestoneColor" value={color.value} checked={draft.color === color.value} aria-label={t(`roadmap.color.${color.id}`)} onChange={() => setDraft((current) => ({ ...current, color: color.value }))} /><span aria-hidden="true" />
+                        </label>)}
+                    </fieldset>}
                     <div className={`roadmap-entity-date-row${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityStartDate">{t('roadmapDialog.startDate')}</label>
-                            <input type="date" id="roadmapEntityStartDate" ref={startDateRef} {...bind('startDate')} />
+                            <input type="date" id="roadmapEntityStartDate" ref={startDateRef} readOnly={vm.datesCalculated} {...bind('startDate')} />
                         </div>
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityEndDate">{t('roadmapDialog.endDate')}</label>
-                            <input type="date" id="roadmapEntityEndDate" ref={endDateRef} {...bind('endDate')} />
+                            <input type="date" id="roadmapEntityEndDate" ref={endDateRef} readOnly={vm.datesCalculated} {...bind('endDate')} />
                         </div>
                     </div>
                 </form>
