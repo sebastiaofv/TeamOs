@@ -223,9 +223,9 @@ function taskActionItems(ctx: Ctx, row: PortfolioRow, compact: boolean): Palette
     return items;
 }
 
-function allPeople(ctx: Ctx): string[] {
+function allPeople(ctx: Ctx, boardId?: string): string[] {
     const names = new Map<string, string>();
-    ctx.rows.forEach((row) => row.task.assignees.forEach((name) => {
+    ctx.boards.filter((board) => !boardId || board.id === boardId).forEach((board) => getProjectData(board.data).members.forEach(({ name }) => {
         if (name && !names.has(name.toLowerCase())) names.set(name.toLowerCase(), name);
     }));
     return [...names.values()].sort((a, b) => a.localeCompare(b));
@@ -273,13 +273,8 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
     const assigned = new Set(row.task.assignees.map((name) => name.toLowerCase()));
     const responsibleStep = frame.step === 'responsible';
     const personAction = (name: string): PaletteAction => ({ type: responsibleStep ? 'setResponsible' : 'toggleAssignee', boardId, taskId, name });
-    const people = allPeople(ctx).filter((name) => matches(name))
+    const people = allPeople(ctx, boardId).filter((name) => matches(name))
         .map((name) => choice(name, 'person', name, personAction(name), { checked: responsibleStep ? row.task.responsible?.toLowerCase() === name.toLowerCase() : assigned.has(name.toLowerCase()) }));
-    const typed = q.trim();
-    if (typed && !allPeople(ctx).some((name) => name.toLowerCase() === typed.toLowerCase())) {
-        people.push(choice('new', 'person', ctx.t('palette.addPerson', { name: typed }), personAction(typed),
-            { checked: false, ranges: [] }));
-    }
     if (responsibleStep && matches(ctx.t('task.noResponsible'))) people.unshift(choice('none', 'person', ctx.t('task.noResponsible'), personAction(''), { checked: !row.task.responsible }));
     return people;
 }
@@ -292,15 +287,19 @@ function defaultCreateBoard(ctx: Ctx): BoardRecord | undefined {
 function quickCreate(ctx: Ctx): PaletteModel {
     const fallback = defaultCreateBoard(ctx);
     const writableBoards = ctx.boards.filter((board) => board.handle);
-    const draft = parseQuickCreate(ctx.query, {
-        people: allPeople(ctx),
+    const parseContext = {
+        people: [] as string[],
         projects: writableBoards.map((board) => ({ id: board.id, title: boardTitle(board) })),
         defaultProjectId: fallback?.id || '',
         today: ctx.today
-    });
+    };
+    const target = parseQuickCreate(ctx.query, parseContext).projectId;
+    const draft = parseQuickCreate(ctx.query, { ...parseContext, people: allPeople(ctx, target) });
     const board = findBoard(ctx, draft.projectId);
+    const projectTags = board ? getProjectData(board.data).tags : [];
+    draft.tags.filter((tag) => !projectTags.includes(tag.toLowerCase())).forEach((tag) => draft.warnings.push({ kind: 'unknownTag', value: tag }));
     const preview: PalettePreview = { ...draft, projectTitle: boardTitle(board) };
-    const items: PaletteItem[] = draft.title && board ? [{
+    const items: PaletteItem[] = draft.title && board && !draft.warnings.some((warning) => warning.kind === 'newPerson' || warning.kind === 'unknownTag' || warning.kind === 'unknownProject') ? [{
         key: 'create', icon: 'create', label: ctx.t('palette.create', { title: draft.title, project: boardTitle(board) }), ranges: [],
         hint: ['Enter'], color: boardColor(board),
         action: { type: 'createTask', boardId: board.id, fields: {
@@ -466,3 +465,4 @@ export function buildPaletteModel(input: PaletteInput): PaletteModel {
     if (!trimmed) return home(ctx);
     return search(ctx);
 }
+import { getProjectData } from '@/domain/projectData';

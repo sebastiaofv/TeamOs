@@ -1018,14 +1018,18 @@ describe('reconstructBoardStateFromTimeline', () => {
   it('returns a plain current-state snapshot when there is no timeline extension at all', () => {
     const board = validBoard();
     const result = reconstructBoardStateFromTimeline(board, 0);
-    expect(result).toEqual(createBoardStateSnapshot(board));
+    const expected = createBoardStateSnapshot(board);
+    expected.extensions.project!.id = result.extensions.project!.id;
+    expect(result).toEqual(expected);
   });
 
   it('returns a plain current-state snapshot when the timeline extension has an empty events array', () => {
     const board: any = validBoard();
     board.extensions.timeline = { version: TIMELINE_VERSION, baselineEventId: '', events: [] };
     const result = reconstructBoardStateFromTimeline(board, 0);
-    expect(result).toEqual(createBoardStateSnapshot(board));
+    const expected = createBoardStateSnapshot(board);
+    expected.extensions.project!.id = result.extensions.project!.id;
+    expect(result).toEqual(expected);
   });
 
   it('index 0 reconstructs to exactly the baseline snapshot', () => {

@@ -8,6 +8,8 @@ import { buildPaletteModel, type PaletteInput } from '../../src/features/portfol
 
 function board(id: string, title: string, tasks: any[], handle: unknown = {}) {
   const data = createEmptyProjectData(title);
+  data.extensions.project!.members = (title === 'Mobile App' ? ['Ana', 'Marta'] : ['Rui']).map((name) => ({ id: name, name }));
+  data.extensions.project!.tags.push('auth');
   data.board.tasks.push(...tasks.map((task) => fromAny<Task, Record<string, unknown>>({
     description: '', archived: false, assignees: [], tags: [], checklist: [], priority: null, effort: null,
     createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', ...task
@@ -116,7 +118,7 @@ describe('buildPaletteModel', () => {
     expect(labels(readOnly, 'actions')).toEqual(['Open details']);
   });
 
-  it('walks through the assign step, toggling people and adding a new one', () => {
+  it('offers only curated members of the target project in the assign step', () => {
     const model = buildPaletteModel(input({
       stack: [{ kind: 'task', boardId: 'app', taskId: 7 }, { kind: 'step', step: 'assignee', boardId: 'app', taskId: 7 }],
       query: 'a'
@@ -124,7 +126,7 @@ describe('buildPaletteModel', () => {
     expect(model.breadcrumbs).toEqual(['#7 Login bug on Android', 'Assign']);
     const items = model.sections[0].items;
     expect(items.map((item) => [item.label, item.checked])).toEqual([
-      ['Ana', false], ['Marta', true], ['Add "a"', false]
+      ['Ana', false], ['Marta', true]
     ]);
     expect(items[1].action).toEqual({ type: 'toggleAssignee', boardId: 'app', taskId: 7, name: 'Marta' });
   });

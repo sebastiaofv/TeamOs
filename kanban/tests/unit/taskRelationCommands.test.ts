@@ -10,6 +10,8 @@ import { buildTaskDraft } from '@/domain/taskDraft';
 
 function setup() {
   const data = createEmptyProjectData('Project');
+  data.extensions.project!.members = ['Ana', 'Marta Sofia Costa', 'José Manuel Silva'].map((name) => ({ id: name, name }));
+  data.extensions.project!.tags.push('original');
   data.board.tasks = [1, 2].map((id) => normalizeTask({ id, title: `Item ${id}`, status: 'backlog' }));
   const store = createAppStore({ portfolioBoards: [{ id: 'p1', title: 'Project', fileName: 'p.board.json', colorSeed: 0, handle: fromPartial({}), data }], selectedPortfolioBoardId: 'p1' });
   const confirm = vi.fn((_text: string): boolean | Promise<boolean> => true);

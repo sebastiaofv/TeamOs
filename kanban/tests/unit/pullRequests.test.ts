@@ -14,6 +14,7 @@ const url = 'http://git.internal:8080/org/repo/pull/12?Q=One%2FTwo#Diff';
 const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-8.board.json', 'utf8'));
 function setup({ writable = true, saved = true } = {}) {
     const data = createEmptyProjectData('Links');
+    data.extensions.project!.members = [{ id: 'ana', name: 'Ana' }];
     data.board.tasks = [normalizeTask({ id: 1, title: 'Workitem', description: 'Kept', status: 'doing', assignees: ['Ana'], responsible: 'Ana', createdAt: '2026-10-19T09:00:00Z' })];
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Links', handle: writable ? {} : null, data })], selectedPortfolioBoardId: 'p' });
     const save = vi.fn(async () => saved); const alert = vi.fn();

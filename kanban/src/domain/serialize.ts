@@ -10,6 +10,7 @@ import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { parseTaskRelations } from '@/domain/taskRelations';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
+import { migrateProjectData, parseProjectData, syncProjectAssignments } from '@/domain/projectData';
 import { validatePullRequestTimeline } from './pullRequests';
 import { reserveTaskIdentities } from './taskIdentity';
 import { parseConversations } from './comments';
@@ -38,6 +39,7 @@ export function normalizeBoardExtensionsValue(
     const nextExtensions = ((base && typeof base === 'object' && !Array.isArray(base))
         ? { ...base }
         : {}) as BoardExtensions;
+    if (nextExtensions.project !== undefined) nextExtensions.project = parseProjectData(nextExtensions.project);
     delete nextExtensions.conversationRefs;
     if (!includeTimeline) delete nextExtensions.conversations;
     else if (nextExtensions.conversations !== undefined || normalizeTimelineExtension(nextExtensions.timeline)?.events.some((event) => event.kind === 'task.comment.published')) {
@@ -88,7 +90,7 @@ export function normalizeBoardExtensionsValue(
 }
 
 export function createBoardStateSnapshot(boardData: unknown): BoardData {
-    const input = migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData);
+    const input = migrateProjectData(migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData));
     const meta = (input.meta && typeof input.meta === 'object' ? input.meta : {}) as LooseMeta;
     const board = (input.board && typeof input.board === 'object' ? input.board : {}) as LooseBoard;
     const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };
@@ -106,7 +108,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
         ? settings.title.trim()
         : DEFAULT_BOARD_TITLE;
 
-    return {
+    const result: BoardData = {
         meta: {
             schemaVersion: BOARD_SCHEMA_VERSION,
             appId: BOARD_APP_ID,
@@ -125,11 +127,13 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
             taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
         })
     };
+    syncProjectAssignments(result);
+    return result;
 }
 
 export function serializeBoardDataFromObject(boardData: unknown): BoardData {
     const now = nowIso();
-    const input = migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData);
+    const input = migrateProjectData(migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData));
     const reservedInput = { ...input, extensions: { ...input.extensions } };
     reserveTaskIdentities(reservedInput);
     const meta = (input.meta && typeof input.meta === 'object' ? input.meta : {}) as LooseMeta;
@@ -149,7 +153,7 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
         ? settings.title.trim()
         : DEFAULT_BOARD_TITLE;
 
-    return {
+    const result: BoardData = {
         meta: {
             schemaVersion: BOARD_SCHEMA_VERSION,
             appId: BOARD_APP_ID,
@@ -167,4 +171,6 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
             taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
         })
     };
+    syncProjectAssignments(result);
+    return result;
 }

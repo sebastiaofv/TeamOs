@@ -9,7 +9,7 @@ function createBoard() {
   const data = createEmptyProjectData('Project');
   data.board.tasks.push(fromPartial({
     id: 1, title: 'Plan me', description: '', status: 'to-do', archived: false,
-    checklist: [], assignees: [], tags: [],
+    checklist: [], assignees: [], responsible: '', assigneeIds: [], responsibleId: '', tags: [],
     createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z'
   }));
   return { id: 'p1', colorSeed: 0, handle: {}, fileName: 'p1.json', title: 'Project', data };

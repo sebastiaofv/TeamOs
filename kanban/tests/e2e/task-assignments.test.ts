@@ -8,15 +8,17 @@ test('responsibility and participation stay coherent through editing, confirmati
     { id: 2, title: 'Other', status: 'doing', assignees: ['Ana'] }
   ] }], { selectedBoardId: 'p' });
   await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
-  await page.locator('#taskResponsible').fill('Ana');
+  await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
   await waitForBoardWrites(page, 1);
   expect((await readSavedBoard(page, 'p')).board.tasks[0]).toMatchObject({ assignees: ['Ana', 'Rui'], responsible: 'Ana', status: 'doing' });
 
+  await page.getByRole('button', { name: 'Settings for Assignments', exact: true }).click();
+  await page.getByLabel('Member 1 name', { exact: true }).fill('Ana Silva');
+  await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
+  await expect(page.locator('#projectSettingsModal')).toBeHidden();
   await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
-  await page.getByLabel('Participant name', { exact: true }).first().fill('Ana Silva');
-  await page.locator('#taskResponsible').click();
   await expect(page.locator('#taskResponsible')).toHaveValue('Ana Silva');
   await page.getByRole('button', { name: 'Remove participant', exact: true }).first().click();
   await expect(appMessage(page)).toContainText('without a responsible person');
@@ -27,12 +29,12 @@ test('responsibility and participation stay coherent through editing, confirmati
   await expect(page.locator('#taskResponsible')).toHaveValue('');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
-  await waitForBoardWrites(page, 2);
+  await waitForBoardWrites(page, 3);
   const saved = await readSavedBoard(page, 'p');
   expect(saved.board.tasks[0]).toMatchObject({ assignees: ['Rui'], responsible: '', status: 'doing' });
-  expect(saved.board.tasks[1]).toMatchObject({ assignees: ['Ana'], responsible: '' });
+  expect(saved.board.tasks[1]).toMatchObject({ assignees: ['Ana Silva'], responsible: '' });
   expect(saved.extensions.timeline.events.at(-1).changes).toMatchObject({
-    assignees: { before: ['Ana', 'Rui'], after: ['Rui'] }, responsible: { before: 'Ana', after: '' }
+    assignees: { before: ['Ana Silva', 'Rui'], after: ['Rui'] }, responsible: { before: 'Ana Silva', after: '' }
   });
 });
 
@@ -44,7 +46,7 @@ test('responsible and participant filters combine across all views, including em
     { id: 3, title: 'Empty item', dueDate: '2026-01-05' }
   ], extensions: { roadmap: { version: 1, phases: [{ id: 'build', title: 'Build', startDate: '2026-01-01', endDate: '2026-01-30' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'p' });
   await portfolioCard(page, 'Matching item').locator('[data-action="edit-task"]').click();
-  await page.locator('#taskResponsible').fill('Ana');
+  await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
   await openFiltersPanel(page);
@@ -109,7 +111,7 @@ test('responsible and participant filters combine in planning and sprint tables 
 
 test('palette can select and clear responsibility and confirms removing that participant', async ({ page }) => {
   await gotoApp(page);
-  await seedPortfolioBoards(page, [{ id: 'p', title: 'Palette assignments', hasHandle: true, tasks: [{ id: 1, title: 'Plan', status: 'doing', assignees: ['Ana'] }] }]);
+  await seedPortfolioBoards(page, [{ id: 'p', title: 'Palette assignments', hasHandle: true, members: ['Ana', 'Marta'], tasks: [{ id: 1, title: 'Plan', status: 'doing', assignees: ['Ana'] }] }]);
   await portfolioCard(page, 'Plan').click();
   await page.keyboard.press('Control+k');
   await page.locator('#commandPaletteInput').fill('responsible');
@@ -134,27 +136,27 @@ test('palette can select and clear responsibility and confirms removing that par
   expect((await readSavedBoard(page, 'p')).board.tasks[0]).toMatchObject({ assignees: ['Ana', 'Marta'], responsible: '' });
 });
 
-test('keyboard saving commits a corrected responsible participant without requiring a blur', async ({ page }) => {
+test('keyboard saving commits a project member correction without requiring a blur', async ({ page }) => {
   await gotoApp(page);
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Keyboard', hasHandle: true, tasks: [{ id: 1, title: 'Plan', assignees: ['Ana'] }] }]);
   await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
-  await page.locator('#taskResponsible').fill('Ana');
+  await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
-  await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
-  await page.getByLabel('Participant name', { exact: true }).fill('Ana Silva');
+  await page.getByRole('button', { name: 'Settings for Keyboard', exact: true }).click();
+  await page.getByLabel('Member 1 name', { exact: true }).fill('Ana Silva');
   await page.keyboard.press('Control+Enter');
-  await expect(page.locator('#taskModal')).toBeHidden();
+  await expect(page.locator('#projectSettingsModal')).toBeHidden();
   await waitForBoardWrites(page, 2);
   expect((await readSavedBoard(page, 'p')).board.tasks[0]).toMatchObject({ assignees: ['Ana Silva'], responsible: 'Ana Silva' });
 });
 
 test('new workitems support responsibility, reopen read-only, and can progress without allocations', async ({ page }) => {
   await gotoApp(page);
-  await seedPortfolioBoards(page, [{ id: 'p', title: 'Create assignments', hasHandle: true, tasks: [] }], { selectedBoardId: 'p' });
+  await seedPortfolioBoards(page, [{ id: 'p', title: 'Create assignments', hasHandle: true, members: ['Marta'], tasks: [] }], { selectedBoardId: 'p' });
   await page.locator('#portfolio-to-do-column .add-task-card').click();
   await page.locator('#taskName').fill('New item');
-  await page.locator('#taskResponsible').fill(' Marta ');
+  await page.locator('#taskResponsible').selectOption('Marta');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
   await waitForBoardWrites(page, 1);

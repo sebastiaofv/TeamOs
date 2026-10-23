@@ -11,6 +11,8 @@ As histórias integradas têm os boards e roteiros nesta pasta em `main`; histó
 | US7 · branch `us-7` | [us-7.board.json](us-7.board.json) | [us-7.md](us-7.md) |
 | US8 · branch `us-8` | [us-8.board.json](us-8.board.json) | [us-8.md](us-8.md) |
 | US6 · branch `us-6` | [us-6.board.json](us-6.board.json) | [us-6.md](us-6.md) |
+| US11 · integrada em `main` · PR #55 | [us-11.board.json](us-11.board.json) | [us-11.md](us-11.md) |
+| US21 · integrada em `main` · PR #55 | [us-21.board.json](us-21.board.json) | [us-21.md](us-21.md) |
 
 Para US1 e US3, usar a aplicação de `main`. Para histórias pendentes, usar o branch correspondente. Os boards das histórias anteriores podem estar presentes por herança do branch base; cada nova história acrescenta apenas os seus próprios ficheiros.
 

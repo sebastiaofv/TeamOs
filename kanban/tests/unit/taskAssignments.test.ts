@@ -38,9 +38,10 @@ describe('workitem participants and responsible person', () => {
     expect(migrated.meta.schemaVersion).toBe(3);
     expect(migrated.board.tasks[0]).toMatchObject({ id: 17, assignees: ['Ana', 'Rui'], responsible: '' });
     migrated.board.tasks[0] = setTaskResponsible(migrated.board.tasks[0], 'Marta');
+    migrated.extensions.project!.members.push({ id: 'marta', name: 'Marta' });
     const reopened = serializeBoardDataFromObject(JSON.parse(JSON.stringify(migrated)));
     validateBoardData(reopened);
-    expect(reopened.board.tasks).toEqual(migrated.board.tasks);
+    expect(reopened.board.tasks[0]).toMatchObject({ assignees: ['Ana', 'Rui', 'Marta'], responsible: 'Marta', responsibleId: 'marta' });
     expect(reopened.extensions).toMatchObject(input.extensions);
     const invalid = structuredClone(reopened);
     invalid.board.tasks[0].responsible = 'Unknown';

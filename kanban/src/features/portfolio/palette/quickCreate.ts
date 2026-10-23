@@ -17,6 +17,7 @@ export type QuickCreateContext = {
 
 export type QuickCreateWarning =
     | { kind: 'newPerson'; value: string }
+    | { kind: 'unknownTag'; value: string }
     | { kind: 'unknownProject'; value: string }
     | { kind: 'unknownDate'; value: string };
 

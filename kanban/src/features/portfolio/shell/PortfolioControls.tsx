@@ -24,6 +24,7 @@ import { PALETTE_SHORTCUT_LABEL, openCommandPalette } from '@/features/portfolio
 import { setTableFilter, setTableSort } from '@/features/portfolio/table/tableControls';
 import { DEFAULT_TABLE_SORT } from '@/features/portfolio/table/tableModel';
 import { COLUMN_LABELS } from '@/features/portfolio/table/tableLabels';
+import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 
 type ToolbarState = Pick<AppState,
     | 'portfolioBoards'
@@ -223,6 +224,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
 
 function ChipList({ state }: { state: ChipState }) {
     const { t } = useI18n();
+    const { openProjectSettings } = usePortfolioActions();
     if (state.portfolioBoards.length === 0) {
         return <span className="empty-state-text">{t('toolbar.noProjectsLoaded')}</span>;
     }
@@ -245,6 +247,13 @@ function ChipList({ state }: { state: ChipState }) {
                             {board.title || board.fileName}
                             {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
                             {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
+                        </button>
+                        <button className="chip-link chip-settings" type="button" data-action="project-settings" data-board-id={board.id}
+                            aria-label={t('project.settingsFor', { name: board.title || board.fileName })} title={t('project.settings')}
+                            aria-haspopup="dialog" onClick={() => openProjectSettings(board.id)}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h6m0 0h10M4 12h12m0 0h4M4 18h4m0 0h12M10 3v6m6 0v6M8 15v6" />
+                            </svg>
                         </button>
                         {board.handle && saveUi.canRetry && (
                             <button className="chip-link" type="button" title={t('toolbar.retrySave')} data-action="retry-save" data-board-id={board.id} onClick={() => retryPortfolioSave(board.id)}>{t('common.retry')}</button>

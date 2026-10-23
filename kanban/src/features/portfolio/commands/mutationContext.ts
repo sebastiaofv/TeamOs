@@ -17,6 +17,7 @@ import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persisten
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, showChoice, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
+import { ProjectDataError, syncProjectAssignments } from '@/domain/projectData';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -88,10 +89,12 @@ export function createBoardMutationContext({
             ensureBoardTimelineBaseline(draft.data);
             const firstEvent = draft.data.extensions.timeline?.events.length || 0;
             if (mutator(draft.data, draft) === false) return false;
+            syncProjectAssignments(draft.data);
             annotateTimelineOperation(current.data, draft.data, firstEvent, createTimelineEventId());
             reserveTaskIdentities(draft.data, current.data);
         } catch (error) {
-            alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
+            alert(error instanceof ProjectDataError ? translateCurrent(`project.error.${error.code}`)
+                : translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;
         }
         draft.title = draft.data.board.settings.title;
@@ -122,6 +125,7 @@ export function createBoardMutationContext({
             const task = data.board.tasks.find((entry) => Number(entry.id) === Number(taskId)) as Task;
             const before = captureTaskTimelineSnapshot(data, taskId);
             if (mutator(task, draft) === false) return false;
+            syncProjectAssignments(data);
             touchTask(task);
             recordTaskTimelineEvent(data, before, captureTaskTimelineSnapshot(data, taskId));
             return true;

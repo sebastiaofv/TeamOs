@@ -3,7 +3,7 @@ import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppM
 
 test('compact relation groups show current status and responsible first names, not participants, after editing and reopening', async ({ page }) => {
   await gotoApp(page);
-  await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project', hasHandle: true,
+  await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project', hasHandle: true, members: ['Rui Manuel Silva'],
     tasks: [
       { id: 1, title: 'Source' },
       { id: 2, title: 'Blocker', status: 'doing', assignees: ['Ana', 'Marta Sofia Costa'], responsible: 'Marta Sofia Costa' },
@@ -30,7 +30,7 @@ test('compact relation groups show current status and responsible first names, n
 
   await page.locator('#taskDetailModalCloseBtn').click();
   await openTaskEditor(page, 'Blocker');
-  await page.locator('#taskModal').getByLabel('Responsible', { exact: true }).fill('Rui Manuel Silva');
+  await page.locator('#taskModal').getByLabel('Responsible', { exact: true }).selectOption('Rui Manuel Silva');
   await page.locator('#taskModalSaveBtn').click();
   await portfolioCard(page, 'Blocker').hover();
   await page.keyboard.press('4');

@@ -131,7 +131,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
-    if (event.kind === 'board.restored' && event.snapshot) {
+    if ((event.kind === 'board.restored' || event.kind === 'board.project.updated') && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
 
@@ -312,6 +312,9 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
         state = applyTimelineEventToState(state, timeline.events[index]);
     }
     const snapshot = createBoardStateSnapshot(state);
+    if (snapshot.extensions.project && boardData?.extensions?.project) {
+        snapshot.extensions.project.id = (boardData.extensions.project as { id: string }).id;
+    }
     // Identities are project-wide reservations, not mutable planning state.
     // Preview/restore may change membership, but must not renumber or reuse identities.
     const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.timeline);

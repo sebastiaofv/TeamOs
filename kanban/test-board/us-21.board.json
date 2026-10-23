@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "schemaVersion": 3,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-22T09:00:00.000Z",
+    "updatedAt": "2026-10-22T09:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      { "status": "backlog", "title": "Backlog" },
+      { "status": "to-do", "title": "To Do" },
+      { "status": "doing", "title": "In Progress" },
+      { "status": "done", "title": "Done" }
+    ],
+    "settings": { "title": "US-21 · Listas curadas fictícias" },
+    "tasks": [
+      {
+        "id": 21,
+        "title": "Validar escolhas curadas",
+        "description": "Responsável, participantes e tags são escolhas do catálogo do projeto.",
+        "assignees": ["Ana", "Rui"],
+        "responsible": "Ana",
+        "assigneeIds": ["member-ana", "member-rui"],
+        "responsibleId": "member-ana",
+        "tags": ["bug"],
+        "checklist": [],
+        "archived": false,
+        "createdAt": "2026-10-22T09:00:00.000Z",
+        "updatedAt": "2026-10-22T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "status": "to-do"
+      }
+    ]
+  },
+  "extensions": {
+    "project": {
+      "version": 1,
+      "id": "project-us-21-fictional",
+      "description": "Projeto de teste manual com valores curados e sem serviços externos.",
+      "status": "planned",
+      "members": [
+        { "id": "member-ana", "name": "Ana" },
+        { "id": "member-rui", "name": "Rui" },
+        { "id": "member-unused", "name": "Membro livre" }
+      ],
+      "tags": ["bug", "feature", "improvement", "documentation"]
+    }
+  }
+}

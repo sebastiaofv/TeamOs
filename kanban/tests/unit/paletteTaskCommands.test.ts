@@ -6,6 +6,8 @@ import { createPortfolioMutationActions } from '../../src/features/portfolio/com
 
 function setup({ handle = {} as unknown } = {}) {
   const data = createEmptyProjectData('Project');
+  data.extensions.project!.members = [{ id: 'ana', name: 'Ana' }, { id: 'marta', name: 'Marta' }];
+  data.extensions.project!.tags.push('auth');
   data.board.tasks.push(fromPartial({
     id: 4, title: 'Write spec', description: '', status: 'to-do', archived: false, priority: 'low',
     checklist: [], assignees: ['Ana'], tags: [],

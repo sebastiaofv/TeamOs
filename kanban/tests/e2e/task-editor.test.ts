@@ -92,15 +92,15 @@ test.describe('task editor', () => {
 
   test('assignees and blocked fields save and render as card badges', async ({ page }) => {
     await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+      { id: 'p1', title: 'Project One', hasHandle: true, members: ['Alex', 'Sam'], tasks: [] }
     ], { selectedBoardId: 'p1' });
 
     const assigneeAddButton = page.locator('#taskAssigneeEditor').getByRole('button', { name: 'Add' });
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Investigate deploy issue');
-    await page.locator('#taskAssigneeNewItem').fill('Alex');
+    await page.locator('#taskAssigneeNewItem').selectOption('Alex');
     await assigneeAddButton.click();
-    await page.locator('#taskAssigneeNewItem').fill('Sam');
+    await page.locator('#taskAssigneeNewItem').selectOption('Sam');
     await assigneeAddButton.click();
     await page.locator('#taskBlocked').check();
     await page.locator('#taskBlockerReason').fill('Waiting for staging access');
@@ -152,22 +152,22 @@ test.describe('task editor', () => {
 
     await page.locator('#portfolio-backlog-column .add-task-card').click();
 
-    let options = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLOptionElement>('#taskAssigneeSuggestions option')).map((option) => option.value));
+    let options = await page.locator('#taskAssigneeNewItem option').evaluateAll((items) => items.map((item) => (item as HTMLOptionElement).value).filter(Boolean));
     expect(options).toEqual(['Alex', 'Sam']);
 
-    await page.locator('#taskAssigneeNewItem').fill('Alex');
-    await page.locator('#taskAssigneeNewItem').press('Enter');
+    await page.locator('#taskAssigneeNewItem').selectOption('Alex');
+    await page.locator('#taskAssigneeAddBtn').click();
     await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(1);
 
-    options = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLOptionElement>('#taskAssigneeSuggestions option')).map((option) => option.value));
+    options = await page.locator('#taskAssigneeNewItem option').evaluateAll((items) => items.map((item) => (item as HTMLOptionElement).value).filter(Boolean));
     expect(options).toEqual(['Sam']);
 
-    await page.locator('#taskAssigneeNewItem').fill('Alex');
-    await page.locator('#taskAssigneeNewItem').press('Enter');
+    await expect(page.locator('#taskAssigneeNewItem option[value="Alex"]')).toHaveCount(0);
+    await expect(page.locator('#taskAssigneeAddBtn')).toBeDisabled();
     await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(1);
   });
 
-  test('assignee editor can edit and remove existing assignees before save', async ({ page }) => {
+  test('assignee editor selects curated replacements and removes existing assignees before save', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 'p1',
@@ -175,7 +175,7 @@ test.describe('task editor', () => {
         hasHandle: true,
         tasks: [
           { id: 1, title: 'Task A', status: 'backlog', assignees: ['Alex', 'Sam'] }
-        ]
+        ], members: ['Alex', 'Sam', 'Jamie']
       }
     ], { selectedBoardId: 'p1' });
 
@@ -183,8 +183,11 @@ test.describe('task editor', () => {
 
     const rows = page.locator('#taskAssigneeItems .assignee-editor-row');
     await expect(rows).toHaveCount(2);
-    await rows.nth(0).locator('input[type="text"]').fill('Jamie');
-    await rows.nth(1).getByRole('button', { name: 'Remove participant' }).click();
+    await expect(rows.locator('input')).toHaveCount(0);
+    await rows.nth(0).getByRole('button', { name: 'Remove participant' }).click();
+    await rows.nth(0).getByRole('button', { name: 'Remove participant' }).click();
+    await page.locator('#taskAssigneeNewItem').selectOption('Jamie');
+    await page.locator('#taskAssigneeAddBtn').click();
 
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
@@ -209,14 +212,14 @@ test.describe('task editor', () => {
 
   test('tags can be added on task create and display on cards and detail modal', async ({ page }) => {
     await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+      { id: 'p1', title: 'Project One', hasHandle: true, tags: ['bug', 'urgent'], tasks: [] }
     ], { selectedBoardId: 'p1' });
 
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Tagged task');
-    await page.locator('#taskTagNewItem').fill('bug');
+    await page.locator('#taskTagNewItem').selectOption('bug');
     await page.locator('#taskTagAddBtn').click();
-    await page.locator('#taskTagNewItem').fill('urgent');
+    await page.locator('#taskTagNewItem').selectOption('urgent');
     await page.locator('#taskTagAddBtn').click();
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
@@ -245,18 +248,17 @@ test.describe('task editor', () => {
     expect(result.savedTags).toEqual(['bug', 'urgent']);
   });
 
-  test('tag editor deduplicates and lowercases tags', async ({ page }) => {
+  test('tag editor prevents selecting duplicate curated tags', async ({ page }) => {
     await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+      { id: 'p1', title: 'Project One', hasHandle: true, tags: ['bug'], tasks: [] }
     ], { selectedBoardId: 'p1' });
 
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Dedup task');
-    await page.locator('#taskTagNewItem').fill('Bug');
+    await page.locator('#taskTagNewItem').selectOption('bug');
     await page.locator('#taskTagAddBtn').click();
-    await page.locator('#taskTagNewItem').fill('bug');
-    await page.locator('#taskTagAddBtn').click();
-    await answerAppMessage(page, { expectText: 'This tag is already added.' });
+    await expect(page.locator('#taskTagNewItem option[value="bug"]')).toHaveCount(0);
+    await expect(page.locator('#taskTagAddBtn')).toBeDisabled();
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
@@ -269,25 +271,26 @@ test.describe('task editor', () => {
     expect(result.tags).toEqual(['bug']);
   });
 
-  test('tag editor enforces max count and max length', async ({ page }) => {
+  test('tag editor enforces max count and settings enforce max tag length', async ({ page }) => {
     await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
+      { id: 'p1', title: 'Project One', hasHandle: true, tags: Array.from({ length: 11 }, (_, index) => `tag${index}`), tasks: [] }
     ], { selectedBoardId: 'p1' });
 
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await page.locator('#taskName').fill('Limit task');
 
     for (let i = 0; i < 11; i++) {
-      await page.locator('#taskTagNewItem').fill(`tag${i}`);
+      await page.locator('#taskTagNewItem').selectOption(`tag${i}`);
       await page.locator('#taskTagAddBtn').click();
     }
 
     await answerAppMessage(page, { expectText: 'at most 10 tags' });
 
-    await page.locator('#taskTagNewItem').fill('a'.repeat(31));
-    await page.locator('#taskTagAddBtn').click();
-
-    await answerAppMessage(page, { expectText: '30 characters' });
+    await page.locator('#taskModalCancelBtn').click();
+    await page.getByRole('button', { name: 'Settings for Project One', exact: true }).click();
+    await page.locator('#projectNewTag').fill('a'.repeat(31));
+    await page.locator('#projectSettingsModal').getByRole('button', { name: 'Add tag', exact: true }).click();
+    await expect(page.locator('#projectSettingsModal [role="alert"]')).toContainText('30 characters');
   });
 
   test('editing a task preloads and updates tags', async ({ page }) => {
@@ -296,7 +299,7 @@ test.describe('task editor', () => {
         id: 'p1',
         title: 'Project One',
         hasHandle: true,
-        tasks: [{ id: 1, title: 'Edit tags task', status: 'backlog', tags: ['old'] }]
+        tasks: [{ id: 1, title: 'Edit tags task', status: 'backlog', tags: ['old'] }], tags: ['old', 'new']
       }
     ], { selectedBoardId: 'p1' });
 
@@ -305,7 +308,7 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskTagItems')).toContainText('old');
 
     await page.locator('#taskTagItems .tag-editor-remove').click();
-    await page.locator('#taskTagNewItem').fill('new');
+    await page.locator('#taskTagNewItem').selectOption('new');
     await page.locator('#taskTagAddBtn').click();
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
@@ -732,7 +735,7 @@ test.describe('task editor', () => {
     expect(texts).toEqual(['Third']);
   });
 
-  test('assignee suggestions follow edits to existing assignee rows', async ({ page }) => {
+  test('assignee choices include members again after removing their assignment', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 'p1',
@@ -747,11 +750,11 @@ test.describe('task editor', () => {
 
     await openTaskEditor(page, 'Task A');
     const suggestions = () => page.evaluate(() => (
-      Array.from(document.querySelectorAll<HTMLOptionElement>('#taskAssigneeSuggestions option')).map((option) => option.value)
+      Array.from(document.querySelectorAll<HTMLOptionElement>('#taskAssigneeNewItem option')).map((option) => option.value).filter(Boolean)
     ));
     await expect.poll(suggestions).toEqual(['Sam']);
 
-    await page.locator('#taskAssigneeItems .assignee-editor-row input[type="text"]').fill('Jamie');
+    await page.locator('#taskAssigneeItems .assignee-editor-remove').click();
     await expect.poll(suggestions).toEqual(['Alex', 'Sam']);
   });
 
@@ -839,7 +842,7 @@ test.describe('task editor', () => {
     await page.locator('#portfolio-backlog-column .add-task-card').click();
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect.poll(() => page.evaluate(() => (
-      Array.from(document.querySelectorAll<HTMLOptionElement>('#taskTagSuggestions option')).map((option) => option.value)
+      Array.from(document.querySelectorAll<HTMLOptionElement>('#taskTagNewItem option')).map((option) => option.value).filter(Boolean)
     ))).toEqual(['bug', 'ui']);
   });
 });

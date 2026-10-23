@@ -108,7 +108,7 @@
 .checklist-editor-add,
 .assignee-editor-add {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
     align-items: center;
 }
@@ -186,7 +186,7 @@
 
 .tag-editor-add {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
     align-items: center;
 }
@@ -203,6 +203,34 @@
 .tag-editor-add input:focus {
     outline: none;
     border-color: var(--accent);
+}
+
+.task-editor-select {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    color: var(--text-primary);
+}
+
+.form-group .task-editor-select select {
+    appearance: none;
+    -webkit-appearance: none;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding-right: 34px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    text-overflow: ellipsis;
+}
+
+.task-editor-select-arrow {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
 }
 
 .attachment-editor {
