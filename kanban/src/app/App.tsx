@@ -5,6 +5,7 @@ import { ShortcutsDialog } from '@/app/overlays/ShortcutsDialog';
 import { RoadmapEntityDialog } from '@/features/portfolio/roadmap/RoadmapEntityDialog';
 import { TaskDetailDialog } from '@/features/portfolio/task/dialogs/TaskDetailDialog';
 import { TaskEditorDialog } from '@/features/portfolio/task/dialogs/TaskEditorDialog';
+import { ConversationDraftRecovery } from '@/features/portfolio/task/ConversationDraftRecovery';
 import { AppMessageDialog } from '@/app/overlays/AppMessageDialog';
 import { UndoToast } from '@/features/portfolio/shell/UndoToast';
 import { CommandPalette } from '@/features/portfolio/palette/CommandPalette';
@@ -73,6 +74,7 @@ function AppContent() {
                     <PortfolioChips />
                     <div className={`portfolio-board-wrap${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
+                        <ConversationDraftRecovery />
                         <PortfolioTimeline />
                         <PortfolioBulkActions />
                         <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive} />

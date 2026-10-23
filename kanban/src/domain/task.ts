@@ -16,6 +16,7 @@ import { normalizeDueDate } from './calendar';
 import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
 import { normalizeAssignee, normalizeAssignees, setTaskResponsible } from './taskAssignments';
+import { parsePullRequestLinks } from './pullRequests';
 import { reservedTaskHighWaterMark } from './taskIdentity';
 export { normalizeAssignee, normalizeAssignees } from './taskAssignments';
 export { findTaskInBoardData } from './boardData';
@@ -62,6 +63,7 @@ export function normalizeTags(input: unknown): string[] {
 
 export function buildTaskFieldsFromDraft(draft: TaskDraft) {
     return {
+        ...(draft.pullRequests === undefined ? {} : { pullRequests: parsePullRequestLinks(draft.pullRequests) }),
         title: draft.title,
         description: draft.description,
         assignees: draft.assignees,
@@ -216,6 +218,7 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
     const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
     const includeStatusChangedAt = options.includeStatusChangedAt !== false;
     const normalizedTask: Task = {
+        pullRequests: parsePullRequestLinks(task.pullRequests),
         id: task.id as number,
         title: task.title as string,
         description: (task.description || '') as string,

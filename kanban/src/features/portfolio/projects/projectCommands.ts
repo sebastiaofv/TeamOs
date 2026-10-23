@@ -17,6 +17,7 @@ import { showAlert, showChoice, showPrompt, type Choice, type PromptOptions } fr
 import { Logger } from '@/infrastructure/logging/logger';
 import { appendPortfolioRecords as appendPortfolioRecordsToStore } from '@/features/portfolio/commands/portfolioControls';
 import { translateCurrent } from '@/shared/i18n';
+import { downloadCommentRecovery } from '@/infrastructure/browser/commentRecovery';
 
 type PickerWindow = Pick<Window, 'showSaveFilePicker' | 'showOpenFilePicker'>;
 
@@ -55,6 +56,15 @@ export function createPortfolioFileActions({
     function checkPortfolioFiles() {
         return checkFiles({
             onReload: closeContexts,
+            beforeDiscardLocalComments: async (_boardId, comments) => {
+                const choice = await choose(translateCurrent('comments.conflictWarning', { count: comments.length }), [
+                    { value: 'recover', label: translateCurrent('comments.downloadRecovery'), primary: true },
+                    { value: 'discard', label: translateCurrent('comments.confirmExternalVersion') },
+                    { value: 'cancel', label: translateCurrent('common.cancel') }
+                ], { title: translateCurrent('comments.title') });
+                if (choice === 'recover') downloadCommentRecovery({ publishedComments: comments });
+                return choice === 'discard';
+            },
             chooseConflict: (boardId) => {
                 const title = getPortfolioBoardRecord(boardId)?.title;
                 return choose(

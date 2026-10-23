@@ -10,6 +10,7 @@ import { validateBoardData } from '@/domain/board';
 import { serializeBoardDataFromObject, hashTextContent } from '@/domain/serialize';
 import { assertRequiredExtension, formatErrorMessage } from '@/domain/util';
 import { createPortfolioRecord } from './portfolioRecord';
+import { validateConversationPixels } from '@/infrastructure/browser/commentImages';
 
 export type BoardFileMeta = { lastModified: number; size: number; textHash: string };
 export type BoardSnapshot = { parsed: BoardData; fileMeta: BoardFileMeta };
@@ -51,6 +52,7 @@ export const BoardRepository = {
         const text = textOverride === undefined ? await file.text() : textOverride;
         const parsed: unknown = JSON.parse(text);
         this.validate(parsed);
+        await validateConversationPixels(parsed as BoardData);
         return {
             parsed: parsed as BoardData,
             fileMeta: {
@@ -67,6 +69,7 @@ export const BoardRepository = {
     async saveRecord(boardRecord: BoardRecord | null | undefined): Promise<boolean> {
         if (!boardRecord || !boardRecord.handle) return false;
         const payload = this.serialize(boardRecord.data);
+        await validateConversationPixels(payload);
         await writeJsonToFileHandle(boardRecord.handle, payload);
         return true;
     },
@@ -74,6 +77,7 @@ export const BoardRepository = {
         assertRequiredExtension(file?.name || '', BOARD_FILE_EXTENSION, 'Project file');
         const parsed: unknown = JSON.parse(await file.text());
         this.validate(parsed);
+        await validateConversationPixels(parsed as BoardData);
         return createPortfolioRecord({
             handle,
             ...(!handle ? { sourceKey: getLooseFileSourceKey(file) } : {}),

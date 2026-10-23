@@ -1,4 +1,5 @@
 // Stable domain values: board files, tasks, roadmap and timeline data.
+import type { Conversations } from './comments';
 
 export type TaskStatus = 'backlog' | 'to-do' | 'doing' | 'done';
 export type Priority = 'high' | 'medium' | 'low';
@@ -39,6 +40,7 @@ export type Task = {
     milestoneId: string;
     sprintId: string;
     status: TaskStatus;
+    pullRequests?: string[];
 };
 
 // A task as it may appear in a file before normalization, including the legacy
@@ -123,6 +125,7 @@ export type SprintIdentity = { sprintId: string; number: number; createdAt: stri
 export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIdentity[] };
 export type BoardExtensions = {
     [key: string]: unknown;
+    conversations?: Conversations;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;
@@ -155,6 +158,7 @@ export type ProjectColor = { bg: string; border: string; text: string };
 // current consumer. Keeping them here lets the pure draft rules avoid a
 // dependency on the React feature layer.
 export type TaskEditorFields = {
+    pullRequests?: string[];
     title: string;
     description: string;
     blocked: boolean;
@@ -172,6 +176,7 @@ export type TaskEditorFields = {
 };
 
 export type TaskDraft = {
+    pullRequests?: string[];
     title: string;
     description: string;
     assignees: string[];

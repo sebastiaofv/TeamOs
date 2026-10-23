@@ -23,6 +23,7 @@ import { getRelations } from '@/domain/taskRelations';
 import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
 import { reserveTaskIdentities } from './taskIdentity';
+import { commentsThrough } from './comments';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 
@@ -38,7 +39,7 @@ type ReplayState = {
     extensions?: Record<string, unknown>;
 };
 
-const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status'] as const;
+const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests'] as const;
 
 export function createEmptyTimelineData(): TimelineExtension {
     return {
@@ -144,8 +145,9 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
-    if (event.kind === 'task.relations.updated' && event.changes?.relations) {
-        nextState.extensions = { ...(nextState.extensions || {}), taskRelations: { version: 1, relations: cloneSerializable(event.changes.relations.after) } };
+    if (event.kind === 'task.comment.published' && typeof event.meta?.commentId === 'string') {
+        const previous = nextState.extensions?.conversationRefs;
+        nextState.extensions = { ...nextState.extensions, conversationRefs: [...new Set([...(Array.isArray(previous) ? previous : []), event.meta.commentId])] };
         return nextState;
     }
 
@@ -315,6 +317,13 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.timeline);
     if (knownCatalog) snapshot.extensions.sprintCatalog = normalizeSprintCatalog(knownCatalog, snapshot.extensions.roadmap?.sprints || []);
     reserveTaskIdentities(snapshot, boardData || undefined);
+    const conversations = boardData && commentsThrough(boardData, targetIndex);
+    if (conversations) {
+        snapshot.extensions.conversations = conversations;
+        // A projected board remains self-contained and validates its publication references.
+        // Persistent snapshots still strip both the timeline and conversation payloads.
+        snapshot.extensions.timeline = { version: timeline.version, baselineEventId: timeline.baselineEventId, events: cloneSerializable(timeline.events.slice(0, targetIndex + 1)) };
+    }
     return snapshot;
 }
 
