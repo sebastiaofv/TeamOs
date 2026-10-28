@@ -383,3 +383,21 @@
     color: var(--priority-high);
     border-color: var(--priority-high);
 }
+
+/* The editor uses the same content/property split as workitem consultation. */
+#taskModal .workitem-modal-header .modal-title { font-size: 20px; line-height: 1.5; letter-spacing: -.2px; text-transform: none; }
+#taskModal .workitem-main > .form-group { margin-bottom: 24px; }
+#taskModal #taskName { font-size: 18px; padding: 12px; line-height: 1.5; }
+#taskModal #taskDescription { min-height: 160px; line-height: 1.65; }
+#taskModal .workitem-main textarea[id^="workitem-"] { min-height: 110px; line-height: 1.65; }
+#taskModal .workitem-sidebar .form-group label { font-size: 10px; }
+#taskModal .workitem-sidebar .form-row { grid-template-columns: minmax(0, 1fr); gap: 0; }
+#taskModal .workitem-sidebar .assignee-editor,
+#taskModal .workitem-sidebar .tag-editor { padding: 8px; }
+#taskModal .workitem-sidebar .assignee-editor-add,
+#taskModal .workitem-sidebar .tag-editor-add { grid-template-columns: minmax(0, 1fr) auto; gap: 5px; }
+#taskModal .workitem-sidebar .btn { padding: 7px; font-size: 11px; }
+#taskModal .workitem-main .pull-request-links { margin-top: 24px; }
+#taskModal .workitem-main .checklist-editor { background: var(--bg-card); }
+#taskModal .workitem-editor-layout .form-group select,
+#taskDetailModal .workitem-sidebar select { background-color: var(--bg-card); color: var(--text-primary); }

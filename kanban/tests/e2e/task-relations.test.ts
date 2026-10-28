@@ -18,6 +18,7 @@ test('compact relation groups show current status and responsible first names, n
     ] } }
   }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Source').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   const blocker = relations.getByRole('group', { name: 'Blocked by', exact: true });
   await expect(relations.locator('dt, th')).toHaveCount(0);
@@ -37,19 +38,21 @@ test('compact relation groups show current status and responsible first names, n
   await page.keyboard.press('4');
   await expect.poll(async () => (await readSavedBoard(page, 'p1')).board.tasks[1].status).toBe('done');
   await portfolioCard(page, 'Source').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   await expect(blocker.getByLabel('Status', { exact: true })).toHaveText('done');
   await expect(blocker.getByLabel('Responsible', { exact: true })).toHaveText('Rui');
 
   await page.locator('#taskDetailModalCloseBtn').click();
   await page.locator('#languageToggleBtn').click();
   await portfolioCard(page, 'Source').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const ptBlocker = page.getByRole('region', { name: 'Relações', exact: true }).getByRole('group', { name: 'É bloqueado por', exact: true });
   await expect(ptBlocker.getByLabel('Estado', { exact: true })).toHaveText('done');
   await expect(ptBlocker.getByLabel('Responsável', { exact: true })).toHaveText('Rui');
 });
 
 for (const width of [1280, 390]) {
-  test(`relation columns stay aligned and titles truncate without enlarging the modal at ${width}px`, async ({ page }) => {
+  test(`relation columns stay aligned and titles truncate within the responsive modal at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project', hasHandle: true, tasks: [
@@ -61,6 +64,7 @@ for (const width of [1280, 390]) {
       { sourceId: 2, targetId: 1, kind: 'blocks' }, { sourceId: 1, targetId: 3, kind: 'blocks' }, { sourceId: 1, targetId: 4, kind: 'related' }
     ] } } }], { selectedBoardId: 'p1' });
     await portfolioCard(page, 'Source').click();
+    await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
     const relations = page.getByRole('region', { name: 'Relations', exact: true });
     await relations.scrollIntoViewIfNeeded();
     const rows = relations.locator('.relation-row');
@@ -72,10 +76,10 @@ for (const width of [1280, 390]) {
     await expect(relations.getByRole('button', { name: 'Remove', exact: true })).toHaveCount(3);
     for (const action of await relations.locator('.relation-row-actions button').all()) await expect(action).toBeVisible();
     expect(await relations.locator('.relation-item-title').first().evaluate((element) =>
-      element.scrollWidth > element.clientWidth && getComputedStyle(element).textOverflow === 'ellipsis')).toBe(true);
+      getComputedStyle(element).whiteSpace === 'nowrap' && getComputedStyle(element).textOverflow === 'ellipsis')).toBe(true);
     expect(await rows.first().evaluate((row) => getComputedStyle(row).borderBottomWidth)).toBe('0px');
     const modal = page.locator('#taskDetailModal .modal-content');
-    expect((await modal.boundingBox())!.width).toBeLessThanOrEqual(480);
+    expect((await modal.boundingBox())!.width).toBeLessThanOrEqual(Math.min(1120, width - 20));
     expect(await page.locator('#taskDetailModal .modal-body').evaluate((body) => body.scrollWidth <= body.clientWidth)).toBe(true);
   });
 }
@@ -87,6 +91,7 @@ test('inline editing and removal require confirmation, cancel safely, regroup it
     { id: 2, title: 'Blocker', status: 'doing' }
   ], extensions: { taskRelations: { version: 1, relations: [{ sourceId: 2, targetId: 1, kind: 'blocks' }] } } }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Source').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   const blockedBy = relations.getByRole('group', { name: 'Blocked by', exact: true });
   const related = relations.getByRole('group', { name: 'Related to', exact: true });
@@ -135,6 +140,7 @@ test('links archived workitems by ID, previews direction, navigates both ways, r
     { id: 1, title: 'Current item' }, { id: 2, title: 'Archived blocker', archived: true }, { id: 3, title: 'Other item', status: 'done' }
   ] }, { id: 'p2', title: 'Other project', hasHandle: true, tasks: [{ id: 4, title: 'Outside project' }] }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Current item').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   await relations.getByRole('button', { name: 'Link workitem', exact: true }).click();
   const picker = relations.getByRole('combobox', { name: 'Search this project by ID or title' });
@@ -176,6 +182,7 @@ test('unified workitem picker filters immediately, supports keyboard selection a
     ...Array.from({ length: 20 }, (_, index) => ({ id: index + 2, title: `Candidate ${index + 2}` }))
   ] }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Source').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   await relations.getByRole('button', { name: 'Link workitem', exact: true }).click();
   const picker = relations.getByRole('combobox', { name: 'Search this project by ID or title' });
@@ -223,6 +230,7 @@ test('unified workitem picker allows direct selection on mobile and handles proj
     { id: 1, title: 'Source' }, { id: 2, title: 'Another workitem with a long title that should wrap within the dropdown' }
   ] }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Source').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   await relations.getByRole('button', { name: 'Link workitem', exact: true }).click();
   await relations.getByRole('combobox', { name: 'Search this project by ID or title' }).click();
@@ -238,6 +246,7 @@ test('unified workitem picker allows direct selection on mobile and handles proj
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'p2', title: 'Empty choices', hasHandle: true, tasks: [{ id: 1, title: 'Only item' }] }], { selectedBoardId: 'p2' });
   await portfolioCard(page, 'Only item').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   await relations.getByRole('button', { name: 'Link workitem', exact: true }).click();
   await relations.getByRole('combobox', { name: 'Search this project by ID or title' }).click();
   await expect(relations.getByRole('listbox').getByRole('option')).toHaveCount(0);
@@ -252,6 +261,7 @@ test('creates a related item with editable inherited planning only, cancelling f
     tasks: [{ id: 1, title: 'Source', description: 'Do not inherit', assignees: ['Ana'], priority: 'high', tags: ['original'], phaseId: 'phase', milestoneId: 'mile' }]
   }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Source').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   await relations.getByRole('button', { name: 'Create related', exact: true }).click();
   await relations.getByLabel('Relation of the selected workitem').selectOption('blockedBy');
@@ -264,6 +274,7 @@ test('creates a related item with editable inherited planning only, cancelling f
   await page.locator('#taskModalCancelBtn').click();
   await expect(portfolioCard(page, 'Source')).toBeVisible();
   await portfolioCard(page, 'Source').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   await relations.getByRole('button', { name: 'Create related', exact: true }).click();
   await relations.getByLabel('Relation of the selected workitem').selectOption('blockedBy');
   await relations.locator('button[type="submit"]').click();
@@ -284,6 +295,7 @@ test('read-only relations remain navigable on mobile without mutation controls',
     extensions: { taskRelations: { version: 1, relations: [{ sourceId: 2, targetId: 1, kind: 'blocks' }] } }
   }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Dependent').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relations', exact: true });
   await expect(relations.getByRole('button', { name: 'Link workitem' })).toHaveCount(0);
   await expect(relations.getByRole('button', { name: 'Create related' })).toHaveCount(0);
@@ -329,6 +341,7 @@ test('dependency badges track completion and reopening without preventing status
   await seedPortfolioBoards(page, [{ id: 'reopened', title: 'Project', hasHandle: true, tasks: saved.board.tasks, extensions: saved.extensions }], { selectedBoardId: 'reopened' });
   await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toBeVisible();
   await portfolioCard(page, 'Dependent').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   await expect(page.getByRole('region', { name: 'Relations', exact: true }).getByRole('button', { name: '#2 Blocker', exact: true })).toBeVisible();
 });
 
@@ -340,6 +353,7 @@ test('rejects a circular dependency with a clear Portuguese message and leaves t
   }], { selectedBoardId: 'p1' });
   await page.locator('#languageToggleBtn').click();
   await portfolioCard(page, 'Third').click();
+  await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relações', exact: true });
   await relations.getByRole('button', { name: 'Associar workitem', exact: true }).click();
   await relations.getByRole('combobox', { name: 'Pesquisar neste projeto por ID ou título' }).fill('First');

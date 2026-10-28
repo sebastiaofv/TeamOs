@@ -49,7 +49,7 @@ export function TaskEditorDialog() {
             <Dialog.Portal>
                 <Dialog.Overlay className="modal active" id="taskModal">
                     <Dialog.Content
-                        className="modal-content"
+                        className="modal-content workitem-modal"
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
                         onEscapeKeyDown={escapeAnswersAppMessage}
@@ -109,7 +109,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
 
     return (
         <>
-            <div className="modal-header">
+            <div className="modal-header workitem-modal-header">
                 <Dialog.Title asChild>
                     <span className="modal-title" id="modalTitle">{form.type && form.type !== 'task' ? `${t(vm.editing ? 'common.edit' : 'common.new')} ${t(`workitems.type.${form.type}`)}` : vm.heading}</span>
                 </Dialog.Title>
@@ -118,17 +118,10 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
             <div className="modal-body">
                 <form id="taskForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                     {vm.relationNotice && <p className="relation-preview" role="status">{vm.relationNotice} · Backlog</p>}
-                    <div className="form-row">
-                        <div className="form-group"><label htmlFor="workitemType">{t('workitems.type')}</label><select id="workitemType" value={form.type || 'task'} disabled={vm.editing} onChange={(event) => {
-                            const type = event.target.value as NonNullable<TaskEditorFields['type']>;
-                            setForm((current) => ({ ...current, type, parentId: null, ...(type === 'epic' ? { effort: '', pullRequests: [] } : {}) }));
-                        }}>{WORKITEM_TYPES.map((type) => <option key={type} value={type}>{t(`workitems.type.${type}`)}</option>)}</select></div>
-                        {['story', 'task'].includes(form.type || 'task') && <div className="form-group"><label htmlFor="workitemParent">{t('workitems.parent')}</label><select id="workitemParent" value={form.parentId || ''} onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value ? Number(event.target.value) : null, phaseMode: event.target.value && !current.phaseId ? 'inherit' : current.phaseMode, milestoneMode: event.target.value && !current.milestoneId ? 'inherit' : current.milestoneMode }))}>
-                            <option value="">{t('common.none')}</option>{vm.parentCandidates?.filter((parent) => validParent(form.type || 'task', parent)).map((parent) => <option key={parent.id} value={parent.id}>#{parent.id} {parent.title}</option>)}
-                        </select></div>}
-                    </div>
+                    <div className="workitem-overview workitem-editor-layout">
+                        <div className="workitem-main">
                     <div className="form-group">
-                        <label className="required" htmlFor="taskName">{t('task.taskName')}</label>
+                        <label className="required" htmlFor="taskName">{t('task.title')}</label>
                         <input type="text" id="taskName" ref={nameRef} required maxLength={80} {...bind('title')} />
                     </div>
                     <div className="form-group">
@@ -136,38 +129,6 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         <textarea id="taskDescription" {...bind('description')} />
                     </div>
                     {(form.type === 'epic' ? ['objective', 'scope', 'businessValue'] as const : form.type === 'story' ? ['acceptanceCriteria'] as const : form.type === 'bug' ? ['stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment'] as const : []).map((field) => <div className="form-group" key={field}><label htmlFor={`workitem-${field}`}>{t(`workitems.${field}`)}</label><textarea id={`workitem-${field}`} value={form[field] || ''} onChange={(event) => update(field, event.target.value)} /></div>)}
-                    <div className="form-group">
-                        <label htmlFor="taskBlocked">{t('task.blocked')}</label>
-                        <div className="form-checkbox-row">
-                            <input type="checkbox" id="taskBlocked" checked={form.blocked} onChange={onBlockedChange} />
-                            <span>{t('task.markBlocked')}</span>
-                        </div>
-                    </div>
-                    <div className={`form-group${form.blocked ? '' : ' hidden'}`} id="taskBlockerReasonWrap">
-                        <label className="required" htmlFor="taskBlockerReason">{t('task.blocker')}</label>
-                        <textarea
-                            id="taskBlockerReason"
-                            placeholder={t('task.blockerPlaceholder')}
-                            ref={blockerReasonRef}
-                            {...bind('blockerReason')}
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="taskResponsible">{t('task.responsible')}</label>
-                        <EditorSelect id="taskResponsible" value={form.responsible} onChange={(event) => setForm((current) => setTaskResponsible(current, event.target.value))}>
-                            <option value="">{t('task.noResponsible')}</option>
-                            {vm.assigneePool.map((name) => <option key={name} value={name}>{name}</option>)}
-                        </EditorSelect>
-                    </div>
-                    <div className="form-group">
-                        <label id="taskAssigneesLabel">{t('task.assignees')}</label>
-                        <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool}
-                            onRemove={removeParticipant} />
-                    </div>
-                    <div className="form-group">
-                        <label id="taskTagsLabel">{t('task.tags')}</label>
-                        <TagEditor value={form.tags} onChange={(next) => update('tags', next)} suggestions={vm.tagSuggestions} />
-                    </div>
                     <div className="form-group">
                         <label id="taskTodoListLabel">{t('task.todoList')}</label>
                         <ChecklistEditor value={form.checklist} onChange={(next) => update('checklist', next)} />
@@ -181,6 +142,20 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         />
                     </div>
                     {form.type !== 'epic' && <PullRequestLinks value={form.pullRequests || []} onChange={(next) => update('pullRequests', next)} draft />}
+                        </div>
+                        <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
+                            <section className="workitem-property-group">
+                    <div className="form-row">
+                        <div className="form-group"><label htmlFor="workitemType">{t('workitems.type')}</label><select id="workitemType" value={form.type || 'task'} disabled={vm.editing} onChange={(event) => {
+                            const type = event.target.value as NonNullable<TaskEditorFields['type']>;
+                            setForm((current) => ({ ...current, type, parentId: null, ...(type === 'epic' ? { effort: '', pullRequests: [] } : {}) }));
+                        }}>{WORKITEM_TYPES.map((type) => <option key={type} value={type}>{t(`workitems.type.${type}`)}</option>)}</select></div>
+                        {['story', 'task'].includes(form.type || 'task') && <div className="form-group"><label htmlFor="workitemParent">{t('workitems.parent')}</label><select id="workitemParent" value={form.parentId || ''} onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value ? Number(event.target.value) : null, phaseMode: event.target.value && !current.phaseId ? 'inherit' : current.phaseMode, milestoneMode: event.target.value && !current.milestoneId ? 'inherit' : current.milestoneMode }))}>
+                            <option value="">{t('common.none')}</option>{vm.parentCandidates?.filter((parent) => validParent(form.type || 'task', parent)).map((parent) => <option key={parent.id} value={parent.id}>#{parent.id} {parent.title}</option>)}
+                        </select></div>}
+                    </div>
+                            </section>
+                            <section className="workitem-property-group"><h3>{t('workitems.properties')}</h3>
                     <div className="form-group">
                         <label htmlFor="taskDueDate">{t('task.due')}</label>
                         <input type="date" id="taskDueDate" ref={dueDateRef} {...bind('dueDate')} />
@@ -199,6 +174,42 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             </select>
                         </div>}
                     </div>
+                    <div className="form-group">
+                        <label htmlFor="taskBlocked">{t('task.blocked')}</label>
+                        <div className="form-checkbox-row">
+                            <input type="checkbox" id="taskBlocked" checked={form.blocked} onChange={onBlockedChange} />
+                            <span>{t('task.markBlocked')}</span>
+                        </div>
+                    </div>
+                    <div className={`form-group${form.blocked ? '' : ' hidden'}`} id="taskBlockerReasonWrap">
+                        <label className="required" htmlFor="taskBlockerReason">{t('task.blocker')}</label>
+                        <textarea
+                            id="taskBlockerReason"
+                            placeholder={t('task.blockerPlaceholder')}
+                            ref={blockerReasonRef}
+                            {...bind('blockerReason')}
+                        />
+                    </div>
+                            </section>
+                            <section className="workitem-property-group"><h3>{t('workitems.people')}</h3>
+                    <div className="form-group">
+                        <label htmlFor="taskResponsible">{t('task.responsible')}</label>
+                        <EditorSelect id="taskResponsible" value={form.responsible} onChange={(event) => setForm((current) => setTaskResponsible(current, event.target.value))}>
+                            <option value="">{t('task.noResponsible')}</option>
+                            {vm.assigneePool.map((name) => <option key={name} value={name}>{name}</option>)}
+                        </EditorSelect>
+                    </div>
+                    <div className="form-group">
+                        <label id="taskAssigneesLabel">{t('task.assignees')}</label>
+                        <AssigneeEditor value={form.assignees} onChange={(next) => update('assignees', next)} pool={vm.assigneePool}
+                            onRemove={removeParticipant} />
+                    </div>
+                    <div className="form-group">
+                        <label id="taskTagsLabel">{t('task.tags')}</label>
+                        <TagEditor value={form.tags} onChange={(next) => update('tags', next)} suggestions={vm.tagSuggestions} />
+                    </div>
+                            </section>
+                            <section className="workitem-property-group"><h3>{t('roadmap.planning')}</h3>
                     <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="taskPhase">{t('task.phase')}</label>
@@ -216,6 +227,9 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                                 {vm.milestoneOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                             </select>
                         </div>
+                    </div>
+                            </section>
+                        </aside>
                     </div>
                 </form>
             </div>

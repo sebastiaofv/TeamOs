@@ -221,6 +221,8 @@ for (const language of ['en', 'pt'] as const) {
         const history = page.getByRole('tab', { name: language === 'pt' ? 'Histórico' : 'History', exact: true });
         await expect(page.locator('.task-conversation')).toBeHidden();
         await details.press('ArrowRight');
+        await expect(page.getByRole('tab', { name: /^(Relations|Relações)$/ })).toBeFocused();
+        await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).press('ArrowRight');
         await expect(comments).toBeFocused();
         await expect(comments).toHaveAttribute('aria-selected', 'true');
         await expect(page.locator('.comment-posting-as')).toContainText('Anonymous');

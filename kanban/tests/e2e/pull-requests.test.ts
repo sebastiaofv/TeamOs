@@ -173,6 +173,8 @@ test('Pull Requests lives in its own accessible tab and retains an unconfirmed U
     await expect(page.locator('#task-panel-details .pull-request-links')).toHaveCount(0);
     await expect(page.locator('#taskDetailModal .pull-request-links')).toBeHidden();
     await details.press('ArrowRight');
+        await expect(page.getByRole('tab', { name: /^(Relations|Relações)$/ })).toBeFocused();
+        await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).press('ArrowRight');
     await expect(comments).toBeFocused();
     await expect(comments).toHaveAttribute('aria-selected', 'true');
     await comments.press('ArrowRight');

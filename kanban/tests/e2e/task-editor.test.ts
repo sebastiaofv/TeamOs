@@ -59,35 +59,17 @@ test.describe('task editor', () => {
     expect(taskCount).toBe(0);
   });
 
-  test('task modal places blocked fields immediately after description', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
-    ], { selectedBoardId: 'p1' });
-
+  test('task editor separates content from properties and groups blocked fields together', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }], { selectedBoardId: 'p1' });
     await page.locator('#portfolio-backlog-column .add-task-card').click();
-
-    const fieldOrder = await page.evaluate(() => (
-      [...document.querySelectorAll('#taskForm > .form-group')]
-        .map((group) => {
-          if (group.querySelector('#taskName')) return 'taskName';
-          if (group.querySelector('#taskDescription')) return 'taskDescription';
-          if (group.querySelector('#taskBlocked')) return 'taskBlocked';
-          if (group.querySelector('#taskBlockerReason')) return 'taskBlockerReason';
-          if (group.querySelector('#taskAssigneeEditor')) return 'taskAssigneeEditor';
-          return null;
-        })
-        .filter(Boolean)
-    ));
-
-    expect(fieldOrder).toEqual(expect.arrayContaining([
-      'taskDescription',
-      'taskBlocked',
-      'taskBlockerReason',
-      'taskAssigneeEditor'
-    ]));
-    expect(fieldOrder.indexOf('taskDescription')).toBeLessThan(fieldOrder.indexOf('taskBlocked'));
-    expect(fieldOrder.indexOf('taskBlocked')).toBeLessThan(fieldOrder.indexOf('taskBlockerReason'));
-    expect(fieldOrder.indexOf('taskBlockerReason')).toBeLessThan(fieldOrder.indexOf('taskAssigneeEditor'));
+    const main = page.locator('#taskForm .workitem-main');
+    const sidebar = page.locator('#taskForm .workitem-sidebar');
+    await expect(main.locator('#taskName')).toBeVisible();
+    await expect(main.locator('#taskDescription')).toBeVisible();
+    await expect(sidebar.locator('#taskBlocked')).toBeVisible();
+    expect(await sidebar.locator('#taskBlocked').evaluate((node) => Boolean(node.closest('.workitem-property-group')?.querySelector('#taskBlockerReason')))).toBe(true);
+    const content = await main.boundingBox(), properties = await sidebar.boundingBox();
+    expect(content!.x + content!.width).toBeLessThanOrEqual(properties!.x);
   });
 
   test('assignees and blocked fields save and render as card badges', async ({ page }) => {
@@ -448,13 +430,17 @@ test.describe('task editor', () => {
     ));
     const handle = (page: Page, index: number) => page.locator('#taskChecklistItems .checklist-editor-row').nth(index).locator('.checklist-editor-drag-handle');
     // Waits for each keyboard step to land before the next key.
-    const announced = (page: Page, text: string) => expect(page.getByText(text, { exact: true })).toBeAttached();
+    const announced = async (page: Page, text: string) => {
+      await expect(page.getByText(text, { exact: true })).toBeAttached();
+      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+    };
 
     test('Space picks an item up, arrow keys move it and Space drops it', async ({ page }) => {
       await handle(page, 2).focus();
       await page.keyboard.press('Space');
       // Picked up. (The pick-up announcement is replaced at once by an "over" one.)
       await expect(handle(page, 2)).toHaveAttribute('aria-pressed', 'true');
+      await announced(page, 'Todo item 3 is over position 3.');
       await page.keyboard.press('ArrowUp');
       await announced(page, 'Todo item 3 is over position 2.');
       await page.keyboard.press('ArrowUp');
@@ -469,6 +455,7 @@ test.describe('task editor', () => {
       await page.keyboard.press('Space');
       // Picked up. (The pick-up announcement is replaced at once by an "over" one.)
       await expect(handle(page, 2)).toHaveAttribute('aria-pressed', 'true');
+      await announced(page, 'Todo item 3 is over position 3.');
       await page.keyboard.press('ArrowUp');
       await announced(page, 'Todo item 3 is over position 2.');
       await page.keyboard.press('Escape');
