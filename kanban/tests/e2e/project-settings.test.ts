@@ -236,3 +236,25 @@ test('project tabs retain both drafts and save the intended project together', a
     expect((await readSavedBoard(page, 'other')).extensions.workflow).toBeUndefined();
     await expect(page.locator('.portfolio-chip.active')).toContainText('Selected project');
 });
+
+test('cancelling workflow impact leaves both settings drafts editable and does not save', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Pending settings', hasHandle: true,
+        tasks: [{ id: 1, title: 'Affected', status: 'doing' }]
+    }], { selectedBoardId: 'p' });
+    await page.getByRole('button', { name: 'Settings for Pending settings', exact: true }).click();
+    const modal = page.locator('#projectSettingsModal');
+    await page.locator('#projectName').fill('Pending rename');
+    await modal.getByRole('tab', { name: 'Workflow', exact: true }).click();
+    await modal.locator('[data-state-choice="doing"]').click();
+    await modal.getByRole('combobox', { name: 'Category', exact: true }).selectOption('completed');
+    await modal.getByRole('button', { name: 'Save', exact: true }).click();
+    await answerAppMessage(page, { expectText: '1 workitems', button: 'Cancel' });
+    await expect(modal.getByRole('button', { name: 'Save', exact: true })).toBeEnabled();
+    await expect(modal.getByRole('combobox', { name: 'Category', exact: true })).toHaveValue('completed');
+    await modal.getByRole('tab', { name: 'General', exact: true }).click();
+    await expect(page.locator('#projectName')).toHaveValue('Pending rename');
+    await modal.getByRole('button', { name: 'Cancel', exact: true }).click();
+    expect((await readSavedBoard(page, 'p')).board.settings.title).toBe('Pending settings');
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
+});

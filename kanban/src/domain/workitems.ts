@@ -165,6 +165,24 @@ export function sprintMembers(data: BoardData, sprintId: string): Task[] {
     return [...members.values()];
 }
 
+/** One consultation context for actual participation, independent of live parent/allocation changes.
+ * Workflow presentation stays with the supplied project; no historical workflow is invented.
+ */
+export function consultSprintParticipation(data: BoardData, sprintId: string) {
+    const members = structuredClone(sprintMembers(data, sprintId));
+    const boardData = { ...data, board: { ...data.board, tasks: members } };
+    const currentIds = new Set(eligibleSprint(data, sprintId)
+        ? data.board.tasks.filter((task) => task.sprintId === sprintId).map((task) => task.id) : []);
+    return {
+        boardData,
+        members,
+        planningMembers: members.filter((task) => isPlanningUnit(boardData, task)),
+        isCurrent: (taskId: number) => currentIds.has(taskId)
+    };
+}
+
+export type SprintParticipation = ReturnType<typeof consultSprintParticipation>;
+
 /** US-13 calls this boundary before previewing a transfer; transferring a parent never transfers its children implicitly. */
 export function assertWorkitemTransfer(data: BoardData, id: number, mode: 'copy' | 'move'): void {
     const task = data.board.tasks.find((entry) => entry.id === id);

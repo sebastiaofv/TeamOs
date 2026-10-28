@@ -18,7 +18,7 @@ import {
     removeLegacyTaskAttachmentsFromExtensions,
     setTaskAttachments,
 } from '@/domain/attachments';
-import { captureTaskTimelineSnapshot, recordTaskTimelineEvent, recordTaskRelationsTimelineEvent } from '@/domain/timeline';
+import { recordTaskRelationsTimelineEvent } from '@/domain/timeline';
 import { getRelations, getTaskRelations, removeTaskRelation, setTaskRelation, TaskRelationError } from '@/domain/taskRelations';
 import { cloneSerializable } from '@/domain/serializable';
 import { nowIso } from '@/domain/util';
@@ -230,13 +230,11 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         await runPortfolioBoardMutation(boardId, (data) => {
             const index = data.board.tasks.findIndex((task) => Number(task.id) === Number(taskId));
             if (index < 0) return false;
-            const before = captureTaskTimelineSnapshot(data, taskId);
             const beforeRelations = cloneSerializable(getRelations(data));
             removeTaskRelation(data, taskId);
             recordTaskRelationsTimelineEvent(data, taskId, beforeRelations);
             data.board.tasks.splice(index, 1);
             removeLegacyTaskAttachmentsFromExtensions(data, taskId);
-            recordTaskTimelineEvent(data, before, null);
             return true;
         });
     }
@@ -276,7 +274,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                     createdAt: now, updatedAt: now, status
                 }, { roadmap: data.extensions.roadmap, includeStatusChangedAt: false }));
                 setTaskAttachments(data, nextId, draft.attachments);
-                recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, nextId));
                 if (relatedTo) {
                     const beforeRelations = cloneSerializable(getRelations(data));
                     try {
@@ -437,19 +434,16 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                 status: resolveCreateTaskStatus(boardRecord, 'to-do'), archived: false,
                 createdAt: now, updatedAt: now
             }, { includeStatusChangedAt: false }));
-            recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, id));
             return true;
         });
         if (!created) return null;
         showUndo(translateCurrent('palette.taskCreated', { title }), () => runPortfolioBoardMutation(boardId, (data) => {
-            const before = captureTaskTimelineSnapshot(data, id);
             const index = data.board.tasks.findIndex((task) => Number(task.id) === id);
             if (index < 0) return false;
             const beforeRelations = cloneSerializable(getRelations(data));
             removeTaskRelation(data, id);
             recordTaskRelationsTimelineEvent(data, id, beforeRelations);
             data.board.tasks.splice(index, 1);
-            recordTaskTimelineEvent(data, before, null);
             return true;
         }));
         return id;

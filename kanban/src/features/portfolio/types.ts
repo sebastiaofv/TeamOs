@@ -1,3 +1,4 @@
+import type { SprintParticipation } from '@/domain/workitems';
 // Portfolio session, view-model, editor, and dialog types.
 
 import type {
@@ -195,6 +196,8 @@ export type PortfolioTimelineViewModel = {
 
 export type RoadmapWorkScope = {
     key: string;
+    boardData: BoardData;
+    participation?: SprintParticipation;
     item: RoadmapItem | null;
     referenceId?: string;
     tasks: Task[];

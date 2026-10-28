@@ -1,4 +1,4 @@
-import { isPlanningUnit, eligibleSprint, sprintMembers } from '@/domain/workitems';
+import { isPlanningUnit, eligibleSprint, consultSprintParticipation, type SprintParticipation } from '@/domain/workitems';
 import type { BoardData, RoadmapItem, SprintIdentity } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getSprintCatalog } from '@/domain/sprintCatalog';
@@ -17,6 +17,7 @@ export type SprintTableRoster = {
     rows: PortfolioRow[];
     boardData: BoardData;
     source: 'current' | 'closure';
+    participation?: SprintParticipation;
     identity?: SprintIdentity;
 };
 export type SprintTableGroup = SprintTableRoster & {
@@ -38,14 +39,13 @@ export function currentSprintRosters(boardData: BoardData, rows: PortfolioRow[])
     const identities = new Map(getSprintCatalog(boardData).entries.map((entry) => [entry.sprintId, entry]));
     return (boardData.extensions.roadmap?.sprints || []).map((sprint) => {
         const rosterSource = { ...boardData, board: { ...boardData.board, tasks: [...new Map([...rows.map((row) => row.task), ...boardData.board.tasks].map((task) => [task.id, task])).values()] } };
-        const members = sprintMembers(rosterSource, sprint.id);
-        const snapshot = { ...boardData, board: { ...boardData.board, tasks: members } };
-        const historical = !eligibleSprint(boardData, sprint.id);
-        const rosterRows = members.filter((task) => isPlanningUnit(snapshot, task)).map((task): PortfolioRow => {
+        const participation = consultSprintParticipation(rosterSource, sprint.id);
+        const snapshot = participation.boardData;
+        const rosterRows = participation.planningMembers.map((task): PortfolioRow => {
             const current = rows.find((row) => row.taskId === task.id);
-            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && !historical, historical: historical || !current || current.task.sprintId !== sprint.id || current?.historical, columnTitle: boardData.board.columns.find((column) => column.status === task.status)?.title, boardData: snapshot, task };
+            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, columnTitle: boardData.board.columns.find((column) => column.status === task.status)?.title, boardData: snapshot, task };
         });
-        return { sprint, boardData: historical ? snapshot : boardData, source: 'current', rows: rosterRows, identity: identities.get(sprint.id) };
+        return { sprint, boardData: snapshot, participation, source: 'current', rows: rosterRows, identity: identities.get(sprint.id) };
     });
 }
 

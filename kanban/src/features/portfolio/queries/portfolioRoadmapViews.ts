@@ -1,4 +1,4 @@
-import { isPlanningUnit } from '@/domain/workitems';
+import { consultSprintParticipation } from '@/domain/workitems';
 import type {
     PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope
 } from '@/features/portfolio/types';
@@ -35,8 +35,20 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
     const byId = new Map(sourceRows.map((row) => [row.taskId, row]));
     const scope = (key: string, item: RoadmapItem | null, input: Task[]): RoadmapWorkScope => {
         const tasks = [...new Map(input.map((task) => [task.id, task])).values()];
-        return { key, item, tasks, rows: tasks.flatMap((task) => byId.get(task.id) ? [byId.get(task.id)!] : []),
-            visibleCount: tasks.filter((task) => taskMatchesPortfolioFilters(task, filters, boardData)).length, progress: /^sprints?:/.test(key) && boardData ? planningProgress(tasks.filter((task) => isPlanningUnit(boardData, task)), boardData, { leavesOnly: false }) : planningProgress(tasks, boardData) };
+        const participation = /^sprints?:/.test(key) && item ? consultSprintParticipation(boardData, item.id) : null;
+        const context = participation?.boardData || boardData;
+        const ids = new Set(tasks.map((task) => task.id));
+        const scopedTasks = participation ? participation.members.filter((task) => ids.has(task.id)) : tasks;
+        const rows = participation ? scopedTasks.map((task) => ({
+            boardIndex: (state?.portfolioBoards || []).findIndex((entry) => entry.id === board.id),
+            boardId: board.id, boardTitle: board.title, boardFileName: board.fileName,
+            taskIndex: -1, ...byId.get(task.id), taskId: task.id,
+            task: participation.isCurrent(task.id) ? byId.get(task.id)?.task || task : task, boardData: context,
+            canMutate: false, historical: historical || !participation.isCurrent(task.id)
+        })) : tasks.flatMap((task) => byId.get(task.id) ? [byId.get(task.id)!] : []);
+        return { key, item, boardData: context, participation: participation || undefined, tasks: scopedTasks, rows,
+            visibleCount: scopedTasks.filter((task) => taskMatchesPortfolioFilters(task, filters, context)).length,
+            progress: participation ? planningProgress(participation.planningMembers.filter((task) => ids.has(task.id)), context, { leavesOnly: false }) : planningProgress(tasks, context) };
     };
     function grouped(tasks: Task[], kind: 'sprints' | 'milestones'): RoadmapWorkScope[] {
         const field = kind === 'sprints' ? 'sprintId' : 'milestoneId';

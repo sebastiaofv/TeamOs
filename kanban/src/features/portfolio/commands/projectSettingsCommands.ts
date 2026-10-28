@@ -9,7 +9,7 @@ import { translateCurrent } from '@/shared/i18n';
 import { areSerializableValuesEqual, cloneSerializable } from '@/domain/serializable';
 
 export function createProjectSettingsActions(context: BoardMutationContext) {
-    const { getState, getBoardRecord, openDialogFn, closeDialogFn, runPortfolioBoardMutation } = context;
+    const { getState, getBoardRecord, openDialogFn, closeDialogFn, runPortfolioBoardMutation, confirm, canUsePortfolioTaskMutations, notifyPortfolioMutationUnavailable } = context;
     function openProjectSettings(boardId: string) {
         const board = getBoardRecord(boardId);
         if (!board) return;
@@ -20,7 +20,16 @@ export function createProjectSettingsActions(context: BoardMutationContext) {
         });
     }
     async function saveProjectSettings(boardId: string, draft: ProjectSettingsDraft, original: unknown, workflowDraft?: { original: Workflow; workflow: Workflow; relocations: Record<string, string> }) {
+        if (!canUsePortfolioTaskMutations(boardId)) { notifyPortfolioMutationUnavailable(boardId); return false; }
+        const source = getBoardRecord(boardId)?.data;
+        if (!source) return false;
+        if (workflowDraft) {
+            const data = source;
+            const affected = data.board.tasks.filter((task) => workflowDraft.original.states.find((state) => state.id === task.status)?.category !== workflowDraft.workflow.states.find((state) => state.id === task.status)?.category);
+            if (affected.length && !(await confirm(translateCurrent('workflow.impact', { count: affected.length }), { title: translateCurrent('workflow.settings') }))) return false;
+        }
         return runPortfolioBoardMutation(boardId, (data) => {
+            if (workflowDraft && getBoardRecord(boardId)?.data !== source) throw new ProjectDataError('stale');
             // Do not overwrite an external/local update that arrived while this draft was open.
             if (!areSerializableValuesEqual(original, { name: data.board.settings.title, project: data.extensions.project })) {
                 throw new ProjectDataError('stale');

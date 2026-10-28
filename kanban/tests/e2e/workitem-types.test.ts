@@ -166,3 +166,43 @@ test('Sprint expansion shows only participating child Tasks beneath their Story'
     await tree.getByRole('button', { name: '#1204 Implementar confirmação', exact: true }).click();
     await expect(page.locator('#detailTitle')).toHaveText('Implementar confirmação');
 });
+
+for (const ended of [true, false]) {
+test(`Sprint tree and Roadmap retain recorded work and read-only details after the parent is deleted (ended=${ended})`, async ({ page }) => {
+    await page.clock.setFixedTime('2026-10-28T12:00:00.000Z');
+    await gotoApp(page);
+    const story = { ...fixture.board.tasks.find((task: { id: number }) => task.id === 1202), title: 'Recorded story', sprintId: 'past', status: 'doing', archived: false };
+    const child = { ...fixture.board.tasks.find((task: { id: number }) => task.id === 1204), title: 'Recorded child', parentId: 1202, sprintId: 'past', status: 'done', archived: false };
+    const extensions = structuredClone(fixture.extensions);
+    delete extensions.timeline;
+    extensions.roadmap = { version: 1, phases: [], milestones: [], sprints: [
+        { id: 'past', title: 'Previous Sprint', startDate: '2020-01-01', endDate: ended ? '2020-01-31' : '2099-12-31' },
+        { id: 'current', title: 'Current Sprint', startDate: '2020-02-01', endDate: '2099-12-31' }
+    ] };
+    extensions.sprintParticipation = { version: 1, entries: [story, child].map((task) => ({ sprintId: 'past', task, at: '2020-01-30T12:00:00Z' })) };
+    await seedPortfolioBoards(page, [{ id: 'history', title: 'Participation', hasHandle: true,
+        tasks: [{ ...child, title: 'Live child', parentId: null, sprintId: 'current', status: 'doing' }], extensions
+    }], { selectedBoardId: 'history' });
+    await page.getByRole('button', { name: 'Table', exact: true }).click();
+    await page.locator('[data-table-view="sprints"]').click();
+    const sprint = page.locator('[data-table-sprint="past"]');
+    await sprint.locator(':scope > summary').click();
+    const tree = sprint.locator('.workitem-tree');
+    await tree.locator('summary').filter({ hasText: 'Recorded story' }).click();
+    await tree.getByRole('button', { name: '#1204 Recorded child', exact: true }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Recorded child');
+    await page.keyboard.press('e');
+    await expect(page.locator('#taskModal')).toBeHidden();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for Previous Sprint', exact: true }).click();
+    const scope = page.locator('[data-roadmap-task-list="sprint:past"]');
+    await expect(scope.locator('tr[data-task-id="1204"]')).toContainText('Recorded child');
+    await scope.locator('tr[data-task-id="1204"]').getByRole('button', { name: 'Recorded child', exact: true }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Recorded child');
+    await page.keyboard.press('e');
+    await expect(page.locator('#taskModal')).toBeHidden();
+    expect((await readSavedBoard(page, 'history')).board.tasks[0].title).toBe('Live child');
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
+});
+}

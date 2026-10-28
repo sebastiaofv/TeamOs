@@ -1,5 +1,5 @@
 import { WorkitemTree } from './WorkitemTree';
-import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
+import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES, consultSprintParticipation } from '@/domain/workitems';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardData } from '@/domain/types';
@@ -84,7 +84,7 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
             <span>{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
             <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
         </summary>
-        {expanded && <WorkitemTree data={group.boardData} boardId={boardId} sprintId={group.sprint.id} readOnly={group.status === 'done'} />}
+        {expanded && <WorkitemTree participation={group.participation || consultSprintParticipation(group.boardData, group.sprint.id)} boardId={boardId} readOnly={group.status === 'done'} />}
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
             sourceRows={group.rows} canCreate={false} scope={`sprint-${group.sprint.id}`} />}
     </details>;

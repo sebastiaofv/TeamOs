@@ -126,6 +126,22 @@ describe('US-12 transfer boundary for US-13', () => {
 });
 
 describe('US-12 mutation boundaries' , () => {
+    it('records direct and automatic effects as one replayable operation', async () => {
+        const { actions, data, confirm } = setup();
+        data().board.tasks[1].status = 'doing'; data().board.tasks[2].status = 'doing';
+        data().extensions.workitemAutomation = { version: 1, finish: { from: ['doing'], to: 'ready-to-test' } };
+        expect(await actions.movePortfolioTaskToStatus('p', 3, 'done')).toBe(true);
+        const events = data().extensions.timeline!.events.slice(1);
+        expect(events.find((event) => event.entityId === '3' && event.changes?.status)).toMatchObject({ changes: { status: { after: 'done' } } });
+        expect(events.find((event) => event.entityId === '2' && event.changes?.status)).toMatchObject({ meta: { automatic: true, causeTaskId: 3 } });
+        expect(new Set(events.map((event) => event.meta?.operationId)).size).toBe(1);
+        expect(events.every((event) => Boolean(event.meta?.operationId))).toBe(true);
+        const replay = reconstructBoardStateFromTimeline(data(), data().extensions.timeline!.events.length - 1);
+        expect(replay.board.tasks.map((task) => task.status)).toEqual(data().board.tasks.map((task) => task.status));
+        expect(replay.extensions.sprintParticipation).toEqual(data().extensions.sprintParticipation);
+        expect(confirm).toHaveBeenCalledTimes(1);
+    });
+
     it('keeps the pre-planning baseline free of later Sprints and participation', async () => {
         const { store, actions, data } = setup();
         data().extensions.roadmap!.sprints = [];

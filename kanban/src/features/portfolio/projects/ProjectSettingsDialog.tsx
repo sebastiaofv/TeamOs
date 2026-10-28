@@ -2,15 +2,15 @@ import { useRef, useState, type KeyboardEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { DialogPropsByName } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { closeDialog } from '@/app/overlays/dialogs';
-import { createProjectIdentity, getProjectData, PROJECT_STATUSES, projectNameKey } from '@/domain/projectData';
+import { createProjectIdentity, PROJECT_STATUSES, projectNameKey } from '@/domain/projectData';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n } from '@/shared/i18n';
-import { WorkflowEditor, useWorkflowEditor } from '@/features/portfolio/board/WorkflowSettings';
-import { areSerializableValuesEqual } from '@/domain/serializable';
+import { WorkflowEditor } from '@/features/portfolio/board/WorkflowSettings';
+import { useProjectSettingsEditor } from './useProjectSettingsEditor';
+import type { ProjectData } from '@/domain/types';
 
 export function ProjectSettingsDialog() {
     const props = useAppStore((state) => state.activeDialog === 'projectSettings' ? state.dialogProps as DialogPropsByName['projectSettings'] : null);
@@ -28,18 +28,15 @@ export function ProjectSettingsDialog() {
 
 function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectSettings']; closeRef: React.RefObject<HTMLButtonElement | null> }) {
     const { t } = useI18n();
-    const { saveProjectSettings } = usePortfolioActions();
-    const [tab, setTab] = useState<'general' | 'workflow'>('general');
+    const editor = useProjectSettingsEditor(vm);
+    const { general: { name, project }, workflow, tab, selectTab: setTab, busy: saving } = editor;
+    const setName = (name: string) => editor.editGeneral({ name });
+    const setProject = (project: ProjectData) => editor.editGeneral({ project });
     const formRef = useRef<HTMLFormElement>(null);
-    const workflow = useWorkflowEditor(vm.data);
-    const [original] = useState(() => ({ name: vm.data.board.settings.title, project: getProjectData(vm.data) }));
-    const [name, setName] = useState(original.name);
-    const [project, setProject] = useState(original.project);
     const [member, setMember] = useState('');
     const [memberError, setMemberError] = useState('');
     const [tag, setTag] = useState('');
     const [error, setError] = useState('');
-    const [saving, setSaving] = useState(false);
     const memberUsed = (id: string) => vm.data.board.tasks.some((task) => task.assigneeIds?.includes(id));
     const tagUsed = (value: string) => vm.data.board.tasks.some((task) => task.tags.includes(value));
     const submit = async () => {
@@ -49,14 +46,7 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
             requestAnimationFrame(() => formRef.current?.reportValidity());
             return;
         }
-        setSaving(true);
-        try {
-            const workflowChanged = !areSerializableValuesEqual(workflow.original, workflow.draft);
-            if (workflowChanged && !(await workflow.validate())) { setTab('workflow'); return; }
-            await saveProjectSettings(vm.boardId, { name, project }, original, workflowChanged ? {
-                original: workflow.original, workflow: workflow.draft, relocations: workflow.relocations
-            } : undefined);
-        } finally { setSaving(false); }
+        await editor.save();
     };
     const addMember = () => {
         const value = member.trim();

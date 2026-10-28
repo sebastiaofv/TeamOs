@@ -1,8 +1,7 @@
 import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import type { BoardData, Workflow, WorkflowCategory, WorkflowState } from '@/domain/types';
-import { getWorkflow, WORKFLOW_CATEGORIES, workflowErrors, unreachableWorkflowStateIds } from '@/domain/workflow';
-import { cloneSerializable } from '@/domain/serializable';
-import { showConfirm } from '@/app/overlays/appMessages';
+import type { BoardData, WorkflowCategory, WorkflowState } from '@/domain/types';
+import { WORKFLOW_CATEGORIES, unreachableWorkflowStateIds } from '@/domain/workflow';
+import type { ProjectWorkflowEditor } from '@/features/portfolio/projects/useProjectSettingsEditor';
 import { useI18n } from '@/shared/i18n';
 
 function Chevron() {
@@ -22,38 +21,12 @@ function StateDot({ state }: { state: WorkflowState }) {
 
 type Section = 'states' | 'references';
 
-export function useWorkflowEditor(data: BoardData) {
+export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardData; readOnly: boolean; busy: boolean; editor: ProjectWorkflowEditor }) {
     const { t } = useI18n();
-    const [original] = useState(() => getWorkflow(data));
-    const [draft, setDraft] = useState<Workflow>(() => cloneSerializable(original));
-    const [relocations, setRelocations] = useState<Record<string, string>>({});
-    const [section, setSection] = useState<Section>('states');
-    const [error, setError] = useState('');
-
-    async function validate() {
-        const errors = workflowErrors(draft);
-        if (errors.length) { setError(`${t('workflow.invalid')} ${errors.join(' ')}`); return false; }
-        const removed = original.states.filter((item) => !draft.states.some((current) => current.id === item.id));
-        if (removed.some((item) => data.board.tasks.some((task) => task.status === item.id) && !draft.states.some((target) => target.id === relocations[item.id]))) {
-            setSection('references'); setError(t('workflow.relocationRequired')); return false;
-        }
-        const affected = data.board.tasks.filter((task) => original.states.find((item) => item.id === task.status)?.category !== draft.states.find((item) => item.id === task.status)?.category);
-        if (affected.length && !(await showConfirm(t('workflow.impact', { count: affected.length }), { title: t('workflow.settings') }))) return false;
-        setError('');
-        return true;
-    }
-
-    return { original, draft, setDraft, relocations, setRelocations, section, setSection, error, setError, validate };
-}
-
-export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardData; readOnly: boolean; busy: boolean; editor: ReturnType<typeof useWorkflowEditor> }) {
-    const { t } = useI18n();
-    const { original, draft, setDraft, relocations, setRelocations, section, setSection, setError } = editor;
-    const [selectedId, setSelectedId] = useState(original.states[0].id);
+    const { draft, removed, relocations, section, selectSection: setSection, update, relocate, clearError } = editor;
+    const [selectedId, setSelectedId] = useState(draft.states[0].id);
     const nextFocus = useRef(false);
     const formId = useId();
-    const update = (fn: (value: Workflow) => void) => setDraft((value) => { const next = cloneSerializable(value); fn(next); return next; });
-    const removed = original.states.filter((item) => !draft.states.some((current) => current.id === item.id));
     const selected = draft.states.find((item) => item.id === selectedId) || draft.states[0];
     const index = draft.states.findIndex((item) => item.id === selected.id);
     const targets = draft.transitions[selected.id] || [];
@@ -65,7 +38,7 @@ export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardDa
     function addState() {
         const id = `state-${crypto.randomUUID()}`;
         update((value) => { value.states.push({ id, name: '', category: 'to-do', color: '#60a5fa' }); value.transitions[id] = []; });
-        nextFocus.current = true; setSelectedId(id); setSection('states'); setError('');
+        nextFocus.current = true; setSelectedId(id); setSection('states'); clearError();
     }
 
     function removeState() {
@@ -101,7 +74,7 @@ export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardDa
             {section === 'states' ? <div className="workflow-state-layout" role="tabpanel" id={`${formId}-panel-states`} aria-labelledby={`${formId}-tab-states`}>
                 <aside className="workflow-state-sidebar"><div className="workflow-sidebar-heading"><h3>{t('workflow.states')}</h3><span>{draft.states.length}</span></div>
                     <nav className="workflow-state-list" aria-label={t('workflow.states')}>
-                        {draft.states.map((item, position) => <button key={item.id} type="button" aria-pressed={selected.id === item.id} data-state-choice={item.id} onClick={() => { setSelectedId(item.id); setError(''); }}>
+                        {draft.states.map((item, position) => <button key={item.id} type="button" aria-pressed={selected.id === item.id} data-state-choice={item.id} onClick={() => { setSelectedId(item.id); clearError(); }}>
                             <span className="workflow-state-position">{String(position + 1).padStart(2, '0')}</span><StateDot state={item} />
                             <span className="workflow-state-list-text"><strong>{item.name || t('workflow.untitled')}</strong><span>{t(`workflow.${item.category}`)}</span></span>
                             {unreachable.has(item.id) ? <span className="workflow-state-issue" title={t('workflow.unreachable')}>!</span> : <span className="workflow-state-next-count" title={t('workflow.destinationCount', { count: (draft.transitions[item.id] || []).length })}>{(draft.transitions[item.id] || []).length} →</span>}
@@ -153,7 +126,7 @@ export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardDa
                     </label>)}
                 </fieldset>
                 {removed.length > 0 && <section className="workflow-relocations"><h4>{t('workflow.removedStates')}</h4>{removed.map((item) => <label key={item.id}>{t('workflow.relocate', { name: item.name, count: data.board.tasks.filter((task) => task.status === item.id).length })}
-                    <WorkflowSelect label={t('workflow.relocate', { name: item.name, count: data.board.tasks.filter((task) => task.status === item.id).length })} disabled={readOnly || busy} value={relocations[item.id] || ''} onChange={(id) => setRelocations({ ...relocations, [item.id]: id })}>
+                    <WorkflowSelect label={t('workflow.relocate', { name: item.name, count: data.board.tasks.filter((task) => task.status === item.id).length })} disabled={readOnly || busy} value={relocations[item.id] || ''} onChange={(id) => relocate(item.id, id)}>
                         <option value="">{t('common.choose')}</option>{draft.states.map((target) => <option key={target.id} value={target.id}>{target.name || t('workflow.untitled')}</option>)}
                     </WorkflowSelect></label>)}</section>}
                 <div className="workflow-general-note"><span aria-hidden="true">ⓘ</span><p>{t('workflow.help')}</p></div>
