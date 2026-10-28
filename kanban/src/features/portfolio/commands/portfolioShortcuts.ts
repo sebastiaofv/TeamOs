@@ -21,7 +21,7 @@ import { openCommandPalette } from '@/features/portfolio/palette/openCommandPale
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { clearTableFilters, setTableSort } from '@/features/portfolio/table/tableControls';
 
-export type ShortcutContext = 'global' | 'taskModal' | 'detailModal' | 'roadmapEntityModal' | 'shortcutsModal' | 'helpModal' | 'paletteModal';
+export type ShortcutContext = 'global' | 'taskModal' | 'detailModal' | 'roadmapEntityModal' | 'shortcutsModal' | 'helpModal' | 'paletteModal' | 'appSettingsModal';
 
 export type Shortcut = {
     id: string;
@@ -298,7 +298,7 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
     },
     {
         id: 'close-modal', section: 'Modal', keys: ['Esc'], description: 'Close open modal',
-        contexts: ['taskModal', 'detailModal', 'roadmapEntityModal', 'shortcutsModal', 'helpModal'], allowWhileTyping: true,
+        contexts: ['taskModal', 'detailModal', 'roadmapEntityModal', 'shortcutsModal', 'helpModal', 'appSettingsModal'], allowWhileTyping: true,
         match: (event) => event.key === 'Escape',
         handler: () => {
             actions.closeTaskEditor();
@@ -313,6 +313,7 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
 export const SHORTCUTS: Shortcut[] = createPortfolioShortcuts();
 
 const SHORTCUT_CONTEXT_BY_DIALOG: Record<DialogName, ShortcutContext> = {
+    appSettings: 'appSettingsModal',
     projectSettings: 'roadmapEntityModal',
     taskEditor: 'taskModal',
     taskDetail: 'detailModal',

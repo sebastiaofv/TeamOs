@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect, type Locator } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, openTaskEditor, setTimelineSlider, installControlledPortfolioWriter } from '../support/portfolio';
@@ -117,6 +118,7 @@ test('historical and read-only details expose safe links but no mutation control
     const fixture = JSON.parse(readFileSync('test-board/us-8.board.json', 'utf8'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click(); await setTimelineSlider(page, 0);
     await portfolioCard(page, 'Delivery with multiple servers').click();
     await page.getByRole('tab', { name: 'Pull Requests', exact: true }).click();

@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
@@ -138,6 +139,7 @@ test('milestone colours are suggested, editable and persisted; history collapses
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap.milestones.find((item: { id: string }) => item.id === 'review-colour').color).toBe('#be123c');
     await page.locator('#milestoneWorkitemsModal .modal-close').click();
     const before = await readSavedBoard(page, 'p');
+    await showTimeline(page);
     const panel = page.locator('#portfolioTimelinePanel');
     await expect(panel).toHaveClass(/collapsed/); await expect(panel.locator('.timeline-panel-subtitle')).toContainText('Review colour');
     for (const mode of ['board', 'table', 'calendar', 'planner', 'roadmap']) {

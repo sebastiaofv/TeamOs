@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 
 import {
   gotoApp,
+  showTimeline,
   seedPortfolioBoards,
   readSavedBoard,
   waitForBoardWrites,
@@ -16,6 +17,7 @@ import {
 test.describe('timeline', () => {
   test.beforeEach(async ({ page }) => {
     await gotoApp(page);
+    await showTimeline(page);
   });
 
   test('bulk sprint timeline event reconstructs sprint assignments in timeline preview', async ({ page }) => {

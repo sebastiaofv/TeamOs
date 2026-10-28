@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
+import { showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
 
 test.describe('US-4 persisted Board column chooser', () => {
   for (const theme of ['light', 'dark']) {
@@ -626,6 +626,7 @@ test.describe('2.4 timeline panel', () => {
       tasks: [{ id: 1, title: 'Timeline task', status: 'backlog', description: 'Initial timeline description.' }],
       extensions: TIMELINE
     }], { selectedBoardId: 'timeline' });
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
   }
@@ -788,3 +789,17 @@ test.describe('US-12 workitem detail and functional acceptance', () => {
     await answerAppMessage(page, { button: 'Cancel' });
   });
 });
+
+for (const theme of ['light', 'dark']) {
+  for (const width of [1280, 390]) {
+    test(`app settings at ${width}px (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await page.setViewportSize({ width, height: 800 });
+      await page.getByRole('button', { name: 'App settings', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'App settings', exact: true });
+      await expect(dialog.getByRole('checkbox', { name: 'Show timeline bar', exact: true })).not.toBeChecked();
+      await page.mouse.move(1, 1);
+      await expect(dialog).toHaveScreenshot(`app-settings-${theme}-${width}.png`);
+    });
+  }
+}

@@ -374,6 +374,12 @@ async function renameTaskViaEditor(page: Page, fromTitle: string, toTitle: strin
   await expect(page.locator('#taskModal')).toBeHidden();
 }
 
+async function showTimeline(page: Page) {
+  await page.getByRole('button', { name: 'App settings', exact: true }).click();
+  await page.getByRole('checkbox', { name: 'Show timeline bar', exact: true }).check();
+  await page.keyboard.press('Escape');
+}
+
 async function setTimelineSlider(page: Page, value: number) {
   await page.locator('#portfolioTimelinePanel .timeline-slider').evaluate((node, value) => {
     (node as HTMLInputElement).value = String(value);
@@ -588,6 +594,7 @@ export {
   portfolioProjectChipButtons,
   openTaskEditor,
   renameTaskViaEditor,
+  showTimeline,
   setTimelineSlider,
   appMessage,
   answerAppMessage,

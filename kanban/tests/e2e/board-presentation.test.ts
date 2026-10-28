@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, installControlledPortfolioWriter, setTimelineSlider } from '../support/portfolio';
@@ -50,6 +51,7 @@ test('visibility controls respect read-only projects and the selected historical
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.boardView?.hiddenStateIds).toEqual(['done']);
     const saved = await readSavedBoard(page, 'p');
     await page.keyboard.press('Escape');
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await setTimelineSlider(page, 0);
     await expect(page.locator('.portfolio-column[data-status="done"]')).toHaveCount(1);

@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 
 import {
@@ -602,6 +603,7 @@ test.describe('workitems table', () => {
 
     // Reuse the timeline's real edit/baseline flow and slider helper.
     await page.locator('[data-view-mode="board"]').click();
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await setTimelineSlider(page, 0);
     await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toContainText('Historical preview');

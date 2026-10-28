@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 import {
   dragWithMouse,
@@ -141,6 +142,7 @@ test.describe('day planner', () => {
     await expect(block).toContainText('09:15–10:15');
     await waitForBoardWrites(page);
 
+    await showTimeline(page);
     const panel = page.locator('#portfolioTimelinePanel');
     await panel.locator('.timeline-toggle-btn').click();
     await expect(panel).toContainText('Moved "Write spec"');

@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 
@@ -676,6 +677,7 @@ test.describe('roadmap', () => {
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await page.locator('#portfolioTimelinePanel .timeline-slider').evaluate((node) => {
       (node as HTMLInputElement).value = '0';

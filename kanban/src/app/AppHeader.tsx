@@ -36,6 +36,20 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                     </svg>
                 </button>
                 <button
+                    className="btn icon-btn app-settings-btn"
+                    id="appSettingsBtn"
+                    type="button"
+                    aria-label={t('appSettings.title')}
+                    title={t('appSettings.title')}
+                    aria-haspopup="dialog"
+                    onClick={() => openDialog('appSettings')}
+                >
+                    <svg className="app-settings-icon" aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="m9 3-.5 2-2 1.2-2-.5-2 3.5 1.5 1.5v2.6L2.5 15l2 3.5 2-.5 2 1.2.5 2h4l.5-2 2-1.2 2 .5 2-3.5-1.5-1.7v-2.6L20 9l-2-3.5-2 .5-2-1.2-.5-2Z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                </button>
+                <button
                     className="btn language-toggle-btn"
                     id="languageToggleBtn"
                     type="button"

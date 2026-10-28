@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, waitForBoardWrites, answerAppMessage, openFiltersPanel } from '../support/portfolio';
 
@@ -163,6 +164,7 @@ test('historical and read-only settings are consultable; restoring recovers name
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.locator('#projectSettingsModal')).toBeHidden(); await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'p');
+    await showTimeline(page);
     await page.locator('[data-action="timeline-toggle-expanded"]').click();
     const slider = page.getByRole('slider'); await slider.focus(); await page.keyboard.press('Home');
     await trigger.click();
