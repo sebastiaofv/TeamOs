@@ -23,6 +23,7 @@ import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
+import { BoardColumnMenu } from '@/features/portfolio/board/BoardColumnMenu';
 import { useI18n, translateCurrent } from '@/shared/i18n';
 import { buildPortfolioBoardView } from '@/features/portfolio/queries/portfolioBoardView';
 
@@ -137,6 +138,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
             <div className="workitem-board-shell">
                 <div className="workitem-board-toolbar" role="group" aria-label={t('workitems.type')}>
                     {(['technical', 'functional'] as const).map((value) => <button className={`btn${mode === value ? ' active' : ''}`} type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{t(`workitems.${value}`)}</button>)}
+                    <BoardColumnMenu />
                 </div>
                 <div className="workitem-board-columns">
                     {!columns.length && <p className="board-columns-empty" role="status">{t('board.allColumnsHidden')}</p>}

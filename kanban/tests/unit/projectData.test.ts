@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
 import { createBoardStateSnapshot, serializeBoardDataFromObject } from '@/domain/serialize';
 import { applyProjectSettings, parseProjectData, PROJECT_STATUSES, syncProjectAssignments } from '@/domain/projectData';
+import { getWorkflow } from '@/domain/workflow';
 import { normalizeTask } from '@/domain/task';
 import { reconstructBoardStateFromTimeline } from '@/domain/timeline';
 import { createAppStore } from '@/features/portfolio/state/store';
@@ -148,6 +149,26 @@ describe('project master data and curated values', () => {
         expect(current().extensions.timeline!.events).toHaveLength(2);
         await expect(actions.saveProjectSettings('p', after, before)).resolves.toBe(false);
         expect(enqueueSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('saves general and workflow drafts in one write, rejecting invalid or stale workflows without partial changes', async () => {
+        const { actions, draft, current, enqueueSave } = setup();
+        const before = draft(), after = draft(); after.name = 'Both settings';
+        const originalWorkflow = getWorkflow(current());
+        const workflow = structuredClone(originalWorkflow); workflow.states[1].name = 'Ready';
+        const invalid = structuredClone(workflow); invalid.entryStateId = 'missing';
+        await expect(actions.saveProjectSettings('p', after, before, { original: originalWorkflow, workflow: invalid, relocations: {} })).resolves.toBe(false);
+        expect(current().board.settings.title).toBe('Project');
+        expect(current().extensions.timeline).toBeUndefined();
+        expect(enqueueSave).not.toHaveBeenCalled();
+        const staleOriginal = structuredClone(originalWorkflow); staleOriginal.states[1].name = 'Outdated';
+        await expect(actions.saveProjectSettings('p', after, before, { original: staleOriginal, workflow, relocations: {} })).resolves.toBe(false);
+        expect(current().board.settings.title).toBe('Project');
+        await expect(actions.saveProjectSettings('p', after, before, { original: originalWorkflow, workflow, relocations: {} })).resolves.toBe(true);
+        expect(enqueueSave).toHaveBeenCalledTimes(1);
+        expect(current().board.settings.title).toBe('Both settings');
+        expect(getWorkflow(current()).states[1].name).toBe('Ready');
+        expect(current().extensions.timeline!.events.slice(-2).map((event) => event.kind)).toEqual(['board.project.updated', 'workflow.updated']);
     });
 
     it('guards every mutation and quick-create against unknown/cross-project members and tags', async () => {

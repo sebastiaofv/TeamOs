@@ -64,6 +64,8 @@ const en = {
     "workitems.error.sprint": "Choose an eligible Sprint and plan child Tasks through their Story.",
 
     'project.settings': 'Project settings',
+    'project.general': 'General',
+    'project.workflow': 'Workflow',
     'project.memberInUseHelp': 'In use · remove this person’s task assignments before removing the member.',
     'project.tagInUseHelp': 'In use · remove this tag from tasks before removing it here.',
     'project.settingsFor': 'Settings for {name}',
@@ -953,6 +955,8 @@ const pt: Record<TranslationKey, string> = {
     "workitems.error.sprint": "Escolha um Sprint elegível e planeie Tasks subordinadas através da Story.",
 
     'project.settings': 'Definições do projeto',
+    'project.general': 'Geral',
+    'project.workflow': 'Workflow',
     'project.memberInUseHelp': 'Em uso · retire as atribuições desta pessoa nas tarefas antes de remover o membro.',
     'project.tagInUseHelp': 'Em uso · retire esta tag das tarefas antes de a remover aqui.',
     'project.settingsFor': 'Definições de {name}',

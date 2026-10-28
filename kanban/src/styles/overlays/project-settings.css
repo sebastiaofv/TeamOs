@@ -1,5 +1,5 @@
 #projectSettingsModal .modal-content {
-    max-width: 760px;
+    max-width: 1040px;
     max-height: calc(100dvh - 24px);
     display: flex;
     flex-direction: column;
@@ -9,10 +9,19 @@
 #projectSettingsModal .modal-header,
 #projectSettingsModal .modal-footer { flex-shrink: 0; }
 
-#projectSettingsModal .modal-body {
-    overflow-y: auto;
+.project-settings-content,
+.project-settings-workflow:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
     min-height: 0;
 }
+
+#projectSettingsModal [hidden] { display: none; }
+#projectSettingsModal .project-settings-general { overflow-y: auto; min-height: 0; flex: 1; }
+.project-settings-tabs > button { font-size: 13px; }
+.project-settings-workflow > .workflow-tabs { background: var(--bg-secondary); }
+.project-settings-workflow > .workflow-tabs > button { padding-top: 10px; padding-bottom: 10px; }
 
 #projectSettingsHelp {
     color: var(--text-secondary);

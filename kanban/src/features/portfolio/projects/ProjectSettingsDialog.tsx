@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { DialogPropsByName } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -9,6 +9,8 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n } from '@/shared/i18n';
+import { WorkflowEditor, useWorkflowEditor } from '@/features/portfolio/board/WorkflowSettings';
+import { areSerializableValuesEqual } from '@/domain/serializable';
 
 export function ProjectSettingsDialog() {
     const props = useAppStore((state) => state.activeDialog === 'projectSettings' ? state.dialogProps as DialogPropsByName['projectSettings'] : null);
@@ -16,8 +18,8 @@ export function ProjectSettingsDialog() {
     const returnFocus = useReturnFocus({ initialFocus: closeRef });
     return <Dialog.Root open={Boolean(props)} onOpenChange={(open) => { if (!open) closeDialog('projectSettings'); }}>
         <Dialog.Portal><Dialog.Overlay className="modal active" id="projectSettingsModal">
-            <Dialog.Content className="modal-content" aria-describedby="projectSettingsHelp" {...returnFocus}
-                onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={escapeAnswersAppMessage}>
+            <Dialog.Content className="modal-content workflow-dialog" aria-describedby="projectSettingsDescription" {...returnFocus}
+                onKeyDown={(event) => event.stopPropagation()} onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={escapeAnswersAppMessage}>
                 {props && <ProjectSettingsForm key={`${props.boardId}:${props.data.meta.updatedAt}`} vm={props} closeRef={closeRef} />}
             </Dialog.Content>
         </Dialog.Overlay></Dialog.Portal>
@@ -27,6 +29,9 @@ export function ProjectSettingsDialog() {
 function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectSettings']; closeRef: React.RefObject<HTMLButtonElement | null> }) {
     const { t } = useI18n();
     const { saveProjectSettings } = usePortfolioActions();
+    const [tab, setTab] = useState<'general' | 'workflow'>('general');
+    const formRef = useRef<HTMLFormElement>(null);
+    const workflow = useWorkflowEditor(vm.data);
     const [original] = useState(() => ({ name: vm.data.board.settings.title, project: getProjectData(vm.data) }));
     const [name, setName] = useState(original.name);
     const [project, setProject] = useState(original.project);
@@ -39,9 +44,19 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
     const tagUsed = (value: string) => vm.data.board.tasks.some((task) => task.tags.includes(value));
     const submit = async () => {
         if (vm.readOnly || saving) return;
+        if (formRef.current && !formRef.current.checkValidity()) {
+            setTab('general');
+            requestAnimationFrame(() => formRef.current?.reportValidity());
+            return;
+        }
         setSaving(true);
-        try { await saveProjectSettings(vm.boardId, { name, project }, original); }
-        finally { setSaving(false); }
+        try {
+            const workflowChanged = !areSerializableValuesEqual(workflow.original, workflow.draft);
+            if (workflowChanged && !(await workflow.validate())) { setTab('workflow'); return; }
+            await saveProjectSettings(vm.boardId, { name, project }, original, workflowChanged ? {
+                original: workflow.original, workflow: workflow.draft, relocations: workflow.relocations
+            } : undefined);
+        } finally { setSaving(false); }
     };
     const addMember = () => {
         const value = member.trim();
@@ -59,17 +74,31 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
         setProject({ ...project, tags: [...project.tags, value] });
         setTag(''); setError('');
     };
-    return <>
-        <div className="modal-header">
-            <Dialog.Title className="modal-title">{t('project.settings')}</Dialog.Title>
+    function navigateTabs(event: KeyboardEvent<HTMLButtonElement>) {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const next = event.key === 'Home' ? 'general' : event.key === 'End' ? 'workflow' : tab === 'general' ? 'workflow' : 'general';
+        setTab(next);
+        event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-project-tab="${next}"]`)?.focus();
+    }
+    return <div className="project-settings-content" onKeyDown={(event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); void submit(); }
+    }}>
+        <div className="modal-header workflow-modal-header">
+            <div><Dialog.Title className="modal-title">{t('project.settings')}</Dialog.Title>
+                <Dialog.Description id="projectSettingsDescription" className="workflow-modal-description">{vm.data.board.settings.title}</Dialog.Description></div>
             <Dialog.Close ref={closeRef} className="modal-close" aria-label={t('common.close')}>&times;</Dialog.Close>
         </div>
-        <div className="modal-body">
+        <div className="workflow-tabs project-settings-tabs" role="tablist" aria-label={t('project.settings')}>
+            {(['general', 'workflow'] as const).map((value) => <button key={value} type="button" role="tab"
+                id={`project-settings-tab-${value}`} data-project-tab={value} aria-controls={`project-settings-panel-${value}`}
+                aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onClick={() => setTab(value)} onKeyDown={navigateTabs}>
+                {t(value === 'general' ? 'project.general' : 'project.workflow')}
+            </button>)}
+        </div>
+        <div className="modal-body project-settings-general" role="tabpanel" id="project-settings-panel-general" aria-labelledby="project-settings-tab-general" hidden={tab !== 'general'}>
             <p id="projectSettingsHelp">{t(vm.readOnly ? 'project.readOnly' : 'project.help')}</p>
-            <form id="projectSettingsForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}
-                onKeyDown={(event) => {
-                    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); void submit(); }
-                }}>
+            <form ref={formRef} id="projectSettingsForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                 <fieldset disabled={vm.readOnly || saving} className="project-settings-fields">
                     <div className="project-settings-metadata">
                         <div className="form-group">
@@ -135,9 +164,14 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                 </fieldset>
             </form>
         </div>
-        <div className="modal-footer">
-            <Dialog.Close className="btn">{t(vm.readOnly ? 'common.close' : 'common.cancel')}</Dialog.Close>
-            {!vm.readOnly && <button className="btn btn-primary" type="submit" form="projectSettingsForm" disabled={saving}>{t('common.save')}</button>}
+        <div className="project-settings-workflow" role="tabpanel" id="project-settings-panel-workflow" aria-labelledby="project-settings-tab-workflow" hidden={tab !== 'workflow'}>
+            <WorkflowEditor data={vm.data} readOnly={vm.readOnly} busy={saving} editor={workflow} />
+            {workflow.error && <div className="workflow-validation" role="alert">{workflow.error}</div>}
         </div>
-    </>;
+        <div className="modal-footer workflow-modal-footer">
+            <span>{t(vm.readOnly ? 'workflow.readOnlyNote' : 'workflow.draftNote')}</span>
+            <div><Dialog.Close className="btn" disabled={saving}>{t(vm.readOnly ? 'common.close' : 'common.cancel')}</Dialog.Close>
+                {!vm.readOnly && <button className="btn btn-primary" type="button" disabled={saving} onClick={() => void submit()}>{t('common.save')}</button>}</div>
+        </div>
+    </div>;
 }

@@ -114,12 +114,16 @@ test('cancel, close, Escape and outside-click discard settings drafts and restor
     for (const action of ['Cancel', 'Close', 'Escape', 'Outside']) {
         await trigger.click();
         await page.locator('#projectName').fill('Discard');
+        await modal.getByRole('tab', { name: 'Workflow', exact: true }).click();
+        await modal.getByRole('textbox', { name: 'Title 1', exact: true }).fill('Discard state');
         if (action === 'Escape') await page.keyboard.press('Escape');
         else if (action === 'Outside') await modal.click({ position: { x: 5, y: 5 } });
         else await modal.getByRole('button', { name: action, exact: true }).click();
         await expect(modal).toBeHidden();
         await expect(trigger).toBeFocused();
         await trigger.click(); await expect(page.locator('#projectName')).toHaveValue('Unchanged');
+        await modal.getByRole('tab', { name: 'Workflow', exact: true }).click();
+        await expect(modal.getByRole('textbox', { name: 'Title 1', exact: true })).toHaveValue('backlog');
         await page.keyboard.press('Escape');
     }
     expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
@@ -196,4 +200,39 @@ test('archived is informational and invalid member names leave the draft availab
     await page.keyboard.press('Escape');
     await openFiltersPanel(page); // Project lifecycle must not alter the independent task archive filter.
     await expect(page.locator('#portfolioArchiveFilter')).toHaveValue('active');
+});
+
+test('project tabs retain both drafts and save the intended project together', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [
+        { id: 'p', title: 'Configured project', hasHandle: true },
+        { id: 'other', title: 'Selected project', hasHandle: true }
+    ], { selectedBoardId: 'other' });
+    await page.getByRole('button', { name: 'Settings for Configured project', exact: true }).click();
+    const modal = page.locator('#projectSettingsModal');
+    const tabs = modal.getByRole('tablist', { name: 'Project settings', exact: true });
+    await expect(tabs.getByRole('tab')).toHaveText(['General', 'Workflow']);
+    await page.locator('#projectName').fill('Renamed project');
+    await tabs.getByRole('tab', { name: 'General', exact: true }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(tabs.getByRole('tab', { name: 'Workflow', exact: true })).toBeFocused();
+    await expect(modal.getByRole('tablist', { name: 'Workflow settings sections', exact: true }).getByRole('tab')).toHaveCount(2);
+    await modal.locator('[data-state-choice="to-do"]').click();
+    await modal.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
+    await modal.getByRole('tab', { name: 'Entry & references', exact: true }).click();
+    await tabs.getByRole('tab', { name: 'General', exact: true }).click();
+    await expect(page.locator('#projectName')).toHaveValue('Renamed project');
+    await tabs.getByRole('tab', { name: 'Workflow', exact: true }).click();
+    await expect(modal.getByRole('tab', { name: 'Entry & references', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await modal.getByRole('tab', { name: /States & transitions/ }).click();
+    await expect(modal.getByRole('textbox', { name: 'Title 2', exact: true })).toHaveValue('Ready');
+    await tabs.getByRole('tab', { name: 'General', exact: true }).click();
+    await modal.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(modal).toBeHidden(); await waitForBoardWrites(page);
+    const saved = await readSavedBoard(page, 'p');
+    expect(saved.board.settings.title).toBe('Renamed project');
+    expect(saved.extensions.workflow.states[1].name).toBe('Ready');
+    expect(saved.extensions.timeline.events.slice(-2).map((event: { kind: string }) => event.kind)).toEqual(['board.project.updated', 'workflow.updated']);
+    expect((await readSavedBoard(page, 'other')).extensions.workflow).toBeUndefined();
+    await expect(page.locator('.portfolio-chip.active')).toContainText('Selected project');
 });

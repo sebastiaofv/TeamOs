@@ -560,7 +560,8 @@
 
 /* Workitem views use the existing theme, buttons and modal primitives. */
 .workitem-board-shell { display: flex; flex-direction: column; width: 100%; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg-primary); }
-.workitem-board-toolbar { display: flex; flex-shrink: 0; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+.workitem-board-toolbar { display: flex; flex-wrap: wrap; align-items: center; flex-shrink: 0; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+.workitem-board-toolbar > .board-column-menu { margin-left: auto; }
 .workitem-board-columns { display: flex; flex: 1; min-height: 0; gap: 1px; overflow-x: auto; background: var(--border-light); }
 .workitem-card-context { font-size: 10px; color: var(--text-secondary); margin: 6px 0; }
 .workitem-type { display: inline-block; border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; color: var(--text-secondary); background: var(--bg-secondary); font-size: 11px; }
