@@ -18,7 +18,7 @@ export function buildPortfolioBoardView(state: SelectorState, mode?: 'technical'
         const hidden = hiddenBoardStates(data);
         visibility.set(board.id, hidden);
         getWorkflow(data).states.forEach((item) => {
-            if ((mode && item.category === 'backlog') || hidden.has(item.id)) return;
+            if (hidden.has(item.id)) return;
             const categoryKey = ({ 'in-progress': 'doing', completed: 'done' } as Record<string, string>)[item.category] || item.category;
             const id = mode && !state?.selectedPortfolioBoardId ? categoryKey : item.id;
             if (!columns.has(id)) columns.set(id, { status: id, title: mode && !state?.selectedPortfolioBoardId ? translateCurrent(`workflow.${item.category}`) : item.name });
@@ -27,8 +27,7 @@ export function buildPortfolioBoardView(state: SelectorState, mode?: 'technical'
     const buckets: Record<string, PortfolioRow[]> = {};
     (state?.portfolioVisibleRows || []).forEach((row) => {
         const data = row.boardData || boards.find((board) => board.id === row.boardId)?.data;
-        if (mode && (!data || (mode === 'functional' ? workitemType(row.task) !== 'story' : !taskInTechnicalBoard(data, row.task)))) return;
-        if (mode && row.task.status === 'backlog') return;
+        if (mode && (!data || (mode === 'functional' ? !['story', 'epic'].includes(workitemType(row.task)) : !taskInTechnicalBoard(data, row.task)))) return;
         if (!visibility.has(row.boardId) || visibility.get(row.boardId)?.has(row.task.status)) return;
         const category = statusCategory(row.task.status, data);
         const key = mode && !state?.selectedPortfolioBoardId ? ({ 'in-progress': 'doing', completed: 'done' } as Record<string, string>)[category] || category : row.task.status;

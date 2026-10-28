@@ -43,7 +43,6 @@ test('creates a child with inherited planning and an immutable type, preserving 
     await expect(page.locator('#taskModal')).toHaveCount(0);
     await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { title: string }) => task.title === 'Nova Task do Sprint')?.sprintId).toBe('current');
     await page.locator('[data-view-mode="board"]').click();
-    if (!(await page.locator('.workitem-backlog').evaluate((node) => (node as HTMLDetailsElement).open))) await page.locator('.workitem-backlog summary').click();
     await portfolioCard(page, 'Nova Task do Sprint').getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.locator('#workitemType')).toBeDisabled();
     await expect(page.locator('#workitemType')).toHaveValue('task');
@@ -122,13 +121,12 @@ test('Epics hide execution-only fields and preserve their business fields', asyn
     await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { title: string }) => task.title === 'Novo objetivo')?.objective).toBe('Entrega de negócio');
 });
 
-test('read-only workitems retain navigation but cannot create children or change automation', async ({ page }) => {
+test('read-only workitems retain navigation but cannot create children', async ({ page }) => {
     await seed(page, false); await openStory(page);
     await expect(page.getByRole('button', { name: 'Create Task', exact: true })).toHaveCount(0);
     await expect(page.locator('#task-tab-comments')).toBeVisible(); await expect(page.locator('#task-tab-history')).toBeVisible();
     await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'Story automation', exact: true }).click();
-    await expect(page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Story automation', exact: true })).toHaveCount(0);
 });
 
 test('Day Planner includes Stories and Epics only when requested', async ({ page }) => {

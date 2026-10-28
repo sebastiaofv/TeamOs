@@ -1,4 +1,3 @@
-import { parentOf, workitemType, taskInTechnicalBoard } from '@/domain/workitems';
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -71,9 +70,9 @@ function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCar
 }
 
 // Highlights only when the dragged card would change status here.
-function DroppableColumnBody({ column, children, lane = '' }: { column: BoardColumn; children: ReactNode; lane?: string }) {
+function DroppableColumnBody({ column, children }: { column: BoardColumn; children: ReactNode }) {
     const { setNodeRef, isOver, active } = useDroppable({
-        id: `column:${lane}:${column.status}`,
+        id: `column:${column.status}`,
         data: { status: column.status, title: column.title }
     });
     const highlight = isOver && active?.data.current?.status !== column.status;
@@ -81,7 +80,7 @@ function DroppableColumnBody({ column, children, lane = '' }: { column: BoardCol
         <div
             ref={setNodeRef}
             className={`portfolio-column-body${highlight ? ' drag-over' : ''}`}
-            id={`portfolio-${column.status}-column${lane ? `-${encodeURIComponent(lane)}` : ''}`}
+            id={`portfolio-${column.status}-column`}
             data-status={column.status}
         >
             {children}
@@ -106,18 +105,6 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
     const { columns, buckets } = buildPortfolioBoardView(state, mode);
-    const visibleItems = Object.values(buckets).flat();
-    const groups = new Map<string, { title: string; rows: PortfolioRow[] }>();
-    for (const row of visibleItems) {
-        const data = row.boardData || state.portfolioBoards.find((board) => board.id === row.boardId)?.data;
-        const parent = data ? parentOf(data, row.task) : undefined;
-        const key = mode === 'functional' ? 'stories' : workitemType(row.task) === 'bug' ? 'bugs' : parent && workitemType(parent) === 'story' ? `${row.boardId}:${parent.id}` : 'independent';
-        const title = key === 'stories' ? t('workitems.stories') : key === 'bugs' ? t('workitems.type.bug') : key === 'independent' ? t('workitems.independent') : `#${parent!.id} ${parent!.title}`;
-        if (!groups.has(key)) groups.set(key, { title, rows: [] });
-        groups.get(key)!.rows.push(row);
-    }
-    if (!groups.size) groups.set('empty', { title: '', rows: [] });
-    const backlog = rows.filter((row) => row.task.status === 'backlog' && (mode === 'functional' ? workitemType(row.task) === 'story' : Boolean((row.boardData || selectedBoard?.data) && taskInTechnicalBoard((row.boardData || selectedBoard!.data), row.task))));
     const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
@@ -151,22 +138,20 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                 <div className="workitem-board-toolbar" role="group" aria-label={t('workitems.type')}>
                     {(['technical', 'functional'] as const).map((value) => <button className={`btn${mode === value ? ' active' : ''}`} type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{t(`workitems.${value}`)}</button>)}
                 </div>
-                <details className="workitem-backlog" open><summary>{t('board.backlog')} ({backlog.length})</summary><div id="portfolio-backlog-column" className="workitem-backlog-items">{canAddTasks && <button className="add-task-card" type="button" data-action="add-task" data-status="backlog" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}>{t('board.addTask')}</button>}{backlog.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />)}</div></details>
-                {!columns.length && <p role="status">{t('board.allColumnsHidden')}</p>}
-                {[...groups].map(([key, group]) => <section className="workitem-swimlane" key={key} aria-label={group.title || t('workitems.technical')}>
-                    {group.title && <h3>{group.title}</h3>}
-                    <div className="workitem-lane-columns">{columns.map((column) => {
-                        const items = (buckets[column.status] || []).filter((row) => group.rows.includes(row));
+                <div className="workitem-board-columns">
+                    {!columns.length && <p className="board-columns-empty" role="status">{t('board.allColumnsHidden')}</p>}
+                    {columns.map((column) => {
+                        const items = buckets[column.status] || [];
                         const title = columnTitle(column, t);
                         return <section className="portfolio-column" data-status={column.status} key={column.status}>
-                            <div className="portfolio-column-header"><h2 className="column-title" id={`portfolio-${column.status}-heading${key === [...groups.keys()][0] ? '' : `-${encodeURIComponent(key)}`}`}>{title}</h2><span className="column-count">{items.length}</span></div>
-                            <DroppableColumnBody column={{ ...column, title }} lane={key === [...groups.keys()][0] ? '' : key}>
-                                {canAddTasks && <button className="add-task-card" type="button" data-action="add-task" data-status={column.status} onClick={() => { const row = group.rows[0]; const parent = row && row.boardData ? parentOf(row.boardData, row.task) : undefined; if (mode === 'technical' && parent && workitemType(parent) === 'story') actions.openPortfolioCreateChildTask(row.boardId, parent.id, 'task'); else actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' }); }}>{t('board.addTask')}</button>}
+                            <div className="portfolio-column-header"><h2 className="column-title" id={`portfolio-${column.status}-heading`}>{title}</h2><span className="column-count">{items.length}</span></div>
+                            <DroppableColumnBody column={{ ...column, title }}>
+                                {canAddTasks && <button className="add-task-card" type="button" data-action="add-task" data-status={column.status} onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}>{t('board.addTask')}</button>}
                                 {items.length ? items.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />) : <p className="empty-state">{t('common.noTasks')}</p>}
                             </DroppableColumnBody>
                         </section>;
-                    })}</div>
-                </section>)}
+                    })}
+                </div>
             </div>
             {/* In a portal, so the column's scroll area never clips the card being dragged. */}
             {createPortal(

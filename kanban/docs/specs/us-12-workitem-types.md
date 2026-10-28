@@ -76,7 +76,8 @@ Ver [ADR-0002](../../../docs/adr/0002-separate-parent-completion-from-child-exec
 
 ## 5. Automatismos das Stories
 
-- Configurar por projeto dois destinos opcionais: início e fim da execução. Ambos são estados não terminais do workflow comum.
+- Sem botão ou diálogo “Story automation” na interface, por decisão do utilizador em 2026-10-28. Preservar configurações existentes nos ficheiros e respetivos comportamentos.
+- A configuração persistida admite por projeto dois destinos opcionais: início e fim da execução. Ambos são estados não terminais do workflow comum.
 - Cada automatismo define origens elegíveis. Só atua se a origem atual corresponder e a transição estiver permitida. Não cria um segundo workflow, não aceita, cancela ou reabre automaticamente a Story.
 - Detetar início quando o conjunto de Tasks passa de não iniciado para execução iniciada, usando as categorias do workflow. Uma Task que passa diretamente a concluída também representa trabalho iniciado.
 - Detetar fim quando deixa de haver Tasks por concluir e existe pelo menos uma Task concluída. Canceladas são excluídas; todas canceladas não disparam avanço.
@@ -134,13 +135,13 @@ Ver [ADR-0003](../../../docs/adr/0003-preserve-sprint-participation-history.md).
 
 ## 9. Boards
 
-- Dois Boards: Técnico (Tasks e Bugs) e Funcional (Stories). Epics não são cartões executáveis.
-- Ambos usam os estados do workflow do projeto pela ordem configurada. Backlog fica na lista própria, conforme a #28; não impor três colunas fixas.
+- Dois Boards: Técnico (Tasks e Bugs) e Funcional (User Stories e Epics), conforme a correção pedida pelo utilizador em 2026-10-28.
+- Ambos têm o mesmo layout: uma única linha horizontal com as colunas do workflow pela ordem configurada, incluindo Backlog como coluna normal. Aplicar visibilidade, contagem e drag-and-drop ao Backlog como às restantes colunas.
 - No Técnico, Tasks de Stories aparecem apenas se participarem num Sprint ativo. Estar a Story num Sprint ativo não inclui Tasks terminadas em Sprints anteriores.
 - Tasks sem Story, incluindo as diretamente associadas a Epics, e Bugs aparecem independentemente de Sprint, sujeitos aos filtros existentes.
-- Agrupar Tasks por Story, identificando ID/título da Story e distribuindo os cartões pelas colunas. Bugs têm grupo próprio; Tasks sem Story têm outro.
+- Não criar linhas ou grupos separados por Story, Bugs ou trabalho independente; o contexto hierárquico mantém-se nos cartões.
 - Cartões identificam ID/título, tipo, responsável, prioridade e Story/Epic quando aplicável, seguindo o design existente sem duplicação desnecessária.
-- No Funcional aparecem todas as Stories, com filtro opcional por Sprint. Mostrar estado, responsável, Epic, Execution Progress e existência de Tasks pendentes.
+- No Funcional aparecem todas as Stories e Epics, sujeitos aos filtros aplicáveis. Mostrar estado, responsável, Epic, Execution Progress e existência de Tasks pendentes.
 - Tasks são consultáveis no detalhe da Story, sem cartões autónomos no Funcional.
 - Drag-and-drop e demais mudanças respeitam as mesmas transições e confirmações do domínio.
 - Preservar vistas agregadas: estados de projetos diferentes agrupam-se pelas categorias da #28, mantendo o estado real visível e resolução explícita de destinos ambíguos.

@@ -70,12 +70,8 @@
 .roadmap-bar-fill { border-radius: 4px; }
 .roadmap-bar-value { position: absolute; top: 0; margin-left: 4px; display: block; font-size: 11px; line-height: 19px; font-weight: 700; white-space: nowrap; z-index: 6; text-shadow: 0 0 2px var(--bg-card), 0 0 2px var(--bg-card); }
 .roadmap-value-inside { transform: translateX(-100%); margin-left: -4px; }
-.roadmap-work-area { position: relative; padding: 7px 12px 10px 32px; background: var(--bg-card); border-top: 1px solid var(--border-light); }
-/* Date guides cross bar fills and table surfaces, with readable text painted above them. */
-.roadmap-work-area :is(button, input, summary, .table-cell-text, .roadmap-scope-summary, .table-summary, .table-pagination),
-.roadmap-work-area .workitems-table th { position: relative; z-index: 6; }
-.roadmap-work-area .workitems-table th { position: sticky; }
-.roadmap-work-area .table-cell-text:not(.table-status-badge):not(.table-blocked-badge) { background: var(--bg-card); }
+/* Guides cross timeline bars; expanded tables form an opaque surface above them. */
+.roadmap-work-area { position: relative; z-index: 5; padding: 7px 12px 10px 32px; background: var(--bg-card); border-top: 1px solid var(--border-light); }
 .roadmap-perspectives { display: flex; gap: 4px; margin-bottom: 7px; }
 .roadmap-perspectives .btn { font-size: 11px; padding: 4px 8px; }
 .roadmap-scope-summary { display: flex; gap: 14px; flex-wrap: wrap; color: var(--text-secondary); font-size: 11px; }

@@ -185,7 +185,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
     const axis = useElementSize<HTMLDivElement>(640);
     const controls = useElementSize<HTMLDivElement>();
     const axisTicks = getRoadmapAxisTicks(view.range, language, axis.width);
-    const yearTicks = getRoadmapYearTicks(view.range);
+    const yearTicks = getRoadmapYearTicks(view.range, axis.width);
     const layout = layoutMilestones(view.milestones.map((milestone) => milestone.position), axis.width);
     const milestones = view.milestones.map((milestone, index) => ({ ...milestone, ...layout[index] }));
     const marker = getRoadmapTodayMarker(view.range);
