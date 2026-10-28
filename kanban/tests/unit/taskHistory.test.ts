@@ -63,7 +63,8 @@ describe('workitem history projection', () => {
         const original = JSON.stringify(data); projectTaskHistory(data, data.board.tasks[0]); expect(JSON.stringify(data)).toBe(original);
     });
     it('captures operation IDs and historical names without inferring authors from participants', async () => {
-        const data = setup(); data.board.tasks[0].assignees = ['Ana']; data.board.tasks[0].responsible = 'Ana';
+        const data = setup(); data.board.tasks[0].status = 'doing'; data.board.tasks[0].assignees = ['Ana']; data.board.tasks[0].responsible = 'Ana';
+        const originalStatusLabel = data.board.columns.find((column) => column.status === 'done')!.title;
         const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'History', handle: {}, data })] });
         const actions = createPortfolioMutationActions({ store, enqueueSave: async () => true, markDirty: vi.fn(), openDialogFn: vi.fn() });
         await actions.movePortfolioTaskToStatus('p', 1, 'done');
@@ -73,7 +74,7 @@ describe('workitem history projection', () => {
         current.board.columns.find((column) => column.status === 'done')!.title = 'Renamed now';
         const entry = projectTaskHistory(current, current.board.tasks[0]).entries[0];
         expect(entry.author).toBeUndefined();
-        expect(entry.changes[0].after).toMatchObject({ id: 'done', label: 'done', historical: true });
+        expect(entry.changes[0].after).toMatchObject({ id: 'done', label: originalStatusLabel, historical: true });
     });
     it('attributes legacy relation changes to exactly the changed endpoints, in the correct direction', () => {
         const data = setup();

@@ -11,8 +11,7 @@ import {
     normalizeTags,
     taskAssignees,
     isTaskOverdue,
-    formatTaskStatusAge,
-    normalizeTaskStatus
+    formatTaskStatusAge
 } from '@/domain/task';
 import { formatTaskScore } from '@/domain/scoring';
 import { escapeRegExp } from '@/domain/util';
@@ -90,6 +89,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     const localizedStatusAge = statusAge ? t('task.age', { value: statusAge.replace(/^Age\s*/, '') }) : '';
     const readOnlyTitle = item.historical ? t('task.readOnlyHistorical') : t('task.readOnlyNoHandle');
     const archiveButtonTitle = task.archived ? t('common.restore') : t('common.archive');
+    const boardData = item.boardData || state.portfolioBoards.find((b) => b.id === item.boardId)?.data;
     const cardRef = useRef<HTMLElement | null>(null);
     const setCardRef = useCallback((node: HTMLElement | null) => {
         cardRef.current = node;
@@ -138,7 +138,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
             data-draggable={canDrag ? 'true' : 'false'}
             data-board-id={item.boardId}
             data-task-id={String(taskId)}
-            data-status={normalizeTaskStatus(task.status)}
+            data-status={task.status}
             data-historical={item.historical ? 'true' : 'false'}
             role="group"
             tabIndex={overlay ? -1 : 0}
@@ -176,7 +176,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}><span aria-hidden="true">🗑️</span></button>
                 </div>
             </div>
-            {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
+            {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task, boardData || undefined) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
                 <div className="task-meta">
                     {showProjectBadge && <span className="portfolio-project-badge" style={{ background: color.bg, borderColor: color.border, color: color.text }} title={projectLabel}>{projectLabel}</span>}
                     {task.responsible && <span className="task-tag task-tag-assignee" title={t('task.responsible')}>{t('task.responsible')}: {task.responsible}</span>}
@@ -184,7 +184,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     {normalizeTags(task.tags).map((tag) => <span className="task-tag task-tag-label" key={`tag-${tag}`}>{tag}</span>)}
                     {task.blocked && <span className="task-tag task-tag-blocked" title={t('task.blocked')}>{t('task.blocked')}</span>}
                     {localizedStatusAge && <span className="task-tag task-tag-age" title={t('task.timeInStatus')}>{localizedStatusAge}</span>}
-                    {isTaskOverdue(task) && <span className="task-tag" title={t('task.overdue')}><span className="due-dot" />{t('task.overdue')}</span>}
+                    {isTaskOverdue(task, boardData || undefined) && <span className="task-tag" title={t('task.overdue')}><span className="due-dot" />{t('task.overdue')}</span>}
                     {priority && <span className="task-tag"><span className={`priority-dot priority-${task.priority}`} />{priority === 'high' ? t('toolbar.high') : priority === 'medium' ? t('toolbar.medium') : priority === 'low' ? t('toolbar.low') : priority}</span>}
                     {effort && <span className="task-tag" title={t('task.effort')}><span className={`effort-dot effort-${effort.toLowerCase()}`} />{effort}</span>}
                     {score !== '-' && <span className="task-tag task-tag-score" title={t('task.scoreTitle')}>{t('task.score', { score })}</span>}

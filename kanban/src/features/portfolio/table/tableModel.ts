@@ -1,4 +1,5 @@
-import type { BoardData, TaskStatus } from '@/domain/types';
+import type { BoardData } from '@/domain/types';
+import { getWorkflow } from '@/domain/workflow';
 import type { PortfolioFilters, PortfolioRow } from '@/features/portfolio/types';
 import { DEFAULT_PORTFOLIO_FILTERS, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import { getRoadmapItemTitle } from '@/domain/roadmap';
@@ -42,7 +43,6 @@ export function tableCellValue(row: PortfolioRow, column: TableColumnId, boardDa
 }
 
 const textCollator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
-const statusRanks: Record<TaskStatus, number> = { backlog: 0, 'to-do': 1, doing: 2, done: 3 };
 
 function tableSortValue(row: PortfolioRow, column: TableSort['column'], boardData: BoardData | null): string | number | null {
     if (column === 'score') return taskScore(row.task);
@@ -50,7 +50,7 @@ function tableSortValue(row: PortfolioRow, column: TableSort['column'], boardDat
     if (!value.trim()) return null;
     switch (column) {
         case 'id': return row.task.id;
-        case 'status': return statusRanks[row.task.status];
+        case 'status': return getWorkflow(boardData).states.findIndex((s) => s.id === row.task.status);
         case 'priority': return priorityRank(row.task.priority);
         case 'effort': return effortRank(row.task.effort);
         case 'blocked': return Number(row.task.blocked);

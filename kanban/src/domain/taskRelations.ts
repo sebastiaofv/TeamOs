@@ -1,5 +1,6 @@
 import type { BoardData, Task, TaskRelation, TaskRelationKind, TaskRelationsExtension } from '@/domain/types';
 import { hasExactKeys } from '@/domain/util';
+import { statusCategory } from '@/domain/workflow';
 
 export class TaskRelationError extends Error {
     constructor(public readonly code: 'self' | 'missing' | 'duplicate' | 'cycle' | 'invalid') {
@@ -77,7 +78,7 @@ export function getDependencyBlockedTaskIds(data: BoardData): Set<number> {
     const blocked = new Set<number>();
     for (const relation of getRelations(data)) {
         const blocker = tasks.get(relation.sourceId);
-        if (relation.kind === 'blocks' && blocker && blocker.status !== 'done' && tasks.has(relation.targetId)) blocked.add(relation.targetId);
+        if (relation.kind === 'blocks' && blocker && statusCategory(blocker.status, data) !== 'completed' && tasks.has(relation.targetId)) blocked.add(relation.targetId);
     }
     return blocked;
 }

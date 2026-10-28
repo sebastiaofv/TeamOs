@@ -33,19 +33,21 @@ describe('relation commands', () => {
         relations: expect.objectContaining({ related: [expect.objectContaining({ id: 2, status, responsible })] })
       }));
     };
-    expectRelation('backlog', '');
+    expectRelation('Backlog', '');
+    await actions.movePortfolioTaskToStatus('p1', 2, 'to-do');
+    expectRelation('To Do', '');
     await actions.movePortfolioTaskToStatus('p1', 2, 'doing');
-    expectRelation('in progress', '');
+    expectRelation('In progress', '');
     await actions.togglePortfolioTaskAssignee('p1', 2, 'Ana');
-    expectRelation('in progress', '');
+    expectRelation('In progress', '');
     await actions.setPortfolioTaskResponsible('p1', 2, 'Marta Sofia Costa');
-    expectRelation('in progress', 'Marta');
+    expectRelation('In progress', 'Marta');
     await actions.movePortfolioTaskToStatus('p1', 2, 'done');
-    expectRelation('done', 'Marta');
+    expectRelation('Done', 'Marta');
     await actions.setPortfolioTaskResponsible('p1', 2, 'José Manuel Silva');
-    expectRelation('done', 'José');
+    expectRelation('Done', 'José');
     await actions.setPortfolioTaskResponsible('p1', 2, '');
-    expectRelation('done', '');
+    expectRelation('Done', '');
   });
 
   it('waits for replacement confirmation, preserves both workitems and recalculates directional blocking', async () => {

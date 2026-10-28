@@ -61,7 +61,7 @@ describe('buildPaletteModel', () => {
     }));
     expect(model.sections.map((section) => section.id)).toEqual(['context', 'recent', 'commands']);
     expect(model.sections[0].title).toBe('Hero copy review');
-    expect(labels(model, 'context')).toEqual(['Open details', 'Move to In Progress', 'Move to Done', 'Assign…', 'Set responsible…', 'Plan in Day Planner…']);
+    expect(labels(model, 'context')).toEqual(['Open details', 'Move to In progress', 'Move to Cancelled', 'Move to Duplication', 'Assign…', 'Set responsible…', 'Plan in Day Planner…']);
     expect(labels(model, 'recent')).toEqual(['Login bug on Android', 'Go to Day Planner']);
   });
 
@@ -70,7 +70,7 @@ describe('buildPaletteModel', () => {
     expect(model.sections[0].items[0]).toMatchObject({ label: 'Filter board by "login"', action: { type: 'filterBoard', text: 'login' } });
     expect(labels(model, 'tasks')).toEqual(['Login bug on Android']);
     const task = model.sections.find((section) => section.id === 'tasks')!.items[0];
-    expect(task.detail).toBe('#7 · Mobile App · In Progress · Marta');
+    expect(task.detail).toBe('#7 · Mobile App · In progress · Marta');
     expect(task.ranges).toEqual([[0, 5]]);
     expect(task.action).toEqual({ type: 'openTask', boardId: 'app', taskId: 7 });
     expect(task.drill).toEqual({ kind: 'task', boardId: 'app', taskId: 7 });
@@ -111,7 +111,7 @@ describe('buildPaletteModel', () => {
     const model = buildPaletteModel(input({ stack: [{ kind: 'task', boardId: 'app', taskId: 7 }] }));
     expect(model.breadcrumbs).toEqual(['#7 Login bug on Android']);
     expect(labels(model, 'actions')).toEqual([
-      'Open details', 'Move to Backlog', 'Move to To Do', 'Move to Done', 'Move to…',
+      'Open details', 'Move to Ready to test', 'Move to Done', 'Move to Cancelled', 'Move to Duplication', 'Move to…',
       'Assign…', 'Set responsible…', 'Set priority…', 'Plan in Day Planner…', 'Edit', 'Archive'
     ]);
     const readOnly = buildPaletteModel(input({ stack: [{ kind: 'task', boardId: 'ops', taskId: 3 }] }));

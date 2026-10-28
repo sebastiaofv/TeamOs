@@ -58,7 +58,7 @@ export async function runPaletteAction(action: PaletteAction, deps: PaletteDeps)
         const before = deps.taskInfo(action.boardId, action.taskId);
         if (!before || !(await deps.moveTask(action.boardId, action.taskId, action.status))) return;
         deps.showUndo(
-            deps.t('palette.moved', { title: before.title, status: deps.t(STATUS_KEYS[action.status]) }),
+            deps.t('palette.moved', { title: before.title, status: STATUS_KEYS[action.status] ? deps.t(STATUS_KEYS[action.status]) : action.status }),
             () => deps.moveTask(action.boardId, action.taskId, before.status)
         );
         return;

@@ -1,0 +1,22 @@
+{
+  "meta":{"schemaVersion":3,"appId":"teamos-kanban","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+  "board":{
+    "columns":[{"status":"backlog","title":"Backlog"},{"status":"to-do","title":"To Do"},{"status":"doing","title":"In progress"},{"status":"ready-to-test","title":"Ready to test"},{"status":"testing","title":"Testing"},{"status":"re-analysis","title":"Re-analysis"},{"status":"done","title":"Done"},{"status":"cancelled","title":"Cancelled"},{"status":"duplication","title":"Duplication"}],
+    "settings":{"title":"US-4 · Atlas workflow"},
+    "tasks":[
+      {"id":401,"title":"Unplanned intake","description":"Send to Board without a sprint.","status":"backlog","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":402,"title":"Blocked but movable","description":"Manual blockers do not prevent configured transitions.","status":"doing","assignees":["Ana","Bruno"],"responsible":"Ana","blocked":true,"blockerReason":"Waiting for clarification","archived":false,"checklist":[],"priority":"high","dueDate":"2026-10-01","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":403,"title":"Archived testing","description":"Must be included when removing Testing.","status":"testing","archived":true,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":404,"title":"Cancelled overdue date","description":"Not completed and not overdue.","status":"cancelled","archived":false,"checklist":[],"priority":null,"dueDate":"2020-01-01","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":405,"title":"Duplicate work","description":"A second state in the Cancelled category, terminal by default.","status":"duplication","archived":false,"checklist":[],"priority":null,"dueDate":"2020-01-01","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":406,"title":"Business validation ready","description":"Ready to test → Testing → Re-analysis → In progress can repeat on the same item.","status":"ready-to-test","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":407,"title":"Re-analysis cycle","description":"Returns to development without creating another workitem.","status":"re-analysis","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"},
+      {"id":408,"title":"Delivered work","description":"Done is terminal unless reopening transitions are explicitly configured.","status":"done","archived":false,"checklist":[],"priority":null,"dueDate":"","createdAt":"2026-10-19T09:00:00Z","updatedAt":"2026-10-19T09:00:00Z"}
+    ]
+  },
+  "extensions":{"boardView":{"version":1,"hiddenStateIds":[]},"workflow":{
+    "version":2,"entryStateId":"to-do","references":{"backlog":"backlog","to-do":"to-do","in-progress":"doing","completed":"done","cancelled":"cancelled"},
+    "states":[{"id":"backlog","name":"Backlog","color":"#94a3b8","category":"backlog"},{"id":"to-do","name":"To Do","color":"#60a5fa","category":"to-do"},{"id":"doing","name":"In progress","color":"#fbbf24","category":"in-progress"},{"id":"ready-to-test","name":"Ready to test","color":"#a78bfa","category":"in-progress"},{"id":"testing","name":"Testing","color":"#38bdf8","category":"in-progress"},{"id":"re-analysis","name":"Re-analysis","color":"#fb923c","category":"in-progress"},{"id":"done","name":"Done","color":"#34d399","category":"completed"},{"id":"cancelled","name":"Cancelled","color":"#f87171","category":"cancelled"},{"id":"duplication","name":"Duplication","color":"#e879f9","category":"cancelled"}],
+    "transitions":{"backlog":["to-do","cancelled","duplication"],"to-do":["doing","cancelled","duplication"],"doing":["ready-to-test","done","cancelled","duplication"],"ready-to-test":["testing","cancelled","duplication"],"testing":["done","re-analysis","cancelled","duplication"],"re-analysis":["doing","cancelled","duplication"],"done":[],"cancelled":[],"duplication":[]}
+  }}
+}
