@@ -67,6 +67,7 @@ function buildTaskPayload(task: SeedTask, index: number) {
       ? [task.assignee.trim()]
       : [];
   return {
+    ...Object.fromEntries(['type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'].filter((key) => Object.hasOwn(task, key)).map((key) => [key, task[key]])),
     id: task.id ?? index + 1,
     title: task.title,
     description: task.description || '',
@@ -407,6 +408,15 @@ async function answerAppMessage(
   await expect(dialog).toHaveCount(0);
 }
 
+// Legacy happy-path planning tests explicitly accept the additional US-12 impact review.
+// Other prompts and validation errors remain unanswered so they fail visibly.
+async function confirmWorkitemChanges(page: Page) {
+  const dialog = page.locator('#appMessageModal');
+  if (await dialog.count() && (await dialog.locator('#appMessageTitle').textContent()) === 'Confirm workitem changes') {
+    await answerAppMessage(page, { expectText: 'Review the affected workitems and planning' });
+  }
+}
+
 // Drags with real mouse events, the way dnd-kit's mouse sensor expects: press,
 // move past the activation distance, glide to the target in steps, release.
 // (Playwright's dragTo moves once, which only activates the drag.)
@@ -581,6 +591,7 @@ export {
   setTimelineSlider,
   appMessage,
   answerAppMessage,
+  confirmWorkitemChanges,
   dragWithMouse,
   mockNewProjectFlow,
   mockImportProjectsPicker,

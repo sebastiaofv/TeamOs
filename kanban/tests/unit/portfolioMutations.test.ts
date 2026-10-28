@@ -149,7 +149,7 @@ describe('portfolio mutation actions', () => {
     ]);
     expect(saved.board.tasks[2].sprintId || '').toBe('');
     expect(saved.extensions.roadmap?.sprints).toHaveLength(1);
-    expect(saved.extensions.timeline?.events.at(-1)?.meta).toMatchObject({ action: 'assign-existing', taskIds: [1, 2] });
+    expect(saved.extensions.timeline?.events.findLast((event) => event.kind === 'roadmap.bulk-assigned')?.meta).toMatchObject({ action: 'assign-existing', taskIds: [1, 2] });
     expect(enqueueSave).toHaveBeenCalledTimes(1);
     expect(getPortfolioBulkTaskIds(store.getState(), 'p1')).toEqual([3]);
     expect(store.getState().roadmapEntityContext).toBeNull();

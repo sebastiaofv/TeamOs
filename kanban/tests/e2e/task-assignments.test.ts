@@ -91,7 +91,7 @@ test('responsible and participant filters combine in planning and sprint tables 
     { id: 3, title: 'Matching sprint item', responsible: 'Ana', assignees: ['Ana', 'Rui'], sprintId: 's1' },
     { id: 4, title: 'Other sprint item', responsible: 'Rui', assignees: ['Rui'], sprintId: 's1', status: 'done' }
   ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [
-    { id: 's1', title: 'Delivery', startDate: '2026-10-01', endDate: '2026-10-14' }
+    { id: 's1', title: 'Delivery', startDate: '2026-10-01', endDate: '2099-10-14' }
   ] } } }], { selectedBoardId: 'p' });
   await page.locator('[data-view-mode="table"]').click();
   await openFiltersPanel(page);

@@ -151,11 +151,11 @@ describe('buildTaskTimelineChanges', () => {
     expect(changes!.checklist.after).toEqual([{ text: 'a', done: true }]);
   });
 
-  it('treats a missing field on one side as undefined and reports the change', () => {
+  it('records missing field values as JSON-safe null so the history survives saving', () => {
     const before = {};
     const after = { blocked: true };
     expect(buildTaskTimelineChanges(fromAny(before), fromAny(after))).toEqual({
-      blocked: { before: undefined, after: true }
+      blocked: { before: null, after: true }
     });
   });
 });
@@ -207,8 +207,8 @@ describe('normalizeTimelineChanges', () => {
   });
 
   it('preserves explicit undefined/null before or after values', () => {
-    expect(normalizeTimelineChanges({ blocked: { before: undefined, after: true } })).toEqual({
-      blocked: { before: undefined, after: true }
+    expect(normalizeTimelineChanges({ blocked: { before: null, after: true } })).toEqual({
+      blocked: { before: null, after: true }
     });
     expect(normalizeTimelineChanges({ dueDate: { before: '2024-01-01', after: null } })).toEqual({
       dueDate: { before: '2024-01-01', after: null }

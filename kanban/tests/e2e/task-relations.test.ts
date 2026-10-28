@@ -1,3 +1,4 @@
+import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, openTaskEditor } from '../support/portfolio';
 
@@ -318,6 +319,7 @@ test('dependency badges track completion and reopening without preventing status
   await expect(portfolioCard(page, 'Manual').locator('.task-tag-blocked')).toBeVisible();
   await portfolioCard(page, 'Blocker').hover();
   await page.keyboard.press('2');
+  await confirmWorkitemChanges(page);
   await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toBeVisible();
   await expect.poll(async () => (await readSavedBoard(page, 'p1')).board.tasks[1].status).toBe('to-do');
   const saved = await readSavedBoard(page, 'p1');

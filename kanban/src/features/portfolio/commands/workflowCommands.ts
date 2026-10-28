@@ -1,4 +1,5 @@
-import type { Workflow, WorkflowCategory } from '@/domain/types';
+import { WorkitemError } from '@/domain/workitems';
+import type { Workflow, WorkflowCategory, WorkitemAutomation } from '@/domain/types';
 import type { BoardMutationContext } from './mutationContext';
 import { allowedWorkflowDestinations, applyWorkflow, getWorkflow, statusCategory } from '@/domain/workflow';
 import { appendTimelineEvent } from '@/domain/timeline';
@@ -40,5 +41,13 @@ export function createWorkflowActions({ runPortfolioBoardMutation, getBoardRecor
             return true;
         });
     }
-    return { saveWorkflow, movePortfolioTaskToCategory, setPortfolioBoardColumnVisibility };
+    function saveWorkitemAutomation(boardId: string, config: WorkitemAutomation, expected?: string) {
+        return runPortfolioBoardMutation(boardId, (data) => {
+            if (expected !== undefined && JSON.stringify(data.extensions.workitemAutomation ?? null) !== expected) throw new WorkitemError('stale');
+            data.extensions.workitemAutomation = cloneSerializable(config);
+            appendTimelineEvent(data, { kind: 'board.workitems.updated', entityType: 'board', entityId: 'board', summary: translateCurrent('workitems.automation'), snapshot: createBoardStateSnapshot(data) });
+            return true;
+        });
+    }
+    return { saveWorkitemAutomation, saveWorkflow, movePortfolioTaskToCategory, setPortfolioBoardColumnVisibility };
 }

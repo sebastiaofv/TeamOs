@@ -111,6 +111,8 @@ export type TaskEditorViewModel = {
     openId: number;
     heading: string;
     initial: TaskEditorFields;
+    editing?: boolean;
+    parentCandidates?: { id: number; title: string; type?: import('@/domain/types').WorkitemType }[];
     phaseOptions: SelectOption[];
     milestoneOptions: SelectOption[];
     assigneePool: string[];

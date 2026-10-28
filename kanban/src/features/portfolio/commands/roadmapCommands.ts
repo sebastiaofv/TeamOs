@@ -1,3 +1,4 @@
+import { isPlanningUnit, WorkitemError } from '@/domain/workitems';
 // Roadmap editing, sprint assignment, and row expansion.
 
 import type { RoadmapItem, RoadmapKind, Task } from '@/domain/types';
@@ -156,6 +157,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
 
             boardData.board.tasks.forEach((task) => {
                 if (!taskIdSet.has(Number(task?.id))) return;
+                if (!isPlanningUnit(boardData, task)) throw new WorkitemError('sprint');
                 assignedCount += 1;
                 task.sprintId = nextSprint.id;
                 task.updatedAt = timestamp;
@@ -212,6 +214,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const timestamp = nowIso();
             boardData.board.tasks.forEach((task) => {
                 if (!taskIdSet.has(Number(task?.id))) return;
+                if (!isPlanningUnit(boardData, task)) throw new WorkitemError('sprint');
                 assignedCount += 1;
                 task.sprintId = sprint.id;
                 task.updatedAt = timestamp;
@@ -330,7 +333,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
             if (context.kind !== 'sprints') nextItem.color = isMilestoneColor(input.color) ? input.color
                 : previousItem ? milestoneColor(previousItem, index) : nextMilestoneColor(items);
-            if (context.kind === 'phases' && draft.parentId) nextItem.parentId = draft.parentId;
+            if (['phases', 'sprints'].includes(context.kind) && draft.parentId) nextItem.parentId = draft.parentId;
             if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) return false;
 
             if (context.kind === 'phases') {
@@ -436,9 +439,12 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         setPortfolioTaskPlanning(boardId: string, taskId: number, field: 'phaseId' | 'milestoneId', value: string) {
             return runPortfolioTaskMutation(boardId, taskId, (task, draft) => {
                 const roadmap = getRoadmapExtension(draft.data);
+                const mode = field === 'phaseId' ? 'phaseMode' : 'milestoneMode';
+                if (value === '@inherit') { if (!task.parentId) throw new WorkitemError('parent'); task[mode] = 'inherit'; task[field] = ''; return true; }
                 if (!isValidRoadmapAssignment(roadmap, field, value)) throw new Error(translateCurrent('roadmap.invalidAssignment'));
-                if (task[field] === value) return false;
+                if (task[field] === value && task[mode] === (value ? 'explicit' : 'none')) return false;
                 task[field] = value;
+                task[mode] = value ? 'explicit' : 'none';
                 return true;
             });
         },

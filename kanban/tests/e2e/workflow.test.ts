@@ -1,3 +1,4 @@
+import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, dragWithMouse, answerAppMessage } from '../support/portfolio';
@@ -5,7 +6,7 @@ import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, dragWithMo
 test('workflow settings remain draft-based and renamed states keep their own columns', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Workflow project', hasHandle: true, tasks: [{ id: 1, title: 'Intake', status: 'backlog' }] }], { selectedBoardId: 'p' });
-    await expect(page.locator('.portfolio-column[data-status="backlog"]')).toHaveCount(1);
+    await expect(page.locator('.workitem-backlog')).toHaveCount(1);
     await dragWithMouse(page, portfolioCard(page, 'Intake').locator('.task-title'), page.locator('#portfolio-to-do-column'));
     await expect(portfolioCard(page, 'Intake')).toHaveAttribute('data-status', 'to-do');
     await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
@@ -53,7 +54,7 @@ test('drops use the exact destination state in both project and aggregate boards
     await dragWithMouse(page, portfolioCard(page, 'Unplanned intake').locator('.task-title'), page.locator('#portfolio-doing-column'));
     await expect(portfolioCard(page, 'Unplanned intake')).toHaveAttribute('data-status', 'doing');
     await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click();
-    await expect(page.locator('.portfolio-column')).toHaveCount(4);
+    await expect(page.locator('.portfolio-column')).toHaveCount(3);
     await dragWithMouse(page, portfolioCard(page, 'Unplanned intake').locator('.task-title'), page.locator('#portfolio-done-column'));
     await expect(portfolioCard(page, 'Unplanned intake')).toHaveAttribute('data-status', 'done');
 });
@@ -70,5 +71,6 @@ test('terminal reopening is still configurable without changing the card appeara
     await page.locator('[data-workflow-state="done"]').getByRole('checkbox', { name: 'In progress', exact: true }).check();
     await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
     await dragWithMouse(page, portfolioCard(page, 'Delivered work').locator('.task-title'), page.locator('#portfolio-doing-column'));
+    await confirmWorkitemChanges(page);
     await expect(portfolioCard(page, 'Delivered work')).toHaveAttribute('data-status', 'doing');
 });

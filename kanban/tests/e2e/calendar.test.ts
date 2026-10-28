@@ -17,10 +17,10 @@ test.describe('calendar', () => {
     ]);
 
     await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Board' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Board', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Calendar' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Board' })).toHaveClass(/active/);
+    await expect(page.getByRole('button', { name: 'Board', exact: true })).toHaveClass(/active/);
     await expect(page.locator('#portfolioBoard')).toBeVisible();
 
     await page.getByRole('button', { name: 'Calendar' }).click();
@@ -29,11 +29,11 @@ test.describe('calendar', () => {
     await expect(page).toHaveURL(/pv=calendar/);
     await expect(page).not.toHaveURL(/pb=/);
 
-    await page.getByRole('button', { name: 'Board' }).click();
+    await page.getByRole('button', { name: 'Board', exact: true }).click();
 
     await expect(page.locator('#portfolioBoard')).toBeVisible();
     await expect(page.locator('#portfolioCalendarView')).toBeHidden();
-    await expect(page.getByRole('button', { name: 'Board' })).toHaveClass(/active/);
+    await expect(page.getByRole('button', { name: 'Board', exact: true })).toHaveClass(/active/);
     await expect(page).toHaveURL(/\/$/);
   });
 

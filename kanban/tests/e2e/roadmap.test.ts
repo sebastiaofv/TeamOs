@@ -1,3 +1,4 @@
+import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 
 import {
@@ -38,6 +39,7 @@ test.describe('roadmap', () => {
     await page.fill('#roadmapEntityStartDate', '2026-04-01');
     await page.fill('#roadmapEntityEndDate', '2026-04-14');
     await page.getByRole('button', { name: 'Save Item' }).click();
+  await confirmWorkitemChanges(page);
 
     await waitForBoardWrites(page);
     const board = await readSavedBoard(page, 'alpha');
@@ -74,6 +76,7 @@ test.describe('roadmap', () => {
     await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
     await page.selectOption('#roadmapEntityExistingSprint', 's1');
     await page.getByRole('button', { name: 'Add to Sprint' }).click();
+    await confirmWorkitemChanges(page);
 
     await waitForBoardWrites(page);
     const board = await readSavedBoard(page, 'alpha');
@@ -115,6 +118,7 @@ test.describe('roadmap', () => {
     await page.fill('#roadmapEntityStartDate', '2026-04-01');
     await page.fill('#roadmapEntityEndDate', '2026-04-14');
     await page.getByRole('button', { name: 'Save Item' }).click();
+  await confirmWorkitemChanges(page);
 
     await expect(page.locator('#portfolioBulkActions')).toBeHidden();
     await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('0 tasks selected');
@@ -156,6 +160,7 @@ test.describe('roadmap', () => {
     await page.locator('#roadmapEntityTitle').fill('Beta');
     await page.locator('#roadmapEntityDate').fill('2026-05-01');
     await page.getByRole('button', { name: 'Save Item' }).click();
+  await confirmWorkitemChanges(page);
 
     await expect(page.locator('#portfolioRoadmapView')).toContainText('Beta');
 
@@ -206,6 +211,7 @@ test.describe('roadmap', () => {
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Edit', exact: true }).click();
     await page.locator('#roadmapEntityTitle').fill('Alpha Renamed');
     await page.getByRole('button', { name: 'Save Item' }).click();
+  await confirmWorkitemChanges(page);
 
     await expect.poll(async () => (await readSavedBoard(page, 'alpha')).extensions.roadmap?.milestones?.[0]?.title).toBe('Alpha Renamed');
     const board = await readSavedBoard(page, 'alpha');
@@ -858,6 +864,7 @@ test.describe('roadmap', () => {
     await page.locator('#roadmapEntityTitle').fill('Gamma');
 
     await page.locator('#roadmapEntityModalSaveBtn').click();
+  await confirmWorkitemChanges(page);
 
     await answerAppMessage(page, { expectText: 'Milestone requires a valid due date.' });
     await expect(page.locator('#roadmapEntityDate')).toBeFocused();

@@ -1,3 +1,4 @@
+import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 import {
@@ -36,6 +37,7 @@ test.describe('timeline', () => {
     await page.fill('#roadmapEntityStartDate', '2026-04-01');
     await page.fill('#roadmapEntityEndDate', '2026-04-14');
     await page.getByRole('button', { name: 'Save Item' }).click();
+  await confirmWorkitemChanges(page);
 
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
     // A later edit makes the bulk sprint event (index 1) historical, so the
@@ -90,11 +92,13 @@ test.describe('timeline', () => {
     await page.locator('#roadmapEntityTitle').fill('Beta');
     await page.locator('#roadmapEntityDate').fill('2026-05-01');
     await page.getByRole('button', { name: 'Save Item' }).click();
+  await confirmWorkitemChanges(page);
 
     await page.locator('.milestone-annotation[data-roadmap-id="beta"]').click();
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Edit', exact: true }).click();
     await page.locator('#roadmapEntityTitle').fill('Beta Renamed');
     await page.getByRole('button', { name: 'Save Item' }).click();
+  await confirmWorkitemChanges(page);
 
     await page.locator('#milestoneWorkitemsModal .modal-close').click();
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();

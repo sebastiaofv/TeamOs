@@ -1,3 +1,4 @@
+import { assertWorkitems, WORKITEM_FIELDS } from './workitems';
 import type {
     BoardColumn,
     BoardData,
@@ -208,7 +209,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid meta structure.');
     }
     const schemaVersion = data.meta.schemaVersion;
-    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== BOARD_SCHEMA_VERSION) {
+    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== BOARD_SCHEMA_VERSION) {
         throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
     }
     if (data.meta.appId !== BOARD_APP_ID) {
@@ -297,10 +298,11 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         statuses.add(col.status);
     });
 
+    assertWorkitems(data as unknown as BoardData);
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests']);
+        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));

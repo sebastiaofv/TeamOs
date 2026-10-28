@@ -12,7 +12,7 @@ export type AppMessage = {
     id: number;
     title: string;
     text: string;
-    input?: { defaultValue: string };
+    input?: { defaultValue: string; required?: boolean };
     selection?: { label: string; options: { value: unknown; label: string }[] };
     buttons: AppMessageButton[];
     cancelValue: unknown;

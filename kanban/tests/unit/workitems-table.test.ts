@@ -86,7 +86,7 @@ describe('workitem table cells', () => {
     });
     task.columnTitle = 'Em curso';
     expect(TABLE_COLUMNS.map((column) => tableCellValue(task, column, roadmapBoard()))).toEqual([
-      '7', 'Título', 'doing', 'Ana, Rui', 'high', 'Build phase', '2026-01-02T00:00:00.000Z',
+      '7', 'Título', 'task', '', '', 'doing', 'Ana, Rui', 'high', 'Build phase', '2026-01-02T00:00:00.000Z',
       'Publicação pública', 'Sprint 1', '2026-01-10', '2026-01-01T00:00:00.000Z',
       'true', 'Waiting', 'L', 'api, backend', 'true', ''
     ]);
@@ -160,9 +160,9 @@ describe('workitem table sorting', () => {
 
 describe('workitem table column preferences', () => {
   it('defaults to the seven approved columns for absent, malformed and unusable preferences', () => {
-    expect(DEFAULT_TABLE_COLUMNS).toEqual(['id', 'title', 'status', 'assignees', 'priority', 'phase', 'updatedAt']);
-    expect(TABLE_COLUMNS).toHaveLength(17);
-    for (const value of [undefined, null, {}, 'id,title', 42, [], ['type', 'unknown', null, 1]]) {
+    expect(DEFAULT_TABLE_COLUMNS).toEqual(['id', 'title', 'type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']);
+    expect(TABLE_COLUMNS).toHaveLength(20);
+    for (const value of [undefined, null, {}, 'id,title', 42, [], ['unknown-type', 'unknown', null, 1]]) {
       const columns = normalizeTableColumns(value);
       expect(columns).toEqual(DEFAULT_TABLE_COLUMNS);
       expect(columns).not.toBe(DEFAULT_TABLE_COLUMNS);

@@ -21,7 +21,7 @@ test.describe('board', () => {
 
     await page.locator('#languageToggleBtn').click();
 
-    await expect(page.locator('.portfolio-column[data-status="backlog"] .column-title')).toHaveText('Backlog');
+    await expect(page.locator('.workitem-backlog summary')).toContainText('Backlog');
     await expect(page.locator('.portfolio-column[data-status="to-do"] .column-title')).toHaveText('A fazer');
     await expect(page.locator('.portfolio-column[data-status="doing"] .column-title')).toHaveText('Em curso');
     await expect(page.locator('.portfolio-column[data-status="done"] .column-title')).toHaveText('Concluído');

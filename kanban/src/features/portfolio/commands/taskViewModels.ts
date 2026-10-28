@@ -1,3 +1,4 @@
+import { workitemType, WORKITEM_FIELDS, effectivePlanning } from '@/domain/workitems';
 import type {
     BoardRecord,
     PortfolioRow,
@@ -136,7 +137,10 @@ export function buildTaskEditorViewModel(
             phaseId: '',
             milestoneId: ''
         };
+    Object.assign(initial, { type: normalized ? workitemType(normalized) : 'task', parentId: normalized?.parentId ?? null, phaseMode: normalized?.phaseMode || (normalized?.phaseId ? 'explicit' : 'none'), milestoneMode: normalized?.milestoneMode || (normalized?.milestoneId ? 'explicit' : 'none') }, Object.fromEntries(WORKITEM_FIELDS.map((field) => [field, normalized?.[field] || ''])));
     return {
+        editing: Boolean(normalized),
+        parentCandidates: boardRecord.data.board.tasks.filter((item) => ['epic', 'story'].includes(workitemType(item)) && item.id !== task?.id).map((item) => ({ id: item.id, title: item.title, type: workitemType(item) })),
         openId,
         heading: normalized ? translateCurrent('task.edit') : translateCurrent('task.new'),
         initial,
@@ -180,8 +184,8 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
             createdAt: formatDateTime(task.createdAt, getCurrentLanguage() === 'pt' ? 'pt-PT' : undefined),
             updatedAt: formatDateTime(task.updatedAt, getCurrentLanguage() === 'pt' ? 'pt-PT' : undefined),
             dueDate: formatDueDateForUi(task.dueDate) || '-',
-            phase: getRoadmapItemTitle(roadmap, 'phases', task.phaseId) || '-',
-            milestone: getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-',
+            phase: getRoadmapItemTitle(roadmap, 'phases', effectivePlanning(source.boardData, task, 'phaseId')) || '-',
+            milestone: getRoadmapItemTitle(roadmap, 'milestones', effectivePlanning(source.boardData, task, 'milestoneId')) || '-',
             sprint: getRoadmapItemTitle(roadmap, 'sprints', task.sprintId) || '-'
         },
         checklist: normalizeChecklist(task.checklist)

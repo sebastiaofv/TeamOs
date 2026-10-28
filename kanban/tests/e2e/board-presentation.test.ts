@@ -6,7 +6,7 @@ test('all workflow states are regular columns and cards/details keep their origi
     const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
-    await expect(page.locator('.portfolio-column')).toHaveCount(9);
+    await expect(page.locator('.portfolio-column')).toHaveCount(8);
     await expect(page.locator('.portfolio-backlog, .portfolio-cancelled, .task-workflow-controls')).toHaveCount(0);
     await expect(portfolioCard(page, 'Blocked but movable').locator('select')).toHaveCount(0);
     await portfolioCard(page, 'Blocked but movable').locator('.task-title').click();

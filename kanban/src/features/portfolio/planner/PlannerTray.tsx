@@ -53,7 +53,8 @@ function DraggablePlannerTrayCard({ item }: { item: PlannerTrayItem }) {
     );
 }
 
-export function PlannerTray({ groups, statuses, onToggleStatus }: {
+export function PlannerTray({ groups, statuses, onToggleStatus, includeParents, onIncludeParents }: {
+    includeParents?: boolean; onIncludeParents?: (value: boolean) => void;
     groups: PlannerTrayGroup[];
     statuses: readonly TaskStatus[];
     onToggleStatus: (status: TaskStatus) => void;
@@ -61,6 +62,7 @@ export function PlannerTray({ groups, statuses, onToggleStatus }: {
     const { t } = useI18n();
     return (
         <aside className="planner-tray" aria-label={t('planner.trayLabel')}>
+            {onIncludeParents && <label><input type="checkbox" checked={includeParents} onChange={(event) => onIncludeParents(event.target.checked)} /> {t('workitems.includeParents')}</label>}
             <div className="planner-tray-filters" role="group" aria-label={t('planner.statusFilterLabel')}>
                 {PLANNER_TRAY_STATUSES.map((status) => (
                     <button

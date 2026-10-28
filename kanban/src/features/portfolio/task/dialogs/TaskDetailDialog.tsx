@@ -1,3 +1,5 @@
+import { WorkitemHierarchy } from './WorkitemHierarchy';
+import { workitemType } from '@/domain/workitems';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, type KeyboardEvent } from 'react';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
@@ -51,7 +53,7 @@ export function TaskDetailDialog() {
                         {...returnFocus}
                     >
                         <div className="modal-header">
-                            <Dialog.Title asChild><span className="modal-title">{t('task.details')}</span></Dialog.Title>
+                            <Dialog.Title asChild><span className="modal-title">{vm && workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}) !== 'task' ? `${t(`workitems.type.${workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {})}`)} · ${t('history.details')}` : t('task.details')}</span></Dialog.Title>
                             <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                         </div>
                         <div className="modal-body">
@@ -74,21 +76,22 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
         { id: 'pullRequests', label: 'pullRequests.title' },
         { id: 'history', label: 'history.title' }
     ] as const;
+    const visibleTabs = workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}) === 'epic' ? tabs.filter((entry) => entry.id !== 'pullRequests') : tabs;
     const [tab, setTab] = useState<(typeof tabs)[number]['id']>('details');
     const { t } = useI18n();
     function navigate(event: KeyboardEvent<HTMLButtonElement>, index: number) {
-        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
-            : event.key === 'ArrowRight' ? (index + 1) % tabs.length
-                : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : null;
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? visibleTabs.length - 1
+            : event.key === 'ArrowRight' ? (index + 1) % visibleTabs.length
+                : event.key === 'ArrowLeft' ? (index + visibleTabs.length - 1) % visibleTabs.length : null;
         if (next === null) return;
-        event.preventDefault(); setTab(tabs[next].id);
+        event.preventDefault(); setTab(visibleTabs[next].id);
         (event.currentTarget.parentElement?.querySelectorAll('button')[next] as HTMLButtonElement)?.focus();
     }
     return <><div className="detail-tabs" role="tablist" aria-label={t('history.navigation')}>
-        {tabs.map((value, index) => <button key={value.id} id={`task-tab-${value.id}`} role="tab" type="button" aria-selected={tab === value.id} aria-controls={`task-panel-${value.id}`} tabIndex={tab === value.id ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setTab(value.id)}>{t(value.label)}</button>)}
+        {visibleTabs.map((value, index) => <button key={value.id} id={`task-tab-${value.id}`} role="tab" type="button" aria-selected={tab === value.id} aria-controls={`task-panel-${value.id}`} tabIndex={tab === value.id ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setTab(value.id)}>{t(value.label)}</button>)}
     </div>
         <div role="tabpanel" id="task-panel-details" aria-labelledby="task-tab-details" tabIndex={0} hidden={tab !== 'details'}>
-            <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations key={`${vm.boardId}:${vm.taskId}`} vm={vm} />
+            <WorkitemHierarchy vm={vm} /><TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} /><TaskRelations key={`${vm.boardId}:${vm.taskId}`} vm={vm} />
         </div>
         <div role="tabpanel" id="task-panel-comments" aria-labelledby="task-tab-comments" tabIndex={0} hidden={tab !== 'comments'}>
             {vm.conversationContext && <TaskConversation key={`${vm.conversationContext.boardId}:${vm.conversationContext.task.id}:${vm.conversationContext.eventIndex ?? 'current'}`} context={vm.conversationContext} />}
@@ -107,7 +110,7 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
     const { t } = useI18n();
     return (
         <dl className="detail-list">
-            {FIELD_ROWS.map((row) => (
+            {FIELD_ROWS.filter((row) => !(workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}) === 'epic' && ['effort', 'sprint'].includes(row.key))).map((row) => (
                 <div className="detail-item" key={row.id}>
                     <dt className="detail-label">{t(row.label)}</dt>
                     <dd className="detail-value" id={row.id}>{vm.fields[row.key]}</dd>

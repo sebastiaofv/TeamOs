@@ -1,3 +1,4 @@
+import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites } from '../support/portfolio';
 
@@ -25,6 +26,7 @@ test('sprint creation order and numbering survive name/date edits and reimport',
   await page.locator('#roadmapEntityStartDate').fill('2025-01-01');
   await page.locator('#roadmapEntityEndDate').fill('2025-01-14');
   await page.getByRole('button', { name: 'Save Item', exact: true }).click();
+  await confirmWorkitemChanges(page);
   await waitForBoardWrites(page);
   await page.locator('[data-view-mode="table"]').click();
   await expect(names).toHaveText(['Sprint 3 - Implementation', 'Sprint 2 - New design name', 'Sprint 1 - Discovery']);
@@ -56,6 +58,7 @@ test('planning creation follows legacy numbering; a second project starts at one
     await page.locator('#roadmapEntityStartDate').fill('2025-01-01');
     await page.locator('#roadmapEntityEndDate').fill('2025-01-14');
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
+  await confirmWorkitemChanges(page);
     await expect.poll(async () => (await readSavedBoard(page, id)).extensions.sprintCatalog?.lastNumber).toBe(expectedNumber);
     await page.locator('[data-table-view="sprints"]').click();
     await expect(page.locator('.table-sprint-name').first()).toHaveText(`Sprint ${expectedNumber} - Execution`);

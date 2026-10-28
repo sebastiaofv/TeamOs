@@ -30,7 +30,7 @@ export type PaletteCommandId =
     | 'toggle-theme' | 'toggle-language' | 'open-shortcuts' | 'open-help' | 'open-palette-help'
     | 'new-project' | 'import-projects';
 
-export type QuickCreateFields = Pick<QuickCreateDraft, 'title' | 'assignees' | 'priority' | 'tags' | 'effort' | 'dueDate'>;
+export type QuickCreateFields = Pick<QuickCreateDraft, 'type' | 'title' | 'assignees' | 'priority' | 'tags' | 'effort' | 'dueDate'>;
 
 export type PaletteAction =
     | { type: 'filterBoard'; text: string }
@@ -306,7 +306,7 @@ function quickCreate(ctx: Ctx): PaletteModel {
         key: 'create', icon: 'create', label: ctx.t('palette.create', { title: draft.title, project: boardTitle(board) }), ranges: [],
         hint: ['Enter'], color: boardColor(board),
         action: { type: 'createTask', boardId: board.id, fields: {
-            title: draft.title, assignees: draft.assignees, priority: draft.priority, tags: draft.tags, effort: draft.effort, dueDate: draft.dueDate
+            ...(draft.type ? { type: draft.type } : {}), title: draft.title, assignees: draft.assignees, priority: draft.priority, tags: draft.tags, effort: draft.effort, dueDate: draft.dueDate
         } }
     }] : [];
     return { sections: [{ id: 'create', title: ctx.t('palette.sectionCreate'), items }], breadcrumbs: [], preview };

@@ -1,3 +1,5 @@
+import { effectivePlanning, sprintMembers } from './workitems';
+import type { BoardData } from './types';
 import type {
     DateBounds,
     LooseBoardData,
@@ -196,7 +198,8 @@ export function getRoadmapTaskFieldTasks(boardData: LooseBoardData | null | unde
     if (!normalizedRef) return [];
     const tasks = Array.isArray(boardData?.board?.tasks) ? boardData.board.tasks : [];
     const refs = fieldName === 'phaseId' ? phaseDescendants(getRoadmapExtension(boardData)?.phases || [], normalizedRef) : new Set([normalizedRef]);
-    return tasks.filter((task) => task && refs.has(normalizeRoadmapRef(task[fieldName])));
+    if (fieldName === 'sprintId' && boardData?.board) return sprintMembers(boardData as BoardData, normalizedRef);
+    return tasks.filter((task) => task && refs.has(normalizeRoadmapRef(boardData?.board ? effectivePlanning(boardData as BoardData, task, fieldName as 'phaseId' | 'milestoneId') : task[fieldName])));
 }
 
 export function normalizeRoadmapItems(value: unknown, dateKeys: readonly RoadmapDateKey[], requiredDateKeys: readonly RoadmapDateKey[], allowParent = false, allowColor = false): RoadmapItem[] | null {
@@ -368,7 +371,7 @@ export function normalizeRoadmapExtension(value: unknown): RoadmapExtension | nu
 
     const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate'], false, Number(value.version) >= 3);
     const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate'], ['startDate', 'endDate'], true, Number(value.version) >= 4);
-    const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate']);
+    const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate'], true);
     if (!milestones || !phases || !sprints) return null;
     try { recalculatePhaseDates(phases); } catch { return null; }
 

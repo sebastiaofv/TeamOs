@@ -1,3 +1,4 @@
+import { WORKITEM_FIELDS, workitemFieldNames } from './workitems';
 import type {
     BoardData,
     ChecklistItem,
@@ -66,6 +67,7 @@ export function normalizeTags(input: unknown): string[] {
 export function buildTaskFieldsFromDraft(draft: TaskDraft) {
     return {
         ...(draft.pullRequests === undefined ? {} : { pullRequests: parsePullRequestLinks(draft.pullRequests) }),
+        ...(draft.type ? { type: draft.type, parentId: draft.parentId ?? null, phaseMode: draft.phaseMode || (draft.phaseId ? 'explicit' as const : 'none' as const), milestoneMode: draft.milestoneMode || (draft.milestoneId ? 'explicit' as const : 'none' as const), ...Object.fromEntries(workitemFieldNames(draft.type).map((key) => [key, draft[key] || ''])) } : {}),
         title: draft.title,
         description: draft.description,
         assignees: draft.assignees,
@@ -219,6 +221,13 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
     const fallbackAttachments = Array.isArray(options.fallbackAttachments) ? options.fallbackAttachments : [];
     const includeStatusChangedAt = options.includeStatusChangedAt !== false;
     const normalizedTask: Task = {
+        ...(task.type != null ? { type: task.type as Task['type'] } : {}),
+        ...(task.parentId !== undefined ? { parentId: task.parentId as number | null } : {}),
+        ...(task.phaseMode != null ? { phaseMode: task.phaseMode as Task['phaseMode'] } : {}),
+        ...(task.milestoneMode != null ? { milestoneMode: task.milestoneMode as Task['milestoneMode'] } : {}),
+        ...Object.fromEntries(WORKITEM_FIELDS.filter((field) => task[field] != null).map((field) => [field, task[field]])),
+        ...(task.acceptance != null ? { acceptance: structuredClone(task.acceptance) as Task['acceptance'] } : {}),
+        ...(task.sprintHistory != null ? { sprintHistory: structuredClone(task.sprintHistory) as Task['sprintHistory'] } : {}),
         pullRequests: parsePullRequestLinks(task.pullRequests),
         id: task.id as number,
         title: task.title as string,

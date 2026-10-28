@@ -1,3 +1,4 @@
+import { workitemType } from '@/domain/workitems';
 // Day planner view model: tray groups from the visible rows and per-day
 // blocks from every project in scope.
 
@@ -97,7 +98,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
 
 export function buildPortfolioPlannerViewModel(
     state: SelectorState,
-    { today, trayStatuses }: { today: string; trayStatuses: readonly TaskStatus[] }
+    { today, trayStatuses, includeParents = false }: { today: string; trayStatuses: readonly TaskStatus[]; includeParents?: boolean }
 ): PlannerViewModel {
     const mode: PlannerMode = state?.portfolioPlannerMode === 'week' ? 'week' : 'day';
     const date = state?.portfolioPlannerDate || today;
@@ -123,6 +124,7 @@ export function buildPortfolioPlannerViewModel(
     const statusSet = new Set(trayStatuses);
     const groups = new Map<string, PlannerTrayGroup>();
     (Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : []).forEach((row) => {
+        if (!includeParents && !['task', 'bug'].includes(workitemType(row.task))) return;
         const status = row.task.status;
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;

@@ -1,3 +1,4 @@
+import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard } from '../support/portfolio';
 
@@ -42,6 +43,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await add.click();
   await select.selectOption('active');
   await page.locator('#roadmapEntityModalSaveBtn').click();
+  await confirmWorkitemChanges(page);
   await expect(page.locator('#roadmapEntityModal')).toBeHidden();
   await waitForBoardWrites(page);
   const saved = await readSavedBoard(page, 'p');
@@ -51,7 +53,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
     { id: 2, status: 'doing', sprintId: 'active', assignees: ['Rui'], responsible: 'Rui' }
   ]);
   expect(saved.board.tasks[2].sprintId || '').toBe('');
-  expect(saved.extensions.timeline.events.at(-1).meta).toMatchObject({ action: 'assign-existing', taskIds: [1, 2] });
+  expect(saved.extensions.timeline.events.findLast((event: { kind: string }) => event.kind === 'roadmap.bulk-assigned').meta).toMatchObject({ action: 'assign-existing', taskIds: [1, 2] });
   expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(1);
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
   await expect(page.locator('#tableCounts')).toHaveText('1 of 1 workitems · 1 active · 0 archived');
@@ -60,6 +62,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await add.click();
   await select.selectOption('planned');
   await page.locator('#roadmapEntityModalSaveBtn').click();
+  await confirmWorkitemChanges(page);
   await waitForBoardWrites(page);
   expect((await readSavedBoard(page, 'p')).board.tasks[2].sprintId).toBe('planned');
   await expect(page.locator('#workitemsTable')).toHaveCount(0);
@@ -123,6 +126,7 @@ for (const view of ['Table', 'Board']) {
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
     await select.selectOption('next');
     await page.locator('#roadmapEntityModalSaveBtn').click();
+  await confirmWorkitemChanges(page);
     await waitForBoardWrites(page);
     expect((await readSavedBoard(page, 'p')).board.tasks[0].sprintId).toBe('next');
   });

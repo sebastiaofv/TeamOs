@@ -56,7 +56,7 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
 }) {
     const [inputValue, setInputValue] = useState(message.input?.defaultValue ?? '');
     const [selection, setSelection] = useState(0);
-    const answer = (button: AppMessageButton) => resolveAppMessage(button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value);
+    const answer = (button: AppMessageButton) => { if (button.submitsInput && message.input?.required && !inputValue.trim()) return; resolveAppMessage(button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value); };
     // Every message is built with a primary button (see appMessages.ts).
     const primary = message.buttons.find((button) => button.primary)!;
 
@@ -84,6 +84,7 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
                             type="text"
                             id="appMessageInput"
                             aria-labelledby="appMessageText"
+                            required={message.input.required}
                             ref={inputRef}
                             value={inputValue}
                             onChange={(event) => setInputValue(event.target.value)}
@@ -104,6 +105,7 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
                         className={`btn${button.primary ? ' btn-primary' : ''}${button.danger ? ' btn-danger' : ''}`}
                         id={button.primary ? 'appMessageConfirmBtn' : button.cancel ? 'appMessageCancelBtn' : undefined}
                         ref={button.primary ? primaryRef : undefined}
+                        disabled={Boolean(button.submitsInput && message.input?.required && !inputValue.trim())}
                         onClick={() => answer(button)}
                     >
                         {button.label}

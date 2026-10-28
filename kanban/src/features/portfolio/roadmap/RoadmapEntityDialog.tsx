@@ -94,7 +94,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 <form id="roadmapEntityForm" onSubmit={(event) => event.preventDefault()}>
                     <input type="hidden" id="roadmapEntityKind" value={vm.kind} />
                     <input type="hidden" id="roadmapEntityId" value={vm.itemId} />
-                    {vm.kind === 'phases' && <div className="form-group">
+                    {(vm.kind === 'phases' || vm.kind === 'sprints') && <div className="form-group">
                         <label htmlFor="roadmapPhaseParent">{t('roadmap.parentPhase')}</label>
                         <select id="roadmapPhaseParent" value={draft.parentId} onChange={(event) => {
                             const parentId = event.target.value;

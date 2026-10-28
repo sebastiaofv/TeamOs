@@ -65,7 +65,7 @@ describe('Roadmap clarification view models', () => {
         expect(data.extensions.roadmap!.phases.find((phase) => phase.id === 'future')!.parentId).toBe('delivery');
         expect(data.extensions.roadmap!.phases.find((phase) => phase.id === 'delivery')!.endDate).toBe('2026-12-20');
         expect(data.board.tasks.find((task) => task.id === 507)!.phaseId).toBe('future');
-        expect(data.extensions.timeline!.events.at(-1)!.kind).toBe('roadmap.updated');
+        expect(data.extensions.timeline!.events.some((event) => event.kind === 'roadmap.updated')).toBe(true);
     });
     it('uses the same domain rule for editor and direct planning assignments', () => {
         const data = fixture();

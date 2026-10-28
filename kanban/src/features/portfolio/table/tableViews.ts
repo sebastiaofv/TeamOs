@@ -1,10 +1,11 @@
+import { isPlanningUnit, eligibleSprint, sprintMembers } from '@/domain/workitems';
 import type { BoardData, RoadmapItem, SprintIdentity } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getSprintCatalog } from '@/domain/sprintCatalog';
 import { getSprintCalendarStatus, type SprintCalendarStatus } from '@/domain/roadmap';
 import { statusCategory } from '@/domain/workflow';
 
-export type TableView = 'all' | 'unplanned' | 'sprints';
+export type TableView = 'all' | 'unplanned' | 'sprints' | 'epics' | 'stories' | 'independent';
 export type { SprintCalendarStatus } from '@/domain/roadmap';
 
 /** A sprint owns its roster, not the live task's single sprintId. A future
@@ -29,21 +30,23 @@ export type SprintTableGroup = SprintTableRoster & {
 };
 
 export function unplannedTableRows(rows: PortfolioRow[]): PortfolioRow[] {
-    return rows.filter(({ task, boardData }) => !['completed', 'cancelled'].includes(statusCategory(task.status, boardData)) && !task.sprintId);
+    return rows.filter(({ task, boardData }) => !['completed', 'cancelled'].includes(statusCategory(task.status, boardData)) && (!boardData || isPlanningUnit(boardData, task)) && (!task.sprintId || Boolean(boardData && !eligibleSprint(boardData, task.sprintId))));
 }
 
 /** Compatibility adapter for today's schema; historical membership belongs in a future adapter. */
 export function currentSprintRosters(boardData: BoardData, rows: PortfolioRow[]): SprintTableRoster[] {
     const identities = new Map(getSprintCatalog(boardData).entries.map((entry) => [entry.sprintId, entry]));
-    const members = new Map<string, PortfolioRow[]>();
-    rows.forEach((row) => {
-        const group = members.get(row.task.sprintId) || [];
-        group.push(row);
-        members.set(row.task.sprintId, group);
+    return (boardData.extensions.roadmap?.sprints || []).map((sprint) => {
+        const rosterSource = { ...boardData, board: { ...boardData.board, tasks: [...new Map([...rows.map((row) => row.task), ...boardData.board.tasks].map((task) => [task.id, task])).values()] } };
+        const members = sprintMembers(rosterSource, sprint.id);
+        const snapshot = { ...boardData, board: { ...boardData.board, tasks: members } };
+        const historical = !eligibleSprint(boardData, sprint.id);
+        const rosterRows = members.filter((task) => isPlanningUnit(snapshot, task)).map((task): PortfolioRow => {
+            const current = rows.find((row) => row.taskId === task.id);
+            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && !historical, historical: historical || !current || current.task.sprintId !== sprint.id || current?.historical, columnTitle: boardData.board.columns.find((column) => column.status === task.status)?.title, boardData: snapshot, task };
+        });
+        return { sprint, boardData: historical ? snapshot : boardData, source: 'current', rows: rosterRows, identity: identities.get(sprint.id) };
     });
-    return (boardData.extensions.roadmap?.sprints || []).map((sprint) => ({
-        sprint, boardData, source: 'current', rows: members.get(sprint.id) || [], identity: identities.get(sprint.id)
-    }));
 }
 
 export function buildSprintTableGroups(rosters: SprintTableRoster[], today: string): SprintTableGroup[] {

@@ -113,7 +113,7 @@ test.describe('app shell', () => {
     await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'ghost' });
 
     await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Board' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Board', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Calendar' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
     await expect(page.locator('#portfolioBoard')).toBeVisible();

@@ -45,7 +45,7 @@ describe('local pull request links', () => {
         for (const version of [1, 2]) {
             const legacy = structuredClone(data); legacy.meta.schemaVersion = version; legacy.board.tasks.forEach((task) => { delete task.pullRequests; });
             const migrated = serializeBoardDataFromObject(legacy);
-            expect(migrated.meta.schemaVersion).toBe(3);
+            expect(migrated.meta.schemaVersion).toBe(4);
             expect(migrated.board.tasks.map((task) => task.id)).toEqual(legacy.board.tasks.map((task) => task.id));
             expect(migrated.board.tasks.every((task) => task.pullRequests?.length === 0)).toBe(true);
             expect(migrated.extensions.timeline).toEqual(legacy.extensions.timeline);

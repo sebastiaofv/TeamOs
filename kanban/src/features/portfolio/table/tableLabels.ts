@@ -3,7 +3,7 @@ import type { TranslationKey } from '@/shared/i18n';
 import type { TableColumnId } from './tableModel';
 
 export const COLUMN_LABELS: Record<TableColumnId, TranslationKey> = {
-    id: 'table.id', title: 'task.title', status: 'task.status', assignees: 'task.assignees',
+    type: 'workitems.type', epic: 'workitems.type.epic', story: 'workitems.type.story', id: 'table.id', title: 'task.title', status: 'task.status', assignees: 'task.assignees',
     priority: 'task.priority', phase: 'task.phase', updatedAt: 'task.updated', responsible: 'task.responsible',
     milestone: 'task.milestone', sprint: 'task.sprint', dueDate: 'task.due', createdAt: 'task.created',
     blocked: 'task.blocked', blockerReason: 'task.blocker', effort: 'task.effort', tags: 'task.tags', archived: 'table.archived'

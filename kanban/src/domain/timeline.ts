@@ -41,7 +41,7 @@ type ReplayState = {
     extensions?: Record<string, unknown>;
 };
 
-const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests'] as const;
+const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'] as const;
 
 export function createEmptyTimelineData(): TimelineExtension {
     return {
@@ -70,8 +70,8 @@ export function buildTaskTimelineChanges(beforeTask: Task | null | undefined, af
         const afterValue = afterTask ? afterTask[field] : undefined;
         if (areSerializableValuesEqual(beforeValue, afterValue)) return;
         changes[field] = {
-            before: cloneSerializable(beforeValue),
-            after: cloneSerializable(afterValue)
+            before: cloneSerializable(beforeValue ?? null),
+            after: cloneSerializable(afterValue ?? null)
         };
     });
     return Object.keys(changes).length > 0 ? changes : null;
@@ -133,7 +133,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
-    if (['board.restored', 'board.project.updated', 'workflow.updated'].includes(event.kind) && event.snapshot) {
+    if (['board.restored', 'board.project.updated', 'workflow.updated', 'board.workitems.updated'].includes(event.kind) && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
 
@@ -147,6 +147,7 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
+    if (event.kind === 'sprint.participation.updated' && event.changes?.sprintParticipation) { nextState.extensions = { ...nextState.extensions, sprintParticipation: cloneSerializable(event.changes.sprintParticipation.after) }; return nextState; }
     if (event.kind === 'task.comment.published' && typeof event.meta?.commentId === 'string') {
         const previous = nextState.extensions?.conversationRefs;
         nextState.extensions = { ...nextState.extensions, conversationRefs: [...new Set([...(Array.isArray(previous) ? previous : []), event.meta.commentId])] };

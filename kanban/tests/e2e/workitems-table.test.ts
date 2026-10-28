@@ -691,7 +691,7 @@ test.describe('workitems table', () => {
       await expect(page.locator('#portfolioTable .table-summary > span[role="status"]')).toHaveText('1 selected');
 
       await openColumnOptions(page);
-      for (const column of ['status', 'assignees', 'priority', 'phase', 'updatedAt']) {
+      for (const column of ['type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']) {
         await page.locator(`#tableColumn-${column}`).uncheck();
       }
       await page.locator('#tableColumn-dueDate').check();

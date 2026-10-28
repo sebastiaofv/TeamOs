@@ -109,3 +109,10 @@
     .table-column-options { grid-template-columns: minmax(0, 1fr); }
     .table-summary { gap: 6px; font-size: 11px; }
 }
+
+.table-hierarchy-filters { display: flex; gap: 12px; flex-wrap: wrap; padding: 8px 0; color: var(--text-secondary); font-size: 11px; }
+.table-hierarchy-filters label { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.table-hierarchy-filters select { max-width: 260px; min-width: 100px; padding: 5px 8px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
+.table-scroll { min-height: 120px; }
+.table-hierarchy-filter-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 25; width: min(420px, 100%); max-height: var(--table-panel-height, 45dvh); overflow: auto; padding: 12px; border: 1px solid var(--border); background: var(--bg-card); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14); }
+.table-hierarchy-filter-panel .table-hierarchy-filters { padding: 0; }

@@ -1,3 +1,4 @@
+import { WorkitemTree } from '@/features/portfolio/table/WorkitemTree';
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useShallow } from 'zustand/react/shallow';
@@ -86,6 +87,7 @@ function ScopeTable({ scope, view, scopeId }: { scope: RoadmapWorkScope; view: P
     if (!view.boardData) return null;
     return <div className="roadmap-scope-table">
         <ScopeSummary scope={scope} />
+        {/^sprints?:/.test(scope.key) && scope.item && <WorkitemTree data={view.boardData} boardId={view.boardId} sprintId={scope.item.id} readOnly={view.historical} />}
         <WorkitemTable compact hidden={false} boardId={view.boardId} project={`${view.boardTitle}${scope.item ? ` · ${scope.item.title}` : ''}`} boardData={view.boardData}
             sourceRows={scope.rows} canCreate={false} scope={domId(scopeId)} emptyLabel={t('roadmap.noTasksAssigned')} />
     </div>;

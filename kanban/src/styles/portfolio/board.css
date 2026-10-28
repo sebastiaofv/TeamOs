@@ -557,3 +557,29 @@
 .board-column-panel p { margin-bottom: 10px; color: var(--text-secondary); font-size: 11px; }
 .board-column-panel label { display: flex; align-items: center; gap: 8px; padding: 6px 0; color: var(--text-primary); font-size: 12px; }
 .board-columns-empty { width: 100%; padding: 24px; color: var(--text-secondary); background: var(--bg-primary); }
+
+/* Workitem views use the existing theme, buttons and modal primitives. */
+.workitem-board-shell { width: 100%; min-width: 0; overflow: auto; background: var(--bg-primary); }
+.workitem-board-toolbar { display: flex; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); position: sticky; left: 0; }
+.workitem-backlog { padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.workitem-backlog[open] { display: flex; flex-wrap: wrap; gap: 12px; }
+.workitem-swimlane { min-width: max-content; border-bottom: 1px solid var(--border); }
+.workitem-swimlane > h3 { padding: 10px 16px; margin: 0; font-size: 12px; color: var(--text-secondary); background: var(--bg-secondary); }
+.workitem-lane-columns { display: flex; gap: 1px; background: var(--border-light); }
+.workitem-lane-columns .portfolio-column { width: 280px; min-height: 120px; }
+.workitem-lane-columns .portfolio-column-body { overflow: visible; }
+.workitem-card-context { font-size: 10px; color: var(--text-secondary); margin: 6px 0; }
+.workitem-type { display: inline-block; border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; color: var(--text-secondary); background: var(--bg-secondary); font-size: 11px; }
+.workitem-hierarchy { padding: 0 0 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.workitem-field { white-space: pre-wrap; overflow-wrap: anywhere; }
+.workitem-child-section { margin-top: 12px; }
+.workitem-child-section h3 { font-size: 12px; }
+.workitem-child-section ul { padding-left: 20px; }
+.workitem-child-section li { padding: 5px 0; }
+.workitem-tree { border: 1px solid var(--border); border-radius: 6px; margin: 10px 0; padding: 10px; background: var(--bg-card); }
+.workitem-tree details { padding: 6px 0 6px 14px; }
+.workitem-tree li { padding: 5px 0; }
+.workitem-backlog-items { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 8px; width: 100%; }
+.workitem-backlog-items > .portfolio-task-card { width: 280px; max-width: 100%; }
+.workitem-backlog-items > .add-task-card { width: 200px; }
+.workitem-backlog summary { width: 100%; cursor: pointer; }

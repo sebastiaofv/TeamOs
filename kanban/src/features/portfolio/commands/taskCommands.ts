@@ -1,3 +1,5 @@
+import { childrenOf } from '@/domain/workitems';
+import type { WorkitemType } from '@/domain/types';
 // Task editing, details, validation, and undo.
 
 import type { Effort, Priority, TaskRelationKind } from '@/domain/types';
@@ -77,7 +79,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         ));
     }
 
-    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string } = {}) {
+    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string; preferredType?: WorkitemType } = {}) {
         const boardRecord = getBoardRecord(boardId);
         if (!boardRecord) return;
         if (!canUsePortfolioTaskMutations(boardId)) {
@@ -94,13 +96,22 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             portfolioCreateContext: { boardId, status },
             portfolioEditContext: null
         });
-        openDialogFn('taskEditor', buildTaskEditorViewModel(
+        const model = buildTaskEditorViewModel(
             boardRecord,
             null,
             getState().portfolioTasks,
             ++taskEditorOpenCount,
             { preferredDueDate: options.preferredDueDate }
-        ));
+        );
+        model.initial.type = options.preferredType || 'task';
+        openDialogFn('taskEditor', model);
+    }
+
+    function openPortfolioCreateChildTask(boardId: string, parentId: number, type: WorkitemType) {
+        openPortfolioCreateTaskModal(boardId, 'backlog');
+        const vm = getState().dialogProps as import('@/features/portfolio/types').TaskEditorViewModel;
+        if (getState().activeDialog !== 'taskEditor' || !vm?.initial) return;
+        commitState({ dialogProps: { ...vm, initial: { ...vm.initial, type, parentId, phaseMode: 'inherit', milestoneMode: 'inherit' } } });
     }
 
     function closeTaskEditor() {
@@ -176,6 +187,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     async function deletePortfolioTask(boardId: string, taskId: number) {
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return;
+        if (childrenOf(source.boardRecord.data, taskId).length) { await alert(translateCurrent('workitems.error.children')); return; }
         if (!canUsePortfolioTaskMutations(boardId)) {
             notifyPortfolioMutationUnavailable(boardId);
             return;
@@ -407,7 +419,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     // All quick-created tasks start in the reserved Backlog state.
     // fields. Returns the new task id, or null when nothing was created.
     async function createPortfolioTaskFromFields(boardId: string, fields: {
-        title: string; assignees: string[]; priority: Priority | null; tags: string[]; effort: Effort | null; dueDate: string;
+        type?: WorkitemType; title: string; assignees: string[]; priority: Priority | null; tags: string[]; effort: Effort | null; dueDate: string;
     }): Promise<number | null> {
         const boardRecord = getBoardRecord(boardId);
         const title = fields.title.trim();
@@ -420,7 +432,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const now = nowIso();
         const created = await runPortfolioBoardMutation(boardId, (data) => {
             data.board.tasks.push(normalizeTask({
-                id, title, description: '', assignees: fields.assignees, tags: fields.tags,
+                id, title, type: fields.type || 'task', description: '', assignees: fields.assignees, tags: fields.tags,
                 priority: fields.priority, effort: fields.effort, dueDate: fields.dueDate,
                 status: resolveCreateTaskStatus(boardRecord, 'to-do'), archived: false,
                 createdAt: now, updatedAt: now
@@ -469,7 +481,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     return {
         openPortfolioTaskDetails,
         editPortfolioTask,
-        openPortfolioCreateTaskModal,
+        openPortfolioCreateTaskModal, openPortfolioCreateChildTask,
         openPortfolioCreateRelatedTask,
         closeTaskEditor,
         closeTaskDetail,

@@ -1,3 +1,4 @@
+import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openFiltersPanel, portfolioCard } from '../support/portfolio';
 
@@ -6,7 +7,7 @@ test('planning view selects eligible workitems and reuses sprint creation withou
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Planning', hasHandle: true, tasks: [
     { id: 1, title: 'Plan A', status: 'backlog' }, { id: 2, title: 'Plan B', status: 'doing' },
     { id: 3, title: 'Completed', status: 'done' }, { id: 4, title: 'Already planned', status: 'to-do', sprintId: 's1' }
-  ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [{ id: 's1', title: 'Existing', startDate: '2026-10-01', endDate: '2026-10-14' }] } } }], { selectedBoardId: 'p' });
+  ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [{ id: 's1', title: 'Existing', startDate: '2026-10-01', endDate: '2099-10-14' }] } } }], { selectedBoardId: 'p' });
   await page.locator('[data-view-mode="table"]').click();
   await page.getByRole('button', { name: 'Unplanned workitems', exact: true }).click();
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
@@ -16,6 +17,7 @@ test('planning view selects eligible workitems and reuses sprint creation withou
   await page.locator('#roadmapEntityStartDate').fill('2026-11-01');
   await page.locator('#roadmapEntityEndDate').fill('2026-11-14');
   await page.getByRole('button', { name: 'Save Item', exact: true }).click();
+  await confirmWorkitemChanges(page);
   await waitForBoardWrites(page);
   const saved = await readSavedBoard(page, 'p');
   expect(saved.board.tasks.slice(0, 2)).toMatchObject([{ id: 1, status: 'backlog', sprintId: 'sprint-from-table' }, { id: 2, status: 'doing', sprintId: 'sprint-from-table' }]);
@@ -129,6 +131,7 @@ test('planning cancellation preserves items and table selection stays independen
   await page.locator('#roadmapEntityStartDate').fill('2026-11-01');
   await page.locator('#roadmapEntityEndDate').fill('2026-11-14');
   await page.getByRole('button', { name: 'Save Item', exact: true }).click();
+  await confirmWorkitemChanges(page);
   await waitForBoardWrites(page);
   const saved = await readSavedBoard(page, 'p');
   expect(saved.board.tasks[0].sprintId).toBe('only-table-selection');

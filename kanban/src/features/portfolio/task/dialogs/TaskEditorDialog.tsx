@@ -1,3 +1,4 @@
+import { WORKITEM_TYPES, validParent } from '@/domain/workitems';
 import { useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { TaskEditorFields, TaskEditorViewModel } from '@/features/portfolio/types';
@@ -110,13 +111,22 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
         <>
             <div className="modal-header">
                 <Dialog.Title asChild>
-                    <span className="modal-title" id="modalTitle">{vm.heading}</span>
+                    <span className="modal-title" id="modalTitle">{form.type && form.type !== 'task' ? `${t(vm.editing ? 'common.edit' : 'common.new')} ${t(`workitems.type.${form.type}`)}` : vm.heading}</span>
                 </Dialog.Title>
                 <Dialog.Close className="modal-close" id="taskModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
             </div>
             <div className="modal-body">
                 <form id="taskForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                     {vm.relationNotice && <p className="relation-preview" role="status">{vm.relationNotice} · Backlog</p>}
+                    <div className="form-row">
+                        <div className="form-group"><label htmlFor="workitemType">{t('workitems.type')}</label><select id="workitemType" value={form.type || 'task'} disabled={vm.editing} onChange={(event) => {
+                            const type = event.target.value as NonNullable<TaskEditorFields['type']>;
+                            setForm((current) => ({ ...current, type, parentId: null, ...(type === 'epic' ? { effort: '', pullRequests: [] } : {}) }));
+                        }}>{WORKITEM_TYPES.map((type) => <option key={type} value={type}>{t(`workitems.type.${type}`)}</option>)}</select></div>
+                        {['story', 'task'].includes(form.type || 'task') && <div className="form-group"><label htmlFor="workitemParent">{t('workitems.parent')}</label><select id="workitemParent" value={form.parentId || ''} onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value ? Number(event.target.value) : null, phaseMode: event.target.value && !current.phaseId ? 'inherit' : current.phaseMode, milestoneMode: event.target.value && !current.milestoneId ? 'inherit' : current.milestoneMode }))}>
+                            <option value="">{t('common.none')}</option>{vm.parentCandidates?.filter((parent) => validParent(form.type || 'task', parent)).map((parent) => <option key={parent.id} value={parent.id}>#{parent.id} {parent.title}</option>)}
+                        </select></div>}
+                    </div>
                     <div className="form-group">
                         <label className="required" htmlFor="taskName">{t('task.taskName')}</label>
                         <input type="text" id="taskName" ref={nameRef} required maxLength={80} {...bind('title')} />
@@ -125,6 +135,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         <label htmlFor="taskDescription">{t('task.description')}</label>
                         <textarea id="taskDescription" {...bind('description')} />
                     </div>
+                    {(form.type === 'epic' ? ['objective', 'scope', 'businessValue'] as const : form.type === 'story' ? ['acceptanceCriteria'] as const : form.type === 'bug' ? ['stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment'] as const : []).map((field) => <div className="form-group" key={field}><label htmlFor={`workitem-${field}`}>{t(`workitems.${field}`)}</label><textarea id={`workitem-${field}`} value={form[field] || ''} onChange={(event) => update(field, event.target.value)} /></div>)}
                     <div className="form-group">
                         <label htmlFor="taskBlocked">{t('task.blocked')}</label>
                         <div className="form-checkbox-row">
@@ -169,7 +180,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             otherAttachmentBytes={vm.otherAttachmentBytes}
                         />
                     </div>
-                    <PullRequestLinks value={form.pullRequests || []} onChange={(next) => update('pullRequests', next)} draft />
+                    {form.type !== 'epic' && <PullRequestLinks value={form.pullRequests || []} onChange={(next) => update('pullRequests', next)} draft />}
                     <div className="form-group">
                         <label htmlFor="taskDueDate">{t('task.due')}</label>
                         <input type="date" id="taskDueDate" ref={dueDateRef} {...bind('dueDate')} />
@@ -181,24 +192,26 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                                 {PRIORITY_OPTIONS.map(([optionValue, label]) => <option key={label} value={optionValue}>{label === 'None' ? t('common.none') : label === 'High' ? t('toolbar.high') : label === 'Medium' ? t('toolbar.medium') : label === 'Low' ? t('toolbar.low') : label}</option>)}
                             </select>
                         </div>
-                        <div className="form-group">
+                        {form.type !== 'epic' && <div className="form-group">
                             <label htmlFor="taskEffort">{t('task.effort')}</label>
                             <select id="taskEffort" {...bind('effort')}>
                                 {EFFORT_OPTIONS.map(([optionValue, label]) => <option key={label} value={optionValue}>{label === 'None' ? t('common.none') : label}</option>)}
                             </select>
-                        </div>
+                        </div>}
                     </div>
                     <div className="form-row">
                         <div className="form-group">
                             <label htmlFor="taskPhase">{t('task.phase')}</label>
-                            <select id="taskPhase" {...bind('phaseId')}>
+                            <select id="taskPhase" value={form.phaseMode === 'inherit' ? '@inherit' : form.phaseId} onChange={(event) => setForm((current) => ({ ...current, phaseId: event.target.value === '@inherit' ? '' : event.target.value, phaseMode: event.target.value === '@inherit' ? 'inherit' : event.target.value ? 'explicit' : 'none' }))}>
+                                {form.parentId && <option value="@inherit">{t('workitems.inherit')}</option>}
                                 <option value="">{t('common.none')}</option>
                                 {vm.phaseOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                             </select>
                         </div>
                         <div className="form-group">
                             <label htmlFor="taskMilestone">{t('task.milestone')}</label>
-                            <select id="taskMilestone" {...bind('milestoneId')}>
+                            <select id="taskMilestone" value={form.milestoneMode === 'inherit' ? '@inherit' : form.milestoneId} onChange={(event) => setForm((current) => ({ ...current, milestoneId: event.target.value === '@inherit' ? '' : event.target.value, milestoneMode: event.target.value === '@inherit' ? 'inherit' : event.target.value ? 'explicit' : 'none' }))}>
+                                {form.parentId && <option value="@inherit">{t('workitems.inherit')}</option>}
                                 <option value="">{t('common.none')}</option>
                                 {vm.milestoneOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                             </select>
@@ -208,7 +221,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
             </div>
             <div className="modal-footer">
                 <Dialog.Close className="btn" id="taskModalCancelBtn">{t('common.cancel')}</Dialog.Close>
-                <button className="btn btn-primary" id="taskModalSaveBtn" onClick={submit}>{t('task.save')}</button>
+                <button className="btn btn-primary" id="taskModalSaveBtn" onClick={submit}>{t(form.type && form.type !== 'task' ? 'common.save' : 'task.save')}</button>
             </div>
         </>
     );

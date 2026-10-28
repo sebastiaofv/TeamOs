@@ -767,3 +767,23 @@ test.describe('US-8 dedicated Pull Requests tab', () => {
     }
   }
 });
+
+test.describe('US-12 workitem detail and functional acceptance', () => {
+  for (const theme of ['light', 'dark']) test(`Story and acceptance follow the existing theme (${theme})`, async ({ page }) => {
+    await gotoVisualApp(page, theme);
+    const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
+    await seedPortfolioBoards(page, [{ id: 'us12', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us12' });
+    await page.locator('[data-view-mode="table"]').click();
+    await page.locator('[data-table-view="stories"]').click();
+    await page.locator('#workitemsTable tr[data-task-id="1202"]').getByRole('button', { name: 'Pagar com cartão', exact: true }).click();
+    await expect(page.locator('#taskDetailModal')).toHaveScreenshot(`us12-story-${theme}.png`, { animations: 'disabled' });
+    await page.locator('#taskDetailModalFooterCloseBtn').click();
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.locator('#commandPaletteInput').fill('#1207');
+    await page.keyboard.press('ArrowDown'); await page.keyboard.press('Tab');
+    await page.locator('#commandPaletteInput').fill('Done');
+    await page.locator('.palette-item').filter({ hasText: /Move to Done/i }).first().click();
+    await expect(page.locator('#appMessageModal')).toHaveScreenshot(`us12-acceptance-${theme}.png`, { animations: 'disabled' });
+    await answerAppMessage(page, { button: 'Cancel' });
+  });
+});

@@ -15,7 +15,8 @@ export function TaskPlanning({ readOnly }: { readOnly: boolean }) {
     return <section className="task-planning"><h3>{t('roadmap.planning')}</h3><div className="form-row">
         {(['phaseId', 'milestoneId'] as const).map((field) => <div className="form-group" key={field}>
             <label htmlFor={`detailPlanning-${field}`}>{t(field === 'phaseId' ? 'task.phase' : 'task.milestone')}</label>
-            <select id={`detailPlanning-${field}`} value={task[field] || ''} onChange={(e) => void setPortfolioTaskPlanning(context.boardId, task.id, field, e.target.value)}>
+            <select id={`detailPlanning-${field}`} value={(field === 'phaseId' ? task.phaseMode : task.milestoneMode) === 'inherit' ? '@inherit' : task[field] || ''} onChange={(e) => void setPortfolioTaskPlanning(context.boardId, task.id, field, e.target.value)}>
+                {task.parentId && <option value="@inherit">{t('workitems.inherit')}</option>}
                 <option value="">{t('common.none')}</option>
                 {(field === 'phaseId' ? roadmap?.phases.filter((phase) => isLeafPhase(roadmap.phases, phase.id)) : roadmap?.milestones)?.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
             </select>

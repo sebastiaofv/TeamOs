@@ -1,3 +1,4 @@
+import { WorkitemAutomationSettings } from '@/features/portfolio/board/WorkitemAutomationSettings';
 import type { CSSProperties } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardRecord, PortfolioFilters, ProjectSaveState } from '@/features/portfolio/types';
@@ -182,7 +183,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                 </div>
             </div>
             <div className="portfolio-toolbar-right">
-                <WorkflowSettings />
+                <WorkflowSettings /><WorkitemAutomationSettings />
                 <BoardColumnMenu />
                 <div className={`portfolio-view-toggle${hasBoards ? '' : ' hidden'}`} id="portfolioViewModeToggle" role="group" aria-label={t('toolbar.selectedProjectViewMode')}>
                     <button

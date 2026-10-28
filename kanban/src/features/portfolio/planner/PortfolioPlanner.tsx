@@ -161,13 +161,14 @@ function ConnectedPlanner() {
         activeLanguage: s.activeLanguage
     })));
     const actions = usePortfolioActions();
+    const [includeParents, setIncludeParents] = useState(false);
     const [trayStatuses, setTrayStatuses] = useState<TaskStatus[]>(DEFAULT_TRAY_STATUSES);
     const [preview, setPreview] = useState<PlannerDropPreview | null>(null);
     const [activeItem, setActiveItem] = useState<PlannerTrayItem | null>(null);
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
     const now = useNow();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const model = buildPortfolioPlannerViewModel(state, { today: todayLocalIsoDate(), trayStatuses });
+    const model = buildPortfolioPlannerViewModel(state, { today: todayLocalIsoDate(), trayStatuses, includeParents });
 
     const sensors = useSensors(
         // A short move before dragging keeps clicks on the card working.
@@ -244,7 +245,7 @@ function ConnectedPlanner() {
         >
             <PlannerHeader model={model} />
             <div className="planner-body">
-                <PlannerTray groups={model.trayGroups} statuses={trayStatuses} onToggleStatus={toggleStatus} />
+                <PlannerTray includeParents={includeParents} onIncludeParents={setIncludeParents} groups={model.trayGroups} statuses={trayStatuses} onToggleStatus={toggleStatus} />
                 <PlannerGrid
                     model={withDraft(model, gesture.draft)}
                     nowMinutes={nowMinutes}

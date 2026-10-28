@@ -65,11 +65,12 @@ export function planningTaskCategory(task: Pick<Task, 'status'>, data?: LooseBoa
     return (Array.isArray(workflow?.states) ? workflow.states.find((state) => state.id === task.status)?.category : undefined) || (task.status === 'done' ? 'completed' : 'not-started');
 }
 
-export function planningProgress(tasks: readonly Task[], data?: LooseBoardData | null) {
+export function planningProgress(tasks: readonly Task[], data?: LooseBoardData | null, options: { leavesOnly?: boolean } = {}) {
     const unique = [...new Map(tasks.map((task) => [task.id, task])).values()];
-    const cancelled = unique.filter((task) => planningTaskCategory(task, data) === 'cancelled').length;
-    const eligible = unique.length - cancelled;
-    const completed = unique.filter((task) => planningTaskCategory(task, data) === 'completed').length;
+    const leaves = options.leavesOnly !== false && data?.board?.tasks && Array.isArray(data.board.tasks) ? unique.filter((task) => !(data.board!.tasks as Task[]).some((child) => child.parentId === task.id)) : unique;
+    const cancelled = leaves.filter((task) => planningTaskCategory(task, data) === 'cancelled').length;
+    const eligible = leaves.length - cancelled;
+    const completed = leaves.filter((task) => planningTaskCategory(task, data) === 'completed').length;
     return { associated: unique.length, eligible, completed, cancelled, percent: eligible ? completed / eligible * 100 : null };
 }
 
@@ -103,6 +104,7 @@ export function deletePlanningGroup(data: BoardData, kind: 'phases' | 'milestone
     if (affected.length && (relocation === undefined || (relocation && !destinations.some((item) => item.id === relocation)))) throw new Error('Choose a valid destination, or explicitly clear the affected assignments.');
     const at = nowIso();
     affected.forEach((task) => { task[field] = relocation || ''; task.updatedAt = at; });
+    if (kind === 'phases') roadmap.sprints.forEach((sprint) => { if (sprint.parentId === id) delete sprint.parentId; });
     roadmap[kind] = roadmap[kind].filter((item) => item.id !== id);
     recalculatePhaseDates(roadmap.phases);
 }

@@ -1,3 +1,4 @@
+import { isPlanningUnit } from '@/domain/workitems';
 import type {
     PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope
 } from '@/features/portfolio/types';
@@ -35,7 +36,7 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
     const scope = (key: string, item: RoadmapItem | null, input: Task[]): RoadmapWorkScope => {
         const tasks = [...new Map(input.map((task) => [task.id, task])).values()];
         return { key, item, tasks, rows: tasks.flatMap((task) => byId.get(task.id) ? [byId.get(task.id)!] : []),
-            visibleCount: tasks.filter((task) => taskMatchesPortfolioFilters(task, filters, boardData)).length, progress: planningProgress(tasks, boardData) };
+            visibleCount: tasks.filter((task) => taskMatchesPortfolioFilters(task, filters, boardData)).length, progress: /^sprints?:/.test(key) && boardData ? planningProgress(tasks.filter((task) => isPlanningUnit(boardData, task)), boardData, { leavesOnly: false }) : planningProgress(tasks, boardData) };
     };
     function grouped(tasks: Task[], kind: 'sprints' | 'milestones'): RoadmapWorkScope[] {
         const field = kind === 'sprints' ? 'sprintId' : 'milestoneId';
@@ -48,9 +49,9 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
     const phaseRows: RoadmapPlanningRow[] = tree.map(({ item, depth, hasChildren }) => {
         const tasks = getRoadmapTaskFieldTasks(boardData, 'phaseId', item.id);
         return { ...scope(`phase:${item.id}`, item, tasks), kind: 'phases', depth, hasChildren, treeCollapsed: Boolean(expanded[`tree:${item.id}`]), expanded: Boolean(expanded[`phase:${item.id}`]),
-            sprintGroups: grouped(tasks, 'sprints'), milestoneGroups: grouped(tasks, 'milestones') };
+            sprintGroups: [...grouped(tasks, 'sprints'), ...roadmap.sprints.filter((sprint) => sprint.parentId === item.id && !tasks.some((task) => task.sprintId === sprint.id)).map((sprint) => scope(`sprint:${sprint.id}`, sprint, getRoadmapTaskFieldTasks(boardData, 'sprintId', sprint.id)))], milestoneGroups: grouped(tasks, 'milestones') };
     });
-    const sprintRows: RoadmapPlanningRow[] = [...roadmap.sprints].sort(compareRoadmapItemsByDate).map((item) => ({ ...scope(`sprint:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'sprintId', item.id)),
+    const sprintRows: RoadmapPlanningRow[] = roadmap.sprints.filter((sprint) => !sprint.parentId || !roadmap.phases.some((phase) => phase.id === sprint.parentId)).sort(compareRoadmapItemsByDate).map((item) => ({ ...scope(`sprint:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'sprintId', item.id)),
         kind: 'sprints', depth: 0, hasChildren: false, treeCollapsed: false, expanded: Boolean(expanded[`sprint:${item.id}`]), sprintGroups: [], milestoneGroups: [] }));
     const milestones: RoadmapMilestoneMarker[] = roadmap.milestones.map((item, index) => ({ ...item, color: milestoneColor(item, index) })).sort(compareRoadmapItemsByDate).map((item) => {
         return { ...scope(`milestone:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'milestoneId', item.id)), position: getRoadmapTimelinePlacement(item, range)?.point || 0 };
