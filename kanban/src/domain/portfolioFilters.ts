@@ -27,7 +27,6 @@ export const DEFAULT_PORTFOLIO_FILTERS: Readonly<PortfolioFilters> = Object.free
 
 const PRIORITY_FILTER_VALUES: readonly PortfolioFilters['priority'][] = ['', 'high', 'medium', 'low'];
 const EFFORT_FILTER_VALUES: readonly PortfolioFilters['effort'][] = ['', ...EFFORT_BUCKETS];
-const STATUS_FILTER_VALUES: readonly TaskStatus[] = ['backlog', 'to-do', 'doing', 'done'];
 
 function includesValue<T>(values: readonly T[], value: unknown): value is T {
     return (values as readonly unknown[]).includes(value);
@@ -43,7 +42,7 @@ export function normalizePortfolioFilterValue<K extends PortfolioFilterName>(nam
     else if (name === 'effort') normalized = includesValue(EFFORT_FILTER_VALUES, value) ? value : '';
     else if (name === 'statuses') {
         const statuses = Array.isArray(value)
-            ? [...new Set(value.filter((status): status is TaskStatus => includesValue(STATUS_FILTER_VALUES, status)))] : [];
+            ? [...new Set(value.filter((status): status is TaskStatus => typeof status === 'string' && Boolean(status.trim())))] : [];
         // Preserve unchanged selections so board edits do not reset pagination.
         normalized = Array.isArray(value) && statuses.length === value.length
             && statuses.every((status, index) => status === value[index]) ? value : statuses;

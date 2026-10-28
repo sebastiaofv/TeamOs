@@ -35,6 +35,7 @@ import { formatDateTime, formatDueDateForUi, normalizeDueDate } from '@/domain/c
 import { formatFileSize } from '@/domain/util';
 import { getCurrentLanguage, translateCurrent } from '@/shared/i18n';
 import { parsePullRequestLinks, PullRequestLinkError } from '@/domain/pullRequests';
+import { getWorkflow } from '@/domain/workflow';
 import { projectTaskHistory } from '@/domain/taskHistory';
 import { isTaskBlocked } from '@/domain/taskRelations';
 import { buildTaskRelationView } from '@/features/portfolio/queries/taskRelationViews';
@@ -99,7 +100,7 @@ export function buildTaskEditorViewModel(
         const ref = normalizeRoadmapRef(value);
         return optionList.some((option) => option.value === ref) ? ref : '';
     };
-    const normalized = task ? normalizeTask(task) : null;
+    const normalized = task ? normalizeTask(task, { workflow: getWorkflow(boardRecord.data) }) : null;
     const initial: TaskEditorFields = normalized
         ? {
             title: normalized.title || '',
@@ -150,7 +151,7 @@ export function buildTaskEditorViewModel(
 }
 
 export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, historyEventIndex?: number): TaskDetailViewModel {
-    const task = normalizeTask(source.task);
+    const task = normalizeTask(source.task, { workflow: getWorkflow(source.boardData) });
     const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {

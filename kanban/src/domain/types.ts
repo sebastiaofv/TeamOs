@@ -1,7 +1,17 @@
 // Stable domain values: board files, tasks, roadmap and timeline data.
 import type { Conversations } from './comments';
+import type { BoardViewPreferences } from './boardView';
 
-export type TaskStatus = 'backlog' | 'to-do' | 'doing' | 'done';
+export type TaskStatus = string;
+export type WorkflowCategory = 'backlog' | 'to-do' | 'in-progress' | 'completed' | 'cancelled';
+export type WorkflowState = { id: string; name: string; color: string; category: WorkflowCategory };
+export type Workflow = {
+    version: 2;
+    states: WorkflowState[];
+    entryStateId: string;
+    references: Partial<Record<WorkflowCategory, string>>;
+    transitions: Record<string, string[]>;
+};
 export type Priority = 'high' | 'medium' | 'low';
 export type Effort = 'XS' | 'S' | 'M' | 'L' | 'XL';
 
@@ -140,6 +150,8 @@ export type BoardExtensions = {
     [key: string]: unknown;
     conversations?: Conversations;
     project?: ProjectData;
+    boardView?: BoardViewPreferences;
+    workflow?: Workflow;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;

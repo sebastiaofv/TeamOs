@@ -14,12 +14,14 @@ import {
     type TableColumnId
 } from './tableModel';
 import { clearTableFilters, setTableSort } from './tableControls';
-import { PRIORITY_LABELS, STATUS_LABELS, COLUMN_LABELS } from './tableLabels';
+import { PRIORITY_LABELS, COLUMN_LABELS } from './tableLabels';
 import { useTableDisclosure } from './useTableDisclosure';
 import { formatTableTimestamp } from './tablePresentation';
 import { buildSprintTableGroups, currentSprintRosters, unplannedTableRows, type SprintTableGroup, type TableView } from './tableViews';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
+import { getWorkflow } from '@/domain/workflow';
+import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
     const state = useAppStore(useShallow((s) => ({
@@ -77,7 +79,7 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
         <summary>
             <span className="table-sprint-name">{t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}</span>
             <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
-            <span>{completeness} ({group.completed}/{group.total})</span>
+            <span>{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
             <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
         </summary>
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
@@ -92,6 +94,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const today = useLocalToday();
     const hasAssignableSprints = planning && buildAssignableSprintOptions(boardData, today, language).length > 0;
     const actions = usePortfolioActions();
+    const workflow = useMemo(() => getWorkflow(boardData), [boardData]);
     const columnDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
     const [columns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
@@ -146,7 +149,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     function cellText(row: PortfolioRow, column: TableColumnId): string {
         const value = tableCellValue(row, column, boardData);
         if (!value) return t('table.notDefined');
-        if (column === 'status') return t(STATUS_LABELS[row.task.status]);
+        if (column === 'status') return row.columnTitle || row.task.status;
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
         if (column === 'blocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
         if (column === 'createdAt' || column === 'updatedAt') return formatTableTimestamp(value) || t('table.notDefined');
@@ -237,7 +240,9 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                             {columns.map((column) => <td key={column} data-column={column}>
                                 {column === 'id' || column === 'title'
                                     ? <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
-                                    : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${column === 'status' ? ` table-status-badge status-${row.task.status}` : ''}${column === 'blocked' && row.task.blocked ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
+                                    : column === 'status' && workflow.states.some((state) => state.id === row.task.status)
+                                        ? <WorkflowStateBadge state={workflow.states.find((state) => state.id === row.task.status)!} />
+                                        : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${column === 'blocked' && row.task.blocked ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
                             </td>)}
                         </tr>)}</tbody>
                     </table>

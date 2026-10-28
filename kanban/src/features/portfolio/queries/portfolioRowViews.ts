@@ -3,6 +3,7 @@ import type { BoardData } from '@/domain/types';
 import type { AppState } from '@/features/portfolio/state/slices';
 import { normalizeTask } from '@/domain/task';
 import { createBoardStateSnapshot } from '@/domain/serialize';
+import { getWorkflow } from '@/domain/workflow';
 import { getDependencyBlockedTaskIds } from '@/domain/taskRelations';
 
 // Selectors accept any slice of the store: components pass the fields they
@@ -35,7 +36,7 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
             columnTitle: statusMap[task.status] || task.status,
             canMutate: Boolean(board.handle),
             boardData: board.data,
-            task: { ...normalizeTask(task), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
+            task: { ...normalizeTask(task, { workflow: getWorkflow(board.data) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
         }));
     });
 }
@@ -63,6 +64,6 @@ export function buildPortfolioRowsFromBoardData(
         canMutate,
         historical,
         boardData: normalizedBoard,
-        task: { ...normalizeTask(task), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
+        task: { ...normalizeTask(task, { workflow: getWorkflow(normalizedBoard) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
     }));
 }

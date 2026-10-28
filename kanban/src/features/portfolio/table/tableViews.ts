@@ -2,6 +2,7 @@ import type { BoardData, RoadmapItem, SprintIdentity } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getSprintCatalog } from '@/domain/sprintCatalog';
 import { getSprintCalendarStatus, type SprintCalendarStatus } from '@/domain/roadmap';
+import { statusCategory } from '@/domain/workflow';
 
 export type TableView = 'all' | 'unplanned' | 'sprints';
 export type { SprintCalendarStatus } from '@/domain/roadmap';
@@ -21,13 +22,14 @@ export type SprintTableGroup = SprintTableRoster & {
     status: SprintCalendarStatus;
     total: number;
     completed: number;
+    cancelled: number;
     completeness: number | null;
     number: number;
     createdAt: string | null;
 };
 
 export function unplannedTableRows(rows: PortfolioRow[]): PortfolioRow[] {
-    return rows.filter(({ task }) => task.status !== 'done' && !task.sprintId);
+    return rows.filter(({ task, boardData }) => !['completed', 'cancelled'].includes(statusCategory(task.status, boardData)) && !task.sprintId);
 }
 
 /** Compatibility adapter for today's schema; historical membership belongs in a future adapter. */
@@ -47,11 +49,13 @@ export function currentSprintRosters(boardData: BoardData, rows: PortfolioRow[])
 export function buildSprintTableGroups(rosters: SprintTableRoster[], today: string): SprintTableGroup[] {
     return rosters.map((roster, index): SprintTableGroup => {
         const rows = [...new Map(roster.rows.map((row) => [row.taskId, row])).values()];
-        const completed = rows.filter(({ task }) => task.status === 'done').length;
+        const completed = rows.filter(({ task }) => statusCategory(task.status, roster.boardData) === 'completed').length;
+        const cancelled = rows.filter(({ task }) => statusCategory(task.status, roster.boardData) === 'cancelled').length;
+        const eligible = rows.length - cancelled;
         const status = roster.source === 'closure' ? 'done' : getSprintCalendarStatus(roster.sprint, today);
         return {
             ...roster, rows: roster.source === 'closure' ? rows.map((row) => ({ ...row, historical: true, canMutate: false, boardData: roster.boardData })) : rows,
-            status, completed, total: rows.length, completeness: rows.length ? completed / rows.length * 100 : null,
+            status, completed, cancelled, total: rows.length, completeness: eligible ? completed / eligible * 100 : null,
             number: roster.identity?.number ?? index + 1, createdAt: roster.identity?.createdAt ?? null
         };
     }).sort((a, b) => {

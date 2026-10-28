@@ -2,6 +2,7 @@
 // keydown dispatcher, and the card/project navigation actions they trigger.
 
 import type { TaskStatus } from '@/domain/types';
+import { getWorkflow } from '@/domain/workflow';
 import type { CardRef, DialogName, PortfolioRow } from '@/features/portfolio/types';
 import type { DetailContext } from '@/features/portfolio/state/slices';
 import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
@@ -231,7 +232,11 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
         contexts: ['global'],
         match: (event) => noModifiers(event) && event.key === key,
         when: canMutateTargetRow,
-        handler: withTargetRow((row) => { void actions.movePortfolioTaskToStatus(row.boardId, row.taskId, status); })
+        handler: withTargetRow((row) => {
+            const workflow = getWorkflow(row.boardData || getState().portfolioBoards.find((b) => b.id === row.boardId)?.data);
+            const destination = status === 'backlog' ? 'backlog' : status === 'to-do' ? workflow.entryStateId : workflow.references[status === 'doing' ? 'in-progress' : 'completed'];
+            if (destination) void actions.movePortfolioTaskToStatus(row.boardId, row.taskId, destination);
+        })
     })),
     {
         id: 'open-planner', section: 'Day Planner', keys: ['P'], description: 'Open the Day Planner', contexts: ['global'],

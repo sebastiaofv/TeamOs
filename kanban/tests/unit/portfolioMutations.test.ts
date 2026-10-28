@@ -5,9 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
 import { getPortfolioBulkTaskIds } from '../../src/features/portfolio/queries';
+import { legacyWorkflow } from '../../src/domain/workflow';
 
 function createBoard() {
   const data = createEmptyProjectData('Project');
+  data.extensions.workflow = legacyWorkflow();
+  data.board.columns = data.extensions.workflow.states.map((state) => ({ status: state.id, title: state.name }));
   data.board.tasks.push(fromPartial({
     id: 1,
     title: 'Existing task',

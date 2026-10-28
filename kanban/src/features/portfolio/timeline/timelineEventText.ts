@@ -22,6 +22,7 @@ const ROADMAP_WORDS = {
 const TASK_COUNT_WORDS = { tasks: ['common.task', 'common.tasks'] } as const;
 
 const DESCRIPTORS: Record<string, readonly Descriptor[]> = {
+    'board.columns.visibility.changed': [{ key: 'board.columnVisibilityChanged' }],
     'board.baseline': [{ key: 'timeline.baselineCreated' }],
     'board.restored': [{ key: 'timeline.boardRestored' }],
     'task.created': [{ key: 'timeline.taskCreated' }],

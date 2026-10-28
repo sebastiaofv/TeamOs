@@ -5,6 +5,7 @@ import type { RoadmapEntityMode, SelectOption } from '@/features/portfolio/types
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
 import { touchTask } from '@/domain/task';
+import { statusCategory } from '@/domain/workflow';
 import {
     createEmptyRoadmapExtension,
     formatRoadmapDateRange,
@@ -134,7 +135,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const unplannedTaskIds = getState().roadmapEntityContext?.unplannedTaskIds;
         const selectedTaskIds = unplannedTaskIds || getSelectedPortfolioBulkTaskIds(boardId);
         if (selectedTaskIds.length === 0) return false;
-        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && task.status !== 'done' && !task.sprintId))) {
+        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardRecord.data)) && !task.sprintId))) {
             alert(translateCurrent('table.selectionChanged'));
             return false;
         }
@@ -201,7 +202,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 alert(translateCurrent('roadmapDialog.sprintUnavailable'));
                 return false;
             }
-            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && task.status !== 'done' && !task.sprintId))) {
+            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardData)) && !task.sprintId))) {
                 alert(translateCurrent('table.selectionChanged'));
                 return false;
             }

@@ -6,7 +6,7 @@ import type {
 } from './types';
 import type { PortfolioRow, PortfolioSortKey, PortfolioViewMode, SortDir } from '@/features/portfolio/types';
 import { compareText, hasExactKeys, normalizeTimestamp, nowIso } from './util';
-import { isAcceptedLegacyAssigneeValue, normalizeAssignee, taskHasAssignee, normalizeBlockerReason, normalizeTaskStatus, resolveKnownTaskStatus } from './task';
+import { isAcceptedLegacyAssigneeValue, normalizeAssignee, taskHasAssignee, normalizeBlockerReason, resolveKnownTaskStatus } from './task';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, ROADMAP_EXTENSION_KEY, TASK_TITLE_MAX_LENGTH, TIMELINE_EXTENSION_KEY, defaultColumns, isArchiveFilter, isEffort } from './constants';
 import { comparePortfolioDueDateAsc } from './calendar';
 import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
@@ -17,6 +17,8 @@ import { parseSprintCatalog } from '@/domain/sprintCatalog';
 import { createProjectData, parseProjectData, validateProjectReferences } from '@/domain/projectData';
 import { isLeafPhase } from './phaseTree';
 import { parsePullRequestLinks, validatePullRequestTimeline } from './pullRequests';
+import { parseBoardView } from './boardView';
+import { parseWorkflow, defaultWorkflow, getWorkflow } from './workflow';
 import { parseTaskIdentityReservation } from './taskIdentity';
 import { parseConversations } from './comments';
 
@@ -128,13 +130,13 @@ export function createEmptyProjectData(title: string | null | undefined): BoardD
             updatedAt: now
         },
         board: {
-            columns: normalizeColumns(defaultColumns).map(col => ({ status: col.status, title: col.title })),
+            columns: defaultWorkflow().states.map(s => ({ status: s.id, title: s.name })),
             tasks: [],
             settings: {
                 title: projectTitle
             }
         },
-        extensions: { project: createProjectData() }
+        extensions: { project: createProjectData(), workflow: defaultWorkflow() }
     };
 }
 
@@ -145,13 +147,9 @@ export function isAcceptedBoardSettingsShape(settings: unknown): settings is Rec
 export function comparePortfolioRows(a: PortfolioRow, b: PortfolioRow, sortBy: unknown, sortDir: unknown): number {
     const key = normalizePortfolioSortKey(sortBy);
     const dir = normalizePortfolioSortDir(sortDir);
-    const statusRank = (value: unknown) => {
-        const normalized = normalizeTaskStatus(value);
-        if (normalized === 'backlog') return 0;
-        if (normalized === 'to-do') return 1;
-        if (normalized === 'doing') return 2;
-        if (normalized === 'done') return 3;
-        return 99;
+    const statusRank = (row: PortfolioRow) => {
+        const index = getWorkflow(row.boardData).states.findIndex((state) => state.id === row.task.status);
+        return index >= 0 ? index : 99;
     };
 
     let base = 0;
@@ -163,7 +161,7 @@ export function comparePortfolioRows(a: PortfolioRow, b: PortfolioRow, sortBy: u
     } else if (key === 'task') {
         base = compareText(a.task.title || '', b.task.title || '');
     } else if (key === 'column') {
-        base = statusRank(a.task.status) - statusRank(b.task.status);
+        base = statusRank(a) - statusRank(b);
     } else if (key === 'priority') {
         base = priorityRank(a.task.priority) - priorityRank(b.task.priority);
     } else if (key === 'effort') {
@@ -228,9 +226,6 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     if (!Array.isArray(data.board.columns) || data.board.columns.length === 0) {
         throw new Error('Board must include at least one column.');
     }
-    if (data.board.columns.length > MAX_COLUMNS) {
-        throw new Error(`Board cannot have more than ${MAX_COLUMNS} columns.`);
-    }
     if (!Array.isArray(data.board.tasks)) {
         throw new Error('Board tasks must be an array.');
     }
@@ -255,7 +250,13 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     if (!extensions || typeof extensions !== 'object' || Array.isArray(extensions)) {
         throw new Error('Invalid extensions structure.');
     }
+    if (!('workflow' in extensions) && data.board.columns.length > MAX_COLUMNS) throw new Error(`Board cannot have more than ${MAX_COLUMNS} legacy columns.`);
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
+    parseBoardView((extensions as Record<string, unknown>).boardView, new Set(getWorkflow({ extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } }).states.map((state) => state.id)));
+    if ('workflow' in extensions) {
+        const workflow = parseWorkflow(extensions.workflow);
+        if (data.board.columns.length !== workflow.states.length || data.board.columns.some((col, index) => col.status !== workflow.states[index].id || col.title !== workflow.states[index].name)) throw new Error('Workflow columns do not match states.');
+    }
     parseTaskIdentityReservation((extensions as Record<string, unknown>).taskIdentity);
     parseConversations((extensions as Record<string, unknown>).conversations, normalizeTimelineExtension((extensions as Record<string, unknown>).timeline)?.events);
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
