@@ -28,7 +28,7 @@ test.describe('US-4 workflow configuration layout', () => {
         await seedPortfolioBoards(page, [{ id: 'workflow', title: fixture.board.settings.title, hasHandle: true,
           tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'workflow' });
         await page.getByRole('button', { name: /^Settings for / }).click();
-        await page.getByRole('tab', { name: 'Workflow', exact: true }).click();
+        await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
         const dialog = page.locator('.workflow-dialog');
         expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(width);
         await dialog.locator('[data-state-choice="doing"]').click();

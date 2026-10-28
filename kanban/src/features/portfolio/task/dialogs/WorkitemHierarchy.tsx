@@ -1,3 +1,4 @@
+import { getWorkflow } from '@/domain/workflow';
 import type { TaskDetailViewModel } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { childrenOf, epicOf, parentOf, workitemProgress, workitemType, WORKITEM_FIELDS, isTerminal } from '@/domain/workitems';
@@ -24,7 +25,7 @@ export function WorkitemHierarchy({ vm }: { vm: TaskDetailViewModel }) {
         {(type === 'epic' ? ['story', 'task'] as const : type === 'story' ? ['task'] as const : []).map((childType) => <section key={childType} className="workitem-child-section">
             <h3>{t(childType === 'story' ? 'workitems.stories' : 'workitems.tasks')}</h3>
             {!vm.readOnly && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateChildTask(vm.boardId, task.id, childType)}>{t(childType === 'story' ? 'workitems.createStory' : 'workitems.createTask')}</button>}
-            <ul>{children.filter((child) => workitemType(child) === childType).map((child) => <li key={child.id}><button className="table-item-link" onClick={() => open(child.id)}>#{child.id} {child.title}</button> · {data.board.columns.find((column) => column.status === child.status)?.title || child.status}</li>)}</ul>
+            <ul>{children.filter((child) => workitemType(child) === childType).map((child) => <li key={child.id}><button className="table-item-link" onClick={() => open(child.id)}>#{child.id} {child.title}</button> · {getWorkflow(data, child).states.find((state) => state.id === child.status)?.name || child.status}</li>)}</ul>
         </section>)}
     </section>;
 }

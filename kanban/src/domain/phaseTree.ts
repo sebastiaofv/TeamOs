@@ -1,3 +1,4 @@
+import { statusCategory } from './workflow';
 import type { BoardData, LooseBoardData, RoadmapItem, Task } from './types';
 import { nowIso } from './util';
 
@@ -59,10 +60,8 @@ export function phaseTreeRows(phases: readonly RoadmapItem[], collapsed: Readonl
     return rows;
 }
 
-/** A compatibility seam for US-4. Until merged, the persisted `done` state is completed. */
-export function planningTaskCategory(task: Pick<Task, 'status'>, data?: LooseBoardData | null): string {
-    const workflow = data?.extensions?.workflow as { states?: { id: string; category: string }[] } | undefined;
-    return (Array.isArray(workflow?.states) ? workflow.states.find((state) => state.id === task.status)?.category : undefined) || (task.status === 'done' ? 'completed' : 'not-started');
+export function planningTaskCategory(task: Pick<Task, 'status' | 'type'>, data?: LooseBoardData | null): string {
+    return statusCategory(task.status, data, task);
 }
 
 export function planningProgress(tasks: readonly Task[], data?: LooseBoardData | null, options: { leavesOnly?: boolean } = {}) {

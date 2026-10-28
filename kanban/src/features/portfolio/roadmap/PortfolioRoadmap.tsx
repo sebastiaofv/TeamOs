@@ -7,7 +7,7 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { formatRoadmapDateRange, getRoadmapAxisTicks, getRoadmapYearTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '@/domain/roadmap';
-import { planningTaskCategory } from '@/domain/phaseTree';
+import { allWorkflowStates } from '@/domain/workflow';
 import { formatDueDateForUi } from '@/domain/calendar';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
@@ -65,9 +65,9 @@ function CompletionControl({ view }: { view: PortfolioRoadmapViewModel }) {
     const selected = useAppStore((state) => state.portfolioFilters.statuses);
     const choices = [
         { key: 'all', label: t('common.all'), ids: [] as string[] },
-        { key: 'open', label: t('roadmap.notCompleted'), ids: view.boardData?.board.columns.filter((column) => !['completed', 'cancelled'].includes(planningTaskCategory({ status: column.status }, view.boardData))).map((column) => column.status) || [] },
-        { key: 'completed', label: t('roadmap.completed'), ids: view.boardData?.board.columns.filter((column) => planningTaskCategory({ status: column.status }, view.boardData) === 'completed').map((column) => column.status) || [] },
-        { key: 'cancelled', label: t('roadmap.cancelled'), ids: view.boardData?.board.columns.filter((column) => planningTaskCategory({ status: column.status }, view.boardData) === 'cancelled').map((column) => column.status) || [] }
+        { key: 'open', label: t('roadmap.notCompleted'), ids: allWorkflowStates(view.boardData).filter((column) => !['completed', 'cancelled'].includes(column.category)).map((column) => column.id) || [] },
+        { key: 'completed', label: t('roadmap.completed'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'completed').map((column) => column.id) || [] },
+        { key: 'cancelled', label: t('roadmap.cancelled'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'cancelled').map((column) => column.id) || [] }
     ];
     return <div className="roadmap-completion-controls" role="group" aria-label={t('roadmap.completionFilter')}>
         {choices.filter((choice) => choice.key !== 'cancelled' || choice.ids.length).map((choice) => <button className="btn" type="button" key={choice.key}

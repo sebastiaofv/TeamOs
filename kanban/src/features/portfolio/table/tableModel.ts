@@ -54,7 +54,7 @@ function tableSortValue(row: PortfolioRow, column: TableSort['column'], boardDat
     if (!value.trim()) return null;
     switch (column) {
         case 'id': return row.task.id;
-        case 'status': return getWorkflow(boardData).states.findIndex((s) => s.id === row.task.status);
+        case 'status': return getWorkflow(boardData, row.task).states.findIndex((s) => s.id === row.task.status);
         case 'priority': return priorityRank(row.task.priority);
         case 'effort': return effortRank(row.task.effort);
         case 'blocked': return Number(row.task.blocked);

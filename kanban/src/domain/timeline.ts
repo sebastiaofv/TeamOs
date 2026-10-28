@@ -260,7 +260,7 @@ export function captureTaskTimelineSnapshot(boardData: LooseBoardData | null | u
     return normalizeTask(task, {
         fallbackAttachments: getTaskAttachments(boardData, taskId),
         includeStatusChangedAt: false,
-        workflow: getWorkflow(boardData),
+        workflow: getWorkflow(boardData, task),
         roadmap: getRoadmapExtension(boardData)
     });
 }
@@ -382,7 +382,7 @@ export function recordTaskTimelineEvent(boardData: LooseBoardData, beforeTask: T
     const event = buildTaskTimelineEvent(beforeTask, afterTask);
     if (!event) return null;
     if (event.changes?.status) {
-        const workflow = getWorkflow(boardData);
+        const workflow = getWorkflow(boardData, afterTask || beforeTask);
         event.meta = { ...event.meta, statusLabels: Object.fromEntries(workflow.states.map((s) => [s.id, s.name])) };
     }
     return appendTimelineEvent(boardData, event);

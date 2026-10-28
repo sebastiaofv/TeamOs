@@ -87,3 +87,8 @@
     .project-settings-metadata { grid-template-columns: minmax(0, 1fr); gap: 0; }
     .project-settings-catalogs { grid-template-columns: minmax(0, 1fr); gap: 4px; }
 }
+
+.project-workflow-help { margin: 0; padding: 10px 20px; color: var(--text-secondary); font-size: 12px; border-bottom: 1px solid var(--border); }
+@media (max-width: 600px) {
+    .project-settings-tabs > button { font-size: 12px; padding-inline: 10px; }
+}

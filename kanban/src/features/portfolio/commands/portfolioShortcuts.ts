@@ -233,7 +233,7 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
         match: (event) => noModifiers(event) && event.key === key,
         when: canMutateTargetRow,
         handler: withTargetRow((row) => {
-            const workflow = getWorkflow(row.boardData || getState().portfolioBoards.find((b) => b.id === row.boardId)?.data);
+            const workflow = getWorkflow(row.boardData || getState().portfolioBoards.find((b) => b.id === row.boardId)?.data, row.task);
             const destination = status === 'backlog' ? 'backlog' : status === 'to-do' ? workflow.entryStateId : workflow.references[status === 'doing' ? 'in-progress' : 'completed'];
             if (destination) void actions.movePortfolioTaskToStatus(row.boardId, row.taskId, destination);
         })

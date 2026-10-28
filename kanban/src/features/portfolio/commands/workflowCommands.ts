@@ -1,5 +1,5 @@
 import { WorkitemError } from '@/domain/workitems';
-import type { WorkflowCategory, WorkitemAutomation } from '@/domain/types';
+import type { WorkflowCategory, WorkflowKind, WorkitemAutomation } from '@/domain/types';
 import type { BoardMutationContext } from './mutationContext';
 import { allowedWorkflowDestinations, statusCategory } from '@/domain/workflow';
 import { appendTimelineEvent } from '@/domain/timeline';
@@ -14,18 +14,18 @@ export function createWorkflowActions({ runPortfolioBoardMutation, getBoardRecor
         if (!canUsePortfolioTaskMutations(boardId)) { notifyPortfolioMutationUnavailable(boardId); return false; }
         const data = getBoardRecord(boardId)?.data;
         const task = data?.board.tasks.find((item) => item.id === taskId);
-        if (!data || !task || statusCategory(task.status, data) === category) return false;
-        const eligible = allowedWorkflowDestinations(data, task.status, category);
+        if (!data || !task || statusCategory(task.status, data, task) === category) return false;
+        const eligible = allowedWorkflowDestinations(data, task.status, category, task);
         if (!eligible.length) { await alert(translateCurrent('workflow.transitionDenied')); return false; }
         const target = eligible.length === 1 ? eligible[0].id : await choose(translateCurrent('workflow.chooseDestination'), eligible.map((state) => ({ value: state.id, label: state.name })));
         if (!target) return false;
         if (getBoardRecord(boardId)?.data.board.tasks.find((item) => item.id === taskId)?.status !== task.status) return false;
         return moveTask(boardId, taskId, target);
     }
-    function setPortfolioBoardColumnVisibility(boardId: string, stateId: string, visible: boolean) {
+    function setPortfolioBoardColumnVisibility(boardId: string, stateId: string, visible: boolean, kind: WorkflowKind = 'technical') {
         return runPortfolioBoardMutation(boardId, (data) => {
             const before = cloneSerializable(data.extensions.boardView || { version: 1, hiddenStateIds: [] });
-            if (!setBoardColumnVisibility(data, stateId, visible)) return false;
+            if (!setBoardColumnVisibility(data, stateId, visible, kind)) return false;
             appendTimelineEvent(data, { kind: 'board.columns.visibility.changed', entityType: 'board', entityId: 'board', summary: translateCurrent('board.columnVisibilityChanged'),
                 changes: { boardView: { before, after: cloneSerializable(data.extensions.boardView) } } });
             return true;

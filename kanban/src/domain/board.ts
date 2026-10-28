@@ -19,7 +19,7 @@ import { createProjectData, parseProjectData, validateProjectReferences } from '
 import { isLeafPhase } from './phaseTree';
 import { parsePullRequestLinks, validatePullRequestTimeline } from './pullRequests';
 import { parseBoardView } from './boardView';
-import { parseWorkflow, defaultWorkflow, getWorkflow } from './workflow';
+import { parseWorkflow, defaultWorkflow, getWorkflow, workflowKind } from './workflow';
 import { parseTaskIdentityReservation } from './taskIdentity';
 import { parseConversations } from './comments';
 
@@ -149,7 +149,7 @@ export function comparePortfolioRows(a: PortfolioRow, b: PortfolioRow, sortBy: u
     const key = normalizePortfolioSortKey(sortBy);
     const dir = normalizePortfolioSortDir(sortDir);
     const statusRank = (row: PortfolioRow) => {
-        const index = getWorkflow(row.boardData).states.findIndex((state) => state.id === row.task.status);
+        const index = getWorkflow(row.boardData, row.task).states.findIndex((state) => state.id === row.task.status);
         return index >= 0 ? index : 99;
     };
 
@@ -253,7 +253,10 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     }
     if (!('workflow' in extensions) && data.board.columns.length > MAX_COLUMNS) throw new Error(`Board cannot have more than ${MAX_COLUMNS} legacy columns.`);
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
-    parseBoardView((extensions as Record<string, unknown>).boardView, new Set(getWorkflow({ extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } }).states.map((state) => state.id)));
+    const workflowData = { extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } };
+    const functionalStatuses = new Set(getWorkflow(workflowData, 'functional').states.map((state) => state.id));
+    parseBoardView((extensions as Record<string, unknown>).boardView, new Set(getWorkflow(workflowData).states.map((state) => state.id)), functionalStatuses);
+    if ('functionalWorkflow' in extensions) parseWorkflow(extensions.functionalWorkflow);
     if ('workflow' in extensions) {
         const workflow = parseWorkflow(extensions.workflow);
         if (data.board.columns.length !== workflow.states.length || data.board.columns.some((col, index) => col.status !== workflow.states[index].id || col.title !== workflow.states[index].name)) throw new Error('Workflow columns do not match states.');
@@ -386,7 +389,8 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if (task.blocked === true && !normalizeBlockerReason(task.blockerReason)) {
             throw new Error('Blocked tasks require blockerReason.');
         }
-        if (typeof task.status !== 'string' || !statuses.has(task.status)) {
+        const taskStatuses = workflowKind(task) === 'functional' && 'functionalWorkflow' in extensions ? functionalStatuses : statuses;
+        if (typeof task.status !== 'string' || !taskStatuses.has(task.status)) {
             throw new Error('Task status is invalid.');
         }
         task.checklist.forEach((item: unknown) => {

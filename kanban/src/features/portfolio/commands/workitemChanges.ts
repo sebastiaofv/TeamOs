@@ -1,5 +1,5 @@
 import type { BoardRecord } from '@/features/portfolio/types';
-import type { BoardData } from '@/domain/types';
+import type { BoardData, Task } from '@/domain/types';
 import type { BoardMutationOptions, BoardMutator } from './mutationContext';
 import { cloneSerializable } from '@/domain/serializable';
 import { applyStoryAutomation, assertAcceptance, assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
@@ -30,7 +30,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
         const task = draft.data.board.tasks.find((entry) => entry.id === taskId);
         if (task) {
             syncProjectAssignments(draft.data);
-            if (beforeTask && task.status !== beforeTask.status && !canTransition(draft.data, beforeTask.status, task.status)) throw new Error(translateCurrent('workflow.transitionDenied'));
+            if (beforeTask && task.status !== beforeTask.status && !canTransition(draft.data, beforeTask.status, task.status, task)) throw new Error(translateCurrent('workflow.transitionDenied'));
             touchTask(task);
         }
         recordTaskTimelineEvent(draft.data, beforeTask, captureTaskTimelineSnapshot(draft.data, taskId));
@@ -55,11 +55,11 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     const beforeTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
     const stageTasks = new Map(stage.board.tasks.map((task) => [task.id, task]));
     const sprintName = (data: BoardData, id: string) => data.extensions.roadmap?.sprints.find((sprint) => sprint.id === id)?.title || id || '—';
-    const stateName = (data: BoardData, id: string) => getWorkflow(data).states.find((state) => state.id === id)?.name || id;
+    const stateName = (data: BoardData, id: string, task?: Task) => getWorkflow(data, task).states.find((state) => state.id === id)?.name || id;
     for (const task of draft.data.board.tasks) {
         const before = beforeTasks.get(task.id);
-        const category = statusCategory(task.status, draft.data);
-        const changedStatus = !before || before.status !== task.status || statusCategory(before.status, current.data) !== category;
+        const category = statusCategory(task.status, draft.data, task);
+        const changedStatus = !before || before.status !== task.status || statusCategory(before.status, current.data, before) !== category;
         const changedCriteria = before && workitemType(task) === 'story' && before.acceptanceCriteria !== task.acceptanceCriteria;
         if ((changedStatus || changedCriteria) && category === 'completed' && ['story', 'bug'].includes(workitemType(task))) {
             assertAcceptance(draft.data, task);
@@ -69,14 +69,14 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             task.acceptance = { author: author.trim(), at: new Date().toISOString(), local: true };
         }
         if (changedStatus && category !== 'completed') delete task.acceptance;
-        if (before && changedStatus && (category === 'cancelled' || ['completed', 'cancelled'].includes(statusCategory(before.status, current.data)))) previews.push(`#${task.id} ${task.title}\n${stateName(current.data, before.status)} → ${stateName(draft.data, task.status)}`);
+        if (before && changedStatus && (category === 'cancelled' || ['completed', 'cancelled'].includes(statusCategory(before.status, current.data, before)))) previews.push(`#${task.id} ${task.title}\n${stateName(current.data, before.status, before)} → ${stateName(draft.data, task.status, task)}`);
         if (before && ((before.parentId ?? null) !== (task.parentId ?? null) || before.sprintId !== task.sprintId)) {
             const name = (id: number | null | undefined, data: BoardData) => { const item = data.board.tasks.find((entry) => entry.id === id); return item ? `#${item.id} ${item.title}` : '—'; };
             previews.push(`#${task.id} ${task.title}\n${translateCurrent('workitems.parent')}: ${name(before.parentId, current.data)} → ${name(task.parentId, draft.data)}\nSprint: ${sprintName(current.data, before.sprintId)} → ${sprintName(draft.data, task.sprintId)}`);
         }
-        if (changedStatus && category === 'completed' && workitemType(task) === 'epic' && childrenOf(draft.data, task.id).some((child) => !['completed', 'cancelled'].includes(statusCategory(child.status, draft.data)))) previews.push(translateCurrent('workitems.epicPending', { id: task.id, title: task.title }));
+        if (changedStatus && category === 'completed' && workitemType(task) === 'epic' && childrenOf(draft.data, task.id).some((child) => !['completed', 'cancelled'].includes(statusCategory(child.status, draft.data, child)))) previews.push(translateCurrent('workitems.epicPending', { id: task.id, title: task.title }));
         const parent = parentOf(draft.data, task);
-        if (before && changedStatus && parent && workitemType(parent) === 'story' && statusCategory(parent.status, draft.data) === 'completed' && category !== 'completed') previews.push(translateCurrent('workitems.reopened', { id: task.id, parent: parent.id }));
+        if (before && changedStatus && parent && workitemType(parent) === 'story' && statusCategory(parent.status, draft.data, parent) === 'completed' && category !== 'completed') previews.push(translateCurrent('workitems.reopened', { id: task.id, parent: parent.id }));
         if (before) for (const field of ['phaseId', 'milestoneId'] as const) {
             const oldValue = effectivePlanning(current.data, before, field); const newValue = effectivePlanning(draft.data, task, field);
             if (oldValue !== newValue && before[field] === task[field] && (field === 'phaseId' ? before.phaseMode === task.phaseMode : before.milestoneMode === task.milestoneMode)) previews.push(`#${task.id} ${task.title} · ${translateCurrent(field === 'phaseId' ? 'task.phase' : 'task.milestone')}: ${oldValue || '—'} → ${newValue || '—'}`);
@@ -93,7 +93,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             }
         }
     }
-    for (const effect of effects) if (!effect.blocked) previews.push(translateCurrent('workitems.autoEffect', { id: effect.storyId, state: stateName(draft.data, draft.data.board.tasks.find((task) => task.id === effect.storyId)?.status || '') }));
+    for (const effect of effects) if (!effect.blocked) previews.push(translateCurrent('workitems.autoEffect', { id: effect.storyId, state: stateName(draft.data, draft.data.board.tasks.find((task) => task.id === effect.storyId)?.status || '', draft.data.board.tasks.find((task) => task.id === effect.storyId)) }));
     if (previews.length && !(await confirm(translateCurrent('workitems.impact') + '\n\n' + previews.join('\n\n'), { title: translateCurrent('workitems.confirmChanges'), confirmLabel: translateCurrent('messages.confirm') }))) return false;
     if (!isCurrent()) throw new WorkitemError('stale');
     for (const effect of effects) if (effect.blocked) void alert(translateCurrent('workitems.autoBlocked', { id: effect.storyId }));

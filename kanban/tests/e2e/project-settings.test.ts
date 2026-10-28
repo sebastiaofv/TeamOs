@@ -114,7 +114,7 @@ test('cancel, close, Escape and outside-click discard settings drafts and restor
     for (const action of ['Cancel', 'Close', 'Escape', 'Outside']) {
         await trigger.click();
         await page.locator('#projectName').fill('Discard');
-        await modal.getByRole('tab', { name: 'Workflow', exact: true }).click();
+        await modal.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
         await modal.getByRole('textbox', { name: 'Title 1', exact: true }).fill('Discard state');
         if (action === 'Escape') await page.keyboard.press('Escape');
         else if (action === 'Outside') await modal.click({ position: { x: 5, y: 5 } });
@@ -122,7 +122,7 @@ test('cancel, close, Escape and outside-click discard settings drafts and restor
         await expect(modal).toBeHidden();
         await expect(trigger).toBeFocused();
         await trigger.click(); await expect(page.locator('#projectName')).toHaveValue('Unchanged');
-        await modal.getByRole('tab', { name: 'Workflow', exact: true }).click();
+        await modal.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
         await expect(modal.getByRole('textbox', { name: 'Title 1', exact: true })).toHaveValue('backlog');
         await page.keyboard.press('Escape');
     }
@@ -211,18 +211,18 @@ test('project tabs retain both drafts and save the intended project together', a
     await page.getByRole('button', { name: 'Settings for Configured project', exact: true }).click();
     const modal = page.locator('#projectSettingsModal');
     const tabs = modal.getByRole('tablist', { name: 'Project settings', exact: true });
-    await expect(tabs.getByRole('tab')).toHaveText(['General', 'Workflow']);
+    await expect(tabs.getByRole('tab')).toHaveText(['General', 'Technical workflow', 'Functional workflow']);
     await page.locator('#projectName').fill('Renamed project');
     await tabs.getByRole('tab', { name: 'General', exact: true }).focus();
     await page.keyboard.press('ArrowRight');
-    await expect(tabs.getByRole('tab', { name: 'Workflow', exact: true })).toBeFocused();
+    await expect(tabs.getByRole('tab', { name: 'Technical workflow', exact: true })).toBeFocused();
     await expect(modal.getByRole('tablist', { name: 'Workflow settings sections', exact: true }).getByRole('tab')).toHaveCount(2);
     await modal.locator('[data-state-choice="to-do"]').click();
     await modal.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
     await modal.getByRole('tab', { name: 'Entry & references', exact: true }).click();
     await tabs.getByRole('tab', { name: 'General', exact: true }).click();
     await expect(page.locator('#projectName')).toHaveValue('Renamed project');
-    await tabs.getByRole('tab', { name: 'Workflow', exact: true }).click();
+    await tabs.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await expect(modal.getByRole('tab', { name: 'Entry & references', exact: true })).toHaveAttribute('aria-selected', 'true');
     await modal.getByRole('tab', { name: /States & transitions/ }).click();
     await expect(modal.getByRole('textbox', { name: 'Title 2', exact: true })).toHaveValue('Ready');
@@ -245,7 +245,7 @@ test('cancelling workflow impact leaves both settings drafts editable and does n
     await page.getByRole('button', { name: 'Settings for Pending settings', exact: true }).click();
     const modal = page.locator('#projectSettingsModal');
     await page.locator('#projectName').fill('Pending rename');
-    await modal.getByRole('tab', { name: 'Workflow', exact: true }).click();
+    await modal.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await modal.locator('[data-state-choice="doing"]').click();
     await modal.getByRole('combobox', { name: 'Category', exact: true }).selectOption('completed');
     await modal.getByRole('button', { name: 'Save', exact: true }).click();

@@ -52,12 +52,24 @@ test('both boards share a single row of workflow columns including backlog and d
     }
 });
 
-test('backlog visibility applies to both boards and restores its cards', async ({ page }) => {
+test('backlog visibility is independent for each workflow and restores its own cards', async ({ page }) => {
     await page.getByRole('button', { name: 'Board columns', exact: true }).click();
     await page.getByRole('checkbox', { name: 'backlog', exact: true }).uncheck();
     await page.keyboard.press('Escape');
     await expect(page.locator('.portfolio-column[data-status="backlog"]')).toHaveCount(0);
     await expect(portfolioCard(page, 'Implementation')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await expect(portfolioCard(page, 'Customer need')).toBeVisible();
+    await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'backlog', exact: true }).uncheck();
+    await page.keyboard.press('Escape');
+    await expect(portfolioCard(page, 'Customer need')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Technical Board', exact: true }).click();
+    await expect(portfolioCard(page, 'Implementation')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'backlog', exact: true }).check();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#portfolio-backlog-column')).toContainText('Implementation');
     await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
     await expect(portfolioCard(page, 'Customer need')).toHaveCount(0);
     await page.getByRole('button', { name: 'Board columns', exact: true }).click();

@@ -97,7 +97,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const today = useLocalToday();
     const hasAssignableSprints = planning && buildAssignableSprintOptions(boardData, today, language).length > 0;
     const actions = usePortfolioActions();
-    const workflow = useMemo(() => getWorkflow(boardData), [boardData]);
     const columnDisclosure = useTableDisclosure(hidden);
     const hierarchyDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
@@ -248,18 +247,20 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                                 </button>
                             </th>)}
                         </tr></thead>
-                        <tbody>{pageRows.map((row) => <tr key={`${boardId}:${row.taskId}`} data-board-id={boardId} data-task-id={row.taskId}
+                        <tbody>{pageRows.map((row) => {
+                            const workflowState = getWorkflow(row.boardData || boardData, row.task).states.find((state) => state.id === row.task.status);
+                            return <tr key={`${boardId}:${row.taskId}`} data-board-id={boardId} data-task-id={row.taskId}
                             onClick={(event) => { if (!(event.target as HTMLElement).closest('button,input,a,label')) openDetails(row, event); }}>
                             <td><input type="checkbox" aria-label={t('task.select', { title: row.task.title })} checked={selected.has(row.taskId)}
                                 onChange={(event) => toggleSelection([row.taskId], event.target.checked)} /></td>
                             {columns.map((column) => <td key={column} data-column={column}>
                                 {column === 'id' || column === 'title'
                                     ? <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
-                                    : (column === 'epic' || column === 'story') && (column === 'epic' ? epicOf(boardData, row.task) : storyOf(boardData, row.task)) ? <button type="button" className="table-item-link" onClick={() => actions.openPortfolioTaskDetails(boardId, (column === 'epic' ? epicOf(boardData, row.task)! : storyOf(boardData, row.task)!).id)}>{cellText(row, column)}</button> : column === 'status' && workflow.states.some((state) => state.id === row.task.status)
-                                        ? <WorkflowStateBadge state={workflow.states.find((state) => state.id === row.task.status)!} />
+                                    : (column === 'epic' || column === 'story') && (column === 'epic' ? epicOf(boardData, row.task) : storyOf(boardData, row.task)) ? <button type="button" className="table-item-link" onClick={() => actions.openPortfolioTaskDetails(boardId, (column === 'epic' ? epicOf(boardData, row.task)! : storyOf(boardData, row.task)!).id)}>{cellText(row, column)}</button> : column === 'status' && workflowState
+                                        ? <WorkflowStateBadge state={workflowState} />
                                         : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${column === 'blocked' && row.task.blocked ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
                             </td>)}
-                        </tr>)}</tbody>
+                        </tr>; })}</tbody>
                     </table>
                 </div>
                 <nav className="table-pagination" aria-label={t('table.view')}>

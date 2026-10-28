@@ -29,7 +29,7 @@ export function ProjectSettingsDialog() {
 function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectSettings']; closeRef: React.RefObject<HTMLButtonElement | null> }) {
     const { t } = useI18n();
     const editor = useProjectSettingsEditor(vm);
-    const { general: { name, project }, workflow, tab, selectTab: setTab, busy: saving } = editor;
+    const { general: { name, project }, tab, selectTab: setTab, busy: saving } = editor;
     const setName = (name: string) => editor.editGeneral({ name });
     const setProject = (project: ProjectData) => editor.editGeneral({ project });
     const formRef = useRef<HTMLFormElement>(null);
@@ -67,7 +67,8 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
     function navigateTabs(event: KeyboardEvent<HTMLButtonElement>) {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();
-        const next = event.key === 'Home' ? 'general' : event.key === 'End' ? 'workflow' : tab === 'general' ? 'workflow' : 'general';
+        const tabs = ['general', 'technical', 'functional'] as const;
+        const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
         setTab(next);
         event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-project-tab="${next}"]`)?.focus();
     }
@@ -80,10 +81,10 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
             <Dialog.Close ref={closeRef} className="modal-close" aria-label={t('common.close')}>&times;</Dialog.Close>
         </div>
         <div className="workflow-tabs project-settings-tabs" role="tablist" aria-label={t('project.settings')}>
-            {(['general', 'workflow'] as const).map((value) => <button key={value} type="button" role="tab"
+            {(['general', 'technical', 'functional'] as const).map((value) => <button key={value} type="button" role="tab"
                 id={`project-settings-tab-${value}`} data-project-tab={value} aria-controls={`project-settings-panel-${value}`}
                 aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onClick={() => setTab(value)} onKeyDown={navigateTabs}>
-                {t(value === 'general' ? 'project.general' : 'project.workflow')}
+                {t(value === 'general' ? 'project.general' : `project.workflow.${value}`)}
             </button>)}
         </div>
         <div className="modal-body project-settings-general" role="tabpanel" id="project-settings-panel-general" aria-labelledby="project-settings-tab-general" hidden={tab !== 'general'}>
@@ -154,10 +155,11 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                 </fieldset>
             </form>
         </div>
-        <div className="project-settings-workflow" role="tabpanel" id="project-settings-panel-workflow" aria-labelledby="project-settings-tab-workflow" hidden={tab !== 'workflow'}>
-            <WorkflowEditor data={vm.data} readOnly={vm.readOnly} busy={saving} editor={workflow} />
-            {workflow.error && <div className="workflow-validation" role="alert">{workflow.error}</div>}
-        </div>
+        {(['technical', 'functional'] as const).map((kind) => <div key={kind} className="project-settings-workflow" role="tabpanel" id={`project-settings-panel-${kind}`} aria-labelledby={`project-settings-tab-${kind}`} hidden={tab !== kind}>
+            <p className="project-workflow-help">{t(`project.workflow.${kind}Help`)}</p>
+            {tab === kind && <WorkflowEditor data={vm.data} readOnly={vm.readOnly} busy={saving} editor={editor[kind]} />}
+            {editor[kind].error && <div className="workflow-validation" role="alert">{editor[kind].error}</div>}
+        </div>)}
         <div className="modal-footer workflow-modal-footer">
             <span>{t(vm.readOnly ? 'workflow.readOnlyNote' : 'workflow.draftNote')}</span>
             <div><Dialog.Close className="btn" disabled={saving}>{t(vm.readOnly ? 'common.close' : 'common.cancel')}</Dialog.Close>

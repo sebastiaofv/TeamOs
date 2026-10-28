@@ -86,7 +86,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
                 startMinutes: plannerMinutes(block.start),
                 endMinutes: plannerMinutes(block.end),
                 color: boardColor(board),
-                done: statusCategory(task.status, data) === 'completed',
+                done: statusCategory(task.status, data, task) === 'completed',
                 archived: Boolean(task.archived),
                 canEdit,
                 column: 0,
@@ -128,7 +128,7 @@ export function buildPortfolioPlannerViewModel(
         const status = row.task.status;
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;
-        const category = statusCategory(status, row.boardData || board.data);
+        const category = statusCategory(status, row.boardData || board.data, row.task);
         const trayStatus = ({ backlog: 'backlog', 'to-do': 'to-do', 'in-progress': 'doing', completed: 'done', cancelled: 'cancelled' })[category];
         if (!statusSet.has(trayStatus)) return;
         let group = groups.get(board.id);

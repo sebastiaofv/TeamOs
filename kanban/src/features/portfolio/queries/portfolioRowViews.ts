@@ -1,5 +1,4 @@
 import type { BoardRecord, PortfolioRow } from '@/features/portfolio/types';
-import type { BoardData } from '@/domain/types';
 import type { AppState } from '@/features/portfolio/state/slices';
 import { normalizeTask } from '@/domain/task';
 import { createBoardStateSnapshot } from '@/domain/serialize';
@@ -15,16 +14,9 @@ export function getBoardRecord(state: SelectorState, boardId: string | null | un
         .find((board) => board?.id === boardId) || null;
 }
 
-function getBoardStatusMap(boardData: BoardData | null | undefined): Record<string, string> {
-    return Object.fromEntries(
-        (boardData?.board?.columns || []).map((column) => [column.status, column.title])
-    );
-}
-
 export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
     return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : []).flatMap((board, boardIndex) => {
         if (!board?.data?.board) return [];
-        const statusMap = getBoardStatusMap(board.data);
         const dependencyBlocked = getDependencyBlockedTaskIds(board.data);
         return (board.data.board.tasks || []).map((task, taskIndex) => ({
             boardIndex,
@@ -33,10 +25,10 @@ export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
             taskIndex,
             boardTitle: board.title,
             boardFileName: board.fileName,
-            columnTitle: statusMap[task.status] || task.status,
+            columnTitle: getWorkflow(board.data, task).states.find((state) => state.id === task.status)?.name || task.status,
             canMutate: Boolean(board.handle),
             boardData: board.data,
-            task: { ...normalizeTask(task, { workflow: getWorkflow(board.data) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
+            task: { ...normalizeTask(task, { workflow: getWorkflow(board.data, task) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
         }));
     });
 }
@@ -49,7 +41,6 @@ export function buildPortfolioRowsFromBoardData(
 ): PortfolioRow[] {
     if (!boardRecord || !boardData) return [];
     const normalizedBoard = createBoardStateSnapshot(boardData);
-    const statusMap = getBoardStatusMap(normalizedBoard);
     const canMutate = Boolean(boardRecord.handle) && options.canMutate !== false;
     const historical = Boolean(options.historical);
     const dependencyBlocked = getDependencyBlockedTaskIds(normalizedBoard);
@@ -60,10 +51,10 @@ export function buildPortfolioRowsFromBoardData(
         taskIndex,
         boardTitle: boardRecord.title,
         boardFileName: boardRecord.fileName,
-        columnTitle: statusMap[task.status] || task.status,
+        columnTitle: getWorkflow(normalizedBoard, task).states.find((state) => state.id === task.status)?.name || task.status,
         canMutate,
         historical,
         boardData: normalizedBoard,
-        task: { ...normalizeTask(task, { workflow: getWorkflow(normalizedBoard) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
+        task: { ...normalizeTask(task, { workflow: getWorkflow(normalizedBoard, task) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
     }));
 }

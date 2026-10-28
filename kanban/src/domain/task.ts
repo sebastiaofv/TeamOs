@@ -181,9 +181,9 @@ export function getTaskStatusAgeBaseTimestamp(task: TaskInput | null | undefined
         || '';
 }
 
-export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived'>, data?: LooseBoardData): boolean {
+export function isTaskOverdue(task: Pick<Task, 'dueDate' | 'status' | 'archived' | 'type'>, data?: LooseBoardData): boolean {
     const due = normalizeDueDate(task.dueDate);
-    if (!due || ['completed', 'cancelled'].includes(statusCategory(task.status, data)) || task.archived) return false;
+    if (!due || ['completed', 'cancelled'].includes(statusCategory(task.status, data, task)) || task.archived) return false;
     const today = todayLocalIsoDate();
     return due < today;
 }

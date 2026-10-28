@@ -65,7 +65,10 @@ const en = {
 
     'project.settings': 'Project settings',
     'project.general': 'General',
-    'project.workflow': 'Workflow',
+    'project.workflow.technical': 'Technical workflow',
+    'project.workflow.functional': 'Functional workflow',
+    'project.workflow.technicalHelp': 'Applies to Tasks and Bugs.',
+    'project.workflow.functionalHelp': 'Applies to Stories and Epics.',
     'project.memberInUseHelp': 'In use · remove this person’s task assignments before removing the member.',
     'project.tagInUseHelp': 'In use · remove this tag from tasks before removing it here.',
     'project.settingsFor': 'Settings for {name}',
@@ -956,7 +959,10 @@ const pt: Record<TranslationKey, string> = {
 
     'project.settings': 'Definições do projeto',
     'project.general': 'Geral',
-    'project.workflow': 'Workflow',
+    'project.workflow.technical': 'Workflow técnico',
+    'project.workflow.functional': 'Workflow funcional',
+    'project.workflow.technicalHelp': 'Aplica-se a Tasks e Bugs.',
+    'project.workflow.functionalHelp': 'Aplica-se a Stories e Epics.',
     'project.memberInUseHelp': 'Em uso · retire as atribuições desta pessoa nas tarefas antes de remover o membro.',
     'project.tagInUseHelp': 'Em uso · retire esta tag das tarefas antes de a remover aqui.',
     'project.settingsFor': 'Definições de {name}',

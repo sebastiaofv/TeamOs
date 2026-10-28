@@ -1,3 +1,4 @@
+import { getWorkflow } from '@/domain/workflow';
 import { isPlanningUnit, eligibleSprint, consultSprintParticipation, type SprintParticipation } from '@/domain/workitems';
 import type { BoardData, RoadmapItem, SprintIdentity } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
@@ -31,7 +32,7 @@ export type SprintTableGroup = SprintTableRoster & {
 };
 
 export function unplannedTableRows(rows: PortfolioRow[]): PortfolioRow[] {
-    return rows.filter(({ task, boardData }) => !['completed', 'cancelled'].includes(statusCategory(task.status, boardData)) && (!boardData || isPlanningUnit(boardData, task)) && (!task.sprintId || Boolean(boardData && !eligibleSprint(boardData, task.sprintId))));
+    return rows.filter(({ task, boardData }) => !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task)) && (!boardData || isPlanningUnit(boardData, task)) && (!task.sprintId || Boolean(boardData && !eligibleSprint(boardData, task.sprintId))));
 }
 
 /** Compatibility adapter for today's schema; historical membership belongs in a future adapter. */
@@ -43,7 +44,7 @@ export function currentSprintRosters(boardData: BoardData, rows: PortfolioRow[])
         const snapshot = participation.boardData;
         const rosterRows = participation.planningMembers.map((task): PortfolioRow => {
             const current = rows.find((row) => row.taskId === task.id);
-            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, columnTitle: boardData.board.columns.find((column) => column.status === task.status)?.title, boardData: snapshot, task };
+            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, columnTitle: getWorkflow(boardData, task).states.find((state) => state.id === task.status)?.name, boardData: snapshot, task };
         });
         return { sprint, boardData: snapshot, participation, source: 'current', rows: rosterRows, identity: identities.get(sprint.id) };
     });
@@ -52,8 +53,8 @@ export function currentSprintRosters(boardData: BoardData, rows: PortfolioRow[])
 export function buildSprintTableGroups(rosters: SprintTableRoster[], today: string): SprintTableGroup[] {
     return rosters.map((roster, index): SprintTableGroup => {
         const rows = [...new Map(roster.rows.map((row) => [row.taskId, row])).values()];
-        const completed = rows.filter(({ task }) => statusCategory(task.status, roster.boardData) === 'completed').length;
-        const cancelled = rows.filter(({ task }) => statusCategory(task.status, roster.boardData) === 'cancelled').length;
+        const completed = rows.filter(({ task }) => statusCategory(task.status, roster.boardData, task) === 'completed').length;
+        const cancelled = rows.filter(({ task }) => statusCategory(task.status, roster.boardData, task) === 'cancelled').length;
         const eligible = rows.length - cancelled;
         const status = roster.source === 'closure' ? 'done' : getSprintCalendarStatus(roster.sprint, today);
         return {

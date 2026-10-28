@@ -6,12 +6,10 @@ import type { Effort, Priority, TaskRelationKind } from '@/domain/types';
 import type { TaskDraft } from '@/features/portfolio/types';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
-import { defaultColumns } from '@/domain/constants';
 import {
     buildTaskFieldsFromDraft,
     nextTaskIdForBoard,
     normalizeTask,
-    normalizeTaskStatus,
     resolveCreateTaskStatus
 } from '@/domain/task';
 import {
@@ -24,7 +22,7 @@ import { cloneSerializable } from '@/domain/serializable';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
 import { getRoadmapExtension, isValidRoadmapAssignment } from '@/domain/roadmap';
-import { canTransition } from '@/domain/workflow';
+import { canTransition, getWorkflow } from '@/domain/workflow';
 import { removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -87,11 +85,9 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             return;
         }
         closeTaskDetail();
-        const allowedStatuses = new Set((boardRecord.data.board.columns || []).map((column) => normalizeTaskStatus(column.status)));
-        const fallbackStatus = normalizeTaskStatus((boardRecord.data.board.columns || [defaultColumns[0]])[0]?.status);
-        const status = allowedStatuses.has(normalizeTaskStatus(preferredStatus))
-            ? normalizeTaskStatus(preferredStatus)
-            : fallbackStatus;
+        const workflow = getWorkflow(boardRecord.data, { type: options.preferredType });
+        const preferred = String(preferredStatus || '').trim();
+        const status = workflow.states.some((state) => state.id === preferred) ? preferred : 'backlog';
         commitState({
             portfolioCreateContext: { boardId, status },
             portfolioEditContext: null
@@ -325,18 +321,15 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return false;
         const normalizedTargetStatus = String(targetStatus || '').trim();
-        const validStatuses = new Set(
-            (source.boardRecord.data.board.columns || defaultColumns)
-                .map((column) => column.status)
-        );
+        const validStatuses = new Set(getWorkflow(source.boardRecord.data, source.task).states.map((state) => state.id));
         if (!validStatuses.has(normalizedTargetStatus)) return false;
         if (source.task.status === normalizedTargetStatus) return false;
-        if (!canTransition(source.boardRecord.data, source.task.status, normalizedTargetStatus)) {
+        if (!canTransition(source.boardRecord.data, source.task.status, normalizedTargetStatus, source.task)) {
             await alert(translateCurrent('workflow.transitionDenied'));
             return false;
         }
         return Boolean(await runPortfolioTaskMutation(boardId, taskId, (task) => {
-            if (!canTransition(source.boardRecord.data, task.status, normalizedTargetStatus)) return false;
+            if (!canTransition(source.boardRecord.data, task.status, normalizedTargetStatus, task)) return false;
             if (task.status === normalizedTargetStatus) return false;
             task.status = normalizedTargetStatus;
             return true;

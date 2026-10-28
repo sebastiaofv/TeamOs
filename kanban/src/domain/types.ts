@@ -3,6 +3,7 @@ import type { Conversations } from './comments';
 import type { BoardViewPreferences } from './boardView';
 
 export type TaskStatus = string;
+export type WorkflowKind = 'technical' | 'functional';
 export type WorkflowCategory = 'backlog' | 'to-do' | 'in-progress' | 'completed' | 'cancelled';
 export type WorkflowState = { id: string; name: string; color: string; category: WorkflowCategory };
 export type Workflow = {
@@ -166,6 +167,7 @@ export type BoardExtensions = {
     workitemAutomation?: WorkitemAutomation;
     boardView?: BoardViewPreferences;
     workflow?: Workflow;
+    functionalWorkflow?: Workflow;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;

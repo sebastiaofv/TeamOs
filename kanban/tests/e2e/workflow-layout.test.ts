@@ -11,7 +11,7 @@ for (const theme of ['light', 'dark']) {
             await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
             if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
             await page.getByRole('button', { name: /^Settings for / }).click();
-            await page.getByRole('tab', { name: 'Workflow', exact: true }).click();
+            await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
             const dialog = page.locator('.workflow-dialog');
             await page.screenshot({ path: testInfo.outputPath(`workflow-states-${theme}-${width}.png`) });
             const checkFields = async () => dialog.locator('.workflow-editor select').evaluateAll((selects) => selects.map((select) => {

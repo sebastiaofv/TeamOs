@@ -101,7 +101,7 @@ export function buildTaskEditorViewModel(
         const ref = normalizeRoadmapRef(value);
         return optionList.some((option) => option.value === ref) ? ref : '';
     };
-    const normalized = task ? normalizeTask(task, { workflow: getWorkflow(boardRecord.data) }) : null;
+    const normalized = task ? normalizeTask(task, { workflow: getWorkflow(boardRecord.data, task) }) : null;
     const initial: TaskEditorFields = normalized
         ? {
             title: normalized.title || '',
@@ -155,8 +155,8 @@ export function buildTaskEditorViewModel(
 }
 
 export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, historyEventIndex?: number): TaskDetailViewModel {
-    const task = normalizeTask(source.task, { workflow: getWorkflow(source.boardData) });
-    const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
+    const task = normalizeTask(source.task, { workflow: getWorkflow(source.boardData, source.task) });
+    const statusMap: Record<string, string> = Object.fromEntries(getWorkflow(source.boardData, task).states.map((state) => [state.id, state.name]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,

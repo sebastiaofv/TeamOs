@@ -1,6 +1,6 @@
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import type { BoardData, WorkflowCategory, WorkflowState } from '@/domain/types';
-import { WORKFLOW_CATEGORIES, unreachableWorkflowStateIds } from '@/domain/workflow';
+import { WORKFLOW_CATEGORIES, unreachableWorkflowStateIds, workflowKind } from '@/domain/workflow';
 import type { ProjectWorkflowEditor } from '@/features/portfolio/projects/useProjectSettingsEditor';
 import { useI18n } from '@/shared/i18n';
 
@@ -23,15 +23,15 @@ type Section = 'states' | 'references';
 
 export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardData; readOnly: boolean; busy: boolean; editor: ProjectWorkflowEditor }) {
     const { t } = useI18n();
-    const { draft, removed, relocations, section, selectSection: setSection, update, relocate, clearError } = editor;
-    const [selectedId, setSelectedId] = useState(draft.states[0].id);
+    const { draft, removed, relocations, section, selectSection: setSection, update, relocate, clearError, selectedId, setSelectedId } = editor;
     const nextFocus = useRef(false);
     const formId = useId();
     const selected = draft.states.find((item) => item.id === selectedId) || draft.states[0];
     const index = draft.states.findIndex((item) => item.id === selected.id);
     const targets = draft.transitions[selected.id] || [];
     const terminal = ['completed', 'cancelled'].includes(selected.category);
-    const usedCount = data.board.tasks.filter((task) => task.status === selected.id).length;
+    const tasks = data.board.tasks.filter((task) => workflowKind(task) === editor.kind);
+    const usedCount = tasks.filter((task) => task.status === selected.id).length;
     const protectedState = selected.id === 'backlog' || (['to-do', 'completed'].includes(selected.category) && draft.states.filter((item) => item.category === selected.category).length === 1);
     const unreachable = unreachableWorkflowStateIds(draft);
 
@@ -125,8 +125,8 @@ export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardDa
                         </WorkflowSelect>
                     </label>)}
                 </fieldset>
-                {removed.length > 0 && <section className="workflow-relocations"><h4>{t('workflow.removedStates')}</h4>{removed.map((item) => <label key={item.id}>{t('workflow.relocate', { name: item.name, count: data.board.tasks.filter((task) => task.status === item.id).length })}
-                    <WorkflowSelect label={t('workflow.relocate', { name: item.name, count: data.board.tasks.filter((task) => task.status === item.id).length })} disabled={readOnly || busy} value={relocations[item.id] || ''} onChange={(id) => relocate(item.id, id)}>
+                {removed.length > 0 && <section className="workflow-relocations"><h4>{t('workflow.removedStates')}</h4>{removed.map((item) => <label key={item.id}>{t('workflow.relocate', { name: item.name, count: tasks.filter((task) => task.status === item.id).length })}
+                    <WorkflowSelect label={t('workflow.relocate', { name: item.name, count: tasks.filter((task) => task.status === item.id).length })} disabled={readOnly || busy} value={relocations[item.id] || ''} onChange={(id) => relocate(item.id, id)}>
                         <option value="">{t('common.choose')}</option>{draft.states.map((target) => <option key={target.id} value={target.id}>{target.name || t('workflow.untitled')}</option>)}
                     </WorkflowSelect></label>)}</section>}
                 <div className="workflow-general-note"><span aria-hidden="true">ⓘ</span><p>{t('workflow.help')}</p></div>

@@ -78,7 +78,7 @@ export function getDependencyBlockedTaskIds(data: BoardData): Set<number> {
     const blocked = new Set<number>();
     for (const relation of getRelations(data)) {
         const blocker = tasks.get(relation.sourceId);
-        if (relation.kind === 'blocks' && blocker && statusCategory(blocker.status, data) !== 'completed' && tasks.has(relation.targetId)) blocked.add(relation.targetId);
+        if (relation.kind === 'blocks' && blocker && statusCategory(blocker.status, data, blocker) !== 'completed' && tasks.has(relation.targetId)) blocked.add(relation.targetId);
     }
     return blocked;
 }

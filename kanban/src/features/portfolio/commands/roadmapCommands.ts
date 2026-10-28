@@ -136,7 +136,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const unplannedTaskIds = getState().roadmapEntityContext?.unplannedTaskIds;
         const selectedTaskIds = unplannedTaskIds || getSelectedPortfolioBulkTaskIds(boardId);
         if (selectedTaskIds.length === 0) return false;
-        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardRecord.data)) && !task.sprintId))) {
+        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardRecord.data, task)) && !task.sprintId))) {
             alert(translateCurrent('table.selectionChanged'));
             return false;
         }
@@ -204,7 +204,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 alert(translateCurrent('roadmapDialog.sprintUnavailable'));
                 return false;
             }
-            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardData)) && !task.sprintId))) {
+            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task)) && !task.sprintId))) {
                 alert(translateCurrent('table.selectionChanged'));
                 return false;
             }

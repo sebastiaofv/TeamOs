@@ -93,7 +93,7 @@ test('restored cards and edit/detail surfaces use the existing theme', async ({ 
     await page.screenshot({ path: testInfo.outputPath('editor-dark.png') });
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: /^Settings for / }).click();
-    await page.getByRole('tab', { name: 'Workflow', exact: true }).click();
+    await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     const styles = await page.locator('.workflow-editor input:not([type="checkbox"])').first().evaluate((input) => ({ background: getComputedStyle(input).backgroundColor, color: getComputedStyle(input).color }));
     expect(styles.background).toBe('rgb(37, 40, 45)');
     expect(styles.color).toBe('rgb(241, 243, 245)');

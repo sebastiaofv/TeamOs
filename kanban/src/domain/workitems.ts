@@ -13,7 +13,7 @@ export class WorkitemError extends Error {
     constructor(public code: 'type' | 'immutable' | 'parent' | 'children' | 'criteria' | 'pending' | 'acceptance' | 'sprint' | 'configuration' | 'data' | 'epic' | 'author' | 'stale') { super(({ type: 'Unknown workitem type.', immutable: 'A workitem type is immutable after creation.', parent: 'Choose a valid parent in this project.', children: 'Reassign or detach children before deleting or moving this workitem.', criteria: 'Acceptance criteria are required.', pending: 'Complete, cancel or detach pending child Tasks.', acceptance: 'Functional acceptance is required.', sprint: 'Plan this workitem through an eligible Sprint or its Story.', configuration: 'Invalid automation configuration.', data: 'Invalid workitem data.', epic: 'An epic cannot have execution-only fields.', author: 'A non-empty local author is required.', stale: 'The preview is stale; review the changed project.' })[code]); }
 }
 export function childrenOf(data: BoardData, id: number): Task[] { return data.board.tasks.filter((task) => task.parentId === id); }
-export function isTerminal(data: BoardData, task: Task): boolean { return ['completed', 'cancelled'].includes(statusCategory(task.status, data)); }
+export function isTerminal(data: BoardData, task: Task): boolean { return ['completed', 'cancelled'].includes(statusCategory(task.status, data, task)); }
 export function parentOf(data: BoardData, task: Task): Task | undefined { return task.parentId == null ? undefined : data.board.tasks.find((item) => item.id === task.parentId); }
 export function storyOf(data: BoardData, task: Task): Task | undefined { const parent = parentOf(data, task); return parent && workitemType(parent) === 'story' ? parent : undefined; }
 export function epicOf(data: BoardData, task: Task): Task | undefined {
@@ -39,9 +39,9 @@ export function effectivePlanning(data: BoardData, task: Task, field: 'phaseId' 
 }
 export function workitemProgress(data: BoardData, id: number) {
     const children = childrenOf(data, id);
-    const cancelled = children.filter((task) => statusCategory(task.status, data) === 'cancelled').length;
+    const cancelled = children.filter((task) => statusCategory(task.status, data, task) === 'cancelled').length;
     const eligible = children.length - cancelled;
-    const completed = children.filter((task) => statusCategory(task.status, data) === 'completed').length;
+    const completed = children.filter((task) => statusCategory(task.status, data, task) === 'completed').length;
     return { total: children.length, eligible, completed, cancelled, percent: eligible ? completed / eligible * 100 : null };
 }
 export function isPlanningUnit(data: BoardData, task: Task): boolean {
@@ -81,7 +81,7 @@ export function assertAcceptance(data: BoardData, task: Task): void {
 export function validateAutomation(data: BoardData, config?: WorkitemAutomation): void {
     if (config === undefined) return;
     if (!config || config.version !== 1) throw new WorkitemError('configuration');
-    const states = getWorkflow(data).states;
+    const states = getWorkflow(data, 'functional').states;
     for (const rule of [config.start, config.finish]) {
         if (!rule) continue;
         if (!Array.isArray(rule.from) || !rule.from.length || new Set(rule.from).size !== rule.from.length || !rule.from.every((id) => states.some((state) => state.id === id && !['completed', 'cancelled'].includes(state.category)))) throw new WorkitemError('configuration');
@@ -131,13 +131,13 @@ export function applyStoryAutomation(data: BoardData, previous: BoardData): { st
         const story = parentOf(data, task);
         if (!story || workitemType(story) !== 'story' || handled.has(story.id) || isTerminal(data, story)) continue;
         handled.add(story.id);
-        const children = childrenOf(data, story.id).filter((child) => statusCategory(child.status, data) !== 'cancelled');
-        const old = childrenOf(previous, story.id).filter((child) => statusCategory(child.status, previous) !== 'cancelled');
-        const started = (list: Task[], board: BoardData) => list.some((child) => ['in-progress', 'completed'].includes(statusCategory(child.status, board)));
-        const finished = (list: Task[], board: BoardData) => list.length > 0 && list.every((child) => statusCategory(child.status, board) === 'completed');
+        const children = childrenOf(data, story.id).filter((child) => statusCategory(child.status, data, child) !== 'cancelled');
+        const old = childrenOf(previous, story.id).filter((child) => statusCategory(child.status, previous, child) !== 'cancelled');
+        const started = (list: Task[], board: BoardData) => list.some((child) => ['in-progress', 'completed'].includes(statusCategory(child.status, board, child)));
+        const finished = (list: Task[], board: BoardData) => list.length > 0 && list.every((child) => statusCategory(child.status, board, child) === 'completed');
         const rule = finished(children, data) && !finished(old, previous) ? data.extensions.workitemAutomation?.finish : started(children, data) && !started(old, previous) ? data.extensions.workitemAutomation?.start : undefined;
         if (!rule?.from.includes(story.status) || rule.to === story.status) continue;
-        const blocked = !canTransition(data, story.status, rule.to);
+        const blocked = !canTransition(data, story.status, rule.to, story);
         if (!blocked) { story.status = rule.to; story.updatedAt = nowIso(); }
         effects.push({ storyId: story.id, taskId: task.id, blocked });
     }
