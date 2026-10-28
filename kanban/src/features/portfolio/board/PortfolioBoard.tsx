@@ -175,7 +175,7 @@ function ConnectedBoard() {
         portfolioTimelineSelection: state.portfolioTimelineSelection,
         portfolioVisibleRows: state.portfolioVisibleRows,
     })));
-    return <PortfolioBoardView state={state} />;
+    return state.portfolioBoards.length ? <PortfolioBoardView state={state} /> : null;
 }
 
 export function PortfolioBoard({ hidden }: { hidden: boolean }) {
