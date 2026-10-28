@@ -3,6 +3,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, portfolioCard } from '../support/portfolio';
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
+    await page.clock.setFixedTime('2026-10-28T12:00:00.000Z');
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'us12', title: fixture.board.settings.title, hasHandle: writable, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us12' });
 }

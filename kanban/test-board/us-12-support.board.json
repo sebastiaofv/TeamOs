@@ -1,0 +1,779 @@
+{
+  "meta": {
+    "schemaVersion": 4,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-28T10:00:00.000Z",
+    "updatedAt": "2026-10-28T10:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "queued",
+        "title": "Pronto"
+      },
+      {
+        "status": "triage",
+        "title": "Em triagem"
+      },
+      {
+        "status": "building",
+        "title": "Em execução"
+      },
+      {
+        "status": "review",
+        "title": "Em revisão"
+      },
+      {
+        "status": "validated",
+        "title": "Validado"
+      },
+      {
+        "status": "released",
+        "title": "Publicado"
+      },
+      {
+        "status": "discarded",
+        "title": "Descartado"
+      }
+    ],
+    "tasks": [
+      {
+        "type": "epic",
+        "objective": "Permitir acompanhar pedidos sem contactar a equipa",
+        "pullRequests": [],
+        "id": 1201,
+        "title": "Portal de suporte",
+        "description": "",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "suporte"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": null,
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "",
+        "status": "building",
+        "assigneeIds": [
+          "us12-support-member-1"
+        ],
+        "responsibleId": "us12-support-member-1"
+      },
+      {
+        "type": "story",
+        "parentId": 1201,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "acceptanceCriteria": "Pedido criado com referência e confirmação por email",
+        "pullRequests": [],
+        "id": 1202,
+        "title": "Abrir pedido de suporte",
+        "description": "Mesmo número local da Story de Checkout, mas conteúdo e projeto diferentes.",
+        "assignees": [
+          "Ana",
+          "Bruno"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "suporte",
+          "email"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-10-30",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "current",
+        "status": "review",
+        "assigneeIds": [
+          "us12-support-member-1",
+          "us12-support-member-2"
+        ],
+        "responsibleId": "us12-support-member-1"
+      },
+      {
+        "type": "task",
+        "parentId": 1202,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "pullRequests": [],
+        "id": 1203,
+        "title": "Criar formulário de pedido",
+        "description": "",
+        "assignees": [
+          "Bruno"
+        ],
+        "responsible": "Bruno",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "current",
+        "status": "validated",
+        "assigneeIds": [
+          "us12-support-member-2"
+        ],
+        "responsibleId": "us12-support-member-2"
+      },
+      {
+        "type": "task",
+        "parentId": 1202,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "pullRequests": [],
+        "id": 1204,
+        "title": "Enviar confirmação por email",
+        "description": "",
+        "assignees": [
+          "Bruno"
+        ],
+        "responsible": "Bruno",
+        "tags": [
+          "email"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-10-29",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "current",
+        "status": "building",
+        "assigneeIds": [
+          "us12-support-member-2"
+        ],
+        "responsibleId": "us12-support-member-2"
+      },
+      {
+        "type": "story",
+        "parentId": 1201,
+        "phaseMode": "inherit",
+        "acceptanceCriteria": "Cliente consulta o estado e a última atualização",
+        "pullRequests": [],
+        "id": 1205,
+        "title": "Consultar estado do pedido",
+        "description": "",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "future",
+        "status": "queued",
+        "assigneeIds": [
+          "us12-support-member-1"
+        ],
+        "responsibleId": "us12-support-member-1"
+      },
+      {
+        "type": "task",
+        "parentId": 1205,
+        "phaseMode": "inherit",
+        "pullRequests": [],
+        "id": 1206,
+        "title": "Mostrar histórico do pedido",
+        "description": "",
+        "assignees": [
+          "Bruno"
+        ],
+        "responsible": "Bruno",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "future",
+        "status": "queued",
+        "assigneeIds": [
+          "us12-support-member-2"
+        ],
+        "responsibleId": "us12-support-member-2"
+      },
+      {
+        "type": "bug",
+        "stepsToReproduce": "Pesquisar por confirmação",
+        "expectedResult": "Apresentar artigos com acentos",
+        "actualResult": "Nenhum resultado",
+        "severity": "Medium",
+        "environment": "Firefox / macOS",
+        "pullRequests": [],
+        "id": 1207,
+        "title": "Pesquisa falha com acentos",
+        "description": "",
+        "assignees": [
+          "Beatriz QA",
+          "Bruno"
+        ],
+        "responsible": "Beatriz QA",
+        "tags": [
+          "pesquisa"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-10-30",
+        "priority": "medium",
+        "effort": "S",
+        "phaseId": "knowledge",
+        "milestoneId": "docs",
+        "sprintId": "current",
+        "status": "review",
+        "assigneeIds": [
+          "us12-support-member-3",
+          "us12-support-member-2"
+        ],
+        "responsibleId": "us12-support-member-3"
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 1208,
+        "title": "Atualizar base de conhecimento",
+        "description": "Bloqueio manual informativo: aguarda revisão dos textos.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "conteúdos"
+        ],
+        "blocked": true,
+        "blockerReason": "Aguardar revisão jurídica dos textos",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-11-04",
+        "priority": "high",
+        "effort": "L",
+        "phaseId": "knowledge",
+        "milestoneId": "docs",
+        "sprintId": "",
+        "status": "building",
+        "assigneeIds": [
+          "us12-support-member-1"
+        ],
+        "responsibleId": "us12-support-member-1"
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 1209,
+        "title": "Rever respostas automáticas",
+        "description": "",
+        "assignees": [
+          "Bruno"
+        ],
+        "responsible": "Bruno",
+        "tags": [
+          "email"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "S",
+        "phaseId": "delivery",
+        "milestoneId": "",
+        "sprintId": "current",
+        "status": "queued",
+        "assigneeIds": [
+          "us12-support-member-2"
+        ],
+        "responsibleId": "us12-support-member-2"
+      },
+      {
+        "type": "epic",
+        "objective": "Medir tempo de resposta e satisfação",
+        "pullRequests": [],
+        "id": 1210,
+        "title": "Métricas de atendimento",
+        "description": "",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog",
+        "assigneeIds": [],
+        "responsibleId": ""
+      },
+      {
+        "type": "story",
+        "parentId": 1201,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "acceptanceCriteria": "Cada pedido recebe uma referência única",
+        "acceptance": {
+          "author": "Beatriz QA",
+          "at": "2026-10-27T16:00:00.000Z",
+          "local": true
+        },
+        "pullRequests": [],
+        "id": 1211,
+        "title": "Receber número do pedido",
+        "description": "",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "current",
+        "status": "released",
+        "assigneeIds": [
+          "us12-support-member-1"
+        ],
+        "responsibleId": "us12-support-member-1"
+      },
+      {
+        "type": "task",
+        "parentId": 1211,
+        "phaseMode": "inherit",
+        "pullRequests": [],
+        "id": 1212,
+        "title": "Gerar referência única",
+        "description": "",
+        "assignees": [
+          "Bruno"
+        ],
+        "responsible": "Bruno",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "XS",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "current",
+        "status": "validated",
+        "assigneeIds": [
+          "us12-support-member-2"
+        ],
+        "responsibleId": "us12-support-member-2"
+      },
+      {
+        "type": "bug",
+        "pullRequests": [],
+        "id": 1213,
+        "title": "Exportação repete pedidos",
+        "description": "Bug descartado por duplicação de um incidente já corrigido.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [
+          "suporte"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "discarded",
+        "assigneeIds": [],
+        "responsibleId": ""
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 1214,
+        "title": "Investigar timeout intermitente",
+        "description": "A vista All deve preservar o estado Em triagem dentro da categoria To Do.",
+        "assignees": [
+          "Bruno"
+        ],
+        "responsible": "Bruno",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": "medium",
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "triage",
+        "assigneeIds": [
+          "us12-support-member-2"
+        ],
+        "responsibleId": "us12-support-member-2"
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 1215,
+        "title": "Atualizar texto de ajuda",
+        "description": "Trabalho por planear no Backlog.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [
+          "conteúdos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog",
+        "assigneeIds": [],
+        "responsibleId": ""
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 1216,
+        "title": "Rascunho antigo de FAQ",
+        "description": "Ativar o filtro de arquivo para consultar este cartão.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "conteúdos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": true,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "knowledge",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "validated",
+        "assigneeIds": [
+          "us12-support-member-1"
+        ],
+        "responsibleId": "us12-support-member-1"
+      }
+    ],
+    "settings": {
+      "title": "US-12 · Suporte"
+    }
+  },
+  "extensions": {
+    "project": {
+      "version": 1,
+      "id": "us12-support",
+      "description": "Projeto independente de suporte: estados diferentes, IDs locais repetidos e catálogos próprios para testar a vista All.",
+      "status": "active",
+      "members": [
+        {
+          "id": "us12-support-member-1",
+          "name": "Ana"
+        },
+        {
+          "id": "us12-support-member-2",
+          "name": "Bruno"
+        },
+        {
+          "id": "us12-support-member-3",
+          "name": "Beatriz QA"
+        }
+      ],
+      "tags": [
+        "suporte",
+        "pesquisa",
+        "conteúdos",
+        "email"
+      ]
+    },
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "category": "backlog",
+          "color": "#94a3b8"
+        },
+        {
+          "id": "queued",
+          "name": "Pronto",
+          "category": "to-do",
+          "color": "#60a5fa"
+        },
+        {
+          "id": "triage",
+          "name": "Em triagem",
+          "category": "to-do",
+          "color": "#a78bfa"
+        },
+        {
+          "id": "building",
+          "name": "Em execução",
+          "category": "in-progress",
+          "color": "#fbbf24"
+        },
+        {
+          "id": "review",
+          "name": "Em revisão",
+          "category": "in-progress",
+          "color": "#38bdf8"
+        },
+        {
+          "id": "validated",
+          "name": "Validado",
+          "category": "completed",
+          "color": "#34d399"
+        },
+        {
+          "id": "released",
+          "name": "Publicado",
+          "category": "completed",
+          "color": "#0f766e"
+        },
+        {
+          "id": "discarded",
+          "name": "Descartado",
+          "category": "cancelled",
+          "color": "#f87171"
+        }
+      ],
+      "entryStateId": "queued",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "queued",
+        "in-progress": "building",
+        "completed": "released",
+        "cancelled": "discarded"
+      },
+      "transitions": {
+        "backlog": [
+          "queued",
+          "triage",
+          "discarded"
+        ],
+        "queued": [
+          "building",
+          "discarded"
+        ],
+        "triage": [
+          "building",
+          "discarded"
+        ],
+        "building": [
+          "review",
+          "validated",
+          "released",
+          "discarded"
+        ],
+        "review": [
+          "building",
+          "validated",
+          "released",
+          "discarded"
+        ],
+        "validated": [
+          "building",
+          "released"
+        ],
+        "released": [
+          "building"
+        ],
+        "discarded": [
+          "queued"
+        ]
+      }
+    },
+    "roadmap": {
+      "version": 4,
+      "milestones": [
+        {
+          "id": "release",
+          "title": "Portal disponível",
+          "color": "#0f766e",
+          "dueDate": "2026-11-06"
+        },
+        {
+          "id": "docs",
+          "title": "FAQ revista",
+          "color": "#b45309",
+          "dueDate": "2026-11-20"
+        }
+      ],
+      "phases": [
+        {
+          "id": "delivery",
+          "title": "Pedidos de suporte",
+          "color": "#0f766e",
+          "startDate": "2026-10-12",
+          "endDate": "2026-11-20"
+        },
+        {
+          "id": "knowledge",
+          "title": "Base de conhecimento",
+          "color": "#b45309",
+          "startDate": "2026-10-26",
+          "endDate": "2026-11-27"
+        }
+      ],
+      "sprints": [
+        {
+          "id": "previous",
+          "title": "Suporte · Sprint anterior",
+          "startDate": "2026-10-05",
+          "endDate": "2026-10-18"
+        },
+        {
+          "id": "current",
+          "title": "Suporte · Sprint atual",
+          "parentId": "delivery",
+          "startDate": "2026-10-19",
+          "endDate": "2026-11-01"
+        },
+        {
+          "id": "future",
+          "title": "Suporte · Sprint futuro",
+          "parentId": "delivery",
+          "startDate": "2026-11-02",
+          "endDate": "2026-11-15"
+        }
+      ]
+    },
+    "taskIdentity": {
+      "version": 1,
+      "highWaterMark": 1216
+    },
+    "sprintCatalog": {
+      "version": 1,
+      "lastNumber": 3,
+      "entries": [
+        {
+          "sprintId": "previous",
+          "number": 1,
+          "createdAt": null
+        },
+        {
+          "sprintId": "current",
+          "number": 2,
+          "createdAt": null
+        },
+        {
+          "sprintId": "future",
+          "number": 3,
+          "createdAt": null
+        }
+      ]
+    }
+  }
+}
