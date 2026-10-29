@@ -163,6 +163,8 @@ Preservar pesquisa, filtros, ordenação, edição e planeamento, com seis secç
 - Para Task de Story, Epic vem da Story; para Task de Epic, User Story fica vazia; para Tasks sem pai e Bugs, ambas ficam vazias.
 - Unplanned exclui Epics e Tasks de Stories como unidades autónomas; preservar histórico de participação anterior.
 - Sprints mantém criação, consulta, planeamento e proibição de destinos concluídos, sem perda de funções existentes.
+- Cada Sprint mantém a secção colapsável e apresenta uma única tabela com as colunas e ferramentas existentes. Expandir/recolher uma Story diretamente na linha revela as Tasks participantes no mesmo Sprint, alinhadas e indentadas nas mesmas colunas; eliminar a caixa hierárquica separada desta vista.
+- Tasks sem Story participante e Bugs aparecem diretamente na tabela. Filtros que excluam a Story não ocultam Tasks correspondentes. Ordenar raízes e filhos entre si; paginar grupos completos para manter Story e Tasks na mesma página. CSV inclui todos os itens filtrados, mesmo com linhas recolhidas. A expansão não altera o progresso do Sprint nem permite editar participações históricas.
 
 ## 11. Calendar e Day Planner
 

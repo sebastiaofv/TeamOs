@@ -158,17 +158,19 @@ test('Sprint expansion shows only participating child Tasks beneath their Story'
     await seed(page); await page.locator('[data-view-mode="table"]').click(); await page.locator('[data-table-view="sprints"]').click();
     const sprint = page.locator('[data-table-sprint="current"]');
     await sprint.locator(':scope > summary').click();
-    const tree = sprint.locator('.workitem-tree');
-    await expect(tree).toContainText('Pagar com cartão');
-    await tree.locator('summary').filter({ hasText: 'Pagar com cartão' }).click();
-    await expect(tree.getByRole('button', { name: '#1204 Implementar confirmação', exact: true })).toBeVisible();
-    await expect(tree.getByRole('button', { name: '#1203 Validar cartão no Sprint anterior', exact: true })).toHaveCount(0);
-    await tree.getByRole('button', { name: '#1204 Implementar confirmação', exact: true }).click();
+    const table = sprint.locator('table');
+    await expect(sprint.locator('.workitem-tree')).toHaveCount(0);
+    await expect(table).toContainText('Pagar com cartão');
+    await expect(table.locator('tr[data-task-id="1204"]')).toHaveCount(0);
+    await table.getByRole('button', { name: 'Expand Pagar com cartão', exact: true }).click();
+    await expect(table.locator('tr[data-task-id="1204"]')).toBeVisible();
+    await expect(table.locator('tr[data-task-id="1203"]')).toHaveCount(0);
+    await table.getByRole('button', { name: 'Implementar confirmação', exact: true }).click();
     await expect(page.locator('#detailTitle')).toHaveText('Implementar confirmação');
 });
 
 for (const ended of [true, false]) {
-test(`Sprint tree and Roadmap retain recorded work and read-only details after the parent is deleted (ended=${ended})`, async ({ page }) => {
+test(`Sprint table and Roadmap retain recorded work and read-only details after the parent is deleted (ended=${ended})`, async ({ page }) => {
     await page.clock.setFixedTime('2026-10-28T12:00:00.000Z');
     await gotoApp(page);
     const story = { ...fixture.board.tasks.find((task: { id: number }) => task.id === 1202), title: 'Recorded story', sprintId: 'past', status: 'doing', archived: false };
@@ -187,9 +189,9 @@ test(`Sprint tree and Roadmap retain recorded work and read-only details after t
     await page.locator('[data-table-view="sprints"]').click();
     const sprint = page.locator('[data-table-sprint="past"]');
     await sprint.locator(':scope > summary').click();
-    const tree = sprint.locator('.workitem-tree');
-    await tree.locator('summary').filter({ hasText: 'Recorded story' }).click();
-    await tree.getByRole('button', { name: '#1204 Recorded child', exact: true }).click();
+    const table = sprint.locator('table');
+    await table.getByRole('button', { name: 'Expand Recorded story', exact: true }).click();
+    await table.getByRole('button', { name: 'Recorded child', exact: true }).click();
     await expect(page.locator('#detailTitle')).toHaveText('Recorded child');
     await page.keyboard.press('e');
     await expect(page.locator('#taskModal')).toBeHidden();

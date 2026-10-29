@@ -96,6 +96,12 @@
 .status-done { background: #d9f2e3; border-color: #83bd98; color: #176331; }
 .table-blocked-badge { background: #ffe2e2; border-color: #e79797; color: #a11c1c; font-weight: 600; }
 .table-item-link:hover { text-decoration: underline; }
+.table-tree-cell { display: flex; align-items: center; gap: 6px; }
+.table-tree-depth-1 { padding-left: 24px; }
+.table-tree-toggle, .table-tree-spacer { flex: 0 0 24px; width: 24px; }
+.table-tree-toggle { height: 24px; padding: 0; border: 0; background: transparent; color: var(--text-primary); cursor: pointer; }
+.table-tree-toggle:hover { background: var(--bg-secondary); }
+.table-tree-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .table-empty { text-align: center; padding: 36px 16px; color: var(--text-secondary); }
 .table-empty .btn { margin-top: 12px; }
 .table-pagination { justify-content: flex-end; }

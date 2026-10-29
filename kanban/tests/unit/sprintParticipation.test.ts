@@ -35,7 +35,7 @@ describe('Sprint participation consultation', () => {
             ['Recorded story', undefined, 'doing'], ['Recorded child', 1, 'done']
         ]);
         expect(participation.planningMembers.map((task) => task.id)).toEqual([1]);
-        expect(table.rows.map((row) => row.task)).toEqual(participation.planningMembers);
+        expect(table.rows.map((row) => row.task)).toEqual(participation.members);
         expect(roadmap.rows.map((row) => row.task)).toEqual(participation.members);
         expect(roadmap.boardData.board.tasks).toEqual(participation.members);
         expect(roadmap.progress).toMatchObject({ eligible: 1, completed: 0 });

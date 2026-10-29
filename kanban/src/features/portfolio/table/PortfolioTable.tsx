@@ -1,5 +1,4 @@
-import { WorkitemTree } from './WorkitemTree';
-import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES, consultSprintParticipation } from '@/domain/workitems';
+import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardData } from '@/domain/types';
@@ -24,6 +23,7 @@ import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
+import { groupTableRows } from './tableHierarchy';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
     const state = useAppStore(useShallow((s) => ({
@@ -84,14 +84,13 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
             <span>{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
             <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
         </summary>
-        {expanded && <WorkitemTree participation={group.participation || consultSprintParticipation(group.boardData, group.sprint.id)} boardId={boardId} readOnly={group.status === 'done'} />}
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
-            sourceRows={group.rows} canCreate={false} scope={`sprint-${group.sprint.id}`} />}
+            sourceRows={group.rows} canCreate={false} scope={`sprint-${group.sprint.id}`} nested />}
     </details>;
 }
 
-export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', planning = false, scope = '', compact = false, emptyLabel }: {
-    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; planning?: boolean; scope?: string; compact?: boolean; emptyLabel?: string;
+export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', planning = false, scope = '', compact = false, emptyLabel, nested = false }: {
+    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; planning?: boolean; scope?: string; compact?: boolean; emptyLabel?: string; nested?: boolean;
 }) {
     const { t, language } = useI18n();
     const today = useLocalToday();
@@ -107,15 +106,20 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const [pageScope, setPageScope] = useState({ filters, sort });
     const [pageSize, setPageSize] = useState(50);
     const [selected, setSelected] = useState<Set<number>>(() => new Set());
+    const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
     const [separator, setSeparator] = useState<',' | ';'>(',');
     const scopedId = (id: string) => scope ? `${id}-${scope}` : id;
     const rows = useMemo(() => sortTableRows(filterTableRows(sourceRows, filters).filter((row) => (!hierarchy.type || workitemType(row.task) === hierarchy.type) && (!hierarchy.epic || String(epicOf(boardData, row.task)?.id || '') === hierarchy.epic) && (!hierarchy.story || (workitemType(parentOf(boardData, row.task) || {}) === 'story' && String(row.task.parentId) === hierarchy.story))), sort.column, sort.direction, boardData),
         [sourceRows, filters, sort, boardData, hierarchy]);
-    const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+    const rowGroups = useMemo(() => groupTableRows(rows, nested), [rows, nested]);
+    const pageCount = Math.max(1, Math.ceil(rowGroups.length / pageSize));
     const currentPage = pageScope.filters === filters && pageScope.sort === sort ? Math.min(page, pageCount - 1) : 0;
-    const pageRows = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+    const pageRows = rowGroups.slice(currentPage * pageSize, (currentPage + 1) * pageSize).flatMap(({ row, children }) => [
+        { row, depth: 0, hasChildren: children.length > 0 },
+        ...(expandedRows.has(row.taskId) ? children.map((child) => ({ row: child, depth: 1, hasChildren: false })) : [])
+    ]);
     const selectedCount = sourceRows.filter((row) => selected.has(row.taskId)).length;
-    const allPageSelected = pageRows.length > 0 && pageRows.every((row) => selected.has(row.taskId));
+    const allPageSelected = pageRows.length > 0 && pageRows.every(({ row }) => selected.has(row.taskId));
     const activeCount = sourceRows.filter((row) => !row.task.archived).length;
     function clearFilters() {
         clearTableFilters();
@@ -240,22 +244,32 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                         <caption className="sr-only">{t('table.title', { project })}</caption>
                         <thead><tr>
                             <th scope="col"><input type="checkbox" aria-label={t('table.selectPage')} checked={allPageSelected}
-                                onChange={(event) => toggleSelection(pageRows.map((row) => row.taskId), event.target.checked)} /></th>
+                                onChange={(event) => toggleSelection(pageRows.map(({ row }) => row.taskId), event.target.checked)} /></th>
                             {columns.map((column) => <th scope="col" data-column={column} key={column} aria-sort={sort.column === column ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                                 <button type="button" onClick={() => { setTableSort(column, sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc'); setPage(0); }}>
                                     {t(COLUMN_LABELS[column])}<span aria-hidden="true">{sort.column === column ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>
                                 </button>
                             </th>)}
                         </tr></thead>
-                        <tbody>{pageRows.map((row) => {
+                        <tbody>{pageRows.map(({ row, depth, hasChildren }) => {
                             const workflowState = getWorkflow(row.boardData || boardData, row.task).states.find((state) => state.id === row.task.status);
-                            return <tr key={`${boardId}:${row.taskId}`} data-board-id={boardId} data-task-id={row.taskId}
+                            return <tr key={`${boardId}:${row.taskId}`} data-board-id={boardId} data-task-id={row.taskId} data-depth={nested ? depth : undefined}
                             onClick={(event) => { if (!(event.target as HTMLElement).closest('button,input,a,label')) openDetails(row, event); }}>
                             <td><input type="checkbox" aria-label={t('task.select', { title: row.task.title })} checked={selected.has(row.taskId)}
                                 onChange={(event) => toggleSelection([row.taskId], event.target.checked)} /></td>
                             {columns.map((column) => <td key={column} data-column={column}>
                                 {column === 'id' || column === 'title'
-                                    ? <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
+                                    ? <div className={nested && column === 'title' ? `table-tree-cell table-tree-depth-${depth}` : undefined}>
+                                        {nested && column === 'title' && (hasChildren ? <button className="table-tree-toggle" type="button"
+                                            aria-label={`${t(expandedRows.has(row.taskId) ? 'common.collapse' : 'common.expand')} ${row.task.title}`}
+                                            aria-expanded={expandedRows.has(row.taskId)} onClick={() => setExpandedRows((previous) => {
+                                                const next = new Set(previous);
+                                                if (next.has(row.taskId)) next.delete(row.taskId); else next.add(row.taskId);
+                                                return next;
+                                            })}><span aria-hidden="true">{expandedRows.has(row.taskId) ? '▾' : '▸'}</span></button>
+                                            : <span className="table-tree-spacer" aria-hidden="true" />)}
+                                        <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
+                                    </div>
                                     : (column === 'epic' || column === 'story') && (column === 'epic' ? epicOf(boardData, row.task) : storyOf(boardData, row.task)) ? <button type="button" className="table-item-link" onClick={() => actions.openPortfolioTaskDetails(boardId, (column === 'epic' ? epicOf(boardData, row.task)! : storyOf(boardData, row.task)!).id)}>{cellText(row, column)}</button> : column === 'status' && workflowState
                                         ? <WorkflowStateBadge state={workflowState} />
                                         : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${column === 'blocked' && row.task.blocked ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
