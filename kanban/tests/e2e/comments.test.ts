@@ -4,7 +4,10 @@ import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, installControlledPortfolioWriter, mutateExternalBoardFile, triggerExternalFileCheck, setTimelineSlider, mockImportProjectsPicker } from '../support/portfolio';
 
 async function changeAuthor(page: Page, name: string) {
-    if (!(await page.locator('#commentAuthor').isVisible())) await page.getByRole('button', { name: 'Change', exact: true }).click();
+    if (!(await page.locator('#commentAuthor').isVisible())) {
+        await page.getByRole('button', { name: 'Change', exact: true }).click();
+        await expect(page.locator('#commentAuthor')).toBeFocused();
+    }
     await page.locator('#commentAuthor').fill(name);
     if (name.trim()) await page.locator('#commentAuthor').press('Enter');
 }
