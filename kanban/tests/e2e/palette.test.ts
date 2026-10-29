@@ -109,7 +109,9 @@ test.describe('command palette', () => {
     await expect(activeItem(page)).toContainText('Zoe');
     await page.keyboard.press('Enter');
 
-    await expect(portfolioCard(page, 'Login bug')).toContainText('Zoe');
+    await expect(palette(page)).toHaveCount(0);
+    await portfolioCard(page, 'Login bug').click();
+    await expect(page.locator('#taskDetailModal #taskAssigneeItems')).toContainText('Zoe');
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'alpha');
     expect(saved.board.tasks.find((task: any) => task.id === 2).assignees).toEqual(['Zoe']);

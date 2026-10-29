@@ -15,8 +15,8 @@ test('manual US-12 projects import together and preserve types, states and repea
     await expect(page.locator('.portfolio-column')).toHaveCount(4);
     const repeated = page.locator('.portfolio-task-card[data-task-id="1204"]');
     await expect(repeated).toHaveCount(2);
-    await expect(repeated.filter({ hasText: 'Implementar confirmação' }).locator('.portfolio-project-badge')).toHaveText('US-12 · Checkout');
-    await expect(repeated.filter({ hasText: 'Enviar confirmação por email' }).locator('.portfolio-project-badge')).toHaveText('US-12 · Suporte');
+    await expect(repeated.filter({ hasText: 'Implementar confirmação' }).locator('.task-card-project')).toHaveText('US-12 · Checkout');
+    await expect(repeated.filter({ hasText: 'Enviar confirmação por email' }).locator('.task-card-project')).toHaveText('US-12 · Suporte');
     await expect(page.locator('#portfolio-doing-column .portfolio-task-card[data-status="review"]')).toHaveCount(1);
     await page.screenshot({ path: testInfo.outputPath('all-technical.png'), animations: 'disabled' });
     await dragWithMouse(page, page.locator('.portfolio-task-card[data-task-id="1208"] .task-title'), page.locator('#portfolio-done-column'));

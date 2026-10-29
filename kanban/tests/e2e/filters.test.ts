@@ -204,7 +204,7 @@ test.describe('filters and sort', () => {
     ]);
 
     await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(2);
-    await expect(page.locator('#portfolioBoard .portfolio-project-badge')).toHaveCount(2);
+    await expect(page.locator('#portfolioBoard .task-card-project')).toHaveText(['Alpha Project', 'Bravo Project']);
 
     await setBoardSearch(page, 'Bravo');
     await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(1);
