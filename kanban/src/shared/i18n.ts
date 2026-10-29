@@ -6,6 +6,8 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    'card.tomorrow': 'Tomorrow',
+    'card.taskProgress': 'Tasks: {percent}%',
     'workitems.filters': 'Hierarchy filters',
     "workitems.type": "Type",
     "workitems.type.epic": "Epic",
@@ -912,6 +914,8 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    'card.tomorrow': 'Amanhã',
+    'card.taskProgress': 'Tarefas: {percent}%',
     'workitems.filters': 'Filtros de hierarquia',
     "workitems.type": "Tipo",
     "workitems.type.epic": "Epic",

@@ -72,7 +72,7 @@ test.describe('task editor', () => {
     expect(content!.x + content!.width).toBeLessThanOrEqual(properties!.x);
   });
 
-  test('assignees and blocked fields save and render as card badges', async ({ page }) => {
+  test('participants save in details while cards emphasize their blocker', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, members: ['Alex', 'Sam'], tasks: [] }
     ], { selectedBoardId: 'p1' });
@@ -91,8 +91,8 @@ test.describe('task editor', () => {
 
     const backlogColumn = page.locator('#portfolio-backlog-column');
     await expect(backlogColumn).toContainText('Investigate deploy issue');
-    await expect(backlogColumn).toContainText('Alex');
-    await expect(backlogColumn).toContainText('Sam');
+    await expect(backlogColumn).not.toContainText('Alex');
+    await expect(backlogColumn).not.toContainText('Sam');
     await expect(backlogColumn).toContainText('Blocked');
 
     await waitForBoardWrites(page);
@@ -117,6 +117,9 @@ test.describe('task editor', () => {
       blocked: true,
       blockerReason: 'Waiting for staging access'
     });
+    await portfolioCard(page, 'Investigate deploy issue').click();
+    await expect(page.locator('#taskAssigneeItems')).toContainText('Alex');
+    await expect(page.locator('#taskAssigneeItems')).toContainText('Sam');
   });
 
   test('assignee editor suggests board assignees and excludes ones already added', async ({ page }) => {
@@ -188,11 +191,11 @@ test.describe('task editor', () => {
 
     expect(result.taskAssignees).toEqual(['Jamie']);
     expect(result.savedAssignees).toEqual(['Jamie']);
-    await expect(portfolioCard(page, 'Task A')).toContainText('Jamie');
+    await expect(portfolioCard(page, 'Task A').locator('.task-tag-assignee')).toHaveCount(0);
     await expect(portfolioCard(page, 'Task A')).not.toContainText('Sam');
   });
 
-  test('tags can be added on task create and display on cards and detail modal', async ({ page }) => {
+  test('tags can be added on task create and remain in details without cluttering cards', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tags: ['bug', 'urgent'], tasks: [] }
     ], { selectedBoardId: 'p1' });
@@ -207,8 +210,7 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskModal')).toBeHidden();
 
     const card = portfolioCard(page, 'Tagged task');
-    await expect(card).toContainText('bug');
-    await expect(card).toContainText('urgent');
+    await expect(card.locator('.task-tag-label')).toHaveCount(0);
 
     await card.click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
@@ -318,7 +320,7 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskModal')).toBeHidden();
 
     const card = portfolioCard(page, 'Date formatting task');
-    await expect(card).toContainText('05/03/2026');
+    await expect(card.locator('time')).toHaveAttribute('title', 'Due: 05/03/2026');
 
     await waitForBoardWrites(page);
     const result = await page.evaluate(() => {

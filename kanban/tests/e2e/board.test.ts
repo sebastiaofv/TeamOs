@@ -344,7 +344,7 @@ test.describe('board', () => {
 
     await expect(card).toBeVisible();
     await expect(card).toHaveAttribute('data-draggable', 'true');
-    await expect(card.locator('.task-tag-age')).toContainText('Age');
+    await expect(card.locator('.task-tag-age')).toHaveCount(0);
 
     await dragWithMouse(page, card, targetColumn);
 

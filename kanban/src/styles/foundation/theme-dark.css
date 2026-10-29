@@ -130,26 +130,6 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.32);
 }
 
-:root[data-theme="dark"] .task-tag-assignee,
-:root[data-theme="dark"] .task-tag-age {
-    background: #22303d;
-    border-color: #3e5267;
-    color: #c7d7e8;
-}
-
-:root[data-theme="dark"] .task-tag-blocked {
-    background: #3c2222;
-    border-color: #6f3a3a;
-    color: #f4b7b7;
-}
-
-:root[data-theme="dark"] .task-tag-score,
-:root[data-theme="dark"] .task-tag-label {
-    background: #303439;
-    border-color: #4a5058;
-    color: #d5dae0;
-}
-
 :root[data-theme="dark"] .task-action-btn.task-action-danger:hover,
 :root[data-theme="dark"] .attachment-editor-error {
     background: #3c2222;
