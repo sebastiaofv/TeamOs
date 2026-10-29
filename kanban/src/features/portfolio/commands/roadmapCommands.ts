@@ -1,3 +1,5 @@
+import { workitemLabel } from '@/domain/taskIdentity';
+import { isPlanningUnit, WorkitemError } from '@/domain/workitems';
 // Roadmap editing, sprint assignment, and row expansion.
 
 import type { RoadmapItem, RoadmapKind, Task } from '@/domain/types';
@@ -48,7 +50,7 @@ type RoadmapEntityDraft = {
 export function createRoadmapActions({ getState, commitState, getBoardRecord, canUsePortfolioTaskMutations,
     notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, runPortfolioTaskMutation, alert, confirm, choose, closeDialogFn, openDialogFn }: BoardMutationContext,
 { getSelectedPortfolioBulkTaskIds, clearPortfolioBulkSelection }: Pick<BoardInteractions, 'getSelectedPortfolioBulkTaskIds' | 'clearPortfolioBulkSelection'>) {
-    const impactText = (tasks: Task[]) => tasks.length ? `\n\n${tasks.map((task) => `#${task.id} · ${task.title}${task.archived ? ` · ${translateCurrent('table.archived')}` : ''}`).join('\n')}` : '';
+    const impactText = (tasks: Task[]) => tasks.length ? `\n\n${tasks.map((task) => `${workitemLabel(task)} · ${task.title}${task.archived ? ` · ${translateCurrent('table.archived')}` : ''}`).join('\n')}` : '';
     const getRoadmapLabel = (kind: RoadmapKind, tr: typeof translateCurrent = translateCurrent): string => kind === 'milestones'
         ? tr('roadmap.milestone')
         : kind === 'phases'
@@ -135,7 +137,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const unplannedTaskIds = getState().roadmapEntityContext?.unplannedTaskIds;
         const selectedTaskIds = unplannedTaskIds || getSelectedPortfolioBulkTaskIds(boardId);
         if (selectedTaskIds.length === 0) return false;
-        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardRecord.data)) && !task.sprintId))) {
+        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardRecord.data, task)) && !task.sprintId))) {
             alert(translateCurrent('table.selectionChanged'));
             return false;
         }
@@ -156,6 +158,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
 
             boardData.board.tasks.forEach((task) => {
                 if (!taskIdSet.has(Number(task?.id))) return;
+                if (!isPlanningUnit(boardData, task)) throw new WorkitemError('sprint');
                 assignedCount += 1;
                 task.sprintId = nextSprint.id;
                 task.updatedAt = timestamp;
@@ -202,7 +205,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 alert(translateCurrent('roadmapDialog.sprintUnavailable'));
                 return false;
             }
-            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardData)) && !task.sprintId))) {
+            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task)) && !task.sprintId))) {
                 alert(translateCurrent('table.selectionChanged'));
                 return false;
             }
@@ -212,6 +215,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const timestamp = nowIso();
             boardData.board.tasks.forEach((task) => {
                 if (!taskIdSet.has(Number(task?.id))) return;
+                if (!isPlanningUnit(boardData, task)) throw new WorkitemError('sprint');
                 assignedCount += 1;
                 task.sprintId = sprint.id;
                 task.updatedAt = timestamp;
@@ -330,7 +334,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
             if (context.kind !== 'sprints') nextItem.color = isMilestoneColor(input.color) ? input.color
                 : previousItem ? milestoneColor(previousItem, index) : nextMilestoneColor(items);
-            if (context.kind === 'phases' && draft.parentId) nextItem.parentId = draft.parentId;
+            if (['phases', 'sprints'].includes(context.kind) && draft.parentId) nextItem.parentId = draft.parentId;
             if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) return false;
 
             if (context.kind === 'phases') {
@@ -436,9 +440,12 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         setPortfolioTaskPlanning(boardId: string, taskId: number, field: 'phaseId' | 'milestoneId', value: string) {
             return runPortfolioTaskMutation(boardId, taskId, (task, draft) => {
                 const roadmap = getRoadmapExtension(draft.data);
+                const mode = field === 'phaseId' ? 'phaseMode' : 'milestoneMode';
+                if (value === '@inherit') { if (!task.parentId) throw new WorkitemError('parent'); task[mode] = 'inherit'; task[field] = ''; return true; }
                 if (!isValidRoadmapAssignment(roadmap, field, value)) throw new Error(translateCurrent('roadmap.invalidAssignment'));
-                if (task[field] === value) return false;
+                if (task[field] === value && task[mode] === (value ? 'explicit' : 'none')) return false;
                 task[field] = value;
+                task[mode] = value ? 'explicit' : 'none';
                 return true;
             });
         },

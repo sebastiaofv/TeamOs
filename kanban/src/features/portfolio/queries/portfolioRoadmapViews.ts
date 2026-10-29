@@ -1,3 +1,4 @@
+import { consultSprintParticipation } from '@/domain/workitems';
 import type {
     PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope
 } from '@/features/portfolio/types';
@@ -34,8 +35,20 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
     const byId = new Map(sourceRows.map((row) => [row.taskId, row]));
     const scope = (key: string, item: RoadmapItem | null, input: Task[]): RoadmapWorkScope => {
         const tasks = [...new Map(input.map((task) => [task.id, task])).values()];
-        return { key, item, tasks, rows: tasks.flatMap((task) => byId.get(task.id) ? [byId.get(task.id)!] : []),
-            visibleCount: tasks.filter((task) => taskMatchesPortfolioFilters(task, filters, boardData)).length, progress: planningProgress(tasks, boardData) };
+        const participation = /^sprints?:/.test(key) && item ? consultSprintParticipation(boardData, item.id) : null;
+        const context = participation?.boardData || boardData;
+        const ids = new Set(tasks.map((task) => task.id));
+        const scopedTasks = participation ? participation.members.filter((task) => ids.has(task.id)) : tasks;
+        const rows = participation ? scopedTasks.map((task) => ({
+            boardIndex: (state?.portfolioBoards || []).findIndex((entry) => entry.id === board.id),
+            boardId: board.id, boardTitle: board.title, boardFileName: board.fileName,
+            taskIndex: -1, ...byId.get(task.id), taskId: task.id,
+            task: participation.isCurrent(task.id) ? byId.get(task.id)?.task || task : task, boardData: context,
+            canMutate: false, historical: historical || !participation.isCurrent(task.id)
+        })) : tasks.flatMap((task) => byId.get(task.id) ? [byId.get(task.id)!] : []);
+        return { key, item, boardData: context, participation: participation || undefined, tasks: scopedTasks, rows,
+            visibleCount: scopedTasks.filter((task) => taskMatchesPortfolioFilters(task, filters, context)).length,
+            progress: participation ? planningProgress(participation.planningMembers.filter((task) => ids.has(task.id)), context, { leavesOnly: false }) : planningProgress(tasks, context) };
     };
     function grouped(tasks: Task[], kind: 'sprints' | 'milestones'): RoadmapWorkScope[] {
         const field = kind === 'sprints' ? 'sprintId' : 'milestoneId';
@@ -48,9 +61,9 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
     const phaseRows: RoadmapPlanningRow[] = tree.map(({ item, depth, hasChildren }) => {
         const tasks = getRoadmapTaskFieldTasks(boardData, 'phaseId', item.id);
         return { ...scope(`phase:${item.id}`, item, tasks), kind: 'phases', depth, hasChildren, treeCollapsed: Boolean(expanded[`tree:${item.id}`]), expanded: Boolean(expanded[`phase:${item.id}`]),
-            sprintGroups: grouped(tasks, 'sprints'), milestoneGroups: grouped(tasks, 'milestones') };
+            sprintGroups: [...grouped(tasks, 'sprints'), ...roadmap.sprints.filter((sprint) => sprint.parentId === item.id && !tasks.some((task) => task.sprintId === sprint.id)).map((sprint) => scope(`sprint:${sprint.id}`, sprint, getRoadmapTaskFieldTasks(boardData, 'sprintId', sprint.id)))], milestoneGroups: grouped(tasks, 'milestones') };
     });
-    const sprintRows: RoadmapPlanningRow[] = [...roadmap.sprints].sort(compareRoadmapItemsByDate).map((item) => ({ ...scope(`sprint:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'sprintId', item.id)),
+    const sprintRows: RoadmapPlanningRow[] = roadmap.sprints.filter((sprint) => !sprint.parentId || !roadmap.phases.some((phase) => phase.id === sprint.parentId)).sort(compareRoadmapItemsByDate).map((item) => ({ ...scope(`sprint:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'sprintId', item.id)),
         kind: 'sprints', depth: 0, hasChildren: false, treeCollapsed: false, expanded: Boolean(expanded[`sprint:${item.id}`]), sprintGroups: [], milestoneGroups: [] }));
     const milestones: RoadmapMilestoneMarker[] = roadmap.milestones.map((item, index) => ({ ...item, color: milestoneColor(item, index) })).sort(compareRoadmapItemsByDate).map((item) => {
         return { ...scope(`milestone:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'milestoneId', item.id)), position: getRoadmapTimelinePlacement(item, range)?.point || 0 };

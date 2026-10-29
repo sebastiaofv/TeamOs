@@ -24,6 +24,19 @@ test.describe('app shell', () => {
     await expect(page.getByRole('button', { name: 'Help' })).toBeVisible();
     await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+    await expect(page.getByRole('button', { name: 'Technical Board', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toHaveCount(0);
+    await expect(page.getByText('All columns are hidden. Use Board columns to show them again.', { exact: true })).toHaveCount(0);
+  });
+
+  test('board controls appear on project load and disappear when the last project is removed', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'empty', title: 'Empty project', hasHandle: true, tasks: [] }], { selectedBoardId: 'empty' });
+    await expect(page.getByRole('button', { name: 'Technical Board', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toBeVisible();
+    await expect(page.locator('.portfolio-column')).toHaveCount(4);
+    await page.getByRole('button', { name: 'Remove project', exact: true }).click();
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+    await expect(page.locator('.workitem-board-shell')).toHaveCount(0);
   });
 
   test('top bar theme toggle switches and persists dark mode', async ({ page }) => {
@@ -113,7 +126,7 @@ test.describe('app shell', () => {
     await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [] }], { selectedBoardId: 'ghost' });
 
     await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Board' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Board', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Calendar' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
     await expect(page.locator('#portfolioBoard')).toBeVisible();

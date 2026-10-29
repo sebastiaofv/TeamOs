@@ -21,6 +21,12 @@ Feature commands and queries are the main seams for portfolio behavior:
 commands coordinate writes, queries derive view models, and views render the
 result. Infrastructure owns file and browser details behind small interfaces.
 
+## Shared behavior
+
+- `domain/workitems.ts` owns Sprint participation consultation through `consultSprintParticipation`. Table, Roadmap, and the Sprint tree use its recorded workitems, hierarchy context, and current-allocation distinction. Historical consultation keeps recorded status and participation; it does not invent past workflow metadata or Sprint closure data.
+- `features/portfolio/commands/workitemChanges.ts` owns the complete Workitem change sequence: direct creation/deletion/edit history, planning inheritance, automation, functional acceptance, derived history, stale checks, and operation annotation. Commands retain their specific Project, Workflow, Roadmap, and relationship events. `mutationContext.ts` supplies interaction adapters and publishes the completed draft before attempting the disk save; a failed disk save leaves that applied draft available for retry.
+- `features/portfolio/projects/useProjectSettingsEditor.ts` owns the joint General/Workflow draft, validation, and save lifecycle. The views render and edit that model; `projectSettingsCommands.ts` owns injectable impact confirmation and the single atomic settings write.
+
 ## Folder map
 
 ```text

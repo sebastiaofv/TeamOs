@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createPortfolioMutationActions } from '../../src/features/portfolio/commands/portfolioCommands';
 import { getPortfolioBulkTaskIds } from '../../src/features/portfolio/queries';
+import { reconstructBoardStateFromTimeline } from '@/domain/timeline';
 import { legacyWorkflow } from '../../src/domain/workflow';
 
 function createBoard() {
@@ -149,7 +150,7 @@ describe('portfolio mutation actions', () => {
     ]);
     expect(saved.board.tasks[2].sprintId || '').toBe('');
     expect(saved.extensions.roadmap?.sprints).toHaveLength(1);
-    expect(saved.extensions.timeline?.events.at(-1)?.meta).toMatchObject({ action: 'assign-existing', taskIds: [1, 2] });
+    expect(saved.extensions.timeline?.events.findLast((event) => event.kind === 'roadmap.bulk-assigned')?.meta).toMatchObject({ action: 'assign-existing', taskIds: [1, 2] });
     expect(enqueueSave).toHaveBeenCalledTimes(1);
     expect(getPortfolioBulkTaskIds(store.getState(), 'p1')).toEqual([3]);
     expect(store.getState().roadmapEntityContext).toBeNull();
@@ -269,6 +270,31 @@ describe('portfolio mutation actions', () => {
     expect(onCommitted).not.toHaveBeenCalled();
     expect(store.getState().portfolioBoards[0].data.board.tasks[0].title).toBe('Unsaved title');
     expect(enqueueSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('publishes independent changes before awaiting disk so concurrent edits retain both changes', async () => {
+    const { store } = createActions();
+    const context = createBoardMutationContext({ store, enqueueSave: vi.fn(async () => true), markDirty: vi.fn(), alert: vi.fn() });
+    const first = context.runPortfolioTaskMutation('p1', 1, (task) => { task.title = 'Renamed'; return true; });
+    const second = context.runPortfolioTaskMutation('p1', 1, (task) => { task.description = 'Description'; return true; });
+    expect(await Promise.all([first, second])).toEqual([true, true]);
+    const data = store.getState().portfolioBoards[0].data;
+    expect(data.board.tasks[0]).toMatchObject({ title: 'Renamed', description: 'Description' });
+    expect(reconstructBoardStateFromTimeline(data, data.extensions.timeline!.events.length - 1).board.tasks[0]).toMatchObject({ title: 'Renamed', description: 'Description' });
+  });
+
+  it('accounts for creation and deletion without caller history code, but does not duplicate a board restore', async () => {
+    const { actions, store } = createActions();
+    const id = await actions.createPortfolioTaskFromFields('p1', { title: 'Created', assignees: [], priority: null, tags: [], effort: null, dueDate: '' });
+    expect(id).not.toBeNull();
+    let data = store.getState().portfolioBoards[0].data;
+    expect(data.extensions.timeline!.events.at(-1)).toMatchObject({ kind: 'task.created', entityId: String(id) });
+    store.setState({ portfolioTimelineSelection: { boardId: 'p1', eventIndex: 0 } });
+    await actions.restorePortfolioTimelineSelection();
+    data = store.getState().portfolioBoards[0].data;
+    expect(data.board.tasks.map((task) => task.id)).toEqual([1]);
+    expect(data.extensions.timeline!.events.map((event) => event.kind)).toEqual(['board.baseline', 'task.created', 'board.restored']);
+    expect(reconstructBoardStateFromTimeline(data, 2).board.tasks.map((task) => task.id)).toEqual([1]);
   });
 
   it('discards a partially changed draft when a mutation fails', async () => {

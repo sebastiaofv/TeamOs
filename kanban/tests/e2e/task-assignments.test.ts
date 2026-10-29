@@ -91,7 +91,7 @@ test('responsible and participant filters combine in planning and sprint tables 
     { id: 3, title: 'Matching sprint item', responsible: 'Ana', assignees: ['Ana', 'Rui'], sprintId: 's1' },
     { id: 4, title: 'Other sprint item', responsible: 'Rui', assignees: ['Rui'], sprintId: 's1', status: 'done' }
   ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [
-    { id: 's1', title: 'Delivery', startDate: '2026-10-01', endDate: '2026-10-14' }
+    { id: 's1', title: 'Delivery', startDate: '2026-10-01', endDate: '2099-10-14' }
   ] } } }], { selectedBoardId: 'p' });
   await page.locator('[data-view-mode="table"]').click();
   await openFiltersPanel(page);
@@ -154,7 +154,7 @@ test('keyboard saving commits a project member correction without requiring a bl
 test('new workitems support responsibility, reopen read-only, and can progress without allocations', async ({ page }) => {
   await gotoApp(page);
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Create assignments', hasHandle: true, members: ['Marta'], tasks: [] }], { selectedBoardId: 'p' });
-  await page.locator('#portfolio-to-do-column .add-task-card').click();
+  await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
   await page.locator('#taskName').fill('New item');
   await page.locator('#taskResponsible').selectOption('Marta');
   await page.locator('#taskModalSaveBtn').click();
@@ -176,8 +176,8 @@ test('new workitems support responsibility, reopen read-only, and can progress w
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'empty', title: 'Empty allocations', hasHandle: true, tasks: [{ id: 1, title: 'Unallocated', status: 'to-do' }] }]);
   await portfolioCard(page, 'Unallocated').click();
-  await expect(page.locator('#detailResponsible')).toHaveText('No responsible person');
-  await expect(page.locator('#detailAssignees')).toHaveText('No participants');
+  await expect(page.locator('#detailResponsibleInput')).toHaveValue('');
+  await expect(page.locator('#taskAssigneeItems')).toContainText('No participants');
   await page.keyboard.press('Escape');
   await portfolioCard(page, 'Unallocated').hover();
   await page.keyboard.press('4');

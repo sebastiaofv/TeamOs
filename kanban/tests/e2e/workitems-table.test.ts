@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 
 import {
@@ -602,6 +603,7 @@ test.describe('workitems table', () => {
 
     // Reuse the timeline's real edit/baseline flow and slider helper.
     await page.locator('[data-view-mode="board"]').click();
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await setTimelineSlider(page, 0);
     await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toContainText('Historical preview');
@@ -691,7 +693,7 @@ test.describe('workitems table', () => {
       await expect(page.locator('#portfolioTable .table-summary > span[role="status"]')).toHaveText('1 selected');
 
       await openColumnOptions(page);
-      for (const column of ['status', 'assignees', 'priority', 'phase', 'updatedAt']) {
+      for (const column of ['type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']) {
         await page.locator(`#tableColumn-${column}`).uncheck();
       }
       await page.locator('#tableColumn-dueDate').check();
@@ -810,7 +812,9 @@ test.describe('workitems table', () => {
   test('a new writable project offers create-workitem in the empty table and persists the created item', async ({ page }) => {
     await mockNewProjectFlow(page, { fileName: 'empty-table.json' });
     await page.locator('#newProjectBtn').click();
-    await answerAppMessage(page, { expectText: 'Project name:', input: 'New table project' });
+    await page.locator('#appMessageInput').fill('New table project');
+    await page.locator('#appMessageConfirmBtn').click();
+    await answerAppMessage(page, { expectText: 'unique acronym', input: 'NTP' });
     await openTable(page);
     await expect(tableRows(page)).toHaveCount(0);
     await page.locator('#tableCreateTask').click();

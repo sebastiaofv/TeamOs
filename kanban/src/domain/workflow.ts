@@ -1,4 +1,4 @@
-import type { BoardData, LooseBoardData, Workflow, WorkflowCategory } from './types';
+import type { BoardData, LooseBoardData, Workflow, WorkflowCategory, WorkflowKind } from './types';
 import { cloneSerializable } from './serializable';
 import { isRecord, nowIso } from './util';
 
@@ -66,8 +66,20 @@ export function parseWorkflow(value: unknown): Workflow {
     return input;
 }
 
-export function getWorkflow(data?: LooseBoardData | null): Workflow {
+export type WorkflowSubject = WorkflowKind | { type?: unknown };
+
+export function workflowKind(subject?: WorkflowSubject | null): WorkflowKind {
+    return typeof subject === 'string' ? subject : subject?.type === 'story' || subject?.type === 'epic' ? 'functional' : 'technical';
+}
+
+/** Older projects share their existing process until either workflow is edited. */
+export function getWorkflow(data?: LooseBoardData | null, subject?: WorkflowSubject | null): Workflow {
+    if (workflowKind(subject) === 'functional' && data?.extensions?.functionalWorkflow !== undefined) return parseWorkflow(data.extensions.functionalWorkflow);
     return data?.extensions?.workflow ? parseWorkflow(data.extensions.workflow) : legacyWorkflow(data?.board?.columns);
+}
+
+export function allWorkflowStates(data?: LooseBoardData | null) {
+    return [...new Map([...getWorkflow(data).states, ...getWorkflow(data, 'functional').states].map((state) => [state.id, state])).values()];
 }
 
 export function unreachableWorkflowStateIds(workflow: Workflow): Set<string> {
@@ -113,30 +125,36 @@ export function assertWorkflow(value: unknown): asserts value is Workflow {
     if (errors.length) throw new Error(errors.join(' '));
 }
 
-export function statusCategory(status: string, data?: LooseBoardData | null): WorkflowCategory {
-    return getWorkflow(data).states.find((s) => s.id === status)?.category || 'to-do';
+export function statusCategory(status: string, data?: LooseBoardData | null, subject?: WorkflowSubject): WorkflowCategory {
+    return getWorkflow(data, subject).states.find((s) => s.id === status)?.category || 'to-do';
 }
 
-export function allowedWorkflowDestinations(data: LooseBoardData, status: string, category?: WorkflowCategory) {
-    const workflow = getWorkflow(data);
+export function allowedWorkflowDestinations(data: LooseBoardData, status: string, category?: WorkflowCategory, subject?: WorkflowSubject) {
+    const workflow = getWorkflow(data, subject);
     return workflow.states.filter((state) => (!category || state.category === category) && (workflow.transitions[status] || []).includes(state.id));
 }
 
-export function canTransition(data: LooseBoardData, from: string, to: string): boolean {
-    return from !== to && (getWorkflow(data).transitions[from] || []).includes(to);
+export function canTransition(data: LooseBoardData, from: string, to: string, subject?: WorkflowSubject): boolean {
+    return from !== to && (getWorkflow(data, subject).transitions[from] || []).includes(to);
 }
 
-export function applyWorkflow(data: BoardData, workflow: Workflow, relocations: Record<string, string>): void {
+export function applyWorkflow(data: BoardData, workflow: Workflow, relocations: Record<string, string>, kind: WorkflowKind = 'technical'): void {
     assertWorkflow(workflow);
-    const previous = getWorkflow(data);
-    const ids = new Set(workflow.states.map((s) => s.id));
-    for (const state of previous.states) {
-        if (ids.has(state.id)) continue;
-        if (data.board.tasks.some((t) => t.status === state.id) && !ids.has(relocations[state.id])) throw new Error('Choose a destination for every removed state in use.');
-    }
+    const tasks = data.board.tasks.filter((task) => workflowKind(task) === kind);
+    const ids = new Set(workflow.states.map((state) => state.id));
+    if (tasks.some((task) => !ids.has(task.status) && !ids.has(relocations[task.status]))) throw new Error('Choose a destination for every removed state in use.');
+    // Freeze the old shared process before changing the technical workflow.
+    if (kind === 'technical' && !data.extensions.functionalWorkflow) data.extensions.functionalWorkflow = getWorkflow(data, 'functional');
     const at = nowIso();
-    data.board.tasks.forEach((task) => { if (!ids.has(task.status)) { task.status = relocations[task.status]; task.updatedAt = at; } });
-    data.extensions.workflow = cloneSerializable(workflow);
-    data.board.columns = workflow.states.map((s) => ({ status: s.id, title: s.name }));
-    if (data.extensions.boardView) data.extensions.boardView.hiddenStateIds = data.extensions.boardView.hiddenStateIds.filter((id) => ids.has(id));
+    tasks.forEach((task) => { if (!ids.has(task.status)) { task.status = relocations[task.status]; task.updatedAt = at; } });
+    if (kind === 'functional') data.extensions.functionalWorkflow = cloneSerializable(workflow);
+    else {
+        data.extensions.workflow = cloneSerializable(workflow);
+        data.board.columns = workflow.states.map((state) => ({ status: state.id, title: state.name }));
+    }
+    if (data.extensions.boardView) {
+        const key = kind === 'functional' ? 'functionalHiddenStateIds' : 'hiddenStateIds';
+        const hidden = data.extensions.boardView[key];
+        if (hidden) data.extensions.boardView[key] = hidden.filter((id) => ids.has(id));
+    }
 }

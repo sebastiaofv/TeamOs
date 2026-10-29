@@ -1,3 +1,5 @@
+import { effectivePlanning, sprintMembers } from './workitems';
+import type { BoardData } from './types';
 import type {
     DateBounds,
     LooseBoardData,
@@ -196,7 +198,8 @@ export function getRoadmapTaskFieldTasks(boardData: LooseBoardData | null | unde
     if (!normalizedRef) return [];
     const tasks = Array.isArray(boardData?.board?.tasks) ? boardData.board.tasks : [];
     const refs = fieldName === 'phaseId' ? phaseDescendants(getRoadmapExtension(boardData)?.phases || [], normalizedRef) : new Set([normalizedRef]);
-    return tasks.filter((task) => task && refs.has(normalizeRoadmapRef(task[fieldName])));
+    if (fieldName === 'sprintId' && boardData?.board) return sprintMembers(boardData as BoardData, normalizedRef);
+    return tasks.filter((task) => task && refs.has(normalizeRoadmapRef(boardData?.board ? effectivePlanning(boardData as BoardData, task, fieldName as 'phaseId' | 'milestoneId') : task[fieldName])));
 }
 
 export function normalizeRoadmapItems(value: unknown, dateKeys: readonly RoadmapDateKey[], requiredDateKeys: readonly RoadmapDateKey[], allowParent = false, allowColor = false): RoadmapItem[] | null {
@@ -271,12 +274,15 @@ export function compareRoadmapItemsByDate(a: RoadmapItemLike, b: RoadmapItemLike
 export function getRoadmapAxisTicks(range: RangeLike, language: Language = 'en', width = 320): RoadmapTick[] {
     if (!range?.start || !range?.end) return [];
     const totalDays = Math.max(1, range.totalDays || getRoadmapDayDiff(range.start, range.end));
-    const tickCount = Math.min(Math.max(2, Math.floor(width / 72) + 1), totalDays + 1);
+    const tickSpacing = totalDays > 732 ? 104 : 72;
+    const tickCount = Math.min(Math.max(2, Math.floor(width / tickSpacing) + 1), totalDays + 1);
     const ticks: RoadmapTick[] = [];
     for (let index = 0; index < tickCount; index += 1) {
         const offsetDays = Math.round((totalDays * index) / Math.max(1, tickCount - 1));
         const date = addRoadmapDays(range.start, offsetDays);
-        const label = formatRoadmapAxisDate(date, language);
+        const label = totalDays > 732
+            ? new Intl.DateTimeFormat(language === 'pt' ? 'pt-PT' : 'en', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date)
+            : formatRoadmapAxisDate(date, language);
         ticks.push({
             label,
             position: getRoadmapDatePosition(date, range)
@@ -285,8 +291,8 @@ export function getRoadmapAxisTicks(range: RangeLike, language: Language = 'en',
     return ticks;
 }
 
-/** First visible year and each January boundary, positioned on the shared date scale. */
-export function getRoadmapYearTicks(range: RangeLike): RoadmapTick[] {
+/** January boundaries on the shared date scale, spaced to keep year labels readable. */
+export function getRoadmapYearTicks(range: RangeLike, width = Infinity): RoadmapTick[] {
     if (!range?.start || !range.end) return [];
     const ticks = [{ label: String(range.start.getUTCFullYear()), position: 0 }];
     for (let year = range.start.getUTCFullYear() + 1; year <= range.end.getUTCFullYear(); year++) {
@@ -294,7 +300,14 @@ export function getRoadmapYearTicks(range: RangeLike): RoadmapTick[] {
         date.setUTCFullYear(year, 0, 1);
         ticks.push({ label: String(year), position: getRoadmapDatePosition(date, range) });
     }
-    return ticks;
+    const minimumGap = 56 / Math.max(1, width) * 100;
+    const visible = [ticks[0]];
+    const last = ticks[ticks.length - 1];
+    for (const tick of ticks.slice(1, -1)) {
+        if (tick.position - visible[visible.length - 1].position >= minimumGap && last.position - tick.position >= minimumGap) visible.push(tick);
+    }
+    if (ticks.length > 1 && last.position - visible[visible.length - 1].position >= minimumGap) visible.push(last);
+    return visible;
 }
 
 export function getRoadmapTimelinePlacement(item: RoadmapItemLike, range: RangeLike): { left: number; width: number; point: number } | null {
@@ -368,7 +381,7 @@ export function normalizeRoadmapExtension(value: unknown): RoadmapExtension | nu
 
     const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate'], false, Number(value.version) >= 3);
     const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate'], ['startDate', 'endDate'], true, Number(value.version) >= 4);
-    const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate']);
+    const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate'], true);
     if (!milestones || !phases || !sprints) return null;
     try { recalculatePhaseDates(phases); } catch { return null; }
 

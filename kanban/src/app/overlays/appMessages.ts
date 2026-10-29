@@ -4,12 +4,12 @@
 // what the dialog renders; the pending resolvers stay in this module.
 
 import { flushSync } from 'react-dom';
-import type { AppMessage } from '@/app/types';
+import type { AppMessage, MessageSelection } from '@/app/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { translateCurrent } from '@/shared/i18n';
 
-export type ConfirmOptions = { title?: string; confirmLabel?: string; danger?: boolean };
-export type PromptOptions = { title?: string; confirmLabel?: string };
+export type ConfirmOptions = { title?: string; confirmLabel?: string; danger?: boolean; selections?: MessageSelection[] };
+export type PromptOptions = { title?: string; confirmLabel?: string; required?: boolean };
 export type Choice<T> = { value: T; label: string; primary?: boolean };
 
 type PendingMessage = { message: AppMessage; resolve: (value: unknown) => void };
@@ -55,25 +55,26 @@ export function showAlert(text: string, { title }: { title?: string } = {}): Pro
     });
 }
 
-// Resolves true when confirmed, false when cancelled.
-export function showConfirm(text: string, { title, confirmLabel, danger = false }: ConfirmOptions = {}): Promise<boolean> {
+// Resolves selected field values (or true without fields) when confirmed, false when cancelled.
+export function showConfirm(text: string, { title, confirmLabel, danger = false, selections }: ConfirmOptions = {}): Promise<boolean | Record<string, string>> {
     return request({
         title: title || translateCurrent('messages.confirm'),
         text,
+        ...(selections?.length ? { selections } : {}),
         buttons: [
             { label: translateCurrent('messages.cancel'), value: false, cancel: true },
-            { label: confirmLabel || translateCurrent('common.ok'), value: true, primary: true, danger }
+            { label: confirmLabel || translateCurrent('common.ok'), value: true, primary: true, danger, ...(selections?.length ? { submitsSelections: true } : {}) }
         ],
         cancelValue: false
     });
 }
 
 // Resolves with the entered text, or null when cancelled.
-export function showPrompt(text: string, defaultValue: unknown = '', { title, confirmLabel }: PromptOptions = {}): Promise<string | null> {
+export function showPrompt(text: string, defaultValue: unknown = '', { title, confirmLabel, required = false }: PromptOptions = {}): Promise<string | null> {
     return request({
         title: title || translateCurrent('messages.input'),
         text,
-        input: { defaultValue: String(defaultValue ?? '') },
+        input: { defaultValue: String(defaultValue ?? ''), ...(required ? { required } : {}) },
         buttons: [
             { label: translateCurrent('messages.cancel'), value: null, cancel: true },
             { label: confirmLabel || translateCurrent('common.ok'), primary: true, submitsInput: true }

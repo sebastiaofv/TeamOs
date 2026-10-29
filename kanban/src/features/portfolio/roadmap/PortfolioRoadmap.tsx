@@ -1,3 +1,4 @@
+import { WorkitemTree } from '@/features/portfolio/table/WorkitemTree';
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useShallow } from 'zustand/react/shallow';
@@ -6,7 +7,7 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { formatRoadmapDateRange, getRoadmapAxisTicks, getRoadmapYearTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '@/domain/roadmap';
-import { planningTaskCategory } from '@/domain/phaseTree';
+import { allWorkflowStates } from '@/domain/workflow';
 import { formatDueDateForUi } from '@/domain/calendar';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
@@ -64,9 +65,9 @@ function CompletionControl({ view }: { view: PortfolioRoadmapViewModel }) {
     const selected = useAppStore((state) => state.portfolioFilters.statuses);
     const choices = [
         { key: 'all', label: t('common.all'), ids: [] as string[] },
-        { key: 'open', label: t('roadmap.notCompleted'), ids: view.boardData?.board.columns.filter((column) => !['completed', 'cancelled'].includes(planningTaskCategory({ status: column.status }, view.boardData))).map((column) => column.status) || [] },
-        { key: 'completed', label: t('roadmap.completed'), ids: view.boardData?.board.columns.filter((column) => planningTaskCategory({ status: column.status }, view.boardData) === 'completed').map((column) => column.status) || [] },
-        { key: 'cancelled', label: t('roadmap.cancelled'), ids: view.boardData?.board.columns.filter((column) => planningTaskCategory({ status: column.status }, view.boardData) === 'cancelled').map((column) => column.status) || [] }
+        { key: 'open', label: t('roadmap.notCompleted'), ids: allWorkflowStates(view.boardData).filter((column) => !['completed', 'cancelled'].includes(column.category)).map((column) => column.id) || [] },
+        { key: 'completed', label: t('roadmap.completed'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'completed').map((column) => column.id) || [] },
+        { key: 'cancelled', label: t('roadmap.cancelled'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'cancelled').map((column) => column.id) || [] }
     ];
     return <div className="roadmap-completion-controls" role="group" aria-label={t('roadmap.completionFilter')}>
         {choices.filter((choice) => choice.key !== 'cancelled' || choice.ids.length).map((choice) => <button className="btn" type="button" key={choice.key}
@@ -86,7 +87,8 @@ function ScopeTable({ scope, view, scopeId }: { scope: RoadmapWorkScope; view: P
     if (!view.boardData) return null;
     return <div className="roadmap-scope-table">
         <ScopeSummary scope={scope} />
-        <WorkitemTable compact hidden={false} boardId={view.boardId} project={`${view.boardTitle}${scope.item ? ` · ${scope.item.title}` : ''}`} boardData={view.boardData}
+        {scope.participation && <WorkitemTree participation={scope.participation} boardId={view.boardId} readOnly={view.historical} />}
+        <WorkitemTable compact hidden={false} boardId={view.boardId} project={`${view.boardTitle}${scope.item ? ` · ${scope.item.title}` : ''}`} boardData={scope.boardData}
             sourceRows={scope.rows} canCreate={false} scope={domId(scopeId)} emptyLabel={t('roadmap.noTasksAssigned')} />
     </div>;
 }
@@ -183,7 +185,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
     const axis = useElementSize<HTMLDivElement>(640);
     const controls = useElementSize<HTMLDivElement>();
     const axisTicks = getRoadmapAxisTicks(view.range, language, axis.width);
-    const yearTicks = getRoadmapYearTicks(view.range);
+    const yearTicks = getRoadmapYearTicks(view.range, axis.width);
     const layout = layoutMilestones(view.milestones.map((milestone) => milestone.position), axis.width);
     const milestones = view.milestones.map((milestone, index) => ({ ...milestone, ...layout[index] }));
     const marker = getRoadmapTodayMarker(view.range);

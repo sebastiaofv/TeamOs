@@ -49,7 +49,8 @@ export function normalizeBoardExtensionsValue(
         if (conversations) nextExtensions.conversations = conversations;
     }
     if (nextExtensions.workflow) nextExtensions.workflow = parseWorkflow(nextExtensions.workflow);
-    if (nextExtensions.boardView !== undefined) nextExtensions.boardView = parseBoardView(nextExtensions.boardView, nextExtensions.workflow ? new Set(nextExtensions.workflow.states.map((state) => state.id)) : undefined);
+    if (nextExtensions.functionalWorkflow !== undefined) nextExtensions.functionalWorkflow = parseWorkflow(nextExtensions.functionalWorkflow);
+    if (nextExtensions.boardView !== undefined) nextExtensions.boardView = parseBoardView(nextExtensions.boardView, nextExtensions.workflow ? new Set(nextExtensions.workflow.states.map((state) => state.id)) : undefined, nextExtensions.functionalWorkflow ? new Set(nextExtensions.functionalWorkflow.states.map((state) => state.id)) : undefined);
 
     const relations = parseTaskRelations(nextExtensions.taskRelations, options.taskIds);
     if (relations?.relations.length) nextExtensions.taskRelations = relations;
@@ -105,7 +106,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
         ? board.tasks.map((task) => normalizeTask(task, {
             fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
             includeStatusChangedAt: false,
-            workflow: getWorkflow(input),
+            workflow: getWorkflow(input, task),
             roadmap
         }))
         : [];
@@ -151,7 +152,7 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
         ? board.tasks.map(task => normalizeTask(task, {
             fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
             includeStatusChangedAt: false,
-            workflow: getWorkflow(input),
+            workflow: getWorkflow(input, task),
             roadmap
         }))
         : [];

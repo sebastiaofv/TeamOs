@@ -1,24 +1,15 @@
+import { WorkitemError } from '@/domain/workitems';
 import type { BoardData, Task } from '@/domain/types';
 import type { BoardRecord, DialogName } from '@/features/portfolio/types';
 import { useAppStore, type AppStore } from '@/features/portfolio/state/store';
-import { cloneSerializable } from '@/domain/serialize';
-import {
-    captureTaskTimelineSnapshot,
-    ensureBoardTimelineBaseline,
-    getBoardTimelineData,
-    recordTaskTimelineEvent,
-    createTimelineEventId,
-} from '@/domain/timeline';
-import { annotateTimelineOperation } from '@/domain/taskHistory';
-import { reserveTaskIdentities } from '@/domain/taskIdentity';
-import { touchTask } from '@/domain/task';
-import { canTransition } from '@/domain/workflow';
+import { getBoardTimelineData } from '@/domain/timeline';
+import { applyWorkitemChange } from './workitemChanges';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persistence/projectFiles';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
-import { showAlert, showConfirm, showChoice, type ConfirmOptions } from '@/app/overlays/appMessages';
+import { showAlert, showConfirm, showChoice, showPrompt, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
-import { ProjectDataError, syncProjectAssignments } from '@/domain/projectData';
+import { assertUniqueProjectAcronym, ProjectDataError } from '@/domain/projectData';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -34,8 +25,11 @@ export type BoardMutationOptions = {
     alert?: (text: string, options?: { title?: string }) => unknown;
     confirm?: (text: string, options?: ConfirmOptions) => unknown;
     choose?: typeof showChoice;
+    prompt?: typeof showPrompt;
     onBoardChanged?: (boardId: string) => void;
 };
+
+type MutationOptions = { allowHistorical?: boolean; onMutated?: () => void; onCommitted?: () => void };
 
 // `alert` and `confirm` return promises (see appMessages.ts); await `confirm`.
 export function createBoardMutationContext({
@@ -47,6 +41,7 @@ export function createBoardMutationContext({
     alert = showAlert,
     confirm = showConfirm,
     choose = showChoice,
+    prompt = showPrompt,
     onBoardChanged = () => {}
 }: BoardMutationOptions = {}) {
     const getState = store.getState;
@@ -74,10 +69,11 @@ export function createBoardMutationContext({
             : translateCurrent('messages.readOnlyProject'));
     }
 
-    async function runPortfolioBoardMutation(
+    async function runMutation(
         boardId: string,
         mutator: BoardMutator,
-        { allowHistorical = false, onMutated = () => {}, onCommitted = () => {} }: { allowHistorical?: boolean; onMutated?: () => void; onCommitted?: () => void } = {}
+        { allowHistorical = false, onMutated = () => {}, onCommitted = () => {} }: MutationOptions = {},
+        taskId?: number
     ): Promise<boolean> {
         const current = getBoardRecord(boardId);
         if (!current) return false;
@@ -85,59 +81,52 @@ export function createBoardMutationContext({
             notifyPortfolioMutationUnavailable(boardId);
             return false;
         }
-        const draft: BoardRecord = { ...current, data: cloneSerializable(current.data) };
+        const publish = async (draft: BoardRecord) => {
+            if (draft.data.extensions.project && draft.data.extensions.project.acronym !== current.data.extensions.project?.acronym) assertUniqueProjectAcronym(draft.data.extensions.project, getState().portfolioBoards.filter((board) => board.id !== boardId).flatMap((board) => board.data.extensions.project ? [board.data.extensions.project] : []));
+            draft.title = draft.data.board.settings.title;
+            const state = getState();
+            const timeline = getBoardTimelineData(draft.data);
+            const pinLatest = state.selectedPortfolioBoardId === boardId || state.portfolioTimelineSelection.boardId === boardId;
+            commitState({
+                portfolioBoards: state.portfolioBoards.map((board) => board.id === boardId ? draft : board),
+                ...(pinLatest ? { portfolioTimelineSelection: { boardId, eventIndex: (timeline?.events.length || 1) - 1 } } : {})
+            });
+            markDirty(boardId);
+            onBoardChanged(boardId);
+            onMutated();
+            const saved = Boolean(await enqueueSave(getBoardRecord(boardId)));
+            if (!saved) return false;
+            onCommitted();
+            return true;
+        };
         try {
-            ensureBoardTimelineBaseline(draft.data);
-            const firstEvent = draft.data.extensions.timeline?.events.length || 0;
-            if (mutator(draft.data, draft) === false) return false;
-            syncProjectAssignments(draft.data);
-            annotateTimelineOperation(current.data, draft.data, firstEvent, createTimelineEventId());
-            reserveTaskIdentities(draft.data, current.data);
+            return await applyWorkitemChange(current, mutator, {
+                taskId, isCurrent: () => getBoardRecord(boardId)?.data === current.data, alert, confirm, prompt, publish
+            });
         } catch (error) {
-            alert(error instanceof ProjectDataError ? translateCurrent(`project.error.${error.code}`)
+            alert(error instanceof WorkitemError ? translateCurrent(`workitems.error.${error.code}`) : error instanceof ProjectDataError ? translateCurrent(`project.error.${error.code}`)
                 : translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;
         }
-        draft.title = draft.data.board.settings.title;
-        const state = getState();
-        const timeline = getBoardTimelineData(draft.data);
-        const pinLatest = state.selectedPortfolioBoardId === boardId || state.portfolioTimelineSelection.boardId === boardId;
-        commitState({
-            portfolioBoards: state.portfolioBoards.map((board) => board.id === boardId ? draft : board),
-            ...(pinLatest ? { portfolioTimelineSelection: { boardId, eventIndex: (timeline?.events.length || 1) - 1 } } : {})
-        });
-        markDirty(boardId);
-        onBoardChanged(boardId);
-        onMutated();
-        const saved = Boolean(await enqueueSave(getBoardRecord(boardId)));
-        if (!saved) return false;
-        onCommitted();
-        return true;
     }
 
-    function runPortfolioTaskMutation(
-        boardId: string,
-        taskId: unknown,
-        mutator: TaskMutator,
-        options: { allowHistorical?: boolean; onMutated?: () => void; onCommitted?: () => void } = {}
-    ): Promise<boolean> | false {
-        if (!findPortfolioTaskSource(boardId, taskId)) return false;
-        return runPortfolioBoardMutation(boardId, (data, draft) => {
-            const task = data.board.tasks.find((entry) => Number(entry.id) === Number(taskId)) as Task;
-            const before = captureTaskTimelineSnapshot(data, taskId);
-            if (mutator(task, draft) === false) return false;
-            syncProjectAssignments(data);
-            if (before && task.status !== before.status && !canTransition(data, before.status, task.status)) throw new Error(translateCurrent('workflow.transitionDenied'));
-            touchTask(task);
-            recordTaskTimelineEvent(data, before, captureTaskTimelineSnapshot(data, taskId));
-            return true;
-        }, options);
+    function runPortfolioBoardMutation(boardId: string, mutator: BoardMutator, options: MutationOptions = {}) {
+        return runMutation(boardId, mutator, options);
     }
+
+    function runPortfolioTaskMutation(boardId: string, taskId: unknown, mutator: TaskMutator, options: MutationOptions = {}): Promise<boolean> | false {
+        if (!findPortfolioTaskSource(boardId, taskId)) return false;
+        return runMutation(boardId, (data, draft) => {
+            const task = data.board.tasks.find((entry) => entry.id === Number(taskId))!;
+            return mutator(task, draft);
+        }, options, Number(taskId));
+    }
+
     return {
         getState, commitState, getBoardRecord, findPortfolioTaskSource,
         isPortfolioBoardMutable, canUsePortfolioTaskMutations, notifyPortfolioMutationUnavailable,
         runPortfolioBoardMutation, runPortfolioTaskMutation,
-        alert, confirm, choose, closeDialogFn, openDialogFn
+        alert, confirm, choose, prompt, closeDialogFn, openDialogFn
     };
 }
 

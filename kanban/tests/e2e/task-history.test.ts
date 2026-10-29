@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, portfolioCard, openTaskEditor, readSavedBoard, setTimelineSlider } from '../support/portfolio';
@@ -84,6 +85,7 @@ test('historical history uses the canonical position even with equal or inverted
     const fixture = JSON.parse(readFileSync('test-board/us-6.board.json', 'utf8'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await setTimelineSlider(page, 1);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();

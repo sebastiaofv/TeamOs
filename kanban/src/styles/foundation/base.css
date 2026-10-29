@@ -206,7 +206,8 @@ textarea::placeholder {
     justify-content: center;
 }
 
-.theme-toggle-btn {
+.theme-toggle-btn,
+.app-settings-btn {
     flex: 0 0 auto;
 }
 
@@ -216,7 +217,8 @@ textarea::placeholder {
     padding-right: 8px;
 }
 
-.theme-toggle-icon {
+.theme-toggle-icon,
+.app-settings-icon {
     width: 16px;
     height: 16px;
     fill: none;
@@ -224,6 +226,13 @@ textarea::placeholder {
     stroke-width: 1.8;
     stroke-linecap: round;
     stroke-linejoin: round;
+}
+
+.app-settings-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke-width: 2;
 }
 
 .theme-toggle-icon-dark {

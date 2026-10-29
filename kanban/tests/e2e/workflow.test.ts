@@ -1,3 +1,4 @@
+import { confirmWorkitemChanges } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, dragWithMouse, answerAppMessage } from '../support/portfolio';
@@ -8,13 +9,15 @@ test('workflow settings remain draft-based and renamed states keep their own col
     await expect(page.locator('.portfolio-column[data-status="backlog"]')).toHaveCount(1);
     await dragWithMouse(page, portfolioCard(page, 'Intake').locator('.task-title'), page.locator('#portfolio-to-do-column'));
     await expect(portfolioCard(page, 'Intake')).toHaveAttribute('data-status', 'to-do');
-    await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
+    await page.getByRole('button', { name: /^Settings for / }).click();
+    await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog.locator('[data-state-choice="to-do"]').click();
     await dialog.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(page.locator('#portfolio-to-do-heading')).toHaveText('To Do');
-    await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
+    await page.getByRole('button', { name: /^Settings for / }).click();
+    await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await dialog.locator('[data-state-choice="to-do"]').click();
     await dialog.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
     await dialog.getByRole('button', { name: 'Save', exact: true }).click();
@@ -65,10 +68,12 @@ test('terminal reopening is still configurable without changing the card appeara
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await dragWithMouse(page, portfolioCard(page, 'Delivered work').locator('.task-title'), page.locator('#portfolio-doing-column'));
     await answerAppMessage(page, { expectText: 'not allowed' });
-    await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
+    await page.getByRole('button', { name: /^Settings for / }).click();
+    await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await page.locator('[data-state-choice="done"]').click();
     await page.locator('[data-workflow-state="done"]').getByRole('checkbox', { name: 'In progress', exact: true }).check();
     await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
     await dragWithMouse(page, portfolioCard(page, 'Delivered work').locator('.task-title'), page.locator('#portfolio-doing-column'));
+    await confirmWorkitemChanges(page);
     await expect(portfolioCard(page, 'Delivered work')).toHaveAttribute('data-status', 'doing');
 });

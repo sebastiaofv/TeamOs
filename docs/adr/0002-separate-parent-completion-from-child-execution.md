@@ -1,0 +1,3 @@
+# Separate parent completion from child execution
+
+Completing child Tasks establishes execution progress but does not prove functional acceptance of a User Story or achievement of an Epic's business objective. All workitem types share the project's workflow: Stories may advance automatically at execution milestones but require explicit acceptance to complete, while Epics keep a manual status alongside calculated progress. This replaces the automatic parent-status derivation previously specified in issue #28, accepting the need to distinguish status from child progress rather than treating completed children as sufficient evidence of the parent's outcome.

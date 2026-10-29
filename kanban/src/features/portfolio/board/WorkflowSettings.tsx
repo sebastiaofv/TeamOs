@@ -1,16 +1,8 @@
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
-import type { BoardRecord } from '@/features/portfolio/types';
-import type { Workflow, WorkflowCategory, WorkflowState } from '@/domain/types';
-import { getWorkflow, WORKFLOW_CATEGORIES, workflowErrors, unreachableWorkflowStateIds } from '@/domain/workflow';
-import { cloneSerializable } from '@/domain/serializable';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
-import { showConfirm } from '@/app/overlays/appMessages';
-import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
+import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import type { BoardData, WorkflowCategory, WorkflowState } from '@/domain/types';
+import { WORKFLOW_CATEGORIES, unreachableWorkflowStateIds, workflowKind } from '@/domain/workflow';
+import type { ProjectWorkflowEditor } from '@/features/portfolio/projects/useProjectSettingsEditor';
 import { useI18n } from '@/shared/i18n';
-import { useAppStore } from '@/features/portfolio/state/store';
-import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
-import { useShallow } from 'zustand/react/shallow';
 
 function Chevron() {
     return <svg className="workflow-select-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>;
@@ -27,67 +19,26 @@ function StateDot({ state }: { state: WorkflowState }) {
     return <span className="workflow-state-dot" style={{ backgroundColor: state.color }} aria-hidden="true" />;
 }
 
-export function WorkflowSettings() {
-    const state = useAppStore(useShallow((value) => ({ portfolioBoards: value.portfolioBoards, selectedPortfolioBoardId: value.selectedPortfolioBoardId, portfolioTimelineSelection: value.portfolioTimelineSelection })));
-    const board = state.portfolioBoards.find((item) => item.id === state.selectedPortfolioBoardId);
-    const preview = getSelectedPortfolioTimelineView(state);
-    const [open, setOpen] = useState(false);
-    const { t } = useI18n();
-    if (!board) return null;
-    const source = preview?.isPreview && preview.projectedBoard ? { ...board, data: preview.projectedBoard } : board;
-    return <><button className="btn" aria-label={t('workflow.settings')} title={t('workflow.settings')} onClick={() => setOpen(true)}>Workflow</button>
-        <Dialog.Root open={open} onOpenChange={setOpen}><Dialog.Portal><Dialog.Overlay className="modal active" id="workflowSettingsModal">
-            <Dialog.Content className="modal-content workflow-dialog" aria-describedby="workflowSettingsDescription" onKeyDown={(event) => event.stopPropagation()} onEscapeKeyDown={escapeAnswersAppMessage}>
-                <div className="modal-header workflow-modal-header"><div>
-                    <Dialog.Title className="modal-title">{t('workflow.settings')}</Dialog.Title>
-                    <Dialog.Description className="workflow-modal-description" id="workflowSettingsDescription">{board.title || board.fileName}</Dialog.Description>
-                </div><Dialog.Close className="modal-close" aria-label={t('common.close')}>×</Dialog.Close></div>
-                {open && <WorkflowEditor key={board.id} board={source} readOnly={!board.handle || Boolean(preview?.isPreview)} close={() => setOpen(false)} />}
-            </Dialog.Content>
-        </Dialog.Overlay></Dialog.Portal></Dialog.Root></>;
-}
-
 type Section = 'states' | 'references';
 
-function WorkflowEditor({ board, readOnly, close }: { board: BoardRecord; readOnly: boolean; close: () => void }) {
+export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardData; readOnly: boolean; busy: boolean; editor: ProjectWorkflowEditor }) {
     const { t } = useI18n();
-    const { saveWorkflow } = usePortfolioActions();
-    const original = getWorkflow(board.data);
-    const [draft, setDraft] = useState<Workflow>(() => cloneSerializable(original));
-    const [relocations, setRelocations] = useState<Record<string, string>>({});
-    const [selectedId, setSelectedId] = useState(original.states[0].id);
-    const [section, setSection] = useState<Section>('states');
-    const [error, setError] = useState('');
-    const [busy, setBusy] = useState(false);
+    const { draft, removed, relocations, section, selectSection: setSection, update, relocate, clearError, selectedId, setSelectedId } = editor;
     const nextFocus = useRef(false);
     const formId = useId();
-    const update = (fn: (value: Workflow) => void) => setDraft((value) => { const next = cloneSerializable(value); fn(next); return next; });
-    const removed = original.states.filter((item) => !draft.states.some((current) => current.id === item.id));
     const selected = draft.states.find((item) => item.id === selectedId) || draft.states[0];
     const index = draft.states.findIndex((item) => item.id === selected.id);
     const targets = draft.transitions[selected.id] || [];
     const terminal = ['completed', 'cancelled'].includes(selected.category);
-    const usedCount = board.data.board.tasks.filter((task) => task.status === selected.id).length;
+    const tasks = data.board.tasks.filter((task) => workflowKind(task) === editor.kind);
+    const usedCount = tasks.filter((task) => task.status === selected.id).length;
     const protectedState = selected.id === 'backlog' || (['to-do', 'completed'].includes(selected.category) && draft.states.filter((item) => item.category === selected.category).length === 1);
     const unreachable = unreachableWorkflowStateIds(draft);
-
-    async function save() {
-        const errors = workflowErrors(draft);
-        if (errors.length) { setError(`${t('workflow.invalid')} ${errors.join(' ')}`); return; }
-        if (removed.some((item) => board.data.board.tasks.some((task) => task.status === item.id) && !draft.states.some((target) => target.id === relocations[item.id]))) {
-            setSection('references'); setError(t('workflow.relocationRequired')); return;
-        }
-        const affected = board.data.board.tasks.filter((task) => original.states.find((item) => item.id === task.status)?.category !== draft.states.find((item) => item.id === task.status)?.category);
-        if (affected.length && !(await showConfirm(t('workflow.impact', { count: affected.length }), { title: t('workflow.settings') }))) return;
-        setBusy(true);
-        try { await saveWorkflow(board.id, draft, relocations, close); }
-        finally { setBusy(false); }
-    }
 
     function addState() {
         const id = `state-${crypto.randomUUID()}`;
         update((value) => { value.states.push({ id, name: '', category: 'to-do', color: '#60a5fa' }); value.transitions[id] = []; });
-        nextFocus.current = true; setSelectedId(id); setSection('states'); setError('');
+        nextFocus.current = true; setSelectedId(id); setSection('states'); clearError();
     }
 
     function removeState() {
@@ -123,7 +74,7 @@ function WorkflowEditor({ board, readOnly, close }: { board: BoardRecord; readOn
             {section === 'states' ? <div className="workflow-state-layout" role="tabpanel" id={`${formId}-panel-states`} aria-labelledby={`${formId}-tab-states`}>
                 <aside className="workflow-state-sidebar"><div className="workflow-sidebar-heading"><h3>{t('workflow.states')}</h3><span>{draft.states.length}</span></div>
                     <nav className="workflow-state-list" aria-label={t('workflow.states')}>
-                        {draft.states.map((item, position) => <button key={item.id} type="button" aria-pressed={selected.id === item.id} data-state-choice={item.id} onClick={() => { setSelectedId(item.id); setError(''); }}>
+                        {draft.states.map((item, position) => <button key={item.id} type="button" aria-pressed={selected.id === item.id} data-state-choice={item.id} onClick={() => { setSelectedId(item.id); clearError(); }}>
                             <span className="workflow-state-position">{String(position + 1).padStart(2, '0')}</span><StateDot state={item} />
                             <span className="workflow-state-list-text"><strong>{item.name || t('workflow.untitled')}</strong><span>{t(`workflow.${item.category}`)}</span></span>
                             {unreachable.has(item.id) ? <span className="workflow-state-issue" title={t('workflow.unreachable')}>!</span> : <span className="workflow-state-next-count" title={t('workflow.destinationCount', { count: (draft.transitions[item.id] || []).length })}>{(draft.transitions[item.id] || []).length} →</span>}
@@ -174,14 +125,12 @@ function WorkflowEditor({ board, readOnly, close }: { board: BoardRecord; readOn
                         </WorkflowSelect>
                     </label>)}
                 </fieldset>
-                {removed.length > 0 && <section className="workflow-relocations"><h4>{t('workflow.removedStates')}</h4>{removed.map((item) => <label key={item.id}>{t('workflow.relocate', { name: item.name, count: board.data.board.tasks.filter((task) => task.status === item.id).length })}
-                    <WorkflowSelect label={t('workflow.relocate', { name: item.name, count: board.data.board.tasks.filter((task) => task.status === item.id).length })} disabled={readOnly || busy} value={relocations[item.id] || ''} onChange={(id) => setRelocations({ ...relocations, [item.id]: id })}>
+                {removed.length > 0 && <section className="workflow-relocations"><h4>{t('workflow.removedStates')}</h4>{removed.map((item) => <label key={item.id}>{t('workflow.relocate', { name: item.name, count: tasks.filter((task) => task.status === item.id).length })}
+                    <WorkflowSelect label={t('workflow.relocate', { name: item.name, count: tasks.filter((task) => task.status === item.id).length })} disabled={readOnly || busy} value={relocations[item.id] || ''} onChange={(id) => relocate(item.id, id)}>
                         <option value="">{t('common.choose')}</option>{draft.states.map((target) => <option key={target.id} value={target.id}>{target.name || t('workflow.untitled')}</option>)}
                     </WorkflowSelect></label>)}</section>}
                 <div className="workflow-general-note"><span aria-hidden="true">ⓘ</span><p>{t('workflow.help')}</p></div>
             </div>}
         </div>
-        {error && <div className="workflow-validation" role="alert">{error}</div>}
-        <div className="modal-footer workflow-modal-footer"><span>{t(readOnly ? 'workflow.readOnlyNote' : 'workflow.draftNote')}</span><div><button className="btn" type="button" disabled={busy} onClick={close}>{t('common.cancel')}</button>{!readOnly && <button className="btn btn-primary" type="button" disabled={busy} onClick={() => void save()}>{t('common.save')}</button>}</div></div>
     </>;
 }

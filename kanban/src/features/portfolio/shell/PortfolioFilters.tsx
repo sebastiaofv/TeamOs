@@ -10,7 +10,7 @@ import { useI18n } from '@/shared/i18n';
 import { clearPortfolioFilters, setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { DEFAULT_PORTFOLIO_FILTERS, type PanelPortfolioFilterName } from '@/domain/portfolioFilters';
 import { PRIORITY_LABELS } from '@/features/portfolio/table/tableLabels';
-import { getWorkflow } from '@/domain/workflow';
+import { allWorkflowStates } from '@/domain/workflow';
 import { NO_PERSON_FILTER, personFilterName, personNameFilter } from '@/domain/peopleFilters';
 
 function usePortfolioFilterFields() {
@@ -73,7 +73,7 @@ function usePortfolioFilterFields() {
         field('assignee', t('toolbar.participant'), 'portfolioAssigneeFilter', [all, { value: NO_PERSON_FILTER, label: t('task.noParticipants') }, ...assignees.map((name) => ({ value: personNameFilter(name), label: name }))]),
         field('priority', t('toolbar.priority'), 'portfolioPriorityFilter', [all, ...Object.entries(PRIORITY_LABELS).map(([value, key]) => ({ value, label: t(key) }))]),
         field('effort', t('toolbar.effort'), 'portfolioEffortFilter', [all, ...EFFORT_BUCKETS.map((value) => ({ value, label: value }))]),
-        field('statuses', t('task.status'), 'portfolioStatusesFilter', [...new Map(sources.flatMap(({ data }) => getWorkflow(data).states.map((s) => [s.id, { value: s.id, label: s.name }] as const))).values()], true, t('table.selectStatuses')),
+        field('statuses', t('task.status'), 'portfolioStatusesFilter', [...new Map(sources.flatMap(({ data }) => allWorkflowStates(data).map((s) => [s.id, { value: s.id, label: s.name }] as const))).values()], true, t('table.selectStatuses')),
         field('phaseId', t('task.phase'), 'portfolioPhaseFilter', roadmapOptions('phases')),
         field('milestoneId', t('task.milestone'), 'portfolioMilestoneFilter', roadmapOptions('milestones')),
         field('sprintId', t('task.sprint'), 'portfolioSprintFilter', roadmapOptions('sprints'))

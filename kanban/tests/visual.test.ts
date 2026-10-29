@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
+import { showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
 
 test.describe('US-4 persisted Board column chooser', () => {
   for (const theme of ['light', 'dark']) {
@@ -27,7 +27,8 @@ test.describe('US-4 workflow configuration layout', () => {
         const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
         await seedPortfolioBoards(page, [{ id: 'workflow', title: fixture.board.settings.title, hasHandle: true,
           tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'workflow' });
-        await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
+        await page.getByRole('button', { name: /^Settings for / }).click();
+        await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
         const dialog = page.locator('.workflow-dialog');
         expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(width);
         await dialog.locator('[data-state-choice="doing"]').click();
@@ -416,7 +417,7 @@ test.describe('2.1b task editor', () => {
       await seedPortfolioBoards(page, [
         { id: 'v1', title: 'Launch', hasHandle: true, tasks: [], extensions: ROADMAP }
       ], { selectedBoardId: 'v1' });
-      await page.locator('#portfolio-backlog-column .add-task-card').click();
+      await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
       await expect(page.locator('#modalTitle')).toHaveText('New Task');
       await captureEditor(page, `task-editor-new-${theme}.png`);
     });
@@ -581,7 +582,7 @@ test.describe('2.3 board and cards', () => {
       await captureBoard(page, `portfolio-board-all-${theme}.png`);
     });
 
-    test(`selected writable board cards and add-task affordances (${theme})`, async ({ page }) => {
+    test(`selected writable board cards and toolbar creation (${theme})`, async ({ page }) => {
       await gotoVisualApp(page, theme);
       await seedPortfolioBoards(page, [{
         id: 'v1',
@@ -605,7 +606,8 @@ test.describe('2.3 board and cards', () => {
         ]
       }], { selectedBoardId: 'v1' });
       await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(2);
-      await expect(page.locator('#portfolioBoard .add-task-card')).toHaveCount(4);
+      await expect(page.locator('#portfolioBoard .add-task-card')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toBeVisible();
       await captureBoard(page, `portfolio-board-selected-${theme}.png`);
     });
   }
@@ -625,6 +627,7 @@ test.describe('2.4 timeline panel', () => {
       tasks: [{ id: 1, title: 'Timeline task', status: 'backlog', description: 'Initial timeline description.' }],
       extensions: TIMELINE
     }], { selectedBoardId: 'timeline' });
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
   }
@@ -767,3 +770,37 @@ test.describe('US-8 dedicated Pull Requests tab', () => {
     }
   }
 });
+
+test.describe('US-12 workitem detail and functional acceptance', () => {
+  for (const theme of ['light', 'dark']) test(`Story and acceptance follow the existing theme (${theme})`, async ({ page }) => {
+    await gotoVisualApp(page, theme);
+    const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
+    await seedPortfolioBoards(page, [{ id: 'us12', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us12' });
+    await page.locator('[data-view-mode="table"]').click();
+    await page.locator('[data-table-view="stories"]').click();
+    await page.locator('#workitemsTable tr[data-task-id="1202"]').getByRole('button', { name: 'Pagar com cartão', exact: true }).click();
+    await expect(page.locator('#taskDetailModal')).toHaveScreenshot(`us12-story-${theme}.png`, { animations: 'disabled' });
+    await page.locator('#taskDetailModalFooterCloseBtn').click();
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.locator('#commandPaletteInput').fill('#1207');
+    await page.keyboard.press('ArrowDown'); await page.keyboard.press('Tab');
+    await page.locator('#commandPaletteInput').fill('Done');
+    await page.locator('.palette-item').filter({ hasText: /Move to Done/i }).first().click();
+    await expect(page.locator('#appMessageModal')).toHaveScreenshot(`us12-acceptance-${theme}.png`, { animations: 'disabled' });
+    await answerAppMessage(page, { button: 'Cancel' });
+  });
+});
+
+for (const theme of ['light', 'dark']) {
+  for (const width of [1280, 390]) {
+    test(`app settings at ${width}px (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await page.setViewportSize({ width, height: 800 });
+      await page.getByRole('button', { name: 'App settings', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'App settings', exact: true });
+      await expect(dialog.getByRole('checkbox', { name: 'Show timeline bar', exact: true })).not.toBeChecked();
+      await page.mouse.move(1, 1);
+      await expect(dialog).toHaveScreenshot(`app-settings-${theme}-${width}.png`);
+    });
+  }
+}

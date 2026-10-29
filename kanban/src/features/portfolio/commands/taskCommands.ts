@@ -1,28 +1,30 @@
+import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
+import { childrenOf, eligibleSprint, isPlanningUnit, WorkitemError } from '@/domain/workitems';
+import type { Task, WorkitemType } from '@/domain/types';
 // Task editing, details, validation, and undo.
 
 import type { Effort, Priority, TaskRelationKind } from '@/domain/types';
 import type { TaskDraft } from '@/features/portfolio/types';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
-import { defaultColumns } from '@/domain/constants';
 import {
     buildTaskFieldsFromDraft,
     nextTaskIdForBoard,
     normalizeTask,
-    normalizeTaskStatus,
     resolveCreateTaskStatus
 } from '@/domain/task';
 import {
     removeLegacyTaskAttachmentsFromExtensions,
     setTaskAttachments,
 } from '@/domain/attachments';
-import { captureTaskTimelineSnapshot, recordTaskTimelineEvent, recordTaskRelationsTimelineEvent } from '@/domain/timeline';
+import { recordTaskRelationsTimelineEvent } from '@/domain/timeline';
 import { getRelations, getTaskRelations, removeTaskRelation, setTaskRelation, TaskRelationError } from '@/domain/taskRelations';
 import { cloneSerializable } from '@/domain/serializable';
+import { normalizeDueDate } from '@/domain/calendar';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
 import { getRoadmapExtension, isValidRoadmapAssignment } from '@/domain/roadmap';
-import { canTransition } from '@/domain/workflow';
+import { canTransition, getWorkflow } from '@/domain/workflow';
 import { removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -77,7 +79,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         ));
     }
 
-    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string } = {}) {
+    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string; preferredType?: WorkitemType } = {}) {
         const boardRecord = getBoardRecord(boardId);
         if (!boardRecord) return;
         if (!canUsePortfolioTaskMutations(boardId)) {
@@ -85,30 +87,39 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             return;
         }
         closeTaskDetail();
-        const allowedStatuses = new Set((boardRecord.data.board.columns || []).map((column) => normalizeTaskStatus(column.status)));
-        const fallbackStatus = normalizeTaskStatus((boardRecord.data.board.columns || [defaultColumns[0]])[0]?.status);
-        const status = allowedStatuses.has(normalizeTaskStatus(preferredStatus))
-            ? normalizeTaskStatus(preferredStatus)
-            : fallbackStatus;
+        const workflow = getWorkflow(boardRecord.data, { type: options.preferredType });
+        const preferred = String(preferredStatus || '').trim();
+        const status = workflow.states.some((state) => state.id === preferred) ? preferred : 'backlog';
         commitState({
             portfolioCreateContext: { boardId, status },
             portfolioEditContext: null
         });
-        openDialogFn('taskEditor', buildTaskEditorViewModel(
+        const model = buildTaskEditorViewModel(
             boardRecord,
             null,
             getState().portfolioTasks,
             ++taskEditorOpenCount,
             { preferredDueDate: options.preferredDueDate }
-        ));
+        );
+        model.initial.type = options.preferredType || 'task';
+        openDialogFn('taskEditor', model);
+    }
+
+    function openPortfolioCreateChildTask(boardId: string, parentId: number, type: WorkitemType) {
+        openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: type });
+        const vm = getState().dialogProps as import('@/features/portfolio/types').TaskEditorViewModel;
+        if (getState().activeDialog !== 'taskEditor' || !vm?.initial) return;
+        commitState({ portfolioCreateContext: { boardId, status: 'backlog', returnToTaskId: parentId }, dialogProps: { ...vm, initial: { ...vm.initial, type, parentId, phaseMode: 'inherit', milestoneMode: 'inherit' } } });
     }
 
     function closeTaskEditor() {
+        const context = getState().portfolioCreateContext;
         commitState({
             portfolioEditContext: null,
             portfolioCreateContext: null
         });
         closeDialogFn('taskEditor');
+        if (context?.returnToTaskId !== undefined) openPortfolioTaskDetails(context.boardId, context.returnToTaskId);
     }
 
     function openPortfolioCreateRelatedTask(boardId: string, taskId: number, kind: TaskRelationKind) {
@@ -123,7 +134,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const vm = buildTaskEditorViewModel(source.boardRecord, null, getState().portfolioTasks, ++taskEditorOpenCount);
         vm.initial.phaseId = source.task.phaseId;
         vm.initial.milestoneId = source.task.milestoneId;
-        vm.relationNotice = translateCurrent(`relations.sentence.${kind}`, { a: `#${taskId}`, b: translateCurrent('relations.newItem') });
+        vm.relationNotice = translateCurrent(`relations.sentence.${kind}`, { a: workitemLabelFor(source.boardRecord.data, taskId), b: translateCurrent('relations.newItem') });
         openDialogFn('taskEditor', vm);
     }
 
@@ -176,6 +187,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     async function deletePortfolioTask(boardId: string, taskId: number) {
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return;
+        if (childrenOf(source.boardRecord.data, taskId).length) { await alert(translateCurrent('workitems.error.children')); return; }
         if (!canUsePortfolioTaskMutations(boardId)) {
             notifyPortfolioMutationUnavailable(boardId);
             return;
@@ -185,7 +197,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const related = getTaskRelations(source.boardRecord.data, taskId);
         const affected = [...related.blockedBy, ...related.blocks, ...related.related];
         const impact = affected.length ? '\n\n' + translateCurrent('relations.deleteImpact', {
-            items: affected.map((task) => `#${task.id} ${task.title}`).join(', ')
+            items: affected.map((task) => `${workitemLabel(task)} ${task.title}`).join(', ')
         }) : '';
         const confirmed = await confirm(translateCurrent('messages.deleteQuestion', { title }) + impact, {
             title: translateCurrent('messages.deleteTask'),
@@ -218,13 +230,11 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         await runPortfolioBoardMutation(boardId, (data) => {
             const index = data.board.tasks.findIndex((task) => Number(task.id) === Number(taskId));
             if (index < 0) return false;
-            const before = captureTaskTimelineSnapshot(data, taskId);
             const beforeRelations = cloneSerializable(getRelations(data));
             removeTaskRelation(data, taskId);
             recordTaskRelationsTimelineEvent(data, taskId, beforeRelations);
             data.board.tasks.splice(index, 1);
             removeLegacyTaskAttachmentsFromExtensions(data, taskId);
-            recordTaskTimelineEvent(data, before, null);
             return true;
         });
     }
@@ -264,7 +274,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                     createdAt: now, updatedAt: now, status
                 }, { roadmap: data.extensions.roadmap, includeStatusChangedAt: false }));
                 setTaskAttachments(data, nextId, draft.attachments);
-                recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, nextId));
                 if (relatedTo) {
                     const beforeRelations = cloneSerializable(getRelations(data));
                     try {
@@ -297,6 +306,19 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         closeTaskEditor();
     }
 
+    // Only sidebar properties can be changed here; content stays behind Edit.
+    function setPortfolioTaskProperties(boardId: string, taskId: number, changes: Partial<Pick<Task, 'priority' | 'effort' | 'dueDate' | 'blocked' | 'blockerReason' | 'tags' | 'parentId' | 'sprintId'>>) {
+        return runPortfolioTaskMutation(boardId, taskId, (task, draft) => {
+            if (Object.entries(changes).every(([field, value]) => JSON.stringify(task[field as keyof Task]) === JSON.stringify(value))) return false;
+            if (changes.dueDate && !normalizeDueDate(changes.dueDate)) throw new Error(translateCurrent('validation.dueDate'));
+            if (changes.sprintId !== undefined && (!isPlanningUnit(draft.data, task) || (changes.sprintId && !eligibleSprint(draft.data, changes.sprintId)))) throw new WorkitemError('sprint');
+            Object.assign(task, changes);
+            if (task.blocked && !task.blockerReason.trim()) throw new Error(translateCurrent('validation.blockerReason'));
+            if (!task.blocked) task.blockerReason = '';
+            return true;
+        });
+    }
+
     function toggleTaskDetailChecklistItem(itemIndex: number, checked: boolean) {
         const context = getState().portfolioDetailContext;
         if (!context?.boardId || context.taskId === null || context.taskId === undefined) return;
@@ -316,18 +338,15 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return false;
         const normalizedTargetStatus = String(targetStatus || '').trim();
-        const validStatuses = new Set(
-            (source.boardRecord.data.board.columns || defaultColumns)
-                .map((column) => column.status)
-        );
+        const validStatuses = new Set(getWorkflow(source.boardRecord.data, source.task).states.map((state) => state.id));
         if (!validStatuses.has(normalizedTargetStatus)) return false;
         if (source.task.status === normalizedTargetStatus) return false;
-        if (!canTransition(source.boardRecord.data, source.task.status, normalizedTargetStatus)) {
+        if (!canTransition(source.boardRecord.data, source.task.status, normalizedTargetStatus, source.task)) {
             await alert(translateCurrent('workflow.transitionDenied'));
             return false;
         }
         return Boolean(await runPortfolioTaskMutation(boardId, taskId, (task) => {
-            if (!canTransition(source.boardRecord.data, task.status, normalizedTargetStatus)) return false;
+            if (!canTransition(source.boardRecord.data, task.status, normalizedTargetStatus, task)) return false;
             if (task.status === normalizedTargetStatus) return false;
             task.status = normalizedTargetStatus;
             return true;
@@ -407,7 +426,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     // All quick-created tasks start in the reserved Backlog state.
     // fields. Returns the new task id, or null when nothing was created.
     async function createPortfolioTaskFromFields(boardId: string, fields: {
-        title: string; assignees: string[]; priority: Priority | null; tags: string[]; effort: Effort | null; dueDate: string;
+        type?: WorkitemType; title: string; assignees: string[]; priority: Priority | null; tags: string[]; effort: Effort | null; dueDate: string;
     }): Promise<number | null> {
         const boardRecord = getBoardRecord(boardId);
         const title = fields.title.trim();
@@ -416,28 +435,26 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             notifyPortfolioMutationUnavailable(boardId);
             return null;
         }
-        const id = nextTaskIdForBoard(boardRecord);
+        let id = 0;
         const now = nowIso();
         const created = await runPortfolioBoardMutation(boardId, (data) => {
+            id = nextTaskIdForBoard({ data });
             data.board.tasks.push(normalizeTask({
-                id, title, description: '', assignees: fields.assignees, tags: fields.tags,
+                id, title, type: fields.type || 'task', description: '', assignees: fields.assignees, tags: fields.tags,
                 priority: fields.priority, effort: fields.effort, dueDate: fields.dueDate,
                 status: resolveCreateTaskStatus(boardRecord, 'to-do'), archived: false,
                 createdAt: now, updatedAt: now
             }, { includeStatusChangedAt: false }));
-            recordTaskTimelineEvent(data, null, captureTaskTimelineSnapshot(data, id));
             return true;
         });
         if (!created) return null;
         showUndo(translateCurrent('palette.taskCreated', { title }), () => runPortfolioBoardMutation(boardId, (data) => {
-            const before = captureTaskTimelineSnapshot(data, id);
             const index = data.board.tasks.findIndex((task) => Number(task.id) === id);
             if (index < 0) return false;
             const beforeRelations = cloneSerializable(getRelations(data));
             removeTaskRelation(data, id);
             recordTaskRelationsTimelineEvent(data, id, beforeRelations);
             data.board.tasks.splice(index, 1);
-            recordTaskTimelineEvent(data, before, null);
             return true;
         }));
         return id;
@@ -469,7 +486,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     return {
         openPortfolioTaskDetails,
         editPortfolioTask,
-        openPortfolioCreateTaskModal,
+        openPortfolioCreateTaskModal, openPortfolioCreateChildTask,
         openPortfolioCreateRelatedTask,
         closeTaskEditor,
         closeTaskDetail,
@@ -478,6 +495,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         deletePortfolioTask,
         saveTask,
         toggleTaskDetailChecklistItem,
+        setPortfolioTaskProperties,
         movePortfolioTaskToStatus,
         performUndo,
         showUndo,

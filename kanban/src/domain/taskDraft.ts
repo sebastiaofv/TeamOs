@@ -1,3 +1,4 @@
+import { WORKITEM_FIELDS } from './workitems';
 // Editing rules for the task editor draft (Phase 2.1b). Pure: no DOM, no app
 // state. The editor components call these and pass the result of buildTaskDraft
 // to the store-backed save action. Messages and limits preserve the established
@@ -174,6 +175,7 @@ export function buildAttachmentWarnings(attachments: readonly unknown[], otherAt
 // Normalize the structured React draft without a lossy text conversion.
 export function buildTaskDraft(form: TaskEditorFields): TaskDraft {
     return {
+        ...(form.type ? { type: form.type, parentId: form.parentId ?? null, phaseMode: form.phaseMode || (form.phaseId ? 'explicit' as const : 'none' as const), milestoneMode: form.milestoneMode || (form.milestoneId ? 'explicit' as const : 'none' as const), ...Object.fromEntries(WORKITEM_FIELDS.map((field) => [field, String(form[field] || '').trim()])) } : {}),
         pullRequests: parsePullRequestLinks(form.pullRequests),
         title: String(form.title ?? '').trim(),
         description: String(form.description ?? '').trim(),

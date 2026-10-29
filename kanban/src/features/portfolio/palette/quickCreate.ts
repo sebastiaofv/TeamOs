@@ -1,3 +1,5 @@
+import { WORKITEM_TYPES } from '@/domain/workitems';
+import type { WorkitemType } from '@/domain/types';
 // Parses the palette's quick-create line:
 //   + <title> @person !priority #tag ~effort due:<when> in:<project>
 // Tokens that are not recognised stay in the title.
@@ -22,6 +24,7 @@ export type QuickCreateWarning =
     | { kind: 'unknownDate'; value: string };
 
 export type QuickCreateDraft = {
+    type?: WorkitemType;
     title: string;
     assignees: string[];
     priority: Priority | null;
@@ -72,7 +75,9 @@ export function parseQuickCreate(input: string, context: QuickCreateContext): Qu
     const titleWords: string[] = [];
     input.replace(/^\s*\+\s*/, '').split(/\s+/).filter(Boolean).forEach((token) => {
         let match: RegExpExecArray | null;
-        if ((match = /^@([\p{L}\p{N}._-]+)$/u.exec(token))) {
+        if ((match = /^type:(epic|story|task|bug)$/i.exec(token)) && WORKITEM_TYPES.includes(match[1].toLowerCase() as WorkitemType)) {
+            draft.type = match[1].toLowerCase() as WorkitemType;
+        } else if ((match = /^@([\p{L}\p{N}._-]+)$/u.exec(token))) {
             const person = findPerson(context.people, match[1]);
             if (!person) draft.warnings.push({ kind: 'newPerson', value: match[1] });
             const name = person || match[1];

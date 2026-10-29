@@ -18,6 +18,8 @@ import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalend
 import { PortfolioPlanner } from '@/features/portfolio/planner/PortfolioPlanner';
 import { PortfolioTable } from '@/features/portfolio/table/PortfolioTable';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
+import { AppSettingsDialog } from '@/app/overlays/AppSettingsDialog';
+import { useAppSettings } from '@/shared/hooks/useAppSettings';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
 import { closeDialog } from '@/app/overlays/dialogs';
@@ -54,6 +56,7 @@ function AppContent() {
     usePortfolioRuntime();
     useInitializeLanguage();
     const { theme, toggleTheme } = useTheme();
+    const { showTimeline, setShowTimeline } = useAppSettings();
     const { t } = useI18n();
     const fileDropActive = usePortfolioFileIntegration();
 
@@ -73,10 +76,10 @@ function AppContent() {
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
-                    <div className={`portfolio-board-wrap${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
+                    <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />
-                        <PortfolioTimeline />
+                        {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
                         <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive} />
                         <PortfolioTable hidden={!tableActive} />
@@ -88,6 +91,10 @@ function AppContent() {
                 <div className="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">{t('app.dropProjectFiles')}</div>
             </main>
             <ErrorBoundary name="Dialogs" onError={() => closeAllDialogs(actions)}>
+                <AppSettingsDialog showTimeline={showTimeline} onShowTimelineChange={(visible) => {
+                    if (!visible) actions.clearPortfolioTimelineSelection({ keepModals: true });
+                    setShowTimeline(visible);
+                }} />
                 <ShortcutsDialog />
                 <HelpDialog />
                 <CommandPalette />

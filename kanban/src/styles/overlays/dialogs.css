@@ -202,3 +202,18 @@
         grid-template-columns: 1fr;
     }
 }
+
+.app-settings-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.app-settings-toggle input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--accent);
+}

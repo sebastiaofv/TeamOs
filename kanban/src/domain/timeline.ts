@@ -1,3 +1,4 @@
+import { workitemLabelFor } from '@/domain/taskIdentity';
 import type {
     BoardData,
     LooseBoardData,
@@ -41,7 +42,7 @@ type ReplayState = {
     extensions?: Record<string, unknown>;
 };
 
-const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests'] as const;
+const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'] as const;
 
 export function createEmptyTimelineData(): TimelineExtension {
     return {
@@ -70,8 +71,8 @@ export function buildTaskTimelineChanges(beforeTask: Task | null | undefined, af
         const afterValue = afterTask ? afterTask[field] : undefined;
         if (areSerializableValuesEqual(beforeValue, afterValue)) return;
         changes[field] = {
-            before: cloneSerializable(beforeValue),
-            after: cloneSerializable(afterValue)
+            before: cloneSerializable(beforeValue ?? null),
+            after: cloneSerializable(afterValue ?? null)
         };
     });
     return Object.keys(changes).length > 0 ? changes : null;
@@ -133,7 +134,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
-    if (['board.restored', 'board.project.updated', 'workflow.updated'].includes(event.kind) && event.snapshot) {
+    if (['board.restored', 'board.project.updated', 'workflow.updated', 'board.workitems.updated'].includes(event.kind) && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
 
@@ -147,6 +148,7 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
+    if (event.kind === 'sprint.participation.updated' && event.changes?.sprintParticipation) { nextState.extensions = { ...nextState.extensions, sprintParticipation: cloneSerializable(event.changes.sprintParticipation.after) }; return nextState; }
     if (event.kind === 'task.comment.published' && typeof event.meta?.commentId === 'string') {
         const previous = nextState.extensions?.conversationRefs;
         nextState.extensions = { ...nextState.extensions, conversationRefs: [...new Set([...(Array.isArray(previous) ? previous : []), event.meta.commentId])] };
@@ -259,7 +261,7 @@ export function captureTaskTimelineSnapshot(boardData: LooseBoardData | null | u
     return normalizeTask(task, {
         fallbackAttachments: getTaskAttachments(boardData, taskId),
         includeStatusChangedAt: false,
-        workflow: getWorkflow(boardData),
+        workflow: getWorkflow(boardData, task),
         roadmap: getRoadmapExtension(boardData)
     });
 }
@@ -269,7 +271,7 @@ export function recordTaskRelationsTimelineEvent(data: BoardData, taskId: number
     if (areSerializableValuesEqual(before, after)) return;
     appendTimelineEvent(data, {
         kind: 'task.relations.updated', entityType: 'task', entityId: String(taskId),
-        summary: `Relations updated: #${taskId}`,
+        summary: `Relations updated: ${workitemLabelFor(data, taskId)}`,
         changes: { relations: { before: cloneSerializable(before), after: cloneSerializable(after) } },
         meta: { taskIds: [...new Set([...before, ...after].flatMap((relation) => [relation.sourceId, relation.targetId]))] }
     });
@@ -381,7 +383,7 @@ export function recordTaskTimelineEvent(boardData: LooseBoardData, beforeTask: T
     const event = buildTaskTimelineEvent(beforeTask, afterTask);
     if (!event) return null;
     if (event.changes?.status) {
-        const workflow = getWorkflow(boardData);
+        const workflow = getWorkflow(boardData, afterTask || beforeTask);
         event.meta = { ...event.meta, statusLabels: Object.fromEntries(workflow.states.map((s) => [s.id, s.name])) };
     }
     return appendTimelineEvent(boardData, event);

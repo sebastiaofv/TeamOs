@@ -1,3 +1,4 @@
+import { showTimeline } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, installControlledPortfolioWriter, mutateExternalBoardFile, triggerExternalFileCheck, setTimelineSlider, mockImportProjectsPicker } from '../support/portfolio';
@@ -140,6 +141,7 @@ test('manual volume fixture paginates by publication order and historic snapshot
     await expect(page.locator('.comment-publication').first()).toHaveAttribute('data-comment-id', 'us7-comment-55');
     await expect(page.locator('.comment-publication').last()).toHaveAttribute('data-comment-id', 'us7-comment-1');
     await page.keyboard.press('Escape');
+    await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await setTimelineSlider(page, 1);
     // Historical cards retain their projected source and open a read-only detail.
@@ -221,6 +223,8 @@ for (const language of ['en', 'pt'] as const) {
         const history = page.getByRole('tab', { name: language === 'pt' ? 'Histórico' : 'History', exact: true });
         await expect(page.locator('.task-conversation')).toBeHidden();
         await details.press('ArrowRight');
+        await expect(page.getByRole('tab', { name: /^(Relations|Relações)$/ })).toBeFocused();
+        await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).press('ArrowRight');
         await expect(comments).toBeFocused();
         await expect(comments).toHaveAttribute('aria-selected', 'true');
         await expect(page.locator('.comment-posting-as')).toContainText('Anonymous');

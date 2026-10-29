@@ -1,3 +1,4 @@
+import { WORKITEM_TYPES } from '@/domain/workitems';
 // The command palette dialog (⌘K / Ctrl+K, "/", or the toolbar search box).
 // Results come from buildPaletteModel; running an item goes through
 // runPaletteAction with the app's own commands, so undo, saving and
@@ -217,9 +218,10 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
                 {model.preview && (
                     <div className="palette-preview" aria-live="polite">
                         <div className="palette-preview-title">{model.preview.title || <span className="palette-muted">{t('palette.previewEmpty')}</span>}</div>
+                        <label>{t('workitems.type')} <select aria-label={t('workitems.type')} value={model.preview.type || 'task'} onChange={(event) => changeQuery(query.replace(/\s+type:(epic|story|task|bug)\b/gi, '') + ` type:${event.target.value}`)}>{WORKITEM_TYPES.map((type) => <option key={type} value={type}>{t(`workitems.type.${type}`)}</option>)}</select></label>
                         <div className="palette-preview-fields">
                             {model.preview.projectTitle && <span className="palette-chip strong">{t('palette.inProject', { project: model.preview.projectTitle })}</span>}
-                            <span className="palette-chip">{t('board.toDo')}</span>
+                            <span className="palette-chip">{t('board.backlog')}</span>
                             {model.preview.assignees.map((name) => <span className="palette-chip strong" key={name}>@{name}</span>)}
                             {model.preview.priority && <span className="palette-chip strong">!{t(`toolbar.${model.preview.priority}`)}</span>}
                             {model.preview.effort && <span className="palette-chip strong">~{model.preview.effort}</span>}

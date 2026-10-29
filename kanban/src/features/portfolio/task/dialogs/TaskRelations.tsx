@@ -1,3 +1,4 @@
+import { workitemId, workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { TaskRelationKind } from '@/domain/types';
 import type { TaskDetailViewModel, TaskRelationEntry } from '@/features/portfolio/types';
@@ -19,10 +20,10 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     const searchRef = useRef<HTMLInputElement>(null);
     const activeOptionRef = useRef<HTMLButtonElement>(null);
     const query = otherId ? '' : search.trim().toLowerCase().replace(/^#/, '');
-    const candidates = vm.relationCandidates.filter((task) => `${task.id}`.includes(query) || task.title.toLowerCase().includes(query));
+    const candidates = vm.relationCandidates.filter((task) => workitemId(task).toLowerCase().includes(query) || task.title.toLowerCase().includes(query));
     const activeTask = pickerOpen ? candidates[activeIndex] : undefined;
     const existing = GROUPS.some((group) => vm.relations[group].some((task) => task.id === Number(otherId)));
-    const label = (task: TaskRelationEntry) => `#${task.id} ${task.title} · ${task.status}${task.archived ? ` · ${t('table.archived')}` : ''}`;
+    const label = (task: TaskRelationEntry) => `${workitemLabel(task)} ${task.title} · ${task.status}${task.archived ? ` · ${t('table.archived')}` : ''}`;
     const start = (nextMode: 'link' | 'create' | 'edit', task?: TaskRelationEntry) => {
         setMode(nextMode);
         setSearch(task ? label(task) : '');
@@ -110,10 +111,10 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                             {vm.relations[group].map((task) => (
                                 <li key={task.id}>
                                     <div className="relation-row">
-                                        <button type="button" className="relation-item-link" aria-label={`#${task.id} ${task.title}${task.archived ? ` · ${t('table.archived')}` : ''}`}
+                                        <button type="button" className="relation-item-link" aria-label={`${workitemLabel(task)} ${task.title}${task.archived ? ` · ${t('table.archived')}` : ''}`}
                                             onClick={() => openPortfolioTaskDetails(vm.boardId, task.id,
                                             vm.readOnly ? { readOnly: true, boardData: vm.sourceBoardData } : {})}>
-                                            #{task.id}
+                                            {workitemLabel(task)}
                                         </button>
                                         <span className="relation-item-name" title={task.title}>
                                             <span className="relation-item-title">{task.title}</span>
@@ -138,7 +139,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                                                 {GROUPS.filter((choice) => choice !== group).map((choice) =>
                                                     <option value={choice} key={choice}>{t(`relations.choice.${choice}`)}</option>)}
                                             </select>
-                                            {kind && <p className="relation-preview" role="status">{t(`relations.sentence.${kind}`, { a: `#${vm.taskId}`, b: `#${task.id}` })}</p>}
+                                            {kind && <p className="relation-preview" role="status">{t(`relations.sentence.${kind}`, { a: workitemLabelFor(vm.sourceBoardData, vm.taskId), b: workitemLabel(task) })}</p>}
                                             <div className="relation-actions">
                                                 <button type="submit" className="btn btn-primary" disabled={busy || !kind}>{t('common.save')}</button>
                                                 <button type="button" className="btn" disabled={busy} onClick={() => setMode(null)}>{t('common.cancel')}</button>
@@ -194,7 +195,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                         {GROUPS.map((group) => <option value={group} key={group}>{t(`relations.choice.${group}`)}</option>)}
                     </select>
                     {kind && (mode === 'create' || otherId) && <p className="relation-preview" role="status">{t(`relations.sentence.${kind}`, {
-                        a: `#${vm.taskId}`, b: mode === 'create' ? t('relations.newItem') : `#${otherId}`
+                        a: workitemLabelFor(vm.sourceBoardData, vm.taskId), b: mode === 'create' ? t('relations.newItem') : workitemLabelFor(vm.sourceBoardData, Number(otherId))
                     })}</p>}
                     <div className="relation-actions">
                         <button type="button" className="btn" onClick={() => setMode(null)} disabled={busy}>{t('common.cancel')}</button>

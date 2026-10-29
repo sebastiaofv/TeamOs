@@ -1,3 +1,4 @@
+import { workitemType } from '@/domain/workitems';
 // Day planner view model: tray groups from the visible rows and per-day
 // blocks from every project in scope.
 
@@ -20,6 +21,7 @@ import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './
 export type PlannerTrayItem = {
     boardId: string;
     taskId: number;
+    displayId?: string;
     title: string;
     status: TaskStatus;
     priority: Priority | null;
@@ -34,6 +36,7 @@ export type PlannerBlockView = {
     boardId: string;
     boardTitle: string;
     taskId: number;
+    displayId?: string;
     title: string;
     date: string;
     start: string;
@@ -85,7 +88,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
                 startMinutes: plannerMinutes(block.start),
                 endMinutes: plannerMinutes(block.end),
                 color: boardColor(board),
-                done: statusCategory(task.status, data) === 'completed',
+                done: statusCategory(task.status, data, task) === 'completed',
                 archived: Boolean(task.archived),
                 canEdit,
                 column: 0,
@@ -97,7 +100,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
 
 export function buildPortfolioPlannerViewModel(
     state: SelectorState,
-    { today, trayStatuses }: { today: string; trayStatuses: readonly TaskStatus[] }
+    { today, trayStatuses, includeParents = false }: { today: string; trayStatuses: readonly TaskStatus[]; includeParents?: boolean }
 ): PlannerViewModel {
     const mode: PlannerMode = state?.portfolioPlannerMode === 'week' ? 'week' : 'day';
     const date = state?.portfolioPlannerDate || today;
@@ -123,10 +126,11 @@ export function buildPortfolioPlannerViewModel(
     const statusSet = new Set(trayStatuses);
     const groups = new Map<string, PlannerTrayGroup>();
     (Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : []).forEach((row) => {
+        if (!includeParents && !['task', 'bug'].includes(workitemType(row.task))) return;
         const status = row.task.status;
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;
-        const category = statusCategory(status, row.boardData || board.data);
+        const category = statusCategory(status, row.boardData || board.data, row.task);
         const trayStatus = ({ backlog: 'backlog', 'to-do': 'to-do', 'in-progress': 'doing', completed: 'done', cancelled: 'cancelled' })[category];
         if (!statusSet.has(trayStatus)) return;
         let group = groups.get(board.id);
@@ -138,6 +142,7 @@ export function buildPortfolioPlannerViewModel(
         group.items.push({
             boardId: board.id,
             taskId,
+            displayId: row.task.displayId,
             title: row.task.title,
             status,
             priority: row.task.priority,

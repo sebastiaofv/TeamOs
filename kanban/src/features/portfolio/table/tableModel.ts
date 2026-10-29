@@ -1,3 +1,5 @@
+import { workitemId, workitemLabel } from '@/domain/taskIdentity';
+import { effectivePlanning, workitemType, parentOf, epicOf } from '@/domain/workitems';
 import type { BoardData } from '@/domain/types';
 import { getWorkflow } from '@/domain/workflow';
 import type { PortfolioFilters, PortfolioRow } from '@/features/portfolio/types';
@@ -6,16 +8,16 @@ import { getRoadmapItemTitle } from '@/domain/roadmap';
 import { effortRank, priorityRank, taskScore } from '@/domain/scoring';
 
 export type TableColumnId =
-    | 'id' | 'title' | 'status' | 'assignees' | 'priority' | 'phase' | 'updatedAt'
+    | 'type' | 'epic' | 'story' | 'id' | 'title' | 'status' | 'assignees' | 'priority' | 'phase' | 'updatedAt'
     | 'milestone' | 'sprint' | 'dueDate' | 'createdAt' | 'blocked' | 'blockerReason'
     | 'effort' | 'tags' | 'archived' | 'responsible';
 
 export const TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze([
-    'id', 'title', 'status', 'assignees', 'priority', 'phase', 'updatedAt',
+    'id', 'title', 'type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt',
     'milestone', 'sprint', 'dueDate', 'createdAt', 'blocked', 'blockerReason',
     'effort', 'tags', 'archived', 'responsible'
 ]);
-export const DEFAULT_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(TABLE_COLUMNS.slice(0, 7));
+export const DEFAULT_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(['id', 'title', 'type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']);
 export type TableSort = { column: TableColumnId | 'score'; direction: 'asc' | 'desc' };
 export const DEFAULT_TABLE_SORT: TableSort = Object.freeze({ column: 'id', direction: 'asc' });
 
@@ -32,9 +34,12 @@ export function tableCellValue(row: PortfolioRow, column: TableColumnId, boardDa
     const { task } = row;
     const roadmap = boardData?.extensions.roadmap;
     switch (column) {
-        case 'id': return String(task.id);
-        case 'phase': return getRoadmapItemTitle(roadmap, 'phases', task.phaseId);
-        case 'milestone': return getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId);
+        case 'type': return workitemType(task);
+        case 'epic': { const epic = boardData && epicOf(boardData, task); return epic ? `${workitemLabel(epic)} ${epic.title}` : ''; }
+        case 'story': { const parent = boardData && parentOf(boardData, task); return parent && workitemType(parent) === 'story' ? `${workitemLabel(parent)} ${parent.title}` : ''; }
+        case 'id': return workitemId(task);
+        case 'phase': return getRoadmapItemTitle(roadmap, 'phases', boardData ? effectivePlanning(boardData, task, 'phaseId') : task.phaseId);
+        case 'milestone': return getRoadmapItemTitle(roadmap, 'milestones', boardData ? effectivePlanning(boardData, task, 'milestoneId') : task.milestoneId);
         case 'sprint': return getRoadmapItemTitle(roadmap, 'sprints', task.sprintId);
         case 'assignees': return (task.assignees || []).join(', ');
         case 'tags': return (task.tags || []).join(', ');
@@ -50,7 +55,7 @@ function tableSortValue(row: PortfolioRow, column: TableSort['column'], boardDat
     if (!value.trim()) return null;
     switch (column) {
         case 'id': return row.task.id;
-        case 'status': return getWorkflow(boardData).states.findIndex((s) => s.id === row.task.status);
+        case 'status': return getWorkflow(boardData, row.task).states.findIndex((s) => s.id === row.task.status);
         case 'priority': return priorityRank(row.task.priority);
         case 'effort': return effortRank(row.task.effort);
         case 'blocked': return Number(row.task.blocked);

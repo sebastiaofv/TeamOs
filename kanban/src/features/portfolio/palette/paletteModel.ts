@@ -1,3 +1,4 @@
+import { workitemLabel } from '@/domain/taskIdentity';
 // The command palette's results for a query: sections of items, each carrying
 // a plain action descriptor that paletteActions runs. Pure, so it can be
 // tested without React or the store.
@@ -30,7 +31,7 @@ export type PaletteCommandId =
     | 'toggle-theme' | 'toggle-language' | 'open-shortcuts' | 'open-help' | 'open-palette-help'
     | 'new-project' | 'import-projects';
 
-export type QuickCreateFields = Pick<QuickCreateDraft, 'title' | 'assignees' | 'priority' | 'tags' | 'effort' | 'dueDate'>;
+export type QuickCreateFields = Pick<QuickCreateDraft, 'type' | 'title' | 'assignees' | 'priority' | 'tags' | 'effort' | 'dueDate'>;
 
 export type PaletteAction =
     | { type: 'filterBoard'; text: string }
@@ -145,16 +146,16 @@ const rowKey = (row: PortfolioRow) => `${row.boardId}:${Number(row.taskId ?? row
 const findRow = (ctx: Ctx, boardId: string, taskId: number) => ctx.rows.find((row) => row.boardId === boardId && Number(row.taskId ?? row.task.id) === Number(taskId)) || null;
 const canEdit = (row: PortfolioRow) => Boolean(row.canMutate) && !row.historical;
 const findBoard = (ctx: Ctx, boardId: string) => ctx.boards.find((board) => board.id === boardId);
-const statusLabel = (ctx: Ctx, status: TaskStatus, boardId?: string) => getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data).states.find((s) => s.id === status)?.name || (STATUS_KEYS[status] ? ctx.t(STATUS_KEYS[status]) : status);
-function statusHint(ctx: Ctx, boardId: string, status: string): string[] | undefined {
-    const workflow = getWorkflow(ctx.boards.find((board) => board.id === boardId)?.data);
+const statusLabel = (ctx: Ctx, status: TaskStatus, boardId?: string, task?: PortfolioRow['task']) => getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data, task).states.find((s) => s.id === status)?.name || (STATUS_KEYS[status] ? ctx.t(STATUS_KEYS[status]) : status);
+function statusHint(ctx: Ctx, boardId: string, status: string, task: PortfolioRow['task']): string[] | undefined {
+    const workflow = getWorkflow(ctx.boards.find((board) => board.id === boardId)?.data, task);
     const key = status === 'backlog' ? '1' : status === workflow.entryStateId ? '2' : status === workflow.references['in-progress'] ? '3' : status === workflow.references.completed ? '4' : '';
     return key ? [key] : undefined;
 }
 
 function taskDetail(ctx: Ctx, row: PortfolioRow): string {
     const board = findBoard(ctx, row.boardId);
-    return [`#${row.taskId ?? row.task.id}`, boardTitle(board), statusLabel(ctx, row.task.status, row.boardId), row.task.assignees.join(', ')]
+    return [workitemLabel(row.task), boardTitle(board), statusLabel(ctx, row.task.status, row.boardId, row.task), row.task.assignees.join(', ')]
         .filter(Boolean)
         .join(' · ');
 }
@@ -209,10 +210,10 @@ function taskActionItems(ctx: Ctx, row: PortfolioRow, compact: boolean): Palette
     if (!canEdit(row)) return items;
 
     const current = row.task.status;
-    const statuses = getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data).transitions[current] || [];
+    const statuses = getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data, row.task).transitions[current] || [];
     const targets = statuses;
-    targets.forEach((status) => items.push(item(`move-${status}`, 'move', ctx.t('palette.moveTo', { status: statusLabel(ctx, status, boardId) }),
-        { type: 'moveTask', boardId, taskId, status }, statusHint(ctx, boardId, status))));
+    targets.forEach((status) => items.push(item(`move-${status}`, 'move', ctx.t('palette.moveTo', { status: statusLabel(ctx, status, boardId, row.task) }),
+        { type: 'moveTask', boardId, taskId, status }, statusHint(ctx, boardId, status, row.task))));
     if (!compact) items.push(item('move', 'move', ctx.t('palette.moveToStep'), step('status')));
     items.push(item('assign', 'assign', ctx.t('palette.assign'), step('assignee')));
     items.push(item('responsible', 'assign', ctx.t('palette.setResponsible'), step('responsible')));
@@ -258,10 +259,10 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
     const matches = (label: string) => scoreText(label, q) > 0;
     if (frame.step === 'status') {
         const current = row.task.status;
-        return [current, ...(getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data).transitions[current] || [])]
-            .filter((status) => matches(statusLabel(ctx, status, boardId)))
-            .map((status) => choice(status, 'move', statusLabel(ctx, status, boardId), { type: 'moveTask', boardId, taskId, status },
-                { checked: status === current, hint: statusHint(ctx, boardId, status) }));
+        return [current, ...(getWorkflow(ctx.boards.find((b) => b.id === boardId)?.data, row.task).transitions[current] || [])]
+            .filter((status) => matches(statusLabel(ctx, status, boardId, row.task)))
+            .map((status) => choice(status, 'move', statusLabel(ctx, status, boardId, row.task), { type: 'moveTask', boardId, taskId, status },
+                { checked: status === current, hint: statusHint(ctx, boardId, status, row.task) }));
     }
     if (frame.step === 'priority') {
         return PRIORITY_KEYS.filter(([, key]) => matches(ctx.t(key)))
@@ -306,7 +307,7 @@ function quickCreate(ctx: Ctx): PaletteModel {
         key: 'create', icon: 'create', label: ctx.t('palette.create', { title: draft.title, project: boardTitle(board) }), ranges: [],
         hint: ['Enter'], color: boardColor(board),
         action: { type: 'createTask', boardId: board.id, fields: {
-            title: draft.title, assignees: draft.assignees, priority: draft.priority, tags: draft.tags, effort: draft.effort, dueDate: draft.dueDate
+            ...(draft.type ? { type: draft.type } : {}), title: draft.title, assignees: draft.assignees, priority: draft.priority, tags: draft.tags, effort: draft.effort, dueDate: draft.dueDate
         } }
     }] : [];
     return { sections: [{ id: 'create', title: ctx.t('palette.sectionCreate'), items }], breadcrumbs: [], preview };
@@ -343,6 +344,7 @@ function planQuery(ctx: Ctx, match: RegExpExecArray): PaletteModel {
 
 function taskScore(row: PortfolioRow, query: string, boardName: string): number {
     const q = query.trim();
+    if (row.task.displayId && row.task.displayId.toLowerCase().includes(q.replace(/^#/, '').toLowerCase())) return 100;
     const idMatch = /^#(\d+)$/.exec(q);
     if (idMatch) return Number(row.taskId ?? row.task.id) === Number(idMatch[1]) ? 100 : 0;
     if (q.startsWith('#')) return Math.max(0, ...row.task.tags.map((tag) => scoreText(`#${tag}`, q)));
@@ -446,7 +448,7 @@ function framed(ctx: Ctx): PaletteModel | null {
     const row = findRow(ctx, top.boardId, top.taskId);
     if (!row) return { sections: [], breadcrumbs: [], preview: null };
     const breadcrumbs = ctx.stack.map((frame) => frame.kind === 'task'
-        ? `#${frame.taskId} ${row.task.title}`
+        ? `${workitemLabel(row.task)} ${row.task.title}`
         : ctx.t(STEP_KEYS[frame.step]));
     if (top.kind === 'task') {
         const items = taskActionItems(ctx, row, false)

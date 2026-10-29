@@ -1,3 +1,4 @@
+import { workitemType, WORKITEM_FIELDS, effectivePlanning } from '@/domain/workitems';
 import type {
     BoardRecord,
     PortfolioRow,
@@ -100,7 +101,7 @@ export function buildTaskEditorViewModel(
         const ref = normalizeRoadmapRef(value);
         return optionList.some((option) => option.value === ref) ? ref : '';
     };
-    const normalized = task ? normalizeTask(task, { workflow: getWorkflow(boardRecord.data) }) : null;
+    const normalized = task ? normalizeTask(task, { workflow: getWorkflow(boardRecord.data, task) }) : null;
     const initial: TaskEditorFields = normalized
         ? {
             title: normalized.title || '',
@@ -136,7 +137,10 @@ export function buildTaskEditorViewModel(
             phaseId: '',
             milestoneId: ''
         };
+    Object.assign(initial, { type: normalized ? workitemType(normalized) : 'task', parentId: normalized?.parentId ?? null, phaseMode: normalized?.phaseMode || (normalized?.phaseId ? 'explicit' : 'none'), milestoneMode: normalized?.milestoneMode || (normalized?.milestoneId ? 'explicit' : 'none') }, Object.fromEntries(WORKITEM_FIELDS.map((field) => [field, normalized?.[field] || ''])));
     return {
+        editing: Boolean(normalized),
+        parentCandidates: boardRecord.data.board.tasks.filter((item) => ['epic', 'story'].includes(workitemType(item)) && item.id !== task?.id).map((item) => ({ displayId: item.displayId, id: item.id, title: item.title, type: workitemType(item) })),
         openId,
         heading: normalized ? translateCurrent('task.edit') : translateCurrent('task.new'),
         initial,
@@ -151,8 +155,8 @@ export function buildTaskEditorViewModel(
 }
 
 export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, historyEventIndex?: number): TaskDetailViewModel {
-    const task = normalizeTask(source.task, { workflow: getWorkflow(source.boardData) });
-    const statusMap: Record<string, string> = Object.fromEntries((source.boardData.board.columns || []).map((column) => [column.status, column.title]));
+    const task = normalizeTask(source.task, { workflow: getWorkflow(source.boardData, source.task) });
+    const statusMap: Record<string, string> = Object.fromEntries(getWorkflow(source.boardData, task).states.map((state) => [state.id, state.name]));
     const roadmap = getRoadmapExtension(source.boardData);
     return {
         readOnly,
@@ -180,8 +184,8 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
             createdAt: formatDateTime(task.createdAt, getCurrentLanguage() === 'pt' ? 'pt-PT' : undefined),
             updatedAt: formatDateTime(task.updatedAt, getCurrentLanguage() === 'pt' ? 'pt-PT' : undefined),
             dueDate: formatDueDateForUi(task.dueDate) || '-',
-            phase: getRoadmapItemTitle(roadmap, 'phases', task.phaseId) || '-',
-            milestone: getRoadmapItemTitle(roadmap, 'milestones', task.milestoneId) || '-',
+            phase: getRoadmapItemTitle(roadmap, 'phases', effectivePlanning(source.boardData, task, 'phaseId')) || '-',
+            milestone: getRoadmapItemTitle(roadmap, 'milestones', effectivePlanning(source.boardData, task, 'milestoneId')) || '-',
             sprint: getRoadmapItemTitle(roadmap, 'sprints', task.sprintId) || '-'
         },
         checklist: normalizeChecklist(task.checklist)

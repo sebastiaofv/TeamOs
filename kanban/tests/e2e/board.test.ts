@@ -21,18 +21,18 @@ test.describe('board', () => {
 
     await page.locator('#languageToggleBtn').click();
 
-    await expect(page.locator('.portfolio-column[data-status="backlog"] .column-title')).toHaveText('Backlog');
+    await expect(page.locator('#portfolio-backlog-heading')).toHaveText('Backlog');
     await expect(page.locator('.portfolio-column[data-status="to-do"] .column-title')).toHaveText('A fazer');
     await expect(page.locator('.portfolio-column[data-status="doing"] .column-title')).toHaveText('Em curso');
     await expect(page.locator('.portfolio-column[data-status="done"] .column-title')).toHaveText('Concluído');
   });
 
-  test('selected mutable project can create tasks directly from portfolio columns and auto-saves', async ({ page }) => {
+  test('selected mutable project creates tasks from the Board toolbar and auto-saves', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await expect(page.locator('#taskModal')).toBeVisible();
     await page.locator('#taskName').fill('Portfolio-created task');
     await page.locator('#taskPriority').selectOption('high');
@@ -53,19 +53,21 @@ test.describe('board', () => {
     expect(result.writes.at(-1)!.text).toContain('Portfolio-created task');
   });
 
-  test('all-projects view hides add-task cards and read-only selected project also hides them', async ({ page }) => {
+  test('all-projects and read-only Boards hide creation controls', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'm1', title: 'Mutable A', hasHandle: true, tasks: [] },
       { id: 'm2', title: 'Mutable B', hasHandle: true, tasks: [] }
     ], { selectedBoardId: '' });
 
     await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(0);
 
     await seedPortfolioBoards(page, [
       { id: 'ro1', title: 'Read Only', hasHandle: false, tasks: [{ title: 'RO Task', status: 'backlog' }] }
     ], { selectedBoardId: 'ro1' });
 
     await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(0);
     await expect(page.locator('.portfolio-chip.active')).toContainText('Read Only (Read-only)');
     await expect(portfolioCard(page, 'RO Task').locator('button[title="Read-only (no file handle)"]')).toHaveCount(3);
   });
@@ -342,7 +344,7 @@ test.describe('board', () => {
 
     await expect(card).toBeVisible();
     await expect(card).toHaveAttribute('data-draggable', 'true');
-    await expect(card.locator('.task-tag-age')).toContainText('Age');
+    await expect(card.locator('.task-tag-age')).toHaveCount(0);
 
     await dragWithMouse(page, card, targetColumn);
 

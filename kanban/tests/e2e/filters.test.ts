@@ -294,7 +294,7 @@ test.describe('filters and sort', () => {
   test('filters panel closes on an outside click and with Done', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'f2', title: 'Close Project', hasHandle: true, tasks: [{ id: 1, title: 'Task', status: 'backlog' }] }]);
     await openFiltersPanel(page);
-    await page.locator('#portfolioBoard').click({ position: { x: 20, y: 200 } });
+    await page.locator('.workitem-board-toolbar').click({ position: { x: 2, y: 2 } });
     await expect(page.locator('#portfolioFiltersPanel')).toHaveCount(0);
 
     await openFiltersPanel(page);

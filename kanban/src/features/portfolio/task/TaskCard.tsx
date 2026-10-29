@@ -1,19 +1,17 @@
+import { workitemLabel } from '@/domain/taskIdentity';
+import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
+import { workitemType, workitemProgress } from '@/domain/workitems';
 import { useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import type { useDraggable } from '@dnd-kit/core';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import type { AppState } from '@/features/portfolio/state/store';
 import { createPortfolioProjectColor } from '@/domain/board';
-import { formatDueDateForUi } from '@/domain/calendar';
-import {
-    normalizeEffort,
-    normalizePriority,
-    normalizeTags,
-    taskAssignees,
-    isTaskOverdue,
-    formatTaskStatusAge
-} from '@/domain/task';
-import { formatTaskScore } from '@/domain/scoring';
+import { formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
+import { parseRoadmapIsoDate } from '@/domain/roadmap';
+import { statusCategory } from '@/domain/workflow';
+import { useLocalToday } from '@/shared/hooks/useLocalToday';
+import { normalizePriority } from '@/domain/task';
 import { escapeRegExp } from '@/domain/util';
 import { useI18n } from '@/shared/i18n';
 
@@ -63,7 +61,8 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     overlay?: boolean;
 }) {
     const actions = usePortfolioActions();
-    const { t } = useI18n();
+    const { t, language } = useI18n();
+    const today = useLocalToday();
     const task = item.task;
     const canMutate = Boolean(item.canMutate) && !item.historical;
     const canDrag = canMutate;
@@ -74,8 +73,6 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
         && state.selectedPortfolioCardRef.boardId === item.boardId
         && Number(state.selectedPortfolioCardRef.taskId) === Number(task.id);
     const priority = normalizePriority(task.priority);
-    const effort = normalizeEffort(task.effort);
-    const score = formatTaskScore(task);
     const searchTerm = state.portfolioFilters?.search || '';
     const projectLabel = item.boardTitle || item.boardFileName || t('common.project');
     const showProjectBadge = !state.selectedPortfolioBoardId;
@@ -84,12 +81,22 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
         && state.selectedPortfolioBoardId === item.boardId
         && canMutate;
     const bulkSelected = selectedBulkTaskIds(state, item.boardId).has(Number(task.id));
-    const assignees = taskAssignees(task);
-    const statusAge = formatTaskStatusAge(task);
-    const localizedStatusAge = statusAge ? t('task.age', { value: statusAge.replace(/^Age\s*/, '') }) : '';
     const readOnlyTitle = item.historical ? t('task.readOnlyHistorical') : t('task.readOnlyNoHandle');
     const archiveButtonTitle = task.archived ? t('common.restore') : t('common.archive');
     const boardData = item.boardData || state.portfolioBoards.find((b) => b.id === item.boardId)?.data;
+    const type = workitemType(task);
+    const progress = boardData && type === 'story' ? workitemProgress(boardData, task.id) : null;
+    const terminal = ['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task));
+    const highPriority = priority === 'high' && !terminal && !task.archived;
+    const dueDate = normalizeDueDate(task.dueDate);
+    const due = parseRoadmapIsoDate(dueDate);
+    const daysUntilDue = due ? (due.getTime() - parseRoadmapIsoDate(today)!.getTime()) / 86_400_000 : null;
+    const showDue = daysUntilDue !== null && daysUntilDue <= 3 && !terminal && !task.archived;
+    const dueLabel = daysUntilDue !== null && daysUntilDue < 0 ? t('task.overdue')
+        : daysUntilDue === 0 ? t('common.today')
+        : daysUntilDue === 1 ? t('card.tomorrow')
+        : due ? new Intl.DateTimeFormat(language === 'pt' ? 'pt-PT' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(due) : '';
+    const initials = task.responsible?.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toLocaleUpperCase();
     const cardRef = useRef<HTMLElement | null>(null);
     const setCardRef = useCallback((node: HTMLElement | null) => {
         cardRef.current = node;
@@ -170,28 +177,55 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                         <HighlightedTitle text={task.title || ''} searchTerm={searchTerm} />
                     </span>
                 </div>
+            </div>
+            <div className="workitem-card-context">
+                <span className="task-card-id">{workitemLabel(task)}</span>
+                <span className="task-card-context-dot" aria-hidden="true">·</span>
+                <WorkitemTypeBadge type={type} />
                 <div className="task-actions">
-                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? t('task.editAction') : readOnlyTitle} aria-label={canMutate ? t('task.editAction') : readOnlyTitle} data-action="edit-task" onClick={() => actions.editPortfolioTask(item.boardId, taskId)}>&#9998;</button>
-                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} aria-label={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task" onClick={() => actions.togglePortfolioArchiveTask(item.boardId, taskId)}><span aria-hidden="true">{task.archived ? '↶' : '🗄️'}</span></button>
-                    <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}><span aria-hidden="true">🗑️</span></button>
+                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? t('task.editAction') : readOnlyTitle} aria-label={canMutate ? t('task.editAction') : readOnlyTitle} data-action="edit-task" onClick={() => actions.editPortfolioTask(item.boardId, taskId)}>
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 2 4 4-8 8H2v-4Zm-2 2 4 4" /></svg>
+                    </button>
+                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} aria-label={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task" onClick={() => actions.togglePortfolioArchiveTask(item.boardId, taskId)}>
+                        <svg viewBox="0 0 16 16" aria-hidden="true">{task.archived
+                            ? <path d="M3 6h6a4 4 0 0 1 0 8M6 3 3 6l3 3" />
+                            : <><path d="M2.5 6v7.5h11V6M1.5 2.5h13V6h-13Z" /><path d="M6 9h4" /></>}</svg>
+                    </button>
+                    <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}>
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h12M6 2.5h4M4 4.5l.5 9h7l.5-9M6.5 7v4M9.5 7v4" /></svg>
+                    </button>
                 </div>
             </div>
-            {(showProjectBadge || assignees.length > 0 || normalizeTags(task.tags).length > 0 || task.blocked || statusAge || isTaskOverdue(task, boardData || undefined) || priority || effort || score !== '-' || task.dueDate || task.checklist?.length) && (
-                <div className="task-meta">
-                    {showProjectBadge && <span className="portfolio-project-badge" style={{ background: color.bg, borderColor: color.border, color: color.text }} title={projectLabel}>{projectLabel}</span>}
-                    {task.responsible && <span className="task-tag task-tag-assignee" title={t('task.responsible')}>{t('task.responsible')}: {task.responsible}</span>}
-                    {assignees.map((name) => <span className="task-tag task-tag-assignee" title={t('toolbar.participant').replace(/:$/, '')} key={`assignee-${name}`}>{name}</span>)}
-                    {normalizeTags(task.tags).map((tag) => <span className="task-tag task-tag-label" key={`tag-${tag}`}>{tag}</span>)}
-                    {task.blocked && <span className="task-tag task-tag-blocked" title={t('task.blocked')}>{t('task.blocked')}</span>}
-                    {localizedStatusAge && <span className="task-tag task-tag-age" title={t('task.timeInStatus')}>{localizedStatusAge}</span>}
-                    {isTaskOverdue(task, boardData || undefined) && <span className="task-tag" title={t('task.overdue')}><span className="due-dot" />{t('task.overdue')}</span>}
-                    {priority && <span className="task-tag"><span className={`priority-dot priority-${task.priority}`} />{priority === 'high' ? t('toolbar.high') : priority === 'medium' ? t('toolbar.medium') : priority === 'low' ? t('toolbar.low') : priority}</span>}
-                    {effort && <span className="task-tag" title={t('task.effort')}><span className={`effort-dot effort-${effort.toLowerCase()}`} />{effort}</span>}
-                    {score !== '-' && <span className="task-tag task-tag-score" title={t('task.scoreTitle')}>{t('task.score', { score })}</span>}
-                    {task.dueDate && <span className="task-tag">{formatDueDateForUi(task.dueDate)}</span>}
-                    {task.checklist?.length > 0 && <span className="task-tag">{t('task.doneCount', { done: task.checklist.filter((entry) => entry.done).length, total: task.checklist.length })}</span>}
-                </div>
-            )}
+            {showProjectBadge && <span className="task-card-project" title={projectLabel}>
+                <span className="task-card-project-dot" style={{ background: color.text }} aria-hidden="true" />{projectLabel}
+            </span>}
+            {progress && progress.percent !== null && <div className="task-card-progress">
+                <span>{t('card.taskProgress', { percent: Math.round(progress.percent) })}</span>
+                <span className="task-card-progress-track" role="progressbar" aria-label={t('workitems.executionProgress')}
+                    aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress.percent)}
+                    title={`${progress.completed}/${progress.eligible}`}>
+                    <span style={{ width: `${progress.percent}%` }} />
+                </span>
+            </div>}
+            {task.blocked && <div className="task-card-blocker task-tag-blocked" title={task.blockerReason || t('task.blocked')}>
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="8" cy="8" r="5.5" /><path d="m4 4 8 8" /></svg>
+                {t('task.blocked')}
+            </div>}
+            {(task.responsible || highPriority || showDue) && <div className="task-card-footer">
+                {task.responsible && <span className="task-card-owner" title={`${t('task.responsible')}: ${task.responsible}`}>
+                    <span className="task-card-avatar" aria-hidden="true">{initials}</span>
+                    <span className="task-card-owner-name">{task.responsible}</span>
+                </span>}
+                {(highPriority || showDue) && <div className="task-card-urgency">
+                    {highPriority && <span className="task-card-priority"><span className="priority-dot priority-high" aria-hidden="true" />{t('toolbar.high')}</span>}
+                    {showDue && <time className={`task-card-due${daysUntilDue! < 0 ? ' is-overdue' : ''}`} dateTime={dueDate}
+                        title={`${t('task.due')}: ${formatDueDateForUi(dueDate)}`}>
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="1" /><path d="M5 1.5v4m6-4v4m-8.5 2h11" /></svg>
+                        {dueLabel}
+                    </time>}
+                </div>}
+            </div>}
+
         </article>
     );
 }

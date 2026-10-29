@@ -1,3 +1,5 @@
+import { effectivePlanning, epicOf, parentOf, workitemType } from './workitems';
+import type { BoardData } from './types';
 // Portfolio toolbar filters: the defaults and the rules for accepting a value.
 // Used by the controls, the URL state, and the filtered-rows selector.
 
@@ -79,14 +81,16 @@ export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilter
     if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
     if (!matchesPeopleFilter(taskAssignees(task), filters.assignee)) return false;
     if (!matchesPeopleFilter(task.responsible ? [task.responsible] : [], filters.responsible)) return false;
-    if (filters.phaseId === '__none__' ? Boolean(task.phaseId) : filters.phaseId && !phaseDescendants(getRoadmapExtension(data)?.phases || [], filters.phaseId).has(task.phaseId)) return false;
-    if (filters.milestoneId === '__none__' ? Boolean(task.milestoneId) : filters.milestoneId && task.milestoneId !== filters.milestoneId) return false;
+    const phaseId = data?.board ? effectivePlanning(data as BoardData, task, 'phaseId') : task.phaseId;
+    const milestoneId = data?.board ? effectivePlanning(data as BoardData, task, 'milestoneId') : task.milestoneId;
+    if (filters.phaseId === '__none__' ? Boolean(phaseId) : filters.phaseId && !phaseDescendants(getRoadmapExtension(data)?.phases || [], filters.phaseId).has(phaseId)) return false;
+    if (filters.milestoneId === '__none__' ? Boolean(milestoneId) : filters.milestoneId && milestoneId !== filters.milestoneId) return false;
     if (filters.sprintId && task.sprintId !== filters.sprintId) return false;
     if (filters.priority && task.priority !== filters.priority) return false;
     if (filters.effort && task.effort !== filters.effort) return false;
     if (filters.blocked === 'blocked' && !task.blocked) return false;
     if (filters.blocked === 'unblocked' && task.blocked) return false;
     const search = filters.search.trim().toLowerCase();
-    return !search || [String(task.id), task.title || '', task.description || '']
+    return !search || [String(task.id), task.displayId || '', task.title || '', task.description || '', workitemType(task), ...(data?.board ? [parentOf(data as BoardData, task), epicOf(data as BoardData, task)].flatMap((item) => item ? [String(item.id), item.title] : []) : [])]
         .some((value) => value.toLowerCase().includes(search));
 }

@@ -3,6 +3,7 @@ import type { Conversations } from './comments';
 import type { BoardViewPreferences } from './boardView';
 
 export type TaskStatus = string;
+export type WorkflowKind = 'technical' | 'functional';
 export type WorkflowCategory = 'backlog' | 'to-do' | 'in-progress' | 'completed' | 'cancelled';
 export type WorkflowState = { id: string; name: string; color: string; category: WorkflowCategory };
 export type Workflow = {
@@ -28,8 +29,21 @@ export type Attachment = {
     createdAt: string;
 };
 
-export type Task = {
+export type WorkitemType = 'epic' | 'story' | 'task' | 'bug';
+export type PlanningMode = 'inherit' | 'none' | 'explicit';
+export type WorkitemAutomation = { version: 1; start?: { from: string[]; to: string }; finish?: { from: string[]; to: string } };
+export type WorkitemFields = {
+    type?: WorkitemType;
+    parentId?: number | null;
+    objective?: string; scope?: string; businessValue?: string; acceptanceCriteria?: string;
+    stepsToReproduce?: string; expectedResult?: string; actualResult?: string; severity?: string; environment?: string;
+    phaseMode?: PlanningMode; milestoneMode?: PlanningMode;
+};
+export type Task = WorkitemFields & {
+    acceptance?: { author: string; at: string; local: true };
+    sprintHistory?: { sprintId: string; status: string; at: string; parentId?: number | null }[];
     id: number;
+    displayId?: string;
     title: string;
     description: string;
     assignees: string[];
@@ -139,6 +153,7 @@ export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIde
 export type ProjectStatus = 'planned' | 'active' | 'paused' | 'completed' | 'archived';
 export type ProjectMember = { id: string; name: string };
 export type ProjectData = {
+    acronym?: string;
     version: 1;
     id: string;
     description: string;
@@ -150,8 +165,11 @@ export type BoardExtensions = {
     [key: string]: unknown;
     conversations?: Conversations;
     project?: ProjectData;
+    sprintParticipation?: { version: 1; entries: { sprintId: string; task: Task; at: string }[] };
+    workitemAutomation?: WorkitemAutomation;
     boardView?: BoardViewPreferences;
     workflow?: Workflow;
+    functionalWorkflow?: Workflow;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;
@@ -183,7 +201,7 @@ export type ProjectColor = { bg: string; border: string; text: string };
 // Drafts are domain inputs/outputs even though the feature editor is their
 // current consumer. Keeping them here lets the pure draft rules avoid a
 // dependency on the React feature layer.
-export type TaskEditorFields = {
+export type TaskEditorFields = WorkitemFields & {
     pullRequests?: string[];
     title: string;
     description: string;
@@ -201,7 +219,7 @@ export type TaskEditorFields = {
     milestoneId: string;
 };
 
-export type TaskDraft = {
+export type TaskDraft = WorkitemFields & {
     pullRequests?: string[];
     title: string;
     description: string;

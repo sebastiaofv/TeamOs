@@ -1,3 +1,4 @@
+import { statusCategory } from './workflow';
 import type { BoardData, LooseBoardData, RoadmapItem, Task } from './types';
 import { nowIso } from './util';
 
@@ -59,17 +60,16 @@ export function phaseTreeRows(phases: readonly RoadmapItem[], collapsed: Readonl
     return rows;
 }
 
-/** A compatibility seam for US-4. Until merged, the persisted `done` state is completed. */
-export function planningTaskCategory(task: Pick<Task, 'status'>, data?: LooseBoardData | null): string {
-    const workflow = data?.extensions?.workflow as { states?: { id: string; category: string }[] } | undefined;
-    return (Array.isArray(workflow?.states) ? workflow.states.find((state) => state.id === task.status)?.category : undefined) || (task.status === 'done' ? 'completed' : 'not-started');
+export function planningTaskCategory(task: Pick<Task, 'status' | 'type'>, data?: LooseBoardData | null): string {
+    return statusCategory(task.status, data, task);
 }
 
-export function planningProgress(tasks: readonly Task[], data?: LooseBoardData | null) {
+export function planningProgress(tasks: readonly Task[], data?: LooseBoardData | null, options: { leavesOnly?: boolean } = {}) {
     const unique = [...new Map(tasks.map((task) => [task.id, task])).values()];
-    const cancelled = unique.filter((task) => planningTaskCategory(task, data) === 'cancelled').length;
-    const eligible = unique.length - cancelled;
-    const completed = unique.filter((task) => planningTaskCategory(task, data) === 'completed').length;
+    const leaves = options.leavesOnly !== false && data?.board?.tasks && Array.isArray(data.board.tasks) ? unique.filter((task) => !(data.board!.tasks as Task[]).some((child) => child.parentId === task.id)) : unique;
+    const cancelled = leaves.filter((task) => planningTaskCategory(task, data) === 'cancelled').length;
+    const eligible = leaves.length - cancelled;
+    const completed = leaves.filter((task) => planningTaskCategory(task, data) === 'completed').length;
     return { associated: unique.length, eligible, completed, cancelled, percent: eligible ? completed / eligible * 100 : null };
 }
 
@@ -103,6 +103,7 @@ export function deletePlanningGroup(data: BoardData, kind: 'phases' | 'milestone
     if (affected.length && (relocation === undefined || (relocation && !destinations.some((item) => item.id === relocation)))) throw new Error('Choose a valid destination, or explicitly clear the affected assignments.');
     const at = nowIso();
     affected.forEach((task) => { task[field] = relocation || ''; task.updatedAt = at; });
+    if (kind === 'phases') roadmap.sprints.forEach((sprint) => { if (sprint.parentId === id) delete sprint.parentId; });
     roadmap[kind] = roadmap[kind].filter((item) => item.id !== id);
     recalculatePhaseDates(roadmap.phases);
 }

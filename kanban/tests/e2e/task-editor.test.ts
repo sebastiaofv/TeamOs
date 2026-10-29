@@ -23,7 +23,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Blocked task');
     await page.locator('#taskBlocked').check();
     await page.locator('#taskModal .btn-primary').click();
@@ -47,7 +47,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Blocked task');
     await page.locator('#taskBlocked').check();
     await page.locator('#taskModal .btn-primary').click();
@@ -59,44 +59,26 @@ test.describe('task editor', () => {
     expect(taskCount).toBe(0);
   });
 
-  test('task modal places blocked fields immediately after description', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
-    ], { selectedBoardId: 'p1' });
-
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
-
-    const fieldOrder = await page.evaluate(() => (
-      [...document.querySelectorAll('#taskForm > .form-group')]
-        .map((group) => {
-          if (group.querySelector('#taskName')) return 'taskName';
-          if (group.querySelector('#taskDescription')) return 'taskDescription';
-          if (group.querySelector('#taskBlocked')) return 'taskBlocked';
-          if (group.querySelector('#taskBlockerReason')) return 'taskBlockerReason';
-          if (group.querySelector('#taskAssigneeEditor')) return 'taskAssigneeEditor';
-          return null;
-        })
-        .filter(Boolean)
-    ));
-
-    expect(fieldOrder).toEqual(expect.arrayContaining([
-      'taskDescription',
-      'taskBlocked',
-      'taskBlockerReason',
-      'taskAssigneeEditor'
-    ]));
-    expect(fieldOrder.indexOf('taskDescription')).toBeLessThan(fieldOrder.indexOf('taskBlocked'));
-    expect(fieldOrder.indexOf('taskBlocked')).toBeLessThan(fieldOrder.indexOf('taskBlockerReason'));
-    expect(fieldOrder.indexOf('taskBlockerReason')).toBeLessThan(fieldOrder.indexOf('taskAssigneeEditor'));
+  test('task editor separates content from properties and groups blocked fields together', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }], { selectedBoardId: 'p1' });
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
+    const main = page.locator('#taskForm .workitem-main');
+    const sidebar = page.locator('#taskForm .workitem-sidebar');
+    await expect(main.locator('#taskName')).toBeVisible();
+    await expect(main.locator('#taskDescription')).toBeVisible();
+    await expect(sidebar.locator('#taskBlocked')).toBeVisible();
+    expect(await sidebar.locator('#taskBlocked').evaluate((node) => Boolean(node.closest('.workitem-property-group')?.querySelector('#taskBlockerReason')))).toBe(true);
+    const content = await main.boundingBox(), properties = await sidebar.boundingBox();
+    expect(content!.x + content!.width).toBeLessThanOrEqual(properties!.x);
   });
 
-  test('assignees and blocked fields save and render as card badges', async ({ page }) => {
+  test('participants save in details while cards emphasize their blocker', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, members: ['Alex', 'Sam'], tasks: [] }
     ], { selectedBoardId: 'p1' });
 
     const assigneeAddButton = page.locator('#taskAssigneeEditor').getByRole('button', { name: 'Add' });
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Investigate deploy issue');
     await page.locator('#taskAssigneeNewItem').selectOption('Alex');
     await assigneeAddButton.click();
@@ -109,8 +91,8 @@ test.describe('task editor', () => {
 
     const backlogColumn = page.locator('#portfolio-backlog-column');
     await expect(backlogColumn).toContainText('Investigate deploy issue');
-    await expect(backlogColumn).toContainText('Alex');
-    await expect(backlogColumn).toContainText('Sam');
+    await expect(backlogColumn).not.toContainText('Alex');
+    await expect(backlogColumn).not.toContainText('Sam');
     await expect(backlogColumn).toContainText('Blocked');
 
     await waitForBoardWrites(page);
@@ -135,6 +117,9 @@ test.describe('task editor', () => {
       blocked: true,
       blockerReason: 'Waiting for staging access'
     });
+    await portfolioCard(page, 'Investigate deploy issue').click();
+    await expect(page.locator('#taskAssigneeItems')).toContainText('Alex');
+    await expect(page.locator('#taskAssigneeItems')).toContainText('Sam');
   });
 
   test('assignee editor suggests board assignees and excludes ones already added', async ({ page }) => {
@@ -150,7 +135,7 @@ test.describe('task editor', () => {
       }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
 
     let options = await page.locator('#taskAssigneeNewItem option').evaluateAll((items) => items.map((item) => (item as HTMLOptionElement).value).filter(Boolean));
     expect(options).toEqual(['Alex', 'Sam']);
@@ -206,16 +191,16 @@ test.describe('task editor', () => {
 
     expect(result.taskAssignees).toEqual(['Jamie']);
     expect(result.savedAssignees).toEqual(['Jamie']);
-    await expect(portfolioCard(page, 'Task A')).toContainText('Jamie');
+    await expect(portfolioCard(page, 'Task A').locator('.task-tag-assignee')).toHaveCount(0);
     await expect(portfolioCard(page, 'Task A')).not.toContainText('Sam');
   });
 
-  test('tags can be added on task create and display on cards and detail modal', async ({ page }) => {
+  test('tags can be added on task create and remain in details without cluttering cards', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tags: ['bug', 'urgent'], tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Tagged task');
     await page.locator('#taskTagNewItem').selectOption('bug');
     await page.locator('#taskTagAddBtn').click();
@@ -225,12 +210,12 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskModal')).toBeHidden();
 
     const card = portfolioCard(page, 'Tagged task');
-    await expect(card).toContainText('bug');
-    await expect(card).toContainText('urgent');
+    await expect(card.locator('.task-tag-label')).toHaveCount(0);
 
     await card.click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
-    await expect(page.locator('#detailTags')).toHaveText('bug, urgent');
+    await expect(page.locator('#taskTagItems')).toContainText('bug');
+    await expect(page.locator('#taskTagItems')).toContainText('urgent');
 
     await waitForBoardWrites(page);
     const result = await page.evaluate(() => {
@@ -253,7 +238,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tags: ['bug'], tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Dedup task');
     await page.locator('#taskTagNewItem').selectOption('bug');
     await page.locator('#taskTagAddBtn').click();
@@ -276,7 +261,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tags: Array.from({ length: 11 }, (_, index) => `tag${index}`), tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Limit task');
 
     for (let i = 0; i < 11; i++) {
@@ -327,7 +312,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'date');
     await page.locator('#taskName').fill('Date formatting task');
     await page.locator('#taskDueDate').fill('2026-03-05');
@@ -335,7 +320,7 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskModal')).toBeHidden();
 
     const card = portfolioCard(page, 'Date formatting task');
-    await expect(card).toContainText('05/03/2026');
+    await expect(card.locator('time')).toHaveAttribute('title', 'Due: 05/03/2026');
 
     await waitForBoardWrites(page);
     const result = await page.evaluate(() => {
@@ -354,7 +339,7 @@ test.describe('task editor', () => {
 
     await card.click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
-    await expect(page.locator('#detailDueDate')).toHaveText('05/03/2026');
+    await expect(page.locator('#detailDueDateInput')).toHaveValue('2026-03-05');
   });
 
   test('editing a task preloads the native due date picker with the saved ISO value', async ({ page }) => {
@@ -448,13 +433,17 @@ test.describe('task editor', () => {
     ));
     const handle = (page: Page, index: number) => page.locator('#taskChecklistItems .checklist-editor-row').nth(index).locator('.checklist-editor-drag-handle');
     // Waits for each keyboard step to land before the next key.
-    const announced = (page: Page, text: string) => expect(page.getByText(text, { exact: true })).toBeAttached();
+    const announced = async (page: Page, text: string) => {
+      await expect(page.getByText(text, { exact: true })).toBeAttached();
+      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+    };
 
     test('Space picks an item up, arrow keys move it and Space drops it', async ({ page }) => {
       await handle(page, 2).focus();
       await page.keyboard.press('Space');
       // Picked up. (The pick-up announcement is replaced at once by an "over" one.)
       await expect(handle(page, 2)).toHaveAttribute('aria-pressed', 'true');
+      await announced(page, 'Todo item 3 is over position 3.');
       await page.keyboard.press('ArrowUp');
       await announced(page, 'Todo item 3 is over position 2.');
       await page.keyboard.press('ArrowUp');
@@ -469,6 +458,7 @@ test.describe('task editor', () => {
       await page.keyboard.press('Space');
       // Picked up. (The pick-up announcement is replaced at once by an "over" one.)
       await expect(handle(page, 2)).toHaveAttribute('aria-pressed', 'true');
+      await announced(page, 'Todo item 3 is over position 3.');
       await page.keyboard.press('ArrowUp');
       await announced(page, 'Todo item 3 is over position 2.');
       await page.keyboard.press('Escape');
@@ -556,7 +546,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Attachment limits');
 
     await page.setInputFiles('#taskAttachmentsInput', Array.from({ length: 11 }, (_, i) => ({
@@ -628,7 +618,7 @@ test.describe('task editor', () => {
       };
     });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await expect(page.locator('#taskModal')).toBeVisible();
 
     const name = page.locator('#taskName');
@@ -651,7 +641,7 @@ test.describe('task editor', () => {
         { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
       ], { selectedBoardId: 'p1' });
 
-      await page.locator('#portfolio-backlog-column .add-task-card').click();
+      await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
       await expect(page.locator('#taskModal')).toBeVisible();
       await page.locator('#taskName').fill('Draft title');
       await page.locator('#taskChecklistNewItem').fill('Draft item');
@@ -661,7 +651,7 @@ test.describe('task editor', () => {
       await closeDialogBy(page, 'taskModal', method);
       await expect(page.locator('#taskModal')).toHaveCount(0);
 
-      await page.locator('#portfolio-backlog-column .add-task-card').click();
+      await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
       await expect(page.locator('#modalTitle')).toHaveText('New Task');
       await expect(page.locator('#taskName')).toHaveValue('');
       await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(0);
@@ -673,7 +663,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Saved by keyboard');
     await page.locator('#taskDescription').click();
     await page.keyboard.type('Typed description');
@@ -691,7 +681,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskBlocked').check();
     await expect(page.locator('#taskBlockerReason')).toBeFocused();
     await page.locator('#taskBlockerReason').fill('Waiting on API');
@@ -799,7 +789,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Blocked task');
     await page.locator('#taskBlocked').check();
     await page.locator('#taskModal .btn-primary').click();
@@ -826,7 +816,7 @@ test.describe('task editor', () => {
     await answerAppMessage(page, { button: 'Archive' });
     await expect(page.locator('#undoToast')).toBeVisible();
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await expect(page.locator('#taskModal')).toBeVisible();
     await page.locator('#undoBtn').click();
 
@@ -839,7 +829,7 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Tagged', status: 'backlog', tags: ['bug', 'ui'] }] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect.poll(() => page.evaluate(() => (
       Array.from(document.querySelectorAll<HTMLOptionElement>('#taskTagNewItem option')).map((option) => option.value).filter(Boolean)

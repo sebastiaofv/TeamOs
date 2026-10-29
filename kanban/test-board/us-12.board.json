@@ -1,0 +1,749 @@
+{
+  "meta": {
+    "schemaVersion": 5,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-28T10:00:00.000Z",
+    "updatedAt": "2026-10-28T10:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "To Do"
+      },
+      {
+        "status": "doing",
+        "title": "In progress"
+      },
+      {
+        "status": "ready-to-test",
+        "title": "Ready to test"
+      },
+      {
+        "status": "testing",
+        "title": "Testing"
+      },
+      {
+        "status": "re-analysis",
+        "title": "Re-analysis"
+      },
+      {
+        "status": "done",
+        "title": "Done"
+      },
+      {
+        "status": "cancelled",
+        "title": "Cancelled"
+      },
+      {
+        "status": "duplication",
+        "title": "Duplication"
+      }
+    ],
+    "tasks": [
+      {
+        "type": "epic",
+        "objective": "Permitir compras sem barreiras",
+        "scope": "Fluxo de pagamento",
+        "businessValue": "Reduzir abandono",
+        "pullRequests": [],
+        "id": 1201,
+        "title": "Checkout acessível",
+        "description": "Organizar pagamentos e comprovativos. Concluir Tasks não conclui automaticamente este Epic.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": null,
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1"
+      },
+      {
+        "type": "story",
+        "parentId": 1201,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "acceptanceCriteria": "Compra confirmada e comprovativo apresentado",
+        "sprintHistory": [
+          {
+            "sprintId": "previous",
+            "status": "doing",
+            "at": "2026-10-18T17:00:00.000Z"
+          }
+        ],
+        "pullRequests": [],
+        "id": 1202,
+        "title": "Pagar com cartão",
+        "description": "Como cliente, quero pagar com cartão e receber confirmação. Uma Task terminou no Sprint anterior; só a Task atual aparece no Board Técnico.",
+        "assignees": [
+          "Ana",
+          "Rui"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-10-30",
+        "priority": "high",
+        "effort": "L",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "current",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-1",
+          "us12-checkout-member-2"
+        ],
+        "responsibleId": "us12-checkout-member-1"
+      },
+      {
+        "type": "task",
+        "parentId": 1202,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "pullRequests": [],
+        "id": 1203,
+        "title": "Validar cartão no Sprint anterior",
+        "description": "Trabalho concluído: consultar na Table e no Sprint anterior, sem o repetir no Técnico atual.",
+        "assignees": [
+          "Rui"
+        ],
+        "responsible": "Rui",
+        "tags": [
+          "backend"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "previous",
+        "status": "done",
+        "assigneeIds": [
+          "us12-checkout-member-2"
+        ],
+        "responsibleId": "us12-checkout-member-2"
+      },
+      {
+        "type": "task",
+        "parentId": 1202,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "pullRequests": [],
+        "id": 1204,
+        "title": "Implementar confirmação",
+        "description": "Última Task pendente da Story #1202. Concluir permite testar o avanço para Ready to test e a aceitação posterior.",
+        "assignees": [
+          "Rui"
+        ],
+        "responsible": "Rui",
+        "tags": [
+          "frontend"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [
+          {
+            "text": "Apresentar confirmação",
+            "done": true
+          },
+          {
+            "text": "Validar estado de erro",
+            "done": false
+          }
+        ],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-10-29",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "current",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-2"
+        ],
+        "responsibleId": "us12-checkout-member-2"
+      },
+      {
+        "type": "task",
+        "parentId": 1202,
+        "phaseMode": "inherit",
+        "pullRequests": [],
+        "id": 1205,
+        "title": "Caso de teste abandonado",
+        "description": "Task cancelada, excluída do denominador do progresso.",
+        "assignees": [
+          "Marta QA"
+        ],
+        "responsible": "Marta QA",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "previous",
+        "status": "cancelled",
+        "assigneeIds": [
+          "us12-checkout-member-3"
+        ],
+        "responsibleId": "us12-checkout-member-3"
+      },
+      {
+        "type": "task",
+        "parentId": 1201,
+        "phaseMode": "inherit",
+        "pullRequests": [],
+        "id": 1206,
+        "title": "Preparar métricas do Epic",
+        "description": "Task diretamente associada ao Epic: é independente de Story e pode ter planeamento próprio.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "backend"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": "medium",
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "to-do",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1"
+      },
+      {
+        "type": "bug",
+        "stepsToReproduce": "Navegar por teclado até ao botão Pagar",
+        "expectedResult": "Foco visível",
+        "actualResult": "Sem indicação de foco",
+        "severity": "High",
+        "environment": "Chrome / macOS",
+        "pullRequests": [],
+        "id": 1207,
+        "title": "Botão de pagamento sem foco",
+        "description": "",
+        "assignees": [
+          "Marta QA",
+          "Rui"
+        ],
+        "responsible": "Marta QA",
+        "tags": [
+          "acessibilidade",
+          "frontend"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-10-30",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "delivery",
+        "milestoneId": "accessible",
+        "sprintId": "current",
+        "status": "testing",
+        "assigneeIds": [
+          "us12-checkout-member-3",
+          "us12-checkout-member-2"
+        ],
+        "responsibleId": "us12-checkout-member-3"
+      },
+      {
+        "type": "story",
+        "acceptanceCriteria": "Comprovativo pode ser descarregado",
+        "pullRequests": [],
+        "id": 1208,
+        "title": "Consultar comprovativo",
+        "description": "Story sem Tasks: segue o percurso manual e exige aceitação funcional.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "current",
+        "status": "testing",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1"
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 1209,
+        "title": "Trabalho independente",
+        "description": "Atualizar instruções de integração. Não pertence a Epic/Story e ainda não tem Sprint.",
+        "assignees": [
+          "Rui"
+        ],
+        "responsible": "Rui",
+        "tags": [
+          "documentação"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-11-05",
+        "priority": "low",
+        "effort": "S",
+        "phaseId": "stabilization",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "to-do",
+        "assigneeIds": [
+          "us12-checkout-member-2"
+        ],
+        "responsibleId": "us12-checkout-member-2"
+      },
+      {
+        "type": "epic",
+        "objective": "Explorar pagamentos alternativos",
+        "pullRequests": [],
+        "id": 1210,
+        "title": "Epic sem trabalho elegível",
+        "description": "Estado vazio: progresso sem percentagem e sem filhos.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog",
+        "assigneeIds": [],
+        "responsibleId": ""
+      },
+      {
+        "type": "story",
+        "parentId": 1201,
+        "phaseMode": "inherit",
+        "acceptanceCriteria": "Resultado futuro",
+        "pullRequests": [],
+        "id": 1211,
+        "title": "Story do Sprint futuro",
+        "description": "Continua visível no Funcional; a Task subordinada só entra no Técnico quando o Sprint estiver ativo.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "2026-11-10",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "future",
+        "status": "to-do",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1"
+      },
+      {
+        "type": "task",
+        "parentId": 1211,
+        "phaseMode": "inherit",
+        "pullRequests": [],
+        "id": 1212,
+        "title": "Task futura oculta no Técnico",
+        "description": "",
+        "assignees": [
+          "Rui"
+        ],
+        "responsible": "Rui",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "future",
+        "status": "to-do",
+        "assigneeIds": [
+          "us12-checkout-member-2"
+        ],
+        "responsibleId": "us12-checkout-member-2"
+      },
+      {
+        "type": "bug",
+        "pullRequests": [],
+        "id": 1213,
+        "title": "Registo rápido por completar",
+        "description": "Bug mínimo no Backlog, sem responsável, prioridade ou campos de reprodução.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-28T10:00:00.000Z",
+        "updatedAt": "2026-10-28T10:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog",
+        "assigneeIds": [],
+        "responsibleId": ""
+      }
+    ],
+    "settings": {
+      "title": "US-12 · Checkout"
+    }
+  },
+  "extensions": {
+    "project": {
+      "version": 1,
+      "id": "us12-checkout",
+      "description": "Projeto de pagamentos: hierarquia, aceitação funcional, trabalho de Sprints anteriores e planeamento futuro.",
+      "status": "active",
+      "members": [
+        {
+          "id": "us12-checkout-member-1",
+          "name": "Ana"
+        },
+        {
+          "id": "us12-checkout-member-2",
+          "name": "Rui"
+        },
+        {
+          "id": "us12-checkout-member-3",
+          "name": "Marta QA"
+        }
+      ],
+      "tags": [
+        "pagamentos",
+        "acessibilidade",
+        "frontend",
+        "backend",
+        "documentação"
+      ],
+      "acronym": "CHK"
+    },
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "To Do",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "In progress",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "ready-to-test",
+          "name": "Ready to test",
+          "color": "#a78bfa",
+          "category": "in-progress"
+        },
+        {
+          "id": "testing",
+          "name": "Testing",
+          "color": "#38bdf8",
+          "category": "in-progress"
+        },
+        {
+          "id": "re-analysis",
+          "name": "Re-analysis",
+          "color": "#fb923c",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Done",
+          "color": "#34d399",
+          "category": "completed"
+        },
+        {
+          "id": "cancelled",
+          "name": "Cancelled",
+          "color": "#f87171",
+          "category": "cancelled"
+        },
+        {
+          "id": "duplication",
+          "name": "Duplication",
+          "color": "#e879f9",
+          "category": "cancelled"
+        }
+      ],
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "done",
+        "cancelled": "cancelled"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "cancelled",
+          "duplication"
+        ],
+        "to-do": [
+          "doing",
+          "cancelled",
+          "duplication"
+        ],
+        "doing": [
+          "ready-to-test",
+          "done",
+          "cancelled",
+          "duplication"
+        ],
+        "ready-to-test": [
+          "testing",
+          "cancelled",
+          "duplication"
+        ],
+        "testing": [
+          "done",
+          "re-analysis",
+          "cancelled",
+          "duplication"
+        ],
+        "re-analysis": [
+          "doing",
+          "cancelled",
+          "duplication"
+        ],
+        "done": [
+          "doing"
+        ],
+        "cancelled": [],
+        "duplication": []
+      }
+    },
+    "roadmap": {
+      "version": 4,
+      "milestones": [
+        {
+          "id": "release",
+          "title": "Primeira entrega",
+          "color": "#2563eb",
+          "dueDate": "2026-11-13"
+        },
+        {
+          "id": "accessible",
+          "title": "Revisão de acessibilidade",
+          "color": "#7c3aed",
+          "dueDate": "2026-11-20"
+        }
+      ],
+      "phases": [
+        {
+          "id": "checkout",
+          "title": "Checkout",
+          "startDate": "2026-10-01",
+          "endDate": "2026-12-04"
+        },
+        {
+          "id": "discovery",
+          "title": "Análise",
+          "color": "#7c3aed",
+          "parentId": "checkout",
+          "startDate": "2026-10-01",
+          "endDate": "2026-10-18"
+        },
+        {
+          "id": "delivery",
+          "title": "Entrega",
+          "color": "#2563eb",
+          "parentId": "checkout",
+          "startDate": "2026-10-19",
+          "endDate": "2026-11-15"
+        },
+        {
+          "id": "stabilization",
+          "title": "Estabilização",
+          "color": "#0f766e",
+          "parentId": "checkout",
+          "startDate": "2026-11-16",
+          "endDate": "2026-12-04"
+        }
+      ],
+      "sprints": [
+        {
+          "id": "previous",
+          "title": "Checkout · Sprint anterior",
+          "parentId": "discovery",
+          "startDate": "2026-10-05",
+          "endDate": "2026-10-18"
+        },
+        {
+          "id": "current",
+          "title": "Checkout · Sprint atual",
+          "parentId": "delivery",
+          "startDate": "2026-10-19",
+          "endDate": "2026-11-01"
+        },
+        {
+          "id": "future",
+          "title": "Checkout · Sprint futuro",
+          "parentId": "delivery",
+          "startDate": "2026-11-02",
+          "endDate": "2026-11-15"
+        }
+      ]
+    },
+    "workitemAutomation": {
+      "version": 1,
+      "start": {
+        "from": [
+          "to-do"
+        ],
+        "to": "doing"
+      },
+      "finish": {
+        "from": [
+          "doing"
+        ],
+        "to": "ready-to-test"
+      }
+    },
+    "taskIdentity": {
+      "version": 1,
+      "highWaterMark": 1213
+    },
+    "sprintCatalog": {
+      "version": 1,
+      "lastNumber": 3,
+      "entries": [
+        {
+          "sprintId": "previous",
+          "number": 1,
+          "createdAt": null
+        },
+        {
+          "sprintId": "current",
+          "number": 2,
+          "createdAt": null
+        },
+        {
+          "sprintId": "future",
+          "number": 3,
+          "createdAt": null
+        }
+      ]
+    }
+  }
+}

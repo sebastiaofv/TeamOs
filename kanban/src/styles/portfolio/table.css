@@ -96,6 +96,12 @@
 .status-done { background: #d9f2e3; border-color: #83bd98; color: #176331; }
 .table-blocked-badge { background: #ffe2e2; border-color: #e79797; color: #a11c1c; font-weight: 600; }
 .table-item-link:hover { text-decoration: underline; }
+.table-tree-cell { display: flex; align-items: center; gap: 6px; }
+.table-tree-depth-1 { padding-left: 24px; }
+.table-tree-toggle, .table-tree-spacer { flex: 0 0 24px; width: 24px; }
+.table-tree-toggle { height: 24px; padding: 0; border: 0; background: transparent; color: var(--text-primary); cursor: pointer; }
+.table-tree-toggle:hover { background: var(--bg-secondary); }
+.table-tree-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .table-empty { text-align: center; padding: 36px 16px; color: var(--text-secondary); }
 .table-empty .btn { margin-top: 12px; }
 .table-pagination { justify-content: flex-end; }
@@ -109,3 +115,10 @@
     .table-column-options { grid-template-columns: minmax(0, 1fr); }
     .table-summary { gap: 6px; font-size: 11px; }
 }
+
+.table-hierarchy-filters { display: flex; gap: 12px; flex-wrap: wrap; padding: 8px 0; color: var(--text-secondary); font-size: 11px; }
+.table-hierarchy-filters label { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.table-hierarchy-filters select { max-width: 260px; min-width: 100px; padding: 5px 8px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
+.table-scroll { min-height: 120px; }
+.table-hierarchy-filter-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 25; width: min(420px, 100%); max-height: var(--table-panel-height, 45dvh); overflow: auto; padding: 12px; border: 1px solid var(--border); background: var(--bg-card); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14); }
+.table-hierarchy-filter-panel .table-hierarchy-filters { padding: 0; }

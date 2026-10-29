@@ -6,17 +6,19 @@ import { getWorkflow } from './workflow';
  * Task normalization resolves legacy assignee/assignees and name duplicates.
  */
 export function migrateBoardData(input: LooseBoardData): LooseBoardData {
-    if (input.meta?.schemaVersion !== 1 && input.meta?.schemaVersion !== 2) return input;
+    // v4 → v5 adds optional persisted display IDs. Never synthesize IDs for old items.
+    if (input.meta?.schemaVersion === 4) return { ...input, meta: { ...input.meta, schemaVersion: 5 } };
+    if (![1, 2, 3].includes(Number(input.meta?.schemaVersion))) return input;
     const workflow = getWorkflow(input);
     return {
         ...input,
-        meta: { ...input.meta, schemaVersion: 3 },
+        meta: { ...input.meta, schemaVersion: 5 },
         extensions: { ...input.extensions, workflow: input.extensions?.workflow || workflow },
         board: {
             ...input.board,
             columns: workflow.states.map((s) => ({ status: s.id, title: s.name })),
             tasks: Array.isArray(input.board?.tasks)
-                ? input.board.tasks.map((task: TaskInput) => ({ ...task, responsible: task.responsible ?? '', pullRequests: task.pullRequests === undefined ? [] : task.pullRequests })) : input.board?.tasks
+                ? input.board.tasks.map((task: TaskInput) => ({ ...task, type: task.type ?? 'task', parentId: task.parentId ?? null, phaseMode: task.phaseMode ?? (task.phaseId ? 'explicit' : 'none'), milestoneMode: task.milestoneMode ?? (task.milestoneId ? 'explicit' : 'none'), responsible: task.responsible ?? '', pullRequests: task.pullRequests === undefined ? [] : task.pullRequests })) : input.board?.tasks
         }
     };
 }

@@ -1,3 +1,4 @@
+import type { SprintParticipation } from '@/domain/workitems';
 // Portfolio session, view-model, editor, and dialog types.
 
 import type {
@@ -111,6 +112,8 @@ export type TaskEditorViewModel = {
     openId: number;
     heading: string;
     initial: TaskEditorFields;
+    editing?: boolean;
+    parentCandidates?: { displayId?: string; id: number; title: string; type?: import('@/domain/types').WorkitemType }[];
     phaseOptions: SelectOption[];
     milestoneOptions: SelectOption[];
     assigneePool: string[];
@@ -125,7 +128,7 @@ export type TaskDetailFields = Record<
     string
 >;
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
-export type TaskRelationEntry = { id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
+export type TaskRelationEntry = { displayId?: string; id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
 export type TaskDetailViewModel = {
     conversationContext?: { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };
     pullRequestContext?: { boardId: string; taskId: number; links: string[] };
@@ -169,6 +172,7 @@ export type HelpTab = 'guide' | 'palette';
 export type HelpDialogProps = { tab?: HelpTab };
 
 export type DialogPropsByName = {
+    appSettings: null;
     projectSettings: { boardId: string; data: BoardData; readOnly: boolean };
     commandPalette: CommandPaletteProps;
     taskEditor: TaskEditorViewModel;
@@ -193,6 +197,8 @@ export type PortfolioTimelineViewModel = {
 
 export type RoadmapWorkScope = {
     key: string;
+    boardData: BoardData;
+    participation?: SprintParticipation;
     item: RoadmapItem | null;
     referenceId?: string;
     tasks: Task[];

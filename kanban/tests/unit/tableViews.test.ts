@@ -77,4 +77,18 @@ describe('preconfigured table views', () => {
     expect(historical.rows[0].task.status).toBe('doing');
     expect(historical.completeness).toBe(0);
   });
+
+  it('includes participating children in the table without counting them twice in Sprint completeness', () => {
+    const board = createEmptyProjectData('Project');
+    board.extensions.roadmap = { version: 1, phases: [], milestones: [], sprints: [{ id: 's', title: 'Sprint', startDate: '2020-01-01', endDate: '2099-12-31' }] };
+    board.board.tasks = [
+      normalizeTask({ id: 1, title: 'Story', type: 'story', status: 'doing', sprintId: 's' }),
+      normalizeTask({ id: 2, title: 'Child', type: 'task', parentId: 1, status: 'done', sprintId: 's' }),
+      normalizeTask({ id: 3, title: 'Other Sprint child', type: 'task', parentId: 1, status: 'done', sprintId: 'other' }),
+      normalizeTask({ id: 4, title: 'Independent', type: 'task', status: 'done', sprintId: 's' })
+    ];
+    const [group] = buildSprintTableGroups(currentSprintRosters(board, []), '2026-10-29');
+    expect(group.rows.map(({ taskId }) => taskId)).toEqual([1, 2, 4]);
+    expect(group).toMatchObject({ total: 2, completed: 1, completeness: 50 });
+  });
 });

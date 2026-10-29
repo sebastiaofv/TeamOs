@@ -1,14 +1,16 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { DialogPropsByName } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { closeDialog } from '@/app/overlays/dialogs';
-import { createProjectIdentity, getProjectData, PROJECT_STATUSES, projectNameKey } from '@/domain/projectData';
+import { createProjectIdentity, PROJECT_STATUSES, projectNameKey } from '@/domain/projectData';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n } from '@/shared/i18n';
+import { WorkflowEditor } from '@/features/portfolio/board/WorkflowSettings';
+import { useProjectSettingsEditor } from './useProjectSettingsEditor';
+import type { ProjectData } from '@/domain/types';
 
 export function ProjectSettingsDialog() {
     const props = useAppStore((state) => state.activeDialog === 'projectSettings' ? state.dialogProps as DialogPropsByName['projectSettings'] : null);
@@ -16,8 +18,8 @@ export function ProjectSettingsDialog() {
     const returnFocus = useReturnFocus({ initialFocus: closeRef });
     return <Dialog.Root open={Boolean(props)} onOpenChange={(open) => { if (!open) closeDialog('projectSettings'); }}>
         <Dialog.Portal><Dialog.Overlay className="modal active" id="projectSettingsModal">
-            <Dialog.Content className="modal-content" aria-describedby="projectSettingsHelp" {...returnFocus}
-                onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={escapeAnswersAppMessage}>
+            <Dialog.Content className="modal-content workflow-dialog" aria-describedby="projectSettingsDescription" {...returnFocus}
+                onKeyDown={(event) => event.stopPropagation()} onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={escapeAnswersAppMessage}>
                 {props && <ProjectSettingsForm key={`${props.boardId}:${props.data.meta.updatedAt}`} vm={props} closeRef={closeRef} />}
             </Dialog.Content>
         </Dialog.Overlay></Dialog.Portal>
@@ -26,22 +28,25 @@ export function ProjectSettingsDialog() {
 
 function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectSettings']; closeRef: React.RefObject<HTMLButtonElement | null> }) {
     const { t } = useI18n();
-    const { saveProjectSettings } = usePortfolioActions();
-    const [original] = useState(() => ({ name: vm.data.board.settings.title, project: getProjectData(vm.data) }));
-    const [name, setName] = useState(original.name);
-    const [project, setProject] = useState(original.project);
+    const editor = useProjectSettingsEditor(vm);
+    const { general: { name, project }, tab, selectTab: setTab, busy: saving } = editor;
+    const setName = (name: string) => editor.editGeneral({ name });
+    const setProject = (project: ProjectData) => editor.editGeneral({ project });
+    const formRef = useRef<HTMLFormElement>(null);
     const [member, setMember] = useState('');
     const [memberError, setMemberError] = useState('');
     const [tag, setTag] = useState('');
     const [error, setError] = useState('');
-    const [saving, setSaving] = useState(false);
     const memberUsed = (id: string) => vm.data.board.tasks.some((task) => task.assigneeIds?.includes(id));
     const tagUsed = (value: string) => vm.data.board.tasks.some((task) => task.tags.includes(value));
     const submit = async () => {
         if (vm.readOnly || saving) return;
-        setSaving(true);
-        try { await saveProjectSettings(vm.boardId, { name, project }, original); }
-        finally { setSaving(false); }
+        if (formRef.current && !formRef.current.checkValidity()) {
+            setTab('general');
+            requestAnimationFrame(() => formRef.current?.reportValidity());
+            return;
+        }
+        await editor.save();
     };
     const addMember = () => {
         const value = member.trim();
@@ -59,22 +64,42 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
         setProject({ ...project, tags: [...project.tags, value] });
         setTag(''); setError('');
     };
-    return <>
-        <div className="modal-header">
-            <Dialog.Title className="modal-title">{t('project.settings')}</Dialog.Title>
+    function navigateTabs(event: KeyboardEvent<HTMLButtonElement>) {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const tabs = ['general', 'technical', 'functional'] as const;
+        const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
+        setTab(next);
+        event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-project-tab="${next}"]`)?.focus();
+    }
+    return <div className="project-settings-content" onKeyDown={(event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); void submit(); }
+    }}>
+        <div className="modal-header workflow-modal-header">
+            <div><Dialog.Title className="modal-title">{t('project.settings')}</Dialog.Title>
+                <Dialog.Description id="projectSettingsDescription" className="workflow-modal-description">{vm.data.board.settings.title}</Dialog.Description></div>
             <Dialog.Close ref={closeRef} className="modal-close" aria-label={t('common.close')}>&times;</Dialog.Close>
         </div>
-        <div className="modal-body">
+        <div className="workflow-tabs project-settings-tabs" role="tablist" aria-label={t('project.settings')}>
+            {(['general', 'technical', 'functional'] as const).map((value) => <button key={value} type="button" role="tab"
+                id={`project-settings-tab-${value}`} data-project-tab={value} aria-controls={`project-settings-panel-${value}`}
+                aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onClick={() => setTab(value)} onKeyDown={navigateTabs}>
+                {t(value === 'general' ? 'project.general' : `project.workflow.${value}`)}
+            </button>)}
+        </div>
+        <div className="modal-body project-settings-general" role="tabpanel" id="project-settings-panel-general" aria-labelledby="project-settings-tab-general" hidden={tab !== 'general'}>
             <p id="projectSettingsHelp">{t(vm.readOnly ? 'project.readOnly' : 'project.help')}</p>
-            <form id="projectSettingsForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}
-                onKeyDown={(event) => {
-                    if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); void submit(); }
-                }}>
+            <form ref={formRef} id="projectSettingsForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                 <fieldset disabled={vm.readOnly || saving} className="project-settings-fields">
                     <div className="project-settings-metadata">
                         <div className="form-group">
                             <label htmlFor="projectName" className="required">{t('project.name')}</label>
                             <input id="projectName" value={name} onChange={(event) => setName(event.target.value)} required />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="projectAcronym">{t('project.acronym')}</label>
+                            <input id="projectAcronym" value={project.acronym || ''} maxLength={3} pattern="[A-Z]{1,3}" required={Boolean(vm.data.extensions.project?.acronym)} aria-describedby="projectAcronymHelp" onChange={(event) => { const acronym = event.target.value.toUpperCase(); setProject({ ...project, acronym: acronym || undefined }); }} />
+                            <p id="projectAcronymHelp">{t('project.acronymHelp')}</p>
                         </div>
                         <div className="form-group">
                             <label htmlFor="projectStatus">{t('task.status')}</label>
@@ -135,9 +160,15 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                 </fieldset>
             </form>
         </div>
-        <div className="modal-footer">
-            <Dialog.Close className="btn">{t(vm.readOnly ? 'common.close' : 'common.cancel')}</Dialog.Close>
-            {!vm.readOnly && <button className="btn btn-primary" type="submit" form="projectSettingsForm" disabled={saving}>{t('common.save')}</button>}
+        {(['technical', 'functional'] as const).map((kind) => <div key={kind} className="project-settings-workflow" role="tabpanel" id={`project-settings-panel-${kind}`} aria-labelledby={`project-settings-tab-${kind}`} hidden={tab !== kind}>
+            <p className="project-workflow-help">{t(`project.workflow.${kind}Help`)}</p>
+            {tab === kind && <WorkflowEditor data={vm.data} readOnly={vm.readOnly} busy={saving} editor={editor[kind]} />}
+            {editor[kind].error && <div className="workflow-validation" role="alert">{editor[kind].error}</div>}
+        </div>)}
+        <div className="modal-footer workflow-modal-footer">
+            <span>{t(vm.readOnly ? 'workflow.readOnlyNote' : 'workflow.draftNote')}</span>
+            <div><Dialog.Close className="btn" disabled={saving}>{t(vm.readOnly ? 'common.close' : 'common.cancel')}</Dialog.Close>
+                {!vm.readOnly && <button className="btn btn-primary" type="button" disabled={saving} onClick={() => void submit()}>{t('common.save')}</button>}</div>
         </div>
-    </>;
+    </div>;
 }

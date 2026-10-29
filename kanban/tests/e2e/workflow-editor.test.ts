@@ -6,7 +6,8 @@ async function openWorkflow(page: Page, readOnly = false) {
     await gotoApp(page);
     const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: !readOnly, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
-    await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
+    await page.getByRole('button', { name: /^Settings for / }).click();
+    await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     return page.locator('.workflow-dialog');
 }
 
@@ -22,7 +23,8 @@ test('state navigation keeps draft edits and Cancel discards every section', asy
     await dialog.getByRole('tab', { name: 'Entry & references', exact: true }).click();
     await dialog.getByLabel('Reference state · In progress', { exact: true }).selectOption('testing');
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
+    await page.getByRole('button', { name: /^Settings for / }).click();
+    await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await dialog.locator('[data-state-choice="testing"]').click();
     await expect(dialog.getByRole('textbox', { name: /^Title/ })).toHaveValue('Testing');
     await expect(dialog.getByRole('checkbox', { name: 'Done', exact: true })).toBeChecked();
@@ -96,7 +98,8 @@ test('unreachable states are flagged without applying an invalid draft', async (
 test('moving the last optional-category state does not leave an uneditable reference behind', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Legacy categories', hasHandle: true, tasks: [{ id: 1, title: 'Not affected', status: 'to-do' }] }], { selectedBoardId: 'p' });
-    await page.getByRole('button', { name: 'Project settings · Workflow', exact: true }).click();
+    await page.getByRole('button', { name: /^Settings for / }).click();
+    await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     const dialog = page.locator('.workflow-dialog');
     await dialog.locator('[data-state-choice="doing"]').click();
     await dialog.getByRole('combobox', { name: 'Category', exact: true }).selectOption('completed');

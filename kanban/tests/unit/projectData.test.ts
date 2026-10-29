@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
 import { createBoardStateSnapshot, serializeBoardDataFromObject } from '@/domain/serialize';
 import { applyProjectSettings, parseProjectData, PROJECT_STATUSES, syncProjectAssignments } from '@/domain/projectData';
+import { getWorkflow } from '@/domain/workflow';
 import { normalizeTask } from '@/domain/task';
 import { reconstructBoardStateFromTimeline } from '@/domain/timeline';
 import { createAppStore } from '@/features/portfolio/state/store';
@@ -16,10 +17,11 @@ function setup({ writable = true, saved = true } = {}) {
     syncProjectAssignments(data);
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Project', fileName: 'p.board.json', handle: writable ? {} : null, data })], selectedPortfolioBoardId: 'p' });
     const enqueueSave = vi.fn(async () => saved), markDirty = vi.fn(), alert = vi.fn(), closeDialogFn = vi.fn(), openDialogFn = vi.fn();
-    const actions = createPortfolioMutationActions({ store, enqueueSave, markDirty, alert, closeDialogFn, openDialogFn });
+    const confirm = vi.fn(async () => true);
+    const actions = createPortfolioMutationActions({ store, enqueueSave, markDirty, alert, closeDialogFn, openDialogFn, confirm });
     const current = () => store.getState().portfolioBoards[0].data;
     const draft = () => structuredClone({ name: current().board.settings.title, project: current().extensions.project! });
-    return { data, store, actions, current, draft, enqueueSave, markDirty, alert, closeDialogFn, openDialogFn };
+    return { data, store, actions, current, draft, enqueueSave, markDirty, alert, closeDialogFn, openDialogFn, confirm };
 }
 
 describe('project master data and curated values', () => {
@@ -148,6 +150,47 @@ describe('project master data and curated values', () => {
         expect(current().extensions.timeline!.events).toHaveLength(2);
         await expect(actions.saveProjectSettings('p', after, before)).resolves.toBe(false);
         expect(enqueueSave).toHaveBeenCalledTimes(1);
+    });
+
+    it('saves general and workflow drafts in one write, rejecting invalid or stale workflows without partial changes', async () => {
+        const { actions, draft, current, enqueueSave } = setup();
+        const before = draft(), after = draft(); after.name = 'Both settings';
+        const originalWorkflow = getWorkflow(current());
+        const workflow = structuredClone(originalWorkflow); workflow.states[1].name = 'Ready';
+        const invalid = structuredClone(workflow); invalid.entryStateId = 'missing';
+        await expect(actions.saveProjectSettings('p', after, before, { original: originalWorkflow, workflow: invalid, relocations: {} })).resolves.toBe(false);
+        expect(current().board.settings.title).toBe('Project');
+        expect(current().extensions.timeline).toBeUndefined();
+        expect(enqueueSave).not.toHaveBeenCalled();
+        const staleOriginal = structuredClone(originalWorkflow); staleOriginal.states[1].name = 'Outdated';
+        await expect(actions.saveProjectSettings('p', after, before, { original: staleOriginal, workflow, relocations: {} })).resolves.toBe(false);
+        expect(current().board.settings.title).toBe('Project');
+        await expect(actions.saveProjectSettings('p', after, before, { original: originalWorkflow, workflow, relocations: {} })).resolves.toBe(true);
+        expect(enqueueSave).toHaveBeenCalledTimes(1);
+        expect(current().board.settings.title).toBe('Both settings');
+        expect(getWorkflow(current()).states[1].name).toBe('Ready');
+        expect(current().extensions.timeline!.events.slice(-2).map((event) => event.kind)).toEqual(['board.project.updated', 'workflow.updated']);
+    });
+
+    it('cancels a joint settings change through the injected interaction and rejects changed work during confirmation', async () => {
+        const { actions, draft, current, enqueueSave, confirm, store } = setup();
+        current().board.tasks[0].status = 'doing';
+        const original = draft(), general = draft(); general.name = 'Pending name';
+        const beforeWorkflow = getWorkflow(current()), workflow = structuredClone(beforeWorkflow);
+        workflow.states.find((state) => state.id === 'doing')!.category = 'cancelled'; delete workflow.references['in-progress'];
+        const workflowDraft = { original: beforeWorkflow, workflow, relocations: {} };
+        confirm.mockResolvedValueOnce(false);
+        expect(await actions.saveProjectSettings('p', general, original, workflowDraft)).toBe(false);
+        expect(current().board.settings.title).toBe('Project');
+        expect(current().extensions.timeline).toBeUndefined();
+        expect(enqueueSave).not.toHaveBeenCalled();
+        confirm.mockImplementationOnce(async () => {
+            store.setState({ portfolioBoards: store.getState().portfolioBoards.map((board) => ({ ...board, data: structuredClone(board.data) })) });
+            return true;
+        });
+        expect(await actions.saveProjectSettings('p', general, original, workflowDraft)).toBe(false);
+        expect(current().board.settings.title).toBe('Project');
+        expect(enqueueSave).not.toHaveBeenCalled();
     });
 
     it('guards every mutation and quick-create against unknown/cross-project members and tags', async () => {
