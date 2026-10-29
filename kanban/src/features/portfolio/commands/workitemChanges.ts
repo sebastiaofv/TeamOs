@@ -1,10 +1,11 @@
+import { requestWorkitemAcceptance } from './workitemAcceptance';
 import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import type { BoardRecord } from '@/features/portfolio/types';
 import type { BoardData, Task } from '@/domain/types';
 import type { BoardMutationOptions, BoardMutator } from './mutationContext';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { cloneSerializable } from '@/domain/serializable';
-import { applyStoryAutomation, assertAcceptance, assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
+import { applyStoryAutomation, assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, ensureBoardTimelineBaseline, recordTaskTimelineEvent, createTimelineEventId } from '@/domain/timeline';
 import { annotateTimelineOperation } from '@/domain/taskHistory';
 import { createWorkitemDisplayId, ensurePermanentTaskIdentities, reserveTaskIdentities } from '@/domain/taskIdentity';
@@ -86,10 +87,8 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
         const changedStatus = !before || before.status !== task.status || statusCategory(before.status, current.data, before) !== category;
         const changedCriteria = before && workitemType(task) === 'story' && before.acceptanceCriteria !== task.acceptanceCriteria;
         if ((changedStatus || changedCriteria) && category === 'completed' && ['story', 'bug'].includes(workitemType(task))) {
-            assertAcceptance(draft.data, task);
-            const author = await prompt(translateCurrent('workitems.acceptQuestion', { id: workitemLabel(task), title: task.title }) + (task.acceptanceCriteria ? `\n\n${task.acceptanceCriteria}` : task.expectedResult ? `\n\n${task.expectedResult}` : ''), '', { title: translateCurrent('workitems.acceptance'), confirmLabel: translateCurrent('workitems.accept'), required: true });
+            const author = await requestWorkitemAcceptance(draft.data, task, prompt);
             if (author === null) return false;
-            if (!author.trim()) throw new WorkitemError('author');
             task.acceptance = { author: author.trim(), at: new Date().toISOString(), local: true };
         }
         if (changedStatus && category !== 'completed') delete task.acceptance;

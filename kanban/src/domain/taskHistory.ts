@@ -161,7 +161,7 @@ export function projectTaskHistory(data: BoardData, selectedTask: Task, eventInd
                 after: reference(field, safeValue(field, change.after), event, 'after', null, data) });
         }
         if (own && event.meta?.transfer) changes.push({ field: 'transfer', before: null, after: event.meta.transfer });
-        const publication = own && event.kind === 'task.comment.published';
+        const publication = own && ['task.comment.published', 'task.comment.referenced'].includes(event.kind);
         if (!changes.length && !publication && !(own && ['task.created', 'task.deleted', 'task.updated', 'task.status.changed', 'task.archived', 'task.restored'].includes(event.kind))) continue;
         // A known no-op is not a fictitious update. Unknown legacy details remain explicit.
         if (!changes.length && !publication && beforeTask && afterTask && event.changes) continue;

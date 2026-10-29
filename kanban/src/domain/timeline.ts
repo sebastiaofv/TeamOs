@@ -149,7 +149,7 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
     const tasks = board.tasks;
     const settings = board.settings;
     if (event.kind === 'sprint.participation.updated' && event.changes?.sprintParticipation) { nextState.extensions = { ...nextState.extensions, sprintParticipation: cloneSerializable(event.changes.sprintParticipation.after) }; return nextState; }
-    if (event.kind === 'task.comment.published' && typeof event.meta?.commentId === 'string') {
+    if (['task.comment.published', 'task.comment.referenced'].includes(event.kind) && typeof event.meta?.commentId === 'string') {
         const previous = nextState.extensions?.conversationRefs;
         nextState.extensions = { ...nextState.extensions, conversationRefs: [...new Set([...(Array.isArray(previous) ? previous : []), event.meta.commentId])] };
         return nextState;

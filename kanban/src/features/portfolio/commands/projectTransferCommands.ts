@@ -1,16 +1,19 @@
+import { requestWorkitemAcceptance } from './workitemAcceptance';
+import { assertWorkitemTransfer, workitemType, WorkitemError } from '@/domain/workitems';
+import { nextTaskIdForBoard } from '@/domain/task';
 import { checkPortfolioFiles } from '@/features/portfolio/projects/projectCommands';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardData } from '@/domain/types';
 import { sameProduct, prepareProjectTransfer, removeTransferredSource, transferMemberInputs, transferRemovals, TransferError, type TransferMode, type TransferOperation, type TransferMapping } from '@/domain/projectTransfers';
 import { cloneSerializable } from '@/domain/serializable';
-import { getWorkflow } from '@/domain/workflow';
+import { getWorkflow, statusCategory } from '@/domain/workflow';
 import { validateBoardData } from '@/domain/board';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { translateCurrent as t } from '@/shared/i18n';
 import { lockProjectTransfers, isProjectTransferLocked } from './projectTransferLocks';
 
 export function createProjectTransferActions(context: BoardMutationContext, checkFiles = () => checkPortfolioFiles()) {
-    const { getState, getBoardRecord, commitState, enqueueSave, markDirty, alert, choose, confirm, onBoardChanged } = context;
+    const { getState, getBoardRecord, commitState, enqueueSave, markDirty, alert, choose, confirm, prompt, onBoardChanged } = context;
     let preparing = false;
     const failedCopies = new Map<string, { boardId: string; operationId: string }>();
     const writable = (id: string) => Boolean(getBoardRecord(id)?.handle) && !isBoardInHistoricalPreview(getState(), id)
@@ -60,7 +63,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (complete) for (const [key, value] of failedCopies) if (value.operationId === operationId) failedCopies.delete(key);
             await alert(t(complete ? 'transfer.complete' : 'transfer.pending'));
             return complete;
-        } catch (error) { await alert(t(error instanceof TransferError ? `transfer.error.${error.code}` : 'transfer.pending')); return false; }
+        } catch (error) { await alert(t(error instanceof WorkitemError ? `workitems.error.${error.code}` : error instanceof TransferError ? `transfer.error.${error.code}` : 'transfer.pending')); return false; }
     }
     async function transferPortfolioTask(boardId: string, taskId: number, mode: TransferMode): Promise<boolean> {
         if (preparing || isProjectTransferLocked(boardId)) return false;
@@ -74,6 +77,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (mode === 'copy' && failedCopy) return await resumeProjectTransfer(failedCopy.boardId, failedCopy.operationId);
             const pending = getState().portfolioBoards.flatMap((board) => (board.data.extensions.projectTransfers?.operations || []).filter((operation) => operation.status === 'pending' && (operation.from.permanentId === task.permanentId || operation.to.permanentId === task.permanentId)).map((operation) => ({ board, operation })))[0];
             if (pending) return await resumeProjectTransfer(pending.board.id, pending.operation.id);
+            assertWorkitemTransfer(source.data, taskId, mode);
             const destinations = getState().portfolioBoards.filter((board) => board.id !== boardId && sameProduct(source.data, board.data));
             if (!destinations.length) { await alert(t('transfer.noDestination')); return false; }
             const eligible = destinations.filter((board) => writable(board.id) && !isProjectTransferLocked(board.id));
@@ -101,11 +105,19 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const values = typeof answer === 'object' ? answer as Record<string, string> : {};
             const mapped = (value: string) => value === '__remove__' ? '' : value;
             const mapping: TransferMapping = { members: Object.fromEntries(memberInputs.map((member, index) => [member.id, mapped(values[`member-${index}`])])), tags: Object.fromEntries(task.tags.map((tag, index) => [tag, mapped(values[`tag-${index}`])])) };
+            let acceptanceAuthor: string | undefined;
+            if (statusCategory(stateId, destination.data, task) === 'completed' && ['story', 'bug'].includes(workitemType(task)) && !(mode === 'move' && task.acceptance)) {
+                // This item arrives without children; its new local number cannot refer to destination children.
+                const preview = { ...task, id: nextTaskIdForBoard(destination), status: stateId };
+                const author = await requestWorkitemAcceptance(destination.data, preview, prompt);
+                if (author === null) return false;
+                acceptanceAuthor = author;
+            }
             // Watch both files again after the user has reviewed the draft.
             await checkFiles();
             if (getBoardRecord(boardId)?.data !== source.data || getBoardRecord(destinationId)?.data !== destination.data) throw new TransferError('stale');
             if (!writable(destinationId) || isBoardInHistoricalPreview(getState(), boardId) || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
-            const prepared = prepareProjectTransfer(source, destination, taskId, mode, stateId, mapping, getState().portfolioBoards, undefined, getState().unloadedRelationSources.flatMap((entry) => entry.relations));
+            const prepared = prepareProjectTransfer(source, destination, taskId, mode, stateId, mapping, getState().portfolioBoards, undefined, getState().unloadedRelationSources.flatMap((entry) => entry.relations), acceptanceAuthor);
             // Validate before publishing: an invalid draft cannot affect either project.
             validateBoardData(prepared.destination);
             publish(destinationId, prepared.destination);
@@ -115,7 +127,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (complete && mode === 'move') context.closeDialogFn('taskDetail');
             await alert(t(complete ? 'transfer.complete' : 'transfer.pending'));
             return complete;
-        } catch (error) { await alert(t(error instanceof TransferError ? `transfer.error.${error.code}` : 'transfer.pending')); return false; }
+        } catch (error) { await alert(t(error instanceof WorkitemError ? `workitems.error.${error.code}` : error instanceof TransferError ? `transfer.error.${error.code}` : 'transfer.pending')); return false; }
         finally { preparing = false; }
     }
     return { transferPortfolioTask, resumeProjectTransfer };

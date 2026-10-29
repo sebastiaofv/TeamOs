@@ -6,10 +6,10 @@ import { isRecord, nowIso } from './util';
 import { createProjectIdentity, projectNameKey } from './projectData';
 import { nextTaskIdForBoard } from './task';
 import { createWorkitemDisplayId, reservedTaskHighWaterMark, reserveTaskIdentities } from './taskIdentity';
-import { getWorkflow } from './workflow';
-import { effectivePlanning } from './workitems';
+import { getWorkflow, statusCategory } from './workflow';
+import { effectivePlanning, assertWorkitemTransfer, assertAcceptance, transferredAcceptance } from './workitems';
 import { appendTimelineEvent, ensureBoardTimelineBaseline } from './timeline';
-import { conversationWorkitemKey, visibleComments, getComments } from './comments';
+import { conversationWorkitemKey, visibleComments, getComments, type WorkitemComment } from './comments';
 import { allPermanentRelations, assertPermanentGraph, parseWorkitemReference, referenceFor, type WorkitemReference, type RelationProject, type PermanentRelation } from './permanentRelations';
 import { removeTaskRelation } from './taskRelations';
 import { createBoardStateSnapshot, hashTextContent } from './serialize';
@@ -86,11 +86,17 @@ function transferSourceSignature(data: BoardData, task: Task): string {
     return hashTextContent(JSON.stringify(value, (_key, entry) => isRecord(entry) ? Object.fromEntries(Object.keys(entry).sort().map((key) => [key, entry[key]])) : entry));
 }
 
+function commentContentSignature(comment: WorkitemComment): string {
+    const { id, at, workitemCreatedAt, author, text, images } = comment;
+    return JSON.stringify({ id, at, workitemCreatedAt, author, text, images }, (_key, value) => isRecord(value) ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]])) : value);
+}
+
 /** Build both drafts before publishing either. No catalog or workflow changes are allowed. */
-export function prepareProjectTransfer(source: RelationProject, destination: RelationProject, taskId: number, mode: TransferMode, stateId: string, mapping: TransferMapping, projects: readonly RelationProject[], operationId = createProjectIdentity('transfer'), unavailable: readonly PermanentRelation[] = []) {
+export function prepareProjectTransfer(source: RelationProject, destination: RelationProject, taskId: number, mode: TransferMode, stateId: string, mapping: TransferMapping, projects: readonly RelationProject[], operationId = createProjectIdentity('transfer'), unavailable: readonly PermanentRelation[] = [], acceptanceAuthor?: string) {
     if (!sameProduct(source.data, destination.data)) throw new TransferError('product');
     const task = source.data.board.tasks.find((item) => item.id === taskId);
     if (!task?.permanentId) throw new TransferError('stale');
+    assertWorkitemTransfer(source.data, taskId, mode);
     if (!getWorkflow(destination.data, task).states.some((state) => state.id === stateId)) throw new TransferError('state');
     const catalog = destination.data.extensions.project!;
     const members = transferMemberInputs(task).map((member) => {
@@ -118,6 +124,11 @@ export function prepareProjectTransfer(source: RelationProject, destination: Rel
     if (catalog.acronym) transferred.displayId = createWorkitemDisplayId(catalog.acronym, transferred);
     else delete transferred.displayId;
     target.board.tasks.push(transferred);
+    const completed = statusCategory(stateId, target, transferred) === 'completed';
+    if (completed) assertAcceptance(target, transferred);
+    const acceptance = transferredAcceptance(task, mode, completed, acceptanceAuthor);
+    if (acceptance) transferred.acceptance = acceptance;
+    else delete transferred.acceptance;
     const from = referenceFor(source, task), to = referenceFor({ ...destination, data: target }, transferred);
     const operation: TransferOperation = { id: operationId, mode, status: 'pending', at: now, from, to, sourceTask: cloneSerializable(task), sourceSignature: transferSourceSignature(source.data, task), mapping: cloneSerializable(mapping), removed: transferRemovals(source.data, task),
         history: mode === 'move' ? cloneSerializable(projectTaskHistory(source.data, task).entries) : [],
@@ -127,11 +138,23 @@ export function prepareProjectTransfer(source: RelationProject, destination: Rel
     if (mode === 'move') {
         const key = conversationWorkitemKey(target, transferred)!;
         const comments = visibleComments(source.data, task);
-        const existing = new Set(getComments(target).map((comment) => comment.id));
-        if (comments.some((comment) => existing.has(comment.id))) throw new TransferError('invalid');
-        const imported = comments.map((comment) => ({ ...cloneSerializable(comment), taskId: id, workitemKey: key, eventId: `${operationId}-comment-${comment.id}` }));
-        for (const comment of imported) appendTimelineEvent(target, { id: comment.eventId, at: comment.at, kind: 'task.comment.published', entityType: 'task', entityId: String(id), summary: 'Comment preserved on move', meta: { commentId: comment.id, workitemKey: key, author: comment.author } });
-        if (imported.length) target.extensions.conversations = { version: 1, entries: [...getComments(target), ...imported] };
+        const existing = new Map(getComments(target).map((comment) => [comment.id, comment]));
+        const preservedEventIds = new Set(operation.history.flatMap((entry) => entry.eventIds));
+        for (const comment of comments) {
+            const previous = existing.get(comment.id);
+            // A return trip reuses the canonical publication. Keep its original lifecycle
+            // intact for historical views and add a reference in the arriving lifecycle.
+            const previouslyMoved = previous && target.extensions.timeline?.events.some((event) => {
+                const transfer = event.meta?.transfer;
+                if (event.kind !== 'board.workitems.updated' || !isRecord(transfer) || !isRecord(transfer.from)) return false;
+                return transfer.from.projectId === target.extensions.project!.id && transfer.from.permanentId === task.permanentId && transfer.from.taskId === previous.taskId;
+            });
+            if (previous && (!previouslyMoved || !preservedEventIds.has(previous.eventId) || commentContentSignature(previous) !== commentContentSignature(comment))) throw new TransferError('invalid');
+            const eventId = `${operationId}-comment-${comment.id}`;
+            appendTimelineEvent(target, { id: eventId, at: comment.at, kind: previous ? 'task.comment.referenced' : 'task.comment.published', entityType: 'task', entityId: String(id), summary: 'Comment preserved on move', meta: { commentId: comment.id, workitemKey: key, author: comment.author } });
+            if (!previous) existing.set(comment.id, { ...cloneSerializable(comment), taskId: id, workitemKey: key, eventId });
+        }
+        if (comments.length) target.extensions.conversations = { version: 1, entries: [...existing.values()] };
     }
     appendTimelineEvent(target, { id: `${operationId}-received`, kind: 'task.transferred', entityType: 'task', entityId: String(id), summary: `${mode === 'move' ? 'Moved' : 'Copied'}: ${from.projectTitle} → ${to.projectTitle}`, meta: { transfer: { mode, from, to, removed: operation.removed, mapping } } });
     const all = allPermanentRelations(projects, unavailable);
@@ -148,12 +171,9 @@ export function removeTransferredSource(data: BoardData, operation: TransferOper
     const task = data.board.tasks.find((item) => item.permanentId === operation.from.permanentId);
     if (!task) return data;
     if (transferSourceSignature(data, task) !== operation.sourceSignature) throw new TransferError('stale');
+    assertWorkitemTransfer(data, task.id, 'move');
     const result = cloneSerializable(data);
     ensureBoardTimelineBaseline(result);
-    for (const child of result.board.tasks.filter((item) => item.parentId === task.id)) {
-        child.phaseId = effectivePlanning(data, child, 'phaseId'); child.phaseMode = child.phaseId ? 'explicit' : 'none';
-        child.milestoneId = effectivePlanning(data, child, 'milestoneId'); child.milestoneMode = child.milestoneId ? 'explicit' : 'none'; child.parentId = null;
-    }
     result.board.tasks = result.board.tasks.filter((item) => item.permanentId !== task.permanentId);
     removeTaskRelation(result, task.id);
     const edges = allPermanentRelations([{ id: 'destination', data: destination }]).filter((edge) => edge.source.permanentId === task.permanentId || edge.target.permanentId === task.permanentId);

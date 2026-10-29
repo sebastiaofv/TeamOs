@@ -11,7 +11,7 @@ const FIELDS: Record<string, TranslationKey> = {
 };
 
 function operation(entry: TaskHistoryEntry, t: ReturnType<typeof useI18n>['t']): string {
-    if (entry.kinds.includes('task.transferred')) return t('history.transfer');
+    if (entry.kinds.includes('task.transferred') || entry.kinds.includes('task.comment.referenced')) return t('history.transfer');
     if (entry.kinds.includes('board.restored')) return t('history.projectRestore');
     if (entry.kinds.includes('task.created')) return t('history.created');
     if (entry.kinds.includes('task.deleted')) return t('history.deleted');

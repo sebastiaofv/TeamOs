@@ -5,7 +5,7 @@ import { fromPartial } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
 import { serializeBoardDataFromObject } from '@/domain/serialize';
 import { normalizeTask } from '@/domain/task';
-import { appendTimelineEvent, ensureBoardTimelineBaseline } from '@/domain/timeline';
+import { appendTimelineEvent, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline } from '@/domain/timeline';
 import { buildComment, visibleComments } from '@/domain/comments';
 import { projectTaskHistory } from '@/domain/taskHistory';
 import { prepareProjectTransfer, removeTransferredSource, sameProduct, type TransferMapping } from '@/domain/projectTransfers';
@@ -128,7 +128,7 @@ function actionsSetup() {
     const store = createAppStore({ portfolioBoards: [source, destination] });
     const writes: string[] = []; let fail = '';
     const save = vi.fn(async (record: BoardRecord | null) => { writes.push(record!.id); return record!.id !== fail; });
-    const context = createBoardMutationContext({ store, enqueueSave: save, markDirty: vi.fn(), alert: vi.fn(), choose: vi.fn().mockResolvedValueOnce('Destination').mockResolvedValueOnce('testing'), confirm: vi.fn().mockResolvedValue({ 'member-0': 'same-id', 'tag-0': 'mapped' }), closeDialogFn: vi.fn() });
+    const context = createBoardMutationContext({ store, enqueueSave: save, markDirty: vi.fn(), alert: vi.fn(), choose: vi.fn().mockResolvedValueOnce('Destination').mockResolvedValueOnce('testing'), confirm: vi.fn().mockResolvedValue({ 'member-0': 'same-id', 'tag-0': 'mapped' }), prompt: vi.fn().mockResolvedValue('New reviewer'), closeDialogFn: vi.fn() });
     const actions = createProjectTransferActions(context, vi.fn(async () => true));
     return { store, context, actions, save, writes, fail: (id: string) => { fail = id; } };
 }
@@ -250,5 +250,94 @@ describe('external legacy file reloads', () => {
         inheritLegacyTaskIdentities(reloaded, legacy, current);
         expect(reloaded.board.tasks.map((task) => task.permanentId)).toEqual(current.board.tasks.map((task) => task.permanentId));
         expect(reloaded.board.settings.title).toBe('Externally renamed legacy project');
+    });
+});
+
+
+describe('transfer lifecycle regressions', () => {
+    it.each(['story', 'bug'] as const)('requires new acceptance for a completed %s copy and preserves it only for completed moves', (type) => {
+        const { source, destination, projects } = scenario();
+        const task = source.data.board.tasks[0];
+        Object.assign(task, { type, acceptanceCriteria: 'Verified result', acceptance: { author: 'Original reviewer', at, local: true } });
+        expect(() => prepareProjectTransfer(source, destination, task.id, 'copy', 'done', mapping, projects)).toThrow('author');
+        const copy = prepareProjectTransfer(source, destination, task.id, 'copy', 'done', mapping, projects, undefined, [], 'New reviewer');
+        expect(copy.destination.board.tasks.at(-1)!.acceptance?.author).toBe('New reviewer');
+        expect(projectTaskHistory(copy.destination, copy.destination.board.tasks.at(-1)!).entries.some((entry) => entry.changes.some((change) => change.field === 'acceptance'))).toBe(true);
+        const moved = prepareProjectTransfer(source, destination, task.id, 'move', 'done', mapping, projects);
+        expect(moved.destination.board.tasks.at(-1)!.acceptance).toEqual(task.acceptance);
+        const reopened = prepareProjectTransfer(source, destination, task.id, 'move', 'doing', mapping, projects);
+        expect(reopened.destination.board.tasks.at(-1)!.acceptance).toBeUndefined();
+        expect(reopened.operation.sourceTask.acceptance).toEqual(task.acceptance);
+        delete task.acceptance;
+        expect(() => prepareProjectTransfer(source, destination, task.id, 'move', 'done', mapping, projects)).toThrow('author');
+    });
+    it('rejects missing Story criteria even with an author and keeps a failed move from changing hierarchy', () => {
+        const { source, destination, projects } = scenario();
+        source.data.board.tasks[0].type = 'story';
+        expect(() => prepareProjectTransfer(source, destination, 1, 'copy', 'done', mapping, projects, undefined, [], 'Reviewer')).toThrow('criteria');
+        source.data.board.tasks[1].parentId = 1;
+        const before = structuredClone(source.data);
+        expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'doing', mapping, projects)).toThrow('Reassign or detach');
+        expect(source.data).toEqual(before);
+        expect(prepareProjectTransfer(source, destination, 1, 'copy', 'doing', mapping, projects).destination.board.tasks.at(-1)!.parentId).toBeNull();
+    });
+    it('confirms acceptance before saving, cancels without writes, and revalidates after that prompt', async () => {
+        for (const action of ['confirm', 'cancel', 'stale'] as const) {
+            const setup = actionsSetup();
+            const source = setup.store.getState().portfolioBoards[0];
+            Object.assign(source.data.board.tasks[0], { type: 'story', acceptanceCriteria: 'Verified result' });
+            vi.mocked(setup.context.choose).mockReset().mockResolvedValueOnce('Destination').mockResolvedValueOnce('done');
+            vi.mocked(setup.context.prompt).mockImplementation(async () => {
+                expect(setup.save).not.toHaveBeenCalled();
+                if (action === 'stale') setup.store.setState((state) => ({ portfolioBoards: state.portfolioBoards.map((board) => board.id === 'Source' ? { ...board, data: structuredClone(board.data) } : board) }));
+                return action === 'cancel' ? null : 'New reviewer';
+            });
+            expect(await setup.actions.transferPortfolioTask('Source', 1, 'copy')).toBe(action === 'confirm');
+            if (action === 'confirm') expect(setup.store.getState().portfolioBoards[1].data.board.tasks.at(-1)!.acceptance?.author).toBe('New reviewer');
+            else expect(setup.save).not.toHaveBeenCalled();
+        }
+    });
+    it('rejects moving a parent before asking for a destination or writing either file', async () => {
+        const { actions, store, context, save } = actionsSetup();
+        const source = store.getState().portfolioBoards[0];
+        source.data.board.tasks[0].type = 'story'; source.data.board.tasks[1].parentId = 1;
+        expect(await actions.transferPortfolioTask('Source', 1, 'move')).toBe(false);
+        expect(context.choose).not.toHaveBeenCalled(); expect(save).not.toHaveBeenCalled();
+        expect(source.data.board.tasks[1].parentId).toBe(1);
+    });
+    it('reconciles comments on repeated return trips, retaining original historical views and canonical content', () => {
+        const { source, destination } = scenario();
+        const original = structuredClone(source.data);
+        const originalComment = original.extensions.conversations!.entries[0];
+        let from = source, to = destination;
+        for (let index = 0; index < 4; index++) {
+            const task = from.data.board.tasks.find((task) => task.permanentId === original.board.tasks[0].permanentId)!;
+            const currentMapping = { members: { 'same-id': 'same-id' }, tags: Object.fromEntries(task.tags.map((tag) => [tag, 'mapped'])) };
+            const prepared = prepareProjectTransfer(from, to, task.id, 'move', 'doing', currentMapping, [from, to]);
+            from.data = serializeBoardDataFromObject(removeTransferredSource(from.data, prepared.operation, prepared.destination));
+            to.data = serializeBoardDataFromObject(JSON.parse(JSON.stringify(prepared.destination)));
+            validateBoardData(from.data); validateBoardData(to.data);
+            const moved = to.data.board.tasks.find((item) => item.permanentId === task.permanentId)!;
+            expect(visibleComments(to.data, moved).map((comment) => comment.id)).toEqual(['comment-1']);
+            expect(to.data.extensions.conversations!.entries).toHaveLength(1);
+            [from, to] = [to, from];
+        }
+        expect(source.data.extensions.conversations!.entries[0]).toEqual(originalComment);
+        const cutoff = original.extensions.timeline!.events.length - 1;
+        const historical = reconstructBoardStateFromTimeline(source.data, cutoff);
+        expect(visibleComments(source.data, historical.board.tasks[0], cutoff)).toEqual([originalComment]);
+        const current = source.data.board.tasks.find((task) => task.permanentId === original.board.tasks[0].permanentId)!;
+        const referenceIndex = source.data.extensions.timeline!.events.findLastIndex((event) => event.kind === 'task.comment.referenced');
+        expect(visibleComments(source.data, current, referenceIndex - 1)).toEqual([]);
+        expect(visibleComments(source.data, current, referenceIndex)).toEqual([originalComment]);
+    });
+    it.each(['Different comment', 'Original comment'])('still rejects unrelated comment ID collisions with content %s', (text) => {
+        const { source, destination, projects } = scenario();
+        ensureBoardTimelineBaseline(destination.data);
+        const comment = buildComment(destination.data, 1, { id: 'comment-1', author: 'Author', text, images: [] }, { writable: true, historical: false });
+        comment.at = source.data.extensions.conversations!.entries[0].at;
+        destination.data.extensions.conversations = { version: 1, entries: [comment] };
+        appendTimelineEvent(destination.data, { id: comment.eventId, at: comment.at, kind: 'task.comment.published', entityType: 'task', entityId: '1', summary: 'Comment', meta: { commentId: comment.id, workitemKey: comment.workitemKey } });
+        expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'doing', mapping, projects)).toThrow('invalid');
     });
 });

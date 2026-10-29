@@ -133,6 +133,19 @@ test('US-13 fixtures expose explicit mapping, planning removal, preserved commen
     await page.locator('#taskDetailModalCloseBtn').click();
     await selectPortfolioBoard(page, 'US-13 · Manutenção');
     await page.screenshot({ path: testInfo.outputPath('product-projects.png'), animations: 'disabled' });
+    // Return to a project that still contains this task's historical comment publication.
+    const returning = portfolioCard(page, 'Reparar portão'); await returning.hover();
+    await returning.getByLabel('Task actions', { exact: true }).click();
+    await returning.getByRole('button', { name: 'Move to project…' }).click();
+    await page.locator('#appMessageSelection').selectOption({ label: 'US-13 · Construção' }); await page.locator('#appMessageConfirmBtn').click();
+    await page.locator('#appMessageSelection').selectOption({ label: 'Em curso' }); await page.locator('#appMessageConfirmBtn').click();
+    await page.locator('#appMessageSelection-0').selectOption({ label: 'Ana' });
+    await page.locator('#appMessageSelection-1').selectOption({ label: 'feature' });
+    await page.locator('#appMessageConfirmBtn').click(); await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
+    await selectPortfolioBoard(page, 'US-13 · Construção'); await portfolioCard(page, 'Reparar portão').click();
+    await page.getByRole('tab', { name: 'Comments', exact: true }).click();
+    await expect(page.locator('.comment-text')).toHaveCount(1);
+    await expect(page.locator('.comment-text')).toContainText('Confirmar a inspeção');
 });
 
 test('external product changes regroup projects and prevent transferring to a stale destination', async ({ page }) => {
@@ -167,4 +180,62 @@ test('task menus support keyboard activation and Escape closes only the menu bef
     await expect(page.locator('#appMessageSelection')).toBeFocused();
     await page.keyboard.press('Escape'); await expect(page.locator('#appMessageModal')).toHaveCount(0);
     expect((await readSavedBoard(page, 'target')).board.tasks).toHaveLength(1);
+});
+
+
+test('task detail shortcuts survive menu focus and Escape closes the open menu first', async ({ page }) => {
+    await seed(page);
+    await portfolioCard(page, 'Transfer me').click();
+    const detail = page.locator('#taskDetailModal');
+    const menu = detail.getByLabel('Task actions', { exact: true });
+    await expect(menu).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(detail.getByRole('button', { name: 'Copy to project…' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(detail).toBeVisible();
+    await expect(detail.getByRole('button', { name: 'Copy to project…' })).toBeHidden();
+    await page.keyboard.press('e');
+    await expect(page.locator('#taskModal')).toBeVisible();
+});
+
+test('copying a Story to Done requires fresh acceptance and cancellation leaves both projects unchanged', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [
+        { id: 'source', title: 'Construction', hasHandle: true, extensions: { project: project('construction', 'House') }, tasks: [{ id: 1, title: 'Accepted story', type: 'story', status: 'done', assigneeIds: [], responsibleId: '', acceptanceCriteria: 'Works as specified', acceptance: { author: 'Original author', at: '2026-10-01T10:00:00Z', local: true } }] },
+        { id: 'target', title: 'Maintenance', hasHandle: true, extensions: { project: project('maintenance', 'House') } }
+    ], { selectedBoardId: 'source' });
+    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    for (const cancel of [true, false]) {
+        const card = portfolioCard(page, 'Accepted story'); await card.hover();
+        await card.getByLabel('Task actions', { exact: true }).click();
+        await card.getByRole('button', { name: 'Copy to project…' }).click();
+        await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' }); await page.locator('#appMessageConfirmBtn').click();
+        await page.locator('#appMessageSelection').selectOption({ label: 'done' }); await page.locator('#appMessageConfirmBtn').click();
+        await page.locator('#appMessageConfirmBtn').click();
+        await expect(page.locator('#appMessageInput')).toBeVisible();
+        expect((await readSavedBoard(page, 'target')).board.tasks).toHaveLength(0);
+        if (cancel) await page.locator('#appMessageCancelBtn').click();
+        else {
+            await page.locator('#appMessageInput').fill('New reviewer');
+            await page.locator('#appMessageConfirmBtn').click();
+            await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
+        }
+    }
+    expect((await readSavedBoard(page, 'target')).board.tasks[0].acceptance.author).toBe('New reviewer');
+    expect((await readSavedBoard(page, 'source')).board.tasks[0].acceptance.author).toBe('Original author');
+});
+
+test('moving a parent explains that its children must first be detached', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [
+        { id: 'source', title: 'Construction', hasHandle: true, extensions: { project: project('construction', 'House') }, tasks: [{ id: 1, title: 'Parent story', type: 'story', assigneeIds: [], responsibleId: '' }, { id: 2, title: 'Child task', type: 'task', parentId: 1, assigneeIds: [], responsibleId: '' }] },
+        { id: 'target', title: 'Maintenance', hasHandle: true, extensions: { project: project('maintenance', 'House') } }
+    ], { selectedBoardId: 'source' });
+    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    const card = portfolioCard(page, 'Parent story'); await card.hover();
+    await card.getByLabel('Task actions', { exact: true }).click();
+    await card.getByRole('button', { name: 'Move to project…' }).click();
+    await answerAppMessage(page, { expectText: 'Move or detach all children' });
+    expect((await readSavedBoard(page, 'source')).board.tasks[1].parentId).toBe(1);
+    expect((await readSavedBoard(page, 'target')).board.tasks).toHaveLength(0);
 });
