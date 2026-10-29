@@ -37,7 +37,7 @@ const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFiel
 ];
 
 export function TaskDetailDialog() {
-    const { closeTaskDetail, editPortfolioTask, toggleTaskDetailChecklistItem } = usePortfolioActions();
+    const { closeTaskDetail, editPortfolioTask } = usePortfolioActions();
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
     const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
     const returnFocus = useReturnFocus();
@@ -64,7 +64,7 @@ export function TaskDetailDialog() {
                             </div>
                         </div>
                         <div className="modal-body">
-                            {vm && <TaskDetailContent vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
+                            {vm && <TaskDetailContent vm={vm} />}
                         </div>
                         <div className="modal-footer">
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>
@@ -77,7 +77,7 @@ export function TaskDetailDialog() {
     );
 }
 
-function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewModel; onToggleChecklistItem: (index: number, checked: boolean) => unknown }) {
+function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
     const tabs = [
         { id: 'details', label: 'history.details' },
         { id: 'relations', label: 'relations.title' },
@@ -106,7 +106,7 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
                     <WorkitemLineage vm={vm} />
                     <section className="workitem-section workitem-description"><h3>{t('task.description')}</h3><p className="detail-value" id="detailDescription">{vm.fields.description}</p></section>
                     <WorkitemHierarchy vm={vm} />
-                    <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} />
+                    <TaskDetailList vm={vm} />
                 </div>
                 <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
                     <DetailProperties vm={vm} />
@@ -150,10 +150,7 @@ function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
     </section>)}</>;
 }
 
-function TaskDetailList({ vm, onToggleChecklistItem }: {
-    vm: TaskDetailViewModel;
-    onToggleChecklistItem: (itemIndex: number, checked: boolean) => unknown;
-}) {
+function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
     return (
         <dl className="detail-list workitem-supporting-content">
@@ -168,9 +165,8 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
                                     <input
                                         type="checkbox"
                                         checked={item.done}
-                                        disabled={vm.readOnly}
+                                        disabled
                                         aria-label={t('editor.todoItem', { index: index + 1 })}
-                                        onChange={(event) => onToggleChecklistItem(index, event.target.checked)}
                                     />
                                     <span className="detail-checklist-text">{item.text}</span>
                                 </label>
