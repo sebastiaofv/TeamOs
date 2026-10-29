@@ -108,7 +108,7 @@ describe('US-12 workitem domain', () => {
     });
     it('migrates old files to Task without retroactive inheritance or rewritten history', () => {
         const data = project(); data.meta.schemaVersion = 3; data.board.tasks = [normalizeTask({ id: 77, title: 'Legacy', status: 'doing' })];
-        const next = serializeBoardDataFromObject(data); expect(next.meta.schemaVersion).toBe(4); expect(next.board.tasks[0]).toMatchObject({ id: 77, type: 'task', phaseMode: 'none', status: 'doing' });
+        const next = serializeBoardDataFromObject(data); expect(next.meta.schemaVersion).toBe(5); expect(next.board.tasks[0]).toMatchObject({ id: 77, type: 'task', phaseMode: 'none', status: 'doing' });
     });
 });
 

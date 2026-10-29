@@ -1,3 +1,4 @@
+import { workitemLabelFor } from '@/domain/taskIdentity';
 import { WorkitemHierarchy, WorkitemLineage } from './WorkitemHierarchy';
 import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
@@ -54,7 +55,7 @@ export function TaskDetailDialog() {
                     >
                         <div className="modal-header workitem-modal-header">
                             <div className="workitem-heading">
-                                <div className="workitem-eyebrow">{vm && <><span className="workitem-type">{t(`workitems.type.${workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {})}`)}</span><span>#{vm.taskId}</span><span className="workitem-project">{vm.sourceBoardData.board.settings.title}</span></>}</div>
+                                <div className="workitem-eyebrow">{vm && <><span className="workitem-type">{t(`workitems.type.${workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {})}`)}</span><span>{workitemLabelFor(vm.sourceBoardData, vm.taskId)}</span><span className="workitem-project">{vm.sourceBoardData.board.settings.title}</span></>}</div>
                                 <Dialog.Title className="workitem-title" id="detailTitle">{vm?.fields.title}</Dialog.Title>
                             </div>
                             <div className="workitem-header-actions">{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}

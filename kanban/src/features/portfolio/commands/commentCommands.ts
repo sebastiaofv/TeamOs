@@ -1,3 +1,4 @@
+import { workitemLabelFor } from '@/domain/taskIdentity';
 import type { BoardMutationContext } from './mutationContext';
 import { buildComment, getComments, validateCommentInput, type CommentInput } from '@/domain/comments';
 import { CommentError } from '@/domain/commentImages';
@@ -20,7 +21,7 @@ export function createCommentActions({ getState, getBoardRecord, canUsePortfolio
             await runPortfolioBoardMutation(boardId, (data) => {
                 const comment = buildComment(data, taskId, input, { writable: Boolean(getBoardRecord(boardId)?.handle), historical: isBoardInHistoricalPreview(getState(), boardId) });
                 data.extensions.conversations = { version: 1, entries: [...getComments(data), comment] };
-                appendTimelineEvent(data, { id: comment.eventId, at: comment.at, kind: 'task.comment.published', entityType: 'task', entityId: String(taskId), summary: `Comment published: #${taskId} · ${comment.author.name}`,
+                appendTimelineEvent(data, { id: comment.eventId, at: comment.at, kind: 'task.comment.published', entityType: 'task', entityId: String(taskId), summary: `Comment published: ${workitemLabelFor(data, taskId)} · ${comment.author.name}`,
                     meta: { historyVersion: 1, operationId: comment.eventId, commentId: comment.id, workitemKey: comment.workitemKey, author: comment.author } });
                 return true;
             }, { onMutated: () => { applied = true; onApplied(); } });

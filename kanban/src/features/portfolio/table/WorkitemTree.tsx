@@ -1,3 +1,4 @@
+import { workitemLabel } from '@/domain/taskIdentity';
 import { getWorkflow } from '@/domain/workflow';
 import type { SprintParticipation } from '@/domain/workitems';
 import { workitemType } from '@/domain/workitems';
@@ -9,7 +10,7 @@ export function WorkitemTree({ participation, boardId, readOnly = false }: { par
     const { t } = useI18n();
     const { members, boardData: data } = participation;
     const open = (id: number) => actions.openPortfolioTaskDetails(boardId, id, (readOnly || !participation.isCurrent(id)) ? { boardData: participation.boardData, readOnly: true } : {});
-    return <div className="workitem-tree">{participation.planningMembers.map((task) => workitemType(task) === 'story' ? <details key={task.id}><summary><span className="workitem-type">{t('workitems.type.story')}</span> <button className="table-item-link" onClick={() => open(task.id)}>#{task.id} {task.title}</button> · {getWorkflow(data, task).states.find((state) => state.id === task.status)?.name || task.status}</summary>
-        <ul>{members.filter((child) => child.parentId === task.id).map((child) => <li key={child.id}><button className="table-item-link" onClick={() => open(child.id)}>#{child.id} {child.title}</button> · {getWorkflow(data, child).states.find((state) => state.id === child.status)?.name || child.status}</li>)}</ul>
-    </details> : <p key={task.id}><span className="workitem-type">{t(`workitems.type.${workitemType(task)}`)}</span> <button className="table-item-link" onClick={() => open(task.id)}>#{task.id} {task.title}</button> · {getWorkflow(data, task).states.find((state) => state.id === task.status)?.name || task.status}</p>)}</div>;
+    return <div className="workitem-tree">{participation.planningMembers.map((task) => workitemType(task) === 'story' ? <details key={task.id}><summary><span className="workitem-type">{t('workitems.type.story')}</span> <button className="table-item-link" onClick={() => open(task.id)}>{workitemLabel(task)} {task.title}</button> · {getWorkflow(data, task).states.find((state) => state.id === task.status)?.name || task.status}</summary>
+        <ul>{members.filter((child) => child.parentId === task.id).map((child) => <li key={child.id}><button className="table-item-link" onClick={() => open(child.id)}>{workitemLabel(child)} {child.title}</button> · {getWorkflow(data, child).states.find((state) => state.id === child.status)?.name || child.status}</li>)}</ul>
+    </details> : <p key={task.id}><span className="workitem-type">{t(`workitems.type.${workitemType(task)}`)}</span> <button className="table-item-link" onClick={() => open(task.id)}>{workitemLabel(task)} {task.title}</button> · {getWorkflow(data, task).states.find((state) => state.id === task.status)?.name || task.status}</p>)}</div>;
 }

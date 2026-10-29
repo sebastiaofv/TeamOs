@@ -1,3 +1,4 @@
+import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import { childrenOf } from '@/domain/workitems';
 import type { WorkitemType } from '@/domain/types';
 // Task editing, details, validation, and undo.
@@ -130,7 +131,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const vm = buildTaskEditorViewModel(source.boardRecord, null, getState().portfolioTasks, ++taskEditorOpenCount);
         vm.initial.phaseId = source.task.phaseId;
         vm.initial.milestoneId = source.task.milestoneId;
-        vm.relationNotice = translateCurrent(`relations.sentence.${kind}`, { a: `#${taskId}`, b: translateCurrent('relations.newItem') });
+        vm.relationNotice = translateCurrent(`relations.sentence.${kind}`, { a: workitemLabelFor(source.boardRecord.data, taskId), b: translateCurrent('relations.newItem') });
         openDialogFn('taskEditor', vm);
     }
 
@@ -193,7 +194,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const related = getTaskRelations(source.boardRecord.data, taskId);
         const affected = [...related.blockedBy, ...related.blocks, ...related.related];
         const impact = affected.length ? '\n\n' + translateCurrent('relations.deleteImpact', {
-            items: affected.map((task) => `#${task.id} ${task.title}`).join(', ')
+            items: affected.map((task) => `${workitemLabel(task)} ${task.title}`).join(', ')
         }) : '';
         const confirmed = await confirm(translateCurrent('messages.deleteQuestion', { title }) + impact, {
             title: translateCurrent('messages.deleteTask'),
@@ -418,9 +419,10 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             notifyPortfolioMutationUnavailable(boardId);
             return null;
         }
-        const id = nextTaskIdForBoard(boardRecord);
+        let id = 0;
         const now = nowIso();
         const created = await runPortfolioBoardMutation(boardId, (data) => {
+            id = nextTaskIdForBoard({ data });
             data.board.tasks.push(normalizeTask({
                 id, title, type: fields.type || 'task', description: '', assignees: fields.assignees, tags: fields.tags,
                 priority: fields.priority, effort: fields.effort, dueDate: fields.dueDate,

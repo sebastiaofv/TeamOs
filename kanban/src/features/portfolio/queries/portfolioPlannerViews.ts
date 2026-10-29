@@ -21,6 +21,7 @@ import { getSelectedPortfolioTimelineView, isBoardInHistoricalPreview } from './
 export type PlannerTrayItem = {
     boardId: string;
     taskId: number;
+    displayId?: string;
     title: string;
     status: TaskStatus;
     priority: Priority | null;
@@ -35,6 +36,7 @@ export type PlannerBlockView = {
     boardId: string;
     boardTitle: string;
     taskId: number;
+    displayId?: string;
     title: string;
     date: string;
     start: string;
@@ -140,6 +142,7 @@ export function buildPortfolioPlannerViewModel(
         group.items.push({
             boardId: board.id,
             taskId,
+            displayId: row.task.displayId,
             title: row.task.title,
             status,
             priority: row.task.priority,

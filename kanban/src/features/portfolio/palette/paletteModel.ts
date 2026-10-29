@@ -1,3 +1,4 @@
+import { workitemLabel } from '@/domain/taskIdentity';
 // The command palette's results for a query: sections of items, each carrying
 // a plain action descriptor that paletteActions runs. Pure, so it can be
 // tested without React or the store.
@@ -154,7 +155,7 @@ function statusHint(ctx: Ctx, boardId: string, status: string, task: PortfolioRo
 
 function taskDetail(ctx: Ctx, row: PortfolioRow): string {
     const board = findBoard(ctx, row.boardId);
-    return [`#${row.taskId ?? row.task.id}`, boardTitle(board), statusLabel(ctx, row.task.status, row.boardId, row.task), row.task.assignees.join(', ')]
+    return [workitemLabel(row.task), boardTitle(board), statusLabel(ctx, row.task.status, row.boardId, row.task), row.task.assignees.join(', ')]
         .filter(Boolean)
         .join(' · ');
 }
@@ -343,6 +344,7 @@ function planQuery(ctx: Ctx, match: RegExpExecArray): PaletteModel {
 
 function taskScore(row: PortfolioRow, query: string, boardName: string): number {
     const q = query.trim();
+    if (row.task.displayId && row.task.displayId.toLowerCase().includes(q.replace(/^#/, '').toLowerCase())) return 100;
     const idMatch = /^#(\d+)$/.exec(q);
     if (idMatch) return Number(row.taskId ?? row.task.id) === Number(idMatch[1]) ? 100 : 0;
     if (q.startsWith('#')) return Math.max(0, ...row.task.tags.map((tag) => scoreText(`#${tag}`, q)));
@@ -446,7 +448,7 @@ function framed(ctx: Ctx): PaletteModel | null {
     const row = findRow(ctx, top.boardId, top.taskId);
     if (!row) return { sections: [], breadcrumbs: [], preview: null };
     const breadcrumbs = ctx.stack.map((frame) => frame.kind === 'task'
-        ? `#${frame.taskId} ${row.task.title}`
+        ? `${workitemLabel(row.task)} ${row.task.title}`
         : ctx.t(STEP_KEYS[frame.step]));
     if (top.kind === 'task') {
         const items = taskActionItems(ctx, row, false)

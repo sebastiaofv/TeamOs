@@ -43,6 +43,7 @@ export type Task = WorkitemFields & {
     acceptance?: { author: string; at: string; local: true };
     sprintHistory?: { sprintId: string; status: string; at: string; parentId?: number | null }[];
     id: number;
+    displayId?: string;
     title: string;
     description: string;
     assignees: string[];
@@ -152,6 +153,7 @@ export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIde
 export type ProjectStatus = 'planned' | 'active' | 'paused' | 'completed' | 'archived';
 export type ProjectMember = { id: string; name: string };
 export type ProjectData = {
+    acronym?: string;
     version: 1;
     id: string;
     description: string;

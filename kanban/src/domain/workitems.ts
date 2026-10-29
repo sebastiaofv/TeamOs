@@ -1,4 +1,5 @@
 import type { BoardData, Task, WorkitemType, WorkitemAutomation } from './types';
+import { createWorkitemDisplayId } from './taskIdentity';
 import { canTransition, getWorkflow, statusCategory } from './workflow';
 import { getSprintCalendarStatus } from './roadmap';
 import { nowIso, todayLocalIsoDate } from './util';
@@ -54,6 +55,10 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
         const type = workitemType(task);
         if (!WORKITEM_TYPES.includes(type)) throw new WorkitemError('type');
         const before = previousById.get(task.id);
+        if (task.displayId !== undefined) {
+            if (typeof task.displayId !== 'string' || !/^[A-Z]{1,3}-(EP|US|TK|BG)-[1-9][0-9]*$/.test(task.displayId) || task.displayId !== createWorkitemDisplayId(task.displayId.split('-')[0], task)) throw new WorkitemError('data');
+        }
+        if (before && task.displayId !== before.displayId) throw new WorkitemError('immutable');
         if (before && type !== workitemType(before)) throw new WorkitemError('immutable');
         if (task.parentId != null) {
             const parent = byId.get(task.parentId);

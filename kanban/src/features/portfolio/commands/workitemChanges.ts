@@ -1,12 +1,14 @@
+import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import type { BoardRecord } from '@/features/portfolio/types';
 import type { BoardData, Task } from '@/domain/types';
 import type { BoardMutationOptions, BoardMutator } from './mutationContext';
+import { createBoardStateSnapshot } from '@/domain/serialize';
 import { cloneSerializable } from '@/domain/serializable';
 import { applyStoryAutomation, assertAcceptance, assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, ensureBoardTimelineBaseline, recordTaskTimelineEvent, createTimelineEventId } from '@/domain/timeline';
 import { annotateTimelineOperation } from '@/domain/taskHistory';
-import { reserveTaskIdentities } from '@/domain/taskIdentity';
-import { syncProjectAssignments } from '@/domain/projectData';
+import { createWorkitemDisplayId, reserveTaskIdentities } from '@/domain/taskIdentity';
+import { syncProjectAssignments, ProjectDataError } from '@/domain/projectData';
 import { touchTask } from '@/domain/task';
 import { canTransition, statusCategory, getWorkflow } from '@/domain/workflow';
 import { translateCurrent } from '@/shared/i18n';
@@ -26,6 +28,21 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     const firstEvent = draft.data.extensions.timeline?.events.length || 0;
     const beforeTask = taskId === undefined ? null : captureTaskTimelineSnapshot(draft.data, taskId);
     if (mutator(draft.data, draft) === false) return false;
+    const boardSnapshotRecorded = draft.data.extensions.timeline?.events.slice(firstEvent).some((event) => Boolean(event.snapshot?.board));
+    const existingIds = new Set(current.data.board.tasks.map((task) => task.id));
+    const createdTasks = draft.data.board.tasks.filter((task) => !boardSnapshotRecorded && !existingIds.has(task.id) && !task.displayId);
+    if (createdTasks.length) {
+        const project = draft.data.extensions.project!;
+        if (!project.acronym) {
+            const acronym = await prompt(translateCurrent('project.acronymHelp'), '', { title: translateCurrent('project.acronym'), required: true });
+            if (acronym === null) return false;
+            project.acronym = acronym.trim().toUpperCase();
+            if (!/^[A-Z]{1,3}$/.test(project.acronym)) throw new ProjectDataError('acronym');
+        }
+        for (const task of createdTasks) task.displayId = createWorkitemDisplayId(project.acronym, task);
+        // Persist first-use legacy configuration before the creation events.
+        if (!current.data.extensions.project?.acronym) appendTimelineEvent(draft.data, { kind: 'board.project.updated', entityType: 'board', entityId: project.id, summary: translateCurrent('project.updated'), snapshot: createBoardStateSnapshot({ ...current.data, extensions: { ...current.data.extensions, project } }) });
+    }
     if (taskId !== undefined) {
         const task = draft.data.board.tasks.find((entry) => entry.id === taskId);
         if (task) {
@@ -35,10 +52,16 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
         }
         recordTaskTimelineEvent(draft.data, beforeTask, captureTaskTimelineSnapshot(draft.data, taskId));
     }
-    const boardSnapshotRecorded = draft.data.extensions.timeline?.events.slice(firstEvent).some((event) => Boolean(event.snapshot?.board));
     const previousIds = new Set(current.data.board.tasks.map((task) => task.id));
     const nextIds = new Set(draft.data.board.tasks.map((task) => task.id));
     let insertion = firstEvent;
+    if (createdTasks.length && !current.data.extensions.project?.acronym) {
+        const events = draft.data.extensions.timeline!.events;
+        const index = events.findIndex((event, index) => index >= firstEvent && event.kind === 'board.project.updated');
+        const [configuration] = events.splice(index, 1);
+        events.splice(firstEvent, 0, configuration);
+        insertion++;
+    }
     for (const task of draft.data.board.tasks) if (!boardSnapshotRecorded && task.id !== taskId && !previousIds.has(task.id)) {
         const event = recordTaskTimelineEvent(draft.data, null, captureTaskTimelineSnapshot(draft.data, task.id));
         // Creation must precede relationship events that reference the new workitem.
@@ -63,23 +86,23 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
         const changedCriteria = before && workitemType(task) === 'story' && before.acceptanceCriteria !== task.acceptanceCriteria;
         if ((changedStatus || changedCriteria) && category === 'completed' && ['story', 'bug'].includes(workitemType(task))) {
             assertAcceptance(draft.data, task);
-            const author = await prompt(translateCurrent('workitems.acceptQuestion', { id: task.id, title: task.title }) + (task.acceptanceCriteria ? `\n\n${task.acceptanceCriteria}` : task.expectedResult ? `\n\n${task.expectedResult}` : ''), '', { title: translateCurrent('workitems.acceptance'), confirmLabel: translateCurrent('workitems.accept'), required: true });
+            const author = await prompt(translateCurrent('workitems.acceptQuestion', { id: workitemLabel(task), title: task.title }) + (task.acceptanceCriteria ? `\n\n${task.acceptanceCriteria}` : task.expectedResult ? `\n\n${task.expectedResult}` : ''), '', { title: translateCurrent('workitems.acceptance'), confirmLabel: translateCurrent('workitems.accept'), required: true });
             if (author === null) return false;
             if (!author.trim()) throw new WorkitemError('author');
             task.acceptance = { author: author.trim(), at: new Date().toISOString(), local: true };
         }
         if (changedStatus && category !== 'completed') delete task.acceptance;
-        if (before && changedStatus && (category === 'cancelled' || ['completed', 'cancelled'].includes(statusCategory(before.status, current.data, before)))) previews.push(`#${task.id} ${task.title}\n${stateName(current.data, before.status, before)} → ${stateName(draft.data, task.status, task)}`);
+        if (before && changedStatus && (category === 'cancelled' || ['completed', 'cancelled'].includes(statusCategory(before.status, current.data, before)))) previews.push(`${workitemLabel(task)} ${task.title}\n${stateName(current.data, before.status, before)} → ${stateName(draft.data, task.status, task)}`);
         if (before && ((before.parentId ?? null) !== (task.parentId ?? null) || before.sprintId !== task.sprintId)) {
-            const name = (id: number | null | undefined, data: BoardData) => { const item = data.board.tasks.find((entry) => entry.id === id); return item ? `#${item.id} ${item.title}` : '—'; };
-            previews.push(`#${task.id} ${task.title}\n${translateCurrent('workitems.parent')}: ${name(before.parentId, current.data)} → ${name(task.parentId, draft.data)}\nSprint: ${sprintName(current.data, before.sprintId)} → ${sprintName(draft.data, task.sprintId)}`);
+            const name = (id: number | null | undefined, data: BoardData) => { const item = data.board.tasks.find((entry) => entry.id === id); return item ? `${workitemLabel(item)} ${item.title}` : '—'; };
+            previews.push(`${workitemLabel(task)} ${task.title}\n${translateCurrent('workitems.parent')}: ${name(before.parentId, current.data)} → ${name(task.parentId, draft.data)}\nSprint: ${sprintName(current.data, before.sprintId)} → ${sprintName(draft.data, task.sprintId)}`);
         }
-        if (changedStatus && category === 'completed' && workitemType(task) === 'epic' && childrenOf(draft.data, task.id).some((child) => !['completed', 'cancelled'].includes(statusCategory(child.status, draft.data, child)))) previews.push(translateCurrent('workitems.epicPending', { id: task.id, title: task.title }));
+        if (changedStatus && category === 'completed' && workitemType(task) === 'epic' && childrenOf(draft.data, task.id).some((child) => !['completed', 'cancelled'].includes(statusCategory(child.status, draft.data, child)))) previews.push(translateCurrent('workitems.epicPending', { id: workitemLabel(task), title: task.title }));
         const parent = parentOf(draft.data, task);
-        if (before && changedStatus && parent && workitemType(parent) === 'story' && statusCategory(parent.status, draft.data, parent) === 'completed' && category !== 'completed') previews.push(translateCurrent('workitems.reopened', { id: task.id, parent: parent.id }));
+        if (before && changedStatus && parent && workitemType(parent) === 'story' && statusCategory(parent.status, draft.data, parent) === 'completed' && category !== 'completed') previews.push(translateCurrent('workitems.reopened', { id: workitemLabel(task), parent: workitemLabel(parent) }));
         if (before) for (const field of ['phaseId', 'milestoneId'] as const) {
             const oldValue = effectivePlanning(current.data, before, field); const newValue = effectivePlanning(draft.data, task, field);
-            if (oldValue !== newValue && before[field] === task[field] && (field === 'phaseId' ? before.phaseMode === task.phaseMode : before.milestoneMode === task.milestoneMode)) previews.push(`#${task.id} ${task.title} · ${translateCurrent(field === 'phaseId' ? 'task.phase' : 'task.milestone')}: ${oldValue || '—'} → ${newValue || '—'}`);
+            if (oldValue !== newValue && before[field] === task[field] && (field === 'phaseId' ? before.phaseMode === task.phaseMode : before.milestoneMode === task.milestoneMode)) previews.push(`${workitemLabel(task)} ${task.title} · ${translateCurrent(field === 'phaseId' ? 'task.phase' : 'task.milestone')}: ${oldValue || '—'} → ${newValue || '—'}`);
         }
         const rawStage = stageTasks.get(task.id);
         if (rawStage && JSON.stringify(rawStage) !== JSON.stringify(task)) {
@@ -89,14 +112,14 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             const event = draft.data.extensions.timeline?.events.at(-1);
             if (event && (draft.data.extensions.timeline?.events.length || 0) > count) {
                 const automatic = effects.find((effect) => !effect.blocked && effect.storyId === task.id);
-                event.meta = { ...event.meta, ...(automatic ? { automatic: true, causeTaskId: automatic.taskId, cause: `Task #${automatic.taskId}` } : {}), ...(task.acceptance && !before?.acceptance ? { author: task.acceptance.author } : {}) };
+                event.meta = { ...event.meta, ...(automatic ? { automatic: true, causeTaskId: automatic.taskId, cause: `Task ${workitemLabelFor(draft.data, automatic.taskId)}` } : {}), ...(task.acceptance && !before?.acceptance ? { author: task.acceptance.author } : {}) };
             }
         }
     }
-    for (const effect of effects) if (!effect.blocked) previews.push(translateCurrent('workitems.autoEffect', { id: effect.storyId, state: stateName(draft.data, draft.data.board.tasks.find((task) => task.id === effect.storyId)?.status || '', draft.data.board.tasks.find((task) => task.id === effect.storyId)) }));
+    for (const effect of effects) if (!effect.blocked) previews.push(translateCurrent('workitems.autoEffect', { id: workitemLabelFor(draft.data, effect.storyId), state: stateName(draft.data, draft.data.board.tasks.find((task) => task.id === effect.storyId)?.status || '', draft.data.board.tasks.find((task) => task.id === effect.storyId)) }));
     if (previews.length && !(await confirm(translateCurrent('workitems.impact') + '\n\n' + previews.join('\n\n'), { title: translateCurrent('workitems.confirmChanges'), confirmLabel: translateCurrent('messages.confirm') }))) return false;
     if (!isCurrent()) throw new WorkitemError('stale');
-    for (const effect of effects) if (effect.blocked) void alert(translateCurrent('workitems.autoBlocked', { id: effect.storyId }));
+    for (const effect of effects) if (effect.blocked) void alert(translateCurrent('workitems.autoBlocked', { id: workitemLabelFor(draft.data, effect.storyId) }));
     syncWorkitemPlanning(draft.data, draft.data);
     if (JSON.stringify(stage.extensions.sprintParticipation) !== JSON.stringify(draft.data.extensions.sprintParticipation)) appendTimelineEvent(draft.data, { kind: 'sprint.participation.updated', entityType: 'board', entityId: 'board', summary: 'Sprint participation recorded', changes: { sprintParticipation: { before: stage.extensions.sprintParticipation ?? null, after: structuredClone(draft.data.extensions.sprintParticipation) } } });
     syncProjectAssignments(draft.data);

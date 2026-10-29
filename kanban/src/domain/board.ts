@@ -120,7 +120,7 @@ export function createPortfolioProjectColor(seed: unknown, offset = 0): ProjectC
     };
 }
 
-export function createEmptyProjectData(title: string | null | undefined): BoardData {
+export function createEmptyProjectData(title: string | null | undefined, acronym = (title || '').replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase() || 'PRJ'): BoardData {
     const now = nowIso();
     const projectTitle = (title || '').trim() || 'Untitled Project';
     return {
@@ -137,7 +137,7 @@ export function createEmptyProjectData(title: string | null | undefined): BoardD
                 title: projectTitle
             }
         },
-        extensions: { project: createProjectData(), workflow: defaultWorkflow() }
+        extensions: { project: { ...createProjectData(), acronym }, workflow: defaultWorkflow() }
     };
 }
 
@@ -209,7 +209,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid meta structure.');
     }
     const schemaVersion = data.meta.schemaVersion;
-    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== BOARD_SCHEMA_VERSION) {
+    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4 && schemaVersion !== BOARD_SCHEMA_VERSION) {
         throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
     }
     if (data.meta.appId !== BOARD_APP_ID) {
@@ -305,7 +305,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
+        const optionalTaskKeys = new Set(['displayId', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));

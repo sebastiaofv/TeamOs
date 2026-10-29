@@ -6,11 +6,13 @@ import { getWorkflow } from './workflow';
  * Task normalization resolves legacy assignee/assignees and name duplicates.
  */
 export function migrateBoardData(input: LooseBoardData): LooseBoardData {
+    // v4 → v5 adds optional persisted display IDs. Never synthesize IDs for old items.
+    if (input.meta?.schemaVersion === 4) return { ...input, meta: { ...input.meta, schemaVersion: 5 } };
     if (![1, 2, 3].includes(Number(input.meta?.schemaVersion))) return input;
     const workflow = getWorkflow(input);
     return {
         ...input,
-        meta: { ...input.meta, schemaVersion: 4 },
+        meta: { ...input.meta, schemaVersion: 5 },
         extensions: { ...input.extensions, workflow: input.extensions?.workflow || workflow },
         board: {
             ...input.board,

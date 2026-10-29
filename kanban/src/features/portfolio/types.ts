@@ -113,7 +113,7 @@ export type TaskEditorViewModel = {
     heading: string;
     initial: TaskEditorFields;
     editing?: boolean;
-    parentCandidates?: { id: number; title: string; type?: import('@/domain/types').WorkitemType }[];
+    parentCandidates?: { displayId?: string; id: number; title: string; type?: import('@/domain/types').WorkitemType }[];
     phaseOptions: SelectOption[];
     milestoneOptions: SelectOption[];
     assigneePool: string[];
@@ -128,7 +128,7 @@ export type TaskDetailFields = Record<
     string
 >;
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
-export type TaskRelationEntry = { id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
+export type TaskRelationEntry = { displayId?: string; id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
 export type TaskDetailViewModel = {
     conversationContext?: { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };
     pullRequestContext?: { boardId: string; taskId: number; links: string[] };

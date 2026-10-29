@@ -1,3 +1,4 @@
+import { assertUniqueProjectAcronym } from '@/domain/projectData';
 // Store-backed portfolio controls and project-session actions.
 //
 // The module owns the state transitions behind toolbar filters, project chips,
@@ -137,6 +138,7 @@ export function createPortfolioControlActions({
                     duplicateBoardIds.set(record.id, existingRecord.id);
                     continue;
                 }
+                if (record.data.extensions.project) assertUniqueProjectAcronym(record.data.extensions.project, [...candidates, ...additions].flatMap((candidate) => candidate.data.extensions.project ? [candidate.data.extensions.project] : []));
                 additions.push(record);
             }
             if (additions.length === 0) {

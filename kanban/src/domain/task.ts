@@ -166,7 +166,7 @@ export function isAcceptedLegacyAssigneeValue(value: unknown): boolean {
 export function nextTaskIdForBoard(boardRecord: BoardRecordLike): number {
     const reserved = reservedTaskHighWaterMark(boardRecord?.data);
     if (reserved >= Number.MAX_SAFE_INTEGER) throw new Error('No more safe workitem IDs are available in this project.');
-    return reserved ? reserved + 1 : Date.now();
+    return reserved + 1;
 }
 
 export function touchTask(task: { updatedAt: string }): void {
@@ -229,6 +229,7 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
         ...(task.acceptance != null ? { acceptance: structuredClone(task.acceptance) as Task['acceptance'] } : {}),
         ...(task.sprintHistory != null ? { sprintHistory: structuredClone(task.sprintHistory) as Task['sprintHistory'] } : {}),
         pullRequests: parsePullRequestLinks(task.pullRequests),
+        ...(task.displayId !== undefined ? { displayId: task.displayId as string } : {}),
         id: task.id as number,
         title: task.title as string,
         description: (task.description || '') as string,

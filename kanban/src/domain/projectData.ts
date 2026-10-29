@@ -13,7 +13,7 @@ export function createProjectData(): ProjectData {
     return { version: 1, id: createProjectIdentity(), description: '', status: 'planned', members: [], tags: [...DEFAULT_PROJECT_TAGS] };
 }
 
-export type ProjectDataErrorCode = 'name' | 'duplicateMember' | 'memberInUse' | 'duplicateTag' | 'tagInUse' | 'tag' | 'unknownMember' | 'unknownTag' | 'invalid' | 'stale';
+export type ProjectDataErrorCode = 'name' | 'duplicateMember' | 'memberInUse' | 'duplicateTag' | 'tagInUse' | 'tag' | 'unknownMember' | 'unknownTag' | 'invalid' | 'stale' | 'acronym' | 'duplicateAcronym';
 export class ProjectDataError extends Error {
     constructor(public readonly code: ProjectDataErrorCode) { super(`Invalid project data: ${code}`); }
 }
@@ -28,6 +28,7 @@ export function parseProjectData(value: unknown): ProjectData | undefined {
     if (!isRecord(value) || value.version !== 1 || typeof value.id !== 'string' || !value.id.trim()
         || typeof value.description !== 'string' || (value.status !== null && !PROJECT_STATUSES.some((status) => status === value.status))
         || !Array.isArray(value.members) || !Array.isArray(value.tags)) throw new ProjectDataError('invalid');
+    if (value.acronym !== undefined && (typeof value.acronym !== 'string' || !/^[A-Z]{1,3}$/.test(value.acronym))) throw new ProjectDataError('acronym');
     const ids = new Set<string>();
     const names = new Set<string>();
     const members: ProjectMember[] = value.members.map((member: unknown) => {
@@ -44,7 +45,7 @@ export function parseProjectData(value: unknown): ProjectData | undefined {
         if (tags.has(projectNameKey(tag))) throw new ProjectDataError('duplicateTag');
         tags.add(projectNameKey(tag));
     }
-    return { version: 1, id: value.id, description: value.description, status: value.status as ProjectData['status'], members, tags: [...tags] };
+    return { version: 1, id: value.id, description: value.description, status: value.status as ProjectData['status'], members, tags: [...tags], ...(value.acronym === undefined ? {} : { acronym: value.acronym as string }) };
 }
 
 /** Missing extension → v1. Legacy names become local identities without inventing a lifecycle state. */
@@ -115,6 +116,7 @@ export function applyProjectSettings(data: BoardData, draft: ProjectSettingsDraf
     if (!draft.name.trim()) throw new ProjectDataError('name');
     const before = data.extensions.project!;
     const after = parseProjectData(draft.project)!;
+    if (before.acronym && !after.acronym) throw new ProjectDataError('acronym');
     if (before.id !== after.id) throw new ProjectDataError('invalid');
     for (const task of data.board.tasks) {
         for (const id of task.assigneeIds || []) {
@@ -127,4 +129,9 @@ export function applyProjectSettings(data: BoardData, draft: ProjectSettingsDraf
     data.board.settings.title = draft.name.trim();
     data.extensions.project = after;
     syncProjectAssignments(data);
+}
+
+/** Uniqueness is checked against all projects available in this local portfolio. */
+export function assertUniqueProjectAcronym(project: ProjectData, others: readonly ProjectData[]): void {
+    if (project.acronym && others.some((other) => other.id !== project.id && other.acronym === project.acronym)) throw new ProjectDataError('duplicateAcronym');
 }

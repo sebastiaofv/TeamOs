@@ -1,3 +1,4 @@
+import { workitemLabel } from '@/domain/taskIdentity';
 import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -203,7 +204,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                         <summary className="btn" ref={hierarchyDisclosure.summaryRef}>{t('workitems.filters')}</summary>
                         <div className="table-hierarchy-filter-panel" data-table-panel>            <div className="table-hierarchy-filters">
                 <label htmlFor={scopedId('tableTypeFilter')}>{t('workitems.type')} <select id={scopedId('tableTypeFilter')} value={hierarchy.type} onChange={(event) => { setHierarchy((value) => ({ ...value, type: event.target.value })); setPage(0); }}><option value="">{t('common.all')}</option>{WORKITEM_TYPES.map((type) => <option key={type} value={type}>{t(`workitems.type.${type}`)}</option>)}</select></label>
-                {(['epic', 'story'] as const).map((type) => <label key={type} htmlFor={scopedId(`tableHierarchy-${type}`)}>{t(`workitems.type.${type}`)} <select id={scopedId(`tableHierarchy-${type}`)} value={hierarchy[type]} onChange={(event) => { setHierarchy((value) => ({ ...value, [type]: event.target.value })); setPage(0); }}><option value="">{t('common.all')}</option>{boardData.board.tasks.filter((task) => workitemType(task) === type).map((task) => <option key={task.id} value={task.id}>#{task.id} {task.title}</option>)}</select></label>)}
+                {(['epic', 'story'] as const).map((type) => <label key={type} htmlFor={scopedId(`tableHierarchy-${type}`)}>{t(`workitems.type.${type}`)} <select id={scopedId(`tableHierarchy-${type}`)} value={hierarchy[type]} onChange={(event) => { setHierarchy((value) => ({ ...value, [type]: event.target.value })); setPage(0); }}><option value="">{t('common.all')}</option>{boardData.board.tasks.filter((task) => workitemType(task) === type).map((task) => <option key={task.id} value={task.id}>{workitemLabel(task)} {task.title}</option>)}</select></label>)}
             </div>
 </div>
                     </details>
@@ -268,7 +269,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                                                 return next;
                                             })}><span aria-hidden="true">{expandedRows.has(row.taskId) ? '▾' : '▸'}</span></button>
                                             : <span className="table-tree-spacer" aria-hidden="true" />)}
-                                        <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? `#${row.taskId}` : cellText(row, column)}</button>
+                                        <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? workitemLabel(row.task) : cellText(row, column)}</button>
                                     </div>
                                     : (column === 'epic' || column === 'story') && (column === 'epic' ? epicOf(boardData, row.task) : storyOf(boardData, row.task)) ? <button type="button" className="table-item-link" onClick={() => actions.openPortfolioTaskDetails(boardId, (column === 'epic' ? epicOf(boardData, row.task)! : storyOf(boardData, row.task)!).id)}>{cellText(row, column)}</button> : column === 'status' && workflowState
                                         ? <WorkflowStateBadge state={workflowState} />

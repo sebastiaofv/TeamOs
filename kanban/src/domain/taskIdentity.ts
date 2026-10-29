@@ -29,3 +29,25 @@ export function reserveTaskIdentities(data: LooseBoardData, previous?: LooseBoar
     if (!highWaterMark && !data.extensions?.taskIdentity) return;
     data.extensions = { ...data.extensions, taskIdentity: { version: 1, highWaterMark } };
 }
+
+const TYPE_CODES = { epic: 'EP', story: 'US', task: 'TK', bug: 'BG' } as const;
+
+/** Persisted at creation; never recompute from mutable project settings. */
+export function createWorkitemDisplayId(acronym: string, task: Pick<import('./types').Task, 'id' | 'type'>): string {
+    if (!/^[A-Z]{1,3}$/.test(acronym)) throw new Error('Project Acronym must contain one to three letters.');
+    return `${acronym}-${TYPE_CODES[task.type || 'task']}-${task.id}`;
+}
+
+export function workitemId(task: { id: number; displayId?: string }): string {
+    return task.displayId || String(task.id);
+}
+
+export function workitemLabel(task: { id: number; displayId?: string }): string {
+    return task.displayId || `#${task.id}`;
+}
+
+export function workitemLabelFor(data: LooseBoardData | null | undefined, id: number): string {
+    const tasks = data?.board?.tasks;
+    const task = Array.isArray(tasks) ? tasks.find((item: import('./types').TaskInput) => item.id === id) : undefined;
+    return task ? workitemLabel({ id, displayId: typeof task.displayId === 'string' ? task.displayId : undefined }) : `#${id}`;
+}

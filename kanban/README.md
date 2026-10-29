@@ -140,3 +140,9 @@ Optional Playwright modes: `npm run test:headed`, `npm run test:ui`, `npm run te
 ### Pre-commit hook
 
 `npm install` sets up a Husky pre-commit hook (`.husky/pre-commit`, registered at the git root via the `prepare` script). Each commit runs ESLint on staged `.ts`/`.tsx`/`.mjs` files (lint-staged, `.lintstagedrc`), then `npm run typecheck` and `npm run test:unit`. Playwright tests are not run by the hook; run `npm test` before pushing UI changes.
+
+### Workitem IDs
+
+New projects require a **Project Acronym** of 1–3 letters, unique among the projects open in the local portfolio. New workitems persist IDs such as `CHK-EP-1`, `CHK-US-2`, `CHK-TK-3`, and `CHK-BG-4`, sharing one project sequence. IDs and types stay fixed after creation; changing the project name or acronym affects only future items. Deletion and history restoration never reuse a number.
+
+Schema 5 reads schema 1–4 files without assigning new IDs to existing items. An older project can set its acronym in General settings or when creating its first new item. Numeric references remain the stable links for hierarchy, relations, comments and planning. Since project files are local, acronym uniqueness is checked against the loaded portfolio.

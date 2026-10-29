@@ -85,7 +85,7 @@ function associations(state: State | null | undefined, id: number) {
 function relationValue(relations: Relations, id: number, state: State | null | undefined) {
     return relations.map((relation) => {
         const other = relation.sourceId === id ? relation.targetId : relation.sourceId;
-        return { direction: relation.kind === 'related' ? 'related' : relation.sourceId === id ? 'blocks' : 'blockedBy', id: other, title: taskIn(state, other)?.title };
+        return { direction: relation.kind === 'related' ? 'related' : relation.sourceId === id ? 'blocks' : 'blockedBy', id: other, ...(taskIn(state, other)?.displayId ? { displayId: taskIn(state, other)!.displayId } : {}), title: taskIn(state, other)?.title };
     });
 }
 

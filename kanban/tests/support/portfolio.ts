@@ -67,7 +67,7 @@ function buildTaskPayload(task: SeedTask, index: number) {
       ? [task.assignee.trim()]
       : [];
   return {
-    ...Object.fromEntries(['type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'].filter((key) => Object.hasOwn(task, key)).map((key) => [key, task[key]])),
+    ...Object.fromEntries(['displayId', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'].filter((key) => Object.hasOwn(task, key)).map((key) => [key, task[key]])),
     id: task.id ?? index + 1,
     title: task.title,
     description: task.description || '',
