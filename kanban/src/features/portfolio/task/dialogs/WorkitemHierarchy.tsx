@@ -1,3 +1,4 @@
+import { workitemLabel } from '@/domain/taskIdentity';
 import type { TaskDetailViewModel } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { childrenOf, epicOf, parentOf, workitemProgress, workitemType, WORKITEM_FIELDS, isTerminal } from '@/domain/workitems';
@@ -15,8 +16,8 @@ export function WorkitemLineage({ vm }: { vm: TaskDetailViewModel }) {
     if (!parent) return null;
     const open = (id: number) => actions.openPortfolioTaskDetails(vm.boardId, id, vm.readOnly ? { boardData: data, readOnly: true, historyEventIndex: vm.conversationContext?.eventIndex } : {});
     return <div className="workitem-lineage"><span>{t('workitems.parent')}</span>
-        {epic && epic.id !== parent.id && <><button className="table-item-link" onClick={() => open(epic.id)}>#{epic.id} {epic.title}</button><span aria-hidden="true">/</span></>}
-        <button className="table-item-link" onClick={() => open(parent.id)}>#{parent.id} {parent.title}</button>
+        {epic && epic.id !== parent.id && <><button className="table-item-link" onClick={() => open(epic.id)}>{workitemLabel(epic)} {epic.title}</button><span aria-hidden="true">/</span></>}
+        <button className="table-item-link" onClick={() => open(parent.id)}>{workitemLabel(parent)} {parent.title}</button>
     </div>;
 }
 
@@ -48,7 +49,7 @@ export function WorkitemHierarchy({ vm }: { vm: TaskDetailViewModel }) {
             <ul>{children.filter((child) => workitemType(child) === childType).map((child) => {
                 const state = getWorkflow(data, child).states.find((state) => state.id === child.status);
                 return <li key={child.id}>
-                    <span className="workitem-child-id">#{child.id}</span><button className="table-item-link" onClick={() => open(child.id)}>{child.title}</button>
+                    <span className="workitem-child-id">{workitemLabel(child)}</span><button className="table-item-link" onClick={() => open(child.id)}>{child.title}</button>
                     {state ? <WorkflowStateBadge state={state} /> : <span>{child.status}</span>}
                 </li>;
             })}</ul>

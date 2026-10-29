@@ -1,5 +1,6 @@
-import { childrenOf } from '@/domain/workitems';
-import type { WorkitemType } from '@/domain/types';
+import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
+import { childrenOf, eligibleSprint, isPlanningUnit, WorkitemError } from '@/domain/workitems';
+import type { Task, WorkitemType } from '@/domain/types';
 // Task editing, details, validation, and undo.
 
 import type { Effort, Priority, TaskRelationKind } from '@/domain/types';
@@ -19,6 +20,7 @@ import {
 import { recordTaskRelationsTimelineEvent } from '@/domain/timeline';
 import { getRelations, getTaskRelations, removeTaskRelation, setTaskRelation, TaskRelationError } from '@/domain/taskRelations';
 import { cloneSerializable } from '@/domain/serializable';
+import { normalizeDueDate } from '@/domain/calendar';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
 import { getRoadmapExtension, isValidRoadmapAssignment } from '@/domain/roadmap';
@@ -104,18 +106,20 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     }
 
     function openPortfolioCreateChildTask(boardId: string, parentId: number, type: WorkitemType) {
-        openPortfolioCreateTaskModal(boardId, 'backlog');
+        openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: type });
         const vm = getState().dialogProps as import('@/features/portfolio/types').TaskEditorViewModel;
         if (getState().activeDialog !== 'taskEditor' || !vm?.initial) return;
-        commitState({ dialogProps: { ...vm, initial: { ...vm.initial, type, parentId, phaseMode: 'inherit', milestoneMode: 'inherit' } } });
+        commitState({ portfolioCreateContext: { boardId, status: 'backlog', returnToTaskId: parentId }, dialogProps: { ...vm, initial: { ...vm.initial, type, parentId, phaseMode: 'inherit', milestoneMode: 'inherit' } } });
     }
 
     function closeTaskEditor() {
+        const context = getState().portfolioCreateContext;
         commitState({
             portfolioEditContext: null,
             portfolioCreateContext: null
         });
         closeDialogFn('taskEditor');
+        if (context?.returnToTaskId !== undefined) openPortfolioTaskDetails(context.boardId, context.returnToTaskId);
     }
 
     function openPortfolioCreateRelatedTask(boardId: string, taskId: number, kind: TaskRelationKind) {
@@ -130,7 +134,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const vm = buildTaskEditorViewModel(source.boardRecord, null, getState().portfolioTasks, ++taskEditorOpenCount);
         vm.initial.phaseId = source.task.phaseId;
         vm.initial.milestoneId = source.task.milestoneId;
-        vm.relationNotice = translateCurrent(`relations.sentence.${kind}`, { a: `#${taskId}`, b: translateCurrent('relations.newItem') });
+        vm.relationNotice = translateCurrent(`relations.sentence.${kind}`, { a: workitemLabelFor(source.boardRecord.data, taskId), b: translateCurrent('relations.newItem') });
         openDialogFn('taskEditor', vm);
     }
 
@@ -193,7 +197,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const related = getTaskRelations(source.boardRecord.data, taskId);
         const affected = [...related.blockedBy, ...related.blocks, ...related.related];
         const impact = affected.length ? '\n\n' + translateCurrent('relations.deleteImpact', {
-            items: affected.map((task) => `#${task.id} ${task.title}`).join(', ')
+            items: affected.map((task) => `${workitemLabel(task)} ${task.title}`).join(', ')
         }) : '';
         const confirmed = await confirm(translateCurrent('messages.deleteQuestion', { title }) + impact, {
             title: translateCurrent('messages.deleteTask'),
@@ -300,6 +304,19 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
 
         closeTaskEditor();
+    }
+
+    // Only sidebar properties can be changed here; content stays behind Edit.
+    function setPortfolioTaskProperties(boardId: string, taskId: number, changes: Partial<Pick<Task, 'priority' | 'effort' | 'dueDate' | 'blocked' | 'blockerReason' | 'tags' | 'parentId' | 'sprintId'>>) {
+        return runPortfolioTaskMutation(boardId, taskId, (task, draft) => {
+            if (Object.entries(changes).every(([field, value]) => JSON.stringify(task[field as keyof Task]) === JSON.stringify(value))) return false;
+            if (changes.dueDate && !normalizeDueDate(changes.dueDate)) throw new Error(translateCurrent('validation.dueDate'));
+            if (changes.sprintId !== undefined && (!isPlanningUnit(draft.data, task) || (changes.sprintId && !eligibleSprint(draft.data, changes.sprintId)))) throw new WorkitemError('sprint');
+            Object.assign(task, changes);
+            if (task.blocked && !task.blockerReason.trim()) throw new Error(translateCurrent('validation.blockerReason'));
+            if (!task.blocked) task.blockerReason = '';
+            return true;
+        });
     }
 
     function toggleTaskDetailChecklistItem(itemIndex: number, checked: boolean) {
@@ -418,9 +435,10 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             notifyPortfolioMutationUnavailable(boardId);
             return null;
         }
-        const id = nextTaskIdForBoard(boardRecord);
+        let id = 0;
         const now = nowIso();
         const created = await runPortfolioBoardMutation(boardId, (data) => {
+            id = nextTaskIdForBoard({ data });
             data.board.tasks.push(normalizeTask({
                 id, title, type: fields.type || 'task', description: '', assignees: fields.assignees, tags: fields.tags,
                 priority: fields.priority, effort: fields.effort, dueDate: fields.dueDate,
@@ -477,6 +495,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         deletePortfolioTask,
         saveTask,
         toggleTaskDetailChecklistItem,
+        setPortfolioTaskProperties,
         movePortfolioTaskToStatus,
         performUndo,
         showUndo,

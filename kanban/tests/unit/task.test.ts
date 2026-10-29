@@ -411,20 +411,12 @@ describe('nextTaskIdForBoard', () => {
     expect(nextTaskIdForBoard(fromAny(boardRecord))).toBe(2);
   });
 
-  it('falls back to the current timestamp when there are no existing tasks', () => {
-    const before = Date.now();
-    const id = nextTaskIdForBoard({ data: fromPartial({ board: fromPartial({ tasks: [] }) }) });
-    const after = Date.now();
-    expect(id).toBeGreaterThanOrEqual(before);
-    expect(id).toBeLessThanOrEqual(after);
+  it('starts the project sequence at one when there are no existing tasks', () => {
+    expect(nextTaskIdForBoard({ data: fromPartial({ board: fromPartial({ tasks: [] }) }) })).toBe(1);
   });
 
-  it('falls back to the current timestamp when the board record is empty', () => {
-    const before = Date.now();
-    const id = nextTaskIdForBoard({});
-    const after = Date.now();
-    expect(id).toBeGreaterThanOrEqual(before);
-    expect(id).toBeLessThanOrEqual(after);
+  it('starts at one when the board record is empty', () => {
+    expect(nextTaskIdForBoard({})).toBe(1);
   });
 });
 

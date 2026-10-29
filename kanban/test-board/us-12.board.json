@@ -1,6 +1,6 @@
 {
   "meta": {
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "appId": "teamos-kanban",
     "createdAt": "2026-10-28T10:00:00.000Z",
     "updatedAt": "2026-10-28T10:00:00.000Z"
@@ -524,7 +524,8 @@
         "frontend",
         "backend",
         "documentação"
-      ]
+      ],
+      "acronym": "CHK"
     },
     "workflow": {
       "version": 2,

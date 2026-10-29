@@ -119,7 +119,7 @@ test('inline editing and removal require confirmation, cancel safely, regroup it
   await expect(blockedBy.locator('.relation-row')).toHaveCount(0);
   await expect(related.locator('.relation-row')).toHaveCount(1);
   await expect(page.locator('#detailBlocked')).toHaveText('Yes');
-  await expect(page.locator('#detailBlockerReason')).toHaveText('Manual block remains');
+  await expect(page.locator('#detailBlockerInput')).toHaveValue('Manual block remains');
   await expect.poll(async () => (await readSavedBoard(page, 'p1')).extensions.taskRelations.relations).toEqual([{ sourceId: 1, targetId: 2, kind: 'related' }]);
   const replaced = await readSavedBoard(page, 'p1');
   expect(replaced.board.tasks).toMatchObject(original.board.tasks);

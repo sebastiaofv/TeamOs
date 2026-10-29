@@ -1,3 +1,4 @@
+import { workitemLabel } from '@/domain/taskIdentity';
 import type { CSSProperties } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { TaskStatus } from '@/domain/types';
@@ -22,7 +23,7 @@ export function PlannerTrayCardBody({ item }: { item: PlannerTrayItem }) {
             <span className="planner-tray-card-title">{item.title}</span>
             <span className="planner-tray-card-meta">
                 {item.priority && <span className={`planner-pill planner-pill-${item.priority}`}>{item.priority.charAt(0).toUpperCase()}</span>}
-                <span>#{item.taskId}</span>
+                <span>{workitemLabel({ id: item.taskId, displayId: item.displayId })}</span>
                 {item.effort && <span>{item.effort}</span>}
                 {!item.canDrag && <span>{t('planner.readOnlyTask')}</span>}
                 {item.planned && <span className="planner-tray-card-planned">✓ {t('planner.planned')}</span>}

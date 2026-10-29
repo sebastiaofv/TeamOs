@@ -30,10 +30,12 @@ test.describe('project files', () => {
     await mockNewProjectFlow(page, { fileName: 'project-alpha.json' });
 
     await page.locator('#newProjectBtn').click();
-    await answerAppMessage(page, { expectText: 'Project name:', input: 'Project Alpha' });
+    await page.locator('#appMessageInput').fill('Project Alpha');
+    await page.locator('#appMessageConfirmBtn').click();
+    await answerAppMessage(page, { expectText: 'unique acronym', input: 'ALP' });
 
     await expect(page.locator('.portfolio-chip.active')).toContainText('Project Alpha');
-    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toBeVisible();
 
     await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
     const result = await page.evaluate(() => ({

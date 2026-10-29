@@ -163,6 +163,8 @@ Preservar pesquisa, filtros, ordenação, edição e planeamento, com seis secç
 - Para Task de Story, Epic vem da Story; para Task de Epic, User Story fica vazia; para Tasks sem pai e Bugs, ambas ficam vazias.
 - Unplanned exclui Epics e Tasks de Stories como unidades autónomas; preservar histórico de participação anterior.
 - Sprints mantém criação, consulta, planeamento e proibição de destinos concluídos, sem perda de funções existentes.
+- Cada Sprint mantém a secção colapsável e apresenta uma única tabela com as colunas e ferramentas existentes. Expandir/recolher uma Story diretamente na linha revela as Tasks participantes no mesmo Sprint, alinhadas e indentadas nas mesmas colunas; eliminar a caixa hierárquica separada desta vista.
+- Tasks sem Story participante e Bugs aparecem diretamente na tabela. Filtros que excluam a Story não ocultam Tasks correspondentes. Ordenar raízes e filhos entre si; paginar grupos completos para manter Story e Tasks na mesma página. CSV inclui todos os itens filtrados, mesmo com linhas recolhidas. A expansão não altera o progresso do Sprint nem permite editar participações históricas.
 
 ## 11. Calendar e Day Planner
 
@@ -241,3 +243,16 @@ Preservar pesquisa, filtros, ordenação, edição e planeamento, com seis secç
 ## Confirmação final
 
 O utilizador confirmou o entendimento final e autorizou implementar, criar uma feature branch ligada à #36 e responder ao comentário original após a implementação. Mantêm-se workflow único, confirmações e tema atual; a interface de transferências da US-13 e o fecho autónomo de Sprints são dependências separadas, com as regras de integração aqui descritas.
+
+## Ajustes de usabilidade de 29/10/2026
+
+O [comentário após testes](https://github.com/sebastiaofv/TeamOs/issues/36#issuecomment-6485834879) acrescenta estas regras:
+
+- To-do List apenas em Tasks/Bugs; Pull Requests exclusivamente na tab dedicada.
+- Criar um filho regressa ao modal do pai ao guardar ou cancelar.
+- O Board disponibiliza Create workitem na toolbar, à esquerda de Board columns, e elimina a criação por coluna.
+- O badge do estado no detalhe permite selecionar apenas transições permitidas, com as mesmas validações e confirmações dos restantes canais.
+- A secção direita permite editar propriedades, pessoas, Tags e planeamento imediatamente, com persistência e History. A secção esquerda exige Edit. Tipo e datas de sistema continuam imutáveis; leitura/histórico impedem alterações.
+- Sem preferências guardadas, os estados da categoria cancelled ficam ocultos por defeito nos dois Boards. O utilizador pode ativá-los e a escolha é persistida por Board; preferências explícitas existentes prevalecem.
+- Cada tipo possui uma cor distinta e um rótulo textual, compatíveis com os dois temas.
+- A confirmação de avanços de Stories apresenta um dropdown independente por workitem, entre avançar para o destino configurado e manter o estado atual. Cancelar descarta toda a operação; confirmar regista apenas os efeitos selecionados.

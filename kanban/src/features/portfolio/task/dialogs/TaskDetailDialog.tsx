@@ -1,3 +1,5 @@
+import { workitemLabelFor } from '@/domain/taskIdentity';
+import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { WorkitemHierarchy, WorkitemLineage } from './WorkitemHierarchy';
 import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
@@ -11,7 +13,7 @@ import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
-import { TaskPlanning } from './TaskPlanning';
+import { TaskProperties } from './TaskProperties';
 import { TaskConversation } from './TaskConversation';
 import { TaskPullRequestLinks } from './PullRequestLinks';
 import { TaskHistory } from './TaskHistory';
@@ -35,7 +37,7 @@ const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFiel
 ];
 
 export function TaskDetailDialog() {
-    const { closeTaskDetail, editPortfolioTask, toggleTaskDetailChecklistItem } = usePortfolioActions();
+    const { closeTaskDetail, editPortfolioTask } = usePortfolioActions();
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
     const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
     const returnFocus = useReturnFocus();
@@ -54,7 +56,7 @@ export function TaskDetailDialog() {
                     >
                         <div className="modal-header workitem-modal-header">
                             <div className="workitem-heading">
-                                <div className="workitem-eyebrow">{vm && <><span className="workitem-type">{t(`workitems.type.${workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {})}`)}</span><span>#{vm.taskId}</span><span className="workitem-project">{vm.sourceBoardData.board.settings.title}</span></>}</div>
+                                <div className="workitem-eyebrow">{vm && <><WorkitemTypeBadge type={workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {})} /><span>{workitemLabelFor(vm.sourceBoardData, vm.taskId)}</span><span className="workitem-project">{vm.sourceBoardData.board.settings.title}</span></>}</div>
                                 <Dialog.Title className="workitem-title" id="detailTitle">{vm?.fields.title}</Dialog.Title>
                             </div>
                             <div className="workitem-header-actions">{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}
@@ -62,7 +64,7 @@ export function TaskDetailDialog() {
                             </div>
                         </div>
                         <div className="modal-body">
-                            {vm && <TaskDetailContent vm={vm} onToggleChecklistItem={toggleTaskDetailChecklistItem} />}
+                            {vm && <TaskDetailContent vm={vm} />}
                         </div>
                         <div className="modal-footer">
                             <Dialog.Close className="btn" id="taskDetailModalFooterCloseBtn">{t('common.close')}</Dialog.Close>
@@ -75,7 +77,7 @@ export function TaskDetailDialog() {
     );
 }
 
-function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewModel; onToggleChecklistItem: (index: number, checked: boolean) => unknown }) {
+function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
     const tabs = [
         { id: 'details', label: 'history.details' },
         { id: 'relations', label: 'relations.title' },
@@ -104,7 +106,7 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
                     <WorkitemLineage vm={vm} />
                     <section className="workitem-section workitem-description"><h3>{t('task.description')}</h3><p className="detail-value" id="detailDescription">{vm.fields.description}</p></section>
                     <WorkitemHierarchy vm={vm} />
-                    <TaskDetailList vm={vm} onToggleChecklistItem={onToggleChecklistItem} />
+                    <TaskDetailList vm={vm} />
                 </div>
                 <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
                     <DetailProperties vm={vm} />
@@ -127,6 +129,7 @@ function TaskDetailContent({ vm, onToggleChecklistItem }: { vm: TaskDetailViewMo
 function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
     const task = vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId);
+    if (task && !vm.readOnly) return <TaskProperties vm={vm} task={task} />;
     const epic = workitemType(task || {}) === 'epic';
     const state = task && getWorkflow(vm.sourceBoardData, task).states.find((state) => state.id === task.status);
     const groups = [
@@ -137,7 +140,6 @@ function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
     ] as const;
     return <>{groups.map((group) => <section className="workitem-property-group" key={group.title}>
         <h3>{t(group.title)}</h3>
-        {group.title === 'roadmap.planning' && !vm.readOnly && <TaskPlanning readOnly={false} />}
         <dl className="detail-list">{group.fields.flatMap((key) => {
             if (epic && ['effort', 'sprint'].includes(key)) return [];
             const row = FIELD_ROWS.find((field) => field.key === key)!;
@@ -148,14 +150,11 @@ function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
     </section>)}</>;
 }
 
-function TaskDetailList({ vm, onToggleChecklistItem }: {
-    vm: TaskDetailViewModel;
-    onToggleChecklistItem: (itemIndex: number, checked: boolean) => unknown;
-}) {
+function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
     return (
         <dl className="detail-list workitem-supporting-content">
-            <div className="detail-item workitem-section" hidden={!vm.checklist.length}>
+            <div className="detail-item workitem-section" hidden={!vm.checklist.length || !['task', 'bug'].includes(workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}))}>
                 <dt className="detail-label">{t('task.todoList')} <span className="detail-tab-count">{vm.checklist.filter((item) => item.done).length}/{vm.checklist.length}</span></dt>
                 <dd><ul className="detail-checklist" id="detailChecklist">
                     {vm.checklist.length === 0
@@ -166,9 +165,8 @@ function TaskDetailList({ vm, onToggleChecklistItem }: {
                                     <input
                                         type="checkbox"
                                         checked={item.done}
-                                        disabled={vm.readOnly}
+                                        disabled
                                         aria-label={t('editor.todoItem', { index: index + 1 })}
-                                        onChange={(event) => onToggleChecklistItem(index, event.target.checked)}
                                     />
                                     <span className="detail-checklist-text">{item.text}</span>
                                 </label>

@@ -140,7 +140,7 @@ export function buildTaskEditorViewModel(
     Object.assign(initial, { type: normalized ? workitemType(normalized) : 'task', parentId: normalized?.parentId ?? null, phaseMode: normalized?.phaseMode || (normalized?.phaseId ? 'explicit' : 'none'), milestoneMode: normalized?.milestoneMode || (normalized?.milestoneId ? 'explicit' : 'none') }, Object.fromEntries(WORKITEM_FIELDS.map((field) => [field, normalized?.[field] || ''])));
     return {
         editing: Boolean(normalized),
-        parentCandidates: boardRecord.data.board.tasks.filter((item) => ['epic', 'story'].includes(workitemType(item)) && item.id !== task?.id).map((item) => ({ id: item.id, title: item.title, type: workitemType(item) })),
+        parentCandidates: boardRecord.data.board.tasks.filter((item) => ['epic', 'story'].includes(workitemType(item)) && item.id !== task?.id).map((item) => ({ displayId: item.displayId, id: item.id, title: item.title, type: workitemType(item) })),
         openId,
         heading: normalized ? translateCurrent('task.edit') : translateCurrent('task.new'),
         initial,

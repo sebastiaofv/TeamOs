@@ -91,6 +91,6 @@ export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilter
     if (filters.blocked === 'blocked' && !task.blocked) return false;
     if (filters.blocked === 'unblocked' && task.blocked) return false;
     const search = filters.search.trim().toLowerCase();
-    return !search || [String(task.id), task.title || '', task.description || '', workitemType(task), ...(data?.board ? [parentOf(data as BoardData, task), epicOf(data as BoardData, task)].flatMap((item) => item ? [String(item.id), item.title] : []) : [])]
+    return !search || [String(task.id), task.displayId || '', task.title || '', task.description || '', workitemType(task), ...(data?.board ? [parentOf(data as BoardData, task), epicOf(data as BoardData, task)].flatMap((item) => item ? [String(item.id), item.title] : []) : [])]
         .some((value) => value.toLowerCase().includes(search));
 }

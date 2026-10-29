@@ -1,3 +1,5 @@
+import { workitemLabel } from '@/domain/taskIdentity';
+import { WorkitemTypeBadge } from '../WorkitemTypeBadge';
 import { WORKITEM_TYPES, validParent } from '@/domain/workitems';
 import { useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -15,7 +17,6 @@ import { TagEditor } from './editor/TagEditor';
 import { EditorSelect } from './editor/EditorSelect';
 import { ChecklistEditor } from './editor/ChecklistEditor';
 import { AttachmentsEditor } from './editor/AttachmentsEditor';
-import { PullRequestLinks } from './PullRequestLinks';
 import { useI18n } from '@/shared/i18n';
 
 type SubmitRef = RefObject<(() => Promise<void>) | null>;
@@ -110,6 +111,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
     return (
         <>
             <div className="modal-header workitem-modal-header">
+                <WorkitemTypeBadge type={form.type || 'task'} />
                 <Dialog.Title asChild>
                     <span className="modal-title" id="modalTitle">{form.type && form.type !== 'task' ? `${t(vm.editing ? 'common.edit' : 'common.new')} ${t(`workitems.type.${form.type}`)}` : vm.heading}</span>
                 </Dialog.Title>
@@ -129,10 +131,10 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         <textarea id="taskDescription" {...bind('description')} />
                     </div>
                     {(form.type === 'epic' ? ['objective', 'scope', 'businessValue'] as const : form.type === 'story' ? ['acceptanceCriteria'] as const : form.type === 'bug' ? ['stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment'] as const : []).map((field) => <div className="form-group" key={field}><label htmlFor={`workitem-${field}`}>{t(`workitems.${field}`)}</label><textarea id={`workitem-${field}`} value={form[field] || ''} onChange={(event) => update(field, event.target.value)} /></div>)}
-                    <div className="form-group">
+                    {['task', 'bug'].includes(form.type || 'task') && <div className="form-group">
                         <label id="taskTodoListLabel">{t('task.todoList')}</label>
                         <ChecklistEditor value={form.checklist} onChange={(next) => update('checklist', next)} />
-                    </div>
+                    </div>}
                     <div className="form-group">
                         <label id="taskAttachmentsLabel">{t('task.attachments')}</label>
                         <AttachmentsEditor
@@ -141,7 +143,6 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             otherAttachmentBytes={vm.otherAttachmentBytes}
                         />
                     </div>
-                    {form.type !== 'epic' && <PullRequestLinks value={form.pullRequests || []} onChange={(next) => update('pullRequests', next)} draft />}
                         </div>
                         <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
                             <section className="workitem-property-group">
@@ -151,7 +152,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             setForm((current) => ({ ...current, type, parentId: null, ...(type === 'epic' ? { effort: '', pullRequests: [] } : {}) }));
                         }}>{WORKITEM_TYPES.map((type) => <option key={type} value={type}>{t(`workitems.type.${type}`)}</option>)}</select></div>
                         {['story', 'task'].includes(form.type || 'task') && <div className="form-group"><label htmlFor="workitemParent">{t('workitems.parent')}</label><select id="workitemParent" value={form.parentId || ''} onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value ? Number(event.target.value) : null, phaseMode: event.target.value && !current.phaseId ? 'inherit' : current.phaseMode, milestoneMode: event.target.value && !current.milestoneId ? 'inherit' : current.milestoneMode }))}>
-                            <option value="">{t('common.none')}</option>{vm.parentCandidates?.filter((parent) => validParent(form.type || 'task', parent)).map((parent) => <option key={parent.id} value={parent.id}>#{parent.id} {parent.title}</option>)}
+                            <option value="">{t('common.none')}</option>{vm.parentCandidates?.filter((parent) => validParent(form.type || 'task', parent)).map((parent) => <option key={parent.id} value={parent.id}>{workitemLabel(parent)} {parent.title}</option>)}
                         </select></div>}
                     </div>
                             </section>

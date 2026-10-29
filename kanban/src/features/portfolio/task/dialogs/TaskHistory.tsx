@@ -40,7 +40,7 @@ function readable(value: unknown, field: string, t: ReturnType<typeof useI18n>['
         if (field === 'attachments') return item.unavailable ? t('history.detailsUnavailable') : `${item.name || item.id} · ${item.mime || item.kind || ''} · ${typeof item.sizeBytes === 'number' ? formatFileSize(item.sizeBytes) : t('history.unavailable')}`;
         if (field === 'checklist') return `${item.done ? '☑' : '☐'} ${item.text || ''}`;
         if (field === 'planner') return `${item.date || ''} ${item.start || ''}–${item.end || ''} [${item.id || ''}]`;
-        if (field === 'relations') return `${t(item.direction === 'blocks' ? 'history.blocks' : item.direction === 'blockedBy' ? 'history.blockedBy' : 'history.related')} #${item.id}${item.title ? ` · ${item.title}` : ''}`;
+        if (field === 'relations') return `${t(item.direction === 'blocks' ? 'history.blocks' : item.direction === 'blockedBy' ? 'history.blockedBy' : 'history.related')} ${typeof item.displayId === 'string' ? item.displayId : `#${item.id}`}${item.title ? ` · ${item.title}` : ''}`;
         // Unknown future content stays legible without exposing binary payloads.
         return Object.entries(item).filter(([key]) => !['dataUrl', 'base64', 'body', 'images'].includes(key)).map(([key, child]) => `${key}: ${readable(child, field, t)}`).join('\n');
     }

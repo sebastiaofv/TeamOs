@@ -265,7 +265,7 @@ describe('serializeBoardDataFromObject', () => {
   it('stamps meta.schemaVersion and meta.appId', () => {
     const out = serializeBoardDataFromObject(rawBoardInput());
     expect(out.meta.schemaVersion).toBe(BOARD_SCHEMA_VERSION);
-    expect(out.meta.schemaVersion).toBe(4);
+    expect(out.meta.schemaVersion).toBe(5);
     expect(out.meta.appId).toBe(BOARD_APP_ID);
     expect(out.meta.appId).toBe('teamos-kanban');
   });
@@ -337,7 +337,7 @@ describe('createBoardStateSnapshot', () => {
 
   it('stamps meta.schemaVersion and meta.appId', () => {
     const out = createBoardStateSnapshot(rawBoardInput());
-    expect(out.meta.schemaVersion).toBe(4);
+    expect(out.meta.schemaVersion).toBe(5);
     expect(out.meta.appId).toBe('teamos-kanban');
   });
 
@@ -425,7 +425,7 @@ describe('serializeBoardDataFromObject — ported from the Playwright suite', ()
     expect(() => validateBoardData(source)).not.toThrow();
 
     const serialized = serializeBoardDataFromObject(source);
-    expect(serialized.meta.schemaVersion).toBe(4);
+    expect(serialized.meta.schemaVersion).toBe(5);
     expect(serialized.board.tasks[0].assignees).toEqual(['Alex']);
     // The legacy key must not survive serialization.
     expect(Object.prototype.hasOwnProperty.call(serialized.board.tasks[0], 'assignee')).toBe(false);

@@ -1,3 +1,4 @@
+import { workitemLabelFor } from '@/domain/taskIdentity';
 import type { TaskRelationKind } from '@/domain/types';
 import { cloneSerializable } from '@/domain/serializable';
 import { getRelations, removeTaskRelation, setTaskRelation, TaskRelationError } from '@/domain/taskRelations';
@@ -5,10 +6,10 @@ import { recordTaskRelationsTimelineEvent } from '@/domain/timeline';
 import { translateCurrent } from '@/shared/i18n';
 import type { BoardMutationContext } from '@/features/portfolio/commands/mutationContext';
 
-export function createTaskRelationActions({ runPortfolioBoardMutation, confirm }: BoardMutationContext) {
+export function createTaskRelationActions({ runPortfolioBoardMutation, confirm, getBoardRecord }: BoardMutationContext) {
     async function associatePortfolioTasks(boardId: string, taskId: number, otherId: number, kind: TaskRelationKind, replace = false) {
-        if (replace && !(await confirm(translateCurrent('relations.replaceQuestion', { a: taskId, b: otherId }) + '\n\n' +
-            translateCurrent(`relations.sentence.${kind}`, { a: `#${taskId}`, b: `#${otherId}` }), { confirmLabel: translateCurrent('common.save') }))) return false;
+        if (replace && !(await confirm(translateCurrent('relations.replaceQuestion', { a: workitemLabelFor(getBoardRecord(boardId)?.data, taskId), b: workitemLabelFor(getBoardRecord(boardId)?.data, otherId) }) + '\n\n' +
+            translateCurrent(`relations.sentence.${kind}`, { a: workitemLabelFor(getBoardRecord(boardId)?.data, taskId), b: workitemLabelFor(getBoardRecord(boardId)?.data, otherId) }), { confirmLabel: translateCurrent('common.save') }))) return false;
         return runPortfolioBoardMutation(boardId, (data) => {
             const before = cloneSerializable(getRelations(data));
             try {
@@ -23,7 +24,7 @@ export function createTaskRelationActions({ runPortfolioBoardMutation, confirm }
     }
 
     async function removePortfolioTaskRelation(boardId: string, taskId: number, otherId: number) {
-        if (!(await confirm(translateCurrent('relations.removeQuestion', { a: taskId, b: otherId }), { confirmLabel: translateCurrent('common.remove') }))) return false;
+        if (!(await confirm(translateCurrent('relations.removeQuestion', { a: workitemLabelFor(getBoardRecord(boardId)?.data, taskId), b: workitemLabelFor(getBoardRecord(boardId)?.data, otherId) }), { confirmLabel: translateCurrent('common.remove') }))) return false;
         return runPortfolioBoardMutation(boardId, (data) => {
             const before = cloneSerializable(getRelations(data));
             removeTaskRelation(data, taskId, otherId);

@@ -16,7 +16,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - **Command palette** — `⌘K` / `Ctrl+K`, `/` or the toolbar search box. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan, archive); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
 - **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
 - **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
-- **Table perspectives** (single project) — All workitems, Unplanned (not Done and no sprint) with selection-to-sprint creation, and collapsible per-sprint tables. Sprint headers retain dates, date-derived Planned/Active/Done status and completeness over all unique current members, including archived items. Filters affect rows/CSV, not the sprint denominator. Timestamps display as UTC `yyyy-mm-dd HH:mm:ss`; columns have minimum widths, two-line cells and horizontal scrolling, with colored status and blocked badges.
+- **Table perspectives** (single project) — All workitems, Unplanned (not Done and no sprint) with selection-to-sprint creation, and collapsible per-sprint tables. Stories expand directly into participating Task rows within each sprint table; independent Tasks and Bugs appear at the top level. Sorting keeps children beneath their Story, pagination keeps each group together, and CSV includes all filtered workitems even when collapsed. Sprint headers retain dates, date-derived Planned/Active/Done status and completeness over unique planning units, including archived items, without counting Story Tasks twice. Filters affect rows/CSV, not the sprint denominator. Timestamps display as UTC `yyyy-mm-dd HH:mm:ss`; columns have minimum widths, two-line cells and horizontal scrolling, with colored status and blocked badges.
 - **Light and dark theme.**
 
 ## Data and persistence
@@ -140,3 +140,9 @@ Optional Playwright modes: `npm run test:headed`, `npm run test:ui`, `npm run te
 ### Pre-commit hook
 
 `npm install` sets up a Husky pre-commit hook (`.husky/pre-commit`, registered at the git root via the `prepare` script). Each commit runs ESLint on staged `.ts`/`.tsx`/`.mjs` files (lint-staged, `.lintstagedrc`), then `npm run typecheck` and `npm run test:unit`. Playwright tests are not run by the hook; run `npm test` before pushing UI changes.
+
+### Workitem IDs
+
+New projects require a **Project Acronym** of 1–3 letters, unique among the projects open in the local portfolio. New workitems persist IDs such as `CHK-EP-1`, `CHK-US-2`, `CHK-TK-3`, and `CHK-BG-4`, sharing one project sequence. IDs and types stay fixed after creation; changing the project name or acronym affects only future items. Deletion and history restoration never reuse a number.
+
+Schema 5 reads schema 1–4 files without assigning new IDs to existing items. An older project can set its acronym in General settings or when creating its first new item. Numeric references remain the stable links for hierarchy, relations, comments and planning. Since project files are local, acronym uniqueness is checked against the loaded portfolio.

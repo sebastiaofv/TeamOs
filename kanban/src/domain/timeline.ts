@@ -1,3 +1,4 @@
+import { workitemLabelFor } from '@/domain/taskIdentity';
 import type {
     BoardData,
     LooseBoardData,
@@ -270,7 +271,7 @@ export function recordTaskRelationsTimelineEvent(data: BoardData, taskId: number
     if (areSerializableValuesEqual(before, after)) return;
     appendTimelineEvent(data, {
         kind: 'task.relations.updated', entityType: 'task', entityId: String(taskId),
-        summary: `Relations updated: #${taskId}`,
+        summary: `Relations updated: ${workitemLabelFor(data, taskId)}`,
         changes: { relations: { before: cloneSerializable(before), after: cloneSerializable(after) } },
         meta: { taskIds: [...new Set([...before, ...after].flatMap((relation) => [relation.sourceId, relation.targetId]))] }
     });

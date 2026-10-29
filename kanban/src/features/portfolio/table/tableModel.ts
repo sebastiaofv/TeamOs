@@ -1,3 +1,4 @@
+import { workitemId, workitemLabel } from '@/domain/taskIdentity';
 import { effectivePlanning, workitemType, parentOf, epicOf } from '@/domain/workitems';
 import type { BoardData } from '@/domain/types';
 import { getWorkflow } from '@/domain/workflow';
@@ -34,9 +35,9 @@ export function tableCellValue(row: PortfolioRow, column: TableColumnId, boardDa
     const roadmap = boardData?.extensions.roadmap;
     switch (column) {
         case 'type': return workitemType(task);
-        case 'epic': { const epic = boardData && epicOf(boardData, task); return epic ? `#${epic.id} ${epic.title}` : ''; }
-        case 'story': { const parent = boardData && parentOf(boardData, task); return parent && workitemType(parent) === 'story' ? `#${parent.id} ${parent.title}` : ''; }
-        case 'id': return String(task.id);
+        case 'epic': { const epic = boardData && epicOf(boardData, task); return epic ? `${workitemLabel(epic)} ${epic.title}` : ''; }
+        case 'story': { const parent = boardData && parentOf(boardData, task); return parent && workitemType(parent) === 'story' ? `${workitemLabel(parent)} ${parent.title}` : ''; }
+        case 'id': return workitemId(task);
         case 'phase': return getRoadmapItemTitle(roadmap, 'phases', boardData ? effectivePlanning(boardData, task, 'phaseId') : task.phaseId);
         case 'milestone': return getRoadmapItemTitle(roadmap, 'milestones', boardData ? effectivePlanning(boardData, task, 'milestoneId') : task.milestoneId);
         case 'sprint': return getRoadmapItemTitle(roadmap, 'sprints', task.sprintId);

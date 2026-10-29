@@ -56,7 +56,8 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
 }) {
     const [inputValue, setInputValue] = useState(message.input?.defaultValue ?? '');
     const [selection, setSelection] = useState(0);
-    const answer = (button: AppMessageButton) => { if (button.submitsInput && message.input?.required && !inputValue.trim()) return; resolveAppMessage(button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value); };
+    const [selections, setSelections] = useState<Record<string, string>>(() => Object.fromEntries((message.selections || []).map((field) => [field.id, field.options[0]?.value || ''])));
+    const answer = (button: AppMessageButton) => { if (button.submitsInput && message.input?.required && !inputValue.trim()) return; resolveAppMessage(button.submitsSelections ? selections : button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value); };
     // Every message is built with a primary button (see appMessages.ts).
     const primary = message.buttons.find((button) => button.primary)!;
 
@@ -71,6 +72,12 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
                 <Dialog.Description asChild>
                     <p className="app-message-text" id="appMessageText">{message.text}</p>
                 </Dialog.Description>
+                {message.selections?.map((field, index) => <div className="form-group app-message-field" key={field.id}>
+                    <label htmlFor={`appMessageSelection-${index}`}>{field.label}</label>
+                    <select id={`appMessageSelection-${index}`} value={selections[field.id]} onChange={(event) => setSelections((current) => ({ ...current, [field.id]: event.target.value }))}>
+                        {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                </div>)}
                 {message.selection && <div className="form-group app-message-field">
                     <label htmlFor="appMessageSelection">{message.selection.label}</label>
                     <select id="appMessageSelection" value={selection} onChange={(event) => setSelection(Number(event.target.value))}>

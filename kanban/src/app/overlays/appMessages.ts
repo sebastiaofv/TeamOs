@@ -4,11 +4,11 @@
 // what the dialog renders; the pending resolvers stay in this module.
 
 import { flushSync } from 'react-dom';
-import type { AppMessage } from '@/app/types';
+import type { AppMessage, MessageSelection } from '@/app/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { translateCurrent } from '@/shared/i18n';
 
-export type ConfirmOptions = { title?: string; confirmLabel?: string; danger?: boolean };
+export type ConfirmOptions = { title?: string; confirmLabel?: string; danger?: boolean; selections?: MessageSelection[] };
 export type PromptOptions = { title?: string; confirmLabel?: string; required?: boolean };
 export type Choice<T> = { value: T; label: string; primary?: boolean };
 
@@ -55,14 +55,15 @@ export function showAlert(text: string, { title }: { title?: string } = {}): Pro
     });
 }
 
-// Resolves true when confirmed, false when cancelled.
-export function showConfirm(text: string, { title, confirmLabel, danger = false }: ConfirmOptions = {}): Promise<boolean> {
+// Resolves selected field values (or true without fields) when confirmed, false when cancelled.
+export function showConfirm(text: string, { title, confirmLabel, danger = false, selections }: ConfirmOptions = {}): Promise<boolean | Record<string, string>> {
     return request({
         title: title || translateCurrent('messages.confirm'),
         text,
+        ...(selections?.length ? { selections } : {}),
         buttons: [
             { label: translateCurrent('messages.cancel'), value: false, cancel: true },
-            { label: confirmLabel || translateCurrent('common.ok'), value: true, primary: true, danger }
+            { label: confirmLabel || translateCurrent('common.ok'), value: true, primary: true, danger, ...(selections?.length ? { submitsSelections: true } : {}) }
         ],
         cancelValue: false
     });

@@ -50,7 +50,7 @@ test('hiding the timeline exits historical preview and returns to the current bo
   await page.getByRole('checkbox', { name: 'Show timeline bar', exact: true }).uncheck();
   await page.keyboard.press('Escape');
   await expect(portfolioCard(page, 'Current task')).toBeVisible();
-  await expect(page.locator('#portfolio-backlog-column .add-task-card')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toBeVisible();
   await expect(page.locator('#portfolioTimelinePanel')).toHaveCount(0);
 });
 

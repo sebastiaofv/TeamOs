@@ -566,7 +566,7 @@
 /* Workitem views use the existing theme, buttons and modal primitives. */
 .workitem-board-shell { display: flex; flex-direction: column; width: 100%; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg-primary); }
 .workitem-board-toolbar { display: flex; flex-wrap: wrap; align-items: center; flex-shrink: 0; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
-.workitem-board-toolbar > .board-column-menu { margin-left: auto; }
+.workitem-board-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .workitem-board-columns { display: flex; flex: 1; min-height: 0; gap: 1px; overflow-x: auto; background: var(--border-light); }
 .workitem-card-context { font-size: 10px; color: var(--text-secondary); margin: 6px 0; }
 .workitem-type { display: inline-block; border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; color: var(--text-secondary); background: var(--bg-secondary); font-size: 11px; }
@@ -579,3 +579,13 @@
 .workitem-tree { border: 1px solid var(--border); border-radius: 6px; margin: 10px 0; padding: 10px; background: var(--bg-card); }
 .workitem-tree details { padding: 6px 0 6px 14px; }
 .workitem-tree li { padding: 5px 0; }
+
+.workitem-type[data-workitem-type="epic"] { --workitem-color: #6d28d9; }
+.workitem-type[data-workitem-type="story"] { --workitem-color: #047857; }
+.workitem-type[data-workitem-type="task"] { --workitem-color: #1d4ed8; }
+.workitem-type[data-workitem-type="bug"] { --workitem-color: #b91c1c; }
+[data-theme="dark"] .workitem-type[data-workitem-type="epic"] { --workitem-color: #c4b5fd; }
+[data-theme="dark"] .workitem-type[data-workitem-type="story"] { --workitem-color: #6ee7b7; }
+[data-theme="dark"] .workitem-type[data-workitem-type="task"] { --workitem-color: #93c5fd; }
+[data-theme="dark"] .workitem-type[data-workitem-type="bug"] { --workitem-color: #fca5a5; }
+.workitem-type[data-workitem-type] { color: var(--workitem-color); border-color: color-mix(in srgb, var(--workitem-color) 45%, var(--border)); background: color-mix(in srgb, var(--workitem-color) 10%, var(--bg-card)); }

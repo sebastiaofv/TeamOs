@@ -9,7 +9,7 @@ import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persisten
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, showChoice, showPrompt, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
-import { ProjectDataError } from '@/domain/projectData';
+import { assertUniqueProjectAcronym, ProjectDataError } from '@/domain/projectData';
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -82,6 +82,7 @@ export function createBoardMutationContext({
             return false;
         }
         const publish = async (draft: BoardRecord) => {
+            if (draft.data.extensions.project && draft.data.extensions.project.acronym !== current.data.extensions.project?.acronym) assertUniqueProjectAcronym(draft.data.extensions.project, getState().portfolioBoards.filter((board) => board.id !== boardId).flatMap((board) => board.data.extensions.project ? [board.data.extensions.project] : []));
             draft.title = draft.data.board.settings.title;
             const state = getState();
             const timeline = getBoardTimelineData(draft.data);

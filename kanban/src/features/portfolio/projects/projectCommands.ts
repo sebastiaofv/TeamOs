@@ -11,6 +11,8 @@ import { assertRequiredExtension, formatErrorMessage, hasRequiredExtension, isAb
 import { BoardRepository, writeJsonToFileHandle } from '@/infrastructure/persistence/boardRepository';
 import { checkProjectFilesNow } from '@/infrastructure/persistence/projectFileWatcher';
 import { createPortfolioRecord } from '@/infrastructure/persistence/portfolioRecord';
+import { assertUniqueProjectAcronym, ProjectDataError } from '@/domain/projectData';
+import { useAppStore } from '@/features/portfolio/state/store';
 import { getPortfolioBoardRecord } from '@/features/portfolio/state/store';
 import { closePortfolioContextsForProject } from '@/app/overlays/dialogs';
 import { showAlert, showChoice, showPrompt, type Choice, type PromptOptions } from '@/app/overlays/appMessages';
@@ -107,7 +109,21 @@ export function createPortfolioFileActions({
             if (!title) return;
             const suggestedStem = slugifyColumnName(title) || 'project';
 
-            const data = createEmptyProjectData(title);
+            let acronym = '';
+            while (!acronym) {
+                const answer = await prompt(translateCurrent('project.acronymHelp'), title.replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase(), { title: translateCurrent('project.acronym'), required: true });
+                if (answer === null) return;
+                const candidate = answer.trim().toUpperCase();
+                try {
+                    if (!/^[A-Z]{1,3}$/.test(candidate)) throw new ProjectDataError('acronym');
+                    assertUniqueProjectAcronym({ ...createEmptyProjectData(title).extensions.project!, acronym: candidate }, useAppStore.getState().portfolioBoards.flatMap((board) => board.data.extensions.project ? [board.data.extensions.project] : []));
+                    acronym = candidate;
+                } catch (error) {
+                    if (!(error instanceof ProjectDataError)) throw error;
+                    await alert(translateCurrent(`project.error.${error.code}`));
+                }
+            }
+            const data = createEmptyProjectData(title, acronym);
             await writeJsonToFileHandle(handle, BoardRepository.serialize(data));
             const record = createPortfolioRecord({
                 handle,

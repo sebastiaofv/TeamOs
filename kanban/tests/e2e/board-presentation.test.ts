@@ -12,7 +12,7 @@ test('all workflow states are regular columns and cards/details keep their origi
     await expect(portfolioCard(page, 'Blocked but movable').locator('select')).toHaveCount(0);
     await portfolioCard(page, 'Blocked but movable').locator('.task-title').click();
     await expect(page.locator('#taskDetailModal .task-workflow-header')).toHaveCount(0);
-    await expect(page.locator('#detailResponsible')).toHaveText('Ana');
+    await expect(page.locator('#detailResponsibleInput')).toHaveValue('Ana');
     await page.keyboard.press('Escape');
     await portfolioCard(page, 'Blocked but movable').getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.locator('#taskModal .task-workflow-header, #taskModal .workflow-state-control')).toHaveCount(0);

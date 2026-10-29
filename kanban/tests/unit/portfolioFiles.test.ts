@@ -31,7 +31,7 @@ describe('portfolio file actions', () => {
             windowRef: {
                 showSaveFilePicker: fromAny(vi.fn(async () => handle))
             },
-            prompt: fromAny(vi.fn(() => 'Planning')),
+            prompt: fromAny(vi.fn().mockResolvedValueOnce('Planning').mockResolvedValueOnce('PLN')),
             appendPortfolioRecords
         });
 

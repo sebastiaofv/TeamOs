@@ -138,7 +138,10 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
             <div className="workitem-board-shell">
                 <div className="workitem-board-toolbar" role="group" aria-label={t('workitems.type')}>
                     {(['technical', 'functional'] as const).map((value) => <button className={`btn${mode === value ? ' active' : ''}`} type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{t(`workitems.${value}`)}</button>)}
-                    <BoardColumnMenu mode={mode} />
+                    <div className="workitem-board-actions">
+                        {canAddTasks && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}>{t('table.create')}</button>}
+                        <BoardColumnMenu mode={mode} />
+                    </div>
                 </div>
                 <div className="workitem-board-columns">
                     {!columns.length && <p className="board-columns-empty" role="status">{t('board.allColumnsHidden')}</p>}
@@ -148,7 +151,6 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                         return <section className="portfolio-column" data-status={column.status} key={column.status}>
                             <div className="portfolio-column-header"><h2 className="column-title" id={`portfolio-${column.status}-heading`}>{title}</h2><span className="column-count">{items.length}</span></div>
                             <DroppableColumnBody column={{ ...column, title }}>
-                                {canAddTasks && <button className="add-task-card" type="button" data-action="add-task" data-status={column.status} onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}>{t('board.addTask')}</button>}
                                 {items.length ? items.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />) : <p className="empty-state">{t('common.noTasks')}</p>}
                             </DroppableColumnBody>
                         </section>;
