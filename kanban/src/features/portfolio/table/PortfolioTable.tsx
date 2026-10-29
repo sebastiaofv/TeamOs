@@ -1,4 +1,5 @@
 import { workitemLabel } from '@/domain/taskIdentity';
+import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
 import { useMemo, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -271,7 +272,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                                             : <span className="table-tree-spacer" aria-hidden="true" />)}
                                         <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? workitemLabel(row.task) : cellText(row, column)}</button>
                                     </div>
-                                    : (column === 'epic' || column === 'story') && (column === 'epic' ? epicOf(boardData, row.task) : storyOf(boardData, row.task)) ? <button type="button" className="table-item-link" onClick={() => actions.openPortfolioTaskDetails(boardId, (column === 'epic' ? epicOf(boardData, row.task)! : storyOf(boardData, row.task)!).id)}>{cellText(row, column)}</button> : column === 'status' && workflowState
+                                    : (column === 'epic' || column === 'story') && (column === 'epic' ? epicOf(boardData, row.task) : storyOf(boardData, row.task)) ? <button type="button" className="table-item-link" onClick={() => actions.openPortfolioTaskDetails(boardId, (column === 'epic' ? epicOf(boardData, row.task)! : storyOf(boardData, row.task)!).id)}>{cellText(row, column)}</button> : column === 'type' ? <WorkitemTypeBadge type={workitemType(row.task)} /> : column === 'status' && workflowState
                                         ? <WorkflowStateBadge state={workflowState} />
                                         : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${column === 'blocked' && row.task.blocked ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
                             </td>)}

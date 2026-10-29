@@ -22,22 +22,26 @@ function setup(writable = true) {
 }
 
 describe('persisted Board column visibility', () => {
-    it('defaults old projects to every workflow state visible', () => {
+    it('defaults both Boards to hide cancelled-category states while honoring explicit preferences', () => {
         const { store, data } = setup();
+        expect([...hiddenBoardStates(data())]).toEqual(['cancelled', 'duplication']);
+        expect([...hiddenBoardStates(data(), 'functional')]).toEqual(['cancelled', 'duplication']);
+        data().extensions.boardView = { version: 1, hiddenStateIds: [] };
         expect(hiddenBoardStates(data()).size).toBe(0);
         expect(buildPortfolioBoardView(store.getState()).columns.map((column) => column.status)).toEqual(getWorkflow(data()).states.map((state) => state.id));
         expect(parseBoardView(undefined)).toBeUndefined();
     });
     it('saves and replays visibility without deleting states, tasks, history or assignments', async () => {
         const { store, actions, data, save } = setup();
+        data().extensions.boardView = { version: 1, hiddenStateIds: [] };
         const original = structuredClone(data().board);
         expect(await actions.setPortfolioBoardColumnVisibility('p', 'cancelled', false)).toBe(true);
         const next = serializeBoardDataFromObject(data()); validateBoardData(next);
-        expect(next.extensions.boardView).toEqual({ version: 1, hiddenStateIds: ['cancelled'] });
+        expect(next.extensions.boardView).toEqual({ version: 1, hiddenStateIds: ['cancelled'], functionalHiddenStateIds: ['cancelled', 'duplication'] });
         expect(next.board).toEqual(original);
         expect(buildPortfolioBoardView(store.getState()).columns.some((column) => column.status === 'cancelled')).toBe(false);
         expect(next.extensions.timeline!.events).toHaveLength(2);
-        expect(reconstructBoardStateFromTimeline(next, 0).extensions.boardView).toBeUndefined();
+        expect(reconstructBoardStateFromTimeline(next, 0).extensions.boardView).toEqual({ version: 1, hiddenStateIds: [] });
         expect(reconstructBoardStateFromTimeline(next, 1).extensions.boardView).toEqual(next.extensions.boardView);
         expect(await actions.setPortfolioBoardColumnVisibility('p', 'cancelled', false)).toBe(false);
         expect(save).toHaveBeenCalledTimes(1);
@@ -63,6 +67,7 @@ describe('persisted Board column visibility', () => {
     });
     it('preserves hidden state IDs across rename/reorder and cleans them on state deletion', () => {
         const { data } = setup(); const current = data();
+        current.extensions.boardView = { version: 1, hiddenStateIds: [] };
         setBoardColumnVisibility(current, 'duplication', false);
         const workflow = getWorkflow(current); workflow.states.find((state) => state.id === 'duplication')!.name = 'Duplicate'; workflow.states.reverse();
         applyWorkflow(current, workflow, {});
@@ -75,7 +80,7 @@ describe('persisted Board column visibility', () => {
     it('isolates preferences per project even when the aggregate uses a shared status ID', () => {
         const { store, data } = setup();
         setBoardColumnVisibility(data(), 'cancelled', false);
-        const other = createEmptyProjectData('Other'); other.board.tasks = [normalizeTask({ id: 1, title: 'Other', status: 'cancelled' })];
+        const other = createEmptyProjectData('Other'); other.extensions.boardView = { version: 1, hiddenStateIds: [] }; other.board.tasks = [normalizeTask({ id: 1, title: 'Other', status: 'cancelled' })];
         store.setState({ portfolioBoards: [...store.getState().portfolioBoards, fromPartial({ id: 'q', title: 'Other', data: other })], selectedPortfolioBoardId: '' });
         const view = buildPortfolioBoardView(store.getState());
         expect(view.columns.some((column) => column.status === 'cancelled')).toBe(true);
@@ -89,7 +94,7 @@ describe('persisted Board column visibility', () => {
         await actions.setPortfolioBoardColumnVisibility('p', 'done', false);
         store.setState({ portfolioTimelineSelection: { boardId: 'p', eventIndex: 0 } });
         expect(await actions.setPortfolioBoardColumnVisibility('p', 'cancelled', false)).toBe(false);
-        expect(save).toHaveBeenCalledTimes(1); expect(data().extensions.boardView!.hiddenStateIds).toEqual(['done']);
+        expect(save).toHaveBeenCalledTimes(1); expect(data().extensions.boardView!.hiddenStateIds).toEqual(['cancelled', 'duplication', 'done']);
         expect(buildPortfolioBoardView(store.getState()).columns.some((column) => column.status === 'done')).toBe(true);
     });
 });

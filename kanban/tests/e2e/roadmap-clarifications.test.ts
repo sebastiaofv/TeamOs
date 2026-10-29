@@ -183,9 +183,9 @@ test('phase detail navigation preserves zoom, width, selection and scroll', asyn
     await trigger.scrollIntoViewIfNeeded();
     const before = await page.locator('#portfolioRoadmapView').evaluate((element) => ({ top: element.scrollTop, left: element.scrollLeft }));
     await trigger.click();
-    await expect(page.locator('#detailPhase')).toHaveText('API');
-    await expect(page.locator('#detailMilestone')).toHaveText('Public release');
-    await expect(page.locator('#detailSprint')).toHaveText('October execution');
+    await expect(page.locator('#detailPlanning-phaseId')).toHaveValue('api');
+    await expect(page.locator('#detailPlanning-milestoneId')).toHaveValue('release');
+    await expect(page.locator('#detailSprintInput')).toHaveValue('october');
     await page.keyboard.press('Escape');
     await expect(trigger).toBeFocused();
     await expect(work.getByRole('checkbox', { name: 'Select API contracts', exact: true })).toBeChecked();

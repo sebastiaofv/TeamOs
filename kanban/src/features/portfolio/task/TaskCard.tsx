@@ -1,4 +1,5 @@
 import { workitemLabel } from '@/domain/taskIdentity';
+import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { workitemType, parentOf, epicOf, workitemProgress } from '@/domain/workitems';
 import { useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import type { useDraggable } from '@dnd-kit/core';
@@ -178,7 +179,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}><span aria-hidden="true">🗑️</span></button>
                 </div>
             </div>
-            <div className="workitem-card-context"><span>{workitemLabel(task)}</span><span className="workitem-type">{t(`workitems.type.${workitemType(task)}`)}</span>
+            <div className="workitem-card-context"><span>{workitemLabel(task)}</span><WorkitemTypeBadge type={workitemType(task)} />
                 {boardData && parentOf(boardData, task) && <span> · {workitemLabel(parentOf(boardData, task)!)} {parentOf(boardData, task)!.title}</span>}
                 {boardData && epicOf(boardData, task) && epicOf(boardData, task)?.id !== task.parentId && <span> · {workitemLabel(epicOf(boardData, task)!)} {epicOf(boardData, task)!.title}</span>}
                 {boardData && workitemType(task) === 'story' && <span> · {t('workitems.progress')}: {workitemProgress(boardData, task.id).percent === null ? t('workitems.noProgress') : `${Math.round(workitemProgress(boardData, task.id).percent!)}%`}</span>}

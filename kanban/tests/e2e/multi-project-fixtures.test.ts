@@ -11,8 +11,8 @@ test('manual US-12 projects import together and preserve types, states and repea
     await page.locator('#importProjectsBtn').click();
     await expect(page.locator('#portfolioBoardsChips .portfolio-chip')).toHaveCount(3);
     await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click();
-    await expect(page.locator('.portfolio-task-card')).toHaveCount(14);
-    await expect(page.locator('.portfolio-column')).toHaveCount(5);
+    await expect(page.locator('.portfolio-task-card')).toHaveCount(13);
+    await expect(page.locator('.portfolio-column')).toHaveCount(4);
     const repeated = page.locator('.portfolio-task-card[data-task-id="1204"]');
     await expect(repeated).toHaveCount(2);
     await expect(repeated.filter({ hasText: 'Implementar confirmação' }).locator('.portfolio-project-badge')).toHaveText('US-12 · Checkout');
@@ -28,10 +28,10 @@ test('manual US-12 projects import together and preserve types, states and repea
     await expect(page.locator('.portfolio-task-card[data-task-id="1201"]')).toHaveCount(2);
     await page.screenshot({ path: testInfo.outputPath('all-functional.png'), animations: 'disabled' });
     await selectPortfolioBoard(page, 'US-12 · Checkout');
-    await expect(page.locator('.portfolio-column')).toHaveCount(9);
+    await expect(page.locator('.portfolio-column')).toHaveCount(7);
     await expect(page.locator('.portfolio-task-card[data-task-id="1201"]')).toContainText('Checkout acessível');
     await selectPortfolioBoard(page, 'US-12 · Suporte');
-    await expect(page.locator('.portfolio-column')).toHaveCount(8);
+    await expect(page.locator('.portfolio-column')).toHaveCount(7);
     await expect(page.locator('.portfolio-task-card[data-task-id="1201"]')).toContainText('Portal de suporte');
     await expect(page.locator('#portfolio-released-column')).toContainText('Receber número do pedido');
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();

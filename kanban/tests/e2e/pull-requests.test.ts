@@ -83,35 +83,22 @@ test('detail links validate locally, preserve spelling, and support explicit cor
     expect(network).toEqual([]);
 });
 
-test('creation/edit forms stage associations until saving; cancel and Enter do not accidentally apply the workitem', async ({ page }) => {
+test('edit and creation forms keep Pull Requests exclusively in the dedicated detail tab', async ({ page }) => {
     await gotoApp(page);
-    await seedPortfolioBoards(page, [{ id: 'p', title: 'Draft links', hasHandle: true, tasks: [{ id: 1, title: 'Original', status: 'to-do', pullRequests: [first] }] }], { selectedBoardId: 'p' });
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Links', hasHandle: true, tasks: [{ id: 1, title: 'Original', status: 'to-do', pullRequests: [first] }] }], { selectedBoardId: 'p' });
     await openTaskEditor(page, 'Original');
-    let scope = page.locator('#taskModal .pull-request-links');
-    await add(scope, internal);
-    expect((await readSavedBoard(page, 'p')).board.tasks[0].pullRequests).toEqual([first]);
-    await page.locator('#taskModalCancelBtn').click();
-    await openTaskEditor(page, 'Original');
-    scope = page.locator('#taskModal .pull-request-links');
-    await expect(scope.getByRole('link')).toHaveCount(1);
-    await scope.getByRole('button', { name: 'Add pull request link', exact: true }).click();
-    await scope.getByLabel('Full URL', { exact: true }).fill(internal);
-    await scope.getByLabel('Full URL', { exact: true }).press('Enter');
-    await expect(page.locator('#taskModal')).toBeVisible();
-    expect((await readSavedBoard(page, 'p')).board.tasks[0].pullRequests).toEqual([first]);
-    await page.locator('#taskName').fill('Saved together'); await page.locator('#taskModalSaveBtn').click();
-    await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[0].title).toBe('Saved together');
-    let saved = await readSavedBoard(page, 'p');
-    expect(saved.board.tasks[0].pullRequests).toEqual([first, internal]);
-    expect(Object.keys(saved.extensions.timeline.events[1].changes).sort()).toEqual(['pullRequests', 'title']);
-    await page.getByRole('button', { name: '+ Add Task', exact: true }).first().click();
-    await page.locator('#taskName').fill('New workitem');
-    await add(page.locator('#taskModal .pull-request-links'), second);
+    await expect(page.locator('#taskModal .pull-request-links')).toHaveCount(0);
+    await page.locator('#taskName').fill('Updated title');
     await page.locator('#taskModalSaveBtn').click();
-    await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks.length).toBe(2);
-    saved = await readSavedBoard(page, 'p');
-    expect(saved.board.tasks[1].pullRequests).toEqual([second]);
-    expect(saved.extensions.timeline.events.at(-1).snapshot.pullRequests).toEqual([second]);
+    await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[0].title).toBe('Updated title');
+    expect((await readSavedBoard(page, 'p')).board.tasks[0].pullRequests).toEqual([first]);
+    await portfolioCard(page, 'Updated title').click();
+    await page.getByRole('tab', { name: 'Pull Requests', exact: true }).click();
+    await add(page.locator('#taskDetailModal .pull-request-links'), internal);
+    await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[0].pullRequests).toEqual([first, internal]);
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
+    await expect(page.locator('#taskModal .pull-request-links')).toHaveCount(0);
 });
 
 test('historical and read-only details expose safe links but no mutation controls; restore rolls associations back', async ({ page }) => {

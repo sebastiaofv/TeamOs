@@ -1,3 +1,5 @@
+import type { ConfirmOptions } from '../../src/app/overlays/appMessages';
+import { createBoardMutationContext } from '../../src/features/portfolio/commands/mutationContext';
 import { describe, it, expect, vi } from 'vitest';
 import { fromPartial } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '../../src/domain/board';
@@ -19,7 +21,7 @@ function project() {
 function setup() {
     const data = project();
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'US-12', handle: {}, data })], selectedPortfolioBoardId: 'p' });
-    const confirm = vi.fn(async () => true); const alert = vi.fn(); const prompt = vi.fn(async (): Promise<string | null> => 'Ana'); const save = vi.fn(async () => true);
+    const confirm = vi.fn<(text: string, options?: ConfirmOptions) => Promise<boolean | Record<string, string>>>(async () => true); const alert = vi.fn(); const prompt = vi.fn(async (): Promise<string | null> => 'Ana'); const save = vi.fn(async () => true);
     const actions = createPortfolioMutationActions({ store, confirm, prompt, alert, enqueueSave: save, markDirty: vi.fn() });
     return { store, actions, confirm, prompt, alert, save, data: () => store.getState().portfolioBoards[0].data };
 }
@@ -126,6 +128,58 @@ describe('US-12 transfer boundary for US-13', () => {
 });
 
 describe('US-12 mutation boundaries' , () => {
+    const advancementAnswers: (false | Record<string, string>)[] = [false, { '2': 'keep' }, { '2': 'advance' }];
+    for (const answer of advancementAnswers) it(`reviews Story advancement without publishing unselected effects: ${JSON.stringify(answer)}`, async () => {
+        const { actions, data, confirm, save } = setup();
+        data().board.tasks[1].status = 'doing'; data().board.tasks[2].status = 'doing';
+        data().extensions.workitemAutomation = { version: 1, finish: { from: ['doing'], to: 'ready-to-test' } };
+        confirm.mockResolvedValueOnce(answer);
+        expect(await actions.movePortfolioTaskToStatus('p', 3, 'done')).toBe(Boolean(answer));
+        expect(confirm.mock.calls[0][1]).toMatchObject({ selections: [{ id: '2', label: '#2 story 2', options: [
+            { value: 'advance', label: 'Advance to Ready to test' }, { value: 'keep', label: 'Keep current state' }
+        ] }] });
+        expect(data().board.tasks[2].status).toBe(answer ? 'done' : 'doing');
+        expect(data().board.tasks[1].status).toBe(answer && answer['2'] === 'advance' ? 'ready-to-test' : 'doing');
+        if (!answer) { expect(save).not.toHaveBeenCalled(); expect(data().extensions.timeline).toBeUndefined(); return; }
+        const events = data().extensions.timeline!.events;
+        expect(events.some((event) => event.entityId === '2' && event.changes?.status)).toBe(answer['2'] === 'advance');
+        expect(reconstructBoardStateFromTimeline(data(), events.length - 1).board.tasks.map((task) => task.status)).toEqual(data().board.tasks.map((task) => task.status));
+    });
+
+    it('offers an independent decision for every Story affected by one operation', async () => {
+        const { data, confirm, store } = setup();
+        data().board.tasks[1].status = 'doing'; data().board.tasks[2].status = 'doing';
+        data().board.tasks.push(item(5, 'story', { status: 'doing', sprintId: 'b' }), item(6, 'task', { parentId: 5, sprintId: 'b', status: 'doing' }));
+        data().extensions.workitemAutomation = { version: 1, finish: { from: ['doing'], to: 'ready-to-test' } };
+        store.setState({ portfolioBulkSelectionByBoardId: { p: [3, 6] } });
+        confirm.mockResolvedValueOnce({ '2': 'keep', '5': 'advance' });
+        const context = createBoardMutationContext({ store, confirm, enqueueSave: async () => true, markDirty: vi.fn() });
+        await context.runPortfolioBoardMutation('p', (draft) => {
+            draft.board.tasks.filter((task) => [3, 6].includes(task.id)).forEach((task) => { task.status = 'done'; });
+            return true;
+        });
+        expect(confirm.mock.calls[0][1]?.selections?.map((field) => field.id)).toEqual(['2', '5']);
+        expect(data().board.tasks.find((task) => task.id === 2)!.status).toBe('doing');
+        expect(data().board.tasks.find((task) => task.id === 5)!.status).toBe('ready-to-test');
+    });
+
+    it('records sidebar edits and enforces blocker, hierarchy, Sprint and read-only constraints', async () => {
+        const { actions, data, store, save } = setup();
+        expect(await actions.setPortfolioTaskProperties('p', 3, { priority: 'high', effort: 'M', dueDate: '2026-11-02' })).toBe(true);
+        expect(data().extensions.timeline!.events.some((event) => event.entityId === '3' && event.changes?.priority && event.changes?.effort && event.changes?.dueDate)).toBe(true);
+        expect(await actions.setPortfolioTaskProperties('p', 3, { priority: 'high' })).toBe(false);
+        expect(await actions.setPortfolioTaskProperties('p', 3, { blocked: true, blockerReason: '' })).toBe(false);
+        expect(await actions.setPortfolioTaskProperties('p', 3, { parentId: 4 })).toBe(false);
+        expect(await actions.setPortfolioTaskProperties('p', 3, { sprintId: 'a' })).toBe(false);
+        expect(await actions.setPortfolioTaskProperties('p', 3, { blocked: true, blockerReason: 'Waiting on review' })).toBe(true);
+        expect(await actions.setPortfolioTaskProperties('p', 3, { blocked: false })).toBe(true);
+        expect(data().board.tasks[2].blockerReason).toBe('');
+        const writes = save.mock.calls.length;
+        store.setState({ portfolioBoards: store.getState().portfolioBoards.map((board) => ({ ...board, handle: null })) });
+        expect(await actions.setPortfolioTaskProperties('p', 3, { effort: 'XL' })).toBe(false);
+        expect(save).toHaveBeenCalledTimes(writes);
+    });
+
     it('records direct and automatic effects as one replayable operation', async () => {
         const { actions, data, confirm } = setup();
         data().board.tasks[1].status = 'doing'; data().board.tasks[2].status = 'doing';

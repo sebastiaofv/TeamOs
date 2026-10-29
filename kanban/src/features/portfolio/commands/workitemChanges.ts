@@ -104,6 +104,28 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             const oldValue = effectivePlanning(current.data, before, field); const newValue = effectivePlanning(draft.data, task, field);
             if (oldValue !== newValue && before[field] === task[field] && (field === 'phaseId' ? before.phaseMode === task.phaseMode : before.milestoneMode === task.milestoneMode)) previews.push(`${workitemLabel(task)} ${task.title} · ${translateCurrent(field === 'phaseId' ? 'task.phase' : 'task.milestone')}: ${oldValue || '—'} → ${newValue || '—'}`);
         }
+    }
+    for (const effect of effects) if (!effect.blocked) previews.push(translateCurrent('workitems.autoEffect', { id: workitemLabelFor(draft.data, effect.storyId), state: stateName(draft.data, draft.data.board.tasks.find((task) => task.id === effect.storyId)?.status || '', draft.data.board.tasks.find((task) => task.id === effect.storyId)) }));
+    if (previews.length) {
+        const selections = effects.filter((effect) => !effect.blocked).map((effect) => {
+            const story = draft.data.board.tasks.find((task) => task.id === effect.storyId)!;
+            return { id: String(story.id), label: `${workitemLabel(story)} ${story.title}`, options: [
+                { value: 'advance', label: translateCurrent('workitems.advance', { state: stateName(draft.data, story.status, story) }) },
+                { value: 'keep', label: translateCurrent('workitems.keepState') }
+            ] };
+        });
+        const answer = await confirm(translateCurrent('workitems.impact') + '\n\n' + previews.join('\n\n'), { title: translateCurrent('workitems.confirmChanges'), confirmLabel: translateCurrent('messages.confirm'), ...(selections.length ? { selections } : {}) });
+        if (!answer) return false;
+        if (typeof answer === 'object') for (const effect of effects) {
+            if ((answer as Record<string, unknown>)[String(effect.storyId)] !== 'keep') continue;
+            const story = draft.data.board.tasks.find((task) => task.id === effect.storyId)!;
+            const original = stageTasks.get(story.id)!;
+            story.status = original.status; story.updatedAt = original.updatedAt;
+        }
+    }
+    assertWorkitems(draft.data, current.data);
+    for (const task of draft.data.board.tasks) {
+        const before = beforeTasks.get(task.id);
         const rawStage = stageTasks.get(task.id);
         if (rawStage && JSON.stringify(rawStage) !== JSON.stringify(task)) {
             const stageTask = captureTaskTimelineSnapshot(stage, task.id);
@@ -116,8 +138,6 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             }
         }
     }
-    for (const effect of effects) if (!effect.blocked) previews.push(translateCurrent('workitems.autoEffect', { id: workitemLabelFor(draft.data, effect.storyId), state: stateName(draft.data, draft.data.board.tasks.find((task) => task.id === effect.storyId)?.status || '', draft.data.board.tasks.find((task) => task.id === effect.storyId)) }));
-    if (previews.length && !(await confirm(translateCurrent('workitems.impact') + '\n\n' + previews.join('\n\n'), { title: translateCurrent('workitems.confirmChanges'), confirmLabel: translateCurrent('messages.confirm') }))) return false;
     if (!isCurrent()) throw new WorkitemError('stale');
     for (const effect of effects) if (effect.blocked) void alert(translateCurrent('workitems.autoBlocked', { id: workitemLabelFor(draft.data, effect.storyId) }));
     syncWorkitemPlanning(draft.data, draft.data);

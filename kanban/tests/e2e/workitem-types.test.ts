@@ -43,6 +43,8 @@ test('creates a child with inherited planning and an immutable type, preserving 
     await page.locator('#taskModalSaveBtn').click();
     await expect(page.locator('#taskModal')).toHaveCount(0);
     await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { title: string }) => task.title === 'Nova Task do Sprint')?.sprintId).toBe('current');
+    await expect(page.locator('#detailTitle')).toHaveText('Pagar com cartão');
+    await page.locator('#taskDetailModalFooterCloseBtn').click();
     await page.locator('[data-view-mode="board"]').click();
     await portfolioCard(page, 'Nova Task do Sprint').getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.locator('#workitemType')).toBeDisabled();

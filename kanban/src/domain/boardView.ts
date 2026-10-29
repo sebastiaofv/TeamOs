@@ -4,7 +4,7 @@ import { getWorkflow } from './workflow';
 
 export type BoardViewPreferences = { version: 1; hiddenStateIds: string[]; functionalHiddenStateIds?: string[] };
 
-/** Missing preferences are the backwards-compatible default: every state is visible. */
+/** Explicit visibility choices survive workflow changes and file round trips. */
 export function parseBoardView(value: unknown, stateIds?: ReadonlySet<string>, functionalStateIds?: ReadonlySet<string>): BoardViewPreferences | undefined {
     if (value === undefined) return undefined;
     if ((!hasExactKeys(value, ['version', 'hiddenStateIds']) && !hasExactKeys(value, ['version', 'hiddenStateIds', 'functionalHiddenStateIds'])) || value.version !== 1) throw new Error('Invalid extensions.boardView.');
@@ -18,7 +18,8 @@ export function parseBoardView(value: unknown, stateIds?: ReadonlySet<string>, f
 
 export function hiddenBoardStates(data?: LooseBoardData | null, kind: WorkflowKind = 'technical'): ReadonlySet<string> {
     const preferences = parseBoardView(data?.extensions?.boardView);
-    return new Set((kind === 'functional' ? preferences?.functionalHiddenStateIds : preferences?.hiddenStateIds) || []);
+    const stored = kind === 'functional' ? preferences?.functionalHiddenStateIds : preferences?.hiddenStateIds;
+    return new Set(stored ?? getWorkflow(data, kind).states.filter((state) => state.category === 'cancelled').map((state) => state.id));
 }
 
 export function setBoardColumnVisibility(data: BoardData, stateId: string, visible: boolean, kind: WorkflowKind = 'technical'): boolean {
@@ -26,6 +27,6 @@ export function setBoardColumnVisibility(data: BoardData, stateId: string, visib
     const hidden = new Set(hiddenBoardStates(data, kind));
     if (hidden.has(stateId) === !visible) return false;
     if (visible) hidden.delete(stateId); else hidden.add(stateId);
-    data.extensions.boardView = { version: 1, hiddenStateIds: [], ...data.extensions.boardView, [kind === 'functional' ? 'functionalHiddenStateIds' : 'hiddenStateIds']: [...hidden] };
+    data.extensions.boardView = { version: 1, hiddenStateIds: [...hiddenBoardStates(data, 'technical')], functionalHiddenStateIds: [...hiddenBoardStates(data, 'functional')], ...data.extensions.boardView, [kind === 'functional' ? 'functionalHiddenStateIds' : 'hiddenStateIds']: [...hidden] };
     return true;
 }

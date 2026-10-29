@@ -45,6 +45,18 @@ describe('app messages', () => {
     await expect(cancelled).resolves.toBe(false);
   });
 
+  it('confirms independent dropdown values and cancels without returning decisions', async () => {
+    const fields = [{ id: 'story', label: 'Story', options: [{ value: 'advance', label: 'Advance' }, { value: 'keep', label: 'Keep' }] }];
+    const confirmed = showConfirm('Review', { selections: fields });
+    expect(openMessage()!.selections).toEqual(fields);
+    expect(openMessage()!.buttons.find((button) => button.primary)?.submitsSelections).toBe(true);
+    resolveAppMessage({ story: 'keep' });
+    await expect(confirmed).resolves.toEqual({ story: 'keep' });
+    const cancelled = showConfirm('Review', { selections: fields });
+    cancelAppMessages();
+    await expect(cancelled).resolves.toBe(false);
+  });
+
   it('opens a prompt with its default value and resolves with the entered text', async () => {
     const answered = showPrompt('Project name:', 'Alpha');
 

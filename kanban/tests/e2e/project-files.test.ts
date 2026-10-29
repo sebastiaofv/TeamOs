@@ -35,7 +35,7 @@ test.describe('project files', () => {
     await answerAppMessage(page, { expectText: 'unique acronym', input: 'ALP' });
 
     await expect(page.locator('.portfolio-chip.active')).toContainText('Project Alpha');
-    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toBeVisible();
 
     await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
     const result = await page.evaluate(() => ({

@@ -626,7 +626,7 @@
 .workitem-modal-header { padding: 22px 28px; align-items: flex-start; gap: 20px; }
 .workitem-heading { flex: 1; min-width: 0; }
 .workitem-eyebrow { display: flex; align-items: center; gap: 10px; color: var(--text-muted); font-size: 12px; }
-.workitem-eyebrow .workitem-type { font-size: 10px; padding: 3px 7px; border-radius: 0; color: var(--text-secondary); }
+.workitem-eyebrow .workitem-type { font-size: 10px; padding: 3px 7px; border-radius: 0; }
 .workitem-project { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-left: 1px solid var(--border); padding-left: 10px; }
 .workitem-title { margin-top: 10px; font-size: 24px; line-height: 1.35; font-weight: 600; letter-spacing: -.35px; overflow-wrap: anywhere; }
 .workitem-header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
@@ -725,3 +725,10 @@
     .workitem-sidebar { position: sticky; top: 49px; align-self: start; max-height: min(620px, calc(100dvh - 230px)); overflow-y: auto; }
     #taskModal .workitem-sidebar { top: 0; max-height: min(706px, calc(100dvh - 174px)); }
 }
+
+.detail-status-control { position: relative; display: inline-flex; align-items: center; min-height: 32px; padding-right: 20px; }
+.detail-status-control::after { content: '▾'; position: absolute; right: 4px; color: var(--text-secondary); pointer-events: none; }
+.detail-status-control select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; }
+.detail-status-control:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.workitem-sidebar .form-group { min-width: 0; }
+.workitem-sidebar .form-group > select, .workitem-sidebar .form-group > input[type="date"], .workitem-sidebar .form-group > textarea { width: 100%; }

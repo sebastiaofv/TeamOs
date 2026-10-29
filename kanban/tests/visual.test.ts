@@ -417,7 +417,7 @@ test.describe('2.1b task editor', () => {
       await seedPortfolioBoards(page, [
         { id: 'v1', title: 'Launch', hasHandle: true, tasks: [], extensions: ROADMAP }
       ], { selectedBoardId: 'v1' });
-      await page.locator('#portfolio-backlog-column .add-task-card').click();
+      await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
       await expect(page.locator('#modalTitle')).toHaveText('New Task');
       await captureEditor(page, `task-editor-new-${theme}.png`);
     });
@@ -582,7 +582,7 @@ test.describe('2.3 board and cards', () => {
       await captureBoard(page, `portfolio-board-all-${theme}.png`);
     });
 
-    test(`selected writable board cards and add-task affordances (${theme})`, async ({ page }) => {
+    test(`selected writable board cards and toolbar creation (${theme})`, async ({ page }) => {
       await gotoVisualApp(page, theme);
       await seedPortfolioBoards(page, [{
         id: 'v1',
@@ -606,7 +606,8 @@ test.describe('2.3 board and cards', () => {
         ]
       }], { selectedBoardId: 'v1' });
       await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(2);
-      await expect(page.locator('#portfolioBoard .add-task-card')).toHaveCount(4);
+      await expect(page.locator('#portfolioBoard .add-task-card')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toBeVisible();
       await captureBoard(page, `portfolio-board-selected-${theme}.png`);
     });
   }

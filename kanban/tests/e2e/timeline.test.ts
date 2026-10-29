@@ -193,21 +193,21 @@ test.describe('timeline', () => {
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
     await setTimelineSlider(page, 1);
-    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(1);
 
     await renameTaskViaEditor(page, 'Phase 1', 'Phase 2');
 
     await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toHaveCount(0);
-    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(1);
 
-    await page.locator('#portfolio-backlog-column .add-task-card').click();
+    await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await expect(page.locator('#taskModal')).toBeVisible();
     await page.locator('#taskName').fill('Created from latest');
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
     await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toHaveCount(0);
-    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(1);
     await expect(portfolioCard(page, 'Created from latest')).toBeVisible();
 
     const sliderRow = page.locator('#portfolioTimelinePanel .timeline-slider-row');
@@ -242,7 +242,7 @@ test.describe('timeline', () => {
     await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toContainText('Historical preview');
     await expect(portfolioCard(page, 'Original title')).toBeVisible();
     await expect(portfolioCard(page, 'Phase 2')).toHaveCount(0);
-    await expect(page.locator('#portfolio-backlog-column .add-task-card')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(0);
 
     await page.locator('#portfolioTimelinePanel .btn-primary').click();
 
