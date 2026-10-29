@@ -16,4 +16,5 @@
 @import './portfolio/undo-toast.css';
 @import './portfolio/task-detail.css';
 @import './overlays/project-settings.css';
+@import './foundation/selects.css';
 @import './foundation/theme-dark.css';
