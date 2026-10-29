@@ -3,7 +3,7 @@ import { gotoApp, seedPortfolioBoards, answerAppMessage, readSavedBoard, portfol
 
 test('legacy configuration preserves existing IDs and new workitems share permanent typed IDs', async ({ page }) => {
     await gotoApp(page);
-    await seedPortfolioBoards(page, [{ id: 'p', title: 'Checkout', hasHandle: true, tasks: [{ id: 1201, title: 'Legacy task' }] }], { selectedBoardId: 'p' });
+    await seedPortfolioBoards(page, [{ id: 'p', acronym: null, title: 'Checkout', hasHandle: true, tasks: [{ id: 1201, title: 'Legacy task' }] }], { selectedBoardId: 'p' });
     await portfolioCard(page, 'Legacy task').getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(page.locator('#workitemType')).toBeDisabled();
     await page.keyboard.press('Escape');
@@ -44,7 +44,7 @@ test('legacy configuration preserves existing IDs and new workitems share perman
 
 test('legacy settings reject an acronym already assigned to another open project', async ({ page }) => {
     await gotoApp(page);
-    await seedPortfolioBoards(page, [{ id: 'a', title: 'Alpha', hasHandle: true }, { id: 'b', title: 'Beta', hasHandle: true }]);
+    await seedPortfolioBoards(page, [{ id: 'a', acronym: null, title: 'Alpha', hasHandle: true }, { id: 'b', acronym: null, title: 'Beta', hasHandle: true }]);
     for (const title of ['Alpha', 'Beta']) {
         await page.getByRole('button', { name: `Settings for ${title}`, exact: true }).click();
         await page.getByLabel('Project Acronym', { exact: true }).fill('ABC');

@@ -4,6 +4,10 @@
 // and disk mocks. Not a test file: Playwright only collects *.test.ts.
 
 import { expect, type Locator, type Page } from '@playwright/test';
+import { getProjectData } from '../../src/domain/projectData';
+import { normalizeAssignees } from '../../src/domain/taskAssignments';
+
+const configuredSeedAcronyms = new WeakMap<Page, Set<string>>();
 
 // A task as a test describes it: only `title` is required, everything else
 // gets the defaults a freshly created task would have.
@@ -34,6 +38,8 @@ export type SeedTask = {
 };
 
 export type SeedBoard = {
+  // Normal scenarios use configured projects; null explicitly tests legacy first-use setup.
+  acronym?: string | null;
   id: string;
   title: string;
   hasHandle?: boolean;
@@ -94,7 +100,7 @@ function buildTaskPayload(task: SeedTask, index: number) {
   };
 }
 
-function buildBoardPayload({ title, tasks = [], extensions = {}, members, tags }: { title: string; tasks?: SeedTask[]; extensions?: Record<string, unknown>; members?: string[]; tags?: string[] }) {
+function buildBoardPayload({ title, tasks = [], extensions = {}, members, tags, acronym }: { acronym?: string; title: string; tasks?: SeedTask[]; extensions?: Record<string, unknown>; members?: string[]; tags?: string[] }) {
   const workflow = (extensions as { workflow?: { states: { id: string; name: string }[] } }).workflow;
   const payload = {
     meta: {
@@ -125,6 +131,20 @@ function buildBoardPayload({ title, tasks = [], extensions = {}, members, tags }
       responsibleId: directory.find((member) => member.name === task.responsible)?.id || ''
     }));
   }
+  if (acronym !== undefined) {
+    if (!payload.extensions.project) {
+      const project = getProjectData(payload);
+      payload.extensions.project = project;
+      payload.board.tasks = payload.board.tasks.map((task) => {
+        const assignees = normalizeAssignees(task.assignees);
+        return { ...task, assignees,
+          assigneeIds: assignees.map((name) => project.members.find((member) => member.name === name)!.id),
+          responsibleId: project.members.find((member) => member.name === task.responsible)?.id || ''
+        };
+      });
+    }
+    payload.extensions.project.acronym ||= acronym;
+  }
   return payload;
 }
 
@@ -147,6 +167,23 @@ async function seedPortfolioBoards(
   boards: SeedBoard[],
   { selectedBoardId = '', sortKey = '' }: { selectedBoardId?: string; sortKey?: string } = {}
 ) {
+  const usedAcronyms = configuredSeedAcronyms.get(page) || new Set<string>();
+  configuredSeedAcronyms.set(page, usedAcronyms);
+  for (const board of boards) {
+    const project = board.extensions?.project;
+    if (project && typeof project === 'object' && 'acronym' in project && typeof project.acronym === 'string') usedAcronyms.add(project.acronym);
+    if (board.acronym) usedAcronyms.add(board.acronym);
+  }
+  let acronymIndex = 0;
+  const nextAcronym = () => {
+    let acronym: string;
+    do {
+      const index = acronymIndex++;
+      acronym = String.fromCharCode(65 + Math.floor(index / 676), 65 + Math.floor(index / 26) % 26, 65 + index % 26);
+    } while (usedAcronyms.has(acronym));
+    usedAcronyms.add(acronym);
+    return acronym;
+  };
   const seededBoards: SeededBoard[] = boards.map((board) => ({
     label: board.id,
     title: board.title,
@@ -155,7 +192,8 @@ async function seedPortfolioBoards(
     text: JSON.stringify(buildBoardPayload({
       title: board.title,
       tasks: board.tasks || [],
-      extensions: board.extensions || {}, members: board.members, tags: board.tags
+      extensions: board.extensions || {}, members: board.members, tags: board.tags,
+      acronym: board.acronym === null ? undefined : board.acronym || nextAcronym()
     }), null, 2)
   }));
   const writableBoards = seededBoards.filter((board) => board.hasHandle);
