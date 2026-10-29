@@ -10,6 +10,11 @@
     display: none;
 }
 
+.portfolio-board-wrap.is-empty,
+.portfolio-board-wrap.is-empty > .portfolio-board-grid {
+    background: var(--bg-primary);
+}
+
 .portfolio-read-only-notice {
     display: flex;
     flex-wrap: wrap;
