@@ -1,3 +1,5 @@
+import { useAppStore } from '@/features/portfolio/state/store';
+import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { useState } from 'react';
 import type { Task, Workflow } from '@/domain/types';
@@ -18,6 +20,8 @@ export function TaskProperties({ vm, task }: { vm: TaskDetailViewModel; task: Ta
     const actions = usePortfolioActions();
     const { t } = useI18n();
     const data = vm.sourceBoardData;
+    const projects = useAppStore((state) => state.portfolioBoards);
+    const unavailable = useAppStore((state) => state.unloadedRelationSources);
     const type = workitemType(task);
     const project = getProjectData(data);
     const workflow = getWorkflow(data, task);
@@ -35,7 +39,7 @@ export function TaskProperties({ vm, task }: { vm: TaskDetailViewModel; task: Ta
                 </select></div>}
             <div className="form-group"><label htmlFor="detailDueDateInput">{t('task.due')}</label>
                 <input id="detailDueDateInput" type="date" value={task.dueDate || ''} onChange={(event) => save({ dueDate: event.target.value })} /></div>
-            <BlockerEditor key={`${task.id}:${task.blocked}:${task.blockerReason}`} task={task} effectiveBlocked={isTaskBlocked(data, task.id)} save={save} />
+            <BlockerEditor key={`${task.id}:${task.blocked}:${task.blockerReason}`} task={task} effectiveBlocked={isTaskBlocked(data, task.id) || permanentBlockedIds(data, projects, unavailable.flatMap((entry) => entry.relations)).has(task.id)} save={save} />
         </section>
         <section className="workitem-property-group"><h3>{t('workitems.people')}</h3>
             <div className="form-group"><label htmlFor="detailResponsibleInput">{t('task.responsible')}</label>

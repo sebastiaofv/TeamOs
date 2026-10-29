@@ -54,7 +54,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         setSelectedPortfolioCard(boardId, taskId);
         const readOnly = effective.readOnly === true || !canUsePortfolioTaskMutations(boardId);
         commitState({ portfolioDetailContext: { boardId, taskId, readOnly, ...(historyEventIndex !== undefined ? { historyEventIndex } : {}) } });
-        openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly, historyEventIndex));
+        openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly, historyEventIndex, getState().portfolioBoards, getState().unloadedRelationSources.flatMap((entry) => entry.relations)));
     }
 
     function editPortfolioTask(boardId: string, taskId: number) {
@@ -481,7 +481,10 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
     function refreshTaskDetail(boardId: string) {
         const context = getState().portfolioDetailContext;
-        if (context?.boardId === boardId) openPortfolioTaskDetails(boardId, context.taskId);
+        if (context && context.historyEventIndex === undefined) {
+            if (!findPortfolioTaskSource(context.boardId, context.taskId)) closeTaskDetail();
+            else openPortfolioTaskDetails(context.boardId, context.taskId);
+        }
     }
     return {
         openPortfolioTaskDetails,

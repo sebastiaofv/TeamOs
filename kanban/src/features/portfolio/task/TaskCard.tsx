@@ -1,3 +1,4 @@
+import { TaskTransferMenu } from './TaskTransferMenu';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { workitemType, workitemProgress } from '@/domain/workitems';
@@ -121,7 +122,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     }
 
     function handleCardClick(event: MouseEvent<HTMLElement>) {
-        if ((event.target as Element).closest('button, input, label')) return;
+        if ((event.target as Element).closest('button, input, label, summary, details')) return;
         if (Date.now() < state.suppressPortfolioCardClickUntil) return;
         event.currentTarget.focus({ preventScroll: true });
         openDetails();
@@ -183,6 +184,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                 <span className="task-card-context-dot" aria-hidden="true">·</span>
                 <WorkitemTypeBadge type={type} />
                 <div className="task-actions">
+                    <TaskTransferMenu boardId={item.boardId} taskId={taskId} historical={item.historical} />
                     <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? t('task.editAction') : readOnlyTitle} aria-label={canMutate ? t('task.editAction') : readOnlyTitle} data-action="edit-task" onClick={() => actions.editPortfolioTask(item.boardId, taskId)}>
                         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 2 4 4-8 8H2v-4Zm-2 2 4 4" /></svg>
                     </button>

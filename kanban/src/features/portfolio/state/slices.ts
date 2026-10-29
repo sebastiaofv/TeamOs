@@ -32,6 +32,8 @@ export type TimelineSelection = { boardId: string; eventIndex: number | null };
 
 export type PortfolioSlice = {
     portfolioBoards: BoardRecord[];
+    // Session-only reference hints from closed files; never persisted outside project JSON.
+    unloadedRelationSources: { projectId: string; relations: import('@/domain/permanentRelations').PermanentRelation[] }[];
     nextPortfolioProjectColorSeed: number;
     portfolioTasks: PortfolioRow[];
     portfolioVisibleRows: PortfolioRow[];
@@ -84,6 +86,7 @@ export type AppState = PortfolioSlice & BoardSlice & UiSlice & FilesSlice;
 export function createPortfolioSlice(): PortfolioSlice {
     return {
         portfolioBoards: [],
+        unloadedRelationSources: [],
         nextPortfolioProjectColorSeed: 0,
         portfolioTasks: [],
         portfolioVisibleRows: [],

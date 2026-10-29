@@ -58,6 +58,7 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
         if (task.displayId !== undefined) {
             if (typeof task.displayId !== 'string' || !/^[A-Z]{1,3}-(EP|US|TK|BG)-[1-9][0-9]*$/.test(task.displayId) || task.displayId !== createWorkitemDisplayId(task.displayId.split('-')[0], task)) throw new WorkitemError('data');
         }
+        if (before?.permanentId && task.permanentId !== before.permanentId) throw new WorkitemError('immutable');
         if (before && task.displayId !== before.displayId) throw new WorkitemError('immutable');
         if (before && type !== workitemType(before)) throw new WorkitemError('immutable');
         if (task.parentId != null) {

@@ -1,3 +1,4 @@
+import { allPermanentRelations, assertPermanentGraph } from '@/domain/permanentRelations';
 import type { BoardRecord, PortfolioFilters } from '@/features/portfolio/types';
 import type { AppState } from './slices';
 import {
@@ -108,6 +109,16 @@ export function derivePortfolioState(state: AppState, previous: Partial<AppState
     const boardsChanged = state.portfolioBoards !== previous.portfolioBoards;
     const portfolioBoards = boardsChanged ? syncPortfolioProjectColors(state) : state.portfolioBoards;
     const next: AppState = { ...state, portfolioBoards };
+    if (boardsChanged) {
+        assertPermanentGraph(allPermanentRelations(portfolioBoards));
+        const loaded = new Set(portfolioBoards.map((board) => board.data.extensions.project?.id));
+        const sources = new Map((state.unloadedRelationSources || []).filter((entry) => !loaded.has(entry.projectId)).map((entry) => [entry.projectId, entry]));
+        for (const board of previous.portfolioBoards || []) {
+            const projectId = board.data.extensions.project?.id;
+            if (projectId && !loaded.has(projectId) && board.data.extensions.permanentRelations?.relations.length) sources.set(projectId, { projectId, relations: board.data.extensions.permanentRelations.relations });
+        }
+        next.unloadedRelationSources = portfolioBoards.length ? [...sources.values()] : [];
+    }
     const { selectedBoardId, viewMode } = normalizeSelection(next);
     next.selectedPortfolioBoardId = selectedBoardId;
     next.selectedPortfolioViewMode = viewMode;

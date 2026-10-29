@@ -1,3 +1,5 @@
+import { inheritLegacyTaskIdentities } from '@/domain/taskIdentity';
+import type { LooseBoardData } from '@/domain/types';
 // Project file persistence: save queueing and save/watch state.
 //
 // External-file comparison and conflict resolution live in
@@ -50,6 +52,9 @@ export function applySnapshotToBoardRecord(
     if (!boardRecord || !parsed) return false;
     const boardId = boardRecord.id;
     const payload = serializeBoardDataFromObject(parsed);
+    const raw = parsed as LooseBoardData;
+    if (!raw.extensions?.project && boardRecord.data.extensions.project) payload.extensions.project!.id = boardRecord.data.extensions.project.id;
+    inheritLegacyTaskIdentities(payload, raw, payload.extensions.project?.id === boardRecord.data.extensions.project?.id ? boardRecord.data : undefined);
     useAppStore.setState((state) => ({
         portfolioBoards: state.portfolioBoards.map((board) => board.id === boardId
             ? { ...board, data: payload, title: payload.board.settings.title } : board)

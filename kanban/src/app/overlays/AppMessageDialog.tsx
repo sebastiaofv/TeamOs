@@ -1,3 +1,5 @@
+import { AppMessageReviewContent } from './AppMessageReviewContent';
+import { translateCurrent } from '@/shared/i18n';
 import { useRef, useState, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { AppMessage, AppMessageButton } from '@/app/types';
@@ -18,8 +20,9 @@ export function AppMessageDialog() {
     const message = useAppStore((s) => s.appMessage);
     const inputRef = useRef<HTMLInputElement>(null);
     const primaryRef = useRef<HTMLButtonElement>(null);
+    const selectionRef = useRef<HTMLSelectElement>(null);
     const returnFocus = useReturnFocus({
-        initialFocus: message?.input ? inputRef : primaryRef,
+        initialFocus: message?.input ? inputRef : message?.selection?.required || message?.selections?.some((field) => field.required) ? selectionRef : primaryRef,
         selectInitial: Boolean(message?.input)
     });
 
@@ -36,12 +39,14 @@ export function AppMessageDialog() {
                     <Dialog.Content
                         key={message?.id}
                         role="alertdialog"
-                        className="modal-content"
+                        aria-labelledby="appMessageTitle"
+                        aria-describedby="appMessageText"
+                        className={`modal-content${message?.review ? ' has-transfer-review' : ''}`}
                         onInteractOutside={keepOpen}
                         onEscapeKeyDown={stopEscape}
                         {...returnFocus}
                     >
-                        {message && <AppMessageBody message={message} inputRef={inputRef} primaryRef={primaryRef} />}
+                        {message && <AppMessageBody message={message} inputRef={inputRef} primaryRef={primaryRef} selectionRef={selectionRef} />}
                     </Dialog.Content>
                 </Dialog.Overlay>
             </Dialog.Portal>
@@ -49,15 +54,17 @@ export function AppMessageDialog() {
     );
 }
 
-function AppMessageBody({ message, inputRef, primaryRef }: {
+function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
     message: AppMessage;
     inputRef: RefObject<HTMLInputElement | null>;
     primaryRef: RefObject<HTMLButtonElement | null>;
+    selectionRef: RefObject<HTMLSelectElement | null>;
 }) {
     const [inputValue, setInputValue] = useState(message.input?.defaultValue ?? '');
-    const [selection, setSelection] = useState(0);
-    const [selections, setSelections] = useState<Record<string, string>>(() => Object.fromEntries((message.selections || []).map((field) => [field.id, field.options[0]?.value || ''])));
-    const answer = (button: AppMessageButton) => { if (button.submitsInput && message.input?.required && !inputValue.trim()) return; resolveAppMessage(button.submitsSelections ? selections : button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value); };
+    const [selection, setSelection] = useState(message.selection?.required ? -1 : 0);
+    const [selections, setSelections] = useState<Record<string, string>>(() => Object.fromEntries((message.selections || []).map((field) => [field.id, field.required ? '' : field.options[0]?.value || ''])));
+    const missingSelections = (message.selection?.required && selection < 0) || message.selections?.some((field) => field.required && !selections[field.id]);
+    const answer = (button: AppMessageButton) => { if ((button.submitsSelection || button.submitsSelections) && missingSelections) return; if (button.submitsInput && message.input?.required && !inputValue.trim()) return; resolveAppMessage(button.submitsSelections ? selections : button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value); };
     // Every message is built with a primary button (see appMessages.ts).
     const primary = message.buttons.find((button) => button.primary)!;
 
@@ -69,18 +76,26 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
                 </Dialog.Title>
             </div>
             <div className="modal-body">
-                <Dialog.Description asChild>
+                {!message.review && <Dialog.Description asChild>
                     <p className="app-message-text" id="appMessageText">{message.text}</p>
-                </Dialog.Description>
-                {message.selections?.map((field, index) => <div className="form-group app-message-field" key={field.id}>
-                    <label htmlFor={`appMessageSelection-${index}`}>{field.label}</label>
-                    <select id={`appMessageSelection-${index}`} value={selections[field.id]} onChange={(event) => setSelections((current) => ({ ...current, [field.id]: event.target.value }))}>
-                        {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
-                </div>)}
+                </Dialog.Description>}
+                {message.review && <AppMessageReviewContent review={message.review} />}
+                <div className={message.review && message.selections?.length ? 'transfer-mapping-fields' : undefined}>
+                    {message.review && Boolean(message.selections?.length) && <div className="transfer-section-heading">
+                        <h3>{message.review.mappingLabel}</h3><p>{message.review.mappingNote}</p>
+                    </div>}
+                    {message.selections?.map((field, index) => <div className="form-group app-message-field" key={field.id}>
+                        <label htmlFor={`appMessageSelection-${index}`}>{field.label}</label>
+                        <select ref={index === 0 ? selectionRef : undefined} id={`appMessageSelection-${index}`} value={selections[field.id]} onChange={(event) => setSelections((current) => ({ ...current, [field.id]: event.target.value }))}>
+                            {field.required && <option value="" disabled>{translateCurrent('common.choose')}</option>}
+                            {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        </select>
+                    </div>)}
+                </div>
                 {message.selection && <div className="form-group app-message-field">
                     <label htmlFor="appMessageSelection">{message.selection.label}</label>
-                    <select id="appMessageSelection" value={selection} onChange={(event) => setSelection(Number(event.target.value))}>
+                    <select ref={selectionRef} id="appMessageSelection" value={selection} onChange={(event) => setSelection(Number(event.target.value))}>
+                        {message.selection.required && <option value={-1} disabled>{translateCurrent('common.choose')}</option>}
                         {message.selection.options.map((option, index) => <option key={index} value={index}>{option.label}</option>)}
                     </select>
                 </div>}
@@ -112,7 +127,7 @@ function AppMessageBody({ message, inputRef, primaryRef }: {
                         className={`btn${button.primary ? ' btn-primary' : ''}${button.danger ? ' btn-danger' : ''}`}
                         id={button.primary ? 'appMessageConfirmBtn' : button.cancel ? 'appMessageCancelBtn' : undefined}
                         ref={button.primary ? primaryRef : undefined}
-                        disabled={Boolean(button.submitsInput && message.input?.required && !inputValue.trim())}
+                        disabled={Boolean((button.submitsInput && message.input?.required && !inputValue.trim()) || ((button.submitsSelection || button.submitsSelections) && missingSelections))}
                         onClick={() => answer(button)}
                     >
                         {button.label}

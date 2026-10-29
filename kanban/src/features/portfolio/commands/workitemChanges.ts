@@ -7,7 +7,7 @@ import { cloneSerializable } from '@/domain/serializable';
 import { applyStoryAutomation, assertAcceptance, assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, ensureBoardTimelineBaseline, recordTaskTimelineEvent, createTimelineEventId } from '@/domain/timeline';
 import { annotateTimelineOperation } from '@/domain/taskHistory';
-import { createWorkitemDisplayId, reserveTaskIdentities } from '@/domain/taskIdentity';
+import { createWorkitemDisplayId, ensurePermanentTaskIdentities, reserveTaskIdentities } from '@/domain/taskIdentity';
 import { syncProjectAssignments, ProjectDataError } from '@/domain/projectData';
 import { touchTask } from '@/domain/task';
 import { canTransition, statusCategory, getWorkflow } from '@/domain/workflow';
@@ -28,6 +28,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     const firstEvent = draft.data.extensions.timeline?.events.length || 0;
     const beforeTask = taskId === undefined ? null : captureTaskTimelineSnapshot(draft.data, taskId);
     if (mutator(draft.data, draft) === false) return false;
+    ensurePermanentTaskIdentities({ ...draft.data, board: { ...draft.data.board, tasks: draft.data.board.tasks.filter((task) => !current.data.board.tasks.some((previous) => previous.id === task.id)) } });
     const boardSnapshotRecorded = draft.data.extensions.timeline?.events.slice(firstEvent).some((event) => Boolean(event.snapshot?.board));
     const existingIds = new Set(current.data.board.tasks.map((task) => task.id));
     const createdTasks = draft.data.board.tasks.filter((task) => !boardSnapshotRecorded && !existingIds.has(task.id) && !task.displayId);

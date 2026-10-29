@@ -35,7 +35,7 @@ describe('workitem participants and responsible person', () => {
     const input = JSON.parse(readFileSync(new URL('../fixtures/assignments-v1.board.json', import.meta.url), 'utf8'));
     validateBoardData(input);
     const migrated = serializeBoardDataFromObject(input);
-    expect(migrated.meta.schemaVersion).toBe(5);
+    expect(migrated.meta.schemaVersion).toBe(6);
     expect(migrated.board.tasks[0]).toMatchObject({ id: 17, assignees: ['Ana', 'Rui'], responsible: '' });
     migrated.board.tasks[0] = setTaskResponsible(migrated.board.tasks[0], 'Marta');
     migrated.extensions.project!.members.push({ id: 'marta', name: 'Marta' });

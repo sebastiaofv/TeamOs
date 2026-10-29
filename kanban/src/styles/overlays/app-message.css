@@ -32,3 +32,36 @@
     border-color: var(--priority-high);
     filter: brightness(0.92);
 }
+
+/* Transfer review uses the same type, borders and neutral surfaces as workitem details. */
+#appMessageModal .modal-content.has-transfer-review { max-width: 620px; }
+.has-transfer-review .modal-body { padding: 20px 24px; }
+.transfer-route { display: grid; grid-template-columns: minmax(0, 1fr) 20px minmax(0, 1fr); gap: 16px; align-items: center; padding: 16px; border: 1px solid var(--border-light); background: var(--bg-secondary); }
+.transfer-route-project { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.transfer-label { font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.transfer-route-project strong { font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
+.transfer-route-arrow { color: var(--text-muted); }
+.transfer-state { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-light); }
+.transfer-state-value { display: inline-flex; align-items: center; gap: 7px; padding: 4px 8px; border: 1px solid var(--border-light); font-size: 12px; color: var(--text-primary); }
+.transfer-state-value > span { width: 6px; height: 6px; border-radius: 50%; }
+.transfer-note { margin: 12px 0 20px; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.transfer-section-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 5px 12px; margin-bottom: 10px; }
+.transfer-section-heading h3 { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text-primary); }
+.transfer-section-heading > span { font-size: 11px; color: var(--text-muted); }
+.transfer-section-heading p { flex-basis: 100%; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.transfer-removals ul { list-style: none; border: 1px solid var(--border-light); }
+.transfer-removals li { display: grid; grid-template-columns: minmax(100px, .7fr) minmax(0, 1fr); gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border-light); font-size: 12px; line-height: 1.5; }
+.transfer-removals li:last-child { border-bottom: 0; }
+.transfer-removal-kind { color: var(--text-secondary); }
+.transfer-removals strong { font-weight: 500; color: var(--text-primary); }
+.transfer-removal-detail { display: block; font-size: 11px; color: var(--text-muted); overflow-wrap: anywhere; }
+.transfer-mapping-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border-light); }
+.transfer-mapping-fields > .transfer-section-heading { grid-column: 1 / -1; margin-bottom: 0; }
+.transfer-mapping-fields .form-group { min-width: 0; }
+@media (max-width: 600px) {
+    .has-transfer-review .modal-body { padding: 16px; }
+    .transfer-route { gap: 10px; padding: 12px; }
+    .transfer-route-project strong { font-size: 12px; }
+    .transfer-mapping-fields { grid-template-columns: 1fr; }
+    .transfer-removals li { grid-template-columns: minmax(90px, .7fr) minmax(0, 1fr); gap: 10px; }
+}

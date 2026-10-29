@@ -25,7 +25,7 @@ import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSc
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
 import { getWorkflow } from './workflow';
 import { parseBoardView } from './boardView';
-import { reserveTaskIdentities } from './taskIdentity';
+import { inheritLegacyTaskIdentities, reserveTaskIdentities } from './taskIdentity';
 import { commentsThrough } from './comments';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
@@ -324,6 +324,7 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     if (snapshot.extensions.project && boardData?.extensions?.project) {
         snapshot.extensions.project.id = (boardData.extensions.project as { id: string }).id;
     }
+    inheritLegacyTaskIdentities(snapshot, state as LooseBoardData, boardData);
     // Identities are project-wide reservations, not mutable planning state.
     // Preview/restore may change membership, but must not renumber or reuse identities.
     const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.timeline);

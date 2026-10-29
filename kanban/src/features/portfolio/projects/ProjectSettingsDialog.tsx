@@ -102,6 +102,11 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                             <p id="projectAcronymHelp">{t('project.acronymHelp')}</p>
                         </div>
                         <div className="form-group">
+                            <label htmlFor="projectProduct">{t('project.product')}</label>
+                            <input id="projectProduct" value={project.productName || ''} onChange={(event) => setProject({ ...project, productName: event.target.value })} aria-describedby="projectProductHelp" />
+                            <p id="projectProductHelp">{t('project.productHelp')}</p>
+                        </div>
+                        <div className="form-group">
                             <label htmlFor="projectStatus">{t('task.status')}</label>
                             <select id="projectStatus" value={project.status || ''} onChange={(event) => setProject({ ...project, status: event.target.value as typeof project.status })}>
                                 {project.status === null && <option value="" disabled>{t('project.undefined')}</option>}
