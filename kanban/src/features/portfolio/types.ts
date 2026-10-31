@@ -173,7 +173,7 @@ export type HelpDialogProps = { tab?: HelpTab };
 
 export type DialogPropsByName = {
     appSettings: null;
-    projectSettings: { boardId: string; data: BoardData; readOnly: boolean };
+    projectSettings: { boardId: string; data: BoardData; readOnly: boolean; onCreate?: (data: BoardData) => Promise<boolean> };
     commandPalette: CommandPaletteProps;
     taskEditor: TaskEditorViewModel;
     taskDetail: TaskDetailViewModel;

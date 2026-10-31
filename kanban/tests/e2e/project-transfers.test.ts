@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, selectPortfolioBoard, installControlledPortfolioWriter, answerAppMessage, mockImportProjectsPicker, mutateExternalBoardFile, triggerExternalFileCheck, portfolioBoardChip } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, selectPortfolioBoard, installControlledPortfolioWriter, answerAppMessage, mockNewProjectFlow, mockImportProjectsPicker, mutateExternalBoardFile, triggerExternalFileCheck, portfolioBoardChip } from '../support/portfolio';
 
 function project(id: string, productName?: string) {
     return { version: 1, id, description: '', status: null, members: [], tags: [], ...(productName === undefined ? {} : { productName }) };
@@ -24,32 +24,34 @@ async function startTransfer(page: Page, mode: 'Copy' | 'Move') {
     await expect(page.locator('#appMessageConfirmBtn')).toBeDisabled();
     await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' });
     await page.locator('#appMessageConfirmBtn').click();
-    await expect(page.locator('#appMessageText')).toHaveText('Choose the destination workflow state explicitly.');
-    await expect(page.locator('#appMessageSelection')).toBeFocused();
+    await expect(page.locator('[data-field="state"]')).toBeFocused();
     await expect(page.locator('#appMessageConfirmBtn')).toBeDisabled();
-    await page.locator('#appMessageSelection').selectOption({ label: 'in progress' });
-    await page.locator('#appMessageConfirmBtn').click();
-    await expect(page.locator('.transfer-state-value')).toHaveText('in progress');
+    await page.locator('[data-field="state"]').selectOption({ label: 'in progress' });
     await expect(page.locator('.transfer-route')).toContainText('Construction');
     await expect(page.locator('.transfer-route')).toContainText('Maintenance');
 }
 
-test('products group projects, collapse with the keyboard and update only the edited project', async ({ page }) => {
+test('products use a compact dropdown, support keyboard selection and update only the edited project', async ({ page }) => {
     await seed(page);
     const groups = page.locator('.product-group'); await expect(groups).toHaveCount(2);
-    const house = groups.filter({ has: page.locator('summary > span:not(.product-count)', { hasText: /^House$/ }) });
-    await expect(house.locator('.portfolio-chip')).toHaveCount(2);
-    await house.locator('summary').focus(); await page.keyboard.press('Enter');
+    const house = groups.filter({ has: page.locator('summary > span', { hasText: /^House$/ }) });
+    await expect(house.locator('summary')).toHaveText('House|Construction');
     await expect(house.getByRole('button', { name: 'Construction', exact: true })).not.toBeVisible();
-    await expect(portfolioCard(page, 'Transfer me')).toBeVisible();
-    await page.keyboard.press('Enter');
-    await page.getByRole('button', { name: 'Settings for Construction', exact: true }).click();
+    await house.locator('summary').focus(); await page.keyboard.press('Enter');
+    await expect(house.getByRole('button', { name: 'Construction', exact: true })).toBeVisible();
+    await expect(house.getByRole('button', { name: '+ New Project', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(house.locator('summary')).toBeFocused();
+    await house.locator('summary').click();
+    await house.getByRole('button', { name: 'Settings for Construction', exact: true }).click();
     await page.getByLabel('Product', { exact: true }).fill('Garden');
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'source')).extensions.project.productName).toBe('Garden');
-    await expect(page.locator('.product-group').filter({ has: page.locator('summary > span:not(.product-count)', { hasText: /^Garden$/ }) }).locator('.portfolio-chip')).toHaveCount(2);
     expect((await readSavedBoard(page, 'target')).extensions.project.productName).toBe('house');
-    await page.getByRole('button', { name: 'Settings for Construction', exact: true }).click();
+    const garden = groups.filter({ has: page.locator('summary > span', { hasText: /^Garden$/ }) });
+    await expect(garden.locator('.portfolio-chip')).toHaveCount(2);
+    await garden.locator('summary').click();
+    await garden.getByRole('button', { name: 'Settings for Construction', exact: true }).click();
     await page.getByLabel('Product', { exact: true }).fill('   ');
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'source')).extensions.project.productName).toBeUndefined();
@@ -69,6 +71,7 @@ test('copy requires explicit project and state, preserves the source and can be 
     expect((await readSavedBoard(page, 'source')).board.tasks).toHaveLength(2);
     await selectPortfolioBoard(page, 'Maintenance'); await expect(portfolioCard(page, 'Transfer me')).toBeVisible();
     await selectPortfolioBoard(page, 'Construction');
+    await portfolioBoardChip(page, 'Maintenance').locator('xpath=ancestor::details').locator('summary').click();
     await portfolioBoardChip(page, 'Maintenance').getByRole('button', { name: 'Remove project', exact: true }).click();
     await portfolioCard(page, 'Blocker').click();
     await page.getByRole('tab', { name: 'Relations', exact: true }).click();
@@ -117,12 +120,13 @@ test('US-13 fixtures expose explicit mapping, planning removal, preserved commen
     const card = portfolioCard(page, 'Reparar portão'); await card.hover();
     await card.getByLabel('Task actions', { exact: true }).click(); await card.getByRole('button', { name: 'Move to project…' }).click();
     await page.locator('#appMessageSelection').selectOption({ label: 'US-13 · Manutenção' }); await page.locator('#appMessageConfirmBtn').click();
-    await page.locator('#appMessageSelection').selectOption({ label: 'Reparação' }); await page.locator('#appMessageConfirmBtn').click();
+    await page.locator('[data-field="state"]').selectOption({ label: 'Reparação' });
     await expect(page.locator('#appMessageConfirmBtn')).toBeDisabled();
-    await expect(page.locator('.transfer-removals')).toContainText('2026-10-29 · 09:00–10:00');
-    await expect(page.locator('.transfer-removals')).toContainText('Exterior');
-    await page.locator('#appMessageSelection-0').selectOption({ label: 'Bruno' });
-    await page.locator('#appMessageSelection-1').selectOption({ label: 'maintenance' });
+    await expect(page.locator('.transfer-mapping-table')).toContainText('2026-10-29 · 09:00–10:00');
+    await expect(page.locator('.transfer-mapping-table')).toContainText('Exterior');
+    await page.locator('[data-field="member-0"]').selectOption({ label: 'Bruno' });
+    await page.locator('[data-field="tag-0"]').selectOption({ label: 'maintenance' });
+    for (const select of await page.locator('.transfer-mapping-table select[data-field^="association-"]').all()) await select.selectOption('__remove__');
     await page.screenshot({ path: testInfo.outputPath('transfer-review.png'), animations: 'disabled' });
     await page.locator('#appMessageConfirmBtn').click(); await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
     await selectPortfolioBoard(page, 'US-13 · Manutenção'); await portfolioCard(page, 'Reparar portão').click();
@@ -138,9 +142,9 @@ test('US-13 fixtures expose explicit mapping, planning removal, preserved commen
     await returning.getByLabel('Task actions', { exact: true }).click();
     await returning.getByRole('button', { name: 'Move to project…' }).click();
     await page.locator('#appMessageSelection').selectOption({ label: 'US-13 · Construção' }); await page.locator('#appMessageConfirmBtn').click();
-    await page.locator('#appMessageSelection').selectOption({ label: 'Em curso' }); await page.locator('#appMessageConfirmBtn').click();
-    await page.locator('#appMessageSelection-0').selectOption({ label: 'Ana' });
-    await page.locator('#appMessageSelection-1').selectOption({ label: 'feature' });
+    await page.locator('[data-field="state"]').selectOption({ label: 'Em curso' });
+    await page.locator('[data-field="member-0"]').selectOption({ label: 'Ana' });
+    await page.locator('[data-field="tag-0"]').selectOption({ label: 'feature' });
     await page.locator('#appMessageConfirmBtn').click(); await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
     await selectPortfolioBoard(page, 'US-13 · Construção'); await portfolioCard(page, 'Reparar portão').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
@@ -210,7 +214,7 @@ test('copying a Story to Done requires fresh acceptance and cancellation leaves 
         await card.getByLabel('Task actions', { exact: true }).click();
         await card.getByRole('button', { name: 'Copy to project…' }).click();
         await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' }); await page.locator('#appMessageConfirmBtn').click();
-        await page.locator('#appMessageSelection').selectOption({ label: 'done' }); await page.locator('#appMessageConfirmBtn').click();
+        await page.locator('[data-field="state"]').selectOption({ label: 'done' });
         await page.locator('#appMessageConfirmBtn').click();
         await expect(page.locator('#appMessageInput')).toBeVisible();
         expect((await readSavedBoard(page, 'target')).board.tasks).toHaveLength(0);
@@ -225,17 +229,70 @@ test('copying a Story to Done requires fresh acceptance and cancellation leaves 
     expect((await readSavedBoard(page, 'source')).board.tasks[0].acceptance.author).toBe('Original author');
 });
 
-test('moving a parent explains that its children must first be detached', async ({ page }) => {
+test('moving a parent with a started child lists its identity, title and state and rejects the move', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [
-        { id: 'source', title: 'Construction', hasHandle: true, extensions: { project: project('construction', 'House') }, tasks: [{ id: 1, title: 'Parent story', type: 'story', assigneeIds: [], responsibleId: '' }, { id: 2, title: 'Child task', type: 'task', parentId: 1, assigneeIds: [], responsibleId: '' }] },
+        { id: 'source', title: 'Construction', hasHandle: true, extensions: { project: project('construction', 'House') }, tasks: [{ id: 1, title: 'Parent story', type: 'story', assigneeIds: [], responsibleId: '' }, { id: 2, title: 'Child task', type: 'task', status: 'doing', parentId: 1, assigneeIds: [], responsibleId: '' }] },
         { id: 'target', title: 'Maintenance', hasHandle: true, extensions: { project: project('maintenance', 'House') } }
     ], { selectedBoardId: 'source' });
     await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
     const card = portfolioCard(page, 'Parent story'); await card.hover();
     await card.getByLabel('Task actions', { exact: true }).click();
     await card.getByRole('button', { name: 'Move to project…' }).click();
-    await answerAppMessage(page, { expectText: 'Move or detach all children' });
+    await expect(page.locator('.transfer-children')).toContainText('Child task');
+    await expect(page.locator('.transfer-children')).toContainText('in progress');
+    await expect(page.locator('.transfer-child-blocked')).toHaveCount(1);
+    await page.locator('#appMessageConfirmBtn').click();
     expect((await readSavedBoard(page, 'source')).board.tasks[1].parentId).toBe(1);
     expect((await readSavedBoard(page, 'target')).board.tasks).toHaveLength(0);
+});
+
+test('moving a parent reviews and moves every eligible descendant with explicit states', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [
+        { id: 'source', title: 'Construction', hasHandle: true, extensions: { project: project('construction', 'House') }, tasks: [
+            { id: 1, title: 'Parent story', type: 'story', status: 'to-do', assigneeIds: [], responsibleId: '' },
+            ...[2, 3, 4, 5].map((id) => ({ id, title: `Child task ${id}`, type: 'task' as const, status: id === 2 ? 'backlog' : 'to-do', parentId: 1, assigneeIds: [], responsibleId: '' }))
+        ] },
+        { id: 'target', title: 'Maintenance', hasHandle: true, extensions: { project: project('maintenance', 'House') }, tasks: [{ id: 1, title: 'Collision', assigneeIds: [], responsibleId: '' }] }
+    ], { selectedBoardId: 'source' });
+    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    const card = portfolioCard(page, 'Parent story'); await card.hover();
+    await card.getByLabel('Task actions', { exact: true }).click();
+    await card.getByRole('button', { name: 'Move to project…' }).click();
+    await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' });
+    await page.locator('#appMessageConfirmBtn').click();
+    await expect(page.locator('.transfer-children tbody tr')).toHaveCount(4);
+    await expect(page.locator('.transfer-children')).toContainText('backlog');
+    await expect(page.locator('#appMessageConfirmBtn')).toBeDisabled();
+    for (const field of await page.locator('.transfer-mapping-table select').all()) await field.selectOption('to-do');
+    await page.locator('#appMessageConfirmBtn').click();
+    await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
+    const target = await readSavedBoard(page, 'target');
+    expect(target.board.tasks).toHaveLength(6);
+    const parent = target.board.tasks.find((task: { title: string }) => task.title === 'Parent story');
+    expect(target.board.tasks.filter((task: { parentId: number }) => task.parentId === parent.id)).toHaveLength(4);
+    expect((await readSavedBoard(page, 'source')).board.tasks).toHaveLength(0);
+});
+
+
+test('creating within a product opens settings with required name and acronym and optional metadata', async ({ page }) => {
+    await seed(page);
+    await mockNewProjectFlow(page, { fileName: 'new-house-project.json' });
+    const menu = page.locator('.product-group').filter({ has: page.locator('summary > span', { hasText: /^House$/ }) });
+    await menu.locator('summary').click();
+    await menu.getByRole('button', { name: '+ New Project', exact: true }).click();
+    const dialog = page.locator('#projectSettingsModal');
+    await expect(page.getByLabel('Product', { exact: true })).toHaveValue('House');
+    await expect(page.getByLabel('Project name', { exact: true })).toHaveAttribute('required');
+    await expect(page.locator('#projectAcronym')).toHaveAttribute('required');
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+    expect(await page.evaluate(() => window.__newProjectWrites || [])).toEqual([]);
+    await page.getByLabel('Project name', { exact: true }).fill('Renovation');
+    await page.locator('#projectAcronym').fill('REN');
+    await dialog.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(dialog).toBeHidden();
+    const saved = JSON.parse((await page.evaluate(() => window.__newProjectWrites || []))[0]);
+    expect(saved.extensions.project).toMatchObject({ productName: 'House', acronym: 'REN', description: '', members: [] });
+    await expect(menu.locator('summary')).toHaveText('House|Renovation');
 });

@@ -9,9 +9,11 @@ export type AppMessageButton = {
     submitsSelections?: boolean;
 };
 
-export type MessageSelection = { required?: boolean; id: string; label: string; options: { value: string; label: string }[] };
+export type MessageSelection = { required?: boolean; id: string; label: string; current?: string; options: { value: string; label: string }[] };
 
 export type AppMessageReview = {
+    children?: { id: string; title: string; state: string; blocked: boolean }[];
+    childrenLabel?: string;
     source: string; destination: string; state: string; color: string;
     sourceLabel: string; destinationLabel: string; stateLabel: string;
     removalsLabel: string; removals: { label: string; title: string; detail: string }[];

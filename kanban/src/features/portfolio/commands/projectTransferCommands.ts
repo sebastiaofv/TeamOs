@@ -1,12 +1,13 @@
+import { childTransferReview, projectTransferFields } from './projectTransferReview';
 import { requestWorkitemAcceptance } from './workitemAcceptance';
-import { assertWorkitemTransfer, workitemType, WorkitemError } from '@/domain/workitems';
+import { assertWorkitemTransfer, transferDescendants, workitemType, WorkitemError } from '@/domain/workitems';
 import { nextTaskIdForBoard } from '@/domain/task';
 import { checkPortfolioFiles } from '@/features/portfolio/projects/projectCommands';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardData } from '@/domain/types';
-import { sameProduct, prepareProjectTransfer, removeTransferredSource, transferMemberInputs, transferRemovals, TransferError, type TransferMode, type TransferOperation, type TransferMapping } from '@/domain/projectTransfers';
+import { sameProduct, prepareProjectTransfer, removeTransferredSource, transferBatch, TransferError, type TransferMode, type TransferOperation } from '@/domain/projectTransfers';
 import { cloneSerializable } from '@/domain/serializable';
-import { getWorkflow, statusCategory } from '@/domain/workflow';
+import { statusCategory } from '@/domain/workflow';
 import { validateBoardData } from '@/domain/board';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { translateCurrent as t } from '@/shared/i18n';
@@ -36,7 +37,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (operation.mode === 'copy') {
                 if (operation.status === 'complete') return true;
                 const next = cloneSerializable(getBoardRecord(destinationId)!.data);
-                next.extensions.projectTransfers!.operations.find((entry) => entry.id === operation.id)!.status = 'complete';
+                for (const entry of transferBatch(next, operation)) entry.status = 'complete';
                 publish(destinationId, next);
                 return Boolean(await enqueueSave(getBoardRecord(destinationId)));
             }
@@ -49,7 +50,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (nextSource !== currentSource.data) publish(source!.id, nextSource);
             if (!await enqueueSave(getBoardRecord(source!.id))) return false;
             const nextDestination = cloneSerializable(getBoardRecord(destinationId)!.data);
-            nextDestination.extensions.projectTransfers!.operations.find((entry) => entry.id === operation.id)!.status = 'complete';
+            for (const entry of transferBatch(nextDestination, operation)) entry.status = 'complete';
             publish(destinationId, nextDestination);
             return Boolean(await enqueueSave(getBoardRecord(destinationId)));
         } finally { unlock(); onBoardChanged(destinationId); if (source) onBoardChanged(source.id); }
@@ -77,6 +78,15 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (mode === 'copy' && failedCopy) return await resumeProjectTransfer(failedCopy.boardId, failedCopy.operationId);
             const pending = getState().portfolioBoards.flatMap((board) => (board.data.extensions.projectTransfers?.operations || []).filter((operation) => operation.status === 'pending' && (operation.from.permanentId === task.permanentId || operation.to.permanentId === task.permanentId)).map((operation) => ({ board, operation })))[0];
             if (pending) return await resumeProjectTransfer(pending.board.id, pending.operation.id);
+            const children = mode === 'move' ? transferDescendants(source.data, taskId) : [];
+            const childReview = childTransferReview(source.data, children);
+            if (childReview.children?.some((child) => child.blocked)) {
+                await confirm(t('workitems.error.childrenState'), { title: t(`transfer.${mode}`), confirmLabel: t('common.close'), review: {
+                    source: source.title, destination: '—', state: '', color: '', sourceLabel: t('transfer.source'), destinationLabel: t('transfer.destination'), stateLabel: t('task.status'),
+                    removalsLabel: '', removals: [], mappingLabel: '', mappingNote: '', note: t('workitems.error.childrenState'), ...childReview
+                } });
+                return false;
+            }
             assertWorkitemTransfer(source.data, taskId, mode);
             const destinations = getState().portfolioBoards.filter((board) => board.id !== boardId && sameProduct(source.data, board.data));
             if (!destinations.length) { await alert(t('transfer.noDestination')); return false; }
@@ -85,26 +95,21 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const destinationId = await choose(t('transfer.destinationHelp', { source: source.title }), eligible.map((board) => ({ value: board.id, label: board.title })), { title: t(`transfer.${mode}`), selectionLabel: t('transfer.destination'), requiredSelection: true });
             if (!destinationId) return false;
             const destination = getBoardRecord(destinationId)!;
-            const stateId = await choose(t('transfer.stateHelp'), getWorkflow(destination.data, task).states.map((state) => ({ value: state.id, label: state.name })), { title: t(`transfer.${mode}`), selectionLabel: t('task.status'), requiredSelection: true });
-            if (!stateId) return false;
-            const memberInputs = transferMemberInputs(task);
-            const catalog = destination.data.extensions.project!;
-            const selections = [
-                ...memberInputs.map((member, index) => ({ required: true, id: `member-${index}`, label: `${t('task.assignees')}: ${member.name}`, options: [{ value: '__remove__', label: t('transfer.removeExplicit') }, ...catalog.members.map((entry) => ({ value: entry.id, label: entry.name }))] })),
-                ...task.tags.map((tag, index) => ({ required: true, id: `tag-${index}`, label: `${t('task.tags')}: ${tag}`, options: [{ value: '__remove__', label: t('transfer.removeExplicit') }, ...catalog.tags.map((value) => ({ value, label: value }))] }))
-            ];
-            const removed = transferRemovals(source.data, task);
-            const answer = await confirm(t('transfer.scopeSummary'), { title: t(`transfer.${mode}`), confirmLabel: t('common.confirm'), selections, review: {
-                source: source.title, destination: destination.title, state: getWorkflow(destination.data, task).states.find((state) => state.id === stateId)!.name,
-                color: getWorkflow(destination.data, task).states.find((state) => state.id === stateId)!.color,
+            const hierarchy = children.length ? [task, ...children] : [];
+            const rootFields = projectTransferFields(source.data, destination.data, task, '', hierarchy);
+            const childFields = children.map((child) => ({ child, editor: projectTransferFields(source.data, destination.data, child, `${child.permanentId}:`, hierarchy) }));
+            const selections = [...rootFields.fields, ...childFields.flatMap((entry) => entry.editor.fields)];
+            const note = t(children.length ? 'transfer.hierarchySummary' : 'transfer.scopeSummary');
+            const answer = await confirm(note, { title: t(`transfer.${mode}`), confirmLabel: t('common.confirm'), selections, review: {
+                source: source.title, destination: destination.title, state: '', color: '',
                 sourceLabel: t('transfer.source'), destinationLabel: t('transfer.destination'), stateLabel: t('task.status'),
-                removalsLabel: t('transfer.removalsTitle'), removals: removed.map((entry) => ({ label: t(`transfer.kind.${entry.kind}`), title: entry.title, detail: `${entry.id}${entry.date ? ` · ${entry.date}` : ''}${entry.start ? ` · ${entry.start}–${entry.end}` : ''}` })),
-                mappingLabel: t('transfer.mappingTitle'), mappingNote: t('transfer.mappingSummary'), note: t('transfer.scopeSummary')
+                removalsLabel: t('transfer.removalsTitle'), removals: [],
+                mappingLabel: t('transfer.mappingTitle'), mappingNote: t('transfer.mappingSummary'), note, ...childReview
             } });
             if (!answer) return false;
             const values = typeof answer === 'object' ? answer as Record<string, string> : {};
-            const mapped = (value: string) => value === '__remove__' ? '' : value;
-            const mapping: TransferMapping = { members: Object.fromEntries(memberInputs.map((member, index) => [member.id, mapped(values[`member-${index}`])])), tags: Object.fromEntries(task.tags.map((tag, index) => [tag, mapped(values[`tag-${index}`])])) };
+            const { stateId, mapping } = rootFields.read(values);
+            const childChoices = Object.fromEntries(childFields.map(({ child, editor }) => [child.permanentId!, editor.read(values)]));
             let acceptanceAuthor: string | undefined;
             if (statusCategory(stateId, destination.data, task) === 'completed' && ['story', 'bug'].includes(workitemType(task)) && !(mode === 'move' && task.acceptance)) {
                 // This item arrives without children; its new local number cannot refer to destination children.
@@ -117,7 +122,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             await checkFiles();
             if (getBoardRecord(boardId)?.data !== source.data || getBoardRecord(destinationId)?.data !== destination.data) throw new TransferError('stale');
             if (!writable(destinationId) || isBoardInHistoricalPreview(getState(), boardId) || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
-            const prepared = prepareProjectTransfer(source, destination, taskId, mode, stateId, mapping, getState().portfolioBoards, undefined, getState().unloadedRelationSources.flatMap((entry) => entry.relations), acceptanceAuthor);
+            const prepared = prepareProjectTransfer(source, destination, taskId, mode, stateId, mapping, getState().portfolioBoards, undefined, getState().unloadedRelationSources.flatMap((entry) => entry.relations), acceptanceAuthor, childChoices);
             // Validate before publishing: an invalid draft cannot affect either project.
             validateBoardData(prepared.destination);
             publish(destinationId, prepared.destination);

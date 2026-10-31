@@ -10,7 +10,8 @@ export function PendingProjectTransfers() {
     const [busy, setBusy] = useState(false);
     const { t } = useI18n();
     const pending = boards.flatMap((board) => (board.data.extensions.projectTransfers?.operations || [])
-        .filter((operation) => operation.status === 'pending' || (operation === board.data.extensions.projectTransfers?.operations.at(-1) && saves.get(board.id)?.status === 'error'))
+        .filter((operation) => !operation.batchId || operation.id === operation.batchId)
+        .filter((operation) => operation.status === 'pending' || ((operation === board.data.extensions.projectTransfers?.operations.at(-1) || operation.id === board.data.extensions.projectTransfers?.operations.at(-1)?.batchId) && saves.get(board.id)?.status === 'error'))
         .map((operation) => ({ board, operation })));
     if (!pending.length) return null;
     return <section className="pending-transfers" aria-label={t('transfer.pendingTitle')}>

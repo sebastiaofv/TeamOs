@@ -1,4 +1,5 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { createNewProject } from '@/features/portfolio/projects/projectCommands';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardRecord, PortfolioFilters, ProjectSaveState } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
@@ -238,7 +239,7 @@ function ChipList({ state }: { state: ChipState }) {
                 style={{ '--chip-bg': color.bg, '--chip-border': color.border, '--chip-text': color.text } as CSSProperties}
                 key={board.id}
             >
-                <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={() => selectPortfolioBoard(board.id)}>
+                <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={(event) => { selectPortfolioBoard(board.id); const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; }}>
                     {board.title || board.fileName}
                     {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
                     {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
@@ -270,14 +271,31 @@ function ChipList({ state }: { state: ChipState }) {
             <span className={`portfolio-chip${state.selectedPortfolioBoardId ? '' : ' active'}`}>
                 <button className="chip-link" type="button" data-action="select-board" data-board-id="" aria-pressed={!state.selectedPortfolioBoardId} onClick={() => selectPortfolioBoard('')}>{t('common.all')}</button>
             </span>
-            {groups.map((group) => group.product ? <details className="product-group" key={group.key} open>
-                <summary><svg className="product-chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m6 3 5 5-5 5" /></svg>
-                    <span>{group.product}</span><span className="product-count" aria-label={t('transfer.projectCount', { count: group.boards.length })}>{group.boards.length}</span>
-                </summary>
-                <div className="product-projects">{group.boards.map((board) => renderBoard(board, true))}</div>
-            </details> : group.boards.map((board) => renderBoard(board)))}
+            {groups.map((group) => group.product ? <ProductProjectMenu key={group.key} product={group.product}
+                selected={group.boards.find((board) => board.id === state.selectedPortfolioBoardId)?.title}>
+                {group.boards.map((board) => renderBoard(board, true))}
+                <button type="button" className="product-create btn" onClick={() => { void createNewProject(group.product); }}>{t('header.newProject')}</button>
+            </ProductProjectMenu> : group.boards.map((board) => renderBoard(board)))}
         </>
     );
+}
+
+function ProductProjectMenu({ product, selected, children }: { product: string; selected?: string; children: ReactNode }) {
+    const menu = useRef<HTMLDetailsElement>(null);
+    const { t } = useI18n();
+    useEffect(() => {
+        const close = (event: PointerEvent) => { if (menu.current?.open && !menu.current.contains(event.target as Node)) menu.current.open = false; };
+        document.addEventListener('pointerdown', close);
+        return () => document.removeEventListener('pointerdown', close);
+    }, []);
+    return <details ref={menu} className="product-group" onKeyDown={(event) => {
+        if (event.key === 'Escape' && menu.current?.open) { event.preventDefault(); event.stopPropagation(); menu.current.open = false; menu.current.querySelector('summary')?.focus(); }
+    }}>
+        <summary><span>{product}</span><span aria-hidden="true">|</span><span className="product-selected">{selected || t('transfer.chooseProject')}</span>
+            <svg className="product-chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m3 6 5 5 5-5" /></svg>
+        </summary>
+        <div className="product-projects">{children}</div>
+    </details>;
 }
 
 export function PortfolioToolbar() {

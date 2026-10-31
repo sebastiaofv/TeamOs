@@ -6,11 +6,18 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    "transfer.chooseProject": "Choose project",
+    "transfer.field": "Field",
+    "transfer.current": "Current value",
+    "transfer.targetValue": "Destination value",
+    "transfer.children": "Child workitems",
+    "transfer.hierarchySummary": "The listed workitems move together, preserving their hierarchy, content and due dates. Choose each destination value or explicitly remove the association. Scheduled blocks and previous sprint records can only be removed.",
+    "workitems.error.childrenState": "Move rejected: every child must be in a Backlog or To-do state category. The highlighted children are beyond To-do. No workitems have been moved.",
     "transfer.source": "Source",
     "transfer.removalsTitle": "Associations removed",
-    "transfer.mappingTitle": "People & tags",
+    "transfer.mappingTitle": "Project associations",
     "transfer.mappingSummary": "Choose a destination value or explicitly remove each association. Responsibility follows the person’s mapping.",
-    "transfer.scopeSummary": "Only this task is transferred. Its content and due date are preserved; other tasks stay in their projects.",
+    "transfer.scopeSummary": "Only this workitem is transferred. Its content and due date are preserved. Choose each destination value or explicitly remove the association. Scheduled blocks and previous sprint records can only be removed.",
     "transfer.projectCount": "{count} projects",
 
     "project.product": "Product",
@@ -36,7 +43,7 @@ const en = {
     "transfer.recover": "Resume transfer",
     "transfer.error.product": "Choose a different loaded project in the same non-empty product.",
     "transfer.error.state": "Choose a valid state from the destination workflow.",
-    "transfer.error.mapping": "Map every person and tag or explicitly accept removal.",
+    "transfer.error.mapping": "Map every project association or explicitly accept removal.",
     "transfer.error.stale": "The project or source task changed. No further source data was removed. Review the current files and retry. Pending transfers remain available for recovery.",
     "transfer.error.unavailable": "Transfer unavailable. The destination must be writable; moving also requires a writable source. Return to Latest and resolve pending file conflicts or read errors first. Load the source project to recover a pending move.",
     "transfer.error.invalid": "Invalid transfer data. The source is preserved.",
@@ -952,11 +959,18 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    "transfer.chooseProject": "Escolher projeto",
+    "transfer.field": "Campo",
+    "transfer.current": "Valor atual",
+    "transfer.targetValue": "Valor destino",
+    "transfer.children": "Workitems filhos",
+    "transfer.hierarchySummary": "Os workitems apresentados são movidos em conjunto, preservando a hierarquia, conteúdo e datas-limite. Escolha cada valor destino ou remova explicitamente a associação. Blocos agendados e registos de sprints anteriores só podem ser removidos.",
+    "workitems.error.childrenState": "Movimento rejeitado: todos os filhos devem estar numa categoria de estado Backlog ou To-do. Os filhos destacados estão acima de To-do. Nenhum workitem foi movido.",
     "transfer.source": "Origem",
     "transfer.removalsTitle": "Associações removidas",
-    "transfer.mappingTitle": "Pessoas e etiquetas",
+    "transfer.mappingTitle": "Associações do projeto",
     "transfer.mappingSummary": "Escolha um valor do destino ou remova explicitamente cada associação. O responsável segue o mapeamento da pessoa.",
-    "transfer.scopeSummary": "Apenas esta tarefa é transferida. O conteúdo e a data-limite são preservados; as restantes tarefas ficam nos seus projetos.",
+    "transfer.scopeSummary": "Apenas este workitem é transferido. O conteúdo e a data-limite são preservados. Escolha cada valor destino ou remova explicitamente a associação. Blocos agendados e registos de sprints anteriores só podem ser removidos.",
     "transfer.projectCount": "{count} projetos",
 
     "project.product": "Produto",

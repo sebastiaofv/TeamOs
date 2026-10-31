@@ -11,9 +11,20 @@ export function workitemFieldNames(type: WorkitemType): readonly typeof WORKITEM
 }
 export const workitemType = (task: Pick<Task, 'type'>): WorkitemType => task.type || 'task';
 export class WorkitemError extends Error {
-    constructor(public code: 'type' | 'immutable' | 'parent' | 'children' | 'criteria' | 'pending' | 'acceptance' | 'sprint' | 'configuration' | 'data' | 'epic' | 'author' | 'stale') { super(({ type: 'Unknown workitem type.', immutable: 'A workitem type is immutable after creation.', parent: 'Choose a valid parent in this project.', children: 'Reassign or detach children before deleting or moving this workitem.', criteria: 'Acceptance criteria are required.', pending: 'Complete, cancel or detach pending child Tasks.', acceptance: 'Functional acceptance is required.', sprint: 'Plan this workitem through an eligible Sprint or its Story.', configuration: 'Invalid automation configuration.', data: 'Invalid workitem data.', epic: 'An epic cannot have execution-only fields.', author: 'A non-empty local author is required.', stale: 'The preview is stale; review the changed project.' })[code]); }
+    constructor(public code: 'type' | 'immutable' | 'parent' | 'children' | 'criteria' | 'pending' | 'acceptance' | 'sprint' | 'configuration' | 'data' | 'epic' | 'author' | 'stale' | 'childrenState') { super(({ type: 'Unknown workitem type.', immutable: 'A workitem type is immutable after creation.', parent: 'Choose a valid parent in this project.', children: 'Reassign or detach children before deleting or moving this workitem.', criteria: 'Acceptance criteria are required.', pending: 'Complete, cancel or detach pending child Tasks.', acceptance: 'Functional acceptance is required.', sprint: 'Plan this workitem through an eligible Sprint or its Story.', configuration: 'Invalid automation configuration.', data: 'Invalid workitem data.', epic: 'An epic cannot have execution-only fields.', author: 'A non-empty local author is required.', stale: 'The preview is stale; review the changed project.', childrenState: 'Children must be in Backlog or To-do state categories to move.' })[code]); }
 }
 export function childrenOf(data: BoardData, id: number): Task[] { return data.board.tasks.filter((task) => task.parentId === id); }
+/** Preorder includes every descendant, so an Epic move also checks its Stories' Tasks. */
+export function transferDescendants(data: BoardData, id: number): Task[] {
+    const result: Task[] = [];
+    const seen = new Set([id]);
+    const visit = (parentId: number) => { for (const child of childrenOf(data, parentId)) {
+        if (seen.has(child.id)) throw new WorkitemError('parent');
+        seen.add(child.id); result.push(child); visit(child.id);
+    } };
+    visit(id);
+    return result;
+}
 export function isTerminal(data: BoardData, task: Task): boolean { return ['completed', 'cancelled'].includes(statusCategory(task.status, data, task)); }
 export function parentOf(data: BoardData, task: Task): Task | undefined { return task.parentId == null ? undefined : data.board.tasks.find((item) => item.id === task.parentId); }
 export function storyOf(data: BoardData, task: Task): Task | undefined { const parent = parentOf(data, task); return parent && workitemType(parent) === 'story' ? parent : undefined; }
@@ -189,11 +200,11 @@ export function consultSprintParticipation(data: BoardData, sprintId: string) {
 
 export type SprintParticipation = ReturnType<typeof consultSprintParticipation>;
 
-/** US-13 calls this boundary before previewing a transfer; transferring a parent never transfers its children implicitly. */
+/** Only early-category descendants may join the explicitly reviewed move. Copies remain single-item. */
 export function assertWorkitemTransfer(data: BoardData, id: number, mode: 'copy' | 'move'): void {
     const task = data.board.tasks.find((entry) => entry.id === id);
     if (!task) throw new WorkitemError('data');
-    if (mode === 'move' && childrenOf(data, id).length) throw new WorkitemError('children');
+    if (mode === 'move' && transferDescendants(data, id).some((child) => !['backlog', 'to-do'].includes(statusCategory(child.status, data, child)))) throw new WorkitemError('childrenState');
 }
 /** Acceptance belongs to the workitem's lifecycle: a copy needs its own acceptance even if its source was accepted. */
 export function transferredAcceptance(source: Task, mode: 'copy' | 'move', targetCompleted: boolean, author?: string): Task['acceptance'] {

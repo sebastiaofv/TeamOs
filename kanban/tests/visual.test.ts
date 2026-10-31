@@ -819,10 +819,9 @@ test.describe('US-13 product navigation and transfer review', () => {
       await dialog.getByRole('button', { name: 'Move to project…', exact: true }).click();
       await page.locator('#appMessageSelection').selectOption({ label: 'US-13 · Manutenção' });
       await page.locator('#appMessageConfirmBtn').click();
-      await page.locator('#appMessageSelection').selectOption({ label: 'Reparação' });
-      await page.locator('#appMessageConfirmBtn').click();
-      await page.locator('#appMessageSelection-0').selectOption({ label: 'Bruno' });
-      await page.locator('#appMessageSelection-1').selectOption({ label: 'maintenance' });
+      await page.locator('[data-field="state"]').selectOption({ label: 'Reparação' });
+      await page.locator('[data-field="member-0"]').selectOption({ label: 'Bruno' });
+      await page.locator('[data-field="tag-0"]').selectOption({ label: 'maintenance' });
       const review = page.locator('#appMessageModal .modal-content');
       expect(await review.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
       await page.mouse.move(1, 1);

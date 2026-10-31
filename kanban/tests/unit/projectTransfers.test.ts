@@ -1,7 +1,8 @@
+import type { ConfirmOptions } from '@/app/overlays/appMessages';
 import { inheritLegacyTaskIdentities } from '@/domain/taskIdentity';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { fromPartial } from '@total-typescript/shoehorn';
+import { fromAny, fromPartial } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
 import { serializeBoardDataFromObject } from '@/domain/serialize';
 import { normalizeTask } from '@/domain/task';
@@ -128,7 +129,7 @@ function actionsSetup() {
     const store = createAppStore({ portfolioBoards: [source, destination] });
     const writes: string[] = []; let fail = '';
     const save = vi.fn(async (record: BoardRecord | null) => { writes.push(record!.id); return record!.id !== fail; });
-    const context = createBoardMutationContext({ store, enqueueSave: save, markDirty: vi.fn(), alert: vi.fn(), choose: vi.fn().mockResolvedValueOnce('Destination').mockResolvedValueOnce('testing'), confirm: vi.fn().mockResolvedValue({ 'member-0': 'same-id', 'tag-0': 'mapped' }), prompt: vi.fn().mockResolvedValue('New reviewer'), closeDialogFn: vi.fn() });
+    const context = createBoardMutationContext({ store, enqueueSave: save, markDirty: vi.fn(), alert: vi.fn(), choose: vi.fn().mockResolvedValueOnce('Destination').mockResolvedValueOnce('testing'), confirm: vi.fn(async (_text: string, options?: ConfirmOptions) => Object.fromEntries((options?.selections || []).map((field) => [field.id, field.id === 'state' ? 'testing' : field.id === 'member-0' ? 'same-id' : field.id === 'tag-0' ? 'mapped' : '__remove__']))), prompt: vi.fn().mockResolvedValue('New reviewer'), closeDialogFn: vi.fn() });
     const actions = createProjectTransferActions(context, vi.fn(async () => true));
     return { store, context, actions, save, writes, fail: (id: string) => { fail = id; } };
 }
@@ -277,7 +278,7 @@ describe('transfer lifecycle regressions', () => {
         expect(() => prepareProjectTransfer(source, destination, 1, 'copy', 'done', mapping, projects, undefined, [], 'Reviewer')).toThrow('criteria');
         source.data.board.tasks[1].parentId = 1;
         const before = structuredClone(source.data);
-        expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'doing', mapping, projects)).toThrow('Reassign or detach');
+        expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'doing', mapping, projects)).toThrow('Backlog or To-do');
         expect(source.data).toEqual(before);
         expect(prepareProjectTransfer(source, destination, 1, 'copy', 'doing', mapping, projects).destination.board.tasks.at(-1)!.parentId).toBeNull();
     });
@@ -286,7 +287,9 @@ describe('transfer lifecycle regressions', () => {
             const setup = actionsSetup();
             const source = setup.store.getState().portfolioBoards[0];
             Object.assign(source.data.board.tasks[0], { type: 'story', acceptanceCriteria: 'Verified result' });
-            vi.mocked(setup.context.choose).mockReset().mockResolvedValueOnce('Destination').mockResolvedValueOnce('done');
+            vi.mocked(setup.context.choose).mockReset().mockResolvedValueOnce('Destination');
+            const confirm = vi.mocked(setup.context.confirm).getMockImplementation()!;
+            vi.mocked(setup.context.confirm).mockImplementation(async (text, options) => ({ ...fromAny<Record<string, string>, unknown>(await confirm(text, options)), state: 'done' }));
             vi.mocked(setup.context.prompt).mockImplementation(async () => {
                 expect(setup.save).not.toHaveBeenCalled();
                 if (action === 'stale') setup.store.setState((state) => ({ portfolioBoards: state.portfolioBoards.map((board) => board.id === 'Source' ? { ...board, data: structuredClone(board.data) } : board) }));
@@ -339,5 +342,90 @@ describe('transfer lifecycle regressions', () => {
         destination.data.extensions.conversations = { version: 1, entries: [comment] };
         appendTimelineEvent(destination.data, { id: comment.eventId, at: comment.at, kind: 'task.comment.published', entityType: 'task', entityId: '1', summary: 'Comment', meta: { commentId: comment.id, workitemKey: comment.workitemKey } });
         expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'doing', mapping, projects)).toThrow('invalid');
+    });
+});
+
+describe('reviewed association and hierarchy transfers', () => {
+    function family() {
+        const source = project('Source'), destination = project('Destination');
+        Object.assign(source.data.board.tasks[0], { type: 'epic', effort: null, status: 'to-do' });
+        const root = source.data.board.tasks[0];
+        source.data.board.tasks.push(
+            { ...structuredClone(root), id: 2, permanentId: 'story', type: 'story', title: 'Child story', parentId: 1, status: 'backlog' },
+            { ...structuredClone(root), id: 3, permanentId: 'task', type: 'task', title: 'Grandchild task', parentId: 2, status: 'to-do' }
+        );
+        const choices = Object.fromEntries(source.data.board.tasks.slice(1).map((task) => [task.permanentId!, { stateId: 'to-do', mapping }]));
+        return { source, destination, choices };
+    }
+    it('moves every descendant preserving hierarchy, identity, comments and relations across collisions and reopen', () => {
+        const { source, destination, choices } = family();
+        ensureBoardTimelineBaseline(source.data);
+        const comment = buildComment(source.data, 3, { id: 'child-comment', author: 'Author', text: 'Child conversation', images: [] }, { writable: true, historical: false });
+        source.data.extensions.conversations = { version: 1, entries: [comment] };
+        appendTimelineEvent(source.data, { id: comment.eventId, at: comment.at, kind: 'task.comment.published', entityType: 'task', entityId: '3', summary: 'Comment', meta: { commentId: comment.id, workitemKey: comment.workitemKey } });
+        source.data.extensions.taskRelations = { version: 1, relations: [{ sourceId: 2, targetId: 3, kind: 'related' }] };
+        const before = structuredClone(source.data);
+        const result = prepareProjectTransfer(source, destination, 1, 'move', 'to-do', mapping, [source, destination], undefined, [], undefined, choices);
+        expect(source.data).toEqual(before);
+        const target = serializeBoardDataFromObject(JSON.parse(JSON.stringify(result.destination)));
+        validateBoardData(target);
+        const moved = target.board.tasks.filter((task) => before.board.tasks.some((original) => original.permanentId === task.permanentId));
+        const root = moved.find((task) => task.type === 'epic')!, story = moved.find((task) => task.type === 'story')!, task = moved.find((task) => task.type === 'task')!;
+        expect(story.parentId).toBe(root.id); expect(task.parentId).toBe(story.id);
+        expect(new Set(target.board.tasks.map((task) => task.id)).size).toBe(4);
+        expect(visibleComments(target, task)[0].text).toBe('Child conversation');
+        expect(permanentTaskRelations([{ ...destination, data: target }], task.permanentId!)).toHaveLength(1);
+        expect(target.extensions.projectTransfers!.operations.every((op) => op.batchId === result.operation.id)).toBe(true);
+        expect(target.extensions.projectTransfers!.operations.flatMap((op) => op.removed).some((entry) => entry.kind === 'parent' || entry.kind === 'child')).toBe(false);
+        const removed = removeTransferredSource(source.data, result.operation, target);
+        expect(removed.board.tasks).toEqual([]); validateBoardData(serializeBoardDataFromObject(removed));
+        expect(removeTransferredSource(removed, result.operation, target)).toBe(removed);
+    });
+    it.each(['doing', 'done', 'cancelled'])('rejects an ineligible nested descendant in %s without modifying either project', (status) => {
+        const { source, destination, choices } = family(); source.data.board.tasks[2].status = status;
+        const before = structuredClone([source.data, destination.data]);
+        expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'to-do', mapping, [source, destination], undefined, [], undefined, choices)).toThrow('Backlog or To-do');
+        expect([source.data, destination.data]).toEqual(before);
+    });
+    it('revalidates every child before removing any source data during recovery', () => {
+        const { source, destination, choices } = family();
+        const result = prepareProjectTransfer(source, destination, 1, 'move', 'to-do', mapping, [source, destination], undefined, [], undefined, choices);
+        source.data.board.tasks[2].title = 'Changed during pending save';
+        expect(() => removeTransferredSource(source.data, result.operation, result.destination)).toThrow('stale');
+        expect(source.data.board.tasks).toHaveLength(3);
+        source.data.board.tasks.pop();
+        expect(() => removeTransferredSource(source.data, result.operation, result.destination)).toThrow('stale');
+    });
+    it('remaps phase, milestone, sprint and parent only to valid destination values and audits original associations', () => {
+        const { source, destination, projects } = scenario();
+        destination.data.extensions.roadmap = { version: 1, phases: [{ id: 'p', title: 'Target phase' }], milestones: [{ id: 'm', title: 'Target milestone' }], sprints: [{ id: 's', title: 'Target sprint', startDate: '2099-01-01', endDate: '2099-01-15' }] };
+        Object.assign(destination.data.board.tasks[0], { type: 'story', parentId: null });
+        source.data.board.tasks[1].type = 'story'; source.data.board.tasks[0].parentId = 2;
+        const associations = { 'phases:phase': 'p', 'milestones:release': 'm', 'sprints:sprint': 's', 'sprintHistory:sprint': '', 'planner:b': '', 'parent:2': '1' };
+        const result = prepareProjectTransfer(source, destination, 1, 'move', 'testing', { ...mapping, associations }, projects);
+        const task = result.destination.board.tasks.at(-1)!;
+        expect(task).toMatchObject({ phaseId: 'p', phaseMode: 'explicit', milestoneId: 'm', milestoneMode: 'explicit', sprintId: 's', parentId: 1 });
+        expect(result.operation.removed.map((entry) => entry.id)).toContain('phase');
+        expect(result.operation.mapping.associations).toEqual(associations);
+        validateBoardData(serializeBoardDataFromObject(result.destination));
+        expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'testing', { ...mapping, associations: { ...associations, 'phases:phase': 'missing' } }, projects)).toThrow('mapping');
+        expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'testing', { ...mapping, associations: {} }, projects)).toThrow('mapping');
+    });
+    it.each(['Source', 'Destination'])('recovers a whole hierarchy after a %s write failure without duplicates', async (failed) => {
+        const { source, destination } = family();
+        const store = createAppStore({ portfolioBoards: [source, destination] });
+        let fail = true;
+        const save = vi.fn(async (board: BoardRecord | null) => !(fail && board!.id === failed));
+        const context = createBoardMutationContext({ store, enqueueSave: save, markDirty: vi.fn(), alert: vi.fn(), choose: vi.fn().mockResolvedValue('Destination'),
+            confirm: vi.fn(async (_text: string, options?: ConfirmOptions) => Object.fromEntries((options?.selections || []).map((field) => [field.id, field.id.endsWith('state') ? 'to-do' : '__remove__']))) });
+        const actions = createProjectTransferActions(context, vi.fn(async () => true));
+        expect(await actions.transferPortfolioTask('Source', 1, 'move')).toBe(false);
+        expect(context.alert).toHaveBeenCalledWith(expect.stringContaining('Transfer incomplete'));
+        fail = false;
+        const receipt = store.getState().portfolioBoards[1].data.extensions.projectTransfers!.operations[0];
+        expect(await actions.resumeProjectTransfer('Destination', receipt.id)).toBe(true);
+        expect(store.getState().portfolioBoards[0].data.board.tasks).toHaveLength(0);
+        expect(store.getState().portfolioBoards[1].data.board.tasks).toHaveLength(4);
+        expect(store.getState().portfolioBoards[1].data.extensions.projectTransfers!.operations.every((op) => op.status === 'complete')).toBe(true);
     });
 });

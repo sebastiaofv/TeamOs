@@ -76,7 +76,7 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
         if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); void submit(); }
     }}>
         <div className="modal-header workflow-modal-header">
-            <div><Dialog.Title className="modal-title">{t('project.settings')}</Dialog.Title>
+            <div><Dialog.Title className="modal-title">{t(vm.onCreate ? 'projects.newProject' : 'project.settings')}</Dialog.Title>
                 <Dialog.Description id="projectSettingsDescription" className="workflow-modal-description">{vm.data.board.settings.title}</Dialog.Description></div>
             <Dialog.Close ref={closeRef} className="modal-close" aria-label={t('common.close')}>&times;</Dialog.Close>
         </div>
@@ -89,6 +89,7 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
         </div>
         <div className="modal-body project-settings-general" role="tabpanel" id="project-settings-panel-general" aria-labelledby="project-settings-tab-general" hidden={tab !== 'general'}>
             <p id="projectSettingsHelp">{t(vm.readOnly ? 'project.readOnly' : 'project.help')}</p>
+            {editor.error && <p role="alert" className="form-error">{editor.error}</p>}
             <form ref={formRef} id="projectSettingsForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                 <fieldset disabled={vm.readOnly || saving} className="project-settings-fields">
                     <div className="project-settings-metadata">
@@ -97,8 +98,8 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                             <input id="projectName" value={name} onChange={(event) => setName(event.target.value)} required />
                         </div>
                         <div className="form-group">
-                            <label htmlFor="projectAcronym">{t('project.acronym')}</label>
-                            <input id="projectAcronym" value={project.acronym || ''} maxLength={3} pattern="[A-Z]{1,3}" required={Boolean(vm.data.extensions.project?.acronym)} aria-describedby="projectAcronymHelp" onChange={(event) => { const acronym = event.target.value.toUpperCase(); setProject({ ...project, acronym: acronym || undefined }); }} />
+                            <label htmlFor="projectAcronym" className={vm.onCreate ? 'required' : undefined}>{t('project.acronym')}</label>
+                            <input id="projectAcronym" value={project.acronym || ''} maxLength={3} pattern="[A-Z]{1,3}" required={Boolean(vm.onCreate || vm.data.extensions.project?.acronym)} aria-describedby="projectAcronymHelp" onChange={(event) => { const acronym = event.target.value.toUpperCase(); setProject({ ...project, acronym: acronym || undefined }); }} />
                             <p id="projectAcronymHelp">{t('project.acronymHelp')}</p>
                         </div>
                         <div className="form-group">
@@ -108,8 +109,8 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                         </div>
                         <div className="form-group">
                             <label htmlFor="projectStatus">{t('task.status')}</label>
-                            <select id="projectStatus" value={project.status || ''} onChange={(event) => setProject({ ...project, status: event.target.value as typeof project.status })}>
-                                {project.status === null && <option value="" disabled>{t('project.undefined')}</option>}
+                            <select id="projectStatus" value={project.status || ''} onChange={(event) => setProject({ ...project, status: (event.target.value || null) as typeof project.status })}>
+                                <option value="">{t('project.undefined')}</option>
                                 {PROJECT_STATUSES.map((status) => <option key={status} value={status}>{t(`project.status.${status}`)}</option>)}
                             </select>
                         </div>

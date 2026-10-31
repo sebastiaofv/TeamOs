@@ -1,5 +1,6 @@
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
 import { describe, expect, it, vi } from 'vitest';
+import type { DialogPropsByName } from '../../src/features/portfolio/types';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createPortfolioFileActions } from '../../src/features/portfolio/projects/projectCommands';
 
@@ -27,15 +28,21 @@ describe('portfolio file actions', () => {
             createWritable: vi.fn(async () => ({ write, close }))
         };
         const appendPortfolioRecords = vi.fn();
+        let settings: DialogPropsByName['projectSettings'] | undefined;
         const actions = createPortfolioFileActions({
+            openDialogFn: (_name, props) => { settings = fromAny(props); },
             windowRef: {
                 showSaveFilePicker: fromAny(vi.fn(async () => handle))
             },
-            prompt: fromAny(vi.fn().mockResolvedValueOnce('Planning').mockResolvedValueOnce('PLN')),
             appendPortfolioRecords
         });
 
-        await actions.createNewProject();
+        await actions.createNewProject('House');
+        expect(write).not.toHaveBeenCalled();
+        expect(settings?.data.extensions.project?.productName).toBe('House');
+        const draft = createEmptyProjectData('Planning', 'PLN');
+        draft.extensions.project!.productName = 'House';
+        expect(await settings!.onCreate!(draft)).toBe(true);
 
         expect(write).toHaveBeenCalledTimes(1);
         expect(close).toHaveBeenCalledTimes(1);

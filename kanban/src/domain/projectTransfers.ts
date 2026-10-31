@@ -7,18 +7,20 @@ import { createProjectIdentity, projectNameKey } from './projectData';
 import { nextTaskIdForBoard } from './task';
 import { createWorkitemDisplayId, reservedTaskHighWaterMark, reserveTaskIdentities } from './taskIdentity';
 import { getWorkflow, statusCategory } from './workflow';
-import { effectivePlanning, assertWorkitemTransfer, assertAcceptance, transferredAcceptance } from './workitems';
+import { effectivePlanning, assertWorkitemTransfer, assertAcceptance, transferredAcceptance, transferDescendants, validParent, workitemType, eligibleSprint } from './workitems';
 import { appendTimelineEvent, ensureBoardTimelineBaseline } from './timeline';
 import { conversationWorkitemKey, visibleComments, getComments, type WorkitemComment } from './comments';
 import { allPermanentRelations, assertPermanentGraph, parseWorkitemReference, referenceFor, type WorkitemReference, type RelationProject, type PermanentRelation } from './permanentRelations';
+import { isValidRoadmapAssignment } from './roadmap';
 import { removeTaskRelation } from './taskRelations';
 import { createBoardStateSnapshot, hashTextContent } from './serialize';
 
 export type TransferMode = 'copy' | 'move';
-export type TransferMapping = { members: Record<string, string>; tags: Record<string, string> };
+export type TransferMapping = { members: Record<string, string>; tags: Record<string, string>; associations?: Record<string, string> };
+export type ChildTransferChoice = { stateId: string; mapping: TransferMapping };
 export type TransferRemoval = { kind: 'phases' | 'milestones' | 'sprints' | 'sprintHistory' | 'planner' | 'parent' | 'child'; id: string; title: string; date?: string; start?: string; end?: string };
 export type TransferOperation = {
-    id: string; mode: TransferMode; status: 'pending' | 'complete'; at: string;
+    id: string; batchId?: string; mode: TransferMode; status: 'pending' | 'complete'; at: string;
     from: WorkitemReference; to: WorkitemReference; sourceTask: Task;
     sourceSignature: string; mapping: TransferMapping; removed: TransferRemoval[];
     history: TaskHistoryEntry[]; originalEvents: TimelineEvent[];
@@ -37,14 +39,22 @@ export function parseProjectTransfers(value: unknown): ProjectTransfers | undefi
             || typeof op.sourceSignature !== 'string' || !op.sourceSignature
             || typeof op.at !== 'string' || Number.isNaN(Date.parse(op.at)) || !isRecord(op.sourceTask) || !isRecord(op.mapping) || !isRecord(op.mapping.members) || !isRecord(op.mapping.tags)
             || !Object.values(op.mapping.members).every((item) => typeof item === 'string') || !Object.values(op.mapping.tags).every((item) => typeof item === 'string')
+            || (op.batchId !== undefined && (typeof op.batchId !== 'string' || !op.batchId))
+            || (op.mapping.associations !== undefined && (!isRecord(op.mapping.associations) || !Object.values(op.mapping.associations).every((item) => typeof item === 'string')))
             || !Array.isArray(op.removed) || !op.removed.every((item) => isRecord(item) && ['kind', 'id', 'title'].every((key) => typeof item[key] === 'string'))
             || !Array.isArray(op.history) || !op.history.every((entry) => isRecord(entry) && typeof entry.id === 'string' && Array.isArray(entry.changes) && Array.isArray(entry.eventIds) && Array.isArray(entry.categories))
             || !Array.isArray(op.originalEvents) || !op.originalEvents.every((event) => isRecord(event) && typeof event.id === 'string' && typeof event.kind === 'string')
-            || Object.keys(op).some((key) => !['id', 'mode', 'status', 'at', 'from', 'to', 'sourceTask', 'sourceSignature', 'mapping', 'removed', 'history', 'originalEvents'].includes(key))) throw new TransferError('invalid');
+            || Object.keys(op).some((key) => !['id', 'batchId', 'mode', 'status', 'at', 'from', 'to', 'sourceTask', 'sourceSignature', 'mapping', 'removed', 'history', 'originalEvents'].includes(key))) throw new TransferError('invalid');
         const from = parseWorkitemReference(op.from), to = parseWorkitemReference(op.to);
         if (from.projectId === to.projectId || (op.mode === 'move' ? from.permanentId !== to.permanentId : from.permanentId === to.permanentId)
             || op.sourceTask.id !== from.taskId || op.sourceTask.permanentId !== from.permanentId) throw new TransferError('invalid');
         ids.add(op.id);
+    }
+    for (const op of value.operations) {
+        if (!op.batchId) continue;
+        const root = value.operations.find((entry) => entry.id === op.batchId);
+        if (!root || root.batchId !== root.id || op.mode !== 'move' || root.mode !== 'move'
+            || op.from.projectId !== root.from.projectId || op.to.projectId !== root.to.projectId) throw new TransferError('invalid');
     }
     return cloneSerializable(value) as ProjectTransfers;
 }
@@ -91,8 +101,45 @@ function commentContentSignature(comment: WorkitemComment): string {
     return JSON.stringify({ id, at, workitemCreatedAt, author, text, images }, (_key, value) => isRecord(value) ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]])) : value);
 }
 
-/** Build both drafts before publishing either. No catalog or workflow changes are allowed. */
-export function prepareProjectTransfer(source: RelationProject, destination: RelationProject, taskId: number, mode: TransferMode, stateId: string, mapping: TransferMapping, projects: readonly RelationProject[], operationId = createProjectIdentity('transfer'), unavailable: readonly PermanentRelation[] = [], acceptanceAuthor?: string) {
+/** Prepare a whole hierarchy before either file can be changed. Each member keeps its own recovery receipt. */
+export function prepareProjectTransfer(source: RelationProject, destination: RelationProject, taskId: number, mode: TransferMode, stateId: string, mapping: TransferMapping, projects: readonly RelationProject[], operationId = createProjectIdentity('transfer'), unavailable: readonly PermanentRelation[] = [], acceptanceAuthor?: string, children: Record<string, ChildTransferChoice> = {}) {
+    assertWorkitemTransfer(source.data, taskId, mode);
+    const descendants = mode === 'move' ? transferDescendants(source.data, taskId) : [];
+    const root = prepareSingleTransfer(source, destination, taskId, mode, stateId, mapping, projects, operationId, unavailable, acceptanceAuthor);
+    if (!descendants.length) return root;
+    root.operation.batchId = operationId;
+    let target = root.destination;
+    const moved = new Map([[taskId, root.operation.to.taskId]]);
+    for (const child of descendants) {
+        const choice = children[child.permanentId!];
+        if (!choice) throw new TransferError('mapping');
+        // Children keep their early execution category in the destination as well.
+        if (!['backlog', 'to-do'].includes(statusCategory(choice.stateId, target, child))) throw new TransferError('state');
+        const prepared = prepareSingleTransfer(source, { ...destination, data: target }, child.id, mode, choice.stateId, choice.mapping,
+            projects.map((project) => project.id === destination.id ? { ...project, data: target } : project), createProjectIdentity('transfer'), unavailable);
+        prepared.operation.batchId = operationId;
+        target = prepared.destination;
+        moved.set(child.id, prepared.operation.to.taskId);
+    }
+    const operations = target.extensions.projectTransfers!.operations.filter((op) => op.batchId === operationId);
+    for (const op of operations) {
+        const item = target.board.tasks.find((task) => task.permanentId === op.to.permanentId)!;
+        if (op.sourceTask.parentId != null && moved.has(op.sourceTask.parentId)) item.parentId = moved.get(op.sourceTask.parentId)!;
+        // Internal parent-child links are preserved; they are not removals.
+        op.removed = op.removed.filter((entry) => !(entry.kind === 'parent' && moved.has(Number(entry.id))) && !(entry.kind === 'child' && moved.has(Number(entry.id))));
+        if (statusCategory(item.status, target, item) === 'completed') assertAcceptance(target, item);
+    }
+    appendTimelineEvent(target, { kind: 'board.workitems.updated', entityType: 'board', entityId: target.extensions.project!.id,
+        summary: 'Workitem hierarchy received', snapshot: createBoardStateSnapshot(target) });
+    return { destination: target, operation: operations.find((op) => op.id === operationId)! };
+}
+
+export function transferBatch(destination: BoardData, operation: TransferOperation): TransferOperation[] {
+    return operation.batchId ? (destination.extensions.projectTransfers?.operations || []).filter((op) => op.batchId === operation.batchId) : (destination.extensions.projectTransfers?.operations || []).filter((op) => op.id === operation.id);
+}
+
+/** Build one member receipt without publishing. No catalog or workflow changes are allowed. */
+function prepareSingleTransfer(source: RelationProject, destination: RelationProject, taskId: number, mode: TransferMode, stateId: string, mapping: TransferMapping, projects: readonly RelationProject[], operationId = createProjectIdentity('transfer'), unavailable: readonly PermanentRelation[] = [], acceptanceAuthor?: string) {
     if (!sameProduct(source.data, destination.data)) throw new TransferError('product');
     const task = source.data.board.tasks.find((item) => item.id === taskId);
     if (!task?.permanentId) throw new TransferError('stale');
@@ -123,6 +170,29 @@ export function prepareProjectTransfer(source: RelationProject, destination: Rel
     if (mode === 'copy') { transferred.createdAt = now; transferred.updatedAt = now; delete transferred.acceptance; delete transferred.statusChangedAt; }
     if (catalog.acronym) transferred.displayId = createWorkitemDisplayId(catalog.acronym, transferred);
     else delete transferred.displayId;
+    const associations = mapping.associations;
+    if (associations) {
+        for (const entry of transferRemovals(source.data, task).filter((entry) => entry.kind !== 'child')) {
+            const key = `${entry.kind}:${entry.id}`;
+            if (!Object.hasOwn(associations, key) || typeof associations[key] !== 'string') throw new TransferError('mapping');
+            const to = associations[key];
+            if (!to) continue;
+            if (entry.kind === 'phases') {
+                if (!isValidRoadmapAssignment(target.extensions.roadmap, 'phaseId', to)) throw new TransferError('mapping');
+                transferred.phaseId = to; transferred.phaseMode = 'explicit';
+            } else if (entry.kind === 'milestones') {
+                if (!isValidRoadmapAssignment(target.extensions.roadmap, 'milestoneId', to)) throw new TransferError('mapping');
+                transferred.milestoneId = to; transferred.milestoneMode = 'explicit';
+            } else if (entry.kind === 'sprints') {
+                if (workitemType(task) === 'epic' || !eligibleSprint(target, to)) throw new TransferError('mapping');
+                transferred.sprintId = to;
+            } else if (entry.kind === 'parent') {
+                const parent = target.board.tasks.find((item) => String(item.id) === to);
+                if (!parent || !validParent(workitemType(task), parent)) throw new TransferError('mapping');
+                transferred.parentId = parent.id;
+            } else throw new TransferError('mapping');
+        }
+    }
     target.board.tasks.push(transferred);
     const completed = statusCategory(stateId, target, transferred) === 'completed';
     if (completed) assertAcceptance(target, transferred);
@@ -168,18 +238,27 @@ export function prepareProjectTransfer(source: RelationProject, destination: Rel
 
 /** Called only after destination persistence succeeds; retrying an already removed source is safe. */
 export function removeTransferredSource(data: BoardData, operation: TransferOperation, destination: BoardData): BoardData {
-    const task = data.board.tasks.find((item) => item.permanentId === operation.from.permanentId);
-    if (!task) return data;
-    if (transferSourceSignature(data, task) !== operation.sourceSignature) throw new TransferError('stale');
-    assertWorkitemTransfer(data, task.id, 'move');
+    const batch = transferBatch(destination, operation);
+    const tasks = batch.map((op) => data.board.tasks.find((item) => item.permanentId === op.from.permanentId));
+    if (tasks.every((task) => !task)) return data;
+    if (tasks.some((task) => !task)) throw new TransferError('stale');
+    for (const [index, task] of tasks.entries()) {
+        if (transferSourceSignature(data, task!) !== batch[index].sourceSignature) throw new TransferError('stale');
+        assertWorkitemTransfer(data, task!.id, 'move');
+        if (!destination.board.tasks.some((item) => item.permanentId === batch[index].to.permanentId)) throw new TransferError('stale');
+    }
+    const permanentIds = new Set(batch.map((op) => op.from.permanentId));
+    const ids = new Set(tasks.map((task) => task!.id));
+    // A changed hierarchy must never leave a child behind with a missing parent.
+    if (data.board.tasks.some((task) => task.parentId != null && ids.has(task.parentId) && !ids.has(task.id))) throw new TransferError('stale');
     const result = cloneSerializable(data);
     ensureBoardTimelineBaseline(result);
-    result.board.tasks = result.board.tasks.filter((item) => item.permanentId !== task.permanentId);
-    removeTaskRelation(result, task.id);
-    const edges = allPermanentRelations([{ id: 'destination', data: destination }]).filter((edge) => edge.source.permanentId === task.permanentId || edge.target.permanentId === task.permanentId);
-    result.extensions.permanentRelations = { version: 1, relations: [...(result.extensions.permanentRelations?.relations || []).filter((edge) => edge.source.permanentId !== task.permanentId && edge.target.permanentId !== task.permanentId), ...cloneSerializable(edges)] };
-    if (result.extensions.dayPlanner) result.extensions.dayPlanner.blocks = result.extensions.dayPlanner.blocks.filter((block) => block.taskId !== task.id);
-    appendTimelineEvent(result, { kind: 'board.workitems.updated', entityType: 'board', entityId: result.extensions.project!.id, summary: `Moved: ${operation.from.projectTitle} → ${operation.to.projectTitle}`, snapshot: createBoardStateSnapshot(result), meta: { transfer: { operationId: operation.id, from: operation.from, to: operation.to } } });
+    result.board.tasks = result.board.tasks.filter((item) => !permanentIds.has(item.permanentId!));
+    for (const task of tasks) removeTaskRelation(result, task!.id);
+    const edges = allPermanentRelations([{ id: 'destination', data: destination }]).filter((edge) => permanentIds.has(edge.source.permanentId) || permanentIds.has(edge.target.permanentId));
+    result.extensions.permanentRelations = { version: 1, relations: [...(result.extensions.permanentRelations?.relations || []).filter((edge) => !permanentIds.has(edge.source.permanentId) && !permanentIds.has(edge.target.permanentId)), ...cloneSerializable(edges)] };
+    if (result.extensions.dayPlanner) result.extensions.dayPlanner.blocks = result.extensions.dayPlanner.blocks.filter((block) => !ids.has(block.taskId));
+    for (const op of batch) appendTimelineEvent(result, { kind: 'board.workitems.updated', entityType: 'board', entityId: result.extensions.project!.id, summary: `Moved: ${op.from.projectTitle} → ${op.to.projectTitle}`, snapshot: createBoardStateSnapshot(result), meta: { transfer: { operationId: op.id, from: op.from, to: op.to } } });
     reserveTaskIdentities(result, data);
     return result;
 }

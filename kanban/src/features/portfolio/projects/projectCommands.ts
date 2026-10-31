@@ -14,8 +14,8 @@ import { createPortfolioRecord } from '@/infrastructure/persistence/portfolioRec
 import { assertUniqueProjectAcronym, ProjectDataError } from '@/domain/projectData';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { getPortfolioBoardRecord } from '@/features/portfolio/state/store';
-import { closePortfolioContextsForProject } from '@/app/overlays/dialogs';
-import { showAlert, showChoice, showPrompt, type Choice, type PromptOptions } from '@/app/overlays/appMessages';
+import { openDialog, closeDialog, closePortfolioContextsForProject } from '@/app/overlays/dialogs';
+import { showAlert, showChoice, type Choice } from '@/app/overlays/appMessages';
 import { Logger } from '@/infrastructure/logging/logger';
 import { appendPortfolioRecords as appendPortfolioRecordsToStore } from '@/features/portfolio/commands/portfolioControls';
 import { translateCurrent } from '@/shared/i18n';
@@ -26,7 +26,7 @@ type PickerWindow = Pick<Window, 'showSaveFilePicker' | 'showOpenFilePicker'>;
 export type PortfolioFileOptions = {
     appendPortfolioRecords?: (records: BoardRecord[], options?: { selectBoardId?: string }) => void | Promise<void>;
     alert?: (text: string, options?: { title?: string }) => unknown;
-    prompt?: (text: string, defaultValue?: unknown, options?: PromptOptions) => Promise<string | null>;
+    openDialogFn?: typeof openDialog;
     choose?: (text: string, choices: readonly Choice<string>[], options?: { title?: string }) => unknown;
     logger?: Pick<typeof Logger, 'error'>;
     checkFiles?: typeof checkProjectFilesNow;
@@ -46,7 +46,7 @@ function getWindow(): PickerWindow | null {
 export function createPortfolioFileActions({
     appendPortfolioRecords = appendPortfolioRecordsToStore,
     alert = showAlert,
-    prompt = showPrompt,
+    openDialogFn = openDialog,
     choose = showChoice,
     logger = Logger,
     checkFiles = checkProjectFilesNow,
@@ -84,59 +84,41 @@ export function createPortfolioFileActions({
         });
     }
 
-    async function createNewProject() {
-        try {
-            const browserWindow = getBrowserWindow();
-            if (!browserWindow?.showSaveFilePicker) {
-                throw new Error(translateCurrent('projects.filePickerUnavailable'));
-            }
-            const handle = await browserWindow.showSaveFilePicker({
-                suggestedName: `new-project${BOARD_FILE_EXTENSION}`,
-                types: [{ description: translateCurrent('projects.projectJson'), accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
-            });
-            assertRequiredExtension(handle.name, BOARD_FILE_EXTENSION, translateCurrent('projects.projectFile'));
-
-            const defaultTitle = String(handle.name || 'New Project')
-                .replace(new RegExp(`${BOARD_FILE_EXTENSION.replace('.', '\\.')}$`, 'i'), '')
-                .replace(/[-_]+/g, ' ')
-                .trim() || 'New Project';
-            const requestedName = await prompt(translateCurrent('projects.projectName'), defaultTitle, {
-                title: translateCurrent('projects.newProject'),
-                confirmLabel: translateCurrent('common.create')
-            });
-            if (requestedName === null) return;
-            const title = requestedName.trim();
-            if (!title) return;
-            const suggestedStem = slugifyColumnName(title) || 'project';
-
-            let acronym = '';
-            while (!acronym) {
-                const answer = await prompt(translateCurrent('project.acronymHelp'), title.replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase(), { title: translateCurrent('project.acronym'), required: true });
-                if (answer === null) return;
-                const candidate = answer.trim().toUpperCase();
+    async function createNewProject(productName = '') {
+        const data = createEmptyProjectData('');
+        data.extensions.project!.productName = productName;
+        delete data.extensions.project!.acronym;
+        openDialogFn('projectSettings', {
+            boardId: '', data, readOnly: false,
+            onCreate: async (draft) => {
                 try {
-                    if (!/^[A-Z]{1,3}$/.test(candidate)) throw new ProjectDataError('acronym');
-                    assertUniqueProjectAcronym({ ...createEmptyProjectData(title).extensions.project!, acronym: candidate }, useAppStore.getState().portfolioBoards.flatMap((board) => board.data.extensions.project ? [board.data.extensions.project] : []));
-                    acronym = candidate;
+                    const project = draft.extensions.project!;
+                    if (!project.acronym) throw new ProjectDataError('acronym');
+                    assertUniqueProjectAcronym(project, useAppStore.getState().portfolioBoards.flatMap((board) => board.data.extensions.project ? [board.data.extensions.project] : []));
+                    const browserWindow = getBrowserWindow();
+                    if (!browserWindow?.showSaveFilePicker) throw new Error(translateCurrent('projects.filePickerUnavailable'));
+                    const stem = slugifyColumnName(draft.board.settings.title) || 'project';
+                    const handle = await browserWindow.showSaveFilePicker({
+                        suggestedName: `${stem}${BOARD_FILE_EXTENSION}`,
+                        types: [{ description: translateCurrent('projects.projectJson'), accept: { 'application/json': [BOARD_FILE_EXTENSION] } }]
+                    });
+                    assertRequiredExtension(handle.name, BOARD_FILE_EXTENSION, translateCurrent('projects.projectFile'));
+                    // Another project may have been opened while the picker was showing.
+                    assertUniqueProjectAcronym(project, useAppStore.getState().portfolioBoards.flatMap((board) => board.data.extensions.project ? [board.data.extensions.project] : []));
+                    await writeJsonToFileHandle(handle, BoardRepository.serialize(draft));
+                    const record = createPortfolioRecord({ handle, fileName: handle.name || `${stem}${BOARD_FILE_EXTENSION}`, data: draft });
+                    await appendPortfolioRecords([record], { selectBoardId: record.id });
+                    closeDialog('projectSettings');
+                    return true;
                 } catch (error) {
-                    if (!(error instanceof ProjectDataError)) throw error;
-                    await alert(translateCurrent(`project.error.${error.code}`));
+                    if (!isAbortError(error)) {
+                        logger.error('New project failed', error);
+                        await alert(error instanceof ProjectDataError ? translateCurrent(`project.error.${error.code}`) : translateCurrent('projects.newProjectFailed', { error: formatErrorMessage(error) }));
+                    }
+                    return false;
                 }
             }
-            const data = createEmptyProjectData(title, acronym);
-            await writeJsonToFileHandle(handle, BoardRepository.serialize(data));
-            const record = createPortfolioRecord({
-                handle,
-                fileName: handle.name || `${suggestedStem}${BOARD_FILE_EXTENSION}`,
-                data
-            });
-            await appendPortfolioRecords([record], { selectBoardId: record.id });
-        } catch (error) {
-            if (!isAbortError(error)) {
-                logger.error('New project failed', error);
-                alert(translateCurrent('projects.newProjectFailed', { error: formatErrorMessage(error) }));
-            }
-        }
+        });
     }
 
     async function importPortfolioProjects() {

@@ -84,13 +84,18 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                     {message.review && Boolean(message.selections?.length) && <div className="transfer-section-heading">
                         <h3>{message.review.mappingLabel}</h3><p>{message.review.mappingNote}</p>
                     </div>}
-                    {message.selections?.map((field, index) => <div className="form-group app-message-field" key={field.id}>
-                        <label htmlFor={`appMessageSelection-${index}`}>{field.label}</label>
-                        <select ref={index === 0 ? selectionRef : undefined} id={`appMessageSelection-${index}`} value={selections[field.id]} onChange={(event) => setSelections((current) => ({ ...current, [field.id]: event.target.value }))}>
-                            {field.required && <option value="" disabled>{translateCurrent('common.choose')}</option>}
-                            {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                        </select>
-                    </div>)}
+                    <div className={message.review ? 'transfer-table-scroll' : undefined}>
+                    <table className={message.review ? 'transfer-mapping-table' : 'app-message-fields'}>
+                        {message.review && <thead><tr><th>{translateCurrent('transfer.field')}</th><th>{translateCurrent('transfer.current')}</th><th>{translateCurrent('transfer.targetValue')}</th></tr></thead>}
+                        <tbody>{message.selections?.map((field, index) => <tr className="form-group app-message-field" key={field.id}>
+                            <th scope="row"><label htmlFor={`appMessageSelection-${index}`}>{field.label}</label></th>
+                            {message.review && <td className="transfer-current-value">{field.current || '—'}</td>}
+                            <td><select required={field.required} data-field={field.id} ref={index === 0 ? selectionRef : undefined} id={`appMessageSelection-${index}`} value={selections[field.id]} onChange={(event) => setSelections((current) => ({ ...current, [field.id]: event.target.value }))}>
+                                {field.required && <option value="" disabled>{translateCurrent('common.choose')}</option>}
+                                {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                            </select></td>
+                        </tr>)}</tbody>
+                    </table></div>
                 </div>
                 {message.selection && <div className="form-group app-message-field">
                     <label htmlFor="appMessageSelection">{message.selection.label}</label>
