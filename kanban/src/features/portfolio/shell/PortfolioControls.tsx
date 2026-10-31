@@ -134,7 +134,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
 
     return (
         <>
-            <div className="portfolio-toolbar-left">
+            <div className={`portfolio-toolbar-left${viewMode === 'control' ? ' hidden' : ''}`}>
                 <div className="search-box palette-search">
                     <button
                         className={`palette-search-btn${search ? ' has-value' : ''}`}
@@ -202,6 +202,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         aria-pressed={viewMode === 'roadmap'}
                         onClick={() => setPortfolioViewMode('roadmap')}
                     >{t('toolbar.roadmap')}</button>
+                    <button className={`btn${viewMode === 'control' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`} type="button" data-view-mode="control" aria-pressed={viewMode === 'control'} onClick={() => setPortfolioViewMode('control')}>{t('control.view')}</button>
                     <button
                         className={`btn${viewMode === 'calendar' ? ' active' : ''}`}
                         type="button"
@@ -283,11 +284,11 @@ export function PortfolioToolbar() {
             <section className="portfolio-toolbar" id="portfolioToolbar" aria-labelledby="portfolioToolbarTitle">
                 <h2 className="sr-only" id="portfolioToolbarTitle">{t('toolbar.filters')}</h2>
                 <ToolbarContent state={state} />
-                <span className={`sr-only${state.selectedPortfolioViewMode === 'table' ? ' hidden' : ''}`} role="status" aria-live="polite" aria-atomic="true">
+                <span className={`sr-only${['table', 'control'].includes(state.selectedPortfolioViewMode) ? ' hidden' : ''}`} role="status" aria-live="polite" aria-atomic="true">
                     {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
                 </span>
             </section>
-            <PortfolioActiveFilters />
+            {state.selectedPortfolioViewMode !== 'control' && <PortfolioActiveFilters />}
         </>
     );
 }

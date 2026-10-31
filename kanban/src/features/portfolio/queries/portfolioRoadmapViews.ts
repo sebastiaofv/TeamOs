@@ -1,3 +1,5 @@
+import { gateControlProgress } from '@/domain/projectControl';
+import { phaseDescendants } from '@/domain/phaseTree';
 import { consultSprintParticipation } from '@/domain/workitems';
 import type {
     PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope
@@ -46,9 +48,12 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
             task: participation.isCurrent(task.id) ? byId.get(task.id)?.task || task : task, boardData: context,
             canMutate: false, historical: historical || !participation.isCurrent(task.id)
         })) : tasks.flatMap((task) => byId.get(task.id) ? [byId.get(task.id)!] : []);
+        const progress = participation ? planningProgress(participation.planningMembers.filter((task) => ids.has(task.id)), context, { leavesOnly: false }) : planningProgress(tasks, context);
+        if (item && /^phases?:/.test(key)) progress.percent = gateControlProgress(boardData, 'phases', phaseDescendants(roadmap.phases, item.id), progress.percent);
+        if (item && /^milestones?:/.test(key)) progress.percent = gateControlProgress(boardData, 'milestones', new Set([item.id]), progress.percent);
         return { key, item, boardData: context, participation: participation || undefined, tasks: scopedTasks, rows,
             visibleCount: scopedTasks.filter((task) => taskMatchesPortfolioFilters(task, filters, context)).length,
-            progress: participation ? planningProgress(participation.planningMembers.filter((task) => ids.has(task.id)), context, { leavesOnly: false }) : planningProgress(tasks, context) };
+            progress };
     };
     function grouped(tasks: Task[], kind: 'sprints' | 'milestones'): RoadmapWorkScope[] {
         const field = kind === 'sprints' ? 'sprintId' : 'milestoneId';

@@ -1,3 +1,6 @@
+import { ControlAssociations } from '@/features/portfolio/control/ControlAssociations';
+import { controlRecords } from '@/domain/projectControl';
+import { lastCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
 import { useRef, useState, type ChangeEvent, type CSSProperties, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { RoadmapEntityDates, RoadmapEntityViewModel } from '@/features/portfolio/types';
@@ -65,6 +68,9 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
         return context?.mode === 'assign-sprint-from-selection' ? state.portfolioBoards.find((board) => board.id === context.boardId)?.data : undefined;
     });
     const sprintOptions = assignmentBoard && vm.showExistingSprint ? buildAssignableSprintOptions(assignmentBoard, today, language) : vm.sprintOptions;
+    const liveControlBoard = useAppStore((state) => state.portfolioBoards.find((board) => board.id === vm.boardId)?.data);
+    const controlBoard = vm.readOnly ? vm.boardData : liveControlBoard;
+    const [controlIds, setControlIds] = useState(() => controlRecords(controlBoard).filter((record) => (vm.kind === 'phases' ? record.related.phaseIds : record.related.milestoneIds).includes(vm.itemId)).map((record) => record.id));
     const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '', parentId: vm.parentId || '' }));
     const selectedSprintId = sprintOptions.some((option) => option.value === draft.existingSprintId) ? draft.existingSprintId : '';
     const dueDateRef = useRef<HTMLInputElement>(null);
@@ -92,6 +98,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
             </div>
             <div className="modal-body">
                 <form id="roadmapEntityForm" onSubmit={(event) => event.preventDefault()}>
+                    <fieldset disabled={vm.readOnly} className="roadmap-edit-fields">
                     <input type="hidden" id="roadmapEntityKind" value={vm.kind} />
                     <input type="hidden" id="roadmapEntityId" value={vm.itemId} />
                     {(vm.kind === 'phases' || vm.kind === 'sprints') && <div className="form-group">
@@ -117,6 +124,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                         <label className="required" htmlFor="roadmapEntityTitle">{t('roadmapDialog.title')}</label>
                         <input type="text" id="roadmapEntityTitle" ref={titleRef} required maxLength={80} {...bind('title')} />
                     </div>
+                    {vm.kind !== 'sprints' && <label className="form-group">{t('control.objective')}<textarea aria-label={t('control.objective')} id="roadmapEntityObjective" value={draft.objective || ''} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} rows={3} /></label>}
                     <div className={`roadmap-entity-date-row single${hideSingleDate ? ' hidden' : ''}`} id="roadmapEntitySingleDateRow">
                         <div className="form-group">
                             <label className="required" id="roadmapEntityDateLabel" htmlFor="roadmapEntityDate">{vm.dateLabel}</label>
@@ -138,6 +146,8 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                             <input type="date" id="roadmapEntityEndDate" ref={endDateRef} readOnly={vm.datesCalculated} {...bind('endDate')} />
                         </div>
                     </div>
+                    </fieldset>
+                    {controlBoard && vm.kind !== 'sprints' && <ControlAssociations boardId={vm.boardId} data={controlBoard} selected={controlIds} onChange={setControlIds} readOnly={vm.readOnly} />}
                 </form>
             </div>
             <div className="modal-footer">
@@ -145,9 +155,9 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 <button
                     className="btn btn-primary"
                     id="roadmapEntityModalSaveBtn"
-                    disabled={Boolean(assignmentBoard && vm.showExistingSprint && !selectedSprintId)}
+                    disabled={vm.readOnly || Boolean(assignmentBoard && vm.showExistingSprint && !selectedSprintId)}
                     onClick={async () => {
-                        const result = await saveRoadmapEntity({ kind: vm.kind, itemId: vm.itemId, ...draft });
+                        const result = await saveRoadmapEntity({ kind: vm.kind, itemId: vm.itemId, ...draft, controlIds, controlAuthor: lastCommentAuthor(vm.boardId) });
                         if (result?.focusField) fieldRefs[result.focusField].current?.focus();
                     }}
                 >

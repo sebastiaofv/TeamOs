@@ -1,3 +1,4 @@
+import { controlRecords } from './projectControl';
 import type { Attachment, AttachmentKind, LooseBoardData, TaskInput } from './types';
 import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_COUNT } from './constants';
 import { isRecord, normalizeTimestamp, nowIso } from './util';
@@ -162,7 +163,7 @@ export function calculateBoardAttachmentBytes(boardData: LooseBoardData | null |
     const excludeTaskNum = excludeTaskId === null || excludeTaskId === undefined || excludeTaskId === ''
         ? null
         : Number(excludeTaskId);
-    let total = [...new Map(getComments(boardData).flatMap((comment) => comment.images).map((image) => [image.id, image])).values()].reduce((sum, image) => sum + image.sizeBytes, 0);
+    let total = [...new Map([...getComments(boardData), ...controlRecords(boardData).flatMap((record) => record.comments)].flatMap((comment) => comment.images).map((image) => [image.id, image])).values()].reduce((sum, image) => sum + image.sizeBytes, 0);
 
     const taskList = boardData?.board?.tasks;
     if (Array.isArray(taskList)) {

@@ -14,7 +14,7 @@ describe('milestone colours and compatibility', () => {
         const original = structuredClone(board);
         const saved = serializeBoardDataFromObject(board);
         validateBoardData(saved);
-        expect(saved.extensions.roadmap).toEqual({ ...original.extensions.roadmap, version: 4 });
+        expect(saved.extensions.roadmap).toEqual({ ...original.extensions.roadmap, version: 5 });
         expect(saved.board.tasks.map((task) => [task.id, task.phaseId, task.milestoneId, task.sprintId, task.status])).toEqual(
             original.board.tasks.map((task: { id: number; phaseId?: string; milestoneId?: string; sprintId?: string; status: string }) => [task.id, task.phaseId || '', task.milestoneId || '', task.sprintId || '', task.status]));
         expect(saved.extensions.timeline).toEqual(original.extensions.timeline);
@@ -23,7 +23,7 @@ describe('milestone colours and compatibility', () => {
     it('round-trips the coloured board and rejects unsupported colours', () => {
         const board = JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
         const saved = serializeBoardDataFromObject(board); validateBoardData(saved);
-        expect(serializeBoardDataFromObject(saved).extensions.roadmap).toEqual(board.extensions.roadmap);
+        expect(serializeBoardDataFromObject(saved).extensions.roadmap).toEqual({ ...board.extensions.roadmap, version: 5 });
         board.extensions.roadmap.milestones[0].color = 'invalid';
         expect(normalizeRoadmapExtension(board.extensions.roadmap)).toBeNull();
     });

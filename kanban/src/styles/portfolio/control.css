@@ -1,0 +1,45 @@
+.portfolio-control { overflow: visible; }
+.control-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0; }
+.control-tabs .active { color: var(--accent); border-color: var(--accent); background: var(--bg-secondary); }
+.control-modal .control-tabs { padding: 8px 20px; border-bottom: 1px solid var(--border); }
+.control-filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
+.control-filters label, .control-related > label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+.control-filters input, .control-filters select { min-width: 120px; max-width: 250px; }
+.control-filters .control-check { flex-direction: row; align-items: center; min-height: 32px; }
+.control-check input { min-width: 0; }
+.control-table-scroll { overflow: auto; border: 1px solid var(--border); }
+.control-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.control-table th, .control-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.control-table th { background: var(--bg-secondary); white-space: nowrap; }
+.control-table th button, .control-link { color: inherit; background: transparent; border: 0; cursor: pointer; font: inherit; text-align: left; padding: 2px; }
+.control-link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.control-table tbody tr:hover { background: var(--bg-secondary); }
+.control-risk { font-weight: 600; white-space: nowrap; }
+.control-risk::before { content: '●'; margin-right: 6px; }
+.control-risk.low::before { color: #23834b; }
+.control-risk.medium::before { color: #bd8800; }
+.control-risk.high::before { color: #d44444; }
+.control-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.control-form-grid .form-group { min-width: 0; }
+.control-modal .modal-content { width: min(920px, 96vw); max-width: 920px; display: flex; flex-direction: column; overflow: hidden; }
+.control-modal .modal-body { overflow-y: auto; min-height: 0; }
+.control-modal .modal-header, .control-modal .modal-footer, .control-modal .control-tabs { flex-shrink: 0; }
+.control-modal textarea, .control-modal input:not([type=checkbox]), .control-modal select { width: 100%; box-sizing: border-box; }
+.control-modal label { display: block; }
+.control-modal .form-group > input, .control-modal .form-group > select, .control-modal .form-group > textarea { display: block; margin-top: 5px; }
+.control-related { margin: 16px 0; }
+.control-related fieldset, .control-associations fieldset { border: 1px solid var(--border); margin: 10px 0; padding: 10px; max-height: 220px; overflow: auto; }
+.control-relation { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.control-related-tag { display: block; margin-bottom: 4px; }
+.control-pending, .control-overdue { display: block; color: var(--text-secondary); margin-top: 4px; }
+.control-overdue { color: var(--danger, #c33); font-weight: 600; }
+.control-empty { padding: 24px; text-align: center; color: var(--text-secondary); }
+.control-modal .history-entries dd { white-space: pre-wrap; overflow-wrap: anywhere; }
+.portfolio-view-toggle { flex-wrap: wrap; }
+
+.roadmap-edit-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+
+.control-filters input:not([type=checkbox]), .control-filters select, .control-related input[type=search], .control-associations input[type=search] { border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); padding: 8px 10px; font: inherit; min-height: 34px; }
+.control-modal .field-hint { margin: 6px 0 16px; }
+.control-modal .history-entries { padding-left: 20px; }
+.control-associations { margin-top: 16px; }
