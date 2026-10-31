@@ -1,3 +1,4 @@
+import { ControlError } from '@/domain/projectControl';
 import { WorkitemError } from '@/domain/workitems';
 import type { BoardData, Task } from '@/domain/types';
 import type { BoardRecord, DialogName } from '@/features/portfolio/types';
@@ -104,7 +105,7 @@ export function createBoardMutationContext({
                 taskId, isCurrent: () => getBoardRecord(boardId)?.data === current.data, alert, confirm, prompt, publish
             });
         } catch (error) {
-            alert(error instanceof WorkitemError ? translateCurrent(`workitems.error.${error.code}`) : error instanceof ProjectDataError ? translateCurrent(`project.error.${error.code}`)
+            alert(error instanceof ControlError ? translateCurrent(`control.${error.code}`) : error instanceof WorkitemError ? translateCurrent(`workitems.error.${error.code}`) : error instanceof ProjectDataError ? translateCurrent(`project.error.${error.code}`)
                 : translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
             return false;
         }

@@ -208,7 +208,7 @@ export function normalizeRoadmapItems(value: unknown, dateKeys: readonly Roadmap
     const seenIds = new Set<string>();
     for (const item of value) {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-        const allowedKeys: string[] = ['id', 'title', ...dateKeys, ...(allowParent ? ['parentId'] : []), ...(allowColor ? ['color'] : [])];
+        const allowedKeys: string[] = ['id', 'title', 'objective', ...dateKeys, ...(allowParent ? ['parentId'] : []), ...(allowColor ? ['color'] : [])];
         const keys = Object.keys(item);
         const hasRequiredKeys = typeof item.id === 'string' && item.id.trim()
             && typeof item.title === 'string' && item.title.trim();
@@ -220,6 +220,10 @@ export function normalizeRoadmapItems(value: unknown, dateKeys: readonly Roadmap
         seenIds.add(id);
 
         const normalizedItem: RoadmapItem = { id, title: item.title.trim() };
+        if ('objective' in item) {
+            if (typeof item.objective !== 'string') return null;
+            normalizedItem.objective = item.objective;
+        }
         if ('color' in item) {
             if (!allowColor || !isMilestoneColor(item.color)) return null;
             normalizedItem.color = item.color;
@@ -376,7 +380,7 @@ export function getVisibleRoadmapDateRange(roadmap: RoadmapExtension | null | un
 
 export function normalizeRoadmapExtension(value: unknown): RoadmapExtension | null {
     if (!isRecord(value)) return null;
-    if (![1, 2, 3, ROADMAP_VERSION].includes(Number(value.version))) return null;
+    if (![1, 2, 3, 4, ROADMAP_VERSION].includes(Number(value.version))) return null;
     if (!hasExactKeys(value, ['version', 'milestones', 'phases', 'sprints'])) return null;
 
     const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate'], false, Number(value.version) >= 3);

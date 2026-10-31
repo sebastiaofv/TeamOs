@@ -1,3 +1,5 @@
+import { PortfolioControl } from '@/features/portfolio/control/PortfolioControl';
+import { ProjectControlDialog } from '@/features/portfolio/control/ControlRecordDialog';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 import { AppHeader } from '@/app/AppHeader';
 import { HelpDialog } from '@/app/overlays/HelpDialog';
@@ -66,6 +68,7 @@ function AppContent() {
     const roadmapActive = Boolean(selectedBoardId) && viewMode === 'roadmap';
     const calendarActive = hasBoards && viewMode === 'calendar';
     const plannerActive = hasBoards && viewMode === 'planner';
+    const controlActive = Boolean(selectedBoardId) && viewMode === 'control';
     const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
 
     return (
@@ -76,12 +79,13 @@ function AppContent() {
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
-                    <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
+                    <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive || controlActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />
                         {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive} />
+                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || controlActive} />
+                        <PortfolioControl hidden={!controlActive} />
                         <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
                         <PortfolioCalendar hidden={!calendarActive} />
@@ -98,6 +102,7 @@ function AppContent() {
                 <ShortcutsDialog />
                 <HelpDialog />
                 <CommandPalette />
+                <ProjectControlDialog />
                 <TaskDetailDialog />
                 <RoadmapEntityDialog />
                 <TaskEditorDialog />

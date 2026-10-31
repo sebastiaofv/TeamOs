@@ -804,3 +804,23 @@ for (const theme of ['light', 'dark']) {
     });
   }
 }
+
+test.describe('US-20 Project Control', () => {
+  for (const theme of ['light', 'dark']) for (const width of [1280, 390]) {
+    test(`tables and record dialog at ${width}px (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'));
+      await page.setViewportSize({ width, height: 900 });
+      const fixture = JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
+      await seedPortfolioBoards(page, [{ id: 'control', title: 'Atlas control', hasHandle: true,
+        tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'control' });
+      await page.locator('[data-view-mode="control"]').click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`project-control-table-${theme}-${width}.png`, { fullPage: true });
+      await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+      await page.mouse.move(1, 1);
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-record-${theme}-${width}.png`);
+    });
+  }
+});

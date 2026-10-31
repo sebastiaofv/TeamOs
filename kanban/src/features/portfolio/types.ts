@@ -73,7 +73,7 @@ export type PortfolioFilters = {
 };
 export type PortfolioSortKey = 'board' | 'task' | 'column' | 'priority' | 'effort' | 'score' | 'dueDate' | 'updatedAt';
 export type SortDir = 'asc' | 'desc';
-export type PortfolioViewMode = 'board' | 'table' | 'roadmap' | 'calendar' | 'planner';
+export type PortfolioViewMode = 'board' | 'table' | 'roadmap' | 'calendar' | 'planner' | 'control';
 export type PlannerMode = 'day' | 'week';
 export type CalendarView = 'year' | 'month';
 export type CalendarDisplayMode = 'calendar' | 'heatmap';
@@ -146,8 +146,11 @@ export type TaskDetailViewModel = {
 };
 
 export type RoadmapEntityMode = 'default' | 'create-sprint-from-selection' | 'assign-sprint-from-selection';
-export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string; color?: string };
+export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string; color?: string; objective?: string };
 export type RoadmapEntityViewModel = {
+    boardId: string;
+    boardData?: BoardData;
+    readOnly?: boolean;
     parentId?: string;
     phaseOptions?: SelectOption[];
     phases?: RoadmapItem[];
@@ -172,6 +175,7 @@ export type HelpTab = 'guide' | 'palette';
 export type HelpDialogProps = { tab?: HelpTab };
 
 export type DialogPropsByName = {
+    projectControl: { boardId: string; recordId?: string; kind: import('@/domain/projectControl').ControlKind };
     appSettings: null;
     projectSettings: { boardId: string; data: BoardData; readOnly: boolean };
     commandPalette: CommandPaletteProps;

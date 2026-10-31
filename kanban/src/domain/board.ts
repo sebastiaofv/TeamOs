@@ -1,3 +1,4 @@
+import { parseProjectControl } from './projectControl';
 import { assertWorkitems, WORKITEM_FIELDS } from './workitems';
 import type {
     BoardColumn,
@@ -89,6 +90,7 @@ export function portfolioSortSelectValueFromKey(sortKey: unknown): 'name' | 'pri
 }
 
 export function normalizePortfolioViewMode(value: unknown): PortfolioViewMode {
+    if (value === 'control') return 'control';
     if (value === 'table') return 'table';
     if (value === 'roadmap') return 'roadmap';
     if (value === 'calendar') return 'calendar';
@@ -252,6 +254,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid extensions structure.');
     }
     if (!('workflow' in extensions) && data.board.columns.length > MAX_COLUMNS) throw new Error(`Board cannot have more than ${MAX_COLUMNS} legacy columns.`);
+    parseProjectControl((extensions as Record<string, unknown>).projectControl);
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
     const workflowData = { extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } };
     const functionalStatuses = new Set(getWorkflow(workflowData, 'functional').states.map((state) => state.id));

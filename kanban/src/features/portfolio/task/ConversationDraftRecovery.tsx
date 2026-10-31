@@ -1,3 +1,4 @@
+import { controlRecords } from '@/domain/projectControl';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { conversationWorkitemKey } from '@/domain/comments';
 import { downloadCommentRecovery } from '@/infrastructure/browser/commentRecovery';
@@ -11,6 +12,10 @@ export function ConversationDraftRecovery() {
     const orphaned = allConversationDrafts().filter(([, draft]) => {
         if (!draft.text && !draft.images.length) return false;
         const board = boards.find((item) => item.id === draft.projectId);
+        if (typeof draft.taskId === 'string') {
+            const record = controlRecords(board?.data).find((item) => item.id === draft.taskId);
+            return !record || `control:${record.id}:${record.createdAt}` !== draft.workitemKey;
+        }
         const task = board?.data.board.tasks.find((item) => item.id === draft.taskId);
         const identity = task && board && conversationWorkitemKey(board.data, task);
         return !task || !identity || sessionDraftWorkitemKey(identity, task) !== draft.workitemKey;

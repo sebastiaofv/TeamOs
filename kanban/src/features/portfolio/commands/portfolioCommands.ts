@@ -1,3 +1,4 @@
+import { createProjectControlActions } from './projectControlCommands';
 // Assemble the feature actions around one immutable board-write path.
 import { createBoardMutationContext, type BoardMutationOptions } from './mutationContext';
 import { createBoardInteractions } from './boardCommands';
@@ -25,7 +26,7 @@ export function createPortfolioMutationActions(options: BoardMutationOptions = {
     const timeline = createTimelineActions(context, tasks);
     const planner = createPlannerActions(context, tasks);
     const relations = createTaskRelationActions(context);
-    return { ...tasks, ...roadmap, ...timeline, ...planner, ...relations, ...interactions, ...createCommentActions(context), ...createPullRequestActions(context), ...createProjectSettingsActions(context), ...createWorkflowActions(context, tasks.movePortfolioTaskToStatus) };
+    return { ...createProjectControlActions(context), ...tasks, ...roadmap, ...timeline, ...planner, ...relations, ...interactions, ...createCommentActions(context), ...createPullRequestActions(context), ...createProjectSettingsActions(context), ...createWorkflowActions(context, tasks.movePortfolioTaskToStatus) };
 }
 
 export type PortfolioMutationActions = ReturnType<typeof createPortfolioMutationActions>;

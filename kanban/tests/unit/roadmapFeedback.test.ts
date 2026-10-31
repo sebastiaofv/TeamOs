@@ -34,7 +34,7 @@ describe('phase colour persistence', () => {
         const board = JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
         const saved = serializeBoardDataFromObject(board);
         validateBoardData(saved);
-        expect(saved.extensions.roadmap).toEqual(board.extensions.roadmap);
+        expect(saved.extensions.roadmap).toEqual({ ...board.extensions.roadmap, version: 5 });
         expect(serializeBoardDataFromObject(saved).extensions.roadmap).toEqual(saved.extensions.roadmap);
         expect(saved.extensions.timeline).toEqual(board.extensions.timeline);
     });
