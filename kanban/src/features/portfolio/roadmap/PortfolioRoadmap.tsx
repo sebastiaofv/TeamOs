@@ -9,6 +9,7 @@ import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { formatRoadmapDateRange, getRoadmapAxisTicks, getRoadmapYearTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '@/domain/roadmap';
 import { allWorkflowStates } from '@/domain/workflow';
 import { formatDueDateForUi } from '@/domain/calendar';
+import { selectRoadmapMilestone } from '@/features/portfolio/commands/roadmapNavigation';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
 import { useI18n } from '@/shared/i18n';
@@ -178,7 +179,8 @@ function MilestoneDialog({ marker, view, canEdit, close }: { marker?: RoadmapMil
 function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
     const { t, language } = useI18n(); const percent = useProgressText(); const actions = usePortfolioActions();
     const canEdit = useAppStore((state) => Boolean(state.portfolioBoards.find((board) => board.id === view.boardId)?.handle)) && !view.historical;
-    const [milestoneId, setMilestoneId] = useState('');
+    const milestoneId = useAppStore((state) => state.portfolioRoadmapMilestoneByBoardId[view.boardId] || '');
+    const setMilestoneId = (id: string) => selectRoadmapMilestone(view.boardId, id);
     const [perspectives, setPerspectives] = useState<Record<string, Perspective>>({});
     const [labelWidth, setLabelWidth] = useState<number | null>(null);
     const [zoom, setZoom] = useState(1);

@@ -134,7 +134,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
 
     return (
         <>
-            <div className="portfolio-toolbar-left">
+            <div className={`portfolio-toolbar-left${viewMode === 'dashboard' ? ' hidden' : ''}`}>
                 <div className="search-box palette-search">
                     <button
                         className={`palette-search-btn${search ? ' has-value' : ''}`}
@@ -162,7 +162,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         >×</button>
                     )}
                 </div>
-                <PortfolioToolbarFilters />
+                {viewMode !== 'dashboard' && <PortfolioToolbarFilters />}
                 <div className="filter-group">
                     <label htmlFor="portfolioSortSelect">{t('toolbar.sort')}</label>
                     <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => {
@@ -188,6 +188,8 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         aria-pressed={viewMode === 'board'}
                         onClick={() => setPortfolioViewMode('board')}
                     >{t('toolbar.board')}</button>
+                    <button className={`btn${viewMode === 'dashboard' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`} type="button"
+                        data-view-mode="dashboard" aria-pressed={viewMode === 'dashboard'} onClick={() => setPortfolioViewMode('dashboard')}>{t('dashboard.title')}</button>
                     <button
                         className={`btn${viewMode === 'table' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`}
                         type="button"
@@ -287,7 +289,7 @@ export function PortfolioToolbar() {
                     {t('toolbar.resultsCount', { count: Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows.length : 0 })}
                 </span>
             </section>
-            <PortfolioActiveFilters />
+            {state.selectedPortfolioViewMode !== 'dashboard' && <PortfolioActiveFilters />}
         </>
     );
 }

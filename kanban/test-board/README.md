@@ -12,6 +12,7 @@ As histórias integradas têm os boards e roteiros nesta pasta em `main`; histó
 | US8 · branch `us-8` | [us-8.board.json](us-8.board.json) | [us-8.md](us-8.md) |
 | US4 · branch `us-4` | [us-4.board.json](us-4.board.json) | [us-4.md](us-4.md) |
 | US6 · branch `us-6` | [us-6.board.json](us-6.board.json) | [us-6.md](us-6.md) |
+| US9 · branch `codex/us-9-project-dashboard` · issue #33 | [us-9.board.json](us-9.board.json) | [us-9.md](us-9.md) |
 | US11 · integrada em `main` · PR #55 | [us-11.board.json](us-11.board.json) | [us-11.md](us-11.md) |
 | US12 · branch `feature/us-12-workitem-types` · issue #36 | [Checkout](us-12.board.json) + [Suporte](us-12-support.board.json) | [us-12.md](us-12.md) |
 | US21 · integrada em `main` · PR #55 | [us-21.board.json](us-21.board.json) | [us-21.md](us-21.md) |
