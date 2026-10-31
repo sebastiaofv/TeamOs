@@ -16,6 +16,32 @@ async function seed(page: Page, writable = true) {
 const kpi = (page: Page, key: string) => page.locator(`[data-dashboard-kpi="${key}"]`);
 const sources = (page: Page) => page.locator('#dashboardSources');
 
+for (const width of [1280, 390]) {
+    for (const tab of ['Overview', 'Sprint Analytics']) {
+        test(`dashboard scroll reaches history in ${tab} at ${width}px`, async ({ page }) => {
+            await page.setViewportSize({ width, height: 800 });
+            if (width === 1280) await seed(page);
+            else {
+                await gotoApp(page);
+                await seedPortfolioBoards(page, [{ id: 'scroll', title: 'Scroll project', hasHandle: true, tasks: [] }], { selectedBoardId: 'scroll' });
+                await page.locator('[data-view-mode="dashboard"]').click();
+            }
+            await page.getByRole('button', { name: tab, exact: true }).click();
+            const history = page.getByRole('heading', { name: 'Recorded history', exact: true });
+            const before = (await history.boundingBox())!.y;
+            expect(before).toBeGreaterThan(800);
+            await page.mouse.move(100, 600);
+            await page.mouse.wheel(0, 600);
+            await expect.poll(async () => (await history.boundingBox())!.y).toBeLessThan(before - 100);
+            await expect.poll(async () => {
+                await page.mouse.wheel(0, 1200);
+                const box = (await history.boundingBox())!;
+                return box.y >= 0 && box.y < 800;
+            }).toBe(true);
+        });
+    }
+}
+
 test('selected-project metrics count archived leaves and open their exact sources without changing data', async ({ page }) => {
     await seed(page);
     const before = await readSavedBoard(page, 'p');

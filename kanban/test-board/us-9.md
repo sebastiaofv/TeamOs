@@ -28,10 +28,12 @@ Board fictício: [us-9.board.json](us-9.board.json). Usar a aplicação deste br
 
 ## Leitura, idiomas e acessibilidade
 
-Repetir com arrastar/largar (só de leitura), tema claro/escuro, PT-PT/inglês e janela de 390 px. Tab/Enter permitem selecionar KPIs e abrir fontes; o foco segue para o título da lista, e os detalhes fecham com Escape. O Gantt e tabelas têm deslocamento horizontal local sem alargar a página. Mudar para Todos os projetos regressa ao Board e oculta Dashboard. Consultar o dashboard não altera o ficheiro. Alterações externas e conflitos continuam a ser tratados pelo mecanismo comum da aplicação.
+Repetir com arrastar/largar (só de leitura), tema claro/escuro, PT-PT/inglês e janela de 390 px. Nas duas tabs, usar a roda do rato dentro do dashboard para chegar ao Histórico registado e regressar ao início; a barra de navegação permanece visível. Tab/Enter permitem selecionar KPIs e abrir fontes; o foco segue para o título da lista, e os detalhes fecham com Escape. O Gantt e tabelas têm deslocamento horizontal local sem alargar a página. Mudar para Todos os projetos regressa ao Board e oculta Dashboard. Consultar o dashboard não altera o ficheiro. Alterações externas e conflitos continuam a ser tratados pelo mecanismo comum da aplicação.
 
 ## Validação automatizada
 
 `tests/unit/dashboard.test.ts` valida o JSON, ida-e-volta, IDs/histórico, cálculo semântico, folhas, arquivo, herança, sobreposição, cancelamento, datas, observações e participação. `tests/e2e/dashboard.test.ts` cobre seleção de projeto, drilldown, leitura, navegação, períodos, sprints, PT-PT, teclado e ecrã pequeno. Não há alteração de esquema persistido.
 
 Resultados de 31/10/2026: lint e typecheck aprovados; 1 248 testes unitários e 371 testes end-to-end aprovados. As verificações finais do dashboard incluem sete cenários end-to-end e duas verificações visuais com quatro imagens (Overview/Sprint Analytics, claro/escuro). Builds normal e standalone gerados. A suite visual completa tem 47 testes aprovados e 20 diferenças de baseline já reproduzidas numa cópia intacta de `main` (`e01e7de`); não foram atualizadas essas imagens herdadas. Foram atualizadas apenas as dez baselines afetadas pela navegação e acrescentadas as quatro imagens do dashboard.
+
+Correção de scroll: a área do dashboard ativa agora deslocamento vertical no contentor da aplicação. Regressão validada com roda do rato nas duas tabs, a 1280 px (board completo) e 390 px (projeto vazio): 11 cenários end-to-end do dashboard e duas verificações visuais aprovados.

@@ -78,7 +78,7 @@ function AppContent() {
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
-                    <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
+                    <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive ? ' table-active' : ''}${dashboardActive ? ' dashboard-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />
                         {showTimeline && <PortfolioTimeline />}

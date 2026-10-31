@@ -1,3 +1,4 @@
+.portfolio-board-wrap.dashboard-active { overflow-y: auto; }
 .portfolio-dashboard { padding: 16px; min-width: 0; color: var(--text-primary); }
 .dashboard-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
 .dashboard-heading h2 { font-size: 20px; margin-bottom: 6px; }
