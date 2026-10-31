@@ -831,3 +831,29 @@ test.describe('US-13 product navigation and transfer review', () => {
     });
   }
 });
+
+test.describe('US-13 hierarchy review', () => {
+  for (const theme of ['light', 'dark']) for (const width of [1280, 390]) {
+    test(`ALL and Roadmap share full hierarchy at ${width}px (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await page.setViewportSize({ width, height: 900 });
+      const fixture = JSON.parse(readFileSync('test-board/us-13-hierarchy.board.json', 'utf8'));
+      await seedPortfolioBoards(page, [{ id: 'hierarchy', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'hierarchy' });
+      await page.locator('[data-view-mode="table"]').click();
+      await page.locator('[data-table-view="hierarchy"]').click();
+      await page.locator('#workitemsTable').getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();
+      await page.locator('#workitemsTable').getByRole('button', { name: 'Expand Preparar lançamento', exact: true }).click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page.locator('#portfolioTable')).toHaveScreenshot(`us13-all-hierarchy-${theme}-${width}.png`);
+      await page.locator('[data-view-mode="roadmap"]').click();
+      await page.getByRole('button', { name: 'Show tasks for Exterior', exact: true }).click();
+      const scope = page.locator('[data-roadmap-task-list="phase:exterior"]');
+      await scope.getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();
+      await scope.getByRole('button', { name: 'Expand Preparar lançamento', exact: true }).click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(scope).toHaveScreenshot(`us13-roadmap-hierarchy-${theme}-${width}.png`);
+    });
+  }
+});

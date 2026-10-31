@@ -25,7 +25,7 @@ import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
-import { groupTableRows } from './tableHierarchy';
+import { groupTableRows, visibleTableRows } from './tableHierarchy';
 
 export function PortfolioTable({ hidden }: { hidden: boolean }) {
     const state = useAppStore(useShallow((s) => ({
@@ -56,15 +56,15 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     const [view, setView] = useState<TableView>('all');
     const today = useLocalToday();
     const groups = useMemo(() => buildSprintTableGroups(currentSprintRosters(boardData, sourceRows), today), [boardData, sourceRows, today]);
-    const viewLabels = { epics: 'workitems.type.epic', stories: 'workitems.stories', independent: 'workitems.independent', all: 'workitems.all', unplanned: 'table.unplannedWorkitems', sprints: 'table.sprints' } as const;
+    const viewLabels = { hierarchy: 'workitems.hierarchyAll', epics: 'workitems.type.epic', stories: 'workitems.stories', independent: 'workitems.independent', all: 'workitems.all', unplanned: 'table.unplannedWorkitems', sprints: 'table.sprints' } as const;
     return <section id="portfolioTable" className={`portfolio-table${hidden ? ' hidden' : ''}`} aria-labelledby="tableTitle">
         <h2 id="tableTitle" className="sr-only">{t('table.title', { project })}</h2>
         <div className="table-view-options" role="group" aria-label={t('table.perspectives')}>
-            {(['epics', 'stories', 'independent', 'all', 'unplanned', 'sprints'] as const).map((key) => <button className={`btn${view === key ? ' active' : ''}`} type="button" key={key}
+            {(['hierarchy', 'epics', 'stories', 'independent', 'all', 'unplanned', 'sprints'] as const).map((key) => <button className={`btn${view === key ? ' active' : ''}`} type="button" key={key}
                 data-table-view={key} aria-pressed={view === key} onClick={() => setView(key)}>{t(viewLabels[key])}</button>)}
         </div>
         {view !== 'sprints' ? <WorkitemTable key={view} hidden={hidden} boardId={boardId} project={project} boardData={boardData}
-            sourceRows={view === 'unplanned' ? unplannedTableRows(sourceRows) : sourceRows.filter((row) => view === 'epics' ? workitemType(row.task) === 'epic' : view === 'stories' ? workitemType(row.task) === 'story' : view === 'independent' ? isPlanningUnit(boardData, row.task) && workitemType(row.task) !== 'story' : ['task', 'bug'].includes(workitemType(row.task)))} canCreate={canCreate} createType={view === 'epics' ? 'epic' : view === 'stories' ? 'story' : 'task'} planning={view === 'unplanned'} />
+            sourceRows={view === 'unplanned' ? unplannedTableRows(sourceRows) : sourceRows.filter((row) => view === 'epics' ? workitemType(row.task) === 'epic' : view === 'stories' ? workitemType(row.task) === 'story' : view === 'hierarchy' ? true : view === 'independent' ? isPlanningUnit(boardData, row.task) && workitemType(row.task) !== 'story' : ['task', 'bug'].includes(workitemType(row.task)))} canCreate={canCreate} createType={view === 'epics' ? 'epic' : view === 'stories' ? 'story' : 'task'} planning={view === 'unplanned'} nested={view === 'hierarchy'} />
             : <>
                 <p className="table-sprint-note">{t('table.sprintDatesNote')}</p>
                 {groups.length === 0 && <p className="table-empty" role="status">{t('table.noSprints')}</p>}
@@ -116,10 +116,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const rowGroups = useMemo(() => groupTableRows(rows, nested), [rows, nested]);
     const pageCount = Math.max(1, Math.ceil(rowGroups.length / pageSize));
     const currentPage = pageScope.filters === filters && pageScope.sort === sort ? Math.min(page, pageCount - 1) : 0;
-    const pageRows = rowGroups.slice(currentPage * pageSize, (currentPage + 1) * pageSize).flatMap(({ row, children }) => [
-        { row, depth: 0, hasChildren: children.length > 0 },
-        ...(expandedRows.has(row.taskId) ? children.map((child) => ({ row: child, depth: 1, hasChildren: false })) : [])
-    ]);
+    const pageRows = visibleTableRows(rowGroups.slice(currentPage * pageSize, (currentPage + 1) * pageSize), expandedRows);
     const selectedCount = sourceRows.filter((row) => selected.has(row.taskId)).length;
     const allPageSelected = pageRows.length > 0 && pageRows.every(({ row }) => selected.has(row.taskId));
     const activeCount = sourceRows.filter((row) => !row.task.archived).length;
@@ -261,7 +258,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                                 onChange={(event) => toggleSelection([row.taskId], event.target.checked)} /></td>
                             {columns.map((column) => <td key={column} data-column={column}>
                                 {column === 'id' || column === 'title'
-                                    ? <div className={nested && column === 'title' ? `table-tree-cell table-tree-depth-${depth}` : undefined}>
+                                    ? <div className={nested && column === 'title' ? `table-tree-cell table-tree-depth-${depth}` : undefined} style={nested && column === 'title' ? { paddingInlineStart: depth * 24 } : undefined}>
                                         {nested && column === 'title' && (hasChildren ? <button className="table-tree-toggle" type="button"
                                             aria-label={`${t(expandedRows.has(row.taskId) ? 'common.collapse' : 'common.expand')} ${row.task.title}`}
                                             aria-expanded={expandedRows.has(row.taskId)} onClick={() => setExpandedRows((previous) => {

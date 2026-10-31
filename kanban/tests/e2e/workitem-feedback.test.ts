@@ -42,11 +42,13 @@ test('Epic and Story editors hide checklists, all editors leave Pull Requests in
     }
 });
 
-test('saving and cancelling child creation returns to its parent detail', async ({ page }) => {
+test('saving opens child details and closing or cancelling returns to its parent detail', async ({ page }) => {
     await seed(page); await story(page);
     await page.getByRole('button', { name: 'Create Task', exact: true }).click();
     await page.locator('#taskName').fill('Child feedback');
     await page.locator('#taskModalSaveBtn').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Child feedback');
+    await page.locator('#taskDetailModalCloseBtn').click();
     await expect(page.locator('#detailTitle')).toHaveText('Pagar com cartão');
     await expect(page.locator('.workitem-hierarchy')).toContainText('Child feedback');
     await page.getByRole('button', { name: 'Create Task', exact: true }).click();

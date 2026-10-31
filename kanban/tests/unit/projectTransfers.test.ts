@@ -172,7 +172,7 @@ describe('transfer persistence and recovery', () => {
 });
 
 describe('US-13 acceptance fixtures', () => {
-    it.each(['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent'])('validates and round-trips %s without losing identities, relations, comments or planning', (name) => {
+    it.each(['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent', 'us-13-hierarchy'])('validates and round-trips %s without losing identities, relations, comments or planning', (name) => {
         const raw = JSON.parse(readFileSync(`test-board/${name}.board.json`, 'utf8'));
         validateBoardData(raw);
         const saved = serializeBoardDataFromObject(raw); validateBoardData(saved);

@@ -812,9 +812,9 @@ test.describe('workitems table', () => {
   test('a new writable project offers create-workitem in the empty table and persists the created item', async ({ page }) => {
     await mockNewProjectFlow(page, { fileName: 'empty-table.json' });
     await page.locator('#newProjectBtn').click();
-    await page.locator('#appMessageInput').fill('New table project');
-    await page.locator('#appMessageConfirmBtn').click();
-    await answerAppMessage(page, { expectText: 'unique acronym', input: 'NTP' });
+    await page.locator('#projectName').fill('New table project');
+    await page.locator('#projectAcronym').fill('NTP');
+    await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
     await openTable(page);
     await expect(tableRows(page)).toHaveCount(0);
     await page.locator('#tableCreateTask').click();

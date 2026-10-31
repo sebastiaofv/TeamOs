@@ -522,9 +522,6 @@
 .workitem-child-section h3 { font-size: 12px; }
 .workitem-child-section ul { padding-left: 20px; }
 .workitem-child-section li { padding: 5px 0; }
-.workitem-tree { border: 1px solid var(--border); border-radius: 6px; margin: 10px 0; padding: 10px; background: var(--bg-card); }
-.workitem-tree details { padding: 6px 0 6px 14px; }
-.workitem-tree li { padding: 5px 0; }
 
 .workitem-type[data-workitem-type="epic"] { --workitem-color: #6d28d9; }
 .workitem-type[data-workitem-type="story"] { --workitem-color: #047857; }
