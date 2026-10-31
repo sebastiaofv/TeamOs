@@ -16,6 +16,7 @@ import { PortfolioTimeline } from '@/features/portfolio/timeline/PortfolioTimeli
 import { PortfolioRoadmap } from '@/features/portfolio/roadmap/PortfolioRoadmap';
 import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
 import { PortfolioPlanner } from '@/features/portfolio/planner/PortfolioPlanner';
+import { PortfolioDashboard } from '@/features/portfolio/dashboard/PortfolioDashboard';
 import { PortfolioTable } from '@/features/portfolio/table/PortfolioTable';
 import { usePortfolioRuntime } from '@/features/portfolio/hooks/usePortfolioRuntime';
 import { AppSettingsDialog } from '@/app/overlays/AppSettingsDialog';
@@ -66,6 +67,7 @@ function AppContent() {
     const roadmapActive = Boolean(selectedBoardId) && viewMode === 'roadmap';
     const calendarActive = hasBoards && viewMode === 'calendar';
     const plannerActive = hasBoards && viewMode === 'planner';
+    const dashboardActive = Boolean(selectedBoardId) && viewMode === 'dashboard';
     const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
 
     return (
@@ -81,7 +83,8 @@ function AppContent() {
                         <ConversationDraftRecovery />
                         {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive} />
+                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive} />
+                        <PortfolioDashboard hidden={!dashboardActive} />
                         <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
                         <PortfolioCalendar hidden={!calendarActive} />

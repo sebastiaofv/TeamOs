@@ -49,6 +49,7 @@ export type PortfolioSlice = {
     selectedPortfolioCardRef: CardRef | null;
     hoveredPortfolioCardRef: CardRef | null;
     suppressPortfolioCardClickUntil: number;
+    portfolioRoadmapMilestoneByBoardId: Record<string, string>;
     portfolioRoadmapExpandedRowsByBoardId: Record<string, Record<string, boolean>>;
     portfolioCalendarView: CalendarView;
     portfolioCalendarDisplayMode: CalendarDisplayMode;
@@ -102,6 +103,7 @@ export function createPortfolioSlice(): PortfolioSlice {
         hoveredPortfolioCardRef: null,
         suppressPortfolioCardClickUntil: 0,
         portfolioRoadmapExpandedRowsByBoardId: {},
+        portfolioRoadmapMilestoneByBoardId: {},
         portfolioCalendarView: 'year',
         portfolioCalendarDisplayMode: 'calendar',
         portfolioCalendarYear: null,

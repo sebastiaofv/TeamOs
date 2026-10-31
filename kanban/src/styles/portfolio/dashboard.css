@@ -1,0 +1,58 @@
+.portfolio-dashboard { padding: 16px; min-width: 0; color: var(--text-primary); }
+.dashboard-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.dashboard-heading h2 { font-size: 20px; margin-bottom: 6px; }
+.dashboard-heading p, .dashboard-note { color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.dashboard-note { margin: 8px 0; }
+.dashboard-controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
+.dashboard-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; min-width: 0; max-width: 100%; }
+.dashboard-controls select, .dashboard-controls input { max-width: 380px; width: 100%; min-height: 34px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); padding: 6px 10px; }
+.dashboard-tabs { display: flex; gap: 6px; margin: 16px 0; }
+.dashboard-tabs .btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
+.dashboard-panel { padding: 16px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-card); margin-bottom: 16px; min-width: 0; }
+.dashboard-panel h3 { font-size: 14px; margin-bottom: 14px; }
+.dashboard-panel p { font-size: 12px; line-height: 1.6; }
+.dashboard-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.dashboard-kpi { display: flex; flex-direction: column; gap: 8px; align-items: start; text-align: start; border: 1px solid var(--border-light); border-radius: 6px; padding: 14px; color: var(--text-primary); background: var(--bg-primary); font: inherit; }
+button.dashboard-kpi, .dashboard-chart-row { cursor: pointer; }
+button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--accent); background: var(--bg-secondary); }
+.dashboard-kpi:disabled { cursor: default; }
+.dashboard-kpi span, .dashboard-kpi small { font-size: 12px; color: var(--text-secondary); }
+.dashboard-kpi strong { font-size: 26px; font-weight: 600; }
+.dashboard-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.dashboard-chart-row { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr 32px; align-items: center; gap: 12px; width: 100%; border: 1px solid transparent; padding: 8px 4px; font: inherit; font-size: 12px; color: var(--text-primary); background: transparent; text-align: start; }
+.dashboard-chart-track { height: 12px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden; }
+.dashboard-chart-track > span { display: block; height: 100%; background: var(--accent); }
+.dashboard-scroll { overflow: auto; max-width: 100%; }
+.dashboard-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dashboard-table th, .dashboard-table td { padding: 10px 12px; text-align: start; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
+.dashboard-table th { font-weight: 600; }
+.dashboard-link { color: var(--accent); font: inherit; background: transparent; border: 0; cursor: pointer; text-align: start; text-decoration: underline; text-underline-offset: 3px; }
+.dashboard-gantt { min-width: 760px; }
+.dashboard-gantt-axis, .dashboard-gantt-row { display: grid; grid-template-columns: 260px 1fr; }
+.dashboard-gantt-axis { font-size: 11px; color: var(--text-secondary); padding-bottom: 28px; }
+.dashboard-gantt-axis > div { position: relative; margin-inline: 12px; }
+.dashboard-gantt-axis > div > span { position: absolute; transform: translateX(-50%); }
+.dashboard-gantt-axis > div > span:first-child { transform: none; }
+.dashboard-gantt-axis > div > span:last-child { transform: translateX(-100%); }
+.dashboard-gantt-row { border-top: 1px solid var(--border-light); }
+.dashboard-gantt-label { display: flex; flex-wrap: wrap; align-items: start; gap: 6px; padding: 12px 8px 12px 0; font-size: 12px; }
+.dashboard-gantt-label > button:first-child, .dashboard-gantt-label > small { flex-basis: 100%; }
+.dashboard-gantt-label small { color: var(--text-secondary); }
+.dashboard-gantt-track { position: relative; margin-inline: 12px; min-height: 100%; background: repeating-linear-gradient(90deg, transparent, transparent calc(25% - 1px), var(--border-light) calc(25% - 1px), var(--border-light) 25%); }
+.dashboard-gantt-bar { position: absolute; top: 22px; height: 26px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-size: 11px; min-width: 12px; }
+.dashboard-gantt-bar.current { border: 2px solid var(--accent); }
+.dashboard-gantt-bar.milestone { background: transparent; border: 0; color: var(--accent); font-size: 22px; transform: translateX(-50%); }
+.dashboard-date-line { position: absolute; inset-block: 0; border-inline-start: 2px dashed var(--priority-high); pointer-events: none; z-index: 1; }
+.dashboard-date-line.snapshot { border-color: var(--accent); }
+.dashboard-badge { color: var(--accent); border: 1px solid var(--border); border-radius: 3px; padding: 2px 4px; font-size: 10px; }
+.dashboard-late { color: var(--priority-high); font-size: 11px; }
+.dashboard-sprint-selection { display: flex; flex-wrap: wrap; gap: 12px; border: 0; font-size: 12px; }
+.dashboard-sprint-selection label { display: inline-flex; align-items: center; gap: 6px; }
+.dashboard-details { font-size: 12px; display: grid; grid-template-columns: minmax(100px, 1fr) 2fr; gap: 12px; }
+.dashboard-history { max-height: 320px; }
+.dashboard-drilldown h3:focus { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
+.portfolio-dashboard button:focus-visible, .portfolio-dashboard select:focus-visible, .portfolio-dashboard input:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+@media (max-width: 600px) { .portfolio-dashboard { padding: 10px; } .dashboard-panel { padding: 12px; } .dashboard-controls { width: 100%; } .dashboard-controls label { width: 100%; } .dashboard-controls select { max-width: 100%; } }
+
+@media (min-width: 1000px) { .dashboard-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.dashboard-scope-changes { padding-inline-start: 20px; margin: 12px 0; font-size: 12px; }
