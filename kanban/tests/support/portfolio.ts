@@ -323,6 +323,8 @@ function portfolioBoardChip(page: Page, title: string) {
 
 async function selectPortfolioBoard(page: Page, title: string) {
   const chip = portfolioBoardChip(page, title);
+  const group = chip.locator('xpath=ancestor::details[contains(@class, "product-group")]');
+  if (await group.count() && !await group.evaluate((node) => (node as HTMLDetailsElement).open)) await group.locator('summary').click();
   if (!(await chip.evaluate((node) => node.classList.contains('active')))) {
     await chip.locator('[data-action="select-board"]').click();
   }

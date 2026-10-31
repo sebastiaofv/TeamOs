@@ -1,3 +1,4 @@
+import type { DetailContext } from '@/features/portfolio/state/slices';
 import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import { childrenOf, eligibleSprint, isPlanningUnit, WorkitemError } from '@/domain/workitems';
 import type { Task, WorkitemType } from '@/domain/types';
@@ -41,11 +42,11 @@ export type { TaskFocusField } from './taskViewModels';
 export function createTaskActions({ getState, commitState, getBoardRecord, findPortfolioTaskSource, canUsePortfolioTaskMutations,
     notifyPortfolioMutationUnavailable, isPortfolioBoardMutable, runPortfolioBoardMutation, runPortfolioTaskMutation,
     alert, confirm, closeDialogFn, openDialogFn }: BoardMutationContext,
-{ setSelectedPortfolioCard, setSelectedPortfolioBoardId }: Pick<BoardInteractions, 'setSelectedPortfolioCard' | 'setSelectedPortfolioBoardId'>) {
+{ setSelectedPortfolioCard }: Pick<BoardInteractions, 'setSelectedPortfolioCard'>) {
     let taskEditorOpenCount = 0;
     let undoTimer: ReturnType<typeof setTimeout> | null = null;
 
-    function openPortfolioTaskDetails(boardId: string, taskId: number, options: { boardData?: unknown; readOnly?: boolean; historyEventIndex?: number } = {}) {
+    function openPortfolioTaskDetails(boardId: string, taskId: number, options: { boardData?: unknown; readOnly?: boolean; historyEventIndex?: number; returnToDetail?: DetailContext } = {}) {
         const view = getState().selectedPortfolioBoardId === boardId ? getSelectedPortfolioTimelineView(getState()) : null;
         const historyEventIndex = options.historyEventIndex ?? (view?.isPreview ? view.selectedIndex ?? undefined : undefined);
         const effective = view?.isPreview ? { ...options, boardData: options.boardData || view.projectedBoard, readOnly: true } : options;
@@ -53,8 +54,8 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         if (!source) return;
         setSelectedPortfolioCard(boardId, taskId);
         const readOnly = effective.readOnly === true || !canUsePortfolioTaskMutations(boardId);
-        commitState({ portfolioDetailContext: { boardId, taskId, readOnly, ...(historyEventIndex !== undefined ? { historyEventIndex } : {}) } });
-        openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly, historyEventIndex));
+        commitState({ portfolioDetailContext: { boardId, taskId, readOnly, ...(historyEventIndex !== undefined ? { historyEventIndex } : {}), ...(options.returnToDetail ? { returnToDetail: options.returnToDetail } : {}) } });
+        openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly, historyEventIndex, getState().portfolioBoards, getState().unloadedRelationSources.flatMap((entry) => entry.relations)));
     }
 
     function editPortfolioTask(boardId: string, taskId: number) {
@@ -64,10 +65,11 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             notifyPortfolioMutationUnavailable(boardId);
             return;
         }
-        closeTaskDetail();
+        const detail = getState().portfolioDetailContext;
+        dismissTaskDetail();
         setSelectedPortfolioCard(boardId, taskId);
         commitState({
-            portfolioEditContext: { boardId, taskId },
+            portfolioEditContext: { boardId, taskId, ...(detail?.returnToDetail ? { returnToDetail: detail } : {}) },
             portfolioCreateContext: null
         });
         openDialogFn('taskEditor', buildTaskEditorViewModel(
@@ -86,12 +88,13 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             notifyPortfolioMutationUnavailable(boardId);
             return;
         }
-        closeTaskDetail();
+        const returnToDetail = getState().activeDialog === 'taskDetail' ? getState().portfolioDetailContext || undefined : undefined;
+        dismissTaskDetail();
         const workflow = getWorkflow(boardRecord.data, { type: options.preferredType });
         const preferred = String(preferredStatus || '').trim();
         const status = workflow.states.some((state) => state.id === preferred) ? preferred : 'backlog';
         commitState({
-            portfolioCreateContext: { boardId, status },
+            portfolioCreateContext: { boardId, status, ...(returnToDetail ? { returnToDetail } : {}) },
             portfolioEditContext: null
         });
         const model = buildTaskEditorViewModel(
@@ -106,20 +109,35 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     }
 
     function openPortfolioCreateChildTask(boardId: string, parentId: number, type: WorkitemType) {
+        const detail = getState().portfolioDetailContext;
+        const returnToDetail: DetailContext = detail?.boardId === boardId && detail.taskId === parentId ? detail : { boardId, taskId: parentId, readOnly: false };
         openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: type });
         const vm = getState().dialogProps as import('@/features/portfolio/types').TaskEditorViewModel;
         if (getState().activeDialog !== 'taskEditor' || !vm?.initial) return;
-        commitState({ portfolioCreateContext: { boardId, status: 'backlog', returnToTaskId: parentId }, dialogProps: { ...vm, initial: { ...vm.initial, type, parentId, phaseMode: 'inherit', milestoneMode: 'inherit' } } });
+        commitState({ portfolioCreateContext: { boardId, status: 'backlog', returnToDetail }, dialogProps: { ...vm, initial: { ...vm.initial, type, parentId, phaseMode: 'inherit', milestoneMode: 'inherit' } } });
+    }
+
+    function dismissTaskEditor() {
+        commitState({ portfolioEditContext: null, portfolioCreateContext: null });
+        closeDialogFn('taskEditor');
+    }
+
+    function restoreTaskDetail(context?: DetailContext) {
+        let current = context;
+        while (current) {
+            if (findPortfolioTaskSource(current.boardId, current.taskId)) {
+                openPortfolioTaskDetails(current.boardId, current.taskId, current);
+                return;
+            }
+            current = current.returnToDetail;
+        }
     }
 
     function closeTaskEditor() {
-        const context = getState().portfolioCreateContext;
-        commitState({
-            portfolioEditContext: null,
-            portfolioCreateContext: null
-        });
-        closeDialogFn('taskEditor');
-        if (context?.returnToTaskId !== undefined) openPortfolioTaskDetails(context.boardId, context.returnToTaskId);
+        const state = getState();
+        const returnToDetail = state.portfolioCreateContext?.returnToDetail || state.portfolioEditContext?.returnToDetail;
+        dismissTaskEditor();
+        restoreTaskDetail(returnToDetail);
     }
 
     function openPortfolioCreateRelatedTask(boardId: string, taskId: number, kind: TaskRelationKind) {
@@ -129,8 +147,10 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             notifyPortfolioMutationUnavailable(boardId);
             return;
         }
-        closeTaskDetail();
-        commitState({ portfolioCreateContext: { boardId, status: 'backlog', relatedTo: { taskId, kind } }, portfolioEditContext: null });
+        const detail = getState().portfolioDetailContext;
+        const returnToDetail: DetailContext = detail?.boardId === boardId && detail.taskId === taskId ? detail : { boardId, taskId, readOnly: false };
+        dismissTaskDetail();
+        commitState({ portfolioCreateContext: { boardId, status: 'backlog', returnToDetail, relatedTo: { taskId, kind } }, portfolioEditContext: null });
         const vm = buildTaskEditorViewModel(source.boardRecord, null, getState().portfolioTasks, ++taskEditorOpenCount);
         vm.initial.phaseId = source.task.phaseId;
         vm.initial.milestoneId = source.task.milestoneId;
@@ -138,9 +158,15 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         openDialogFn('taskEditor', vm);
     }
 
-    function closeTaskDetail() {
+    function dismissTaskDetail() {
         commitState({ portfolioDetailContext: null });
         closeDialogFn('taskDetail');
+    }
+
+    function closeTaskDetail() {
+        const context = getState().portfolioDetailContext;
+        dismissTaskDetail();
+        restoreTaskDetail(context?.returnToDetail);
     }
 
     function openPortfolioTaskDetailsForCalendar(boardId: string, taskId: number) {
@@ -256,7 +282,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
 
         if (state.portfolioCreateContext?.boardId) {
-            const { boardId, relatedTo } = state.portfolioCreateContext;
+            const { boardId, relatedTo, returnToDetail } = state.portfolioCreateContext;
             const boardRecord = getBoardRecord(boardId);
             if (!boardRecord) return;
             if (!canUsePortfolioTaskMutations(boardId)) {
@@ -266,9 +292,10 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
             const now = nowIso();
             const status = relatedTo ? 'backlog' : resolveCreateTaskStatus(boardRecord, state.portfolioCreateContext.status);
-            setSelectedPortfolioBoardId(boardId, { resetViewModeWhenEmpty: false });
+            let createdId = 0;
             await runPortfolioBoardMutation(boardId, (data) => {
                 const nextId = nextTaskIdForBoard({ data });
+                createdId = nextId;
                 data.board.tasks.push(normalizeTask({
                     id: nextId, ...commonFields, archived: false,
                     createdAt: now, updatedAt: now, status
@@ -285,7 +312,10 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
                     recordTaskRelationsTimelineEvent(data, relatedTo.taskId, beforeRelations);
                 }
                 return true;
-            }, { onMutated: closeTaskEditor });
+            }, { onMutated: () => {
+                dismissTaskEditor();
+                openPortfolioTaskDetails(boardId, createdId, { returnToDetail });
+            } });
             return;
         }
 
@@ -481,7 +511,10 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
     function refreshTaskDetail(boardId: string) {
         const context = getState().portfolioDetailContext;
-        if (context?.boardId === boardId) openPortfolioTaskDetails(boardId, context.taskId);
+        if (context && context.historyEventIndex === undefined) {
+            if (!findPortfolioTaskSource(context.boardId, context.taskId)) closeTaskDetail();
+            else openPortfolioTaskDetails(context.boardId, context.taskId, context);
+        }
     }
     return {
         openPortfolioTaskDetails,

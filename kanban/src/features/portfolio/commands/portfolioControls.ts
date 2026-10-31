@@ -73,7 +73,7 @@ export function createPortfolioControlActions({
     updateUrlState = null,
     primeProjectFiles = primeProjectFileBaselines,
     closePortfolioContextsForProject = defaultClosePortfolioContextsForProject,
-    clearPortfolioTimelineSelection = defaultClearPortfolioTimelineSelection,
+    clearPortfolioTimelineSelection = () => defaultClearPortfolioTimelineSelection(),
     openCreateSprintModal = (boardId) => defaultOpenRoadmapEntityModal('sprints', '', { mode: 'create-sprint-from-selection', boardId }),
     openAssignSprintModal = (boardId) => defaultOpenRoadmapEntityModal('sprints', '', { mode: 'assign-sprint-from-selection', boardId }),
     retrySave = retryProjectSave,

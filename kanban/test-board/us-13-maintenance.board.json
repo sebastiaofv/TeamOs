@@ -1,0 +1,166 @@
+{
+  "meta": {
+    "schemaVersion": 6,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-01T09:00:00.000Z",
+    "updatedAt": "2026-10-01T09:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "triage",
+        "title": "Triagem"
+      },
+      {
+        "status": "repair",
+        "title": "Reparação"
+      },
+      {
+        "status": "done",
+        "title": "Concluído"
+      }
+    ],
+    "tasks": [
+      {
+        "id": 1301,
+        "permanentId": "us13:maintenance:1301",
+        "displayId": "MAN-TK-1301",
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "none",
+        "milestoneMode": "none",
+        "title": "Inspecionar cobertura",
+        "description": "Conteúdo e anexo devem acompanhar a tarefa. O número local colide com o projeto complementar.",
+        "assignees": [
+          "Bruno"
+        ],
+        "assigneeIds": [
+          "person-1"
+        ],
+        "responsible": "Bruno",
+        "responsibleId": "person-1",
+        "tags": [
+          "maintenance"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [
+          {
+            "text": "Inspeção efetuada",
+            "done": true
+          },
+          {
+            "text": "Validar resultado",
+            "done": false
+          }
+        ],
+        "attachments": [
+          {
+            "id": "attachment-1301",
+            "name": "notas.txt",
+            "mime": "text/plain",
+            "sizeBytes": 2,
+            "kind": "file",
+            "dataUrl": "data:text/plain;base64,aGk=",
+            "createdAt": "2026-10-01T09:00:00.000Z"
+          }
+        ],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "repair",
+        "pullRequests": []
+      }
+    ],
+    "settings": {
+      "title": "US-13 · Manutenção"
+    }
+  },
+  "extensions": {
+    "project": {
+      "version": 1,
+      "id": "us13-maintenance",
+      "acronym": "MAN",
+      "description": "Exemplo de aceitação US-13",
+      "status": "active",
+      "members": [
+        {
+          "id": "person-1",
+          "name": "Bruno"
+        }
+      ],
+      "tags": [
+        "maintenance"
+      ],
+      "productName": " house "
+    },
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "triage",
+          "name": "Triagem",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "repair",
+          "name": "Reparação",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Concluído",
+          "color": "#34d399",
+          "category": "completed"
+        }
+      ],
+      "entryStateId": "triage",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "triage",
+        "in-progress": "repair",
+        "completed": "done"
+      },
+      "transitions": {
+        "backlog": [
+          "triage",
+          "repair",
+          "done"
+        ],
+        "triage": [
+          "backlog",
+          "repair",
+          "done"
+        ],
+        "repair": [
+          "backlog",
+          "triage",
+          "done"
+        ],
+        "done": [
+          "backlog",
+          "triage",
+          "repair"
+        ]
+      }
+    }
+  }
+}

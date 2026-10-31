@@ -1,4 +1,5 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { createNewProject } from '@/features/portfolio/projects/projectCommands';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardRecord, PortfolioFilters, ProjectSaveState } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
@@ -229,41 +230,72 @@ function ChipList({ state }: { state: ChipState }) {
         return <span className="empty-state-text">{t('toolbar.noProjectsLoaded')}</span>;
     }
 
+    const renderBoard = (board: BoardRecord, grouped = false) => {
+        const color = getBoardColor(board);
+        const saveUi = getChipSaveUiState(state.projectSaveStateById.get(board.id), t);
+        return (
+            <span
+                className={`portfolio-chip${state.selectedPortfolioBoardId === board.id ? ' active' : ''}`}
+                style={{ '--chip-bg': color.bg, '--chip-border': color.border, '--chip-text': color.text } as CSSProperties}
+                key={board.id}
+            >
+                <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={(event) => { selectPortfolioBoard(board.id); const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; }}>
+                    {board.title || board.fileName}
+                    {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
+                    {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
+                </button>
+                <button className="chip-link chip-settings" type="button" data-action="project-settings" data-board-id={board.id}
+                    aria-label={t('project.settingsFor', { name: board.title || board.fileName })} title={t('project.settings')}
+                    aria-haspopup="dialog" onClick={() => openProjectSettings(board.id)}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h6m0 0h10M4 12h12m0 0h4M4 18h4m0 0h12M10 3v6m6 0v6M8 15v6" />
+                    </svg>
+                </button>
+                {board.handle && saveUi.canRetry && (
+                    <button className="chip-link" type="button" title={t('toolbar.retrySave')} data-action="retry-save" data-board-id={board.id} onClick={() => retryPortfolioSave(board.id)}>{t('common.retry')}</button>
+                )}
+                <button className="chip-link chip-link-danger" type="button" aria-label={t('toolbar.removeProject')} title={t('toolbar.removeProject')} data-action="remove-board" data-board-id={board.id} onClick={() => removePortfolioBoard(board.id)}>{grouped ? <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8" /></svg> : t('common.remove')}</button>
+            </span>
+        );
+    };
+    const groups: { key: string; product: string; boards: BoardRecord[] }[] = [];
+    for (const board of state.portfolioBoards) {
+        const product = board.data.extensions.project?.productName?.trim() || '';
+        const key = product.toLowerCase();
+        const group = product && groups.find((entry) => entry.product && entry.key === key);
+        if (group) group.boards.push(board);
+        else groups.push({ key: product ? key : board.id, product, boards: [board] });
+    }
     return (
         <>
             <span className={`portfolio-chip${state.selectedPortfolioBoardId ? '' : ' active'}`}>
                 <button className="chip-link" type="button" data-action="select-board" data-board-id="" aria-pressed={!state.selectedPortfolioBoardId} onClick={() => selectPortfolioBoard('')}>{t('common.all')}</button>
             </span>
-            {state.portfolioBoards.map((board) => {
-                const color = getBoardColor(board);
-                const saveUi = getChipSaveUiState(state.projectSaveStateById.get(board.id), t);
-                return (
-                    <span
-                        className={`portfolio-chip${state.selectedPortfolioBoardId === board.id ? ' active' : ''}`}
-                        style={{ '--chip-bg': color.bg, '--chip-border': color.border, '--chip-text': color.text } as CSSProperties}
-                        key={board.id}
-                    >
-                        <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={() => selectPortfolioBoard(board.id)}>
-                            {board.title || board.fileName}
-                            {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
-                            {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
-                        </button>
-                        <button className="chip-link chip-settings" type="button" data-action="project-settings" data-board-id={board.id}
-                            aria-label={t('project.settingsFor', { name: board.title || board.fileName })} title={t('project.settings')}
-                            aria-haspopup="dialog" onClick={() => openProjectSettings(board.id)}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h6m0 0h10M4 12h12m0 0h4M4 18h4m0 0h12M10 3v6m6 0v6M8 15v6" />
-                            </svg>
-                        </button>
-                        {board.handle && saveUi.canRetry && (
-                            <button className="chip-link" type="button" title={t('toolbar.retrySave')} data-action="retry-save" data-board-id={board.id} onClick={() => retryPortfolioSave(board.id)}>{t('common.retry')}</button>
-                        )}
-                        <button className="chip-link chip-link-danger" type="button" aria-label={t('toolbar.removeProject')} title={t('toolbar.removeProject')} data-action="remove-board" data-board-id={board.id} onClick={() => removePortfolioBoard(board.id)}>{t('common.remove')}</button>
-                    </span>
-                );
-            })}
+            {groups.map((group) => group.product ? <ProductProjectMenu key={group.key} product={group.product}
+                selected={group.boards.find((board) => board.id === state.selectedPortfolioBoardId)?.title}>
+                {group.boards.map((board) => renderBoard(board, true))}
+                <button type="button" className="product-create btn" onClick={() => { void createNewProject(group.product); }}>{t('header.newProject')}</button>
+            </ProductProjectMenu> : group.boards.map((board) => renderBoard(board)))}
         </>
     );
+}
+
+function ProductProjectMenu({ product, selected, children }: { product: string; selected?: string; children: ReactNode }) {
+    const menu = useRef<HTMLDetailsElement>(null);
+    const { t } = useI18n();
+    useEffect(() => {
+        const close = (event: PointerEvent) => { if (menu.current?.open && !menu.current.contains(event.target as Node)) menu.current.open = false; };
+        document.addEventListener('pointerdown', close);
+        return () => document.removeEventListener('pointerdown', close);
+    }, []);
+    return <details ref={menu} className="product-group" onKeyDown={(event) => {
+        if (event.key === 'Escape' && menu.current?.open) { event.preventDefault(); event.stopPropagation(); menu.current.open = false; menu.current.querySelector('summary')?.focus(); }
+    }}>
+        <summary><span>{product}</span><span aria-hidden="true">|</span><span className="product-selected">{selected || t('transfer.chooseProject')}</span>
+            <svg className="product-chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m3 6 5 5 5-5" /></svg>
+        </summary>
+        <div className="product-projects">{children}</div>
+    </details>;
 }
 
 export function PortfolioToolbar() {

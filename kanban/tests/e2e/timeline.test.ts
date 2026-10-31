@@ -204,6 +204,8 @@ test.describe('timeline', () => {
     await expect(page.locator('#taskModal')).toBeVisible();
     await page.locator('#taskName').fill('Created from latest');
     await page.locator('#taskModal .btn-primary').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Created from latest');
+    await page.locator('#taskDetailModalCloseBtn').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
     await expect(page.locator('#portfolioTimelinePanel .timeline-preview-banner.active')).toHaveCount(0);

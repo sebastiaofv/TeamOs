@@ -1,3 +1,4 @@
+import { permanentBlockedIds } from '@/domain/permanentRelations';
 import type { BoardRecord, PortfolioRow } from '@/features/portfolio/types';
 import type { AppState } from '@/features/portfolio/state/slices';
 import { normalizeTask } from '@/domain/task';
@@ -17,7 +18,7 @@ export function getBoardRecord(state: SelectorState, boardId: string | null | un
 export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
     return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : []).flatMap((board, boardIndex) => {
         if (!board?.data?.board) return [];
-        const dependencyBlocked = getDependencyBlockedTaskIds(board.data);
+        const dependencyBlocked = new Set([...getDependencyBlockedTaskIds(board.data), ...permanentBlockedIds(board.data, state?.portfolioBoards || [], state?.unloadedRelationSources?.flatMap((entry) => entry.relations))]);
         return (board.data.board.tasks || []).map((task, taskIndex) => ({
             boardIndex,
             boardId: board.id,
@@ -43,7 +44,7 @@ export function buildPortfolioRowsFromBoardData(
     const normalizedBoard = createBoardStateSnapshot(boardData);
     const canMutate = Boolean(boardRecord.handle) && options.canMutate !== false;
     const historical = Boolean(options.historical);
-    const dependencyBlocked = getDependencyBlockedTaskIds(normalizedBoard);
+    const dependencyBlocked = new Set([...getDependencyBlockedTaskIds(normalizedBoard), ...permanentBlockedIds(normalizedBoard, options.historical ? [{ ...boardRecord, data: normalizedBoard }] : state?.portfolioBoards || [], options.historical ? [] : state?.unloadedRelationSources?.flatMap((entry) => entry.relations))]);
     return (normalizedBoard.board.tasks || []).map((task, taskIndex) => ({
         boardIndex: (state?.portfolioBoards || []).findIndex((board) => board.id === boardRecord.id),
         boardId: boardRecord.id,

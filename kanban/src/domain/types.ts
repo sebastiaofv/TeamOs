@@ -44,6 +44,7 @@ export type Task = WorkitemFields & {
     sprintHistory?: { sprintId: string; status: string; at: string; parentId?: number | null }[];
     id: number;
     displayId?: string;
+    permanentId?: string;
     title: string;
     description: string;
     assignees: string[];
@@ -153,6 +154,7 @@ export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIde
 export type ProjectStatus = 'planned' | 'active' | 'paused' | 'completed' | 'archived';
 export type ProjectMember = { id: string; name: string };
 export type ProjectData = {
+    productName?: string;
     acronym?: string;
     version: 1;
     id: string;
@@ -165,6 +167,8 @@ export type BoardExtensions = {
     [key: string]: unknown;
     conversations?: Conversations;
     project?: ProjectData;
+    permanentRelations?: import('./permanentRelations').PermanentRelations;
+    projectTransfers?: import('./projectTransfers').ProjectTransfers;
     sprintParticipation?: { version: 1; entries: { sprintId: string; task: Task; at: string }[] };
     workitemAutomation?: WorkitemAutomation;
     boardView?: BoardViewPreferences;

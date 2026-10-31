@@ -272,8 +272,7 @@ test('creates a related item with editable inherited planning only, cancelling f
   await expect(page.locator('#taskMilestone')).toHaveValue('mile');
   await expect(page.locator('#taskPriority')).toHaveValue('');
   await page.locator('#taskModalCancelBtn').click();
-  await expect(portfolioCard(page, 'Source')).toBeVisible();
-  await portfolioCard(page, 'Source').click();
+  await expect(page.locator('#detailTitle')).toHaveText('Source');
   await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   await relations.getByRole('button', { name: 'Create related', exact: true }).click();
   await relations.getByLabel('Relation of the selected workitem').selectOption('blockedBy');
@@ -282,6 +281,7 @@ test('creates a related item with editable inherited planning only, cancelling f
   await page.locator('#taskDescription').fill('Own description');
   await page.locator('#taskPhase').selectOption('other');
   await page.locator('#taskModalSaveBtn').click();
+  await expect(page.locator('#detailTitle')).toHaveText('New blocker');
   await expect.poll(async () => (await readSavedBoard(page, 'p1')).board.tasks.length).toBe(2);
   const saved = await readSavedBoard(page, 'p1');
   expect(saved.board.tasks[1]).toMatchObject({ title: 'New blocker', description: 'Own description', status: 'backlog', phaseId: 'other', milestoneId: 'mile', assignees: [], tags: [], priority: null });

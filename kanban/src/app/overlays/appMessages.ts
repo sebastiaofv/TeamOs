@@ -8,7 +8,7 @@ import type { AppMessage, MessageSelection } from '@/app/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { translateCurrent } from '@/shared/i18n';
 
-export type ConfirmOptions = { title?: string; confirmLabel?: string; danger?: boolean; selections?: MessageSelection[] };
+export type ConfirmOptions = { review?: import('@/app/types').AppMessageReview; title?: string; confirmLabel?: string; danger?: boolean; selections?: MessageSelection[] };
 export type PromptOptions = { title?: string; confirmLabel?: string; required?: boolean };
 export type Choice<T> = { value: T; label: string; primary?: boolean };
 
@@ -56,11 +56,12 @@ export function showAlert(text: string, { title }: { title?: string } = {}): Pro
 }
 
 // Resolves selected field values (or true without fields) when confirmed, false when cancelled.
-export function showConfirm(text: string, { title, confirmLabel, danger = false, selections }: ConfirmOptions = {}): Promise<boolean | Record<string, string>> {
+export function showConfirm(text: string, { title, confirmLabel, danger = false, selections, review }: ConfirmOptions = {}): Promise<boolean | Record<string, string>> {
     return request({
         title: title || translateCurrent('messages.confirm'),
         text,
         ...(selections?.length ? { selections } : {}),
+        ...(review ? { review } : {}),
         buttons: [
             { label: translateCurrent('messages.cancel'), value: false, cancel: true },
             { label: confirmLabel || translateCurrent('common.ok'), value: true, primary: true, danger, ...(selections?.length ? { submitsSelections: true } : {}) }
@@ -86,11 +87,11 @@ export function showPrompt(text: string, defaultValue: unknown = '', { title, co
 // Resolves with the chosen value, or null when cancelled. `choices` are
 // { value, label, primary? } entries, shown after Cancel, or in a dropdown
 // with an explicit confirmation when selectionLabel is supplied.
-export function showChoice<T>(text: string, choices: readonly Choice<T>[], { title, selectionLabel }: { title?: string; selectionLabel?: string } = {}): Promise<T | null> {
+export function showChoice<T>(text: string, choices: readonly Choice<T>[], { title, selectionLabel, requiredSelection }: { title?: string; selectionLabel?: string; requiredSelection?: boolean } = {}): Promise<T | null> {
     return request({
         title: title || translateCurrent('messages.choose'),
         text,
-        ...(selectionLabel ? { selection: { label: selectionLabel, options: choices.map(({ value, label }) => ({ value, label })) } } : {}),
+        ...(selectionLabel ? { selection: { required: requiredSelection, label: selectionLabel, options: choices.map(({ value, label }) => ({ value, label })) } } : {}),
         buttons: [
             { label: translateCurrent('messages.cancel'), value: null, cancel: true },
             ...(selectionLabel ? [{ label: translateCurrent('messages.confirm'), primary: true, submitsSelection: true }]

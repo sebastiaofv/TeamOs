@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
+import { mockImportProjectsPicker, showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
 
 test.describe('US-4 persisted Board column chooser', () => {
   for (const theme of ['light', 'dark']) {
@@ -804,3 +804,56 @@ for (const theme of ['light', 'dark']) {
     });
   }
 }
+
+test.describe('US-13 product navigation and transfer review', () => {
+  for (const theme of ['light', 'dark']) for (const width of [1280, 390]) {
+    test(`product projects and explicit transfer mappings at ${width}px (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await page.setViewportSize({ width, height: 900 });
+      await mockImportProjectsPicker(page, ['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent'].map((name) => ({ fileName: `${name}.board.json`, payload: JSON.parse(readFileSync(`test-board/${name}.board.json`, 'utf8')) })));
+      await page.locator('#importProjectsBtn').click();
+      await expect(page.locator('#portfolioBoardsChips')).toHaveScreenshot(`us13-projects-${theme}-${width}.png`);
+      const card = portfolioCard(page, 'Reparar portão'); await card.click();
+      const dialog = page.locator('#taskDetailModal');
+      await dialog.getByLabel('Task actions', { exact: true }).click();
+      await dialog.getByRole('button', { name: 'Move to project…', exact: true }).click();
+      await page.locator('#appMessageSelection').selectOption({ label: 'US-13 · Manutenção' });
+      await page.locator('#appMessageConfirmBtn').click();
+      await page.locator('[data-field="state"]').selectOption({ label: 'Reparação' });
+      await page.locator('[data-field="member-0"]').selectOption({ label: 'Bruno' });
+      await page.locator('[data-field="tag-0"]').selectOption({ label: 'maintenance' });
+      const review = page.locator('#appMessageModal .modal-content');
+      expect(await review.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(review).toHaveScreenshot(`us13-transfer-review-${theme}-${width}.png`);
+      await page.locator('#appMessageCancelBtn').click();
+    });
+  }
+});
+
+test.describe('US-13 hierarchy review', () => {
+  for (const theme of ['light', 'dark']) for (const width of [1280, 390]) {
+    test(`ALL and Roadmap share full hierarchy at ${width}px (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await page.setViewportSize({ width, height: 900 });
+      const fixture = JSON.parse(readFileSync('test-board/us-13-hierarchy.board.json', 'utf8'));
+      await seedPortfolioBoards(page, [{ id: 'hierarchy', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'hierarchy' });
+      await page.locator('[data-view-mode="table"]').click();
+      await page.locator('[data-table-view="hierarchy"]').click();
+      await page.locator('#workitemsTable').getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();
+      await page.locator('#workitemsTable').getByRole('button', { name: 'Expand Preparar lançamento', exact: true }).click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page.locator('#portfolioTable')).toHaveScreenshot(`us13-all-hierarchy-${theme}-${width}.png`);
+      await page.locator('[data-view-mode="roadmap"]').click();
+      await page.getByRole('button', { name: 'Show tasks for Exterior', exact: true }).click();
+      const scope = page.locator('[data-roadmap-task-list="phase:exterior"]');
+      await scope.getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();
+      await scope.getByRole('button', { name: 'Expand Preparar lançamento', exact: true }).click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(scope).toHaveScreenshot(`us13-roadmap-hierarchy-${theme}-${width}.png`);
+    });
+  }
+});

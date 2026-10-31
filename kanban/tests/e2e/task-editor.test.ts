@@ -117,7 +117,7 @@ test.describe('task editor', () => {
       blocked: true,
       blockerReason: 'Waiting for staging access'
     });
-    await portfolioCard(page, 'Investigate deploy issue').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Investigate deploy issue');
     await expect(page.locator('#taskAssigneeItems')).toContainText('Alex');
     await expect(page.locator('#taskAssigneeItems')).toContainText('Sam');
   });
@@ -212,8 +212,7 @@ test.describe('task editor', () => {
     const card = portfolioCard(page, 'Tagged task');
     await expect(card.locator('.task-tag-label')).toHaveCount(0);
 
-    await card.click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Tagged task');
     await expect(page.locator('#taskTagItems')).toContainText('bug');
     await expect(page.locator('#taskTagItems')).toContainText('urgent');
 
@@ -337,8 +336,7 @@ test.describe('task editor', () => {
     expect(result.taskDueDate).toBe('2026-03-05');
     expect(result.savedDueDate).toBe('2026-03-05');
 
-    await card.click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Date formatting task');
     await expect(page.locator('#detailDueDateInput')).toHaveValue('2026-03-05');
   });
 
