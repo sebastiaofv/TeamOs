@@ -3,6 +3,7 @@ import { isRecord, normalizeTimestamp, nowIso } from './util';
 import { cloneSerializable } from './serializable';
 import { parseRoadmapIsoDate } from './roadmap';
 import { validateCommentInput } from './comments';
+import { ProjectDataError } from './projectData';
 
 export type ControlErrorCode = 'invalid' | 'references' | 'authorRequired' | 'stale' | 'dates' | 'materializedDateRequired';
 export class ControlError extends Error {
@@ -11,6 +12,7 @@ export class ControlError extends Error {
 
 export const CONTROL_KINDS = ['risks', 'decisions', 'deliverables'] as const;
 export type ControlKind = typeof CONTROL_KINDS[number];
+export const CONTROL_TYPE_CODES = { risks: 'RK', decisions: 'DC', deliverables: 'DL' } as const;
 export const CONTROL_STATUSES = {
     risks: ['open', 'in-mitigation', 'materialized', 'closed'],
     decisions: ['proposed', 'approved', 'rejected', 'superseded', 'cancelled'],
@@ -18,7 +20,7 @@ export const CONTROL_STATUSES = {
 } as const;
 export const ASSESSMENTS = ['low', 'medium', 'high'] as const;
 export type Assessment = typeof ASSESSMENTS[number];
-export type ControlRelated = { phaseIds: string[]; milestoneIds: string[]; workitemIds: number[] };
+export type ControlRelated = { phaseIds: string[]; milestoneIds: string[] };
 export type ControlComment = { id: string; at: string; author: { name: string; kind: 'local' }; text: string; images: Attachment[] };
 export type ControlHistory = { id: string; at: string; author: string; changes: TimelineChanges };
 export type ControlRecord = {
@@ -29,9 +31,11 @@ export type ControlRecord = {
     materializedDate: string; actualImpact: string;
     related: ControlRelated; createdAt: string; updatedAt: string;
     comments: ControlComment[]; history: ControlHistory[];
+    /** Archived v1 associations, retained for file compatibility, never used as active links. */
+    legacyWorkitemIds?: number[];
 };
-export type ProjectControl = { version: 1; lastNumber: number; records: ControlRecord[] };
-export function emptyProjectControl(): ProjectControl { return { version: 1, lastNumber: 0, records: [] }; }
+export type ProjectControl = { version: 2; lastNumber: number; records: ControlRecord[] };
+export function emptyProjectControl(): ProjectControl { return { version: 2, lastNumber: 0, records: [] }; }
 export function controlRecords(data?: LooseBoardData | null): ControlRecord[] {
     return (data?.extensions?.projectControl as ProjectControl | undefined)?.records || [];
 }
@@ -44,27 +48,33 @@ export function controlPending(record: ControlRecord): boolean {
 }
 export function newControlRecord(kind: ControlKind, related?: Partial<ControlRelated>): ControlRecord {
     const at = nowIso();
-    return { id: '', kind, title: '', description: '', status: CONTROL_STATUSES[kind][0], owner: '', probability: 'medium', impact: 'medium', mitigationPlan: '', contingencyPlan: '', decisionMaker: '', decisionDate: '', rationale: '', validator: '', dueDate: '', deliveredDate: '', acceptedDate: '', materializedDate: '', actualImpact: '', related: { phaseIds: [], milestoneIds: [], workitemIds: [], ...related }, createdAt: at, updatedAt: at, comments: [], history: [] };
+    return { id: '', kind, title: '', description: '', status: CONTROL_STATUSES[kind][0], owner: '', probability: 'medium', impact: 'medium', mitigationPlan: '', contingencyPlan: '', decisionMaker: '', decisionDate: '', rationale: '', validator: '', dueDate: '', deliveredDate: '', acceptedDate: '', materializedDate: '', actualImpact: '', related: { phaseIds: [], milestoneIds: [], ...related }, createdAt: at, updatedAt: at, comments: [], history: [] };
 }
 const textFields = ['title', 'description', 'owner', 'mitigationPlan', 'contingencyPlan', 'decisionMaker', 'rationale', 'validator', 'actualImpact'] as const;
 const dateFields = ['decisionDate', 'dueDate', 'deliveredDate', 'acceptedDate', 'materializedDate'] as const;
 function fail(): never { throw new ControlError('invalid', 'Invalid Project Control record.'); }
 export function parseProjectControl(value: unknown): ProjectControl | undefined {
-    // Legacy files need no synthetic records or IDs. v1 is an additive, versioned extension.
+    // v2 archives obsolete workitem links without renumbering records or rewriting history.
     if (value === undefined) return undefined;
-    if (!isRecord(value) || value.version !== 1 || !Number.isSafeInteger(value.lastNumber) || Number(value.lastNumber) < 0 || !Array.isArray(value.records)) fail();
+    if (!isRecord(value) || (value.version !== 1 && value.version !== 2) || !Number.isSafeInteger(value.lastNumber) || Number(value.lastNumber) < 0 || !Array.isArray(value.records)) fail();
     const ids = new Set<string>();
     for (const item of value.records) {
-        if (!isRecord(item) || typeof item.id !== 'string' || !/^PC-[1-9]\d*$/.test(item.id) || ids.has(item.id) || Number(item.id.slice(3)) > Number(value.lastNumber) || !CONTROL_KINDS.includes(item.kind as ControlKind)) fail();
+        if (!isRecord(item) || typeof item.id !== 'string' || !CONTROL_KINDS.includes(item.kind as ControlKind)) fail();
+        const idPattern = new RegExp(`^(?:PC|[A-Z]{1,3}-${CONTROL_TYPE_CODES[item.kind as ControlKind]})-([1-9]\\d*)$`);
+        const number = item.id.match(idPattern)?.[1];
+        if (!number || !Number.isSafeInteger(Number(number)) || ids.has(item.id) || Number(number) > Number(value.lastNumber)) fail();
         ids.add(item.id);
         if (!(CONTROL_STATUSES[item.kind as ControlKind] as readonly unknown[]).includes(item.status) || !ASSESSMENTS.includes(item.probability as Assessment) || !ASSESSMENTS.includes(item.impact as Assessment)) fail();
         if (textFields.some((key) => typeof item[key] !== 'string') || !String(item.title).trim() || String(item.title).length > 200) fail();
         if (dateFields.some((key) => typeof item[key] !== 'string' || (item[key] !== '' && !parseRoadmapIsoDate(item[key])))) fail();
         if (!normalizeTimestamp(item.createdAt) || !normalizeTimestamp(item.updatedAt) || !isRecord(item.related)) fail();
-        for (const key of ['phaseIds', 'milestoneIds', 'workitemIds']) {
+        for (const key of ['phaseIds', 'milestoneIds']) {
             const refs = item.related[key];
-            if (!Array.isArray(refs) || new Set(refs).size !== refs.length || refs.some((ref) => key === 'workitemIds' ? !Number.isSafeInteger(ref) || Number(ref) <= 0 : typeof ref !== 'string' || !ref.trim())) fail();
+            if (!Array.isArray(refs) || new Set(refs).size !== refs.length || refs.some((ref) => typeof ref !== 'string' || !ref.trim())) fail();
         }
+        if (value.version === 2 && 'workitemIds' in item.related) fail();
+        const legacyRefs = value.version === 1 ? item.related.workitemIds : item.legacyWorkitemIds;
+        if ((value.version === 1 || legacyRefs !== undefined) && (!Array.isArray(legacyRefs) || new Set(legacyRefs).size !== legacyRefs.length || legacyRefs.some((id) => !Number.isSafeInteger(id) || id <= 0))) fail();
         if (!Array.isArray(item.comments) || !Array.isArray(item.history)) fail();
         const commentIds = new Set<string>();
         for (const comment of item.comments) {
@@ -79,11 +89,20 @@ export function parseProjectControl(value: unknown): ProjectControl | undefined 
             for (const change of Object.values(event.changes)) if (!isRecord(change) || !('before' in change) || !('after' in change)) fail();
         }
     }
-    return cloneSerializable(value) as ProjectControl;
+    const migrated = cloneSerializable(value) as ProjectControl;
+    if (value.version === 1) {
+        migrated.version = 2;
+        for (const item of migrated.records) {
+            const related = item.related as ControlRelated & { workitemIds?: number[] };
+            if (related.workitemIds?.length) item.legacyWorkitemIds = related.workitemIds;
+            delete related.workitemIds;
+        }
+    }
+    return migrated;
 }
 export function assertControlReferences(data: BoardData, record: ControlRecord): void {
     const roadmap = data.extensions.roadmap;
-    if (record.related.phaseIds.some((id) => !roadmap?.phases.some((item) => item.id === id)) || record.related.milestoneIds.some((id) => !roadmap?.milestones.some((item) => item.id === id)) || record.related.workitemIds.some((id) => !data.board.tasks.some((task) => task.id === id))) throw new ControlError('references', 'A related project element no longer exists.');
+    if (record.related.phaseIds.some((id) => !roadmap?.phases.some((item) => item.id === id)) || record.related.milestoneIds.some((id) => !roadmap?.milestones.some((item) => item.id === id))) throw new ControlError('references', 'A related project element no longer exists.');
 }
 export function saveControlRecord(data: BoardData, input: ControlRecord, author: string): ControlRecord {
     if (!author.trim()) throw new ControlError('authorRequired', 'An author is required.');
@@ -93,7 +112,8 @@ export function saveControlRecord(data: BoardData, input: ControlRecord, author:
     const timeline = data.extensions.timeline;
     const lastNumber = (timeline?.events || []).reduce((highest, event) => Math.max(highest, event.snapshot?.extensions?.projectControl?.lastNumber || 0), extension.lastNumber);
     const record = cloneSerializable(input);
-    record.id = before?.id || `PC-${lastNumber + 1}`;
+    if (!before && !/^[A-Z]{1,3}$/.test(data.extensions.project?.acronym || '')) throw new ProjectDataError('acronym');
+    record.id = before?.id || `${data.extensions.project!.acronym}-${CONTROL_TYPE_CODES[record.kind]}-${lastNumber + 1}`;
     if (before && before.kind !== record.kind) fail();
     record.title = record.title.trim();
     if (record.kind === 'deliverables' && ((['delivered', 'accepted'].includes(record.status) && !record.deliveredDate) || (record.status === 'accepted' && !record.acceptedDate) || (record.acceptedDate && record.deliveredDate && record.acceptedDate < record.deliveredDate))) throw new ControlError('dates', 'Delivery and acceptance dates are required and must be in chronological order.');
@@ -108,7 +128,7 @@ export function saveControlRecord(data: BoardData, input: ControlRecord, author:
     }
     if (!Object.keys(changes).length) return before!;
     record.history = [...record.history, { id: crypto.randomUUID(), at: record.updatedAt, author: author.trim(), changes }];
-    const next: ProjectControl = { version: 1, lastNumber: before ? lastNumber : lastNumber + 1, records: [...extension.records.filter((item) => item.id !== record.id), record] };
+    const next: ProjectControl = { version: 2, lastNumber: before ? lastNumber : lastNumber + 1, records: [...extension.records.filter((item) => item.id !== record.id), record] };
     parseProjectControl(next); data.extensions.projectControl = next;
     return record;
 }
@@ -124,11 +144,10 @@ export function removeDeletedControlLinks(data: BoardData, previous: BoardData, 
     let changed = false;
     const removed = {
         phaseIds: new Set((previous.extensions.roadmap?.phases || []).filter((item) => !data.extensions.roadmap?.phases.some((next) => next.id === item.id)).map((item) => item.id)),
-        milestoneIds: new Set((previous.extensions.roadmap?.milestones || []).filter((item) => !data.extensions.roadmap?.milestones.some((next) => next.id === item.id)).map((item) => item.id)),
-        workitemIds: new Set(previous.board.tasks.filter((task) => !data.board.tasks.some((next) => next.id === task.id)).map((task) => task.id))
+        milestoneIds: new Set((previous.extensions.roadmap?.milestones || []).filter((item) => !data.extensions.roadmap?.milestones.some((next) => next.id === item.id)).map((item) => item.id))
     };
     for (const record of controlRecords(data)) {
-        const related = { phaseIds: record.related.phaseIds.filter((id) => !removed.phaseIds.has(id)), milestoneIds: record.related.milestoneIds.filter((id) => !removed.milestoneIds.has(id)), workitemIds: record.related.workitemIds.filter((id) => !removed.workitemIds.has(id)) };
+        const related = { phaseIds: record.related.phaseIds.filter((id) => !removed.phaseIds.has(id)), milestoneIds: record.related.milestoneIds.filter((id) => !removed.milestoneIds.has(id)) };
         if (JSON.stringify(related) !== JSON.stringify(record.related)) { saveControlRecord(data, { ...record, related }, author); changed = true; }
     }
     return changed;

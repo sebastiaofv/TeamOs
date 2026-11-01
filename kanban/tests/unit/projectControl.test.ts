@@ -3,12 +3,50 @@ import { describe, expect, it } from 'vitest';
 import { fromAny } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '../../src/domain/board';
 import { createBoardStateSnapshot, serializeBoardDataFromObject } from '../../src/domain/serialize';
-import { ASSESSMENTS, controlRecords, gateControlProgress, newControlRecord, parseProjectControl, removeDeletedControlLinks, riskLevel, saveControlRecord } from '../../src/domain/projectControl';
+import { ASSESSMENTS, controlRecords, gateControlProgress, newControlRecord, parseProjectControl, removeDeletedControlLinks, riskLevel, saveControlRecord, type ControlRecord } from '../../src/domain/projectControl';
 import { appendTimelineEvent, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
 import type { BoardData } from '../../src/domain/types';
 
 const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
 describe('Project Control persistence and lifecycle', () => {
+    it('migrates v1 workitem links to an archive, preserving IDs, comments and history through round trips', () => {
+        const legacy = JSON.parse(readFileSync('tests/fixtures/project-control-v1.json', 'utf8'));
+        const migrated = parseProjectControl(legacy)!;
+        expect(migrated.version).toBe(2);
+        expect(migrated.records.map((record) => record.id)).toEqual(legacy.records.map((record: ControlRecord) => record.id));
+        for (const [index, record] of migrated.records.entries()) {
+            expect(record.related).toEqual({ phaseIds: legacy.records[index].related.phaseIds, milestoneIds: legacy.records[index].related.milestoneIds });
+            expect(record.legacyWorkitemIds || []).toEqual(legacy.records[index].related.workitemIds);
+            expect(record.history).toEqual(legacy.records[index].history);
+            expect(record.comments).toEqual(legacy.records[index].comments);
+        }
+        const data = fixture();
+        data.extensions.projectControl = fromAny(legacy);
+        const saved = serializeBoardDataFromObject(data);
+        expect(saved.extensions.projectControl).toEqual(migrated);
+        expect(serializeBoardDataFromObject(saved).extensions.projectControl).toEqual(migrated);
+        const existing = migrated.records[0];
+        expect(saveControlRecord(saved, { ...existing, title: 'Updated legacy risk' }, 'Ana').id).toBe(existing.id);
+        expect(controlRecords(saved).find((record) => record.id === existing.id)!.legacyWorkitemIds).toEqual(existing.legacyWorkitemIds);
+        expect(saveControlRecord(saved, { ...newControlRecord('risks'), title: 'New risk' }, 'Ana').id).toBe('ATL-RK-9');
+        expect(saved.board.tasks).toEqual(serializeBoardDataFromObject(data).board.tasks);
+    });
+    it('assigns project and type IDs once, keeps numbering across types and rejects active workitem links', () => {
+        const data = createEmptyProjectData('Atlas', 'ATL');
+        const risk = saveControlRecord(data, { ...newControlRecord('risks'), title: 'Risk' }, 'Ana');
+        expect(risk.id).toBe('ATL-RK-1');
+        expect(saveControlRecord(data, { ...newControlRecord('decisions'), title: 'Decision' }, 'Ana').id).toBe('ATL-DC-2');
+        expect(saveControlRecord(data, { ...newControlRecord('deliverables'), title: 'Deliverable' }, 'Ana').id).toBe('ATL-DL-3');
+        data.extensions.project!.acronym = 'NEW';
+        expect(saveControlRecord(data, { ...risk, title: 'Renamed' }, 'Ana').id).toBe('ATL-RK-1');
+        expect(saveControlRecord(data, { ...newControlRecord('risks'), title: 'Next' }, 'Ana').id).toBe('NEW-RK-4');
+        const invalid = structuredClone(data.extensions.projectControl!);
+        Object.assign(invalid.records[0].related, { workitemIds: [1] });
+        expect(() => parseProjectControl(invalid)).toThrow();
+        expect(() => parseProjectControl({ ...invalid, records: [{ ...risk, id: 'ATL-DC-1' }] })).toThrow();
+        delete data.extensions.project!.acronym;
+        expect(() => saveControlRecord(data, { ...newControlRecord('risks'), title: 'Missing acronym' }, 'Ana')).toThrow(/acronym/);
+    });
     it('validates the manual board and round-trips identities, history, completed and superseded records', () => {
         const data = fixture(); validateBoardData(data);
         const saved = serializeBoardDataFromObject(data); validateBoardData(saved);
@@ -29,7 +67,7 @@ describe('Project Control persistence and lifecycle', () => {
     it('uses monotonic IDs, records author and deltas, and preserves materialization without making workitems', () => {
         const data = fixture(); const tasks = structuredClone(data.board.tasks);
         const draft = { ...newControlRecord('risks'), title: 'New risk' };
-        const risk = saveControlRecord(data, draft, 'Ana'); expect(risk.id).toBe('PC-9');
+        const risk = saveControlRecord(data, draft, 'Ana'); expect(risk.id).toBe('ATL-RK-9');
         saveControlRecord(data, { ...risk, status: 'materialized', materializedDate: '2026-10-31', actualImpact: 'Two days' }, 'Rui');
         const updated = controlRecords(data).find((record) => record.id === risk.id)!;
         expect(updated.history).toHaveLength(2); expect(updated.history[1].author).toBe('Rui');
@@ -45,26 +83,26 @@ describe('Project Control persistence and lifecycle', () => {
     it('rejects unsupported versions, duplicate IDs, malformed dates, ratings, history and comments instead of dropping them', () => {
         const extension = fixture().extensions.projectControl!;
         for (const malformed of [
-            { ...extension, version: 2 }, { ...extension, lastNumber: 0 }, { ...extension, records: [...extension.records, extension.records[0]] },
+            { ...extension, version: 3 }, { ...extension, lastNumber: 0 }, { ...extension, records: [...extension.records, extension.records[0]] },
             { ...extension, records: [{ ...extension.records[0], dueDate: '2026-02-30' }] },
             { ...extension, records: [{ ...extension.records[0], probability: 'critical' }] },
             { ...extension, records: [{ ...extension.records[0], history: [{ id: 'bad' }] }] },
             { ...extension, records: [{ ...extension.records[0], comments: [{ id: 'bad' }] }] }
         ]) expect(() => parseProjectControl(malformed)).toThrow();
-        expect(() => serializeBoardDataFromObject({ ...fixture(), extensions: { projectControl: fromAny({ version: 2 }) } })).toThrow();
+        expect(() => serializeBoardDataFromObject({ ...fixture(), extensions: { projectControl: fromAny({ version: 3 }) } })).toThrow();
     });
     it('keeps associations shared and direct, records unlinking, and never cascades a phase association to its workitems', () => {
         const data = fixture(); const record = controlRecords(data)[0];
-        saveControlRecord(data, { ...record, related: { ...record.related, phaseIds: ['launch'], workitemIds: [] } }, 'Ana');
+        saveControlRecord(data, { ...record, related: { ...record.related, phaseIds: ['launch'] } }, 'Ana');
         expect(controlRecords(data)).toHaveLength(8);
         const updated = controlRecords(data).find((item) => item.id === record.id)!;
-        expect(updated.related.workitemIds).toEqual([]);
+        expect(updated.related).toEqual({ phaseIds: ['launch'], milestoneIds: record.related.milestoneIds });
         expect(updated.history.at(-1)!.changes.related).toBeDefined();
-        const previous = structuredClone(data); data.board.tasks = data.board.tasks.filter((task) => task.id !== 1);
+        const previous = structuredClone(data); data.extensions.roadmap!.phases = data.extensions.roadmap!.phases.filter((phase) => phase.id !== 'launch');
         expect(removeDeletedControlLinks(data, previous, 'Ana')).toBe(true);
-        expect(controlRecords(data).find((item) => item.id === 'PC-6')!.related.workitemIds).toEqual([2]);
+        expect(controlRecords(data).find((item) => item.id === record.id)!.related.phaseIds).toEqual([]);
         expect(controlRecords(data)).toHaveLength(8);
-        expect(() => saveControlRecord(data, { ...updated, related: { phaseIds: ['missing'], milestoneIds: [], workitemIds: [] } }, 'Ana')).toThrow(/no longer exists/);
+        expect(() => saveControlRecord(data, { ...updated, related: { phaseIds: ['missing'], milestoneIds: [] } }, 'Ana')).toThrow(/no longer exists/);
     });
     it('caps only completion and restores it after explicit acceptance; cancelled deliverables also require acceptance or unlinking', () => {
         const data = fixture();
@@ -73,11 +111,11 @@ describe('Project Control persistence and lifecycle', () => {
         expect(gateControlProgress(data, 'phases', new Set(['build']), 63)).toBe(63);
         expect(gateControlProgress(data, 'phases', new Set(['build']), null)).toBeNull();
         expect(gateControlProgress(data, 'milestones', new Set(['independent']), 100)).toBe(100);
-        const deliverable = controlRecords(data).find((item) => item.id === 'PC-6')!;
+        const deliverable = controlRecords(data).find((item) => item.id === 'ATL-DL-6')!;
         expect(() => saveControlRecord(data, { ...deliverable, status: 'accepted' }, 'Ana')).toThrow(/dates/);
         saveControlRecord(data, { ...deliverable, status: 'accepted', acceptedDate: '2026-10-31' }, 'Ana');
         expect(gateControlProgress(data, 'phases', new Set(['build']), 100)).toBe(100);
-        saveControlRecord(data, { ...controlRecords(data).find((item) => item.id === 'PC-6')!, status: 'cancelled' }, 'Ana');
+        saveControlRecord(data, { ...controlRecords(data).find((item) => item.id === 'ATL-DL-6')!, status: 'cancelled' }, 'Ana');
         expect(gateControlProgress(data, 'phases', new Set(['build']), 100)).toBe(99);
     });
     it('does not reuse IDs after a timeline restore to before record creation', () => {
@@ -86,7 +124,7 @@ describe('Project Control persistence and lifecycle', () => {
         appendTimelineEvent(data, { kind: 'board.control.updated', entityType: 'board', entityId: first.id, summary: 'Created', snapshot: createBoardStateSnapshot(data) });
         delete data.extensions.projectControl;
         const next = saveControlRecord(data, { ...newControlRecord('risks'), title: 'After restore' }, 'Ana');
-        expect(next.id).toBe('PC-2');
+        expect(next.id).toBe('RES-RK-2');
     });
     it('replays records and comments at their actual timeline cutoff', () => {
         const data = createEmptyProjectData('Timeline'); ensureBoardTimelineBaseline(data);

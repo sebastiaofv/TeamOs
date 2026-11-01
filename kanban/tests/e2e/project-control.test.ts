@@ -11,6 +11,66 @@ async function seed(page: Page, writable = true) {
 }
 const dialog = (page: Page) => page.locator('.control-modal').getByRole('dialog');
 
+test('creation offers all three item types with project IDs, singular badges and colored table values', async ({ page }) => {
+    await seed(page);
+    const riskRow = page.locator('.control-table tbody tr').filter({ hasText: 'Supplier availability' });
+    await expect(riskRow.locator('.table-status-badge')).toHaveCount(4);
+    await expect(riskRow.locator('.table-status-badge').first()).toHaveAttribute('data-state-color', '#60a5fa');
+    for (const [kind, label, code, number] of [['risks', 'Risk', 'RK', 9], ['decisions', 'Decision', 'DC', 10], ['deliverables', 'Deliverable', 'DL', 11]] as const) {
+        await page.getByRole('button', { name: 'New record', exact: true }).click();
+        await dialog(page).getByLabel('Title', { exact: true }).fill(`New ${label}`);
+        await dialog(page).getByLabel('Type', { exact: true }).selectOption(kind);
+        await expect(dialog(page).locator('.control-type')).toHaveText(label);
+        await expect(dialog(page).getByLabel('Title', { exact: true })).toHaveValue(`New ${label}`);
+        await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+        await expect(dialog(page)).toHaveCount(0);
+        await waitForBoardWrites(page);
+        const saved = await readSavedBoard(page, 'control');
+        const created = saved.extensions.projectControl.records.find((record: any) => record.title === `New ${label}`);
+        expect(created.id).toBe(`ATL-${code}-${number}`);
+        expect(created.kind).toBe(kind);
+        expect(created.related).toEqual({ phaseIds: [], milestoneIds: [] });
+    }
+});
+
+test('legacy projects configure their acronym when creating the first control record', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'legacy', title: 'Legacy', hasHandle: true, acronym: null }], { selectedBoardId: 'legacy' });
+    await page.getByRole('button', { name: 'Project Control', exact: true }).click();
+    await page.getByRole('button', { name: 'New record', exact: true }).click();
+    await dialog(page).getByLabel('Title', { exact: true }).fill('Legacy risk');
+    await dialog(page).getByLabel('Project Acronym', { exact: true }).fill('LEG');
+    await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+    await expect(dialog(page)).toHaveCount(0);
+    await waitForBoardWrites(page);
+    const saved = await readSavedBoard(page, 'legacy');
+    expect(saved.extensions.project.acronym).toBe('LEG');
+    expect(saved.extensions.projectControl.records[0].id).toBe('LEG-RK-1');
+});
+
+for (const width of [1280, 390]) test(`milestones show child rows and can associate existing records at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await seed(page);
+    await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'release · Release approval', exact: true }).click();
+    const milestone = page.locator('#roadmapEntityModal');
+    const row = milestone.locator('.control-record-list li').filter({ hasText: 'Release package' });
+    await expect(row.locator('.workitem-child-id')).toHaveText('ATL-DL-6');
+    await expect(row.getByRole('button')).toHaveText('Release package');
+    await expect(row.locator('.table-status-badge')).toHaveText('Delivered');
+    await expect(row.locator('.table-status-badge')).toHaveAttribute('data-state-color', '#a78bfa');
+    expect(await milestone.getByRole('dialog').evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+    await milestone.locator('.control-associations').screenshot({ path: testInfo.outputPath(`milestone-control-${width}.png`) });
+    await milestone.getByRole('button', { name: 'Associate existing records', exact: true }).click();
+    await milestone.getByLabel('Search by ID or title', { exact: true }).fill('Documentation delay');
+    await milestone.getByLabel('ATL-RK-3 · Documentation delay', { exact: true }).check();
+    await milestone.getByRole('button', { name: 'Save Item', exact: true }).click();
+    await expect(milestone).toHaveCount(0);
+    await waitForBoardWrites(page);
+    const saved = await readSavedBoard(page, 'control');
+    expect(saved.extensions.projectControl.records.find((record: any) => record.id === 'ATL-RK-3').related).toEqual({ phaseIds: [], milestoneIds: ['release'] });
+});
+
 test('risk CRUD, materialization, shared links, comments and history persist without creating workitems', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'New record', exact: true }).click();
@@ -20,18 +80,21 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
     await expect(dialog(page).locator('.control-risk')).toContainText('High');
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('materialized');
     await expect(dialog(page).getByLabel('Materialized date', { exact: true })).toHaveValue('2026-10-31');
+    await dialog(page).getByRole('tab', { name: 'Response', exact: true }).click();
     await dialog(page).getByLabel('Actual impact', { exact: true }).fill('Two days');
+    await dialog(page).getByRole('tab', { name: 'Details', exact: true }).click();
     await dialog(page).getByLabel('build · Build', { exact: true }).check();
     await dialog(page).getByLabel('release · Release approval', { exact: true }).check();
-    await dialog(page).getByLabel('ATL-TK-1 · Build complete', { exact: true }).check();
+    await expect(dialog(page).getByRole('group', { name: 'Workitems', exact: true })).toHaveCount(0);
+    await expect(dialog(page).getByLabel('ATL-TK-1 · Build complete', { exact: true })).toHaveCount(0);
     await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
     await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await waitForBoardWrites(page);
     let saved = await readSavedBoard(page, 'control');
     const record = saved.extensions.projectControl.records.find((item: any) => item.title === 'Capacity limit');
-    expect(record.id).toBe('PC-9'); expect(saved.board.tasks).toHaveLength(3);
-    expect(record.related).toEqual({ phaseIds: ['build'], milestoneIds: ['release'], workitemIds: [1] });
+    expect(record.id).toBe('ATL-RK-9'); expect(saved.board.tasks).toHaveLength(3);
+    expect(record.related).toEqual({ phaseIds: ['build'], milestoneIds: ['release'] });
     await page.getByRole('button', { name: 'Capacity limit', exact: true }).click();
     await dialog(page).getByRole('tab', { name: 'Comments', exact: true }).click();
     await dialog(page).getByLabel('Comment text', { exact: true }).fill('Evidence https://example.com/incident');
@@ -46,26 +109,34 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
     await dialog(page).getByRole('button', { name: 'Close', exact: true }).last().click();
     await waitForBoardWrites(page);
     saved = await readSavedBoard(page, 'control');
-    expect(saved.extensions.projectControl.records.find((item: any) => item.id === 'PC-9').comments[0].text).toContain('Evidence');
+    expect(saved.extensions.projectControl.records.find((item: any) => item.id === 'ATL-RK-9').comments[0].text).toContain('Evidence');
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     await page.getByRole('button', { name: 'Edit Build', exact: true }).click();
     const roadmap = page.locator('#roadmapEntityModal');
     await expect(roadmap.getByLabel('Objective', { exact: true })).toHaveValue('Complete and validate implementation');
-    await expect(roadmap.getByLabel('PC-9 · Capacity limit', { exact: true })).toBeChecked();
-    await roadmap.getByLabel('PC-9 · Capacity limit', { exact: true }).uncheck();
+    await expect(roadmap.getByLabel('ATL-RK-9 · Capacity limit', { exact: true })).toBeChecked();
+    const childRow = roadmap.locator('.control-record-list li').filter({ hasText: 'Capacity limit' });
+    await expect(childRow.locator('.workitem-child-id')).toHaveText('ATL-RK-9');
+    await expect(childRow.getByRole('button')).toHaveText('Capacity limit');
+    await expect(childRow.locator('.table-status-badge')).toHaveText('Materialized');
+    await expect(childRow.locator('.table-status-badge')).toHaveAttribute('data-state-color', '#f87171');
+    await roadmap.getByLabel('ATL-RK-9 · Capacity limit', { exact: true }).click();
+    await expect(childRow).toHaveCount(0);
     await roadmap.getByRole('button', { name: 'Save Item', exact: true }).click();
     await waitForBoardWrites(page);
     saved = await readSavedBoard(page, 'control');
-    const unlinked = saved.extensions.projectControl.records.find((item: any) => item.id === 'PC-9');
+    const unlinked = saved.extensions.projectControl.records.find((item: any) => item.id === 'ATL-RK-9');
     expect(unlinked.related.phaseIds).toEqual([]); expect(unlinked.related.milestoneIds).toEqual(['release']);
     await page.getByRole('button', { name: 'Project Control', exact: true }).click();
     await page.getByRole('button', { name: 'Capacity limit', exact: true }).click();
-    await dialog(page).getByRole('button', { name: 'ATL-TK-1 · Build complete', exact: true }).click();
+    await expect(dialog(page).getByRole('group', { name: 'Workitems', exact: true })).toHaveCount(0);
+    await dialog(page).getByRole('button', { name: 'Close', exact: true }).last().click();
+    await page.getByRole('button', { name: 'Board', exact: true }).click();
+    await page.locator('.portfolio-task-card[data-task-id="1"] .task-title').click();
     const workitem = page.locator('#taskDetailModal');
     await workitem.getByRole('tab', { name: 'Relations', exact: true }).click();
-    await expect(workitem.getByLabel('PC-9 · Capacity limit', { exact: true })).toBeChecked();
-    await workitem.getByLabel('PC-9 · Capacity limit', { exact: true }).uncheck();
-    await expect.poll(async () => (await readSavedBoard(page, 'control')).extensions.projectControl.records.find((item: any) => item.id === 'PC-9').related.workitemIds).toEqual([]);
+    await expect(workitem.locator('.control-associations')).toHaveCount(0);
+
 });
 
 test('acceptance gates parent, subphase and milestone progress while unrelated progress stays unchanged', async ({ page }) => {
@@ -94,13 +165,13 @@ test('records can be created and associated during phase creation, without losin
     await page.locator('#roadmapEntityStartDate').fill('2026-11-01');
     await page.locator('#roadmapEntityEndDate').fill('2026-11-30');
     await page.locator('#roadmapEntityObjective').fill('Retained objective');
-    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'New record · Decisions', exact: true }).click();
+    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'New record · Decision', exact: true }).click();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Nested decision');
     await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await expect(page.locator('#roadmapEntityTitle')).toHaveValue('New phase');
-    await expect(page.locator('#roadmapEntityModal').getByLabel('PC-9 · Nested decision', { exact: true })).toBeChecked();
-    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'PC-9 · Nested decision · Proposed', exact: true }).click();
+    await expect(page.locator('#roadmapEntityModal').getByLabel('ATL-DC-9 · Nested decision', { exact: true })).toBeChecked();
+    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Nested decision', exact: true }).click();
     await page.keyboard.press('Escape');
     await expect(dialog(page)).toHaveCount(0);
     await expect(page.locator('#roadmapEntityTitle')).toHaveValue('New phase');
@@ -114,7 +185,7 @@ test('records can be created and associated during phase creation, without losin
 
 test('table search, filters, sorting, overdue and empty states work in both languages', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('Search by ID or title', { exact: true }).fill('PC-1');
+    await page.getByLabel('Search by ID or title', { exact: true }).fill('ATL-RK-1');
     await expect(page.locator('.control-table tbody tr')).toHaveCount(1);
     await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
     await page.getByLabel('Risk level', { exact: true }).selectOption('low');
@@ -177,6 +248,13 @@ for (const width of [1280, 390]) for (const dark of [false, true]) {
         await page.getByRole('button', { name: 'Release package', exact: true }).click();
         await page.screenshot({ path: `test-results/project-control-${width}-${dark ? 'dark' : 'light'}.png`, fullPage: true });
         const box = await dialog(page).boundingBox();
+        expect(await dialog(page).evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+        const main = await dialog(page).locator('.workitem-main').boundingBox();
+        const sidebar = await dialog(page).locator('.workitem-sidebar').boundingBox();
+        if (width > 760) {
+            expect(box!.width).toBeGreaterThanOrEqual(1000);
+            expect(sidebar!.x).toBeGreaterThanOrEqual(main!.x + main!.width - 1);
+        } else expect(sidebar!.y).toBeGreaterThanOrEqual(main!.y + main!.height - 1);
         const save = await dialog(page).getByRole('button', { name: 'Save record', exact: true }).boundingBox();
         expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(width);
         expect(save!.y + save!.height).toBeLessThanOrEqual(800);

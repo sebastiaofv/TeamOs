@@ -1,4 +1,3 @@
-import { WorkitemControl } from '@/features/portfolio/control/WorkitemControl';
 import { workitemLabelFor } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { WorkitemHierarchy, WorkitemLineage } from './WorkitemHierarchy';
@@ -115,7 +114,6 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
             </div>
         </div>
         <div role="tabpanel" id="task-panel-relations" aria-labelledby="task-tab-relations" tabIndex={0} hidden={tab !== 'relations'}>
-            <WorkitemControl vm={vm} />
             <TaskRelations key={`${vm.boardId}:${vm.taskId}`} vm={vm} />
         </div>
         <div role="tabpanel" id="task-panel-comments" aria-labelledby="task-tab-comments" tabIndex={0} hidden={tab !== 'comments'}>

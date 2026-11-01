@@ -4,33 +4,23 @@ import { appendTimelineEvent } from '@/domain/timeline';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { validateCommentInput, type CommentInput } from '@/domain/comments';
 import { validateCommentImagePixels } from '@/infrastructure/browser/commentImages';
+import { ProjectDataError } from '@/domain/projectData';
 import { nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
 
 export function createProjectControlActions({ runPortfolioBoardMutation, alert }: BoardMutationContext) {
     return {
-        setWorkitemControlLinks(boardId: string, taskId: number, ids: string[], author: string) {
-            return runPortfolioBoardMutation(boardId, (data) => {
-                if (!data.board.tasks.some((task) => task.id === taskId) || ids.some((id) => !controlRecords(data).some((record) => record.id === id))) throw new Error(translateCurrent('control.stale'));
-                let changed = false;
-                for (const record of controlRecords(data)) {
-                    const linked = record.related.workitemIds.includes(taskId), wanted = ids.includes(record.id);
-                    if (linked === wanted) continue;
-                    saveControlRecord(data, { ...record, related: { ...record.related, workitemIds: wanted ? [...record.related.workitemIds, taskId] : record.related.workitemIds.filter((id) => id !== taskId) } }, author);
-                    changed = true;
-                }
-                if (!changed) return false;
-                appendTimelineEvent(data, { kind: 'board.control.associations', entityType: 'board', entityId: String(taskId), summary: `Project Control associations: workitem ${taskId}`, snapshot: createBoardStateSnapshot(data), meta: { author } });
-                return true;
-            });
-        },
-        async saveProjectControl(boardId: string, input: ControlRecord, author: string, onApplied?: (record: ControlRecord) => void) {
+        async saveProjectControl(boardId: string, input: ControlRecord, author: string, onApplied?: (record: ControlRecord) => void, acronym?: string) {
             let savedRecord: ControlRecord | undefined;
             let unchanged = false;
             const applied = await runPortfolioBoardMutation(boardId, (data) => {
                 const before = controlRecords(data).find((record) => record.id === input.id);
                 // Do not overwrite an edit made while this form was open (including external reloads).
                 if (before && before.updatedAt !== input.updatedAt) throw new Error(translateCurrent('control.stale'));
+                if (!input.id && !data.extensions.project?.acronym) {
+                    if (!data.extensions.project || !/^[A-Z]{1,3}$/.test(acronym || '')) throw new ProjectDataError('acronym');
+                    data.extensions.project.acronym = acronym;
+                }
                 const saved = saveControlRecord(data, input, author);
                 savedRecord = saved;
                 if (saved === before) { unchanged = true; return false; }

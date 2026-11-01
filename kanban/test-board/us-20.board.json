@@ -25,7 +25,7 @@
       }
     ],
     "settings": {
-      "title": "Project Control · fictional Atlas launch"
+      "title": "Project Control \u00b7 fictional Atlas launch"
     },
     "tasks": [
       {
@@ -191,11 +191,11 @@
       "tags": []
     },
     "projectControl": {
-      "version": 1,
+      "version": 2,
       "lastNumber": 8,
       "records": [
         {
-          "id": "PC-1",
+          "id": "ATL-RK-1",
           "kind": "risks",
           "title": "Supplier availability",
           "description": "Fictitious record for manual acceptance testing.",
@@ -221,10 +221,6 @@
             ],
             "milestoneIds": [
               "release"
-            ],
-            "workitemIds": [
-              1,
-              2
             ]
           },
           "createdAt": "2026-10-25T10:00:00.000Z",
@@ -245,7 +241,7 @@
           ]
         },
         {
-          "id": "PC-2",
+          "id": "ATL-RK-2",
           "kind": "risks",
           "title": "Environment outage",
           "description": "Fictitious record for manual acceptance testing.",
@@ -266,8 +262,7 @@
           "actualImpact": "Two hours unavailable",
           "related": {
             "phaseIds": [],
-            "milestoneIds": [],
-            "workitemIds": []
+            "milestoneIds": []
           },
           "createdAt": "2026-10-25T10:00:00.000Z",
           "updatedAt": "2026-10-25T10:00:00.000Z",
@@ -287,7 +282,7 @@
           ]
         },
         {
-          "id": "PC-3",
+          "id": "ATL-RK-3",
           "kind": "risks",
           "title": "Documentation delay",
           "description": "Fictitious record for manual acceptance testing.",
@@ -308,8 +303,7 @@
           "actualImpact": "",
           "related": {
             "phaseIds": [],
-            "milestoneIds": [],
-            "workitemIds": []
+            "milestoneIds": []
           },
           "createdAt": "2026-10-25T10:00:00.000Z",
           "updatedAt": "2026-10-25T10:00:00.000Z",
@@ -329,7 +323,7 @@
           ]
         },
         {
-          "id": "PC-4",
+          "id": "ATL-DC-4",
           "kind": "decisions",
           "title": "Choose supported runtime",
           "description": "Fictitious record for manual acceptance testing.",
@@ -350,8 +344,7 @@
           "actualImpact": "",
           "related": {
             "phaseIds": [],
-            "milestoneIds": [],
-            "workitemIds": []
+            "milestoneIds": []
           },
           "createdAt": "2026-10-25T10:00:00.000Z",
           "updatedAt": "2026-10-25T10:00:00.000Z",
@@ -371,7 +364,7 @@
           ]
         },
         {
-          "id": "PC-5",
+          "id": "ATL-DC-5",
           "kind": "decisions",
           "title": "Replace launch format",
           "description": "Fictitious record for manual acceptance testing.",
@@ -392,8 +385,7 @@
           "actualImpact": "",
           "related": {
             "phaseIds": [],
-            "milestoneIds": [],
-            "workitemIds": []
+            "milestoneIds": []
           },
           "createdAt": "2026-10-25T10:00:00.000Z",
           "updatedAt": "2026-10-25T10:00:00.000Z",
@@ -413,7 +405,7 @@
           ]
         },
         {
-          "id": "PC-6",
+          "id": "ATL-DL-6",
           "kind": "deliverables",
           "title": "Release package",
           "description": "Fictitious record for manual acceptance testing.",
@@ -439,10 +431,6 @@
             ],
             "milestoneIds": [
               "release"
-            ],
-            "workitemIds": [
-              1,
-              2
             ]
           },
           "createdAt": "2026-10-25T10:00:00.000Z",
@@ -463,7 +451,7 @@
           ]
         },
         {
-          "id": "PC-7",
+          "id": "ATL-DL-7",
           "kind": "deliverables",
           "title": "Acceptance report",
           "description": "Fictitious record for manual acceptance testing.",
@@ -488,8 +476,7 @@
             ],
             "milestoneIds": [
               "release"
-            ],
-            "workitemIds": []
+            ]
           },
           "createdAt": "2026-10-25T10:00:00.000Z",
           "updatedAt": "2026-10-25T10:00:00.000Z",
@@ -509,7 +496,7 @@
           ]
         },
         {
-          "id": "PC-8",
+          "id": "ATL-DL-8",
           "kind": "deliverables",
           "title": "Archived delivery proposal",
           "description": "Fictitious record for manual acceptance testing.",
@@ -530,8 +517,7 @@
           "actualImpact": "",
           "related": {
             "phaseIds": [],
-            "milestoneIds": [],
-            "workitemIds": []
+            "milestoneIds": []
           },
           "createdAt": "2026-10-25T10:00:00.000Z",
           "updatedAt": "2026-10-25T10:00:00.000Z",
