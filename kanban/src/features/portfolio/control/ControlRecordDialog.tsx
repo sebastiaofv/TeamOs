@@ -16,6 +16,7 @@ import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/p
 import { closeDialog } from '@/app/overlays/dialogs';
 import { ControlRelated } from './ControlRelated';
 import { ControlBadge, ControlTypeBadge } from './ControlBadge';
+import { ControlRecordHistory } from './ControlRecordHistory';
 
 export function ProjectControlDialog() {
     const context = useAppStore((state) => state.activeDialog === 'projectControl' ? state.dialogProps as { boardId: string; recordId?: string; kind: ControlKind } : null);
@@ -110,11 +111,10 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                     {error && <p role="alert">{error}</p>}
                 </form>
                 {tab === 'comments' && record && <div role="tabpanel" id="control-panel-comments" aria-labelledby="control-tab-comments" className="control-tab-panel"><TaskConversation context={{ boardId, controlId: record.id, controlRecord: record, readOnly: readonly }} /></div>}
-                {tab === 'history' && record && <section role="tabpanel" id="control-panel-history" aria-labelledby="control-tab-history" className="task-history control-tab-panel"><p>{t('history.localRecord')}</p>{!record.history.length && <p>{t('control.noHistory')}</p>}<ol className="history-entries">{record.history.slice().reverse().map((entry) => <li key={entry.id}><details><summary>{entry.author} · {new Date(entry.at).toLocaleString(language === 'pt' ? 'pt-PT' : 'en')}</summary><dl>{Object.entries(entry.changes).map(([key, change]) => <div key={key}><dt>{t(`control.${key}` as TranslationKey)}</dt><dd>{display(change.before)} → {display(change.after)}</dd></div>)}</dl></details></li>)}</ol></section>}
+                {tab === 'history' && record && <div role="tabpanel" id="control-panel-history" aria-labelledby="control-tab-history" tabIndex={0} className="control-tab-panel"><ControlRecordHistory record={record} /></div>}
                 </>}
             </div>
             <div className="modal-footer"><Dialog.Close className="btn" disabled={busy}>{t('common.close')}</Dialog.Close>{(tab === 'details' || tab === 'response') && !readonly && <button className="btn btn-primary" type="submit" form="control-record-form" disabled={busy}>{t('control.save')}</button>}</div>
         </Dialog.Content>
     </Dialog.Overlay></Dialog.Portal></Dialog.Root>;
 }
-function display(value: unknown): string { return value === null || value === '' ? '—' : typeof value === 'object' ? JSON.stringify(value) : String(value); }

@@ -11,6 +11,62 @@ async function seed(page: Page, writable = true) {
 }
 const dialog = (page: Page) => page.locator('.control-modal').getByRole('dialog');
 
+for (const [kind, title] of [['Risks', 'Supplier availability'], ['Decisions', 'Choose supported runtime'], ['Deliverables', 'Release package']]) {
+    test(`${kind} history uses the workitem layout and category filter in read-only mode`, async ({ page }) => {
+        await seed(page, false);
+        await page.getByRole('tab', { name: kind, exact: true }).click();
+        await page.getByRole('button', { name: title, exact: true }).click();
+        await dialog(page).getByRole('tab', { name: 'History', exact: true }).click();
+        const history = dialog(page).getByRole('tabpanel');
+        await expect(history.locator('.history-note')).toHaveCount(1);
+        await expect(history.locator('.history-operation')).toHaveText('Status');
+        await expect(history.locator('.history-author')).toHaveText('Ana Silva · local / unverified');
+        await history.locator('.history-entry summary').focus();
+        await page.keyboard.press('Enter');
+        await expect(history.locator('.history-change dt')).toHaveText('Status');
+        await expect(history.locator('.history-change dd > div > span')).toHaveText(['Before', 'After']);
+        await expect(history.locator('.history-change pre').last()).not.toBeEmpty();
+        await expect(history.locator('.history-event-ids')).toContainText('history-');
+        await history.getByLabel('Category', { exact: true }).selectOption('people');
+        await expect(history.locator('.history-empty')).toContainText('No events match');
+        await history.getByRole('button', { name: 'All', exact: true }).click();
+        await expect(history.locator('.history-entry')).toHaveCount(1);
+        await history.getByLabel('Category', { exact: true }).selectOption('status');
+        await expect(history.locator('.history-operation')).toHaveText('Status');
+        await expect(dialog(page).getByRole('button', { name: 'Save record', exact: true })).toHaveCount(0);
+    });
+}
+
+for (const language of ['en', 'pt']) test(`control history preserves complete operations and saved values while filtering (${language})`, async ({ page }) => {
+    await seed(page);
+    await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+    await dialog(page).getByLabel('Title', { exact: true }).fill('Supplier confirmed');
+    await dialog(page).getByLabel('Status', { exact: true }).selectOption('in-mitigation');
+    await dialog(page).getByLabel('Owner', { exact: true }).fill('Bruno Costa');
+    await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
+    await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+    await expect(dialog(page)).toHaveCount(0);
+    await waitForBoardWrites(page);
+    const saved = await readSavedBoard(page, 'control');
+    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    await page.getByRole('button', { name: 'Supplier confirmed', exact: true }).click();
+    await dialog(page).getByRole('tab', { name: language === 'pt' ? 'Histórico' : 'History', exact: true }).click();
+    const history = dialog(page).getByRole('tabpanel');
+    const entry = history.locator('.history-entry').first();
+    await expect(entry.locator('.history-operation')).toHaveText(language === 'pt' ? '3 categorias · 3 alterações' : '3 categories · 3 changes');
+    await entry.locator('summary').click();
+    await expect(entry.locator('.history-change')).toHaveCount(3);
+    await expect(entry).toContainText(language === 'pt' ? 'Em mitigação' : 'In mitigation');
+    await expect(entry).toContainText('Supplier availability');
+    await expect(entry).toContainText('Supplier confirmed');
+    for (const category of ['fields', 'people', 'status']) {
+        await history.getByLabel(language === 'pt' ? 'Categoria' : 'Category', { exact: true }).selectOption(category);
+        await expect(entry.locator('.history-change')).toHaveCount(3);
+    }
+    await dialog(page).getByRole('button', { name: language === 'pt' ? 'Fechar' : 'Close', exact: true }).last().click();
+    expect(await readSavedBoard(page, 'control')).toEqual(saved);
+});
+
 test('creation offers all three item types with project IDs, singular badges and colored table values', async ({ page }) => {
     await seed(page);
     const riskRow = page.locator('.control-table tbody tr').filter({ hasText: 'Supplier availability' });

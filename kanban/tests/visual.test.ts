@@ -821,6 +821,10 @@ test.describe('US-20 Project Control', () => {
       await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
       await page.mouse.move(1, 1);
       await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-record-${theme}-${width}.png`);
+      await page.getByRole('tab', { name: 'History', exact: true }).click();
+      await page.locator('.control-modal .history-entry summary').click();
+      await page.mouse.move(1, 1);
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-history-${theme}-${width}.png`);
     });
   }
 });

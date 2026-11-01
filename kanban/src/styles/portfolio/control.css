@@ -31,14 +31,13 @@
 .control-pending, .control-overdue { display: block; color: var(--text-secondary); margin-top: 4px; }
 .control-overdue { color: var(--danger, #c33); font-weight: 600; }
 .control-empty { padding: 24px; text-align: center; color: var(--text-secondary); }
-.control-modal .history-entries dd { white-space: pre-wrap; overflow-wrap: anywhere; }
 .portfolio-view-toggle { flex-wrap: wrap; }
 
 .roadmap-edit-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 
 .control-filters input:not([type=checkbox]), .control-filters select, .control-related input[type=search], .control-associations input[type=search] { border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); padding: 8px 10px; font: inherit; min-height: 34px; }
 .control-modal .field-hint { margin: 6px 0 16px; }
-.control-modal .history-entries { padding-left: 20px; }
+.control-modal .history-filter { display: grid; }
 .control-associations { margin-top: 16px; }
 
 .control-modal .detail-tabs { display: flex; gap: 26px; padding: 0 28px; margin: 0; background: var(--bg-card); border-bottom: 1px solid var(--border); overflow-x: auto; flex-shrink: 0; }
