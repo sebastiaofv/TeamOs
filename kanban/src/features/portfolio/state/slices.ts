@@ -24,18 +24,22 @@ import type { Language, Theme } from '@/shared/types/ui';
 import type { TableSort } from '@/features/portfolio/table/tableModel';
 import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 
-export type EditContext = { boardId: string; taskId: number };
-export type CreateContext = { boardId: string; status: TaskStatus; returnToTaskId?: number; relatedTo?: { taskId: number; kind: TaskRelationKind } };
-export type DetailContext = { boardId: string; taskId: number; readOnly: boolean; historyEventIndex?: number };
+export type EditContext = { boardId: string; taskId: number; returnToDetail?: DetailContext };
+export type CreateContext = { boardId: string; status: TaskStatus; returnToDetail?: DetailContext; relatedTo?: { taskId: number; kind: TaskRelationKind } };
+export type DetailContext = { boardId: string; taskId: number; readOnly: boolean; historyEventIndex?: number; returnToDetail?: DetailContext };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode; unplannedTaskIds?: number[] };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };
 
 export type PortfolioSlice = {
     portfolioBoards: BoardRecord[];
+    // Session-only reference hints from closed files; never persisted outside project JSON.
+    unloadedRelationSources: { projectId: string; relations: import('@/domain/permanentRelations').PermanentRelation[] }[];
     nextPortfolioProjectColorSeed: number;
     portfolioTasks: PortfolioRow[];
     portfolioVisibleRows: PortfolioRow[];
     selectedPortfolioBoardId: string;
+    // Navigation memory for normalized product names, kept only for loaded projects.
+    productProjectSelectionByKey: Record<string, string>;
     selectedPortfolioViewMode: PortfolioViewMode;
     portfolioFilters: PortfolioFilters;
     portfolioTableSortByBoardId: Record<string, TableSort>;
@@ -84,10 +88,12 @@ export type AppState = PortfolioSlice & BoardSlice & UiSlice & FilesSlice;
 export function createPortfolioSlice(): PortfolioSlice {
     return {
         portfolioBoards: [],
+        unloadedRelationSources: [],
         nextPortfolioProjectColorSeed: 0,
         portfolioTasks: [],
         portfolioVisibleRows: [],
         selectedPortfolioBoardId: '',
+        productProjectSelectionByKey: {},
         selectedPortfolioViewMode: 'board',
         portfolioTableSortByBoardId: {},
         portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: [] },

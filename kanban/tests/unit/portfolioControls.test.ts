@@ -89,6 +89,26 @@ function createActions(overrides = {}) {
 }
 
 describe('portfolio control actions', () => {
+    it('defaults each product to the last imported file before alphabetical sorting and remembers selections', async () => {
+        const { actions, store } = createActions();
+        const zulu = createBoard('z', 'Zulu'); zulu.data.extensions.project!.productName = ' House ';
+        const alpha = createBoard('a', 'Alpha'); alpha.data.extensions.project!.productName = 'house';
+        const garden = createBoard('g', 'Garden'); garden.data.extensions.project!.productName = 'Garden';
+        await actions.appendPortfolioRecords([zulu, alpha, garden]);
+        expect(store.getState().productProjectSelectionByKey).toEqual({ house: 'a', garden: 'g' });
+        actions.selectPortfolioBoard('z');
+        actions.selectPortfolioBoard('g');
+        actions.selectPortfolioBoard('');
+        expect(store.getState().productProjectSelectionByKey).toEqual({ house: 'z', garden: 'g' });
+        const later = createBoard('later', 'Later'); later.data.extensions.project!.productName = 'HOUSE';
+        await actions.appendPortfolioRecords([later]);
+        expect(store.getState().productProjectSelectionByKey.house).toBe('z');
+        actions.removePortfolioBoard('z');
+        expect(['a', 'later']).toContain(store.getState().productProjectSelectionByKey.house);
+        store.setState({ portfolioBoards: store.getState().portfolioBoards.map((board) => board.id === 'g' ? { ...board, data: { ...board.data, extensions: { ...board.data.extensions, project: { ...board.data.extensions.project!, productName: '' } } } } : board) });
+        expect(store.getState().productProjectSelectionByKey.garden).toBeUndefined();
+    });
+
     it('clears one or all panel filters, keeping the search text and sort', () => {
         const { actions, store } = createActions();
         store.setState({ portfolioBoards: [createBoard('p1', 'Project')] });

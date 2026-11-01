@@ -43,6 +43,8 @@ test('creates a child with inherited planning and an immutable type, preserving 
     await page.locator('#taskModalSaveBtn').click();
     await expect(page.locator('#taskModal')).toHaveCount(0);
     await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { title: string }) => task.title === 'Nova Task do Sprint')?.sprintId).toBe('current');
+    await expect(page.locator('#detailTitle')).toHaveText('Nova Task do Sprint');
+    await page.locator('#taskDetailModalFooterCloseBtn').click();
     await expect(page.locator('#detailTitle')).toHaveText('Pagar com cartão');
     await page.locator('#taskDetailModalFooterCloseBtn').click();
     await page.locator('[data-view-mode="board"]').click();
@@ -201,6 +203,7 @@ test(`Sprint table and Roadmap retain recorded work and read-only details after 
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     await page.getByRole('button', { name: 'Show tasks for Previous Sprint', exact: true }).click();
     const scope = page.locator('[data-roadmap-task-list="sprint:past"]');
+    await scope.getByRole('button', { name: 'Expand Recorded story', exact: true }).click();
     await expect(scope.locator('tr[data-task-id="1204"]')).toContainText('Recorded child');
     await scope.locator('tr[data-task-id="1204"]').getByRole('button', { name: 'Recorded child', exact: true }).click();
     await expect(page.locator('#detailTitle')).toHaveText('Recorded child');

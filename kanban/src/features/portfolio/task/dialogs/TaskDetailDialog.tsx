@@ -1,3 +1,4 @@
+import { TaskTransferMenu } from '../TaskTransferMenu';
 import { workitemLabelFor } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { WorkitemHierarchy, WorkitemLineage } from './WorkitemHierarchy';
@@ -5,7 +6,7 @@ import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
 import { workitemType } from '@/domain/workitems';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -41,7 +42,12 @@ export function TaskDetailDialog() {
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
     const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
     const returnFocus = useReturnFocus();
+    const bodyRef = useRef<HTMLDivElement>(null);
     const { t } = useI18n();
+
+    useLayoutEffect(() => {
+        if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    }, [vm?.boardId, vm?.taskId, vm?.history?.historicalIndex]);
 
     return (
         <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeTaskDetail(); }}>
@@ -59,11 +65,11 @@ export function TaskDetailDialog() {
                                 <div className="workitem-eyebrow">{vm && <><WorkitemTypeBadge type={workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {})} /><span>{workitemLabelFor(vm.sourceBoardData, vm.taskId)}</span><span className="workitem-project">{vm.sourceBoardData.board.settings.title}</span></>}</div>
                                 <Dialog.Title className="workitem-title" id="detailTitle">{vm?.fields.title}</Dialog.Title>
                             </div>
-                            <div className="workitem-header-actions">{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}
+                            <div className="workitem-header-actions">{vm && <TaskTransferMenu boardId={vm.boardId} taskId={vm.taskId} historical={vm.history?.historicalIndex !== undefined} />}{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}
                                 <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                             </div>
                         </div>
-                        <div className="modal-body">
+                        <div className="modal-body" ref={bodyRef}>
                             {vm && <TaskDetailContent vm={vm} />}
                         </div>
                         <div className="modal-footer">

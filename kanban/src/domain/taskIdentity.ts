@@ -51,3 +51,23 @@ export function workitemLabelFor(data: LooseBoardData | null | undefined, id: nu
     const task = Array.isArray(tasks) ? tasks.find((item: import('./types').TaskInput) => item.id === id) : undefined;
     return task ? workitemLabel({ id, displayId: typeof task.displayId === 'string' ? task.displayId : undefined }) : `#${id}`;
 }
+
+/** Deterministic legacy migration: a read-only reopen has the same identity before its first save. */
+export function ensurePermanentTaskIdentities(data: import('./types').BoardData): void {
+    if (!data.board.tasks.length) return;
+    const projectId = data.extensions.project!.id;
+    for (const task of data.board.tasks) task.permanentId ||= `workitem:${encodeURIComponent(projectId)}:${task.id}:${encodeURIComponent(task.createdAt)}`;
+}
+
+/** A legacy snapshot/file may omit IDs already assigned to a proven current lifecycle. */
+export function inheritLegacyTaskIdentities(data: import('./types').BoardData, raw: LooseBoardData, previous?: LooseBoardData | null): void {
+    const original = new Map((Array.isArray(raw.board?.tasks) ? raw.board.tasks as import('./types').TaskInput[] : []).map((task) => [Number(task.id), task]));
+    const current = new Map((Array.isArray(previous?.board?.tasks) ? previous.board.tasks as import('./types').Task[] : []).map((task) => [task.id, task]));
+    for (const task of data.board.tasks) {
+        if (original.get(task.id)?.permanentId) continue;
+        const known = current.get(task.id);
+        if (known?.permanentId && known.createdAt === task.createdAt) task.permanentId = known.permanentId;
+        else delete task.permanentId;
+    }
+    ensurePermanentTaskIdentities(data);
+}

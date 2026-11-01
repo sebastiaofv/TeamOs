@@ -128,7 +128,7 @@ export type TaskDetailFields = Record<
     string
 >;
 export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
-export type TaskRelationEntry = { displayId?: string; id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
+export type TaskRelationEntry = { permanentId?: string; boardId?: string; external?: boolean; unavailable?: boolean; displayId?: string; id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
 export type TaskDetailViewModel = {
     conversationContext?: { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };
     pullRequestContext?: { boardId: string; taskId: number; links: string[] };
@@ -173,7 +173,7 @@ export type HelpDialogProps = { tab?: HelpTab };
 
 export type DialogPropsByName = {
     appSettings: null;
-    projectSettings: { boardId: string; data: BoardData; readOnly: boolean };
+    projectSettings: { boardId: string; data: BoardData; readOnly: boolean; onCreate?: (data: BoardData) => Promise<boolean> };
     commandPalette: CommandPaletteProps;
     taskEditor: TaskEditorViewModel;
     taskDetail: TaskDetailViewModel;

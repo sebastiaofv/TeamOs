@@ -26,8 +26,9 @@ export function buildPortfolioBoardView(state: SelectorState, mode?: 'technical'
     });
     const buckets: Record<string, PortfolioRow[]> = {};
     (state?.portfolioVisibleRows || []).forEach((row) => {
+        if (workitemType(row.task) === 'epic') return;
         const data = row.boardData || boards.find((board) => board.id === row.boardId)?.data;
-        if (mode && (!data || (mode === 'functional' ? !['story', 'epic'].includes(workitemType(row.task)) : !taskInTechnicalBoard(data, row.task)))) return;
+        if (mode && (!data || (mode === 'functional' ? workitemType(row.task) !== 'story' : !taskInTechnicalBoard(data, row.task)))) return;
         if (!visibility.has(row.boardId) || visibility.get(row.boardId)?.has(row.task.status)) return;
         const category = statusCategory(row.task.status, data, row.task);
         const key = mode && !state?.selectedPortfolioBoardId ? ({ 'in-progress': 'doing', completed: 'done' } as Record<string, string>)[category] || category : row.task.status;

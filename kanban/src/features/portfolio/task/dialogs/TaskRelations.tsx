@@ -1,3 +1,4 @@
+import { importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 import { workitemId, workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { TaskRelationKind } from '@/domain/types';
@@ -22,7 +23,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     const query = otherId ? '' : search.trim().toLowerCase().replace(/^#/, '');
     const candidates = vm.relationCandidates.filter((task) => workitemId(task).toLowerCase().includes(query) || task.title.toLowerCase().includes(query));
     const activeTask = pickerOpen ? candidates[activeIndex] : undefined;
-    const existing = GROUPS.some((group) => vm.relations[group].some((task) => task.id === Number(otherId)));
+    const existing = GROUPS.some((group) => vm.relations[group].some((task) => !task.external && task.id === Number(otherId)));
     const label = (task: TaskRelationEntry) => `${workitemLabel(task)} ${task.title} · ${task.status}${task.archived ? ` · ${t('table.archived')}` : ''}`;
     const start = (nextMode: 'link' | 'create' | 'edit', task?: TaskRelationEntry) => {
         setMode(nextMode);
@@ -109,20 +110,22 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                     {vm.relations[group].length === 0 ? <p className="relation-help">{t('relations.empty')}</p> : (
                         <ul className="relation-list">
                             {vm.relations[group].map((task) => (
-                                <li key={task.id}>
+                                <li key={task.permanentId || task.id}>
                                     <div className="relation-row">
                                         <button type="button" className="relation-item-link" aria-label={`${workitemLabel(task)} ${task.title}${task.archived ? ` · ${t('table.archived')}` : ''}`}
-                                            onClick={() => openPortfolioTaskDetails(vm.boardId, task.id,
-                                            vm.readOnly ? { readOnly: true, boardData: vm.sourceBoardData } : {})}>
+                                            onClick={() => task.unavailable ? void importPortfolioProjects() : openPortfolioTaskDetails(task.boardId || vm.boardId, task.id,
+                                            vm.readOnly && !task.boardId ? { readOnly: true, boardData: vm.sourceBoardData } : {})}>
                                             {workitemLabel(task)}
                                         </button>
                                         <span className="relation-item-name" title={task.title}>
                                             <span className="relation-item-title">{task.title}</span>
+                                            {task.unavailable && <span className="relation-item-archived">{t('relations.unavailable')}</span>}
                                             {task.archived && <span className="relation-item-archived">{t('table.archived')}</span>}
                                         </span>
                                         <span className={`relation-item-status table-status-badge status-${task.statusKey}`} aria-label={t('task.status')} title={task.status}>{task.status}</span>
                                         <span className="relation-item-responsible" aria-label={t('task.responsible')} title={task.responsible || undefined}>{task.responsible || '—'}</span>
-                                        {!vm.readOnly && <div className="relation-row-actions">
+                                        {task.unavailable && <button type="button" className="btn" onClick={() => void importPortfolioProjects()}>{t('relations.openProject')}</button>}
+                                        {!vm.readOnly && !task.external && <div className="relation-row-actions">
                                             <button type="button" className="task-action-btn" aria-label={t('relations.edit')} title={t('relations.edit')}
                                                 aria-expanded={mode === 'edit' && otherId === String(task.id)} disabled={busy}
                                                 onClick={() => start('edit', task)}><span aria-hidden="true">&#9998;</span></button>

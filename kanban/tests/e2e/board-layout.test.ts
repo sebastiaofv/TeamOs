@@ -33,7 +33,7 @@ test('both boards share a single row of workflow columns including backlog and d
             await expect(page.locator('.portfolio-task-card[data-task-id="1"]')).toHaveCount(0);
         } else {
             await expect(page.locator('#portfolio-backlog-column')).toContainText('Customer need');
-            await expect(page.locator('.portfolio-task-card[data-task-id="1"]')).toBeVisible();
+            await expect(page.locator('.portfolio-task-card[data-task-id="1"]')).toHaveCount(0);
             await expect(portfolioCard(page, 'Implementation')).toHaveCount(0);
             await expect(portfolioCard(page, 'Defect')).toHaveCount(0);
         }

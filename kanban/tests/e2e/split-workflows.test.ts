@@ -45,7 +45,7 @@ test('settings keep independent workflow drafts and apply labels and colours to 
     await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
     await expect(page.locator('.portfolio-column[data-status="doing"] h2')).toHaveText('Functional analysis');
     await expect(page.locator('.portfolio-column[data-status="doing"]')).toContainText('Product story');
-    await expect(page.locator('.portfolio-column[data-status="doing"]')).toContainText('Product epic');
+    await expect(page.locator('.portfolio-column[data-status="doing"]')).not.toContainText('Product epic');
     await expect(page.locator('.portfolio-column[data-status="doing"]')).not.toContainText('Technical bug');
     await page.locator('[data-view-mode="table"]').click();
     for (const id of [1, 4]) {

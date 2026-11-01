@@ -105,3 +105,12 @@ Estado: aprovado após entrevista de clarificação; substitui integralmente a h
 ## Aprovação
 
 Âmbito confirmado pelo utilizador após a entrevista de clarificação. Esta história especifica a funcionalidade; a implementação não faz parte desta revisão.
+
+## Revisão de UX — comentário 6562627415 (01/11/2026)
+
+Estas regras atualizam as predefinições e a navegação descritas acima:
+
+- Cada produto mantém o seu projeto selecionado durante a sessão. O nome do produto abre esse projeto diretamente; a dropdown permite escolher outro. Sem seleção anterior, usa o último projeto carregado, pela ordem de importação.
+- A confirmação de transferência agrupa os campos por workitem (ID e título), incluindo todos os descendentes a mover. As associações começam em **Remover** e os estados no primeiro estado disponível do respetivo workflow de destino. A confirmação aceita as escolhas apresentadas; não existe correspondência automática entre catálogos.
+- Uma hierarquia rejeitada apresenta um único aviso no topo com razão e número de descendentes bloqueadores, linhas destacadas e ícone junto aos estados incompatíveis. Não mostra campos de mapeamento nem botão Cancelar; o rodapé contém apenas **Fechar**.
+- A importação permite selecionar vários ficheiros `.board.json` numa operação. Os ficheiros válidos são carregados e os erros dos restantes são identificados.

@@ -1,3 +1,4 @@
+import { PendingProjectTransfers } from '@/features/portfolio/projects/PendingProjectTransfers';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 import { AppHeader } from '@/app/AppHeader';
 import { HelpDialog } from '@/app/overlays/HelpDialog';
@@ -79,6 +80,7 @@ function AppContent() {
                     <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive ? ' table-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />
+                        <PendingProjectTransfers />
                         {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
                         <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive} />

@@ -12,9 +12,15 @@ for (const theme of ['light', 'dark']) {
                 await gotoApp(page);
                 await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
                 if (theme === 'dark') await page.locator('#themeToggleBtn').click();
-                if (type !== 'task') await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
                 const task = fixture.board.tasks.find((entry: { id: number }) => entry.id === id);
-                await page.locator(`.portfolio-task-card[data-task-id="${id}"] .task-title`).click();
+                if (type === 'epic') {
+                    await page.locator('[data-view-mode="table"]').click();
+                    await page.locator('[data-table-view="epics"]').click();
+                    await page.locator('#workitemsTable tbody').getByRole('button', { name: task.title, exact: true }).click();
+                } else {
+                    if (type === 'story') await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+                    await page.locator(`.portfolio-task-card[data-task-id="${id}"] .task-title`).click();
+                }
                 const dialog = page.locator('#taskDetailModal .modal-content');
                 await expect(page.locator('#detailTitle')).toHaveText(task.title);
                 expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(width - 20);
