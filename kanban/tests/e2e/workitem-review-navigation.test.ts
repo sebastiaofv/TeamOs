@@ -14,15 +14,79 @@ async function seed(page: Page) {
     ], extensions: { roadmap: { version: 1, phases: [{ id: 'p', title: 'Delivery', startDate: '2026-10-01', endDate: '2026-11-30' }], milestones: [{ id: 'm', title: 'Release', dueDate: '2026-11-15' }], sprints: [{ id: 's', title: 'Sprint', startDate: '2026-10-15', endDate: '2026-11-15' }] } } }], { selectedBoardId: 'review' });
 }
 
-for (const screen of ['board', 'table']) test(`new child details unwind Task → Story → Epic and return to ${screen}`, async ({ page }) => {
+test('Epics stay out of both Boards in project and aggregate views', async ({ page }) => {
+    await seed(page);
+    for (const aggregate of [false, true]) {
+        if (aggregate) await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click();
+        for (const board of ['Technical Board', 'Functional Board']) {
+            await page.getByRole('button', { name: board, exact: true }).click();
+            await expect(page.locator('.portfolio-task-card[data-task-id="1"]')).toHaveCount(0);
+            await expect(page.locator(`.portfolio-task-card[data-task-id="${board === 'Functional Board' ? 2 : 5}"]`)).toBeVisible();
+        }
+    }
+});
+
+test('existing child links unwind Task → Story → Epic', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 600 });
+    await seed(page);
+    await page.locator('[data-view-mode="table"]').click();
+    await page.locator('[data-table-view="epics"]').click();
+    await page.locator('#workitemsTable tbody').getByRole('button', { name: 'Epic', exact: true }).click();
+    await page.locator('.workitem-hierarchy').getByRole('button', { name: 'Story', exact: true }).click();
+    await page.locator('#taskDetailModal .modal-body').evaluate((body) => { body.scrollTop = body.scrollHeight; });
+    expect(await page.locator('#taskDetailModal .modal-body').evaluate((body) => body.scrollTop)).toBeGreaterThan(0);
+    await page.locator('.workitem-hierarchy').getByRole('button', { name: 'Child', exact: true }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Child');
+    await expect.poll(() => page.locator('#taskDetailModal .modal-body').evaluate((body) => body.scrollTop)).toBe(0);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#detailTitle')).toHaveText('Story');
+    await expect.poll(() => page.locator('#taskDetailModal .modal-body').evaluate((body) => body.scrollTop)).toBe(0);
+    await page.locator('#taskDetailModalFooterCloseBtn').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Epic');
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await expect(page.locator('#taskDetailModal')).toBeHidden();
+});
+
+for (const writable of [true, false]) test(`related links unwind across projects with colliding IDs (writable=${writable})`, async ({ page }) => {
+    await gotoApp(page);
+    const relation = {
+        source: { permanentId: 'source-item', projectId: 'source-project', projectTitle: 'Source project', fileName: 'source.board.json', taskId: 1, title: 'Source item' },
+        target: { permanentId: 'target-item', projectId: 'target-project', projectTitle: 'Target project', fileName: 'target.board.json', taskId: 1, title: 'Target item' },
+        kind: 'related'
+    };
+    await seedPortfolioBoards(page, [
+        { id: 'source', title: 'Source project', hasHandle: writable, tasks: [{ id: 1, permanentId: 'source-item', title: 'Source item', assigneeIds: [], responsibleId: '' }],
+            extensions: { project: { version: 1, id: 'source-project', description: '', status: null, members: [], tags: [] }, permanentRelations: { version: 1, relations: [relation] } } },
+        { id: 'target', title: 'Target project', hasHandle: writable, tasks: [{ id: 1, permanentId: 'target-item', title: 'Target item', assigneeIds: [], responsibleId: '' }],
+            extensions: { project: { version: 1, id: 'target-project', description: '', status: null, members: [], tags: [] }, permanentRelations: { version: 1, relations: [relation] } } }
+    ], { selectedBoardId: 'source' });
+    await page.locator('.portfolio-task-card .task-title').click();
+    await page.getByRole('tab', { name: 'Relations', exact: true }).click();
+    await page.locator('.relation-item-link').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Target item');
+    await expect(page.getByRole('tab', { name: 'Relations', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await page.locator('.relation-item-link').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Source item');
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Target item');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#detailTitle')).toHaveText('Source item');
+    await page.locator('#taskDetailModalFooterCloseBtn').click();
+    await expect(page.locator('#taskDetailModal')).toBeHidden();
+    await expect(page.locator('.portfolio-task-card .task-title')).toHaveText('Source item');
+    expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
+});
+
+for (const screen of ['roadmap', 'table']) test(`new child details unwind Task → Story → Epic and return to ${screen}`, async ({ page }) => {
     await seed(page);
     if (screen === 'table') {
         await page.locator('[data-view-mode="table"]').click();
         await page.locator('[data-table-view="epics"]').click();
         await page.locator('#workitemsTable tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     } else {
-        await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
-        await page.getByRole('group', { name: 'Epic', exact: true }).click();
+        await page.locator('[data-view-mode="roadmap"]').click();
+        await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
+        await page.locator('[data-roadmap-task-list="phase:p"] tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     }
     await page.getByRole('button', { name: 'Create User Story', exact: true }).click();
     await page.locator('#taskName').fill('New Story');

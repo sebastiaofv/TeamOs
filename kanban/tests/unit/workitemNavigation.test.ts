@@ -24,6 +24,36 @@ function setup() {
 }
 
 describe('Creation detail navigation', () => {
+    it('unwinds existing links, preserves the chain on refresh and does not stack the same item twice', async () => {
+        const { actions, store, save } = setup();
+        actions.openPortfolioTaskDetails('p', 1);
+        actions.openPortfolioCreateChildTask('p', 1, 'story'); await save('Story');
+        actions.openPortfolioCreateChildTask('p', 2, 'task'); await save('Task');
+        actions.closeTaskDetail(); actions.closeTaskDetail(); actions.closeTaskDetail();
+        actions.openPortfolioTaskDetails('p', 1);
+        actions.openPortfolioTaskDetails('p', 2);
+        actions.openPortfolioTaskDetails('p', 3);
+        actions.openPortfolioTaskDetails('p', 3);
+        await actions.setPortfolioTaskProperties('p', 3, { priority: 'high' });
+        expect(store.getState().portfolioDetailContext?.returnToDetail?.taskId).toBe(2);
+        actions.closeTaskDetail(); expect(store.getState().portfolioDetailContext?.taskId).toBe(2);
+        actions.closeTaskDetail(); expect(store.getState().portfolioDetailContext?.taskId).toBe(1);
+        actions.closeTaskDetail(); expect(store.getState().activeDialog).toBeNull();
+    });
+
+    it('skips a deleted intermediate workitem when unwinding existing links', async () => {
+        const { actions, store, save } = setup();
+        actions.openPortfolioTaskDetails('p', 1);
+        actions.openPortfolioCreateChildTask('p', 1, 'story'); await save('Story');
+        actions.openPortfolioCreateChildTask('p', 2, 'task'); await save('Task');
+        actions.closeTaskDetail(); actions.closeTaskDetail();
+        actions.openPortfolioTaskDetails('p', 2);
+        actions.openPortfolioTaskDetails('p', 3);
+        store.setState((state) => ({ portfolioBoards: state.portfolioBoards.map((board) => ({ ...board, data: { ...board.data, board: { ...board.data.board, tasks: board.data.board.tasks.filter((task) => task.id !== 2) } } })) }));
+        actions.closeTaskDetail(); expect(store.getState().portfolioDetailContext?.taskId).toBe(1);
+        actions.closeTaskDetail(); expect(store.getState().activeDialog).toBeNull();
+    });
+
     it('opens the created workitem and unwinds Task → Story → Epic without changing the underlying portfolio view', async () => {
         const { actions, store, save, alert } = setup();
         actions.openPortfolioTaskDetails('p', 1);

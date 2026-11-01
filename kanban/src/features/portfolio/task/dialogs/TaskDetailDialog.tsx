@@ -6,7 +6,7 @@ import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
 import { workitemType } from '@/domain/workitems';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -42,7 +42,12 @@ export function TaskDetailDialog() {
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
     const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
     const returnFocus = useReturnFocus();
+    const bodyRef = useRef<HTMLDivElement>(null);
     const { t } = useI18n();
+
+    useLayoutEffect(() => {
+        if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    }, [vm?.boardId, vm?.taskId, vm?.history?.historicalIndex]);
 
     return (
         <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeTaskDetail(); }}>
@@ -64,7 +69,7 @@ export function TaskDetailDialog() {
                                 <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                             </div>
                         </div>
-                        <div className="modal-body">
+                        <div className="modal-body" ref={bodyRef}>
                             {vm && <TaskDetailContent vm={vm} />}
                         </div>
                         <div className="modal-footer">

@@ -32,6 +32,29 @@ async function startTransfer(page: Page, mode: 'Copy' | 'Move') {
     await expect(page.locator('.transfer-route')).toContainText('Maintenance');
 }
 
+for (const width of [1280, 390]) test(`a tall transfer review opens at the top while keeping keyboard focus on its first mapping at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 720 });
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [
+        { id: 'source', title: 'Construction', hasHandle: true, extensions: { project: project('construction', 'House') }, tasks: [
+            { id: 1, title: 'Parent story', type: 'story', status: 'backlog', assigneeIds: [], responsibleId: '' },
+            ...Array.from({ length: 20 }, (_, index) => ({ id: index + 2, title: `Child ${index}`, parentId: 1, status: 'backlog', assigneeIds: [], responsibleId: '' }))
+        ] },
+        { id: 'target', title: 'Maintenance', hasHandle: true, extensions: { project: project('maintenance', 'House') } }
+    ], { selectedBoardId: 'source' });
+    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    const card = portfolioCard(page, 'Parent story');
+    await card.hover();
+    await card.getByLabel('Task actions', { exact: true }).click();
+    await card.getByRole('button', { name: 'Move to project…', exact: true }).click();
+    await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' });
+    await page.locator('#appMessageConfirmBtn').click();
+    await expect(page.locator('[data-field="state"]')).toBeFocused();
+    await expect.poll(() => page.locator('#appMessageModal .modal-content').evaluate((element) => element.scrollTop)).toBe(0);
+    await expect(page.locator('.transfer-route')).toBeInViewport();
+    await page.locator('#appMessageCancelBtn').click();
+});
+
 test('products use a compact dropdown, support keyboard selection and update only the edited project', async ({ page }) => {
     await seed(page);
     const groups = page.locator('.product-group'); await expect(groups).toHaveCount(2);
@@ -137,6 +160,8 @@ test('US-13 fixtures expose explicit mapping, planning removal, preserved commen
     await page.getByRole('tab', { name: 'Relations', exact: true }).click();
     await page.getByRole('button', { name: 'CON-TK-1302 Concluir inspeção', exact: true }).click();
     await expect(page.locator('#detailTitle')).toHaveText('Concluir inspeção');
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Reparar portão');
     await page.locator('#taskDetailModalCloseBtn').click();
     await selectPortfolioBoard(page, 'US-13 · Manutenção');
     await page.screenshot({ path: testInfo.outputPath('product-projects.png'), animations: 'disabled' });

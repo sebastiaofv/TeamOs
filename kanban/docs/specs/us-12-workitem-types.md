@@ -135,13 +135,13 @@ Ver [ADR-0003](../../../docs/adr/0003-preserve-sprint-participation-history.md).
 
 ## 9. Boards
 
-- Dois Boards: Técnico (Tasks e Bugs) e Funcional (User Stories e Epics), conforme a correção pedida pelo utilizador em 2026-10-28.
+- Dois Boards: Técnico (Tasks e Bugs) e Funcional (User Stories). Epics não aparecem em nenhum Board, conforme a revisão do comentário 6563146844 em 2026-11-01; continuam disponíveis na Table e no Roadmap.
 - Ambos têm o mesmo layout: uma única linha horizontal com as colunas do workflow pela ordem configurada, incluindo Backlog como coluna normal. Aplicar visibilidade, contagem e drag-and-drop ao Backlog como às restantes colunas.
 - No Técnico, Tasks de Stories aparecem apenas se participarem num Sprint ativo. Estar a Story num Sprint ativo não inclui Tasks terminadas em Sprints anteriores.
 - Tasks sem Story, incluindo as diretamente associadas a Epics, e Bugs aparecem independentemente de Sprint, sujeitos aos filtros existentes.
 - Não criar linhas ou grupos separados por Story, Bugs ou trabalho independente; o contexto hierárquico mantém-se nos cartões.
 - Cartões identificam ID/título, tipo, responsável, prioridade e Story/Epic quando aplicável, seguindo o design existente sem duplicação desnecessária.
-- No Funcional aparecem todas as Stories e Epics, sujeitos aos filtros aplicáveis. Mostrar estado, responsável, Epic, Execution Progress e existência de Tasks pendentes.
+- No Funcional aparecem todas as Stories, sujeitas aos filtros aplicáveis. Mostrar estado, responsável, Epic, Execution Progress e existência de Tasks pendentes.
 - Tasks são consultáveis no detalhe da Story, sem cartões autónomos no Funcional.
 - Drag-and-drop e demais mudanças respeitam as mesmas transições e confirmações do domínio.
 - Preservar vistas agregadas: estados de projetos diferentes agrupam-se pelas categorias da #28, mantendo o estado real visível e resolução explícita de destinos ambíguos.

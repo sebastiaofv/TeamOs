@@ -54,7 +54,9 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         if (!source) return;
         setSelectedPortfolioCard(boardId, taskId);
         const readOnly = effective.readOnly === true || !canUsePortfolioTaskMutations(boardId);
-        commitState({ portfolioDetailContext: { boardId, taskId, readOnly, ...(historyEventIndex !== undefined ? { historyEventIndex } : {}), ...(options.returnToDetail ? { returnToDetail: options.returnToDetail } : {}) } });
+        const current = getState().activeDialog === 'taskDetail' ? getState().portfolioDetailContext : null;
+        const returnToDetail = options.returnToDetail || (current?.boardId === boardId && current.taskId === taskId ? current.returnToDetail : current);
+        commitState({ portfolioDetailContext: { boardId, taskId, readOnly, ...(historyEventIndex !== undefined ? { historyEventIndex } : {}), ...(returnToDetail ? { returnToDetail } : {}) } });
         openDialogFn('taskDetail', buildTaskDetailViewModel(source, taskId, readOnly, historyEventIndex, getState().portfolioBoards, getState().unloadedRelationSources.flatMap((entry) => entry.relations)));
     }
 
