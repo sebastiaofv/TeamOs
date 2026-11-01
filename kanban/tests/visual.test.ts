@@ -170,7 +170,7 @@ const FULL_TASK = {
     { text: 'Schedule announcement', done: true }
   ],
   attachments: [
-    { id: 'att_img', name: 'mockup.png', mime: 'image/png', sizeBytes: 68, kind: 'image', dataUrl: ONE_PIXEL_PNG, createdAt: FIXED_TIMESTAMP },
+    { id: 'att_img', name: 'mockup.png', mime: 'image/png', sizeBytes: 68, kind: 'image', dataUrl: ONE_PIXEL_PNG, createdAt: FIXED_TIMESTAMP, uploadedBy: 'Ana Silva' },
     { id: 'att_txt', name: 'notes.txt', mime: 'text/plain', sizeBytes: 16, kind: 'file', dataUrl: 'data:text/plain;base64,aGVsbG8gYXR0YWNobWVudA==', createdAt: FIXED_TIMESTAMP }
   ]
 };
@@ -317,19 +317,25 @@ test.describe('2.1a modals and toast', () => {
     });
   }
 
-  test('task detail, attachments scrolled into view (light)', async ({ page }) => {
-    await gotoVisualApp(page, 'light');
-    await seedPortfolioBoards(page, [
-      { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
-    ], { selectedBoardId: 'v1' });
-    await portfolioCard(page, 'Prepare launch checklist').click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
-    // The modal body scrolls; bring the attachment rows into view.
-    await page.locator('#detailAttachments').scrollIntoViewIfNeeded();
-    await expect(page.locator('#detailAttachments')).toBeVisible();
-    await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
-    await expect(page).toHaveScreenshot('task-detail-attachments-light.png', { fullPage: true });
-  });
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1280, 390]) {
+      test(`task detail, attachments tab at ${width}px (${theme})`, async ({ page }) => {
+        await gotoVisualApp(page, theme);
+        await page.setViewportSize({ width, height: 900 });
+        await seedPortfolioBoards(page, [
+          { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
+        ], { selectedBoardId: 'v1' });
+        await portfolioCard(page, 'Prepare launch checklist').click();
+        await expect(page.locator('#taskDetailModal')).toBeVisible();
+        await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+        await expect(page.locator('#detailAttachments')).toBeVisible();
+        await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
+        await expect(page.locator('#detailAttachments')).toContainText('Ana Silva');
+        await expect(page.locator('#detailAttachments')).toContainText('Unknown');
+        await expect(page).toHaveScreenshot(`task-detail-attachments-${theme}${width === 390 ? '-narrow' : ''}.png`, { fullPage: true });
+      });
+    }
+  }
 
   test('task detail, read-only board (light)', async ({ page }) => {
     await gotoVisualApp(page, 'light');

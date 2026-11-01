@@ -53,8 +53,8 @@
 }
 
 .detail-attachments {
-    display: grid;
-    gap: 8px;
+    min-width: 0;
+    overflow-x: auto;
 }
 
 .detail-attachments-empty {
@@ -62,14 +62,40 @@
     color: var(--text-muted);
 }
 
-.detail-attachment-item {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 8px;
+.attachment-table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.attachment-table th,
+.attachment-table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-light);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.attachment-table th {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.attachment-table time { white-space: nowrap; }
+.attachment-table td { overflow-wrap: anywhere; }
+.attachment-table-file {
+    display: flex;
     align-items: center;
-    border: 1px solid var(--border-light);
-    background: var(--bg-primary);
-    padding: 6px;
+    gap: 10px;
+    min-width: 180px;
+}
+.attachment-table-file > img,
+.attachment-table-file > .attachment-editor-icon { flex-shrink: 0; }
+.attachment-table .detail-attachment-name {
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 .detail-attachment-thumb {

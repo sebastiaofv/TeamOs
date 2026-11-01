@@ -138,6 +138,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                     <div className="form-group">
                         <label id="taskAttachmentsLabel">{t('task.attachments')}</label>
                         <AttachmentsEditor
+                            boardId={vm.boardId}
                             value={form.attachments}
                             onChange={(next) => update('attachments', next)}
                             otherAttachmentBytes={vm.otherAttachmentBytes}

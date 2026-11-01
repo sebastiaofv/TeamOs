@@ -5,6 +5,8 @@ import {
   seedPortfolioBoards,
   readSavedBoard,
   waitForBoardWrites,
+  showTimeline,
+  setTimelineSlider,
   portfolioCard,
   closeDialogBy,
   portfolioProjectChipButtons,
@@ -501,6 +503,7 @@ test.describe('task editor', () => {
     ], { selectedBoardId: 'p1' });
 
     await openTaskEditor(page, 'Task with file');
+    await page.locator('#taskAttachmentUploader').fill('Ana Silva');
 
     await page.setInputFiles('#taskAttachmentsInput', {
       name: 'note.txt',
@@ -523,6 +526,8 @@ test.describe('task editor', () => {
         attachmentCount: attachments.length,
         attachmentName: attachments[0]?.name,
         attachmentMime: attachments[0]?.mime,
+        uploadedBy: attachments[0]?.uploadedBy,
+        uploadedAt: attachments[0]?.createdAt,
         legacyAttachmentMapPresent: Boolean(payload?.extensions?.teamOsKanban?.taskAttachments)
       };
     });
@@ -531,12 +536,67 @@ test.describe('task editor', () => {
     expect(saved.attachmentCount).toBe(1);
     expect(saved.attachmentName).toBe('note.txt');
     expect(saved.attachmentMime).toBe('text/plain');
+    expect(saved.uploadedBy).toBe('Ana Silva');
+    expect(Number.isNaN(Date.parse(saved.uploadedAt))).toBe(false);
     expect(saved.legacyAttachmentMapPresent).toBe(false);
 
     await portfolioCard(page, 'Task with file').click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailAttachments')).toBeHidden();
+    await expect(page.locator('#task-panel-details')).not.toContainText('note.txt');
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    const table = page.getByRole('table', { name: 'Attachments', exact: true });
+    await expect(table.getByRole('columnheader')).toHaveText(['Uploaded at', 'Attachment name', 'Uploaded by', 'Actions']);
+    await expect(table.getByRole('row').nth(1)).toContainText('Ana Silva');
+    await expect(table.locator('time')).toHaveAttribute('datetime', saved.uploadedAt);
     await expect(page.locator('#detailAttachments')).toContainText('note.txt');
     await expect(page.locator('#detailAttachments .detail-attachment-download')).toHaveCount(1);
+    const downloadPromise = page.waitForEvent('download');
+    await table.getByRole('link', { name: 'Download note.txt', exact: true }).click();
+    expect((await downloadPromise).suggestedFilename()).toBe('note.txt');
+
+    await page.locator('#taskDetailEditBtn').click();
+    await expect(page.locator('#taskAttachmentUploader')).toHaveValue('Ana Silva');
+    await page.locator('#taskAttachmentUploader').fill('Bruno');
+    await page.setInputFiles('#taskAttachmentsInput', { name: 'second.txt', mimeType: 'text/plain', buffer: Buffer.from('second file') });
+    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(2);
+    await page.locator('#taskModalSaveBtn').click();
+    await expect(page.locator('#taskModal')).toBeHidden();
+    await waitForBoardWrites(page);
+    const updated = await readSavedBoard(page, 'p1');
+    expect(updated.board.tasks[0].attachments.map((item: { uploadedBy?: string }) => item.uploadedBy)).toEqual(['Ana Silva', 'Bruno']);
+    expect(updated.board.tasks[0].attachments[0].createdAt).toBe(saved.uploadedAt);
+    const firstUploadIndex = updated.extensions.timeline.events.findIndex((event: { changes?: { attachments?: { after: unknown[] } } }) => event.changes?.attachments?.after.length === 1);
+    expect(firstUploadIndex).toBeGreaterThan(0);
+    await showTimeline(page);
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await setTimelineSlider(page, firstUploadIndex);
+    await portfolioCard(page, 'Task with file').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
+    await expect(page.locator('#detailAttachments')).toContainText('Ana Silva');
+    await expect(page.locator('#detailAttachments')).not.toContainText('Bruno');
+    await expect(page.locator('#taskDetailEditBtn')).toHaveCount(0);
+  });
+
+  test('attachment tab supports empty workitems, keyboard navigation and legacy read-only files', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project One', hasHandle: false, tasks: [
+      { id: 1, title: 'Legacy file', status: 'backlog', attachments: [{ id: 'legacy', name: 'legacy.txt', mime: 'text/plain', kind: 'file', sizeBytes: 5, dataUrl: 'data:text/plain;base64,SGVsbG8=', createdAt: '2026-01-02T10:30:00.000Z' }] },
+      { id: 2, title: 'No files', status: 'backlog' }
+    ] }], { selectedBoardId: 'p1' });
+    await portfolioCard(page, 'Legacy file').click();
+    await page.getByRole('tab', { name: 'Relations', exact: true }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Attachments', exact: true })).toBeFocused();
+    await expect(page.getByRole('tabpanel', { name: 'Attachments', exact: true })).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Attachments', exact: true })).toContainText('Unknown');
+    await expect(page.locator('#detailAttachments time')).toHaveAttribute('datetime', '2026-01-02T10:30:00.000Z');
+    await expect(page.getByRole('link', { name: 'Download legacy.txt', exact: true })).toBeVisible();
+    await expect(page.locator('#taskDetailEditBtn')).toHaveCount(0);
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await portfolioCard(page, 'No files').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await expect(page.getByRole('tabpanel', { name: 'Attachments', exact: true })).toContainText('No attachments yet.');
   });
 
   test('attachment picker caps attachments per task and saves the accepted ones', async ({ page }) => {

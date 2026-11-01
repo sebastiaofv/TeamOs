@@ -8,7 +8,7 @@ import type {
     TaskStatus
 } from './types';
 import type { PortfolioRow, PortfolioSortKey, PortfolioViewMode, SortDir } from '@/features/portfolio/types';
-import { compareText, hasExactKeys, normalizeTimestamp, nowIso } from './util';
+import { compareText, hasExactKeys, isRecord, normalizeTimestamp, nowIso } from './util';
 import { isAcceptedLegacyAssigneeValue, normalizeAssignee, taskHasAssignee, normalizeBlockerReason, resolveKnownTaskStatus } from './task';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, ROADMAP_EXTENSION_KEY, TASK_TITLE_MAX_LENGTH, TIMELINE_EXTENSION_KEY, defaultColumns, isArchiveFilter, isEffort } from './constants';
 import { comparePortfolioDueDateAsc } from './calendar';
@@ -416,7 +416,9 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
                 throw new Error('Task attachments must be an array.');
             }
             task.attachments.forEach((attachment: unknown) => {
-                if (!hasExactKeys(attachment, ['id', 'name', 'mime', 'sizeBytes', 'kind', 'dataUrl', 'createdAt'])) {
+                const keys = ['id', 'name', 'mime', 'sizeBytes', 'kind', 'dataUrl', 'createdAt'];
+                if (isRecord(attachment) && Object.prototype.hasOwnProperty.call(attachment, 'uploadedBy')) keys.push('uploadedBy');
+                if (!hasExactKeys(attachment, keys)) {
                     throw new Error('Invalid attachment structure.');
                 }
                 if (typeof attachment.id !== 'string' || !attachment.id.trim()) {
@@ -439,6 +441,9 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
                 }
                 if (!normalizeTimestamp(attachment.createdAt)) {
                     throw new Error('Attachment createdAt must be a valid timestamp.');
+                }
+                if ('uploadedBy' in attachment && (typeof attachment.uploadedBy !== 'string' || !attachment.uploadedBy.trim())) {
+                    throw new Error('Attachment uploadedBy must be a non-empty string.');
                 }
             });
         }

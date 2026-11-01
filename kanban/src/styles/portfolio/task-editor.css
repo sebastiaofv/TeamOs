@@ -249,6 +249,8 @@
     flex-wrap: wrap;
 }
 
+.attachment-uploader { display: grid; gap: 6px; }
+
 .attachment-editor-summary {
     font-size: 11px;
     color: var(--text-secondary);

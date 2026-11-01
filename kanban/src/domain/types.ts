@@ -27,6 +27,7 @@ export type Attachment = {
     kind: AttachmentKind;
     dataUrl: string;
     createdAt: string;
+    uploadedBy?: string;
 };
 
 export type WorkitemType = 'epic' | 'story' | 'task' | 'bug';
