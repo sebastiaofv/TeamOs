@@ -1,4 +1,4 @@
-import { assertUniqueProjectAcronym } from '@/domain/projectData';
+import { assertUniqueProjectAcronym, projectNameKey } from '@/domain/projectData';
 // Store-backed portfolio controls and project-session actions.
 //
 // The module owns the state transitions behind toolbar filters, project chips,
@@ -165,7 +165,13 @@ export function createPortfolioControlActions({
                 selectedPortfolioBoardId = '';
             }
 
-            const partial: Partial<AppState> = { portfolioBoards };
+            // Preserve picker order: the visible board list is sorted alphabetically.
+            const productSelections = new Map(Object.entries(state.productProjectSelectionByKey));
+            for (const board of additions) {
+                const key = projectNameKey(board.data.extensions.project?.productName || '');
+                if (key && !Object.hasOwn(state.productProjectSelectionByKey, key)) productSelections.set(key, board.id);
+            }
+            const partial: Partial<AppState> = { portfolioBoards, productProjectSelectionByKey: Object.fromEntries(productSelections) };
             if (selectedPortfolioBoardId !== state.selectedPortfolioBoardId) {
                 partial.selectedPortfolioBoardId = selectedPortfolioBoardId;
                 partial.portfolioBulkSelectionByBoardId = {};

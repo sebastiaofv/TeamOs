@@ -82,8 +82,9 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const childReview = childTransferReview(source.data, children);
             if (childReview.children?.some((child) => child.blocked)) {
                 await confirm(t('workitems.error.childrenState'), { title: t(`transfer.${mode}`), confirmLabel: t('common.close'), review: {
+                    rejection: true,
                     source: source.title, destination: '—', state: '', color: '', sourceLabel: t('transfer.source'), destinationLabel: t('transfer.destination'), stateLabel: t('task.status'),
-                    removalsLabel: '', removals: [], mappingLabel: '', mappingNote: '', note: t('workitems.error.childrenState'), ...childReview
+                    removalsLabel: '', removals: [], mappingLabel: '', mappingNote: '', note: t('transfer.rejectedChildren', { count: childReview.children!.filter((child) => child.blocked).length }), ...childReview
                 } });
                 return false;
             }

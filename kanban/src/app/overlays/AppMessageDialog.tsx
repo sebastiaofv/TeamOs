@@ -62,7 +62,7 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
 }) {
     const [inputValue, setInputValue] = useState(message.input?.defaultValue ?? '');
     const [selection, setSelection] = useState(message.selection?.required ? -1 : 0);
-    const [selections, setSelections] = useState<Record<string, string>>(() => Object.fromEntries((message.selections || []).map((field) => [field.id, field.required ? '' : field.options[0]?.value || ''])));
+    const [selections, setSelections] = useState<Record<string, string>>(() => Object.fromEntries((message.selections || []).map((field) => [field.id, field.defaultValue ?? (field.required ? '' : field.options[0]?.value || '')])));
     const missingSelections = (message.selection?.required && selection < 0) || message.selections?.some((field) => field.required && !selections[field.id]);
     const answer = (button: AppMessageButton) => { if ((button.submitsSelection || button.submitsSelections) && missingSelections) return; if (button.submitsInput && message.input?.required && !inputValue.trim()) return; resolveAppMessage(button.submitsSelections ? selections : button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value); };
     // Every message is built with a primary button (see appMessages.ts).
@@ -80,23 +80,27 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                     <p className="app-message-text" id="appMessageText">{message.text}</p>
                 </Dialog.Description>}
                 {message.review && <AppMessageReviewContent review={message.review} />}
-                <div className={message.review && message.selections?.length ? 'transfer-mapping-fields' : undefined}>
-                    {message.review && Boolean(message.selections?.length) && <div className="transfer-section-heading">
+                {Boolean(message.selections?.length) && <div className={message.review ? 'transfer-mapping-fields' : undefined}>
+                    {message.review && <div className="transfer-section-heading">
                         <h3>{message.review.mappingLabel}</h3><p>{message.review.mappingNote}</p>
                     </div>}
-                    <div className={message.review ? 'transfer-table-scroll' : undefined}>
-                    <table className={message.review ? 'transfer-mapping-table' : 'app-message-fields'}>
-                        {message.review && <thead><tr><th>{translateCurrent('transfer.field')}</th><th>{translateCurrent('transfer.current')}</th><th>{translateCurrent('transfer.targetValue')}</th></tr></thead>}
-                        <tbody>{message.selections?.map((field, index) => <tr className="form-group app-message-field" key={field.id}>
-                            <th scope="row"><label htmlFor={`appMessageSelection-${index}`}>{field.label}</label></th>
-                            {message.review && <td className="transfer-current-value">{field.current || '—'}</td>}
-                            <td><select required={field.required} data-field={field.id} ref={index === 0 ? selectionRef : undefined} id={`appMessageSelection-${index}`} value={selections[field.id]} onChange={(event) => setSelections((current) => ({ ...current, [field.id]: event.target.value }))}>
-                                {field.required && <option value="" disabled>{translateCurrent('common.choose')}</option>}
-                                {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                            </select></td>
-                        </tr>)}</tbody>
-                    </table></div>
-                </div>
+                    {[...new Set(message.selections?.map((field) => field.group))].map((group) => <section key={group || 'fields'} className={group ? 'transfer-workitem' : undefined} aria-label={group}>
+                        {group && <h4>{group}</h4>}
+                        <div className={message.review ? 'transfer-table-scroll' : undefined}>
+                            <table className={message.review ? 'transfer-mapping-table' : 'app-message-fields'}>
+                                {message.review && <thead><tr><th>{translateCurrent('transfer.field')}</th><th>{translateCurrent('transfer.current')}</th><th>{translateCurrent('transfer.targetValue')}</th></tr></thead>}
+                                <tbody>{message.selections?.map((field, index) => field.group === group && <tr className="form-group app-message-field" key={field.id}>
+                                    <th scope="row"><label htmlFor={`appMessageSelection-${index}`}>{field.label}</label></th>
+                                    {message.review && <td className="transfer-current-value" data-label={translateCurrent('transfer.current')}>{field.current || '—'}</td>}
+                                    <td data-label={message.review ? translateCurrent('transfer.targetValue') : undefined}><select required={field.required} data-field={field.id} ref={index === 0 ? selectionRef : undefined} id={`appMessageSelection-${index}`} value={selections[field.id]} onChange={(event) => setSelections((current) => ({ ...current, [field.id]: event.target.value }))}>
+                                        {field.required && <option value="" disabled>{translateCurrent('common.choose')}</option>}
+                                        {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                                    </select></td>
+                                </tr>)}</tbody>
+                            </table>
+                        </div>
+                    </section>)}
+                </div>}
                 {message.selection && <div className="form-group app-message-field">
                     <label htmlFor="appMessageSelection">{message.selection.label}</label>
                     <select ref={selectionRef} id="appMessageSelection" value={selection} onChange={(event) => setSelection(Number(event.target.value))}>

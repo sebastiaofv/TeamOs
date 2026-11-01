@@ -67,7 +67,11 @@
 .transfer-current-value { color: var(--text-secondary); white-space: pre-line; }
 .transfer-children { margin: 16px 0; }
 .transfer-children h3 { font-size: 12px; }
-.transfer-child-blocked { color: var(--priority-high); }
+.transfer-error { margin: 0 0 16px; padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--priority-high) 30%, var(--border-light)); background: color-mix(in srgb, var(--priority-high) 10%, var(--bg-card)); color: var(--text-primary); font-size: 13px; line-height: 1.6; }
+.transfer-child-blocked { color: var(--priority-high); background: color-mix(in srgb, var(--priority-high) 10%, var(--bg-card)); }
+.transfer-blocked-icon { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.transfer-workitem + .transfer-workitem { margin-top: 20px; }
+.transfer-workitem h4 { margin: 0; padding: 10px 8px; background: var(--bg-secondary); border-left: 2px solid var(--accent); color: var(--text-primary); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
 .app-message-fields { width: 100%; }
 @media (max-width: 600px) {
     .has-transfer-review .modal-body { padding: 16px; }
@@ -75,4 +79,18 @@
     .transfer-route-project strong { font-size: 12px; }
     .transfer-mapping-fields { grid-template-columns: 1fr; }
     .transfer-removals li { grid-template-columns: minmax(90px, .7fr) minmax(0, 1fr); gap: 10px; }
+}
+
+@media (max-width: 600px) {
+    .transfer-children .transfer-mapping-table { min-width: 0; table-layout: fixed; }
+    .transfer-children .transfer-mapping-table th, .transfer-children .transfer-mapping-table td { width: auto; padding: 10px 6px; }
+    .transfer-children .transfer-mapping-table th:first-child { width: 15%; }
+    .transfer-children .transfer-mapping-table th:last-child { width: 32%; }
+    .transfer-workitem .transfer-mapping-table, .transfer-workitem tbody { display: block; min-width: 0; }
+    .transfer-workitem thead { display: none; }
+    .transfer-workitem tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 4px 8px; margin: 0; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+    .transfer-workitem .transfer-mapping-table th { grid-column: 1 / -1; width: auto; border: 0; padding: 0 8px 4px; }
+    .transfer-workitem .transfer-mapping-table td { width: auto; border: 0; padding: 0 8px; }
+    .transfer-workitem td::before { display: block; content: attr(data-label); margin-bottom: 6px; color: var(--text-muted); font-size: 10px; }
+    .transfer-workitem .transfer-mapping-table select { min-width: 0; }
 }

@@ -857,3 +857,39 @@ test.describe('US-13 hierarchy review', () => {
     });
   }
 });
+
+
+test.describe('US-13 grouped mappings and rejected transfers', () => {
+  for (const theme of ['light', 'dark']) for (const width of [1280, 390]) for (const blocked of [false, true]) {
+    test(`${blocked ? 'rejected transfer' : 'grouped child mappings'} at ${width}px (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await page.setViewportSize({ width, height: 900 });
+      await seedPortfolioBoards(page, [
+        { id: 'source', title: 'Construction', hasHandle: true, extensions: { project: { version: 1, id: 'construction', productName: 'House', description: '', status: null, members: [], tags: ['feature'] } }, tasks: [
+          { id: 1, title: 'Parent story', type: 'story', status: 'to-do', assigneeIds: [], responsibleId: '', tags: ['feature'] },
+          { id: 2, title: 'First child task', parentId: 1, status: blocked ? 'doing' : 'to-do', assigneeIds: [], responsibleId: '', tags: ['feature'] },
+          { id: 3, title: 'Second child task', parentId: 1, status: 'backlog', assigneeIds: [], responsibleId: '' }
+        ] },
+        { id: 'target', title: 'Maintenance', hasHandle: true, extensions: { project: { version: 1, id: 'maintenance', productName: 'House', description: '', status: null, members: [], tags: ['maintenance'] } } }
+      ], { selectedBoardId: 'source' });
+      await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+      await portfolioCard(page, 'Parent story').click();
+      const detail = page.locator('#taskDetailModal');
+      await detail.getByLabel('Task actions', { exact: true }).click();
+      await detail.getByRole('button', { name: 'Move to project…' }).click();
+      if (!blocked) {
+        await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' });
+        await page.locator('#appMessageConfirmBtn').click();
+        await expect(page.locator('.transfer-workitem')).toHaveCount(3);
+      } else {
+        await expect(page.locator('.transfer-error')).toContainText('1 workitem(s)');
+        await expect(page.locator('#appMessageModal .modal-footer button')).toHaveText(['Close']);
+      }
+      const review = page.locator('#appMessageModal .modal-content');
+      expect(await review.evaluate((node) => node.scrollWidth <= node.clientWidth)).toBe(true);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(review).toHaveScreenshot(`us13-${blocked ? 'rejected' : 'grouped'}-transfer-${theme}-${width}.png`);
+    });
+  }
+});

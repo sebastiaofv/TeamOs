@@ -37,7 +37,7 @@ type ToolbarState = Pick<AppState,
     | 'selectedPortfolioViewMode'
     | 'portfolioVisibleRows'
 >;
-type ChipState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'projectSaveStateById'>;
+type ChipState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'productProjectSelectionByKey' | 'projectSaveStateById'>;
 type BulkState = Pick<AppState,
     | 'portfolioBoards'
     | 'selectedPortfolioBoardId'
@@ -272,7 +272,7 @@ function ChipList({ state }: { state: ChipState }) {
                 <button className="chip-link" type="button" data-action="select-board" data-board-id="" aria-pressed={!state.selectedPortfolioBoardId} onClick={() => selectPortfolioBoard('')}>{t('common.all')}</button>
             </span>
             {groups.map((group) => group.product ? <ProductProjectMenu key={group.key} product={group.product}
-                selected={group.boards.find((board) => board.id === state.selectedPortfolioBoardId)?.title}>
+                selected={group.boards.find((board) => board.id === state.productProjectSelectionByKey[group.key])!} active={group.boards.some((board) => board.id === state.selectedPortfolioBoardId)}>
                 {group.boards.map((board) => renderBoard(board, true))}
                 <button type="button" className="product-create btn" onClick={() => { void createNewProject(group.product); }}>{t('header.newProject')}</button>
             </ProductProjectMenu> : group.boards.map((board) => renderBoard(board)))}
@@ -280,7 +280,7 @@ function ChipList({ state }: { state: ChipState }) {
     );
 }
 
-function ProductProjectMenu({ product, selected, children }: { product: string; selected?: string; children: ReactNode }) {
+function ProductProjectMenu({ product, selected, active, children }: { product: string; selected: BoardRecord; active: boolean; children: ReactNode }) {
     const menu = useRef<HTMLDetailsElement>(null);
     const { t } = useI18n();
     useEffect(() => {
@@ -288,14 +288,18 @@ function ProductProjectMenu({ product, selected, children }: { product: string; 
         document.addEventListener('pointerdown', close);
         return () => document.removeEventListener('pointerdown', close);
     }, []);
-    return <details ref={menu} className="product-group" onKeyDown={(event) => {
-        if (event.key === 'Escape' && menu.current?.open) { event.preventDefault(); event.stopPropagation(); menu.current.open = false; menu.current.querySelector('summary')?.focus(); }
-    }}>
-        <summary><span>{product}</span><span aria-hidden="true">|</span><span className="product-selected">{selected || t('transfer.chooseProject')}</span>
+    return <div className={`product-group${active ? ' active' : ''}`}>
+        <button type="button" className="product-link" aria-pressed={active} onClick={() => { selectPortfolioBoard(selected.id); if (menu.current) menu.current.open = false; }}>{product}</button>
+        <span aria-hidden="true">|</span>
+        <details ref={menu} className="product-project-menu" onKeyDown={(event) => {
+            if (event.key === 'Escape' && menu.current?.open) { event.preventDefault(); event.stopPropagation(); menu.current.open = false; menu.current.querySelector('summary')?.focus(); }
+        }}>
+            <summary aria-label={`${product}: ${t('transfer.chooseProject')} (${selected.title || selected.fileName})`}><span className="product-selected">{selected.title || selected.fileName}</span>
             <svg className="product-chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m3 6 5 5 5-5" /></svg>
-        </summary>
-        <div className="product-projects">{children}</div>
-    </details>;
+            </summary>
+            <div className="product-projects">{children}</div>
+        </details>
+    </div>;
 }
 
 export function PortfolioToolbar() {
@@ -329,6 +333,7 @@ export function PortfolioChips() {
         portfolioBoards: state.portfolioBoards,
         selectedPortfolioBoardId: state.selectedPortfolioBoardId,
         projectSaveStateById: state.projectSaveStateById,
+        productProjectSelectionByKey: state.productProjectSelectionByKey,
     })));
     const { t } = useI18n();
     return (

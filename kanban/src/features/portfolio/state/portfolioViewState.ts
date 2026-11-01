@@ -1,3 +1,4 @@
+import { projectNameKey } from '@/domain/projectData';
 import { allPermanentRelations, assertPermanentGraph } from '@/domain/permanentRelations';
 import type { BoardRecord, PortfolioFilters } from '@/features/portfolio/types';
 import type { AppState } from './slices';
@@ -122,6 +123,18 @@ export function derivePortfolioState(state: AppState, previous: Partial<AppState
     const { selectedBoardId, viewMode } = normalizeSelection(next);
     next.selectedPortfolioBoardId = selectedBoardId;
     next.selectedPortfolioViewMode = viewMode;
+    if (boardsChanged || selectedBoardId !== previous.selectedPortfolioBoardId || state.productProjectSelectionByKey !== previous.productProjectSelectionByKey) {
+        const groups = new Map<string, string[]>();
+        for (const board of portfolioBoards) {
+            const key = projectNameKey(board.data.extensions.project?.productName || '');
+            if (key) groups.set(key, [...(groups.get(key) || []), board.id]);
+        }
+        const rememberedSelections = new Map(Object.entries(state.productProjectSelectionByKey));
+        next.productProjectSelectionByKey = Object.fromEntries([...groups].map(([key, ids]) => {
+            const remembered = rememberedSelections.get(key) || '';
+            return [key, ids.includes(selectedBoardId) ? selectedBoardId : ids.includes(remembered) ? remembered : ids[ids.length - 1]];
+        }));
+    }
     const inputs: (keyof AppState)[] = [
         'portfolioBoards', 'selectedPortfolioBoardId', 'portfolioFilters',
         'portfolioSortKey', 'portfolioSortDir', 'portfolioTimelineSelection',

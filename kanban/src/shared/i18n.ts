@@ -16,7 +16,9 @@ const en = {
     "transfer.source": "Source",
     "transfer.removalsTitle": "Associations removed",
     "transfer.mappingTitle": "Project associations",
-    "transfer.mappingSummary": "Choose a destination value or explicitly remove each association. Responsibility follows the person’s mapping.",
+    "transfer.rejectedChildren": "Transfer rejected: {count} workitem(s) block the operation because their state category is above Backlog/To-do. No workitems will be moved.",
+    "transfer.blocksTransfer": "Blocks transfer",
+    "transfer.mappingSummary": "Associations default to removal; states default to the first available destination state. Review each workitem before confirming. Responsibility follows the person’s mapping.",
     "transfer.scopeSummary": "Only this workitem is transferred. Its content and due date are preserved. Choose each destination value or explicitly remove the association. Scheduled blocks and previous sprint records can only be removed.",
     "transfer.projectCount": "{count} projects",
 
@@ -970,7 +972,9 @@ const pt: Record<TranslationKey, string> = {
     "transfer.source": "Origem",
     "transfer.removalsTitle": "Associações removidas",
     "transfer.mappingTitle": "Associações do projeto",
-    "transfer.mappingSummary": "Escolha um valor do destino ou remova explicitamente cada associação. O responsável segue o mapeamento da pessoa.",
+    "transfer.rejectedChildren": "Transferência rejeitada: {count} workitem(s) impedem a operação por estarem numa categoria de estado acima de Backlog/A fazer. Nenhum workitem será movido.",
+    "transfer.blocksTransfer": "Impede a transferência",
+    "transfer.mappingSummary": "As associações são removidas por defeito; os estados usam o primeiro estado disponível no destino. Reveja cada workitem antes de confirmar. O responsável segue o mapeamento da pessoa.",
     "transfer.scopeSummary": "Apenas este workitem é transferido. O conteúdo e a data-limite são preservados. Escolha cada valor destino ou remova explicitamente a associação. Blocos agendados e registos de sprints anteriores só podem ser removidos.",
     "transfer.projectCount": "{count} projetos",
 

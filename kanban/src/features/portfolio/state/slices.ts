@@ -38,6 +38,8 @@ export type PortfolioSlice = {
     portfolioTasks: PortfolioRow[];
     portfolioVisibleRows: PortfolioRow[];
     selectedPortfolioBoardId: string;
+    // Navigation memory for normalized product names, kept only for loaded projects.
+    productProjectSelectionByKey: Record<string, string>;
     selectedPortfolioViewMode: PortfolioViewMode;
     portfolioFilters: PortfolioFilters;
     portfolioTableSortByBoardId: Record<string, TableSort>;
@@ -91,6 +93,7 @@ export function createPortfolioSlice(): PortfolioSlice {
         portfolioTasks: [],
         portfolioVisibleRows: [],
         selectedPortfolioBoardId: '',
+        productProjectSelectionByKey: {},
         selectedPortfolioViewMode: 'board',
         portfolioTableSortByBoardId: {},
         portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: [] },

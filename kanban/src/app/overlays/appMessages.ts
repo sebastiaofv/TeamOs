@@ -63,7 +63,7 @@ export function showConfirm(text: string, { title, confirmLabel, danger = false,
         ...(selections?.length ? { selections } : {}),
         ...(review ? { review } : {}),
         buttons: [
-            { label: translateCurrent('messages.cancel'), value: false, cancel: true },
+            ...(!review?.rejection ? [{ label: translateCurrent('messages.cancel'), value: false, cancel: true }] : []),
             { label: confirmLabel || translateCurrent('common.ok'), value: true, primary: true, danger, ...(selections?.length ? { submitsSelections: true } : {}) }
         ],
         cancelValue: false

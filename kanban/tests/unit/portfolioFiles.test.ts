@@ -51,6 +51,20 @@ describe('portfolio file actions', () => {
         expect(appendPortfolioRecords.mock.calls[0][1]).toMatchObject({ selectBoardId: expect.any(String) });
     });
 
+    it('allows multiple project files in one picker operation and imports valid files despite an invalid one', async () => {
+        const appendPortfolioRecords = vi.fn();
+        const alert = vi.fn();
+        const showOpenFilePicker = vi.fn(async () => [
+            ...['First', 'Second'].map((title) => ({ name: `${title}.board.json`, getFile: async () => ({ name: `${title}.board.json`, text: async () => JSON.stringify(createEmptyProjectData(title)) }) })),
+            { name: 'broken.board.json', getFile: async () => ({ name: 'broken.board.json', text: async () => 'invalid JSON' }) }
+        ]);
+        const actions = createPortfolioFileActions({ appendPortfolioRecords, alert, windowRef: { showOpenFilePicker: fromAny(showOpenFilePicker) } });
+        await actions.importPortfolioProjects();
+        expect(showOpenFilePicker).toHaveBeenCalledWith(expect.objectContaining({ multiple: true }));
+        expect(appendPortfolioRecords.mock.calls[0][0].map((board: { title: string }) => board.title)).toEqual(['First', 'Second']);
+        expect(alert).toHaveBeenCalledWith(expect.stringContaining('broken.board.json'), expect.objectContaining({ title: 'Import incomplete' }));
+    });
+
     it('imports only board files dropped into the portfolio', async () => {
         const appendPortfolioRecords = vi.fn();
         const data = createEmptyProjectData('Imported');

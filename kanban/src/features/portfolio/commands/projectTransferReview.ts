@@ -41,7 +41,10 @@ export function projectTransferFields(source: BoardData, destination: BoardData,
             current: `${entry.title}${entry.date ? ` · ${entry.date}` : ''}${entry.start ? ` · ${entry.start}–${entry.end}` : ''}`,
             options: [remove, ...choices.map((item) => ({ value: item.id, label: item.title })), ...parents] });
     }
-    if (prefix) for (const field of fields) field.label = `${task.displayId || `#${task.id}`} · ${task.title} — ${field.label}`;
+    for (const field of fields) {
+        field.group = `${task.displayId || `#${task.id}`} · ${task.title}`;
+        field.defaultValue = field.options[0]?.value || '';
+    }
     return {
         fields,
         read: (values: Record<string, string>): { stateId: string; mapping: TransferMapping } => {

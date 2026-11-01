@@ -9,9 +9,10 @@ export type AppMessageButton = {
     submitsSelections?: boolean;
 };
 
-export type MessageSelection = { required?: boolean; id: string; label: string; current?: string; options: { value: string; label: string }[] };
+export type MessageSelection = { defaultValue?: string; group?: string; required?: boolean; id: string; label: string; current?: string; options: { value: string; label: string }[] };
 
 export type AppMessageReview = {
+    rejection?: boolean;
     children?: { id: string; title: string; state: string; blocked: boolean }[];
     childrenLabel?: string;
     source: string; destination: string; state: string; color: string;
