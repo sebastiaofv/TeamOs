@@ -11,11 +11,86 @@ async function seed(page: Page, writable = true) {
 }
 const dialog = (page: Page) => page.locator('.control-modal').getByRole('dialog');
 
+test('existing control records require Edit for main fields but save sidebar changes directly', async ({ page }) => {
+    await seed(page);
+    await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+    await expect(dialog(page).locator('.workitem-main input, .workitem-main textarea, .workitem-main select')).toHaveCount(0);
+    await expect(dialog(page).getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    await expect(dialog(page).getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+    await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
+    await dialog(page).getByLabel('Status', { exact: true }).selectOption('in-mitigation');
+    await expect(dialog(page).getByLabel('Status', { exact: true })).toBeEnabled();
+    await dialog(page).getByLabel('Owner', { exact: true }).fill('Bruno Costa');
+    await dialog(page).getByLabel('Owner', { exact: true }).press('Tab');
+    await expect(dialog(page).getByLabel('Owner', { exact: true })).toBeEnabled();
+    await dialog(page).getByRole('button', { name: 'Close', exact: true }).last().click();
+    await waitForBoardWrites(page);
+    let saved = await readSavedBoard(page, 'control');
+    let record = saved.extensions.projectControl.records.find((item: any) => item.id === 'ATL-RK-1');
+    expect(record.status).toBe('in-mitigation'); expect(record.owner).toBe('Bruno Costa');
+    expect(record.title).toBe('Supplier availability');
+    expect(record.history.at(-1).author).toBe('Ana Silva');
+    await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Edit', exact: true }).click();
+    await expect(dialog(page).getByLabel('Title', { exact: true })).toBeFocused();
+    await dialog(page).getByLabel('Title', { exact: true }).fill('Discarded title');
+    await dialog(page).getByRole('button', { name: 'Cancel', exact: true }).click();
+    await expect(dialog(page)).toHaveCount(0);
+    await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Edit', exact: true }).click();
+    await dialog(page).getByLabel('Title', { exact: true }).fill('Supplier confirmed');
+    await dialog(page).getByLabel('build · Build', { exact: true }).uncheck();
+    await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(dialog(page)).toHaveCount(0);
+    await waitForBoardWrites(page);
+    saved = await readSavedBoard(page, 'control');
+    record = saved.extensions.projectControl.records.find((item: any) => item.id === 'ATL-RK-1');
+    expect(record.title).toBe('Supplier confirmed'); expect(record.related.phaseIds).not.toContain('build');
+    expect(record.status).toBe('in-mitigation'); expect(record.owner).toBe('Bruno Costa');
+});
+
+for (const language of ['en', 'pt']) for (const [kind, title, id] of [
+    ['Risks', 'Supplier availability', 'ATL-RK-1'],
+    ['Decisions', 'Choose supported runtime', 'ATL-DC-4'],
+    ['Deliverables', 'Release package', 'ATL-DL-6']
+]) test(`${kind} detail and edit actions match Work Items (${language})`, async ({ page }) => {
+    await seed(page);
+    await page.getByRole('tab', { name: kind, exact: true }).click();
+    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    await page.getByRole('button', { name: title, exact: true }).click();
+    const main = dialog(page).locator('.workitem-main');
+    await expect(main).toContainText(title);
+    await expect(main.locator('input, textarea, select')).toHaveCount(0);
+    if (kind === 'Risks') {
+        await dialog(page).getByRole('tab', { name: language === 'pt' ? 'Resposta' : 'Response', exact: true }).click();
+        await expect(dialog(page).getByRole('tabpanel').locator('textarea')).toHaveCount(0);
+        await dialog(page).getByRole('tab', { name: language === 'pt' ? 'Detalhes' : 'Details', exact: true }).click();
+    }
+    await dialog(page).getByLabel(language === 'pt' ? 'Prazo' : 'Due date', { exact: true }).fill('2026-11-15');
+    // Clicking Edit commits the sidebar value before opening the main-field draft.
+    await dialog(page).getByRole('button', { name: language === 'pt' ? 'Editar' : 'Edit', exact: true }).click();
+    await dialog(page).getByLabel(language === 'pt' ? 'Título' : 'Title', { exact: true }).fill(`${title} updated`);
+    await dialog(page).getByLabel(language === 'pt' ? 'Descrição' : 'Description', { exact: true }).fill('Edited detail');
+    if (kind === 'Risks') {
+        await dialog(page).getByRole('tab', { name: language === 'pt' ? 'Resposta' : 'Response', exact: true }).click();
+        await dialog(page).getByLabel(language === 'pt' ? 'Plano de mitigação' : 'Mitigation plan', { exact: true }).fill('Edited response');
+    }
+    await dialog(page).getByRole('button', { name: language === 'pt' ? 'Guardar' : 'Save', exact: true }).click();
+    await expect(dialog(page)).toHaveCount(0);
+    await waitForBoardWrites(page);
+    const record = (await readSavedBoard(page, 'control')).extensions.projectControl.records.find((item: any) => item.id === id);
+    expect(record.title).toBe(`${title} updated`); expect(record.description).toBe('Edited detail');
+    expect(record.dueDate).toBe('2026-11-15');
+    if (kind === 'Risks') expect(record.mitigationPlan).toBe('Edited response');
+});
+
 for (const [kind, title] of [['Risks', 'Supplier availability'], ['Decisions', 'Choose supported runtime'], ['Deliverables', 'Release package']]) {
     test(`${kind} history uses the workitem layout and category filter in read-only mode`, async ({ page }) => {
         await seed(page, false);
         await page.getByRole('tab', { name: kind, exact: true }).click();
         await page.getByRole('button', { name: title, exact: true }).click();
+        await expect(dialog(page).getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
+        await expect(dialog(page).getByLabel('Owner', { exact: true })).toBeDisabled();
         await dialog(page).getByRole('tab', { name: 'History', exact: true }).click();
         const history = dialog(page).getByRole('tabpanel');
         await expect(history.locator('.history-note')).toHaveCount(1);
@@ -33,18 +108,19 @@ for (const [kind, title] of [['Risks', 'Supplier availability'], ['Decisions', '
         await expect(history.locator('.history-entry')).toHaveCount(1);
         await history.getByLabel('Category', { exact: true }).selectOption('status');
         await expect(history.locator('.history-operation')).toHaveText('Status');
-        await expect(dialog(page).getByRole('button', { name: 'Save record', exact: true })).toHaveCount(0);
+        await expect(dialog(page).getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
     });
 }
 
 for (const language of ['en', 'pt']) test(`control history preserves complete operations and saved values while filtering (${language})`, async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Edit', exact: true }).click();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Supplier confirmed');
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('in-mitigation');
     await dialog(page).getByLabel('Owner', { exact: true }).fill('Bruno Costa');
     await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
-    await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'control');
@@ -78,7 +154,7 @@ test('creation offers all three item types with project IDs, singular badges and
         await dialog(page).getByLabel('Type', { exact: true }).selectOption(kind);
         await expect(dialog(page).locator('.control-type')).toHaveText(label);
         await expect(dialog(page).getByLabel('Title', { exact: true })).toHaveValue(`New ${label}`);
-        await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+        await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
         await expect(dialog(page)).toHaveCount(0);
         await waitForBoardWrites(page);
         const saved = await readSavedBoard(page, 'control');
@@ -96,7 +172,7 @@ test('legacy projects configure their acronym when creating the first control re
     await page.getByRole('button', { name: 'New record', exact: true }).click();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Legacy risk');
     await dialog(page).getByLabel('Project Acronym', { exact: true }).fill('LEG');
-    await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'legacy');
@@ -144,7 +220,7 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
     await expect(dialog(page).getByRole('group', { name: 'Workitems', exact: true })).toHaveCount(0);
     await expect(dialog(page).getByLabel('ATL-TK-1 · Build complete', { exact: true })).toHaveCount(0);
     await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
-    await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await waitForBoardWrites(page);
     let saved = await readSavedBoard(page, 'control');
@@ -206,7 +282,7 @@ test('acceptance gates parent, subphase and milestone progress while unrelated p
     await page.getByRole('button', { name: 'Release package', exact: true }).click();
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('accepted');
     await expect(dialog(page).getByLabel('Accepted date', { exact: true })).toHaveValue('2026-10-31');
-    await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Close', exact: true }).last().click();
     await expect(dialog(page)).toHaveCount(0);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     for (const id of ['launch', 'build', 'review']) await expect(page.locator(`[data-roadmap-kind="phase"][data-roadmap-id="${id}"] .roadmap-row-timeline-bar`)).toHaveAttribute('data-progress', '100');
@@ -223,11 +299,14 @@ test('records can be created and associated during phase creation, without losin
     await page.locator('#roadmapEntityObjective').fill('Retained objective');
     await page.locator('#roadmapEntityModal').getByRole('button', { name: 'New record · Decision', exact: true }).click();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Nested decision');
-    await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await expect(page.locator('#roadmapEntityTitle')).toHaveValue('New phase');
     await expect(page.locator('#roadmapEntityModal').getByLabel('ATL-DC-9 · Nested decision', { exact: true })).toBeChecked();
     await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Nested decision', exact: true }).click();
+    await expect(dialog(page).locator('.workitem-main input, .workitem-main textarea')).toHaveCount(0);
+    await dialog(page).getByRole('button', { name: 'Edit', exact: true }).click();
+    await dialog(page).getByLabel('Title', { exact: true }).fill('Discarded nested edit');
     await page.keyboard.press('Escape');
     await expect(dialog(page)).toHaveCount(0);
     await expect(page.locator('#roadmapEntityTitle')).toHaveValue('New phase');
@@ -267,8 +346,10 @@ test('read-only projects permit consultation and navigation while blocking write
     await seed(page, false);
     await expect(page.getByRole('button', { name: 'New record', exact: true })).toBeDisabled();
     await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
-    await expect(dialog(page).getByLabel('Title', { exact: true })).toBeDisabled();
-    await expect(dialog(page).getByRole('button', { name: 'Save record', exact: true })).toHaveCount(0);
+    await expect(dialog(page).locator('.workitem-main input, .workitem-main textarea')).toHaveCount(0);
+    await expect(dialog(page).getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
+    await expect(dialog(page).getByLabel('Status', { exact: true })).toBeDisabled();
+    await expect(dialog(page).getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
     await dialog(page).getByRole('tab', { name: 'Comments', exact: true }).click();
     await expect(dialog(page).getByRole('button', { name: 'Post comment', exact: true })).toHaveCount(0);
     await dialog(page).getByRole('tab', { name: 'Details', exact: true }).click();
@@ -282,7 +363,7 @@ test('historical timeline selections show only records and comments available at
     await seed(page);
     await page.getByRole('button', { name: 'New record', exact: true }).click();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Latest only');
-    await dialog(page).getByRole('button', { name: 'Save record', exact: true }).click();
+    await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await showTimeline(page);
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
@@ -311,7 +392,7 @@ for (const width of [1280, 390]) for (const dark of [false, true]) {
             expect(box!.width).toBeGreaterThanOrEqual(1000);
             expect(sidebar!.x).toBeGreaterThanOrEqual(main!.x + main!.width - 1);
         } else expect(sidebar!.y).toBeGreaterThanOrEqual(main!.y + main!.height - 1);
-        const save = await dialog(page).getByRole('button', { name: 'Save record', exact: true }).boundingBox();
+        const save = await dialog(page).getByRole('button', { name: 'Edit', exact: true }).boundingBox();
         expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(width);
         expect(save!.y + save!.height).toBeLessThanOrEqual(800);
         await page.keyboard.press('Escape');

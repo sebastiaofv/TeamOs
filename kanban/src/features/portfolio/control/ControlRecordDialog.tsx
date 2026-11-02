@@ -25,7 +25,7 @@ export function ProjectControlDialog() {
     const timeline = context && getSelectedPortfolioTimelineView(state);
     const data = timeline?.isPreview && timeline.boardRecord.id === board?.id ? timeline.projectedBoard : board?.data;
     if (!context || !board || !data) return null;
-    return <ControlRecordDialog {...context} data={data} readOnly={!board.handle || Boolean(timeline?.isPreview)} onClose={() => closeDialog('projectControl')} />;
+    return <ControlRecordDialog key={`${context.boardId}:${context.recordId || 'new'}`} {...context} data={data} readOnly={!board.handle || Boolean(timeline?.isPreview)} onClose={() => closeDialog('projectControl')} />;
 }
 
 export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = false, onClose, onSaved }: { boardId: string; recordId?: string; kind: ControlKind; data: BoardData; readOnly?: boolean; onClose: () => void; onSaved?: (record: ControlRecord) => void }) {
@@ -33,6 +33,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
     const { t, language } = useI18n();
     const { saveProjectControl } = usePortfolioActions();
     const [draft, setDraft] = useState(() => structuredClone(record || newControlRecord(kind)));
+    const [editing, setEditing] = useState(!recordId);
     const [author, setAuthor] = useState(() => lastCommentAuthor(boardId));
     const [tab, setTab] = useState<'details' | 'response' | 'comments' | 'history'>('details');
     const [acronym, setAcronym] = useState('');
@@ -55,12 +56,35 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
     }, [busy, onClose]);
     const titleRef = useRef<HTMLInputElement>(null);
     const readonly = readOnly || Boolean(recordId && !record);
-    const focus = useReturnFocus({ initialFocus: readonly ? undefined : titleRef });
+    const focus = useReturnFocus({ initialFocus: editing && !readonly ? titleRef : undefined });
+    async function save(next: ControlRecord, closeAfterSave: boolean) {
+        if (busy || readonly) return;
+        if (!next.title.trim() || !author.trim()) { setTab('details'); setError(t('control.invalid')); return; }
+        if (closeAfterSave) setBusy(true);
+        setError('');
+        rememberCommentAuthor(boardId, author);
+        try {
+            await saveProjectControl(boardId, next, author, (saved) => {
+                setDraft(structuredClone(saved));
+                onSaved?.(saved);
+                if (closeAfterSave) onClose();
+            }, acronym);
+        } finally { if (closeAfterSave) setBusy(false); }
+    }
+    function edit() {
+        if (readonly || busy || !record) return;
+        setDraft(structuredClone(record)); setEditing(true); setError(''); setTab('details');
+    }
+    useLayoutEffect(() => {
+        if (editing && !readonly) titleRef.current?.focus();
+    }, [editing, readonly]);
     const field = (key: keyof ControlRecord, type: 'text' | 'date' | 'textarea' = 'text') => {
-        const props = { id: `control-${key}`, 'aria-label': t(`control.${key}` as TranslationKey), value: String(draft[key]), disabled: readonly || busy, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft((current) => ({ ...current, [key]: event.target.value })) };
-        return <label className="form-group" key={key} htmlFor={props.id}>{t(`control.${key}` as TranslationKey)}{type === 'textarea' ? <textarea {...props} rows={3} maxLength={10000} /> : <input {...props} type={type} maxLength={key === 'title' ? 200 : 500} required={key === 'title'} />}</label>;
+        const mainField = ['title', 'description', 'rationale', 'mitigationPlan', 'contingencyPlan', 'actualImpact'].includes(key);
+        if (mainField && !editing) return <section className="workitem-section" key={key}><h3>{t(`control.${key}` as TranslationKey)}</h3><p className="detail-value">{String(draft[key]) || '—'}</p></section>;
+        const props = { id: `control-${key}`, 'aria-label': t(`control.${key}` as TranslationKey), value: String(draft[key]), disabled: readonly || busy, onBlur: () => { if (!editing && !mainField && draft[key] !== record?.[key]) void save(draft, false); }, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft((current) => ({ ...current, [key]: event.target.value })) };
+        return <label className="form-group" key={key} htmlFor={props.id}>{t(`control.${key}` as TranslationKey)}{type === 'textarea' ? <textarea {...props} rows={3} maxLength={10000} /> : <input {...props} ref={key === 'title' ? titleRef : undefined} type={type} maxLength={key === 'title' ? 200 : 500} required={key === 'title' && tab === 'details'} />}</label>;
     };
-    const select = (key: 'status' | 'probability' | 'impact', values: readonly string[]) => <label className="form-group" key={key}>{t(`control.${key}`)}<select id={`control-${key}`} aria-label={t(`control.${key}`)} disabled={readonly || busy} value={draft[key]} onChange={(event) => { const value = event.target.value; setDraft((current) => ({ ...current, [key]: value, ...(key === 'status' && ['delivered', 'accepted'].includes(value) && !current.deliveredDate ? { deliveredDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'accepted' && !current.acceptedDate ? { acceptedDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'materialized' && !current.materializedDate ? { materializedDate: todayLocalIsoDate() } : {}) })); }}>{values.map((value) => <option key={value} value={value}>{t(`control.${value}` as TranslationKey)}</option>)}</select></label>;
+    const select = (key: 'status' | 'probability' | 'impact', values: readonly string[]) => <label className="form-group" key={key}>{t(`control.${key}`)}<select id={`control-${key}`} aria-label={t(`control.${key}`)} disabled={readonly || busy} value={draft[key]} onChange={(event) => { const value = event.target.value; const next = { ...draft, [key]: value, ...(key === 'status' && ['delivered', 'accepted'].includes(value) && !draft.deliveredDate ? { deliveredDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'accepted' && !draft.acceptedDate ? { acceptedDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'materialized' && !draft.materializedDate ? { materializedDate: todayLocalIsoDate() } : {}) }; setDraft(next); if (!editing) void save(next, false); }}>{values.map((value) => <option key={value} value={value}>{t(`control.${value}` as TranslationKey)}</option>)}</select></label>;
     return <Dialog.Root open onOpenChange={(open) => { if (!open && !busy) onClose(); }}><Dialog.Portal><Dialog.Overlay className="modal active control-modal">
         <Dialog.Content className="modal-content workitem-modal" aria-describedby={undefined} onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={(event) => { escapeAnswersAppMessage(event); if (event.defaultPrevented) return; event.preventDefault(); event.stopPropagation(); if (!busy) onClose(); }} {...focus}>
             <div className="modal-header workitem-modal-header">
@@ -73,21 +97,16 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
             <div className="detail-tabs" role="tablist" aria-label={t('control.view')}>{tabs.map((value) => <button key={value} type="button" role="tab" id={`control-tab-${value}`} aria-controls={`control-panel-${value}`} aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigateControlTabs(event, tabs.filter((entry) => record || entry === 'details' || entry === 'response'), value, setTab)} disabled={(value === 'comments' || value === 'history') && !record} onClick={() => setTab(value)}>{t(`control.${value}`)}</button>)}</div>
             <div className="modal-body">
                 {recordId && !record ? <p role="alert">{t('control.stale')}</p> : <>
-                <form onSubmit={async (event) => {
-                    event.preventDefault(); if (busy || readonly) return;
-                    if (!draft.title.trim() || !author.trim()) { setTab('details'); setError(t('control.invalid')); return; }
-                    setBusy(true); setError('');
-                    rememberCommentAuthor(boardId, author);
-                    try { await saveProjectControl(boardId, draft, author, (saved) => { onSaved?.(saved); onClose(); }, acronym); }
-                    finally { setBusy(false); }
+                <form onSubmit={(event) => {
+                    event.preventDefault(); if (editing) void save(draft, true);
                 }} id="control-record-form" hidden={tab === 'comments' || tab === 'history'}>
                     <div role="tabpanel" id="control-panel-details" aria-labelledby="control-tab-details" hidden={tab !== 'details'}>
                         <div className="workitem-overview">
                             <div className="workitem-main">
-                                <label className="form-group">{t('control.title')}<input ref={titleRef} id="control-title" maxLength={200} required={tab === 'details'} value={draft.title} disabled={readonly || busy} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
+                                {field('title')}
                                 {field('description', 'textarea')}
                                 {activeKind === 'decisions' && field('rationale', 'textarea')}
-                                <ControlRelated boardId={boardId} data={data} value={draft.related} onChange={readonly || busy ? undefined : (related) => setDraft({ ...draft, related })} onNavigate={onClose} />
+                                <ControlRelated boardId={boardId} data={data} value={draft.related} onChange={!editing || readonly || busy ? undefined : (related) => setDraft({ ...draft, related })} onNavigate={onClose} />
                             </div>
                             <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
                                 <section className="workitem-property-group"><h3>{t('workitems.properties')}</h3>
@@ -114,7 +133,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                 {tab === 'history' && record && <div role="tabpanel" id="control-panel-history" aria-labelledby="control-tab-history" tabIndex={0} className="control-tab-panel"><ControlRecordHistory record={record} /></div>}
                 </>}
             </div>
-            <div className="modal-footer"><Dialog.Close className="btn" disabled={busy}>{t('common.close')}</Dialog.Close>{(tab === 'details' || tab === 'response') && !readonly && <button className="btn btn-primary" type="submit" form="control-record-form" disabled={busy}>{t('control.save')}</button>}</div>
+            <div className="modal-footer"><Dialog.Close className="btn" disabled={busy}>{t(editing && !readonly ? 'common.cancel' : 'common.close')}</Dialog.Close>{!readonly && (editing ? <button key="save" className="btn btn-primary" type="submit" form="control-record-form" disabled={busy}>{t('common.save')}</button> : record && <button key="edit" className="btn btn-primary" type="button" disabled={busy} onClick={edit}>{t('common.edit')}</button>)}</div>
         </Dialog.Content>
     </Dialog.Overlay></Dialog.Portal></Dialog.Root>;
 }
