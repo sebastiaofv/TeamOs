@@ -193,6 +193,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
         checklist: normalizeChecklist(task.checklist)
             .map((item) => ({ text: item.text, done: Boolean(item.done) })),
         attachments: normalizeAttachmentList(getTaskAttachments(source.boardData, taskId))
+            .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
             .map((item) => ({
                 id: item.id,
                 name: item.name,

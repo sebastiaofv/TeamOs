@@ -1,10 +1,34 @@
-import type { TaskDetailAttachment } from '@/features/portfolio/types';
+import { useRef, useState } from 'react';
+import { calculateBoardAttachmentBytes, getTaskAttachments } from '@/domain/attachments';
+import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { showConfirm } from '@/app/overlays/appMessages';
+import { AttachmentsEditor } from './editor/AttachmentsEditor';
+import type { TaskDetailViewModel } from '@/features/portfolio/types';
 import { formatDateTime } from '@/domain/calendar';
 import { useI18n } from '@/shared/i18n';
 
-export function TaskAttachments({ attachments }: { attachments: TaskDetailAttachment[] }) {
+export function TaskAttachments({ vm }: { vm: TaskDetailViewModel }) {
+    const { attachments } = vm;
     const { t, language } = useI18n();
+    const { setPortfolioTaskAttachments } = usePortfolioActions();
+    const [busy, setBusy] = useState(false);
+    const [picking, setPicking] = useState(false);
+    const busyRef = useRef(false);
+    const value = getTaskAttachments(vm.sourceBoardData, vm.taskId);
+    async function remove(id: string, name: string) {
+        if (vm.readOnly || picking || busyRef.current) return;
+        busyRef.current = true;
+        setBusy(true);
+        try {
+            if (await showConfirm(t('attachments.removeQuestion', { name }), { title: t('task.attachments'), confirmLabel: t('common.remove'), danger: true })) {
+                await setPortfolioTaskAttachments(vm.boardId, vm.taskId, value.filter((item) => item.id !== id), value);
+            }
+        } finally { busyRef.current = false; setBusy(false); }
+    }
     return <div className="detail-attachments" id="detailAttachments">
+        {!vm.readOnly && <AttachmentsEditor boardId={vm.boardId} value={value} showList={false} disabled={busy} onBusyChange={setPicking}
+            onChange={(next) => setPortfolioTaskAttachments(vm.boardId, vm.taskId, next, value)}
+            otherAttachmentBytes={calculateBoardAttachmentBytes(vm.sourceBoardData, { excludeTaskId: vm.taskId })} />}
         {attachments.length === 0 ? <p className="detail-attachments-empty">{t('editor.noAttachmentsYet')}</p>
             : <table className="attachment-table" aria-label={t('task.attachments')}>
                 <thead><tr>
@@ -20,7 +44,7 @@ export function TaskAttachments({ attachments }: { attachments: TaskDetailAttach
                         <div className="detail-attachment-meta"><div className="detail-attachment-name">{item.name}</div><div className="detail-attachment-sub">{item.subLabel}</div></div>
                     </div></td>
                     <td>{item.uploadedBy || t('attachments.unknownAuthor')}</td>
-                    <td><a className="detail-attachment-download" href={item.dataUrl} download={item.name || 'attachment'} aria-label={`${t('common.download')} ${item.name}`}>{t('common.download')}</a></td>
+                    <td><div className="attachment-table-actions"><a className="detail-attachment-download" href={item.dataUrl} download={item.name || 'attachment'} aria-label={`${t('common.download')} ${item.name}`}>{t('common.download')}</a>{!vm.readOnly && <button type="button" className="attachment-remove-btn" disabled={busy || picking} aria-label={t('editor.removeAttachment', { name: item.name })} onClick={() => void remove(item.id, item.name)}>×</button>}</div></td>
                 </tr>)}</tbody>
             </table>}
     </div>;

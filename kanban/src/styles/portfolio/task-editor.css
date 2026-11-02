@@ -249,7 +249,7 @@
     flex-wrap: wrap;
 }
 
-.attachment-uploader { display: grid; gap: 6px; }
+.attachment-editor .attachment-uploader { display: grid; gap: 6px; margin-bottom: 0; }
 
 .attachment-editor-summary {
     font-size: 11px;

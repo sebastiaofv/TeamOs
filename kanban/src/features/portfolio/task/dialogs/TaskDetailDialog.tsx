@@ -128,7 +128,7 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
             {vm.conversationContext && <TaskConversation key={`${vm.conversationContext.boardId}:${vm.conversationContext.task.id}:${vm.conversationContext.eventIndex ?? 'current'}`} context={vm.conversationContext} />}
         </div>
         <div role="tabpanel" id="task-panel-attachments" aria-labelledby="task-tab-attachments" tabIndex={0} hidden={tab !== 'attachments'}>
-            <TaskAttachments attachments={vm.attachments} />
+            <TaskAttachments key={`${vm.boardId}:${vm.taskId}:${vm.history?.historicalIndex ?? 'current'}`} vm={vm} />
         </div>
         <div role="tabpanel" id="task-panel-pullRequests" aria-labelledby="task-tab-pullRequests" tabIndex={0} hidden={tab !== 'pullRequests'}>
             {vm.pullRequestContext && <TaskPullRequestLinks key={`${vm.boardId}:${vm.taskId}`} {...vm.pullRequestContext} readOnly={vm.readOnly} />}
@@ -163,6 +163,7 @@ function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
 
 function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
+    const { toggleTaskDetailChecklistItem } = usePortfolioActions();
     return (
         <dl className="detail-list workitem-supporting-content">
             <div className="detail-item workitem-section" hidden={!vm.checklist.length || !['task', 'bug'].includes(workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}))}>
@@ -176,7 +177,8 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
                                     <input
                                         type="checkbox"
                                         checked={item.done}
-                                        disabled
+                                        disabled={vm.readOnly}
+                                        onChange={(event) => void toggleTaskDetailChecklistItem(index, event.target.checked)}
                                         aria-label={t('editor.todoItem', { index: index + 1 })}
                                     />
                                     <span className="detail-checklist-text">{item.text}</span>

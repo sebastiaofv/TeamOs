@@ -277,7 +277,7 @@ test.describe('2.1a modals and toast', () => {
       await portfolioCard(page, 'Prepare launch checklist').click();
       await expect(page.locator('#taskDetailModal')).toBeVisible();
       await expect(page.locator('#detailAttachments')).toContainText('notes.txt');
-      await expect(page).toHaveScreenshot(`task-detail-full-${theme}.png`, { fullPage: true });
+      await expect(page).toHaveScreenshot(`task-detail-full-${theme}.png`, { fullPage: true, maxDiffPixelRatio: 0 });
     });
 
     test(`roadmap entity, new milestone (${theme})`, async ({ page }) => {
@@ -334,6 +334,23 @@ test.describe('2.1a modals and toast', () => {
         await expect(page.locator('#detailAttachments')).toContainText('Unknown');
         await expect(page).toHaveScreenshot(`task-detail-attachments-${theme}${width === 390 ? '-narrow' : ''}.png`, { fullPage: true });
       });
+    }
+  }
+
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1280, 390]) {
+      for (const tab of ['Relations', 'Pull Requests']) {
+        test(`workitem ${tab} tab at ${width}px (${theme})`, async ({ page }) => {
+          await gotoVisualApp(page, theme);
+          await page.setViewportSize({ width, height: 900 });
+          await seedPortfolioBoards(page, [{ id: 'v1', title: 'Launch', hasHandle: true, tasks: [
+            FULL_TASK, { id: 123456, displayId: 'ABC-TK-123456', title: 'Coordinate the review with all stakeholders', status: 'doing', responsible: 'Ana', assignees: ['Ana'] }
+          ], extensions: { ...ROADMAP, taskRelations: { version: 1, relations: [{ sourceId: 1, targetId: 123456, kind: 'related' }] } } }], { selectedBoardId: 'v1' });
+          await portfolioCard(page, 'Prepare launch checklist').click();
+          await page.getByRole('tab', { name: tab, exact: true }).click();
+          await expect(page).toHaveScreenshot(`workitem-${tab === 'Relations' ? 'relations' : 'pull-requests'}-${theme}-${width}.png`, { fullPage: true });
+        });
+      }
     }
   }
 
@@ -399,10 +416,10 @@ test.describe('2.1a modals and toast', () => {
 test.describe('2.1b task editor', () => {
   test.use({ locale: 'en-US', timezoneId: 'UTC' });
 
-  async function captureEditor(page: Page, name: string) {
+  async function captureEditor(page: Page, name: string, maxDiffPixelRatio = 0.001) {
     await page.mouse.move(1, 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await expect(page).toHaveScreenshot(name, { fullPage: true });
+    await expect(page).toHaveScreenshot(name, { fullPage: true, maxDiffPixelRatio });
   }
 
   async function openFullTaskEditor(page: Page, theme: string) {
@@ -425,7 +442,8 @@ test.describe('2.1b task editor', () => {
       ], { selectedBoardId: 'v1' });
       await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
       await expect(page.locator('#modalTitle')).toHaveText('New Task');
-      await captureEditor(page, `task-editor-new-${theme}.png`);
+      await expect(page.locator('#taskAttachmentsEditor')).toHaveCount(0);
+      await captureEditor(page, `task-editor-new-${theme}.png`, 0);
     });
 
     test(`task editor, edit populated (${theme})`, async ({ page }) => {

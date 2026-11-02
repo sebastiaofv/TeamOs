@@ -4,6 +4,7 @@ As histórias integradas têm os boards e roteiros nesta pasta em `main`; histó
 
 | História | Board | Roteiro |
 | --- | --- | --- |
+| US16 · branch `codex/issue-39-attachments-tab` · PR #61 | [us-16.board.json](us-16.board.json) | [us-16.md](us-16.md) |
 | US1 · integrada em `main` · PR #44 | [us-1.board.json](us-1.board.json) | [us-1.md](us-1.md) |
 | US2 · branch `us-2` · PR #45 | [us-2.board.json](https://github.com/sebastiaofv/TeamOs/blob/us-2/kanban/test-board/us-2.board.json) | [us-2.md](https://github.com/sebastiaofv/TeamOs/blob/us-2/kanban/test-board/us-2.md) |
 | US3 · integrada em `main` · PR #46 | [us-3.board.json](us-3.board.json) | [us-3.md](us-3.md) |

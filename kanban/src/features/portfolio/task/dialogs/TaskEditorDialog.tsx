@@ -135,7 +135,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         <label id="taskTodoListLabel">{t('task.todoList')}</label>
                         <ChecklistEditor value={form.checklist} onChange={(next) => update('checklist', next)} />
                     </div>}
-                    <div className="form-group">
+                    {vm.editing && <div className="form-group">
                         <label id="taskAttachmentsLabel">{t('task.attachments')}</label>
                         <AttachmentsEditor
                             boardId={vm.boardId}
@@ -143,7 +143,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             onChange={(next) => update('attachments', next)}
                             otherAttachmentBytes={vm.otherAttachmentBytes}
                         />
-                    </div>
+                    </div>}
                         </div>
                         <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
                             <section className="workitem-property-group">

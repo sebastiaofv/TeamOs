@@ -34,6 +34,9 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect(page.locator('#taskBlockerReason')).toBeFocused();
 
+    await page.locator('#taskBlockerReason').fill('Waiting');
+    await page.locator('#taskModalSaveBtn').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     await page.setInputFiles('#taskAttachmentsInput', {
       name: 'huge.bin',
       mimeType: 'application/octet-stream',
@@ -577,6 +580,8 @@ test.describe('task editor', () => {
     await expect(page.locator('#detailAttachments')).toContainText('Ana Silva');
     await expect(page.locator('#detailAttachments')).not.toContainText('Bruno');
     await expect(page.locator('#taskDetailEditBtn')).toHaveCount(0);
+    await expect(page.locator('#taskAttachmentsAddBtn')).toHaveCount(0);
+    await expect(page.locator('#detailAttachments button')).toHaveCount(0);
   });
 
   test('attachment tab supports empty workitems, keyboard navigation and legacy read-only files', async ({ page }) => {
@@ -606,6 +611,8 @@ test.describe('task editor', () => {
 
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Attachment limits');
+    await page.locator('#taskModalSaveBtn').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
 
     await page.setInputFiles('#taskAttachmentsInput', Array.from({ length: 11 }, (_, i) => ({
       name: `f${i + 1}.txt`,
@@ -613,11 +620,8 @@ test.describe('task editor', () => {
       buffer: Buffer.from(`file ${i + 1}`)
     })));
 
-    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(10);
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(10);
     await expect(page.locator('#taskAttachmentsWarnings')).toContainText('Attachment limit reached (10 per task).');
-
-    await page.locator('#taskModal .btn-primary').click();
-    await expect(page.locator('#taskModal')).toBeHidden();
 
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'p1');

@@ -1,7 +1,7 @@
 import type { DetailContext } from '@/features/portfolio/state/slices';
 import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import { childrenOf, eligibleSprint, isPlanningUnit, WorkitemError } from '@/domain/workitems';
-import type { Task, WorkitemType } from '@/domain/types';
+import type { Attachment, Task, WorkitemType } from '@/domain/types';
 // Task editing, details, validation, and undo.
 
 import type { Effort, Priority, TaskRelationKind } from '@/domain/types';
@@ -17,12 +17,15 @@ import {
 import {
     removeLegacyTaskAttachmentsFromExtensions,
     setTaskAttachments,
+    normalizeAttachmentList,
+    getTaskAttachments,
 } from '@/domain/attachments';
 import { recordTaskRelationsTimelineEvent } from '@/domain/timeline';
 import { getRelations, getTaskRelations, removeTaskRelation, setTaskRelation, TaskRelationError } from '@/domain/taskRelations';
-import { cloneSerializable } from '@/domain/serializable';
+import { cloneSerializable, areSerializableValuesEqual } from '@/domain/serializable';
+import { ATTACHMENT_MAX_COUNT, ATTACHMENT_HARD_MAX_BYTES } from '@/domain/constants';
 import { normalizeDueDate } from '@/domain/calendar';
-import { nowIso } from '@/domain/util';
+import { formatFileSize, nowIso } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
 import { getRoadmapExtension, isValidRoadmapAssignment } from '@/domain/roadmap';
 import { canTransition, getWorkflow } from '@/domain/workflow';
@@ -351,6 +354,25 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         });
     }
 
+    async function setPortfolioTaskAttachments(boardId: string, taskId: number, value: Attachment[], expected: Attachment[]): Promise<boolean> {
+        const context = getState().portfolioDetailContext;
+        if (!canUsePortfolioTaskMutations(boardId) || (context?.boardId === boardId && context.taskId === taskId && context.readOnly)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return false;
+        }
+        const attachments = normalizeAttachmentList(value);
+        if (attachments.length > ATTACHMENT_MAX_COUNT || attachments.some((item) => item.sizeBytes > ATTACHMENT_HARD_MAX_BYTES)) {
+            await alert(translateCurrent(attachments.length > ATTACHMENT_MAX_COUNT ? 'validation.attachmentCount' : 'validation.attachmentSize', { count: ATTACHMENT_MAX_COUNT, size: formatFileSize(ATTACHMENT_HARD_MAX_BYTES) }));
+            return false;
+        }
+        return Boolean(await runPortfolioTaskMutation(boardId, taskId, (task, board) => {
+            if (!areSerializableValuesEqual(getTaskAttachments(board.data, taskId), expected)) throw new WorkitemError('stale');
+            if (areSerializableValuesEqual(task.attachments || [], attachments)) return false;
+            setTaskAttachments(board.data, taskId, attachments);
+            return true;
+        }));
+    }
+
     function toggleTaskDetailChecklistItem(itemIndex: number, checked: boolean) {
         const context = getState().portfolioDetailContext;
         if (!context?.boardId || context.taskId === null || context.taskId === undefined) return;
@@ -530,6 +552,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         deletePortfolioTask,
         saveTask,
         toggleTaskDetailChecklistItem,
+        setPortfolioTaskAttachments,
         setPortfolioTaskProperties,
         movePortfolioTaskToStatus,
         performUndo,
