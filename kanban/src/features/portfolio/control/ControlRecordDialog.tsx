@@ -1,4 +1,8 @@
 import { navigateControlTabs } from './controlTabNavigation';
+import { getProjectData } from '@/domain/projectData';
+import { setTaskResponsible, removeTaskParticipant } from '@/domain/taskAssignments';
+import { AssigneeEditor } from '@/features/portfolio/task/dialogs/editor/AssigneeEditor';
+import { TagEditor } from '@/features/portfolio/task/dialogs/editor/TagEditor';
 import { todayLocalIsoDate } from '@/domain/util';
 import { useLayoutEffect, useRef, useState, type ChangeEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -31,7 +35,8 @@ export function ProjectControlDialog() {
 export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = false, onClose, onSaved }: { boardId: string; recordId?: string; kind: ControlKind; data: BoardData; readOnly?: boolean; onClose: () => void; onSaved?: (record: ControlRecord) => void }) {
     const record = controlRecords(data).find((item) => item.id === recordId);
     const { t, language } = useI18n();
-    const { saveProjectControl } = usePortfolioActions();
+    const { saveProjectControl, confirmResponsibleParticipantRemoval } = usePortfolioActions();
+    const project = getProjectData(data);
     const [draft, setDraft] = useState(() => structuredClone(record || newControlRecord(kind)));
     const [editing, setEditing] = useState(!recordId);
     const [author, setAuthor] = useState(() => lastCommentAuthor(boardId));
@@ -82,14 +87,28 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
         const mainField = ['title', 'description', 'rationale', 'mitigationPlan', 'contingencyPlan', 'actualImpact'].includes(key);
         if (mainField && !editing) return <section className="workitem-section" key={key}><h3>{t(`control.${key}` as TranslationKey)}</h3><p className="detail-value">{String(draft[key]) || '—'}</p></section>;
         const props = { id: `control-${key}`, 'aria-label': t(`control.${key}` as TranslationKey), value: String(draft[key]), disabled: readonly || busy, onBlur: () => { if (!editing && !mainField && draft[key] !== record?.[key]) void save(draft, false); }, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft((current) => ({ ...current, [key]: event.target.value })) };
-        return <label className="form-group" key={key} htmlFor={props.id}>{t(`control.${key}` as TranslationKey)}{type === 'textarea' ? <textarea {...props} rows={3} maxLength={10000} /> : <input {...props} ref={key === 'title' ? titleRef : undefined} type={type} maxLength={key === 'title' ? 200 : 500} required={key === 'title' && tab === 'details'} />}</label>;
+        return <div className="form-group" key={key}><label htmlFor={props.id}>{t(`control.${key}` as TranslationKey)}</label>{type === 'textarea' ? <textarea {...props} rows={3} maxLength={10000} /> : <input {...props} ref={key === 'title' ? titleRef : undefined} type={type} maxLength={key === 'title' ? 200 : 500} required={key === 'title' && tab === 'details'} />}</div>;
     };
-    const select = (key: 'status' | 'probability' | 'impact', values: readonly string[]) => <label className="form-group" key={key}>{t(`control.${key}`)}<select id={`control-${key}`} aria-label={t(`control.${key}`)} disabled={readonly || busy} value={draft[key]} onChange={(event) => { const value = event.target.value; const next = { ...draft, [key]: value, ...(key === 'status' && ['delivered', 'accepted'].includes(value) && !draft.deliveredDate ? { deliveredDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'accepted' && !draft.acceptedDate ? { acceptedDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'materialized' && !draft.materializedDate ? { materializedDate: todayLocalIsoDate() } : {}) }; setDraft(next); if (!editing) void save(next, false); }}>{values.map((value) => <option key={value} value={value}>{t(`control.${value}` as TranslationKey)}</option>)}</select></label>;
+    function update(next: ControlRecord) {
+        setDraft(next);
+        if (!editing) void save(next, false);
+    }
+    async function removeParticipant(index: number) {
+        const assignments = { ...draft, responsible: draft.owner };
+        const result = removeTaskParticipant(assignments, index);
+        if (result.needsConfirmation && !(await confirmResponsibleParticipantRemoval(draft.assignees[index]))) return;
+        const next = removeTaskParticipant(assignments, index, true).task;
+        update({ ...draft, owner: next.responsible, assignees: next.assignees });
+    }
+    const select = (key: 'status' | 'probability' | 'impact', values: readonly string[]) => {
+        const input = <select id={`control-${key}`} aria-label={t(`control.${key}`)} disabled={readonly || busy} value={draft[key]} onChange={(event) => { const value = event.target.value; update({ ...draft, [key]: value, ...(key === 'status' && ['delivered', 'accepted'].includes(value) && !draft.deliveredDate ? { deliveredDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'accepted' && !draft.acceptedDate ? { acceptedDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'materialized' && !draft.materializedDate ? { materializedDate: todayLocalIsoDate() } : {}) }); }}>{values.map((value) => <option key={value} value={value}>{t(`control.${value}` as TranslationKey)}</option>)}</select>;
+        return <div className={`form-group${key === 'status' ? ' detail-status-editor' : ''}`} key={key}><label htmlFor={`control-${key}`}>{t(`control.${key}`)}</label>{key === 'status' ? <div className="detail-status-control"><ControlBadge value={draft.status} />{input}</div> : input}</div>;
+    };
     return <Dialog.Root open onOpenChange={(open) => { if (!open && !busy) onClose(); }}><Dialog.Portal><Dialog.Overlay className="modal active control-modal">
         <Dialog.Content className="modal-content workitem-modal" aria-describedby={undefined} onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={(event) => { escapeAnswersAppMessage(event); if (event.defaultPrevented) return; event.preventDefault(); event.stopPropagation(); if (!busy) onClose(); }} {...focus}>
             <div className="modal-header workitem-modal-header">
                 <div className="workitem-heading">
-                    <div className="workitem-eyebrow"><ControlTypeBadge kind={activeKind} />{record && <span>{record.id}</span>}<span className="workitem-project">{data.board.settings.title}</span></div>
+                    <div className="workitem-eyebrow"><ControlTypeBadge kind={activeKind} />{!record ? <label className="form-group">{t('control.kind')}<select aria-label={t('control.kind')} disabled={readonly || busy} value={activeKind} onChange={(event) => { const next = event.target.value as ControlKind; setDraft({ ...newControlRecord(next), title: draft.title, description: draft.description, owner: draft.owner, assignees: draft.assignees, tags: draft.tags, dueDate: draft.dueDate, related: draft.related }); }}>{CONTROL_KINDS.map((value) => <option key={value} value={value}>{t(`control.type.${value}`)}</option>)}</select></label> : null}{record && <span>{record.id}</span>}<span className="workitem-project">{data.board.settings.title}</span></div>
                     <Dialog.Title className="workitem-title">{record?.title || `${t('control.new')} · ${t(`control.type.${activeKind}`)}`}</Dialog.Title>
                 </div>
                 <div className="workitem-header-actions">{readonly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}<Dialog.Close className="modal-close" aria-label={t('common.close')} disabled={busy}>×</Dialog.Close></div>
@@ -110,14 +129,24 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                             </div>
                             <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
                                 <section className="workitem-property-group"><h3>{t('workitems.properties')}</h3>
-                                    <label className="form-group">{t('control.kind')}<select aria-label={t('control.kind')} disabled={Boolean(record) || readonly || busy} value={activeKind} onChange={(event) => { const next = event.target.value as ControlKind; setDraft({ ...newControlRecord(next), title: draft.title, description: draft.description, owner: draft.owner, dueDate: draft.dueDate, related: draft.related }); }}>{CONTROL_KINDS.map((value) => <option key={value} value={value}>{t(`control.type.${value}`)}</option>)}</select></label>
-                                    {select('status', CONTROL_STATUSES[activeKind])}<ControlBadge value={draft.status} />
+                                    {select('status', CONTROL_STATUSES[activeKind])}
+                                    {activeKind === 'risks' && <>{select('probability', ASSESSMENTS)}{select('impact', ASSESSMENTS)}<div className="form-group"><label id="control-riskLevel-label">{t('control.riskLevel')}</label><output aria-labelledby="control-riskLevel-label"><ControlBadge value={riskLevel(draft)} /></output></div><p className="field-hint">{t('control.riskRule')}</p></>}
                                     {field('dueDate', 'date')}
-                                    {activeKind === 'risks' && <>{select('probability', ASSESSMENTS)}{select('impact', ASSESSMENTS)}<p className={`control-risk ${riskLevel(draft)}`}>{t('control.riskLevel')}: <ControlBadge value={riskLevel(draft)} /></p><p className="field-hint">{t('control.riskRule')}</p>{field('materializedDate', 'date')}</>}
+                                    {activeKind === 'risks' && field('materializedDate', 'date')}
                                     {activeKind === 'decisions' && field('decisionDate', 'date')}
                                     {activeKind === 'deliverables' && <>{field('deliveredDate', 'date')}{field('acceptedDate', 'date')}<p className="field-hint">{t('control.datesHelp')}</p></>}
                                 </section>
-                                <section className="workitem-property-group"><h3>{t('workitems.people')}</h3>{field('owner')}{activeKind === 'decisions' && field('decisionMaker')}{activeKind === 'deliverables' && field('validator')}</section>
+                                <section className="workitem-property-group"><h3>{t('workitems.people')}</h3>
+                                    <div className="form-group"><label htmlFor="control-owner">{t('task.responsible')}</label><select id="control-owner" disabled={readonly || busy} value={draft.owner} onChange={(event) => {
+                                        const next = setTaskResponsible({ ...draft, responsible: draft.owner }, event.target.value);
+                                        update({ ...draft, owner: next.responsible, assignees: next.assignees });
+                                    }}><option value="">{t('task.noResponsible')}</option>{[...new Set([...project.members.map((member) => member.name), ...(draft.owner ? [draft.owner] : [])])].map((name) => <option key={name} value={name}>{name}</option>)}</select></div>
+                                    {activeKind === 'decisions' && field('decisionMaker')}{activeKind === 'deliverables' && field('validator')}
+                                    <fieldset className="control-people-editors" disabled={readonly || busy}>
+                                        <div className="form-group"><label id="taskAssigneesLabel">{t('task.assignees')}</label><AssigneeEditor value={draft.assignees} pool={project.members.map((member) => member.name)} onChange={(assignees) => update({ ...draft, assignees })} onRemove={removeParticipant} /></div>
+                                        <div className="form-group"><label id="taskTagsLabel">{t('task.tags')}</label><TagEditor value={draft.tags} suggestions={project.tags} onChange={(tags) => update({ ...draft, tags })} /></div>
+                                    </fieldset>
+                                </section>
                                 <section className="workitem-property-group"><h3>{t('control.history')}</h3>
                                     {record && <dl className="detail-list">{(['createdAt', 'updatedAt'] as const).map((key) => <div className="detail-item" key={key}><dt className="detail-label">{t(`control.${key}`)}</dt><dd className="detail-value">{new Date(record[key]).toLocaleString(language === 'pt' ? 'pt-PT' : 'en')}</dd></div>)}</dl>}
                                     {!readonly && <label className="form-group">{t('control.author')}<input id="control-author" required={tab === 'details'} disabled={busy} value={author} onChange={(event) => setAuthor(event.target.value)} /></label>}

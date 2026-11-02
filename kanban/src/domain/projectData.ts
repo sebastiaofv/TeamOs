@@ -126,6 +126,18 @@ export function applyProjectSettings(data: BoardData, draft: ProjectSettingsDraf
         task.assignees = (task.assigneeIds || []).map((id) => after.members.find((member) => member.id === id)!.name);
         task.responsible = after.members.find((member) => member.id === task.responsibleId)?.name || '';
     }
+    for (const record of data.extensions.projectControl?.records || []) {
+        const rename = (name: string) => {
+            const member = before.members.find((member) => member.name === name);
+            if (!member) return name; // Preserve free-text owners from legacy files.
+            const updated = after.members.find((entry) => entry.id === member.id);
+            if (!updated) throw new ProjectDataError('memberInUse');
+            return updated.name;
+        };
+        if (record.tags.some((tag) => !after.tags.includes(tag))) throw new ProjectDataError('tagInUse');
+        record.owner = rename(record.owner);
+        record.assignees = record.assignees.map(rename);
+    }
     data.board.settings.title = draft.name.trim();
     data.extensions.project = after;
     syncProjectAssignments(data);

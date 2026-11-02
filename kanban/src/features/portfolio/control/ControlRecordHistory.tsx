@@ -6,7 +6,7 @@ import { TaskHistory } from '@/features/portfolio/task/dialogs/TaskHistory';
 const CATEGORIES = ['all', 'creation', 'fields', 'status', 'people', 'planning', 'relations'] as const;
 const FIELDS: Record<string, TranslationKey> = {
     id: 'control.id', kind: 'control.kind', title: 'control.title', description: 'control.description',
-    status: 'control.status', owner: 'control.owner', probability: 'control.probability', impact: 'control.impact',
+    status: 'control.status', owner: 'task.responsible', assignees: 'task.assignees', tags: 'task.tags', probability: 'control.probability', impact: 'control.impact',
     mitigationPlan: 'control.mitigationPlan', contingencyPlan: 'control.contingencyPlan',
     decisionMaker: 'control.decisionMaker', decisionDate: 'control.decisionDate', rationale: 'control.rationale',
     validator: 'control.validator', dueDate: 'control.dueDate', deliveredDate: 'control.deliveredDate',
@@ -17,7 +17,7 @@ const FIELDS: Record<string, TranslationKey> = {
 function category(field: string): HistoryCategory {
     if (field === 'id' || field === 'createdAt') return 'creation';
     if (field === 'status') return 'status';
-    if (['owner', 'decisionMaker', 'validator'].includes(field)) return 'people';
+    if (['owner', 'assignees', 'decisionMaker', 'validator'].includes(field)) return 'people';
     if (field.endsWith('Date')) return 'planning';
     if (field === 'related' || field === 'legacyWorkitemIds') return 'relations';
     return 'fields';

@@ -5,6 +5,7 @@ import { createEmptyProjectData, validateBoardData } from '../../src/domain/boar
 import { createBoardStateSnapshot, serializeBoardDataFromObject } from '../../src/domain/serialize';
 import { ASSESSMENTS, controlRecords, gateControlProgress, newControlRecord, parseProjectControl, removeDeletedControlLinks, riskLevel, saveControlRecord, type ControlRecord } from '../../src/domain/projectControl';
 import { appendTimelineEvent, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
+import { applyProjectSettings } from '../../src/domain/projectData';
 import type { BoardData } from '../../src/domain/types';
 
 const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
@@ -12,7 +13,7 @@ describe('Project Control persistence and lifecycle', () => {
     it('migrates v1 workitem links to an archive, preserving IDs, comments and history through round trips', () => {
         const legacy = JSON.parse(readFileSync('tests/fixtures/project-control-v1.json', 'utf8'));
         const migrated = parseProjectControl(legacy)!;
-        expect(migrated.version).toBe(2);
+        expect(migrated.version).toBe(3);
         expect(migrated.records.map((record) => record.id)).toEqual(legacy.records.map((record: ControlRecord) => record.id));
         for (const [index, record] of migrated.records.entries()) {
             expect(record.related).toEqual({ phaseIds: legacy.records[index].related.phaseIds, milestoneIds: legacy.records[index].related.milestoneIds });
@@ -30,6 +31,55 @@ describe('Project Control persistence and lifecycle', () => {
         expect(controlRecords(saved).find((record) => record.id === existing.id)!.legacyWorkitemIds).toEqual(existing.legacyWorkitemIds);
         expect(saveControlRecord(saved, { ...newControlRecord('risks'), title: 'New risk' }, 'Ana').id).toBe('ATL-RK-9');
         expect(saved.board.tasks).toEqual(serializeBoardDataFromObject(data).board.tasks);
+    });
+    it('migrates v2 participants and tags without losing legacy owners or changing stored history', () => {
+        const legacy = JSON.parse(readFileSync('tests/fixtures/project-control-v2.json', 'utf8'));
+        legacy.records[0].owner = ' Legacy external owner ';
+        legacy.records[1].owner = '   ';
+        const migrated = parseProjectControl(legacy)!;
+        expect(migrated.version).toBe(3);
+        migrated.records.forEach((record, index) => {
+            expect(record).toEqual({ ...legacy.records[index], assignees: legacy.records[index].owner.trim() ? [legacy.records[index].owner] : [], tags: [] });
+        });
+        expect(legacy.version).toBe(2);
+        expect(legacy.records[0].assignees).toBeUndefined();
+        const data = fixture(); data.extensions.projectControl = fromAny(legacy);
+        const saved = serializeBoardDataFromObject(data);
+        expect(saved.extensions.projectControl).toEqual(migrated);
+        expect(serializeBoardDataFromObject(saved).extensions.projectControl).toEqual(migrated);
+    });
+    it('saves curated participants and tags with history and round trips, rejecting unknown additions', () => {
+        const data = fixture(); const original = controlRecords(data)[0];
+        ensureBoardTimelineBaseline(data);
+        const saved = saveControlRecord(data, { ...original, assignees: [...original.assignees, 'Rui Costa'], tags: ['documentation'] }, 'Ana');
+        expect(saved.history.at(-1)!.changes.assignees).toEqual({ before: original.assignees, after: ['Ana Silva', 'Rui Costa'] });
+        expect(saved.history.at(-1)!.changes.tags).toEqual({ before: ['feature'], after: ['documentation'] });
+        expect(controlRecords(serializeBoardDataFromObject(data)).find((record) => record.id === saved.id)).toEqual(saved);
+        appendTimelineEvent(data, { kind: 'board.control.updated', entityType: 'board', entityId: saved.id, summary: 'People and tags', snapshot: createBoardStateSnapshot(data) });
+        expect(controlRecords(reconstructBoardStateFromTimeline(data, 0))[0].assignees).toEqual(['Ana Silva']);
+        expect(controlRecords(reconstructBoardStateFromTimeline(data, 1)).find((record) => record.id === saved.id)!.tags).toEqual(['documentation']);
+        expect(() => saveControlRecord(data, { ...saved, assignees: ['Unknown member'] }, 'Ana')).toThrow(/unknownMember/);
+        expect(() => saveControlRecord(data, { ...saved, tags: ['unknown'] }, 'Ana')).toThrow(/unknownTag/);
+    });
+    it('keeps control assignments coherent when project members are renamed and prevents removing used catalog entries', () => {
+        const data = fixture(); const project = structuredClone(data.extensions.project!);
+        project.members = project.members.map((member) => member.id === 'ana' ? { ...member, name: 'Ana Renamed' } : member);
+        applyProjectSettings(data, { name: 'Atlas', project });
+        expect(controlRecords(data)[0].owner).toBe('Ana Renamed');
+        expect(controlRecords(data)[0].assignees).toEqual(['Ana Renamed']);
+        const withoutMember = { ...project, members: project.members.filter((member) => member.id !== 'ana') };
+        // These records alone still reserve their curated assignments.
+        data.board.tasks = [];
+        expect(() => applyProjectSettings(data, { name: 'Atlas', project: withoutMember })).toThrow(/memberInUse/);
+        expect(() => applyProjectSettings(data, { name: 'Atlas', project: { ...project, tags: [] } })).toThrow(/tagInUse/);
+    });
+    it('rejects missing, malformed, duplicate participants/tags and responsibility outside participation in v3', () => {
+        const extension = fixture().extensions.projectControl!;
+        for (const patch of [
+            { assignees: undefined }, { tags: undefined }, { assignees: 'Ana Silva' }, { tags: [42] },
+            { assignees: ['Ana Silva', 'ana silva'] }, { assignees: [' Ana Silva '] }, { assignees: [] },
+            { tags: ['feature', 'FEATURE'] }, { tags: [''] }, { tags: ['x'.repeat(31)] }
+        ]) expect(() => parseProjectControl({ ...extension, records: [{ ...extension.records[0], ...patch }] })).toThrow();
     });
     it('assigns project and type IDs once, keeps numbering across types and rejects active workitem links', () => {
         const data = createEmptyProjectData('Atlas', 'ATL');
@@ -83,13 +133,13 @@ describe('Project Control persistence and lifecycle', () => {
     it('rejects unsupported versions, duplicate IDs, malformed dates, ratings, history and comments instead of dropping them', () => {
         const extension = fixture().extensions.projectControl!;
         for (const malformed of [
-            { ...extension, version: 3 }, { ...extension, lastNumber: 0 }, { ...extension, records: [...extension.records, extension.records[0]] },
+            { ...extension, version: 4 }, { ...extension, lastNumber: 0 }, { ...extension, records: [...extension.records, extension.records[0]] },
             { ...extension, records: [{ ...extension.records[0], dueDate: '2026-02-30' }] },
             { ...extension, records: [{ ...extension.records[0], probability: 'critical' }] },
             { ...extension, records: [{ ...extension.records[0], history: [{ id: 'bad' }] }] },
             { ...extension, records: [{ ...extension.records[0], comments: [{ id: 'bad' }] }] }
         ]) expect(() => parseProjectControl(malformed)).toThrow();
-        expect(() => serializeBoardDataFromObject({ ...fixture(), extensions: { projectControl: fromAny({ version: 3 }) } })).toThrow();
+        expect(() => serializeBoardDataFromObject({ ...fixture(), extensions: { projectControl: fromAny({ version: 4 }) } })).toThrow();
     });
     it('keeps associations shared and direct, records unlinking, and never cascades a phase association to its workitems', () => {
         const data = fixture(); const record = controlRecords(data)[0];

@@ -3,7 +3,7 @@ import { isRecord, normalizeTimestamp, nowIso } from './util';
 import { cloneSerializable } from './serializable';
 import { parseRoadmapIsoDate } from './roadmap';
 import { validateCommentInput } from './comments';
-import { ProjectDataError } from './projectData';
+import { ProjectDataError, getProjectData } from './projectData';
 
 export type ControlErrorCode = 'invalid' | 'references' | 'authorRequired' | 'stale' | 'dates' | 'materializedDateRequired';
 export class ControlError extends Error {
@@ -24,7 +24,7 @@ export type ControlRelated = { phaseIds: string[]; milestoneIds: string[] };
 export type ControlComment = { id: string; at: string; author: { name: string; kind: 'local' }; text: string; images: Attachment[] };
 export type ControlHistory = { id: string; at: string; author: string; changes: TimelineChanges };
 export type ControlRecord = {
-    id: string; kind: ControlKind; title: string; description: string; status: string; owner: string;
+    id: string; kind: ControlKind; title: string; description: string; status: string; owner: string; assignees: string[]; tags: string[];
     probability: Assessment; impact: Assessment; mitigationPlan: string; contingencyPlan: string;
     decisionMaker: string; decisionDate: string; rationale: string;
     validator: string; dueDate: string; deliveredDate: string; acceptedDate: string;
@@ -34,8 +34,8 @@ export type ControlRecord = {
     /** Archived v1 associations, retained for file compatibility, never used as active links. */
     legacyWorkitemIds?: number[];
 };
-export type ProjectControl = { version: 2; lastNumber: number; records: ControlRecord[] };
-export function emptyProjectControl(): ProjectControl { return { version: 2, lastNumber: 0, records: [] }; }
+export type ProjectControl = { version: 3; lastNumber: number; records: ControlRecord[] };
+export function emptyProjectControl(): ProjectControl { return { version: 3, lastNumber: 0, records: [] }; }
 export function controlRecords(data?: LooseBoardData | null): ControlRecord[] {
     return (data?.extensions?.projectControl as ProjectControl | undefined)?.records || [];
 }
@@ -48,15 +48,15 @@ export function controlPending(record: ControlRecord): boolean {
 }
 export function newControlRecord(kind: ControlKind, related?: Partial<ControlRelated>): ControlRecord {
     const at = nowIso();
-    return { id: '', kind, title: '', description: '', status: CONTROL_STATUSES[kind][0], owner: '', probability: 'medium', impact: 'medium', mitigationPlan: '', contingencyPlan: '', decisionMaker: '', decisionDate: '', rationale: '', validator: '', dueDate: '', deliveredDate: '', acceptedDate: '', materializedDate: '', actualImpact: '', related: { phaseIds: [], milestoneIds: [], ...related }, createdAt: at, updatedAt: at, comments: [], history: [] };
+    return { id: '', kind, title: '', description: '', status: CONTROL_STATUSES[kind][0], owner: '', assignees: [], tags: [], probability: 'medium', impact: 'medium', mitigationPlan: '', contingencyPlan: '', decisionMaker: '', decisionDate: '', rationale: '', validator: '', dueDate: '', deliveredDate: '', acceptedDate: '', materializedDate: '', actualImpact: '', related: { phaseIds: [], milestoneIds: [], ...related }, createdAt: at, updatedAt: at, comments: [], history: [] };
 }
 const textFields = ['title', 'description', 'owner', 'mitigationPlan', 'contingencyPlan', 'decisionMaker', 'rationale', 'validator', 'actualImpact'] as const;
 const dateFields = ['decisionDate', 'dueDate', 'deliveredDate', 'acceptedDate', 'materializedDate'] as const;
 function fail(): never { throw new ControlError('invalid', 'Invalid Project Control record.'); }
 export function parseProjectControl(value: unknown): ProjectControl | undefined {
-    // v2 archives obsolete workitem links without renumbering records or rewriting history.
+    // v2 archives workitem links; v3 adds participants and tags without rewriting history.
     if (value === undefined) return undefined;
-    if (!isRecord(value) || (value.version !== 1 && value.version !== 2) || !Number.isSafeInteger(value.lastNumber) || Number(value.lastNumber) < 0 || !Array.isArray(value.records)) fail();
+    if (!isRecord(value) || (value.version !== 1 && value.version !== 2 && value.version !== 3) || !Number.isSafeInteger(value.lastNumber) || Number(value.lastNumber) < 0 || !Array.isArray(value.records)) fail();
     const ids = new Set<string>();
     for (const item of value.records) {
         if (!isRecord(item) || typeof item.id !== 'string' || !CONTROL_KINDS.includes(item.kind as ControlKind)) fail();
@@ -72,9 +72,15 @@ export function parseProjectControl(value: unknown): ProjectControl | undefined 
             const refs = item.related[key];
             if (!Array.isArray(refs) || new Set(refs).size !== refs.length || refs.some((ref) => typeof ref !== 'string' || !ref.trim())) fail();
         }
-        if (value.version === 2 && 'workitemIds' in item.related) fail();
+        if (value.version !== 1 && 'workitemIds' in item.related) fail();
         const legacyRefs = value.version === 1 ? item.related.workitemIds : item.legacyWorkitemIds;
         if ((value.version === 1 || legacyRefs !== undefined) && (!Array.isArray(legacyRefs) || new Set(legacyRefs).size !== legacyRefs.length || legacyRefs.some((id) => !Number.isSafeInteger(id) || id <= 0))) fail();
+        for (const key of ['assignees', 'tags']) {
+            const entries = item[key];
+            if (value.version !== 3 && entries === undefined) continue;
+            if (!Array.isArray(entries) || entries.some((entry) => typeof entry !== 'string' || !entry.trim() || (entry !== entry.trim() && (key === 'tags' || entry !== item.owner)) || (key === 'tags' && entry.length > 30)) || new Set(entries.map((entry) => entry.trim().toLowerCase())).size !== entries.length) fail();
+        }
+        if (value.version === 3 && String(item.owner).trim() && !(item.assignees as string[]).includes(String(item.owner))) fail();
         if (!Array.isArray(item.comments) || !Array.isArray(item.history)) fail();
         const commentIds = new Set<string>();
         for (const comment of item.comments) {
@@ -91,11 +97,18 @@ export function parseProjectControl(value: unknown): ProjectControl | undefined 
     }
     const migrated = cloneSerializable(value) as ProjectControl;
     if (value.version === 1) {
-        migrated.version = 2;
         for (const item of migrated.records) {
             const related = item.related as ControlRelated & { workitemIds?: number[] };
             if (related.workitemIds?.length) item.legacyWorkitemIds = related.workitemIds;
             delete related.workitemIds;
+        }
+    }
+    if (value.version !== 3) {
+        migrated.version = 3;
+        for (const item of migrated.records) {
+            item.assignees ??= [];
+            if (item.owner.trim() && !item.assignees.includes(item.owner)) item.assignees.push(item.owner);
+            item.tags ??= [];
         }
     }
     return migrated;
@@ -116,6 +129,9 @@ export function saveControlRecord(data: BoardData, input: ControlRecord, author:
     record.id = before?.id || `${data.extensions.project!.acronym}-${CONTROL_TYPE_CODES[record.kind]}-${lastNumber + 1}`;
     if (before && before.kind !== record.kind) fail();
     record.title = record.title.trim();
+    const project = getProjectData(data);
+    if (record.assignees.some((name) => !before?.assignees.includes(name) && !project.members.some((member) => member.name === name))) throw new ProjectDataError('unknownMember');
+    if (record.tags.some((tag) => !before?.tags.includes(tag) && !project.tags.includes(tag))) throw new ProjectDataError('unknownTag');
     if (record.kind === 'deliverables' && ((['delivered', 'accepted'].includes(record.status) && !record.deliveredDate) || (record.status === 'accepted' && !record.acceptedDate) || (record.acceptedDate && record.deliveredDate && record.acceptedDate < record.deliveredDate))) throw new ControlError('dates', 'Delivery and acceptance dates are required and must be in chronological order.');
     if (record.kind === 'risks' && record.status === 'materialized' && !record.materializedDate) throw new ControlError('materializedDateRequired', 'A materialization date is required.');
     record.createdAt = before?.createdAt || nowIso(); record.updatedAt = nowIso();
@@ -128,7 +144,7 @@ export function saveControlRecord(data: BoardData, input: ControlRecord, author:
     }
     if (!Object.keys(changes).length) return before!;
     record.history = [...record.history, { id: crypto.randomUUID(), at: record.updatedAt, author: author.trim(), changes }];
-    const next: ProjectControl = { version: 2, lastNumber: before ? lastNumber : lastNumber + 1, records: [...extension.records.filter((item) => item.id !== record.id), record] };
+    const next: ProjectControl = { version: 3, lastNumber: before ? lastNumber : lastNumber + 1, records: [...extension.records.filter((item) => item.id !== record.id), record] };
     parseProjectControl(next); data.extensions.projectControl = next;
     return record;
 }

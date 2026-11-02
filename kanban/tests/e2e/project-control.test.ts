@@ -20,9 +20,9 @@ test('existing control records require Edit for main fields but save sidebar cha
     await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('in-mitigation');
     await expect(dialog(page).getByLabel('Status', { exact: true })).toBeEnabled();
-    await dialog(page).getByLabel('Owner', { exact: true }).fill('Bruno Costa');
-    await dialog(page).getByLabel('Owner', { exact: true }).press('Tab');
-    await expect(dialog(page).getByLabel('Owner', { exact: true })).toBeEnabled();
+    await dialog(page).getByLabel('Responsible', { exact: true }).selectOption('Bruno Costa');
+    await dialog(page).getByLabel('Responsible', { exact: true }).press('Tab');
+    await expect(dialog(page).getByLabel('Responsible', { exact: true })).toBeEnabled();
     await dialog(page).getByRole('button', { name: 'Close', exact: true }).last().click();
     await waitForBoardWrites(page);
     let saved = await readSavedBoard(page, 'control');
@@ -34,10 +34,20 @@ test('existing control records require Edit for main fields but save sidebar cha
     await dialog(page).getByRole('button', { name: 'Edit', exact: true }).click();
     await expect(dialog(page).getByLabel('Title', { exact: true })).toBeFocused();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Discarded title');
+    await dialog(page).locator('#taskAssigneeNewItem').selectOption('Rui Costa');
+    await dialog(page).locator('#taskAssigneeAddBtn').click();
+    await dialog(page).locator('#taskTagNewItem').selectOption('documentation');
+    await dialog(page).locator('#taskTagAddBtn').click();
     await dialog(page).getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
     await dialog(page).getByRole('button', { name: 'Edit', exact: true }).click();
+    await expect(dialog(page).locator('.assignee-editor-list')).not.toContainText('Rui Costa');
+    await expect(dialog(page).locator('.tag-editor-list')).not.toContainText('documentation');
+    await dialog(page).locator('#taskAssigneeNewItem').selectOption('Rui Costa');
+    await dialog(page).locator('#taskAssigneeAddBtn').click();
+    await dialog(page).locator('#taskTagNewItem').selectOption('documentation');
+    await dialog(page).locator('#taskTagAddBtn').click();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Supplier confirmed');
     await dialog(page).getByLabel('build · Build', { exact: true }).uncheck();
     await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
@@ -46,7 +56,61 @@ test('existing control records require Edit for main fields but save sidebar cha
     saved = await readSavedBoard(page, 'control');
     record = saved.extensions.projectControl.records.find((item: any) => item.id === 'ATL-RK-1');
     expect(record.title).toBe('Supplier confirmed'); expect(record.related.phaseIds).not.toContain('build');
+    expect(record.assignees).toContain('Rui Costa'); expect(record.tags).toContain('documentation');
     expect(record.status).toBe('in-mitigation'); expect(record.owner).toBe('Bruno Costa');
+});
+
+for (const language of ['en', 'pt']) for (const [kind, title, id] of [
+    ['Risks', 'Supplier availability', 'ATL-RK-1'],
+    ['Decisions', 'Choose supported runtime', 'ATL-DC-4'],
+    ['Deliverables', 'Release package', 'ATL-DL-6']
+]) test(`${kind} sidebar shares Work Item controls and saves people/tags directly (${language})`, async ({ page }) => {
+    await seed(page);
+    await page.getByRole('tab', { name: kind, exact: true }).click();
+    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    await page.getByRole('button', { name: title, exact: true }).click();
+    const sidebar = dialog(page).locator('.workitem-sidebar');
+    await expect(sidebar.getByLabel(language === 'pt' ? 'Tipo' : 'Type', { exact: true })).toHaveCount(0);
+    await expect(sidebar.locator('.detail-status-control .table-status-badge')).toHaveCount(1);
+    await expect(sidebar.locator('.detail-status-control select')).toBeEnabled();
+    const arrow = await sidebar.locator('.detail-status-control').evaluate((element) => getComputedStyle(element, '::after').content);
+    expect(arrow).toContain('▾');
+    if (kind === 'Risks') {
+        const labels = await sidebar.locator('.workitem-property-group').first().locator('.form-group > label').allTextContents();
+        expect(labels).toEqual(language === 'pt' ? ['Estado', 'Probabilidade', 'Impacto', 'Nível de risco', 'Prazo', 'Data de materialização'] : ['Status', 'Probability', 'Impact', 'Risk level', 'Due date', 'Materialized date']);
+        expect(await sidebar.locator('input[type=date]').evaluateAll((fields) => fields.map((field) => field.id))).toEqual(['control-dueDate', 'control-materializedDate']);
+    }
+    await sidebar.locator('#control-owner').selectOption('Bruno Costa');
+    await expect(sidebar.locator('.assignee-editor-list')).toContainText('Bruno Costa');
+    await sidebar.locator('#taskAssigneeNewItem').selectOption(kind === 'Risks' ? 'Rui Costa' : 'Ana Silva');
+    await sidebar.locator('#taskAssigneeAddBtn').click();
+    await sidebar.locator('#taskTagNewItem').selectOption('documentation');
+    await sidebar.locator('#taskTagAddBtn').click();
+    await waitForBoardWrites(page);
+    let record = (await readSavedBoard(page, 'control')).extensions.projectControl.records.find((item: any) => item.id === id);
+    expect(record.owner).toBe('Bruno Costa');
+    expect(record.assignees).toEqual(expect.arrayContaining(['Ana Silva', 'Rui Costa', 'Bruno Costa']));
+    expect(record.tags).toContain('documentation');
+    const participant = sidebar.locator('.assignee-editor-row').filter({ hasText: 'Bruno Costa' });
+    await participant.getByRole('button').click();
+    const confirmation = page.getByRole('alertdialog');
+    await expect(confirmation).toBeVisible();
+    await confirmation.getByRole('button', { name: language === 'pt' ? 'Cancelar' : 'Cancel', exact: true }).click();
+    await expect(sidebar.locator('#control-owner')).toHaveValue('Bruno Costa');
+    await participant.getByRole('button').click();
+    await confirmation.getByRole('button', { name: language === 'pt' ? 'Remover' : 'Remove', exact: true }).click();
+    await expect(sidebar.locator('#control-owner')).toHaveValue('');
+    await sidebar.locator('.tag-editor-row').filter({ hasText: 'documentation' }).getByRole('button').click();
+    await dialog(page).getByRole('button', { name: language === 'pt' ? 'Fechar' : 'Close', exact: true }).last().click();
+    await waitForBoardWrites(page);
+    record = (await readSavedBoard(page, 'control')).extensions.projectControl.records.find((item: any) => item.id === id);
+    expect(record.owner).toBe(''); expect(record.assignees).not.toContain('Bruno Costa'); expect(record.tags).not.toContain('documentation');
+    await page.getByRole('button', { name: title, exact: true }).click();
+    await expect(dialog(page).locator('.assignee-editor-list')).toContainText('Rui Costa');
+    await dialog(page).getByRole('tab', { name: language === 'pt' ? 'Histórico' : 'History', exact: true }).click();
+    const history = dialog(page).getByRole('tabpanel');
+    await history.locator('.history-entry summary').first().click();
+    await expect(history.locator('.history-change dt').first()).toHaveText(language === 'pt' ? 'Etiquetas' : 'Tags');
 });
 
 for (const language of ['en', 'pt']) for (const [kind, title, id] of [
@@ -90,7 +154,7 @@ for (const [kind, title] of [['Risks', 'Supplier availability'], ['Decisions', '
         await page.getByRole('tab', { name: kind, exact: true }).click();
         await page.getByRole('button', { name: title, exact: true }).click();
         await expect(dialog(page).getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
-        await expect(dialog(page).getByLabel('Owner', { exact: true })).toBeDisabled();
+        await expect(dialog(page).getByLabel('Responsible', { exact: true })).toBeDisabled();
         await dialog(page).getByRole('tab', { name: 'History', exact: true }).click();
         const history = dialog(page).getByRole('tabpanel');
         await expect(history.locator('.history-note')).toHaveCount(1);
@@ -118,7 +182,7 @@ for (const language of ['en', 'pt']) test(`control history preserves complete op
     await dialog(page).getByRole('button', { name: 'Edit', exact: true }).click();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Supplier confirmed');
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('in-mitigation');
-    await dialog(page).getByLabel('Owner', { exact: true }).fill('Bruno Costa');
+    await dialog(page).getByLabel('Responsible', { exact: true }).selectOption('Bruno Costa');
     await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
     await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
@@ -129,15 +193,15 @@ for (const language of ['en', 'pt']) test(`control history preserves complete op
     await dialog(page).getByRole('tab', { name: language === 'pt' ? 'Histórico' : 'History', exact: true }).click();
     const history = dialog(page).getByRole('tabpanel');
     const entry = history.locator('.history-entry').first();
-    await expect(entry.locator('.history-operation')).toHaveText(language === 'pt' ? '3 categorias · 3 alterações' : '3 categories · 3 changes');
+    await expect(entry.locator('.history-operation')).toHaveText(language === 'pt' ? '3 categorias · 4 alterações' : '3 categories · 4 changes');
     await entry.locator('summary').click();
-    await expect(entry.locator('.history-change')).toHaveCount(3);
+    await expect(entry.locator('.history-change')).toHaveCount(4);
     await expect(entry).toContainText(language === 'pt' ? 'Em mitigação' : 'In mitigation');
     await expect(entry).toContainText('Supplier availability');
     await expect(entry).toContainText('Supplier confirmed');
     for (const category of ['fields', 'people', 'status']) {
         await history.getByLabel(language === 'pt' ? 'Categoria' : 'Category', { exact: true }).selectOption(category);
-        await expect(entry.locator('.history-change')).toHaveCount(3);
+        await expect(entry.locator('.history-change')).toHaveCount(4);
     }
     await dialog(page).getByRole('button', { name: language === 'pt' ? 'Fechar' : 'Close', exact: true }).last().click();
     expect(await readSavedBoard(page, 'control')).toEqual(saved);
@@ -151,6 +215,9 @@ test('creation offers all three item types with project IDs, singular badges and
     for (const [kind, label, code, number] of [['risks', 'Risk', 'RK', 9], ['decisions', 'Decision', 'DC', 10], ['deliverables', 'Deliverable', 'DL', 11]] as const) {
         await page.getByRole('button', { name: 'New record', exact: true }).click();
         await dialog(page).getByLabel('Title', { exact: true }).fill(`New ${label}`);
+        await dialog(page).getByLabel('Responsible', { exact: true }).selectOption('Bruno Costa');
+        await dialog(page).locator('#taskTagNewItem').selectOption('documentation');
+        await dialog(page).locator('#taskTagAddBtn').click();
         await dialog(page).getByLabel('Type', { exact: true }).selectOption(kind);
         await expect(dialog(page).locator('.control-type')).toHaveText(label);
         await expect(dialog(page).getByLabel('Title', { exact: true })).toHaveValue(`New ${label}`);
@@ -161,6 +228,9 @@ test('creation offers all three item types with project IDs, singular badges and
         const created = saved.extensions.projectControl.records.find((record: any) => record.title === `New ${label}`);
         expect(created.id).toBe(`ATL-${code}-${number}`);
         expect(created.kind).toBe(kind);
+        expect(created.owner).toBe('Bruno Costa');
+        expect(created.assignees).toEqual(['Bruno Costa']);
+        expect(created.tags).toEqual(['documentation']);
         expect(created.related).toEqual({ phaseIds: [], milestoneIds: [] });
     }
 });
@@ -209,7 +279,7 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
     await dialog(page).getByLabel('Title', { exact: true }).fill('Capacity limit');
     await dialog(page).getByLabel('Probability', { exact: true }).selectOption('high');
     await dialog(page).getByLabel('Impact', { exact: true }).selectOption('high');
-    await expect(dialog(page).locator('.control-risk')).toContainText('High');
+    await expect(dialog(page).getByLabel('Risk level', { exact: true })).toContainText('High');
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('materialized');
     await expect(dialog(page).getByLabel('Materialized date', { exact: true })).toHaveValue('2026-10-31');
     await dialog(page).getByRole('tab', { name: 'Response', exact: true }).click();
@@ -349,6 +419,10 @@ test('read-only projects permit consultation and navigation while blocking write
     await expect(dialog(page).locator('.workitem-main input, .workitem-main textarea')).toHaveCount(0);
     await expect(dialog(page).getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
     await expect(dialog(page).getByLabel('Status', { exact: true })).toBeDisabled();
+    await expect(dialog(page).locator('#taskAssigneeNewItem')).toBeDisabled();
+    await expect(dialog(page).locator('#taskTagNewItem')).toBeDisabled();
+    await expect(dialog(page).locator('.assignee-editor-remove')).toBeDisabled();
+    await expect(dialog(page).locator('.tag-editor-remove')).toBeDisabled();
     await expect(dialog(page).getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
     await dialog(page).getByRole('tab', { name: 'Comments', exact: true }).click();
     await expect(dialog(page).getByRole('button', { name: 'Post comment', exact: true })).toHaveCount(0);

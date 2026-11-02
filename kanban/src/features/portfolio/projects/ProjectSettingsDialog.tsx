@@ -37,8 +37,12 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
     const [memberError, setMemberError] = useState('');
     const [tag, setTag] = useState('');
     const [error, setError] = useState('');
-    const memberUsed = (id: string) => vm.data.board.tasks.some((task) => task.assigneeIds?.includes(id));
-    const tagUsed = (value: string) => vm.data.board.tasks.some((task) => task.tags.includes(value));
+    const controls = vm.data.extensions.projectControl?.records || [];
+    const memberUsed = (id: string) => {
+        const name = vm.data.extensions.project?.members.find((member) => member.id === id)?.name || '';
+        return vm.data.board.tasks.some((task) => task.assigneeIds?.includes(id)) || controls.some((record) => record.assignees.includes(name));
+    };
+    const tagUsed = (value: string) => vm.data.board.tasks.some((task) => task.tags.includes(value)) || controls.some((record) => record.tags.includes(value));
     const submit = async () => {
         if (vm.readOnly || saving) return;
         if (formRef.current && !formRef.current.checkValidity()) {

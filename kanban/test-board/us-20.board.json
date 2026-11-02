@@ -25,7 +25,7 @@
       }
     ],
     "settings": {
-      "title": "Project Control \u00b7 fictional Atlas launch"
+      "title": "Project Control · fictional Atlas launch"
     },
     "tasks": [
       {
@@ -186,12 +186,19 @@
         {
           "id": "rui",
           "name": "Rui Costa"
+        },
+        {
+          "id": "bruno",
+          "name": "Bruno Costa"
         }
       ],
-      "tags": []
+      "tags": [
+        "feature",
+        "documentation"
+      ]
     },
     "projectControl": {
-      "version": 2,
+      "version": 3,
       "lastNumber": 8,
       "records": [
         {
@@ -238,6 +245,12 @@
                 }
               }
             }
+          ],
+          "assignees": [
+            "Ana Silva"
+          ],
+          "tags": [
+            "feature"
           ]
         },
         {
@@ -279,7 +292,11 @@
                 }
               }
             }
-          ]
+          ],
+          "assignees": [
+            "Rui Costa"
+          ],
+          "tags": []
         },
         {
           "id": "ATL-RK-3",
@@ -320,7 +337,11 @@
                 }
               }
             }
-          ]
+          ],
+          "assignees": [
+            "Ana Silva"
+          ],
+          "tags": []
         },
         {
           "id": "ATL-DC-4",
@@ -361,7 +382,11 @@
                 }
               }
             }
-          ]
+          ],
+          "assignees": [
+            "Rui Costa"
+          ],
+          "tags": []
         },
         {
           "id": "ATL-DC-5",
@@ -402,7 +427,11 @@
                 }
               }
             }
-          ]
+          ],
+          "assignees": [
+            "Ana Silva"
+          ],
+          "tags": []
         },
         {
           "id": "ATL-DL-6",
@@ -448,7 +477,11 @@
                 }
               }
             }
-          ]
+          ],
+          "assignees": [
+            "Rui Costa"
+          ],
+          "tags": []
         },
         {
           "id": "ATL-DL-7",
@@ -493,7 +526,11 @@
                 }
               }
             }
-          ]
+          ],
+          "assignees": [
+            "Ana Silva"
+          ],
+          "tags": []
         },
         {
           "id": "ATL-DL-8",
@@ -534,7 +571,11 @@
                 }
               }
             }
-          ]
+          ],
+          "assignees": [
+            "Rui Costa"
+          ],
+          "tags": []
         }
       ]
     }

@@ -821,6 +821,8 @@ test.describe('US-20 Project Control', () => {
       await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
       await page.mouse.move(1, 1);
       await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-record-${theme}-${width}.png`);
+      await page.locator('.control-modal .control-people-editors').scrollIntoViewIfNeeded();
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-people-${theme}-${width}.png`);
       await page.locator('.control-modal').getByRole('button', { name: 'Edit', exact: true }).click();
       await page.mouse.move(1, 1);
       await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-editor-${theme}-${width}.png`);

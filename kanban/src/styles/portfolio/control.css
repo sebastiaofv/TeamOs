@@ -62,3 +62,6 @@
     .control-response, .control-tab-panel { padding: 20px 18px; }
     .control-record-list li { gap: 7px; grid-template-columns: 16px 62px minmax(0, 1fr) minmax(52px, auto); }
 }
+
+.control-people-editors { border: 0; padding: 0; margin: 0; min-width: 0; }
+.control-modal .workitem-eyebrow .form-group { margin: 0; max-width: 180px; }
