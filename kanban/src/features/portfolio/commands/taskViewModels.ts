@@ -29,6 +29,7 @@ import {
 } from '@/domain/roadmap';
 import {
     calculateBoardAttachmentBytes,
+    getAttachmentPreviewMime,
     getTaskAttachments,
     normalizeAttachmentList
 } from '@/domain/attachments';
@@ -197,6 +198,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
                 name: item.name,
                 isImage: item.kind === 'image',
                 dataUrl: item.dataUrl,
+                previewMime: getAttachmentPreviewMime(item),
                 subLabel: `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`
             }))
     };

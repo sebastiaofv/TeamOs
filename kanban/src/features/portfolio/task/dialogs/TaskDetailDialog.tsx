@@ -19,6 +19,7 @@ import { TaskConversation } from './TaskConversation';
 import { TaskPullRequestLinks } from './PullRequestLinks';
 import { TaskHistory } from './TaskHistory';
 import { TaskRelations } from '@/features/portfolio/task/dialogs/TaskRelations';
+import { AttachmentOpenLink } from './AttachmentOpenLink';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
     { label: 'task.responsible', id: 'detailResponsible', key: 'responsible' },
@@ -194,7 +195,10 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
                                     <div className="detail-attachment-name">{item.name}</div>
                                     <div className="detail-attachment-sub">{item.subLabel}</div>
                                 </div>
-                                <a className="detail-attachment-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
+                                <div className="attachment-preview-actions">
+                                    <AttachmentOpenLink className="detail-attachment-open attachment-open" dataUrl={item.dataUrl} previewMime={item.previewMime} />
+                                    <a className="detail-attachment-download attachment-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
+                                </div>
                             </div>
                         ))}
                 </dd>

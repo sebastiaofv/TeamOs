@@ -5,6 +5,8 @@ import { ATTACHMENT_MAX_COUNT } from '@/domain/constants';
 import { formatFileSize } from '@/domain/util';
 import { buildAttachmentWarnings, mergePickedAttachments } from '@/domain/taskDraft';
 import { readFileAsDataUrl } from '@/infrastructure/browser/fileReader';
+import { getAttachmentPreviewMime } from '@/domain/attachments';
+import { AttachmentOpenLink } from '../AttachmentOpenLink';
 import { useI18n } from '@/shared/i18n';
 
 export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
@@ -74,7 +76,10 @@ export function AttachmentsEditor({ value, onChange, otherAttachmentBytes }: {
                             </div>
                         </div>
                         <div className="attachment-editor-actions">
-                            <a className="attachment-editor-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
+                            <div className="attachment-preview-actions">
+                                <AttachmentOpenLink className="attachment-editor-open attachment-open" dataUrl={item.dataUrl} previewMime={getAttachmentPreviewMime(item)} />
+                                <a className="attachment-editor-download attachment-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
+                            </div>
                             <button
                                 type="button"
                                 className="attachment-remove-btn"

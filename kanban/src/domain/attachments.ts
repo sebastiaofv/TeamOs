@@ -28,6 +28,26 @@ export function classifyAttachmentKind(mime: unknown, fileName: unknown): Attach
     return 'file';
 }
 
+const PREVIEW_MIME_BY_EXTENSION: Record<string, string> = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+    webp: 'image/webp', bmp: 'image/bmp', ico: 'image/x-icon', avif: 'image/avif',
+    pdf: 'application/pdf'
+};
+const PREVIEW_MIMES = new Set(Object.values(PREVIEW_MIME_BY_EXTENSION));
+
+export function getAttachmentPreviewMime(attachment: { name: string; mime: string; dataUrl: string }): string | null {
+    // The embedded type takes precedence. Only fall back to the filename for
+    // missing/generic types; an HTML or Office file must never become a preview.
+    const embeddedMime = /^data:([^;,]*)/i.exec(attachment.dataUrl)?.[1] || '';
+    for (const candidate of [embeddedMime, attachment.mime]) {
+        const mime = candidate.split(';')[0].trim().toLowerCase();
+        if (!mime || mime === 'application/octet-stream') continue;
+        return PREVIEW_MIMES.has(mime) ? mime : null;
+    }
+    const extension = attachment.name.split('.').pop()?.toLowerCase() || '';
+    return Object.hasOwn(PREVIEW_MIME_BY_EXTENSION, extension) ? PREVIEW_MIME_BY_EXTENSION[extension] : null;
+}
+
 export function createAttachmentId(): string {
     return `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }

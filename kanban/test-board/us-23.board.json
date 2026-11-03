@@ -1,0 +1,130 @@
+{
+  "meta": {
+    "schemaVersion": 3,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-11-03T09:00:00.000Z",
+    "updatedAt": "2026-11-03T09:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "To Do"
+      },
+      {
+        "status": "doing",
+        "title": "In Progress"
+      },
+      {
+        "status": "done",
+        "title": "Done"
+      }
+    ],
+    "settings": {
+      "title": "US-23 · Visualização de anexos"
+    },
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Consultar imagens, PDFs e documentos",
+        "description": "Validar Open/Abrir, Download/Transferir e alinhamento dos anexos.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "checklist": [],
+        "attachments": [
+          {
+            "id": "att-1",
+            "name": "exemplo.png",
+            "mime": "image/png",
+            "sizeBytes": 1521,
+            "kind": "image",
+            "dataUrl": "data:image/png;base64,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",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-2",
+            "name": "exemplo.jpg",
+            "mime": "image/jpeg",
+            "sizeBytes": 1620,
+            "kind": "image",
+            "dataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCABkAPADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD2+iiigxCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACisTWReLqWlrb6nc28d1cmGRI0iIwIZXyNyE5yg71TtfFjT2rTCwlEJgE0Esu6NZBuVRuZkCgneD8u7vjsCCudPRXLTeL5Y7CO6j00OBBdzzqZyuxbeRUfblcsTkkZC9OcdpV1a+1HVF0r/kHTI8vnyRMspwiRMApZcZImXOV/hI96AujpKK5ObUNWDTW4nuHjtJpIpri1ijaZvkjdGKEYIAdg20ZyBgDmugs76O4htfnMrTQLKJY4m8tgR1DYwM9QCc0BcuUVztvql4/9m75s+dq13bSfKOY0+07R04x5ac9ePc0zStVu47pYdVluvtEkW5oPswdd2QC0TRg5j5/iyRlc4zQFzpaK55Z9ROq3VsNSTYIyJHMa7LeRnHlKvAyxQnIYnnaehwbWgXV1cRXqXbSF4LoxKJggkVdqkb9ny5O7Ix/CV75oC5r0UUUDCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAIZrWG4lt5JU3PbyGSI5I2sVZM+/ysw59ao/8I5pWyRPszbXAAHnP8gDBwE5+T5gD8uOQPQVqUUCsZg8PaWLU232YmIxTwkGVySkzBpBknPzEA56jtipJtGsbhpHeJhJJMJ2kSV0cPsCZDKQV+VQOMfqav0UBYzW0HTjFFGIZE8rdteOd0f5jlsuGDHJAJyTkgVfiijghSGJFSONQqIowFA4AFPooAox6PYxXxvEhImLM3MjFQzfeYITtBPcgZOT6miy0ex0+TfbRMpCeWu6RnCLnO1QxIUcDgYHA9BV6igLGZH4f06NLiMRzFLgs0iPcyMpYtuLAFsA55yMEdqt2dlb2MTR26MAzF2ZnZ2Zj3LMSSeAOT2FWKKAsFFFFAwooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Z",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-3",
+            "name": "exemplo.pdf",
+            "mime": "application/pdf",
+            "sizeBytes": 602,
+            "kind": "file",
+            "dataUrl": "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzNjAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNTggPj4Kc3RyZWFtCkJUIC9GMSAxOCBUZiA1MCAxMjAgVGQgKFRlYW1PUyAtIFVTLTIzOiBQREYgcHJldmlldykgVGogRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDMxMSAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQxOQolJUVPRgo=",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-4",
+            "name": "tipo-generico.PDF",
+            "mime": "application/octet-stream",
+            "sizeBytes": 602,
+            "kind": "file",
+            "dataUrl": "data:application/octet-stream;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzNjAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R5cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggNTggPj4Kc3RyZWFtCkJUIC9GMSAxOCBUZiA1MCAxMjAgVGQgKFRlYW1PUyAtIFVTLTIzOiBQREYgcHJldmlldykgVGogRVQKZW5kc3RyZWFtCmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMDkgMDAwMDAgbiAKMDAwMDAwMDA1OCAwMDAwMCBuIAowMDAwMDAwMTE1IDAwMDAwIG4gCjAwMDAwMDAyNDEgMDAwMDAgbiAKMDAwMDAwMDMxMSAwMDAwMCBuIAp0cmFpbGVyCjw8IC9TaXplIDYgL1Jvb3QgMSAwIFIgPj4Kc3RhcnR4cmVmCjQxOQolJUVPRgo=",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-5",
+            "name": "exemplo.docx",
+            "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "sizeBytes": 1062,
+            "kind": "file",
+            "dataUrl": "data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,UEsDBBQAAAAAAABIY110JJxTPgEAAD4BAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbDxUeXBlcyB4bWxucz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3BhY2thZ2UvMjAwNi9jb250ZW50LXR5cGVzIj48RGVmYXVsdCBFeHRlbnNpb249InJlbHMiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtcGFja2FnZS5yZWxhdGlvbnNoaXBzK3htbCIvPjxPdmVycmlkZSBQYXJ0TmFtZT0iL3dvcmQvZG9jdW1lbnQueG1sIiBDb250ZW50VHlwZT0iYXBwbGljYXRpb24vdm5kLm9wZW54bWxmb3JtYXRzLW9mZmljZWRvY3VtZW50LndvcmRwcm9jZXNzaW5nbWwuZG9jdW1lbnQubWFpbit4bWwiLz48L1R5cGVzPlBLAwQUAAAAAAAASGNdYXsvQ/IAAADyAAAACwAAAF9yZWxzLy5yZWxzPFJlbGF0aW9uc2hpcHMgeG1sbnM9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9wYWNrYWdlLzIwMDYvcmVsYXRpb25zaGlwcyI+PFJlbGF0aW9uc2hpcCBJZD0icklkMSIgVHlwZT0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL29mZmljZURvY3VtZW50LzIwMDYvcmVsYXRpb25zaGlwcy9vZmZpY2VEb2N1bWVudCIgVGFyZ2V0PSJ3b3JkL2RvY3VtZW50LnhtbCIvPjwvUmVsYXRpb25zaGlwcz5QSwMEFAAAAAAAAEhjXWLtZcSeAAAAngAAABEAAAB3b3JkL2RvY3VtZW50LnhtbDx3OmRvY3VtZW50IHhtbG5zOnc9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy93b3JkcHJvY2Vzc2luZ21sLzIwMDYvbWFpbiI+PHc6Ym9keT48dzpwPjx3OnI+PHc6dD5UZWFtT1MgVVMtMjM8L3c6dD48L3c6cj48L3c6cD48L3c6Ym9keT48L3c6ZG9jdW1lbnQ+UEsBAhQDFAAAAAAAAEhjXXQknFM+AQAAPgEAABMAAAAAAAAAAAAAAIABAAAAAFtDb250ZW50X1R5cGVzXS54bWxQSwECFAMUAAAAAAAASGNdYXsvQ/IAAADyAAAACwAAAAAAAAAAAAAAgAFvAQAAX3JlbHMvLnJlbHNQSwECFAMUAAAAAAAASGNdYu1lxJ4AAACeAAAAEQAAAAAAAAAAAAAAgAGKAgAAd29yZC9kb2N1bWVudC54bWxQSwUGAAAAAAMAAwC5AAAAVwMAAAAA",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-6",
+            "name": "exemplo.xlsx",
+            "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "sizeBytes": 1933,
+            "kind": "file",
+            "dataUrl": "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,UEsDBBQAAAAAAABIY125Fh4kvgEAAL4BAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbDxUeXBlcyB4bWxucz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3BhY2thZ2UvMjAwNi9jb250ZW50LXR5cGVzIj48RGVmYXVsdCBFeHRlbnNpb249InJlbHMiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtcGFja2FnZS5yZWxhdGlvbnNoaXBzK3htbCIvPjxPdmVycmlkZSBQYXJ0TmFtZT0iL3hsL3dvcmtib29rLnhtbCIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1vZmZpY2Vkb2N1bWVudC5zcHJlYWRzaGVldG1sLnNoZWV0Lm1haW4reG1sIi8+PE92ZXJyaWRlIFBhcnROYW1lPSIveGwvd29ya3NoZWV0cy9zaGVldDEueG1sIiBDb250ZW50VHlwZT0iYXBwbGljYXRpb24vdm5kLm9wZW54bWxmb3JtYXRzLW9mZmljZWRvY3VtZW50LnNwcmVhZHNoZWV0bWwud29ya3NoZWV0K3htbCIvPjwvVHlwZXM+UEsDBBQAAAAAAABIY13+W4Zy8AAAAPAAAAALAAAAX3JlbHMvLnJlbHM8UmVsYXRpb25zaGlwcyB4bWxucz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3BhY2thZ2UvMjAwNi9yZWxhdGlvbnNoaXBzIj48UmVsYXRpb25zaGlwIElkPSJySWQxIiBUeXBlPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvb2ZmaWNlRG9jdW1lbnQvMjAwNi9yZWxhdGlvbnNoaXBzL29mZmljZURvY3VtZW50IiBUYXJnZXQ9InhsL3dvcmtib29rLnhtbCIvPjwvUmVsYXRpb25zaGlwcz5QSwMEFAAAAAAAAEhjXR2NUmTlAAAA5QAAAA8AAAB4bC93b3JrYm9vay54bWw8d29ya2Jvb2sgeG1sbnM9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9zcHJlYWRzaGVldG1sLzIwMDYvbWFpbiIgeG1sbnM6cj0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL29mZmljZURvY3VtZW50LzIwMDYvcmVsYXRpb25zaGlwcyI+PHNoZWV0cz48c2hlZXQgbmFtZT0iRXhhbXBsZSIgc2hlZXRJZD0iMSIgcjppZD0icklkMSIvPjwvc2hlZXRzPjwvd29ya2Jvb2s+UEsDBBQAAAAAAABIY122VKrP8QAAAPEAAAAaAAAAeGwvX3JlbHMvd29ya2Jvb2sueG1sLnJlbHM8UmVsYXRpb25zaGlwcyB4bWxucz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3BhY2thZ2UvMjAwNi9yZWxhdGlvbnNoaXBzIj48UmVsYXRpb25zaGlwIElkPSJySWQxIiBUeXBlPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvb2ZmaWNlRG9jdW1lbnQvMjAwNi9yZWxhdGlvbnNoaXBzL3dvcmtzaGVldCIgVGFyZ2V0PSJ3b3Jrc2hlZXRzL3NoZWV0MS54bWwiLz48L1JlbGF0aW9uc2hpcHM+UEsDBBQAAAAAAABIY11TQFaMuQAAALkAAAAYAAAAeGwvd29ya3NoZWV0cy9zaGVldDEueG1sPHdvcmtzaGVldCB4bWxucz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3NwcmVhZHNoZWV0bWwvMjAwNi9tYWluIj48c2hlZXREYXRhPjxyb3cgcj0iMSI+PGMgcj0iQTEiIHQ9ImlubGluZVN0ciI+PGlzPjx0PlRlYW1PUyBVUy0yMzwvdD48L2lzPjwvYz48L3Jvdz48L3NoZWV0RGF0YT48L3dvcmtzaGVldD5QSwECFAMUAAAAAAAASGNduRYeJL4BAAC+AQAAEwAAAAAAAAAAAAAAgAEAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQIUAxQAAAAAAABIY13+W4Zy8AAAAPAAAAALAAAAAAAAAAAAAACAAe8BAABfcmVscy8ucmVsc1BLAQIUAxQAAAAAAABIY10djVJk5QAAAOUAAAAPAAAAAAAAAAAAAACAAQgDAAB4bC93b3JrYm9vay54bWxQSwECFAMUAAAAAAAASGNdtlSqz/EAAADxAAAAGgAAAAAAAAAAAAAAgAEaBAAAeGwvX3JlbHMvd29ya2Jvb2sueG1sLnJlbHNQSwECFAMUAAAAAAAASGNdU0BWjLkAAAC5AAAAGAAAAAAAAAAAAAAAgAFDBQAAeGwvd29ya3NoZWV0cy9zaGVldDEueG1sUEsFBgAAAAAFAAUARQEAADIGAAAAAA==",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-7",
+            "name": "exemplo.zip",
+            "mime": "application/zip",
+            "sizeBytes": 132,
+            "kind": "file",
+            "dataUrl": "data:application/zip;base64,UEsDBBQAAAAAAABIY12lsnBYDAAAAAwAAAALAAAAZXhlbXBsby50eHRUZWFtT1MgVVMtMjNQSwECFAMUAAAAAAAASGNdpbJwWAwAAAAMAAAACwAAAAAAAAAAAAAAgAEAAAAAZXhlbXBsby50eHRQSwUGAAAAAAEAAQA5AAAANQAAAAAA",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          }
+        ],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "status": "backlog"
+      },
+      {
+        "id": 2,
+        "title": "Sem anexos",
+        "description": "Validar Open/Abrir, Download/Transferir e alinhamento dos anexos.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "status": "backlog"
+      }
+    ]
+  },
+  "extensions": {}
+}
