@@ -108,7 +108,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
         <Dialog.Content className="modal-content workitem-modal" aria-describedby={undefined} onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={(event) => { escapeAnswersAppMessage(event); if (event.defaultPrevented) return; event.preventDefault(); event.stopPropagation(); if (!busy) onClose(); }} {...focus}>
             <div className="modal-header workitem-modal-header">
                 <div className="workitem-heading">
-                    <div className="workitem-eyebrow"><ControlTypeBadge kind={activeKind} />{!record ? <label className="form-group">{t('control.kind')}<select aria-label={t('control.kind')} disabled={readonly || busy} value={activeKind} onChange={(event) => { const next = event.target.value as ControlKind; setDraft({ ...newControlRecord(next), title: draft.title, description: draft.description, owner: draft.owner, assignees: draft.assignees, tags: draft.tags, dueDate: draft.dueDate, related: draft.related }); }}>{CONTROL_KINDS.map((value) => <option key={value} value={value}>{t(`control.type.${value}`)}</option>)}</select></label> : null}{record && <span>{record.id}</span>}<span className="workitem-project">{data.board.settings.title}</span></div>
+                    <div className="workitem-eyebrow"><ControlTypeBadge kind={activeKind} />{record && <span>{record.id}</span>}<span className="workitem-project">{data.board.settings.title}</span></div>
                     <Dialog.Title className="workitem-title">{record?.title || `${t('control.new')} · ${t(`control.type.${activeKind}`)}`}</Dialog.Title>
                 </div>
                 <div className="workitem-header-actions">{readonly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}<Dialog.Close className="modal-close" aria-label={t('common.close')} disabled={busy}>×</Dialog.Close></div>
@@ -128,6 +128,12 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                                 <ControlRelated boardId={boardId} data={data} value={draft.related} onChange={!editing || readonly || busy ? undefined : (related) => setDraft({ ...draft, related })} onNavigate={onClose} />
                             </div>
                             <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
+                                {editing && <section className="workitem-property-group">
+                                    <div className="form-group"><label htmlFor="control-kind">{t('control.kind')}</label><select id="control-kind" disabled={Boolean(recordId) || readonly || busy} value={activeKind} onChange={(event) => {
+                                        const next = event.target.value as ControlKind;
+                                        setDraft({ ...newControlRecord(next), title: draft.title, description: draft.description, owner: draft.owner, assignees: draft.assignees, tags: draft.tags, dueDate: draft.dueDate, related: draft.related });
+                                    }}>{CONTROL_KINDS.map((value) => <option key={value} value={value}>{t(`control.type.${value}`)}</option>)}</select></div>
+                                </section>}
                                 <section className="workitem-property-group"><h3>{t('workitems.properties')}</h3>
                                     {select('status', CONTROL_STATUSES[activeKind])}
                                     {activeKind === 'risks' && <>{select('probability', ASSESSMENTS)}{select('impact', ASSESSMENTS)}<div className="form-group"><label id="control-riskLevel-label">{t('control.riskLevel')}</label><output aria-labelledby="control-riskLevel-label"><ControlBadge value={riskLevel(draft)} /></output></div><p className="field-hint">{t('control.riskRule')}</p></>}

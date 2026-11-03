@@ -824,6 +824,7 @@ test.describe('US-20 Project Control', () => {
       await page.locator('.control-modal .control-people-editors').scrollIntoViewIfNeeded();
       await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-people-${theme}-${width}.png`);
       await page.locator('.control-modal').getByRole('button', { name: 'Edit', exact: true }).click();
+      await page.locator('.control-modal').getByLabel('Type', { exact: true }).scrollIntoViewIfNeeded();
       await page.mouse.move(1, 1);
       await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-editor-${theme}-${width}.png`);
       await page.locator('.control-modal').getByRole('button', { name: 'Cancel', exact: true }).click();
@@ -832,6 +833,11 @@ test.describe('US-20 Project Control', () => {
       await page.locator('.control-modal .history-entry summary').click();
       await page.mouse.move(1, 1);
       await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-history-${theme}-${width}.png`);
+      await page.locator('.control-modal').getByRole('button', { name: 'Close', exact: true }).last().click();
+      await page.getByRole('button', { name: 'New record', exact: true }).click();
+      await page.locator('.control-modal').getByLabel('Type', { exact: true }).scrollIntoViewIfNeeded();
+      await page.mouse.move(1, 1);
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-creation-${theme}-${width}.png`);
     });
   }
 });

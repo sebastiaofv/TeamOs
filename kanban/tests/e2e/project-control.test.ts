@@ -11,6 +11,43 @@ async function seed(page: Page, writable = true) {
 }
 const dialog = (page: Page) => page.locator('.control-modal').getByRole('dialog');
 
+for (const language of ['en', 'pt']) for (const [kind, tab, title] of [
+    ['risks', 'Risks', 'Supplier availability'],
+    ['decisions', 'Decisions', 'Choose supported runtime'],
+    ['deliverables', 'Deliverables', 'Release package']
+]) test(`${tab} Type appears only in the sidebar form and stays immutable after creation (${language})`, async ({ page }) => {
+    await seed(page);
+    await page.getByRole('tab', { name: tab, exact: true }).click();
+    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    const typeLabel = language === 'pt' ? 'Tipo' : 'Type';
+    await page.getByRole('button', { name: title, exact: true }).click();
+    await expect(dialog(page).getByLabel(typeLabel, { exact: true })).toHaveCount(0);
+    await expect(dialog(page).locator('.workitem-eyebrow .control-type')).toHaveAttribute('data-control-kind', kind);
+    await dialog(page).getByRole('button', { name: language === 'pt' ? 'Editar' : 'Edit', exact: true }).click();
+    const editType = dialog(page).locator('.workitem-sidebar').getByLabel(typeLabel, { exact: true });
+    await expect(editType).toBeVisible();
+    await expect(editType).toBeDisabled();
+    await expect(editType).toHaveValue(kind);
+    await expect(dialog(page).locator('.modal-header select')).toHaveCount(0);
+    await dialog(page).getByRole('button', { name: language === 'pt' ? 'Guardar' : 'Save', exact: true }).click();
+    await page.getByRole('button', { name: title, exact: true }).click();
+    await expect(dialog(page).getByLabel(typeLabel, { exact: true })).toHaveCount(0);
+    await dialog(page).getByRole('button', { name: language === 'pt' ? 'Fechar' : 'Close', exact: true }).last().click();
+    await page.getByRole('button', { name: language === 'pt' ? 'Novo registo' : 'New record', exact: true }).click();
+    const createType = dialog(page).locator('.workitem-sidebar').getByLabel(typeLabel, { exact: true });
+    await expect(createType).toBeVisible();
+    await expect(createType).toBeEnabled();
+    await expect(createType).toHaveValue(kind);
+    await expect(dialog(page).locator('.modal-header select')).toHaveCount(0);
+    await dialog(page).getByLabel(language === 'pt' ? 'Título' : 'Title', { exact: true }).fill('Type draft');
+    for (const nextKind of ['risks', 'decisions', 'deliverables']) {
+        await createType.selectOption(nextKind);
+        await expect(dialog(page).locator('.workitem-eyebrow .control-type')).toHaveAttribute('data-control-kind', nextKind);
+        await expect(dialog(page).getByLabel(language === 'pt' ? 'Título' : 'Title', { exact: true })).toHaveValue('Type draft');
+    }
+    await dialog(page).getByRole('button', { name: language === 'pt' ? 'Cancelar' : 'Cancel', exact: true }).click();
+});
+
 test('existing control records require Edit for main fields but save sidebar changes directly', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
