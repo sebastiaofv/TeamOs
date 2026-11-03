@@ -29,6 +29,40 @@ test('creation shows details only and saved workitems accept attachments directl
   expect((await readSavedBoard(page, 'p1')).board.tasks[0].attachments).toEqual([]);
 });
 
+for (const entryPoint of ['details', 'card']) {
+  test(`editing from ${entryPoint} keeps attachments exclusively in their tab`, async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'p1', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p1' });
+    const originalAttachments = (await readSavedBoard(page, 'p1')).board.tasks[0].attachments;
+    const card = portfolioCard(page, 'Files and todo');
+    if (entryPoint === 'details') {
+      await card.click();
+      await page.locator('#taskDetailEditBtn').click();
+    } else {
+      await card.locator('[data-action="edit-task"]').click();
+    }
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await expect(page.locator('#taskModal #taskAttachmentsEditor')).toHaveCount(0);
+    await expect(page.locator('#taskModal input[type="file"]')).toHaveCount(0);
+    await page.locator('#taskName').fill('Edited workitem');
+    await page.locator('#taskModalSaveBtn').click();
+    await waitForBoardWrites(page);
+    const saved = (await readSavedBoard(page, 'p1')).board.tasks[0];
+    expect(saved.title).toBe('Edited workitem');
+    expect(saved.attachments).toEqual(originalAttachments);
+    await portfolioCard(page, 'Edited workitem').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await expect(page.locator('#detailAttachments .detail-attachment-name')).toHaveText(['new.txt', 'middle.txt', 'old.txt']);
+    await page.setInputFiles('#taskAttachmentsInput', { name: 'after-edit.txt', mimeType: 'text/plain', buffer: Buffer.from('after edit') });
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(4);
+    await waitForBoardWrites(page);
+    expect((await readSavedBoard(page, 'p1')).board.tasks[0].attachments).toHaveLength(4);
+    await page.getByRole('button', { name: 'Remove attachment after-edit.txt' }).click();
+    await answerAppMessage(page, { button: 'Remove' });
+    await waitForBoardWrites(page);
+    expect((await readSavedBoard(page, 'p1')).board.tasks[0].attachments).toEqual(originalAttachments);
+  });
+}
+
 test('attachments sort by upload date and remain downloadable in read-only projects', async ({ page }) => {
   await seedPortfolioBoards(page, [{ id: 'p1', title: fixture.board.settings.title, hasHandle: false, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p1' });
   await portfolioCard(page, 'Files and todo').click();

@@ -431,7 +431,7 @@ test.describe('2.1b task editor', () => {
     await expect(page.locator('#modalTitle')).toHaveText('Edit Task');
     await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(2);
     await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(3);
-    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(2);
+    await expect(page.locator('#taskAttachmentsEditor')).toHaveCount(0);
   }
 
   for (const theme of ['light', 'dark']) {
@@ -454,16 +454,21 @@ test.describe('2.1b task editor', () => {
     });
   }
 
-  test('task editor, attachments and picker error (light)', async ({ page }) => {
-    await openFullTaskEditor(page, 'light');
+  test('attachment tab, picker error (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [
+      { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
+    ], { selectedBoardId: 'v1' });
+    await portfolioCard(page, 'Prepare launch checklist').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     await page.setInputFiles('#taskAttachmentsInput', {
       name: 'huge.bin',
       mimeType: 'application/octet-stream',
       buffer: Buffer.alloc((10 * 1024 * 1024) + 1)
     });
     await expect(page.locator('#taskAttachmentsWarnings')).toContainText('huge.bin exceeds the 10 MB limit.');
-    await page.locator('#taskAttachmentsList').scrollIntoViewIfNeeded();
-    await captureEditor(page, 'task-editor-attachments-light.png');
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(2);
+    await captureEditor(page, 'task-detail-attachments-picker-error-light.png');
   });
 
   test('task editor, checklist mid-drag (light)', async ({ page }) => {

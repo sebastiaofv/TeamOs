@@ -16,7 +16,6 @@ import { AssigneeEditor } from './editor/AssigneeEditor';
 import { TagEditor } from './editor/TagEditor';
 import { EditorSelect } from './editor/EditorSelect';
 import { ChecklistEditor } from './editor/ChecklistEditor';
-import { AttachmentsEditor } from './editor/AttachmentsEditor';
 import { useI18n } from '@/shared/i18n';
 
 type SubmitRef = RefObject<(() => Promise<void>) | null>;
@@ -134,15 +133,6 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                     {['task', 'bug'].includes(form.type || 'task') && <div className="form-group">
                         <label id="taskTodoListLabel">{t('task.todoList')}</label>
                         <ChecklistEditor value={form.checklist} onChange={(next) => update('checklist', next)} />
-                    </div>}
-                    {vm.editing && <div className="form-group">
-                        <label id="taskAttachmentsLabel">{t('task.attachments')}</label>
-                        <AttachmentsEditor
-                            boardId={vm.boardId}
-                            value={form.attachments}
-                            onChange={(next) => update('attachments', next)}
-                            otherAttachmentBytes={vm.otherAttachmentBytes}
-                        />
                     </div>}
                         </div>
                         <aside className="workitem-sidebar" aria-label={t('workitems.properties')}>
