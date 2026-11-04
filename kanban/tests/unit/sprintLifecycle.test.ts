@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 import { fromPartial } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
 import { normalizeTask } from '@/domain/task';
@@ -22,10 +23,81 @@ function setup(choice: string | null = 'keep') {
     ] };
     data.board.tasks = [item(1, 'story', { storyPoints: 8, acceptanceCriteria: 'Accepted', status: 'ready-to-test' }), item(2, 'task', { parentId: 1, status: 'done' }), item(3, 'task', { parentId: 1 }), item(4, 'task', { storyPoints: 3 }), item(5, 'bug', { storyPoints: 5 }), item(6, 'story', { storyPoints: 2, acceptanceCriteria: 'Accepted' })];
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Sprint lifecycle', handle: {}, data })], selectedPortfolioBoardId: 'p' });
-    const choose = vi.fn(async () => choice); const alert = vi.fn(); const save = vi.fn(async () => true); const confirm = vi.fn(async () => true);
-    const actions = createPortfolioMutationActions({ store, choose: async (_text, choices) => { const answer = await choose(); return choices.find((option) => option.value === answer)?.value ?? null; }, alert, confirm, prompt: vi.fn(async () => 'Ana'), enqueueSave: save, markDirty: vi.fn(), closeDialogFn: vi.fn(), openDialogFn: vi.fn() });
-    return { store, actions, choose, alert, save, confirm, data: () => store.getState().portfolioBoards[0].data };
+    const choose = vi.fn(async (): Promise<string | null> => choice); const alert = vi.fn(); const save = vi.fn(async () => true); const confirm = vi.fn(async () => true);
+    const prompt = vi.fn(async (): Promise<string | null> => 'Ana');
+    const actions = createPortfolioMutationActions({ store, choose: async (_text, choices) => { const answer = await choose(); return choices.find((option) => option.value === answer)?.value ?? null; }, alert, confirm, prompt, enqueueSave: save, markDirty: vi.fn(), closeDialogFn: vi.fn(), openDialogFn: vi.fn() });
+    return { store, actions, choose, alert, save, confirm, prompt, data: () => store.getState().portfolioBoards[0].data };
 }
+
+describe('Sprint durations in business days (US-22)', () => {
+    it('adds business days to the start date, skipping weekends', () => {
+        expect(addBusinessDays('2026-11-04', 10)).toBe('2026-11-18');
+        expect(addBusinessDays('2026-11-04', 0)).toBe('2026-11-04');
+        expect(addBusinessDays('2026-11-06', 1)).toBe('2026-11-09');
+        expect(addBusinessDays('2026-11-07', 1)).toBe('2026-11-09');
+        expect(addBusinessDays('2026-12-28', 5)).toBe('2027-01-04');
+        expect(addBusinessDays('bad', 3)).toBe('');
+        expect(addBusinessDays('2026-11-04', -1)).toBe('');
+        expect(addBusinessDays('2026-11-04', 1.5)).toBe('');
+    });
+    it('counts the business days between two dates as the inverse of adding them', () => {
+        expect(businessDaysBetween('2026-11-04', '2026-11-18')).toBe(10);
+        expect(businessDaysBetween('2026-11-04', '2026-11-04')).toBe(0);
+        expect(businessDaysBetween('2026-11-06', '2026-11-08')).toBe(0);
+        expect(businessDaysBetween('2026-11-18', '2026-11-04')).toBeNull();
+        expect(businessDaysBetween('', '2026-11-04')).toBeNull();
+        for (const start of ['2026-11-02', '2026-11-04', '2026-11-06', '2026-11-07', '2026-11-08']) {
+            for (let days = 0; days <= 40; days += 1) expect(businessDaysBetween(start, addBusinessDays(start, days))).toBe(days);
+        }
+    });
+});
+
+describe('Sprint end date when the start moves to today (US-22)', () => {
+    beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(2026, 10, 4, 12)); });
+    afterEach(() => { vi.useRealTimers(); });
+    const plannedSprint = (setupResult: ReturnType<typeof setup>) => {
+        Object.assign(setupResult.data().extensions.roadmap!.sprints[1], { startDate: '2026-11-02', endDate: '2026-11-16' });
+        return setupResult;
+    };
+
+    it.each([
+        ['recalculate', '2026-11-18'],
+        ['keep', '2026-11-16']
+    ])('starts with today and %s end date', async (answer, endDate) => {
+        const { actions, data, choose } = plannedSprint(setup());
+        choose.mockResolvedValueOnce('today').mockResolvedValueOnce(answer);
+        await actions.changeSprintStatus('p', 's2', 'active');
+        expect(choose).toHaveBeenCalledTimes(2);
+        expect(data().extensions.roadmap!.sprints[1]).toMatchObject({ status: 'active', startDate: '2026-11-04', endDate });
+    });
+
+    it('asks for another end date until it is valid, through the editor as well', async () => {
+        const { actions, data, choose, alert, prompt } = plannedSprint(setup());
+        choose.mockResolvedValueOnce('today').mockResolvedValueOnce('custom');
+        prompt.mockResolvedValueOnce('2026-11-03').mockResolvedValueOnce('2026-11-20');
+        actions.openRoadmapEntityModal('sprints', 's2');
+        await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 's2', title: 'Next', status: 'active', startDate: '2026-11-02', endDate: '2026-11-16' });
+        expect(prompt).toHaveBeenCalledTimes(2);
+        expect(alert).toHaveBeenCalledTimes(1);
+        expect(data().extensions.roadmap!.sprints[1]).toMatchObject({ status: 'active', startDate: '2026-11-04', endDate: '2026-11-20' });
+    });
+
+    it.each(['end choice', 'end prompt'])('cancelling the %s leaves the Sprint untouched', async (step) => {
+        const { actions, data, choose, prompt, save } = plannedSprint(setup());
+        choose.mockResolvedValueOnce('today').mockResolvedValueOnce(step === 'end choice' ? null : 'custom');
+        prompt.mockResolvedValueOnce(null);
+        await actions.changeSprintStatus('p', 's2', 'active');
+        expect(save).not.toHaveBeenCalled();
+        expect(data().extensions.roadmap!.sprints[1]).toMatchObject({ status: 'planned', startDate: '2026-11-02', endDate: '2026-11-16' });
+    });
+
+    it('does not ask about the end date when the start is kept or already today', async () => {
+        const { actions, data, choose } = plannedSprint(setup('keep'));
+        await actions.changeSprintStatus('p', 's2', 'active');
+        expect(choose).toHaveBeenCalledTimes(1);
+        expect(data().extensions.roadmap!.sprints[1]).toMatchObject({ startDate: '2026-11-02', endDate: '2026-11-16' });
+    });
+});
 
 describe('manual Sprint lifecycle and frozen results (US-22)', () => {
     it('imports and round-trips the US-22 manual acceptance board', () => {
@@ -51,7 +123,8 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
     it.each(['today', 'keep', null])('handles date choice %s before starting, and does not advance automatically', async (choice) => {
         const { actions, data, save, choose } = setup(choice);
         await actions.changeSprintStatus('p', 's2', 'active');
-        expect(choose).toHaveBeenCalledTimes(1);
+        // Using today as the start also asks which end date to keep; the mock answers 'today' again, which cancels.
+        expect(choose).toHaveBeenCalledTimes(choice === 'today' ? 2 : 1);
         if (choice === null || choice === 'today') {
             // Updating only the start would put it after the planned end; the invalid range cannot be saved.
             expect(save).not.toHaveBeenCalled();
@@ -63,10 +136,11 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
     });
 
     it('updates the chosen start/end date to local today through both the button and editor', async () => {
-        const { actions, data } = setup('today');
+        const { actions, data, choose } = setup('today');
         const today = new Date();
         const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         Object.assign(data().extensions.roadmap!.sprints[1], { startDate: '2000-01-01', endDate: '2099-12-31' });
+        choose.mockResolvedValueOnce('today').mockResolvedValueOnce('keep');
         await actions.changeSprintStatus('p', 's2', 'active');
         expect(data().extensions.roadmap!.sprints[1].startDate).toBe(date);
         actions.openRoadmapEntityModal('sprints', 's2');

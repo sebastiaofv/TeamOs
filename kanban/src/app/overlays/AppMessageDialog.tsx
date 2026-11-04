@@ -112,7 +112,7 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                     <div className="form-group app-message-field">
                         <label className="sr-only" htmlFor="appMessageInput">{message.title}</label>
                         <input
-                            type="text"
+                            type={message.input.type || 'text'}
                             id="appMessageInput"
                             aria-labelledby="appMessageText"
                             required={message.input.required}

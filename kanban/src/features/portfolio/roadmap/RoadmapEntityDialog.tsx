@@ -14,6 +14,7 @@ import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 import { MILESTONE_PALETTE } from '@/domain/milestonePresentation';
+import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 
 type RoadmapEntityFormDraft = RoadmapEntityDates & { existingSprintId: string; parentId: string };
 
@@ -73,6 +74,32 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     const [controlIds, setControlIds] = useState(() => controlRecords(controlBoard).filter((record) => (vm.kind === 'phases' ? record.related.phaseIds : record.related.milestoneIds).includes(vm.itemId)).map((record) => record.id));
     const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '', parentId: vm.parentId || '' }));
     const selectedSprintId = sprintOptions.some((option) => option.value === draft.existingSprintId) ? draft.existingSprintId : '';
+    const isSprintEditor = vm.kind === 'sprints' && !vm.showExistingSprint;
+    // Sprint duration in business days: start + duration gives the end date,
+    // and start + end gives the duration (see domain/businessDays).
+    const [duration, setDuration] = useState(() => String(businessDaysBetween(vm.initial.startDate || '', vm.initial.endDate || '') ?? ''));
+    const changeSprintDates = (field: 'startDate' | 'endDate' | 'duration', value: string) => {
+        if (field === 'duration') {
+            setDuration(value);
+            const days = value === '' ? NaN : Number(value);
+            const endDate = draft.startDate ? addBusinessDays(draft.startDate, days) : '';
+            if (endDate) setDraft((current) => ({ ...current, endDate }));
+            return;
+        }
+        const next = { ...draft, [field]: value };
+        if (field === 'startDate') {
+            const days = duration === '' ? NaN : Number(duration);
+            const endDate = value ? addBusinessDays(value, days) : '';
+            if (endDate) next.endDate = endDate;
+            else setDuration(String(businessDaysBetween(value, next.endDate || '') ?? ''));
+        } else {
+            setDuration(String(businessDaysBetween(next.startDate || '', value) ?? ''));
+        }
+        setDraft(next);
+    };
+    const bindSprintDate = (field: 'startDate' | 'endDate') => isSprintEditor
+        ? { value: draft[field] ?? '', onChange: (event: ChangeEvent<HTMLInputElement>) => changeSprintDates(field, event.target.value) }
+        : bind(field);
     const dueDateRef = useRef<HTMLInputElement>(null);
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
@@ -106,6 +133,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                         <select id="roadmapPhaseParent" value={draft.parentId} onChange={(event) => {
                             const parentId = event.target.value;
                             const parent = vm.phases?.find((phase) => phase.id === parentId);
+                            if (!vm.itemId && parent) setDuration(String(businessDaysBetween(parent.startDate || '', parent.endDate || '') ?? ''));
                             setDraft((current) => ({ ...current, parentId, ...(!vm.itemId && parent ? { startDate: parent.startDate || '', endDate: parent.endDate || '' } : {}) }));
                         }}><option value="">{t('common.none')}</option>{vm.phaseOptions?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
                         {vm.datesCalculated && <p className="field-hint">{t('roadmap.calculatedDates')}</p>}
@@ -146,14 +174,18 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                             <input type="radio" name="milestoneColor" value={color.value} checked={draft.color === color.value} aria-label={t(`roadmap.color.${color.id}`)} onChange={() => setDraft((current) => ({ ...current, color: color.value }))} /><span aria-hidden="true" />
                         </label>)}
                     </fieldset>}
-                    <div className={`roadmap-entity-date-row${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
+                    <div className={`roadmap-entity-date-row${isSprintEditor ? ' with-duration' : ''}${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityStartDate">{t('roadmapDialog.startDate')}</label>
-                            <input type="date" id="roadmapEntityStartDate" ref={startDateRef} readOnly={vm.datesCalculated} {...bind('startDate')} />
+                            <input type="date" id="roadmapEntityStartDate" ref={startDateRef} readOnly={vm.datesCalculated} {...bindSprintDate('startDate')} />
                         </div>
+                        {isSprintEditor && <div className="form-group">
+                            <label htmlFor="sprintDuration">{t('sprint.duration')}</label>
+                            <input type="number" id="sprintDuration" min="0" step="1" inputMode="numeric" readOnly={vm.datesCalculated} value={duration} onChange={(event) => changeSprintDates('duration', event.target.value)} />
+                        </div>}
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityEndDate">{t('roadmapDialog.endDate')}</label>
-                            <input type="date" id="roadmapEntityEndDate" ref={endDateRef} readOnly={vm.datesCalculated} {...bind('endDate')} />
+                            <input type="date" id="roadmapEntityEndDate" ref={endDateRef} readOnly={vm.datesCalculated} {...bindSprintDate('endDate')} />
                         </div>
                     </div>
                     </fieldset>

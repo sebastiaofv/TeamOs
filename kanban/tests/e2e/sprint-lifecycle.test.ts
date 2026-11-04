@@ -1,8 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { defaultWorkflow } from '@/domain/workflow';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, answerAppMessage } from '../support/portfolio';
 
 test.use({ timezoneId: 'Europe/Lisbon' });
+
+// Answers one message of a chain: the next message may reuse the open dialog,
+// so this only waits for the expected text, never for the dialog to close.
+async function answerChainedMessage(page: Page, { button, expectText, input }: { button?: string; expectText?: string; input?: string }) {
+  const dialog = page.locator('#appMessageModal');
+  if (expectText !== undefined) await expect(dialog.locator('#appMessageText')).toContainText(expectText);
+  if (input !== undefined) await dialog.locator('#appMessageInput').fill(input);
+  await (button ? dialog.getByRole('button', { name: button, exact: true }) : dialog.locator('#appMessageConfirmBtn')).click();
+}
 
 for (const finish of ['button', 'editor'] as const) {
   test(`Roadmap starts a Sprint and Table finishes it through ${finish}, freezing carry-over and preserving Tasks`, async ({ page }) => {
@@ -24,7 +33,8 @@ for (const finish of ['button', 'editor'] as const) {
     const roadmapSprint = page.locator('[data-roadmap-kind="sprint"][data-roadmap-id="s1"]');
     await expect(roadmapSprint.getByRole('button', { name: 'Start Sprint', exact: true })).toBeVisible();
     await roadmapSprint.getByRole('button', { name: 'Start Sprint', exact: true }).click();
-    await answerAppMessage(page, { button: 'Use today', expectText: 'start date' });
+    await answerChainedMessage(page, { button: 'Use today', expectText: 'start date' });
+    await answerAppMessage(page, { button: 'Keep 2026-11-14', expectText: '10 business days' });
     await waitForBoardWrites(page);
     expect((await readSavedBoard(page, 'p')).extensions.roadmap.sprints[0]).toMatchObject({ status: 'active', startDate: '2026-11-04' });
     await expect(roadmapSprint.getByRole('button', { name: 'Finish Sprint', exact: true })).toBeVisible();
@@ -135,4 +145,36 @@ test('Table selection creates a Planned Sprint with goals/capacity even when all
   await page.locator('[data-table-view="sprints"]').click();
   await expect(page.locator('.sprint-status-planned')).toHaveText('Planned');
   await expect(page.getByRole('button', { name: 'Start Sprint', exact: true })).toBeVisible();
+});
+
+test('Sprint dates follow the duration in business days, and starting late asks which end date to use', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
+  await gotoApp(page);
+  await seedPortfolioBoards(page, [{ id: 'p', title: 'Durations', hasHandle: true, tasks: [], extensions: { roadmap: { version: 5, milestones: [], phases: [
+    { id: 'delivery', title: 'Delivery phase', startDate: '2026-10-01', endDate: '2026-12-31' }
+  ], sprints: [
+    { id: 'delivery', title: 'Nested', parentId: 'delivery', startDate: '2026-11-02', endDate: '2026-11-16', status: 'planned' }
+  ] } } }], { selectedBoardId: 'p' });
+  await page.locator('[data-view-mode="roadmap"]').click();
+  const nested = page.locator('[data-roadmap-kind="sprints"] [data-roadmap-kind="sprint"][data-roadmap-id="delivery"]');
+  await expect(nested.getByRole('button', { name: 'Start Sprint', exact: true })).toBeVisible();
+  await nested.getByRole('button', { name: 'Edit Nested', exact: true }).click();
+  // A Sprint sharing its id with its parent Phase still shows that Phase as its parent.
+  await expect(page.locator('#roadmapPhaseParent')).toHaveValue('delivery');
+  await expect(page.locator('#sprintDuration')).toHaveValue('10');
+  await page.locator('#roadmapEntityStartDate').fill('2026-11-04');
+  await expect(page.locator('#roadmapEntityEndDate')).toHaveValue('2026-11-18');
+  await page.locator('#sprintDuration').fill('5');
+  await expect(page.locator('#roadmapEntityEndDate')).toHaveValue('2026-11-11');
+  await page.locator('#roadmapEntityEndDate').fill('2026-11-20');
+  await expect(page.locator('#sprintDuration')).toHaveValue('12');
+  await page.locator('#roadmapEntityModalCancelBtn').click();
+  await nested.getByRole('button', { name: 'Start Sprint', exact: true }).click();
+  await answerChainedMessage(page, { button: 'Use today', expectText: 'start date' });
+  await answerChainedMessage(page, { button: 'Enter another date', expectText: 'ends on 2026-11-18' });
+  await answerChainedMessage(page, { input: '2026-11-03', expectText: 'on or after 2026-11-04' });
+  await answerChainedMessage(page, { button: 'OK', expectText: 'must be on or after the start date' });
+  await answerAppMessage(page, { input: '2026-11-25', expectText: 'on or after 2026-11-04' });
+  await waitForBoardWrites(page);
+  expect((await readSavedBoard(page, 'p')).extensions.roadmap.sprints[0]).toMatchObject({ status: 'active', startDate: '2026-11-04', endDate: '2026-11-25' });
 });
