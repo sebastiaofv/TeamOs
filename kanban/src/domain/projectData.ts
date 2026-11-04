@@ -29,6 +29,7 @@ export function parseProjectData(value: unknown): ProjectData | undefined {
         || typeof value.description !== 'string' || (value.status !== null && !PROJECT_STATUSES.some((status) => status === value.status))
         || !Array.isArray(value.members) || !Array.isArray(value.tags)) throw new ProjectDataError('invalid');
     if (value.acronym !== undefined && (typeof value.acronym !== 'string' || !/^[A-Z]{1,3}$/.test(value.acronym))) throw new ProjectDataError('acronym');
+    if (value.productName !== undefined && typeof value.productName !== 'string') throw new ProjectDataError('invalid');
     const ids = new Set<string>();
     const names = new Set<string>();
     const members: ProjectMember[] = value.members.map((member: unknown) => {
@@ -45,7 +46,7 @@ export function parseProjectData(value: unknown): ProjectData | undefined {
         if (tags.has(projectNameKey(tag))) throw new ProjectDataError('duplicateTag');
         tags.add(projectNameKey(tag));
     }
-    return { version: 1, id: value.id, description: value.description, status: value.status as ProjectData['status'], members, tags: [...tags], ...(value.acronym === undefined ? {} : { acronym: value.acronym as string }) };
+    return { ...(typeof value.productName === 'string' && value.productName.trim() ? { productName: value.productName.trim() } : {}), version: 1, id: value.id, description: value.description, status: value.status as ProjectData['status'], members, tags: [...tags], ...(value.acronym === undefined ? {} : { acronym: value.acronym as string }) };
 }
 
 /** Missing extension → v1. Legacy names become local identities without inventing a lifecycle state. */
@@ -68,7 +69,7 @@ export function migrateProjectData(input: LooseBoardData): LooseBoardData {
         });
     });
     return { ...input, extensions: { ...input.extensions, project: {
-        version: 1, id: createProjectIdentity(), description: '', status: null, members, tags: [...tags]
+        version: 1, id: `legacy-project_${encodeURIComponent(String(input.meta?.createdAt || ''))}_${encodeURIComponent(String((input.board?.settings as { title?: string })?.title || ''))}`, description: '', status: null, members, tags: [...tags]
     } satisfies ProjectData } };
 }
 
@@ -125,6 +126,18 @@ export function applyProjectSettings(data: BoardData, draft: ProjectSettingsDraf
         if (task.tags.some((tag) => !after.tags.includes(tag))) throw new ProjectDataError('tagInUse');
         task.assignees = (task.assigneeIds || []).map((id) => after.members.find((member) => member.id === id)!.name);
         task.responsible = after.members.find((member) => member.id === task.responsibleId)?.name || '';
+    }
+    for (const record of data.extensions.projectControl?.records || []) {
+        const rename = (name: string) => {
+            const member = before.members.find((member) => member.name === name);
+            if (!member) return name; // Preserve free-text owners from legacy files.
+            const updated = after.members.find((entry) => entry.id === member.id);
+            if (!updated) throw new ProjectDataError('memberInUse');
+            return updated.name;
+        };
+        if (record.tags.some((tag) => !after.tags.includes(tag))) throw new ProjectDataError('tagInUse');
+        record.owner = rename(record.owner);
+        record.assignees = record.assignees.map(rename);
     }
     data.board.settings.title = draft.name.trim();
     data.extensions.project = after;

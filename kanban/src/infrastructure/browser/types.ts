@@ -6,5 +6,6 @@ export type BoardFileHandle = {
     name: string;
     getFile(): Promise<BoardFile>;
     createWritable(): Promise<BoardWritable>;
+    requestPermission?(options: { mode: 'readwrite' }): Promise<PermissionState>;
     isSameEntry?(other: unknown): Promise<boolean>;
 };

@@ -4,7 +4,7 @@ import { normalizeTimestamp } from '@/domain/util';
 import type { CommentErrorCode } from '@/domain/commentImages';
 
 export type ConversationDraft = {
-    id: string; projectId: string; taskId: number; workitemKey: string; title: string;
+    id: string; projectId: string; taskId: number | string; workitemKey: string; title: string;
     text: string; author: string; images: Attachment[]; error?: CommentErrorCode; reading?: boolean;
 };
 const drafts = new Map<string, ConversationDraft>();

@@ -1,3 +1,6 @@
+import { PortfolioControl } from '@/features/portfolio/control/PortfolioControl';
+import { ProjectControlDialog } from '@/features/portfolio/control/ControlRecordDialog';
+import { PendingProjectTransfers } from '@/features/portfolio/projects/PendingProjectTransfers';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 import { AppHeader } from '@/app/AppHeader';
 import { HelpDialog } from '@/app/overlays/HelpDialog';
@@ -68,6 +71,7 @@ function AppContent() {
     const calendarActive = hasBoards && viewMode === 'calendar';
     const plannerActive = hasBoards && viewMode === 'planner';
     const dashboardActive = Boolean(selectedBoardId) && viewMode === 'dashboard';
+    const controlActive = Boolean(selectedBoardId) && viewMode === 'control';
     const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
 
     return (
@@ -78,13 +82,15 @@ function AppContent() {
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
-                    <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive ? ' table-active' : ''}${dashboardActive ? ' dashboard-active' : ''}`} id="portfolioBoardWrap">
+                    <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive || controlActive ? ' table-active' : ''}${dashboardActive ? ' dashboard-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />
+                        <PendingProjectTransfers />
                         {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive} />
+                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive || controlActive} />
                         <PortfolioDashboard hidden={!dashboardActive} />
+                        <PortfolioControl hidden={!controlActive} />
                         <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
                         <PortfolioCalendar hidden={!calendarActive} />
@@ -101,6 +107,7 @@ function AppContent() {
                 <ShortcutsDialog />
                 <HelpDialog />
                 <CommandPalette />
+                <ProjectControlDialog />
                 <TaskDetailDialog />
                 <RoadmapEntityDialog />
                 <TaskEditorDialog />

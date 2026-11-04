@@ -1,3 +1,4 @@
+import { permanentBlockedIds, type RelationProject, type PermanentRelation } from '@/domain/permanentRelations';
 import { workitemType, WORKITEM_FIELDS, effectivePlanning } from '@/domain/workitems';
 import type {
     BoardRecord,
@@ -140,6 +141,7 @@ export function buildTaskEditorViewModel(
     Object.assign(initial, { type: normalized ? workitemType(normalized) : 'task', parentId: normalized?.parentId ?? null, phaseMode: normalized?.phaseMode || (normalized?.phaseId ? 'explicit' : 'none'), milestoneMode: normalized?.milestoneMode || (normalized?.milestoneId ? 'explicit' : 'none') }, Object.fromEntries(WORKITEM_FIELDS.map((field) => [field, normalized?.[field] || ''])));
     return {
         editing: Boolean(normalized),
+        boardId: boardRecord.id,
         parentCandidates: boardRecord.data.board.tasks.filter((item) => ['epic', 'story'].includes(workitemType(item)) && item.id !== task?.id).map((item) => ({ displayId: item.displayId, id: item.id, title: item.title, type: workitemType(item) })),
         openId,
         heading: normalized ? translateCurrent('task.edit') : translateCurrent('task.new'),
@@ -154,7 +156,7 @@ export function buildTaskEditorViewModel(
     };
 }
 
-export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, historyEventIndex?: number): TaskDetailViewModel {
+export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unknown, readOnly: boolean, historyEventIndex?: number, projects: readonly RelationProject[] = [], unavailable: readonly PermanentRelation[] = []): TaskDetailViewModel {
     const task = normalizeTask(source.task, { workflow: getWorkflow(source.boardData, source.task) });
     const statusMap: Record<string, string> = Object.fromEntries(getWorkflow(source.boardData, task).states.map((state) => [state.id, state.name]));
     const roadmap = getRoadmapExtension(source.boardData);
@@ -167,14 +169,14 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
         boardId: source.boardRecord.id,
         taskId: task.id,
         sourceBoardData: source.boardData,
-        ...buildTaskRelationView(source.boardData, task.id),
+        ...buildTaskRelationView(source.boardData, task.id, historyEventIndex === undefined ? projects : [], historyEventIndex === undefined ? unavailable : []),
         fields: {
             title: task.title || '-',
             description: task.description || '-',
             assignees: formatAssignees(task.assignees) || translateCurrent('task.noParticipants'),
             responsible: task.responsible || translateCurrent('task.noResponsible'),
             tags: normalizeTags(task.tags).join(', ') || '-',
-            blocked: isTaskBlocked(source.boardData, task.id) ? translateCurrent('common.yes') : translateCurrent('common.no'),
+            blocked: (isTaskBlocked(source.boardData, task.id) || (historyEventIndex === undefined && permanentBlockedIds(source.boardData, projects, unavailable).has(task.id))) ? translateCurrent('common.yes') : translateCurrent('common.no'),
             blockerReason: task.blocked ? (normalizeBlockerReason(task.blockerReason) || '-') : '-',
             priority: task.priority
                 ? ({ high: translateCurrent('toolbar.high'), medium: translateCurrent('toolbar.medium'), low: translateCurrent('toolbar.low') }[task.priority] || task.priority)
@@ -191,9 +193,12 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
         checklist: normalizeChecklist(task.checklist)
             .map((item) => ({ text: item.text, done: Boolean(item.done) })),
         attachments: normalizeAttachmentList(getTaskAttachments(source.boardData, taskId))
+            .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
             .map((item) => ({
                 id: item.id,
                 name: item.name,
+                createdAt: item.createdAt,
+                uploadedBy: item.uploadedBy,
                 isImage: item.kind === 'image',
                 dataUrl: item.dataUrl,
                 subLabel: `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`

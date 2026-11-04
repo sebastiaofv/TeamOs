@@ -5,6 +5,8 @@ import {
   seedPortfolioBoards,
   readSavedBoard,
   waitForBoardWrites,
+  showTimeline,
+  setTimelineSlider,
   portfolioCard,
   closeDialogBy,
   portfolioProjectChipButtons,
@@ -32,6 +34,9 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect(page.locator('#taskBlockerReason')).toBeFocused();
 
+    await page.locator('#taskBlockerReason').fill('Waiting');
+    await page.locator('#taskModalSaveBtn').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     await page.setInputFiles('#taskAttachmentsInput', {
       name: 'huge.bin',
       mimeType: 'application/octet-stream',
@@ -39,7 +44,7 @@ test.describe('task editor', () => {
     });
 
     await expect(page.locator('#taskAttachmentsWarnings')).toContainText('huge.bin exceeds the 10 MB limit.');
-    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(0);
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(0);
   });
 
   test('blocked tasks require a blocker reason before save', async ({ page }) => {
@@ -117,7 +122,7 @@ test.describe('task editor', () => {
       blocked: true,
       blockerReason: 'Waiting for staging access'
     });
-    await portfolioCard(page, 'Investigate deploy issue').click();
+    await expect(page.locator('#detailTitle')).toHaveText('Investigate deploy issue');
     await expect(page.locator('#taskAssigneeItems')).toContainText('Alex');
     await expect(page.locator('#taskAssigneeItems')).toContainText('Sam');
   });
@@ -212,8 +217,7 @@ test.describe('task editor', () => {
     const card = portfolioCard(page, 'Tagged task');
     await expect(card.locator('.task-tag-label')).toHaveCount(0);
 
-    await card.click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Tagged task');
     await expect(page.locator('#taskTagItems')).toContainText('bug');
     await expect(page.locator('#taskTagItems')).toContainText('urgent');
 
@@ -337,8 +341,7 @@ test.describe('task editor', () => {
     expect(result.taskDueDate).toBe('2026-03-05');
     expect(result.savedDueDate).toBe('2026-03-05');
 
-    await card.click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailTitle')).toHaveText('Date formatting task');
     await expect(page.locator('#detailDueDateInput')).toHaveValue('2026-03-05');
   });
 
@@ -432,10 +435,12 @@ test.describe('task editor', () => {
       nodes.map((node) => (node as HTMLInputElement).value)
     ));
     const handle = (page: Page, index: number) => page.locator('#taskChecklistItems .checklist-editor-row').nth(index).locator('.checklist-editor-drag-handle');
-    // Waits for each keyboard step to land before the next key.
+    // The keyboard sensor binds its listener on a timer; wait for that and the layout.
     const announced = async (page: Page, text: string) => {
       await expect(page.getByText(text, { exact: true })).toBeAttached();
-      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+      await page.evaluate(() => new Promise<void>((resolve) => {
+        setTimeout(() => requestAnimationFrame(() => resolve()), 0);
+      }));
     };
 
     test('Space picks an item up, arrow keys move it and Space drops it', async ({ page }) => {
@@ -502,7 +507,9 @@ test.describe('task editor', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }
     ], { selectedBoardId: 'p1' });
 
-    await openTaskEditor(page, 'Task with file');
+    await portfolioCard(page, 'Task with file').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await page.locator('#taskAttachmentUploader').fill('Ana Silva');
 
     await page.setInputFiles('#taskAttachmentsInput', {
       name: 'note.txt',
@@ -510,10 +517,9 @@ test.describe('task editor', () => {
       buffer: Buffer.from('hello attachment')
     });
 
-    await expect(page.locator('#taskAttachmentsList')).toContainText('note.txt');
-    await expect(page.locator('#taskAttachmentsList .attachment-editor-download')).toHaveCount(1);
-    await page.locator('#taskModal .btn-primary').click();
-    await expect(page.locator('#taskModal')).toBeHidden();
+    await expect(page.locator('#detailAttachments')).toContainText('note.txt');
+    await expect(page.locator('#detailAttachments .detail-attachment-download')).toHaveCount(1);
+    await page.locator('#taskDetailModalCloseBtn').click();
 
     await waitForBoardWrites(page);
     const saved = await page.evaluate(() => {
@@ -525,6 +531,8 @@ test.describe('task editor', () => {
         attachmentCount: attachments.length,
         attachmentName: attachments[0]?.name,
         attachmentMime: attachments[0]?.mime,
+        uploadedBy: attachments[0]?.uploadedBy,
+        uploadedAt: attachments[0]?.createdAt,
         legacyAttachmentMapPresent: Boolean(payload?.extensions?.teamOsKanban?.taskAttachments)
       };
     });
@@ -533,12 +541,67 @@ test.describe('task editor', () => {
     expect(saved.attachmentCount).toBe(1);
     expect(saved.attachmentName).toBe('note.txt');
     expect(saved.attachmentMime).toBe('text/plain');
+    expect(saved.uploadedBy).toBe('Ana Silva');
+    expect(Number.isNaN(Date.parse(saved.uploadedAt))).toBe(false);
     expect(saved.legacyAttachmentMapPresent).toBe(false);
 
     await portfolioCard(page, 'Task with file').click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#detailAttachments')).toBeHidden();
+    await expect(page.locator('#task-panel-details')).not.toContainText('note.txt');
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    const table = page.getByRole('table', { name: 'Attachments', exact: true });
+    await expect(table.getByRole('columnheader')).toHaveText(['Uploaded at', 'Attachment name', 'Uploaded by', 'Actions']);
+    await expect(table.getByRole('row').nth(1)).toContainText('Ana Silva');
+    await expect(table.locator('time')).toHaveAttribute('datetime', saved.uploadedAt);
     await expect(page.locator('#detailAttachments')).toContainText('note.txt');
     await expect(page.locator('#detailAttachments .detail-attachment-download')).toHaveCount(1);
+    const downloadPromise = page.waitForEvent('download');
+    await table.getByRole('link', { name: 'Download note.txt', exact: true }).click();
+    expect((await downloadPromise).suggestedFilename()).toBe('note.txt');
+
+    await expect(page.locator('#taskAttachmentUploader')).toHaveValue('Ana Silva');
+    await page.locator('#taskAttachmentUploader').fill('Bruno');
+    await page.setInputFiles('#taskAttachmentsInput', { name: 'second.txt', mimeType: 'text/plain', buffer: Buffer.from('second file') });
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(2);
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await waitForBoardWrites(page);
+    const updated = await readSavedBoard(page, 'p1');
+    expect(updated.board.tasks[0].attachments.map((item: { uploadedBy?: string }) => item.uploadedBy)).toEqual(['Ana Silva', 'Bruno']);
+    expect(updated.board.tasks[0].attachments[0].createdAt).toBe(saved.uploadedAt);
+    const firstUploadIndex = updated.extensions.timeline.events.findIndex((event: { changes?: { attachments?: { after: unknown[] } } }) => event.changes?.attachments?.after.length === 1);
+    expect(firstUploadIndex).toBeGreaterThan(0);
+    await showTimeline(page);
+    await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
+    await setTimelineSlider(page, firstUploadIndex);
+    await portfolioCard(page, 'Task with file').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
+    await expect(page.locator('#detailAttachments')).toContainText('Ana Silva');
+    await expect(page.locator('#detailAttachments')).not.toContainText('Bruno');
+    await expect(page.locator('#taskDetailEditBtn')).toHaveCount(0);
+    await expect(page.locator('#taskAttachmentsAddBtn')).toHaveCount(0);
+    await expect(page.locator('#detailAttachments button')).toHaveCount(0);
+  });
+
+  test('attachment tab supports empty workitems, keyboard navigation and legacy read-only files', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project One', hasHandle: false, tasks: [
+      { id: 1, title: 'Legacy file', status: 'backlog', attachments: [{ id: 'legacy', name: 'legacy.txt', mime: 'text/plain', kind: 'file', sizeBytes: 5, dataUrl: 'data:text/plain;base64,SGVsbG8=', createdAt: '2026-01-02T10:30:00.000Z' }] },
+      { id: 2, title: 'No files', status: 'backlog' }
+    ] }], { selectedBoardId: 'p1' });
+    await portfolioCard(page, 'Legacy file').click();
+    await page.getByRole('tab', { name: 'Relations', exact: true }).focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('tab', { name: 'Attachments', exact: true })).toBeFocused();
+    await expect(page.getByRole('tabpanel', { name: 'Attachments', exact: true })).toBeVisible();
+    await expect(page.getByRole('table', { name: 'Attachments', exact: true })).toContainText('Unknown');
+    await expect(page.locator('#detailAttachments time')).toHaveAttribute('datetime', '2026-01-02T10:30:00.000Z');
+    await expect(page.getByRole('link', { name: 'Download legacy.txt', exact: true })).toBeVisible();
+    await expect(page.locator('#taskDetailEditBtn')).toHaveCount(0);
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await portfolioCard(page, 'No files').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await expect(page.getByRole('tabpanel', { name: 'Attachments', exact: true })).toContainText('No attachments yet.');
   });
 
   test('attachment picker caps attachments per task and saves the accepted ones', async ({ page }) => {
@@ -548,6 +611,8 @@ test.describe('task editor', () => {
 
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#taskName').fill('Attachment limits');
+    await page.locator('#taskModalSaveBtn').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
 
     await page.setInputFiles('#taskAttachmentsInput', Array.from({ length: 11 }, (_, i) => ({
       name: `f${i + 1}.txt`,
@@ -555,11 +620,8 @@ test.describe('task editor', () => {
       buffer: Buffer.from(`file ${i + 1}`)
     })));
 
-    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(10);
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(10);
     await expect(page.locator('#taskAttachmentsWarnings')).toContainText('Attachment limit reached (10 per task).');
-
-    await page.locator('#taskModal .btn-primary').click();
-    await expect(page.locator('#taskModal')).toBeHidden();
 
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'p1');
@@ -567,12 +629,20 @@ test.describe('task editor', () => {
     expect(task?.attachments).toHaveLength(10);
   });
 
-  test('duplicate attachment uploads are skipped in the task modal', async ({ page }) => {
+  test('duplicate attachment uploads are skipped in the attachment tab', async ({ page }) => {
+    // Exercise the busy state even when local file reads would finish immediately.
+    await page.evaluate(() => {
+      const read = FileReader.prototype.readAsDataURL;
+      FileReader.prototype.readAsDataURL = function (blob) {
+        setTimeout(() => read.call(this, blob), 150);
+      };
+    });
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }
     ], { selectedBoardId: 'p1' });
 
-    await openTaskEditor(page, 'Task with file');
+    await portfolioCard(page, 'Task with file').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
 
     const filePayload = {
       name: 'note.txt',
@@ -581,13 +651,12 @@ test.describe('task editor', () => {
     };
 
     await page.setInputFiles('#taskAttachmentsInput', filePayload);
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
+    await expect(page.locator('#taskAttachmentsAddBtn')).toBeEnabled();
     await page.setInputFiles('#taskAttachmentsInput', filePayload);
 
-    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(1);
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
     await expect(page.locator('#taskAttachmentsWarnings')).toContainText('already attached');
-
-    await page.locator('#taskModal .btn-primary').click();
-    await expect(page.locator('#taskModal')).toBeHidden();
 
     await waitForBoardWrites(page);
     const result = await page.evaluate(() => {
@@ -748,7 +817,7 @@ test.describe('task editor', () => {
     await expect.poll(suggestions).toEqual(['Alex', 'Sam']);
   });
 
-  test('removing an attachment clears the attachment picker error', async ({ page }) => {
+  test('rejected uploads preserve existing attachments and allow removal from the tab', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 'p1',
@@ -771,17 +840,22 @@ test.describe('task editor', () => {
       }
     ], { selectedBoardId: 'p1' });
 
-    await openTaskEditor(page, 'Task with file');
+    await portfolioCard(page, 'Task with file').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     await page.setInputFiles('#taskAttachmentsInput', {
       name: 'huge.bin',
       mimeType: 'application/octet-stream',
       buffer: Buffer.alloc((10 * 1024 * 1024) + 1)
     });
     await expect(page.locator('#taskAttachmentsWarnings')).toContainText('huge.bin exceeds the 10 MB limit.');
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
+    expect((await readSavedBoard(page, 'p1')).board.tasks[0].attachments[0].name).toBe('notes.txt');
 
     await page.getByRole('button', { name: 'Remove attachment notes.txt' }).click();
-    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(0);
-    await expect(page.locator('#taskAttachmentsWarnings')).toHaveText('');
+    await answerAppMessage(page, { button: 'Remove' });
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(0);
+    await waitForBoardWrites(page);
+    expect((await readSavedBoard(page, 'p1')).board.tasks[0].attachments).toEqual([]);
   });
 
   test('Escape answers only the app message and leaves the task editor open', async ({ page }) => {

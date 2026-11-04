@@ -6,7 +6,7 @@ import { getSprintCatalog } from '@/domain/sprintCatalog';
 import { getSprintCalendarStatus, type SprintCalendarStatus } from '@/domain/roadmap';
 import { statusCategory } from '@/domain/workflow';
 
-export type TableView = 'all' | 'unplanned' | 'sprints' | 'epics' | 'stories' | 'independent';
+export type TableView = 'hierarchy' | 'all' | 'unplanned' | 'sprints' | 'epics' | 'stories' | 'independent';
 export type { SprintCalendarStatus } from '@/domain/roadmap';
 
 /** A sprint owns its roster, not the live task's single sprintId. A future
@@ -44,7 +44,7 @@ export function currentSprintRosters(boardData: BoardData, rows: PortfolioRow[])
         const snapshot = participation.boardData;
         const rosterRows = participation.members.map((task): PortfolioRow => {
             const current = rows.find((row) => row.taskId === task.id);
-            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, columnTitle: getWorkflow(boardData, task).states.find((state) => state.id === task.status)?.name, boardData: snapshot, task };
+            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || rows[0]?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, columnTitle: getWorkflow(boardData, task).states.find((state) => state.id === task.status)?.name, boardData: snapshot, task };
         });
         return { sprint, boardData: snapshot, participation, source: 'current', rows: rosterRows, identity: identities.get(sprint.id) };
     });

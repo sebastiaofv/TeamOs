@@ -27,6 +27,7 @@ export type Attachment = {
     kind: AttachmentKind;
     dataUrl: string;
     createdAt: string;
+    uploadedBy?: string;
 };
 
 export type WorkitemType = 'epic' | 'story' | 'task' | 'bug';
@@ -44,6 +45,7 @@ export type Task = WorkitemFields & {
     sprintHistory?: { sprintId: string; status: string; at: string; parentId?: number | null }[];
     id: number;
     displayId?: string;
+    permanentId?: string;
     title: string;
     description: string;
     assignees: string[];
@@ -91,7 +93,7 @@ export type BoardMeta = {
 export type RoadmapKind = 'milestones' | 'phases' | 'sprints';
 export type RoadmapDateKey = 'dueDate' | 'startDate' | 'endDate';
 // Milestones carry a dueDate; phases and sprints a startDate and endDate.
-export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string } & Partial<Record<RoadmapDateKey, string>>;
+export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string; objective?: string } & Partial<Record<RoadmapDateKey, string>>;
 export type RoadmapExtension = {
     version: number;
     milestones: RoadmapItem[];
@@ -153,6 +155,7 @@ export type SprintCatalog = { version: 1; lastNumber: number; entries: SprintIde
 export type ProjectStatus = 'planned' | 'active' | 'paused' | 'completed' | 'archived';
 export type ProjectMember = { id: string; name: string };
 export type ProjectData = {
+    productName?: string;
     acronym?: string;
     version: 1;
     id: string;
@@ -162,9 +165,12 @@ export type ProjectData = {
     tags: string[];
 };
 export type BoardExtensions = {
+    projectControl?: import('./projectControl').ProjectControl;
     [key: string]: unknown;
     conversations?: Conversations;
     project?: ProjectData;
+    permanentRelations?: import('./permanentRelations').PermanentRelations;
+    projectTransfers?: import('./projectTransfers').ProjectTransfers;
     sprintParticipation?: { version: 1; entries: { sprintId: string; task: Task; at: string }[] };
     workitemAutomation?: WorkitemAutomation;
     boardView?: BoardViewPreferences;

@@ -1,3 +1,4 @@
+import { controlRecords } from '@/domain/projectControl';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { Attachment, Task } from '@/domain/types';
@@ -11,7 +12,7 @@ import { readCommentImage } from '@/infrastructure/browser/commentImages';
 import { useI18n } from '@/shared/i18n';
 import { discardConversationDraft, draftKey, getConversationDraft, lastCommentAuthor, rememberCommentAuthor, sessionDraftWorkitemKey, updateConversationDraft, useConversationDraftRevision } from '../conversationDrafts';
 
-export type ConversationContext = { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };
+export type ConversationContext = { boardId: string; readOnly: boolean; eventIndex?: number } & ({ task: Task; controlId?: never } | { controlId: string; controlRecord?: import('@/domain/projectControl').ControlRecord; task?: never });
 
 function PlainCommentText({ text }: { text: string }) {
     const pieces = text.split(/(https?:\/\/[^\s<>]+)/gi);
@@ -25,7 +26,7 @@ function PlainCommentText({ text }: { text: string }) {
 export function TaskConversation({ context }: { context: ConversationContext }) {
     const { t, language } = useI18n();
     const board = useAppStore((state) => state.portfolioBoards.find((item) => item.id === context.boardId));
-    const { publishPortfolioComment } = usePortfolioActions();
+    const { publishPortfolioComment, publishControlComment } = usePortfolioActions();
     useConversationDraftRevision();
     const [visible, setVisible] = useState(50);
     const [busy, setBusy] = useState(false);
@@ -36,13 +37,14 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
     const fileInput = useRef<HTMLInputElement>(null);
     const list = useRef<HTMLOListElement>(null);
     const anchor = useRef<{ id: string; top: number } | null>(null);
-    const key = board && conversationWorkitemKey(board.data, context.task, context.eventIndex);
-    const identity = key ? sessionDraftWorkitemKey(key, context.task) : '';
+    const record = context.controlId ? context.controlRecord || controlRecords(board?.data).find((item) => item.id === context.controlId) : undefined;
+    const key = record ? `control:${record.id}:${record.createdAt}` : board && context.task ? conversationWorkitemKey(board.data, context.task, context.eventIndex) : null;
+    const identity = key ? record ? key : sessionDraftWorkitemKey(key, context.task!) : '';
     const sessionKey = draftKey(context.boardId, identity);
     const stored = getConversationDraft(sessionKey);
-    const draftContext = { projectId: context.boardId, taskId: context.task.id, workitemKey: identity, title: context.task.title };
+    const draftContext = { projectId: context.boardId, taskId: record?.id || context.task!.id, workitemKey: identity, title: record?.title || context.task!.title };
     const draft = stored || { ...draftContext, id: '', text: '', author: lastCommentAuthor(context.boardId), images: [] };
-    const comments = board ? visibleComments(board.data, context.task, context.eventIndex) : [];
+    const comments = record?.comments || (board && context.task ? visibleComments(board.data, context.task, context.eventIndex) : []);
     const shown = comments.slice(-visible).reverse();
     const people = [...new Set(board?.data.board.tasks.flatMap((task) => task.assignees) || [])];
     const update = (changes: Parameters<typeof updateConversationDraft>[2]) => updateConversationDraft(sessionKey, draftContext, changes);
@@ -88,7 +90,8 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
         catch (error) { update({ error: error instanceof CommentError ? error.code : 'record' }); return; }
         busyRef.current = true; setBusy(true);
         try {
-            await publishPortfolioComment(context.boardId, context.task.id, input, () => {
+            const publish = record ? (onApplied: () => void) => publishControlComment(context.boardId, record.id, input, onApplied) : (onApplied: () => void) => publishPortfolioComment(context.boardId, context.task!.id, input, onApplied);
+            await publish(() => {
                 rememberCommentAuthor(context.boardId, input.author.trim()); discardConversationDraft(sessionKey);
             });
         } finally { busyRef.current = false; setBusy(false); }

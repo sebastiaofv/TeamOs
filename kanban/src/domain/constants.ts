@@ -1,7 +1,7 @@
 import type { BoardColumn, Effort } from './types';
 import type { ArchiveFilter } from '@/features/portfolio/types';
 
-export const BOARD_SCHEMA_VERSION = 5;
+export const BOARD_SCHEMA_VERSION = 6;
 export const BOARD_APP_ID = 'teamos-kanban';
 export const BOARD_FILE_EXTENSION = '.json';
 export const DEFAULT_BOARD_TITLE = 'Example Task Board';
@@ -12,7 +12,7 @@ export const BOARD_ARCHIVE_FILTER_VALUES: readonly ArchiveFilter[] = ['active', 
 export const TEAMOS_EXTENSIONS_KEY = 'teamOsKanban';
 export const TASK_ATTACHMENTS_EXTENSIONS_KEY = 'taskAttachments';
 export const ROADMAP_EXTENSION_KEY = 'roadmap';
-export const ROADMAP_VERSION = 4;
+export const ROADMAP_VERSION = 5;
 export const TIMELINE_EXTENSION_KEY = 'timeline';
 export const TIMELINE_VERSION = 1;
 export const DAY_PLANNER_EXTENSION_KEY = 'dayPlanner';

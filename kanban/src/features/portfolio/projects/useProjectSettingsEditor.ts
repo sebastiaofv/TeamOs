@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import type { Workflow, WorkflowKind } from '@/domain/types';
 import type { ProjectSettingsDraft } from '@/domain/projectData';
-import { getProjectData } from '@/domain/projectData';
-import { getWorkflow, workflowErrors, workflowKind } from '@/domain/workflow';
+import { applyProjectSettings, ProjectDataError, getProjectData } from '@/domain/projectData';
+import { applyWorkflow, getWorkflow, workflowErrors, workflowKind } from '@/domain/workflow';
 import { areSerializableValuesEqual, cloneSerializable } from '@/domain/serializable';
 import type { DialogPropsByName } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -36,6 +36,7 @@ export function useProjectSettingsEditor(vm: DialogPropsByName['projectSettings'
     const [original] = useState(() => ({ name: vm.data.board.settings.title, project: getProjectData(vm.data) }));
     const [general, setGeneral] = useState(() => cloneSerializable(original));
     const [tab, selectTab] = useState<Tab>('general');
+    const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
     const saving = useRef(false);
     const canEdit = () => !vm.readOnly && !saving.current;
@@ -56,14 +57,22 @@ export function useProjectSettingsEditor(vm: DialogPropsByName['projectSettings'
         }
         saving.current = true; setBusy(true); technical.clearError(); functional.clearError();
         try {
+            if (vm.onCreate) {
+                const data = cloneSerializable(vm.data);
+                applyProjectSettings(data, general);
+                if (!data.extensions.project?.acronym) throw new ProjectDataError('acronym');
+                for (const editor of changed) applyWorkflow(data, editor.draft, editor.relocations, editor.kind);
+                await vm.onCreate(data);
+                return;
+            }
             await saveProjectSettings(vm.boardId, general, original, changed.length ? changed.map((editor) => ({
                 kind: editor.kind, original: editor.original, workflow: editor.draft, relocations: editor.relocations
             })) : undefined);
-        } finally { saving.current = false; setBusy(false); }
+        } catch (error) { if (!(error instanceof ProjectDataError)) throw error; selectTab('general'); setError(t(`project.error.${error.code}`)); } finally { saving.current = false; setBusy(false); }
     }
 
     return {
-        general, tab, selectTab, busy, save, technical, functional,
+        general, tab, selectTab, busy, save, error, technical, functional,
         editGeneral: (patch: Partial<ProjectSettingsDraft>) => { if (canEdit()) setGeneral((value) => ({ ...value, ...patch })); }
     };
 }

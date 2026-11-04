@@ -317,6 +317,7 @@ export const SHORTCUTS: Shortcut[] = createPortfolioShortcuts();
 const SHORTCUT_CONTEXT_BY_DIALOG: Record<DialogName, ShortcutContext> = {
     appSettings: 'appSettingsModal',
     projectSettings: 'roadmapEntityModal',
+    projectControl: 'roadmapEntityModal',
     taskEditor: 'taskModal',
     taskDetail: 'detailModal',
     roadmapEntity: 'roadmapEntityModal',

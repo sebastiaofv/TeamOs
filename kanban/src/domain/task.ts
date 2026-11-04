@@ -230,6 +230,7 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
         ...(task.sprintHistory != null ? { sprintHistory: structuredClone(task.sprintHistory) as Task['sprintHistory'] } : {}),
         pullRequests: parsePullRequestLinks(task.pullRequests),
         ...(task.displayId !== undefined ? { displayId: task.displayId as string } : {}),
+        ...(typeof task.permanentId === 'string' ? { permanentId: task.permanentId } : {}),
         id: task.id as number,
         title: task.title as string,
         description: (task.description || '') as string,

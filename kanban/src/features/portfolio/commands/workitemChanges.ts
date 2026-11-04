@@ -1,13 +1,16 @@
+import { removeDeletedControlLinks } from '@/domain/projectControl';
+import { lastCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
+import { requestWorkitemAcceptance } from './workitemAcceptance';
 import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import type { BoardRecord } from '@/features/portfolio/types';
 import type { BoardData, Task } from '@/domain/types';
 import type { BoardMutationOptions, BoardMutator } from './mutationContext';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { cloneSerializable } from '@/domain/serializable';
-import { applyStoryAutomation, assertAcceptance, assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
+import { applyStoryAutomation, assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, ensureBoardTimelineBaseline, recordTaskTimelineEvent, createTimelineEventId } from '@/domain/timeline';
 import { annotateTimelineOperation } from '@/domain/taskHistory';
-import { createWorkitemDisplayId, reserveTaskIdentities } from '@/domain/taskIdentity';
+import { createWorkitemDisplayId, ensurePermanentTaskIdentities, reserveTaskIdentities } from '@/domain/taskIdentity';
 import { syncProjectAssignments, ProjectDataError } from '@/domain/projectData';
 import { touchTask } from '@/domain/task';
 import { canTransition, statusCategory, getWorkflow } from '@/domain/workflow';
@@ -28,6 +31,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     const firstEvent = draft.data.extensions.timeline?.events.length || 0;
     const beforeTask = taskId === undefined ? null : captureTaskTimelineSnapshot(draft.data, taskId);
     if (mutator(draft.data, draft) === false) return false;
+    ensurePermanentTaskIdentities({ ...draft.data, board: { ...draft.data.board, tasks: draft.data.board.tasks.filter((task) => !current.data.board.tasks.some((previous) => previous.id === task.id)) } });
     const boardSnapshotRecorded = draft.data.extensions.timeline?.events.slice(firstEvent).some((event) => Boolean(event.snapshot?.board));
     const existingIds = new Set(current.data.board.tasks.map((task) => task.id));
     const createdTasks = draft.data.board.tasks.filter((task) => !boardSnapshotRecorded && !existingIds.has(task.id) && !task.displayId);
@@ -70,6 +74,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     for (const task of current.data.board.tasks) if (!boardSnapshotRecorded && task.id !== taskId && !nextIds.has(task.id)) {
         recordTaskTimelineEvent(draft.data, captureTaskTimelineSnapshot(current.data, task.id), null);
     }
+    if (removeDeletedControlLinks(draft.data, current.data, lastCommentAuthor(current.id))) appendTimelineEvent(draft.data, { kind: 'board.control.associations', entityType: 'board', entityId: 'board', summary: 'Project Control associations updated after element deletion', snapshot: createBoardStateSnapshot(draft.data) });
     const stage = cloneSerializable(draft.data);
     syncWorkitemPlanning(draft.data, current.data);
     const effects = applyStoryAutomation(draft.data, current.data);
@@ -85,10 +90,8 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
         const changedStatus = !before || before.status !== task.status || statusCategory(before.status, current.data, before) !== category;
         const changedCriteria = before && workitemType(task) === 'story' && before.acceptanceCriteria !== task.acceptanceCriteria;
         if ((changedStatus || changedCriteria) && category === 'completed' && ['story', 'bug'].includes(workitemType(task))) {
-            assertAcceptance(draft.data, task);
-            const author = await prompt(translateCurrent('workitems.acceptQuestion', { id: workitemLabel(task), title: task.title }) + (task.acceptanceCriteria ? `\n\n${task.acceptanceCriteria}` : task.expectedResult ? `\n\n${task.expectedResult}` : ''), '', { title: translateCurrent('workitems.acceptance'), confirmLabel: translateCurrent('workitems.accept'), required: true });
+            const author = await requestWorkitemAcceptance(draft.data, task, prompt);
             if (author === null) return false;
-            if (!author.trim()) throw new WorkitemError('author');
             task.acceptance = { author: author.trim(), at: new Date().toISOString(), local: true };
         }
         if (changedStatus && category !== 'completed') delete task.acceptance;

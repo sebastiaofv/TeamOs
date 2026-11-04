@@ -4,13 +4,14 @@ import { useI18n, type TranslationKey } from '@/shared/i18n';
 import { formatFileSize } from '@/domain/util';
 
 const FIELDS: Record<string, TranslationKey> = {
-    title: 'task.title', description: 'task.description', status: 'task.status', assignees: 'task.assignees', responsible: 'task.responsible',
+    transfer: 'history.transfer', title: 'task.title', description: 'task.description', status: 'task.status', assignees: 'task.assignees', responsible: 'task.responsible',
     tags: 'task.tags', priority: 'task.priority', effort: 'task.effort', dueDate: 'task.due', blocked: 'task.blocked', blockerReason: 'task.blocker',
     checklist: 'task.todoList', attachments: 'task.attachments', archived: 'table.archived', phaseId: 'task.phase', milestoneId: 'task.milestone', sprintId: 'task.sprint',
     planner: 'history.planner', relations: 'history.relations', existence: 'history.existence', pullRequests: 'history.pullRequests'
 };
 
 function operation(entry: TaskHistoryEntry, t: ReturnType<typeof useI18n>['t']): string {
+    if (entry.kinds.includes('task.transferred') || entry.kinds.includes('task.comment.referenced')) return t('history.transfer');
     if (entry.kinds.includes('board.restored')) return t('history.projectRestore');
     if (entry.kinds.includes('task.created')) return t('history.created');
     if (entry.kinds.includes('task.deleted')) return t('history.deleted');
@@ -47,22 +48,31 @@ function readable(value: unknown, field: string, t: ReturnType<typeof useI18n>['
     return t('history.unavailable');
 }
 
-export function TaskHistory({ history }: { history?: TaskHistoryProjection }) {
+type HistoryPresentation = {
+    history?: TaskHistoryProjection;
+    categories?: readonly HistoryCategory[];
+    fieldLabels?: Record<string, TranslationKey>;
+    formatValue?: (value: unknown, field: string) => string | undefined;
+    emptyMessage?: TranslationKey;
+};
+
+export function TaskHistory({ history, categories = HISTORY_CATEGORIES, fieldLabels = FIELDS, formatValue, emptyMessage = 'history.empty' }: HistoryPresentation) {
     const { t, language } = useI18n();
     const [category, setCategory] = useState<HistoryCategory>('all');
     const date = (value: string) => new Date(value).toLocaleString(language === 'pt' ? 'pt-PT' : 'en');
     const allEntries = history?.entries || [];
     const entries = allEntries.filter((entry) => category === 'all' || entry.categories.includes(category));
+    const valueText = (value: unknown, field: string) => formatValue?.(value, field) ?? readable(value, field, t);
     return <section className="task-history" aria-label={t('history.title')}>
         <p className="history-note">{t('history.localRecord')}</p>
         {history?.availableFrom && <p className="history-note">{t('history.availableFrom', { date: date(history.availableFrom) })}</p>}
         {history?.historicalIndex !== undefined && <p className="history-context" role="note">{t('history.cutoff', { position: history.historicalIndex + 1 })}</p>}
         {history?.ambiguous && <p className="history-context" role="note">{t('history.ambiguous')}</p>}
         <label className="history-filter">{t('history.filter')}<select aria-label={t('history.filter')} value={category} onChange={(event) => setCategory(event.target.value as HistoryCategory)}>
-            {HISTORY_CATEGORIES.map((value) => <option key={value} value={value}>{t(`history.category.${value}`)}</option>)}
+            {categories.map((value) => <option key={value} value={value}>{t(`history.category.${value}`)}</option>)}
         </select></label>
         {!entries.length ? <div className="history-empty" role="status">
-            <p>{t(allEntries.length ? 'history.noMatches' : history?.baselineOnly ? 'history.baselineOnly' : 'history.empty')}</p>
+            <p>{t(allEntries.length ? 'history.noMatches' : history?.baselineOnly ? 'history.baselineOnly' : emptyMessage)}</p>
             {category !== 'all' && <button className="btn" onClick={() => setCategory('all')}>{t('history.category.all')}</button>}
         </div> : <ol className="history-entries">{entries.map((entry) => <li key={entry.id}>
             <details className="history-entry"><summary>
@@ -74,14 +84,14 @@ export function TaskHistory({ history }: { history?: TaskHistoryProjection }) {
                     </span>
                 </span>
             </summary>
-                <p className="history-summary">{entry.summary}</p>
+                {entry.summary && <p className="history-summary">{entry.summary}</p>}
                 {entry.cause && <p>{t('history.cause')}: {entry.cause}</p>}
                 {entry.origin && <p>{t('history.origin')}: {entry.origin}</p>}
                 {entry.partial && <p>{t('history.detailsUnavailable')}</p>}
                 <dl className="history-changes">{entry.changes.map((change, index) => <div className="history-change" key={`${change.field}:${index}`}>
-                    <dt>{FIELDS[change.field] ? t(FIELDS[change.field]) : change.field}</dt>
-                    <dd><div><span>{t('common.before')}</span><pre>{change.before === undefined && entry.kinds.includes('task.created') ? '—' : readable(change.before, change.field, t)}</pre></div>
-                        <div><span>{t('common.after')}</span><pre>{change.after === undefined && entry.kinds.includes('task.deleted') ? t('common.none') : readable(change.after, change.field, t)}</pre></div></dd>
+                    <dt>{fieldLabels[change.field] ? t(fieldLabels[change.field]) : change.field}</dt>
+                    <dd><div><span>{t('common.before')}</span><pre>{change.before === undefined && entry.kinds.includes('task.created') ? '—' : valueText(change.before, change.field)}</pre></div>
+                        <div><span>{t('common.after')}</span><pre>{change.after === undefined && entry.kinds.includes('task.deleted') ? t('common.none') : valueText(change.after, change.field)}</pre></div></dd>
                 </div>)}</dl>
                 <p className="history-event-ids">{entry.eventIds.join(' · ')}</p>
             </details>

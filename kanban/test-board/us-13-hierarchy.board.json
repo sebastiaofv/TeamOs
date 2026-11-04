@@ -1,0 +1,461 @@
+{
+  "meta": {
+    "schemaVersion": 6,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-01T09:00:00.000Z",
+    "updatedAt": "2026-10-01T09:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "A fazer"
+      },
+      {
+        "status": "doing",
+        "title": "Em curso"
+      },
+      {
+        "status": "done",
+        "title": "Concluído"
+      }
+    ],
+    "tasks": [
+      {
+        "id": 3701,
+        "permanentId": "us13:hierarchy:3701",
+        "displayId": "HIR-EP-3701",
+        "type": "epic",
+        "parentId": null,
+        "phaseMode": "explicit",
+        "milestoneMode": "explicit",
+        "title": "Entrega do produto",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": null,
+        "phaseId": "exterior",
+        "milestoneId": "handover",
+        "sprintId": "",
+        "status": "to-do",
+        "pullRequests": [],
+        "objective": "Entregar o produto com rastreabilidade.",
+        "scope": "Planeamento e execução do lançamento.",
+        "businessValue": "Organização clara do trabalho."
+      },
+      {
+        "id": 3702,
+        "permanentId": "us13:hierarchy:3702",
+        "displayId": "HIR-US-3702",
+        "type": "story",
+        "parentId": 3701,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "title": "Preparar lançamento",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "sprint-1",
+        "status": "to-do",
+        "pullRequests": [],
+        "acceptanceCriteria": "Os resultados acordados estão disponíveis e validados."
+      },
+      {
+        "id": 3703,
+        "permanentId": "us13:hierarchy:3703",
+        "displayId": "HIR-TK-3703",
+        "type": "task",
+        "parentId": 3702,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "title": "Preparar documentação",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "sprint-1",
+        "status": "to-do",
+        "pullRequests": []
+      },
+      {
+        "id": 3704,
+        "permanentId": "us13:hierarchy:3704",
+        "displayId": "HIR-TK-3704",
+        "type": "task",
+        "parentId": 3702,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "title": "Rever acessibilidade",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "sprint-1",
+        "status": "backlog",
+        "pullRequests": []
+      },
+      {
+        "id": 3705,
+        "permanentId": "us13:hierarchy:3705",
+        "displayId": "HIR-TK-3705",
+        "type": "task",
+        "parentId": 3701,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "title": "Configurar ambiente",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "to-do",
+        "pullRequests": []
+      },
+      {
+        "id": 3706,
+        "permanentId": "us13:hierarchy:3706",
+        "displayId": "HIR-TK-3706",
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "explicit",
+        "milestoneMode": "explicit",
+        "title": "Task independente",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "exterior",
+        "milestoneId": "handover",
+        "sprintId": "",
+        "status": "backlog",
+        "pullRequests": []
+      },
+      {
+        "id": 3707,
+        "permanentId": "us13:hierarchy:3707",
+        "displayId": "HIR-BG-3707",
+        "type": "bug",
+        "parentId": null,
+        "phaseMode": "explicit",
+        "milestoneMode": "explicit",
+        "title": "Corrigir navegação",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "exterior",
+        "milestoneId": "handover",
+        "sprintId": "sprint-1",
+        "status": "to-do",
+        "pullRequests": []
+      },
+      {
+        "id": 3708,
+        "permanentId": "us13:hierarchy:3708",
+        "displayId": "HIR-EP-3708",
+        "type": "epic",
+        "parentId": null,
+        "phaseMode": "explicit",
+        "milestoneMode": "explicit",
+        "title": "Movimento bloqueado",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": null,
+        "phaseId": "exterior",
+        "milestoneId": "handover",
+        "sprintId": "",
+        "status": "to-do",
+        "pullRequests": [],
+        "objective": "Entregar o produto com rastreabilidade.",
+        "scope": "Planeamento e execução do lançamento.",
+        "businessValue": "Organização clara do trabalho."
+      },
+      {
+        "id": 3709,
+        "permanentId": "us13:hierarchy:3709",
+        "displayId": "HIR-US-3709",
+        "type": "story",
+        "parentId": 3708,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "title": "Story com execução iniciada",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "to-do",
+        "pullRequests": [],
+        "acceptanceCriteria": "Os resultados acordados estão disponíveis e validados."
+      },
+      {
+        "id": 3710,
+        "permanentId": "us13:hierarchy:3710",
+        "displayId": "HIR-TK-3710",
+        "type": "task",
+        "parentId": 3709,
+        "phaseMode": "inherit",
+        "milestoneMode": "inherit",
+        "title": "Task em curso impede movimento",
+        "description": "Dados fictícios para rever os comentários da US-13.",
+        "assignees": [],
+        "assigneeIds": [],
+        "responsible": "",
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "S",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "doing",
+        "pullRequests": []
+      }
+    ],
+    "settings": {
+      "title": "US-13 · Hierarquia"
+    }
+  },
+  "extensions": {
+    "project": {
+      "version": 1,
+      "id": "us13-hierarchy",
+      "acronym": "HIR",
+      "description": "Navegação após criação, tabelas hierárquicas e movimento de descendentes.",
+      "status": "active",
+      "members": [
+        {
+          "id": "person-1",
+          "name": "Ana"
+        }
+      ],
+      "tags": [
+        "feature"
+      ],
+      "productName": "House"
+    },
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "A fazer",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "Em curso",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Concluído",
+          "color": "#34d399",
+          "category": "completed"
+        }
+      ],
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "done"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "doing",
+          "done"
+        ],
+        "to-do": [
+          "backlog",
+          "doing",
+          "done"
+        ],
+        "doing": [
+          "backlog",
+          "to-do",
+          "done"
+        ],
+        "done": [
+          "backlog",
+          "to-do",
+          "doing"
+        ]
+      }
+    },
+    "roadmap": {
+      "version": 1,
+      "phases": [
+        {
+          "id": "structure",
+          "title": "Estrutura",
+          "startDate": "2026-10-01",
+          "endDate": "2026-11-30"
+        },
+        {
+          "id": "exterior",
+          "title": "Exterior",
+          "parentId": "structure",
+          "startDate": "2026-10-01",
+          "endDate": "2026-11-30"
+        }
+      ],
+      "milestones": [
+        {
+          "id": "handover",
+          "title": "Entrega",
+          "dueDate": "2026-11-15"
+        }
+      ],
+      "sprints": [
+        {
+          "id": "sprint-1",
+          "title": "Sprint de construção",
+          "startDate": "2026-10-26",
+          "endDate": "2026-11-06"
+        }
+      ]
+    }
+  }
+}

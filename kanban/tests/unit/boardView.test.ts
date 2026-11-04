@@ -1,3 +1,4 @@
+import { ensurePermanentTaskIdentities } from '../../src/domain/taskIdentity';
 import { syncProjectAssignments } from '../../src/domain/projectData';
 import { describe, expect, it, vi } from 'vitest';
 import { fromPartial } from '@total-typescript/shoehorn';
@@ -15,6 +16,7 @@ function setup(writable = true) {
     const data = createEmptyProjectData('Columns');
     data.board.tasks = [normalizeTask({ id: 1, title: 'Kept', status: 'cancelled' })];
     syncProjectAssignments(data);
+    ensurePermanentTaskIdentities(data);
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Columns', handle: writable ? {} : null, data })], selectedPortfolioBoardId: 'p' });
     const save = vi.fn(async () => true); const alert = vi.fn();
     const actions = createPortfolioMutationActions({ store, enqueueSave: save, alert, markDirty: vi.fn(), openDialogFn: vi.fn() });

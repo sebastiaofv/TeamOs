@@ -1,3 +1,4 @@
+import type { Attachment } from '../../src/domain/types';
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
 import { createBoardMutationContext } from '../../src/features/portfolio/commands/mutationContext';
 import { createAppStore as createStore } from '../../src/features/portfolio/state/store';
@@ -217,6 +218,29 @@ describe('portfolio mutation actions', () => {
     expect(board.data.extensions.timeline!.events).toHaveLength(2);
     expect(markDirty).toHaveBeenCalledWith('p1');
     expect(enqueueSave).toHaveBeenCalledWith(board);
+  });
+
+  it('persists direct attachment changes through the timeline and rejects stale attachment lists', async () => {
+    const alert = vi.fn();
+    const { actions, store, enqueueSave } = createActions({ alert });
+    const attachment: Attachment = { id: 'new', name: 'new.txt', mime: 'text/plain', kind: 'file', sizeBytes: 5, dataUrl: 'data:text/plain;base64,SGVsbG8=', createdAt: '2026-11-02T12:00:00Z', uploadedBy: 'Ana' };
+    expect(await actions.setPortfolioTaskAttachments('p1', 1, [attachment], [])).toBe(true);
+    const board = store.getState().portfolioBoards[0];
+    expect(board.data.board.tasks[0].attachments).toMatchObject([{ id: 'new', uploadedBy: 'Ana' }]);
+    expect(board.data.extensions.timeline!.events.at(-1)?.changes?.attachments).toMatchObject({ after: [{ id: 'new' }] });
+    expect(enqueueSave).toHaveBeenCalledOnce();
+    expect(await actions.setPortfolioTaskAttachments('p1', 1, [], [])).toBe(false);
+    expect(store.getState().portfolioBoards[0].data).toEqual(board.data);
+    expect(alert).toHaveBeenCalledWith(expect.stringContaining('project changed'));
+    expect(enqueueSave).toHaveBeenCalledOnce();
+  });
+
+  it.each(['read-only', 'historical detail'])('blocks direct attachment changes in %s', async (mode) => {
+    const { actions, store, enqueueSave } = createActions();
+    if (mode === 'read-only') store.setState({ portfolioBoards: [fromAny({ ...createBoard(), handle: null })] });
+    else store.setState({ portfolioDetailContext: { boardId: 'p1', taskId: 1, readOnly: true } });
+    expect(await actions.setPortfolioTaskAttachments('p1', 1, [], [])).toBe(false);
+    expect(enqueueSave).not.toHaveBeenCalled();
   });
 
   it('moves a task through the store-backed mutation action', async () => {

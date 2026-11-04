@@ -1,3 +1,6 @@
+import { parseProjectControl } from './projectControl';
+import { allPermanentRelations, assertPermanentGraph, parsePermanentRelations } from './permanentRelations';
+import { parseProjectTransfers } from './projectTransfers';
 import { assertWorkitems, WORKITEM_FIELDS } from './workitems';
 import type {
     BoardColumn,
@@ -6,7 +9,7 @@ import type {
     TaskStatus
 } from './types';
 import type { PortfolioRow, PortfolioSortKey, PortfolioViewMode, SortDir } from '@/features/portfolio/types';
-import { compareText, hasExactKeys, normalizeTimestamp, nowIso } from './util';
+import { compareText, hasExactKeys, isRecord, normalizeTimestamp, nowIso } from './util';
 import { isAcceptedLegacyAssigneeValue, normalizeAssignee, taskHasAssignee, normalizeBlockerReason, resolveKnownTaskStatus } from './task';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, ROADMAP_EXTENSION_KEY, TASK_TITLE_MAX_LENGTH, TIMELINE_EXTENSION_KEY, defaultColumns, isArchiveFilter, isEffort } from './constants';
 import { comparePortfolioDueDateAsc } from './calendar';
@@ -90,6 +93,7 @@ export function portfolioSortSelectValueFromKey(sortKey: unknown): 'name' | 'pri
 
 export function normalizePortfolioViewMode(value: unknown): PortfolioViewMode {
     if (value === 'dashboard') return 'dashboard';
+    if (value === 'control') return 'control';
     if (value === 'table') return 'table';
     if (value === 'roadmap') return 'roadmap';
     if (value === 'calendar') return 'calendar';
@@ -210,7 +214,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid meta structure.');
     }
     const schemaVersion = data.meta.schemaVersion;
-    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4 && schemaVersion !== BOARD_SCHEMA_VERSION) {
+    if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4 && schemaVersion !== 5 && schemaVersion !== BOARD_SCHEMA_VERSION) {
         throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);
     }
     if (data.meta.appId !== BOARD_APP_ID) {
@@ -253,6 +257,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid extensions structure.');
     }
     if (!('workflow' in extensions) && data.board.columns.length > MAX_COLUMNS) throw new Error(`Board cannot have more than ${MAX_COLUMNS} legacy columns.`);
+    parseProjectControl((extensions as Record<string, unknown>).projectControl);
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
     const workflowData = { extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } };
     const functionalStatuses = new Set(getWorkflow(workflowData, 'functional').states.map((state) => state.id));
@@ -303,10 +308,11 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     });
 
     assertWorkitems(data as unknown as BoardData);
+    const permanentIds = new Set<string>();
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['displayId', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
+        const optionalTaskKeys = new Set(['permanentId', 'displayId', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -323,6 +329,10 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
             throw new Error('Task ids must be unique.');
         }
         taskIds.add(task.id);
+        if (task.permanentId !== undefined) {
+            if (typeof task.permanentId !== 'string' || !task.permanentId.trim() || permanentIds.has(task.permanentId)) throw new Error('Invalid or duplicate permanent workitem identity.');
+            permanentIds.add(task.permanentId);
+        }
         parsePullRequestLinks(task.pullRequests);
         if (typeof task.title !== 'string' || !task.title.trim()) {
             throw new Error('Task title must be a non-empty string.');
@@ -410,7 +420,9 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
                 throw new Error('Task attachments must be an array.');
             }
             task.attachments.forEach((attachment: unknown) => {
-                if (!hasExactKeys(attachment, ['id', 'name', 'mime', 'sizeBytes', 'kind', 'dataUrl', 'createdAt'])) {
+                const keys = ['id', 'name', 'mime', 'sizeBytes', 'kind', 'dataUrl', 'createdAt'];
+                if (isRecord(attachment) && Object.prototype.hasOwnProperty.call(attachment, 'uploadedBy')) keys.push('uploadedBy');
+                if (!hasExactKeys(attachment, keys)) {
                     throw new Error('Invalid attachment structure.');
                 }
                 if (typeof attachment.id !== 'string' || !attachment.id.trim()) {
@@ -434,6 +446,9 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
                 if (!normalizeTimestamp(attachment.createdAt)) {
                     throw new Error('Attachment createdAt must be a valid timestamp.');
                 }
+                if ('uploadedBy' in attachment && (typeof attachment.uploadedBy !== 'string' || !attachment.uploadedBy.trim())) {
+                    throw new Error('Attachment uploadedBy must be a non-empty string.');
+                }
             });
         }
         if (Object.prototype.hasOwnProperty.call(task, 'tags')) {
@@ -447,7 +462,14 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
             });
         }
     });
+    parsePermanentRelations((extensions as Record<string, unknown>).permanentRelations);
+    parseProjectTransfers((extensions as Record<string, unknown>).projectTransfers);
     parseTaskRelations((extensions as Record<string, unknown>).taskRelations, taskIds);
     const project = parseProjectData((extensions as Record<string, unknown>).project);
-    if (project) validateProjectReferences(project, data.board.tasks);
+    if (project) {
+        validateProjectReferences(project, data.board.tasks);
+        const board = data as unknown as BoardData;
+        const local = allPermanentRelations([{ id: 'validation', data: { ...board, extensions: { ...board.extensions, permanentRelations: undefined } } }]);
+        assertPermanentGraph([...local, ...(board.extensions.permanentRelations?.relations || [])]);
+    }
 }

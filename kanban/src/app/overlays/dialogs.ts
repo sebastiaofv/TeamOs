@@ -29,6 +29,7 @@ export function closeDialog(name?: DialogName): void {
 export function closePortfolioContextsForProject(boardId: string): void {
     if (!boardId) return;
     const state = useAppStore.getState();
+    if (state.activeDialog === 'projectControl' && (state.dialogProps as DialogPropsByName['projectControl'])?.boardId === boardId) closeDialog('projectControl');
     if (state.activeDialog === 'projectSettings' && (state.dialogProps as DialogPropsByName['projectSettings'])?.boardId === boardId) closeDialog('projectSettings');
     const matchesDetail = state.portfolioDetailContext?.boardId === boardId;
     const matchesEditor = state.portfolioEditContext?.boardId === boardId

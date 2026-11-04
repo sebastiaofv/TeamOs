@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "schemaVersion": 6,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-01T09:00:00.000Z",
+    "updatedAt": "2026-10-01T09:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "A fazer"
+      },
+      {
+        "status": "doing",
+        "title": "Em curso"
+      },
+      {
+        "status": "done",
+        "title": "Concluído"
+      }
+    ],
+    "tasks": [],
+    "settings": {
+      "title": "US-13 · Projeto autónomo"
+    }
+  },
+  "extensions": {
+    "project": {
+      "version": 1,
+      "id": "us13-independent",
+      "acronym": "AUT",
+      "description": "Exemplo de aceitação US-13",
+      "status": "active",
+      "members": [
+        {
+          "id": "person-1",
+          "name": "Ana"
+        }
+      ],
+      "tags": [
+        "feature"
+      ]
+    },
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "A fazer",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "Em curso",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Concluído",
+          "color": "#34d399",
+          "category": "completed"
+        }
+      ],
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "done"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "doing",
+          "done"
+        ],
+        "to-do": [
+          "backlog",
+          "doing",
+          "done"
+        ],
+        "doing": [
+          "backlog",
+          "to-do",
+          "done"
+        ],
+        "done": [
+          "backlog",
+          "to-do",
+          "doing"
+        ]
+      }
+    }
+  }
+}

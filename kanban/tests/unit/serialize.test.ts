@@ -265,7 +265,7 @@ describe('serializeBoardDataFromObject', () => {
   it('stamps meta.schemaVersion and meta.appId', () => {
     const out = serializeBoardDataFromObject(rawBoardInput());
     expect(out.meta.schemaVersion).toBe(BOARD_SCHEMA_VERSION);
-    expect(out.meta.schemaVersion).toBe(5);
+    expect(out.meta.schemaVersion).toBe(6);
     expect(out.meta.appId).toBe(BOARD_APP_ID);
     expect(out.meta.appId).toBe('teamos-kanban');
   });
@@ -337,7 +337,7 @@ describe('createBoardStateSnapshot', () => {
 
   it('stamps meta.schemaVersion and meta.appId', () => {
     const out = createBoardStateSnapshot(rawBoardInput());
-    expect(out.meta.schemaVersion).toBe(5);
+    expect(out.meta.schemaVersion).toBe(6);
     expect(out.meta.appId).toBe('teamos-kanban');
   });
 
@@ -379,7 +379,7 @@ describe('createBoardStateSnapshot', () => {
     };
     const out = createBoardStateSnapshot(input);
     expect('timeline' in out.extensions).toBe(false);
-    expect(out.extensions.roadmap).toEqual({ version: 4, milestones: [], phases: [], sprints: [] });
+    expect(out.extensions.roadmap).toEqual({ version: 5, milestones: [], phases: [], sprints: [] });
   });
 
   it('tolerates entirely absent boardData', () => {
@@ -425,7 +425,7 @@ describe('serializeBoardDataFromObject — ported from the Playwright suite', ()
     expect(() => validateBoardData(source)).not.toThrow();
 
     const serialized = serializeBoardDataFromObject(source);
-    expect(serialized.meta.schemaVersion).toBe(5);
+    expect(serialized.meta.schemaVersion).toBe(6);
     expect(serialized.board.tasks[0].assignees).toEqual(['Alex']);
     // The legacy key must not survive serialization.
     expect(Object.prototype.hasOwnProperty.call(serialized.board.tasks[0], 'assignee')).toBe(false);
@@ -451,7 +451,7 @@ describe('serializeBoardDataFromObject — ported from the Playwright suite', ()
     expect(() => validateBoardData(source)).not.toThrow();
 
     const s = serializeBoardDataFromObject(source);
-    expect(s.extensions.roadmap!.version).toBe(4);
+    expect(s.extensions.roadmap!.version).toBe(5);
     expect(s.extensions.roadmap!.milestones).toEqual([
       { id: 'milestone_alpha', title: 'Alpha', dueDate: '2026-04-15' }
     ]);

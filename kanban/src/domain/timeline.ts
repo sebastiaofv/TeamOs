@@ -25,7 +25,7 @@ import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSc
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
 import { getWorkflow } from './workflow';
 import { parseBoardView } from './boardView';
-import { reserveTaskIdentities } from './taskIdentity';
+import { inheritLegacyTaskIdentities, reserveTaskIdentities } from './taskIdentity';
 import { commentsThrough } from './comments';
 
 export { normalizeTimelineChanges, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
@@ -134,7 +134,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
-    if (['board.restored', 'board.project.updated', 'workflow.updated', 'board.workitems.updated'].includes(event.kind) && event.snapshot) {
+    if (['board.restored', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations'].includes(event.kind) && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
 
@@ -149,7 +149,7 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
     const tasks = board.tasks;
     const settings = board.settings;
     if (event.kind === 'sprint.participation.updated' && event.changes?.sprintParticipation) { nextState.extensions = { ...nextState.extensions, sprintParticipation: cloneSerializable(event.changes.sprintParticipation.after) }; return nextState; }
-    if (event.kind === 'task.comment.published' && typeof event.meta?.commentId === 'string') {
+    if (['task.comment.published', 'task.comment.referenced'].includes(event.kind) && typeof event.meta?.commentId === 'string') {
         const previous = nextState.extensions?.conversationRefs;
         nextState.extensions = { ...nextState.extensions, conversationRefs: [...new Set([...(Array.isArray(previous) ? previous : []), event.meta.commentId])] };
         return nextState;
@@ -324,6 +324,7 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     if (snapshot.extensions.project && boardData?.extensions?.project) {
         snapshot.extensions.project.id = (boardData.extensions.project as { id: string }).id;
     }
+    inheritLegacyTaskIdentities(snapshot, state as LooseBoardData, boardData);
     // Identities are project-wide reservations, not mutable planning state.
     // Preview/restore may change membership, but must not renumber or reuse identities.
     const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.timeline);
