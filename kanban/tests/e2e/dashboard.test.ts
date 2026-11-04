@@ -53,8 +53,7 @@ test('selected-project metrics count archived leaves and open their exact source
     await page.keyboard.press('e');
     await expect(page.locator('#taskModal')).toHaveCount(0);
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('33.3%');
-    await expect(kpi(page, 'blocked').locator('strong')).toHaveText('2');
-    await expect(kpi(page, 'overdue').locator('strong')).toHaveText('2');
+    await expect(page.locator('[data-dashboard-statistics]')).toHaveCount(3);
     await kpi(page, 'progress').focus();
     await page.keyboard.press('Enter');
     await expect(sources(page).locator('tbody tr')).toHaveCount(6);
@@ -72,25 +71,24 @@ test('selected-project metrics count archived leaves and open their exact source
     await expect(page.locator('#portfolioDashboard')).toBeHidden();
 });
 
-test('Gantt marks every overlapping phase; scope and read-only drilldowns retain context', async ({ page }) => {
+test('overview shows parent phases only; scope and read-only drilldowns retain context', async ({ page }) => {
     await seed(page, false);
-    await expect(page.locator('[data-dashboard-planning] .dashboard-gantt-bar.current')).toHaveCount(3);
-    await expect(page.locator('.dashboard-date-line').first()).toBeVisible();
+    await expect(page.locator('[data-dashboard-section="projectOverview"] [data-dashboard-planning="delivery"]')).toBeVisible();
+    await expect(page.locator('[data-dashboard-planning="api"]')).toHaveCount(0);
+    await expect(page.locator('[data-dashboard-planning="ux"]')).toHaveCount(0);
     await page.getByLabel('Planning scope', { exact: true }).selectOption('api');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('50%');
-    await page.locator('[data-dashboard-planning="api"] .dashboard-gantt-bar').click();
-    await expect(sources(page).locator('tbody tr')).toHaveCount(4);
+    await kpi(page, 'progress').click();
+    await expect(sources(page).locator('tbody tr')).toHaveCount(2);
     await sources(page).getByRole('button', { name: 'Archived pending integration', exact: true }).click();
     await expect(page.locator('#taskDetailModal')).toContainText('Archived pending integration');
     await page.keyboard.press('Escape');
-    await expect(page.getByLabel('Planning scope', { exact: true })).toHaveValue('api');
-    await page.locator('[data-dashboard-planning="api"]').getByRole('button', { name: 'Open in Roadmap', exact: true }).click();
-    await expect(page.locator('[data-roadmap-task-list="phase:api"]')).toBeVisible();
+    await page.locator('[data-dashboard-planning="delivery"]').getByRole('button', { name: 'Delivery programme', exact: true }).click();
+    await expect(page.locator('[data-roadmap-task-list="phase:delivery"]')).toBeVisible();
     await page.locator('[data-view-mode="dashboard"]').click();
     await expect(page.getByLabel('Planning scope', { exact: true })).toHaveValue('api');
-    await page.locator('[data-dashboard-planning="release"]').getByRole('button', { name: 'Open in Roadmap', exact: true }).click();
-    await expect(page.locator('#milestoneWorkitemsModal')).toContainText('Public release');
-    await page.keyboard.press('Escape');
+    await page.locator('[data-dashboard-active-sprint="active"]').getByRole('button', { name: 'Sprint 2 - Implementation', exact: true }).click();
+    await expect(page.locator('[data-roadmap-task-list="sprint:active"]')).toBeVisible();
 });
 
 test('empty and cancelled-only scopes show unavailable denominators and missing dates', async ({ page }) => {
@@ -98,7 +96,6 @@ test('empty and cancelled-only scopes show unavailable denominators and missing 
     for (const phase of ['empty', 'cancelled-only']) {
         await page.getByLabel('Planning scope', { exact: true }).selectOption(phase);
         await expect(kpi(page, 'progress').locator('strong')).toHaveText('N/A');
-        await expect(kpi(page, 'overdue')).toBeDisabled();
     }
     await kpi(page, 'progress').click();
     await expect(sources(page)).toContainText('No source workitems');
@@ -108,25 +105,25 @@ test('empty and cancelled-only scopes show unavailable denominators and missing 
 
 test('external file reload refreshes metrics and clears stale source lists', async ({ page }) => {
     await seed(page);
-    await kpi(page, 'completed').click();
-    await expect(sources(page).locator('tbody tr')).toHaveCount(2);
+    await kpi(page, 'progress').click();
+    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
     const changed = await readSavedBoard(page, 'p');
     changed.board.tasks.find((task: { id: number }) => task.id === 903).status = 'doing';
     await mutateExternalBoardFile(page, { boardId: 'p', payload: changed });
     await triggerExternalFileCheck(page);
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
     await expect(sources(page).locator('tbody tr')).toHaveCount(0);
-    await kpi(page, 'completed').click();
+    await kpi(page, 'progress').click();
     await expect(sources(page)).toContainText('Independent validated task');
-    await expect(sources(page)).not.toContainText('Validated implementation');
+    await expect(sources(page)).toContainText('Validated implementation');
 });
 
 test('historical period uses saved observations and historical drilldowns instead of current task status', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('From (UTC)', { exact: true }).fill('2026-10-16');
-    await page.getByLabel('To (UTC)', { exact: true }).fill('2026-10-19');
+    await page.getByLabel('Start date', { exact: true }).fill('2026-10-16');
+    await page.getByLabel('End date', { exact: true }).fill('2026-10-19');
     await expect(page.getByText('No recorded observations in this period.', { exact: true })).toBeVisible();
-    await page.getByLabel('From (UTC)', { exact: true }).fill('2026-10-21');
+    await page.getByLabel('Start date', { exact: true }).fill('2026-10-21');
     await expect(page.getByRole('alert')).toContainText('The end date');
     await page.getByLabel('Snapshot', { exact: true }).selectOption('0');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');

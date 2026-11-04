@@ -29,3 +29,5 @@ As datas são fixas em outubro/novembro de 2026; navegar para esse período no C
 ## Condição para próximas histórias
 
 Cada issue deve fornecer, no seu próprio branch e PR, um board JSON válido em `kanban/test-board/us-N.board.json` e o respetivo roteiro em `kanban/test-board/us-N.md`, com cenários representativos dos critérios de aceitação, estados vazios e casos-limite relevantes, passos e resultados esperados. O `README.md` desta pasta reúne as instruções gerais. Usar o esquema suportado pela respetiva implementação e validar o board antes do PR.
+
+- [US-9 Dashboard sections feedback](us-9-sections.md) — `us-9-sections.board.json`: nine sections, visibility, historical periods, category charts and Project Control records.
