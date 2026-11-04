@@ -277,6 +277,7 @@ test.describe('2.1a modals and toast', () => {
       await portfolioCard(page, 'Prepare launch checklist').click();
       await expect(page.locator('#taskDetailModal')).toBeVisible();
       await expect(page.locator('#detailAttachments')).toContainText('notes.txt');
+      await expect(page.locator('#detailAttachments .attachment-open')).toHaveCount(2);
       await expect(page).toHaveScreenshot(`task-detail-full-${theme}.png`, { fullPage: true });
     });
 
@@ -328,6 +329,7 @@ test.describe('2.1a modals and toast', () => {
     await page.locator('#detailAttachments').scrollIntoViewIfNeeded();
     await expect(page.locator('#detailAttachments')).toBeVisible();
     await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
+    await expect(page.locator('#detailAttachments .attachment-open')).toHaveCount(2);
     await expect(page).toHaveScreenshot('task-detail-attachments-light.png', { fullPage: true });
   });
 
@@ -409,6 +411,7 @@ test.describe('2.1b task editor', () => {
     await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(2);
     await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(3);
     await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(2);
+    await expect(page.locator('#taskAttachmentsList .attachment-open')).toHaveCount(2);
   }
 
   for (const theme of ['light', 'dark']) {

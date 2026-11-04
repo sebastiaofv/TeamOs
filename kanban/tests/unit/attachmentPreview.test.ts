@@ -8,11 +8,39 @@ describe('attachment previews', () => {
   it.each([
     ['image/jpeg', 'photo.jpg'], ['image/png', 'photo.png'], ['image/gif', 'photo.gif'],
     ['image/webp', 'photo.webp'], ['image/bmp', 'photo.bmp'], ['image/x-icon', 'icon.ico'],
-    ['image/avif', 'photo.avif'], ['application/pdf', 'document.pdf']
+    ['image/avif', 'photo.avif'], ['application/pdf', 'document.pdf'],
+    ['text/plain', 'note.txt'], ['application/json', 'data.json'],
+    ['audio/mpeg', 'sound.mp3'], ['audio/wav', 'sound.wav'], ['audio/ogg', 'sound.ogg'],
+    ['video/mp4', 'clip.mp4'], ['video/webm', 'clip.webm']
   ])('supports %s with a declared type or a filename fallback', (mime, name) => {
     expect(getAttachmentPreviewMime({ mime, name, dataUrl: `data:${mime};base64,AA==` })).toBe(mime);
     expect(getAttachmentPreviewMime({ mime: '', name: name.toUpperCase(), dataUrl: 'data:;base64,AA==' })).toBe(mime);
     expect(getAttachmentPreviewMime({ mime: 'application/octet-stream', name, dataUrl: 'data:application/octet-stream;base64,AA==' })).toBe(mime);
+  });
+
+  it.each([
+    ['text/csv', 'table.csv', 'text/plain'], ['application/csv', 'table.csv', 'text/plain'],
+    ['application/xml', 'data.xml', 'text/plain'], ['text/xml', 'data.xml', 'text/plain'],
+    ['text/json', 'data.json', 'application/json'], ['audio/x-wav', 'sound.wav', 'audio/wav'],
+    ['audio/wave', 'sound.wav', 'audio/wav'], ['audio/mp3', 'sound.mp3', 'audio/mpeg'],
+    ['application/ogg', 'sound.ogg', 'audio/ogg'], ['image/jpg', 'photo.jpeg', 'image/jpeg']
+  ])('uses an inline browser type for %s', (mime, name, previewMime) => {
+    expect(getAttachmentPreviewMime({ mime, name, dataUrl: `data:${mime};base64,AA==` })).toBe(previewMime);
+    expect(getAttachmentPreviewMime({ mime: '', name, dataUrl: 'data:;base64,AA==' })).toBe(previewMime);
+  });
+
+  it('preserves every byte of a 100 KB PDF and a large attachment', async () => {
+    for (const size of [100 * 1024, 10 * 1024 * 1024]) {
+      const bytes = Buffer.alloc(size);
+      for (let index = 0; index < size; index++) bytes[index] = index % 256;
+      const url = createAttachmentPreviewUrl(`data:application/pdf;base64,${bytes.toString('base64')}`, 'application/pdf');
+      expect(url).toMatch(/^blob:/);
+      try {
+        expect(Buffer.from(await (await fetch(url!)).arrayBuffer()).equals(bytes)).toBe(true);
+      } finally {
+        URL.revokeObjectURL(url!);
+      }
+    }
   });
 
   it.each(['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

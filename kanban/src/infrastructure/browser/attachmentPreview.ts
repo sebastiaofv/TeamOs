@@ -1,14 +1,25 @@
 export function createAttachmentPreviewUrl(dataUrl: string, mime: string): string | null {
-    const match = /^data:([^,]*),([\s\S]*)$/i.exec(dataUrl);
-    if (!match) return null;
+    const comma = dataUrl.indexOf(',');
+    if (!/^data:/i.test(dataUrl) || comma < 0) return null;
     try {
-        const bytes = /;base64(?:;|$)/i.test(match[1])
-            ? Uint8Array.from(atob(match[2]), (character) => character.charCodeAt(0))
-            : decodePercentEncodedBytes(match[2]);
+        const header = dataUrl.slice(5, comma);
+        const payload = dataUrl.slice(comma + 1);
+        const bytes = /;base64(?:;|$)/i.test(header)
+            ? decodeBase64Bytes(payload)
+            : decodePercentEncodedBytes(payload);
         return URL.createObjectURL(new Blob([bytes], { type: mime }));
     } catch {
         return null;
     }
+}
+
+function decodeBase64Bytes(payload: string): Uint8Array<ArrayBuffer> {
+    const decoded = atob(payload);
+    // Allocate once; Uint8Array.from(string, callback) builds an intermediate
+    // iterable and calls JavaScript for every byte of every attachment.
+    const bytes = new Uint8Array(decoded.length);
+    for (let index = 0; index < decoded.length; index++) bytes[index] = decoded.charCodeAt(index);
+    return bytes;
 }
 
 function decodePercentEncodedBytes(payload: string): Uint8Array<ArrayBuffer> {

@@ -9,13 +9,13 @@ test.use({ channel: 'chromium' });
 const fixture = JSON.parse(readFileSync('test-board/us-23.board.json', 'utf8'));
 const attachments: { name: string; dataUrl: string }[] = fixture.board.tasks[0].attachments;
 
-async function expectActionsAligned(rows: Locator) {
+async function expectActionsAligned(rows: Locator, count = 7) {
   const positions = await rows.evaluateAll((items) => items.map((item) => {
     const download = item.querySelector('.attachment-download')!.getBoundingClientRect();
     const open = item.querySelector('.attachment-open')?.getBoundingClientRect();
     return { x: download.x, right: download.right, y: download.y, openRight: open?.right, openY: open?.y };
   }));
-  expect(positions).toHaveLength(7);
+  expect(positions).toHaveLength(count);
   for (const position of positions) {
     expect(position.x).toBeCloseTo(positions[0].x, 0);
     expect(position.right).toBeCloseTo(positions[0].right, 0);
@@ -105,3 +105,54 @@ test('preview URLs are released when the dialog closes and recreated when reopen
   await expect(open).toHaveAttribute('href', /^blob:/);
   expect(await open.getAttribute('href')).not.toBe(previousUrl);
 });
+
+for (const surface of ['details', 'read-only details', 'editor']) {
+  test(`${surface}: text, CSV, JSON, XML, images, audio and video open inline with original downloads`, async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'formats', title: fixture.board.settings.title,
+      hasHandle: surface !== 'read-only details', tasks: fixture.board.tasks }], { selectedBoardId: 'formats' });
+    const downloads: string[] = [];
+    page.on('download', download => downloads.push(download.suggestedFilename()));
+    for (const task of fixture.board.tasks.slice(2)) {
+      const card = portfolioCard(page, task.title);
+      if (surface === 'editor') await card.locator('[data-action="edit-task"]').click();
+      else await card.click();
+      const rows = page.locator(surface === 'editor' ? '#taskAttachmentsList .attachment-editor-item' : '#detailAttachments .detail-attachment-item');
+      await expect(rows.locator('.attachment-open')).toHaveCount(task.attachments.length);
+      await expectActionsAligned(rows, task.attachments.length);
+      for (let index = 0; index < task.attachments.length; index++) {
+        const attachment = task.attachments[index];
+        const downloadCount = downloads.length;
+        const [popup] = await Promise.all([
+          page.waitForEvent('popup'), rows.nth(index).getByRole('link', { name: 'Open', exact: true }).click()
+        ]);
+        await popup.waitForLoadState();
+        await expect(popup).toHaveURL(/^blob:/);
+        if (attachment.mime.startsWith('image/')) {
+          await expect.poll(() => popup.locator('img').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+        } else if (/^(audio|video)\//.test(attachment.mime)) {
+          await expect.poll(() => popup.locator('video, audio').evaluate((media: HTMLMediaElement) => media.readyState)).toBeGreaterThanOrEqual(1);
+        } else {
+          await expect(popup.locator('body')).toContainText('TeamOS');
+        }
+        const preview = await page.evaluate(async (url) => {
+          const response = await fetch(url);
+          return { type: response.headers.get('content-type'), bytes: Array.from(new Uint8Array(await response.arrayBuffer())) };
+        }, popup.url());
+        expect(preview.type).toBe(['text/csv', 'application/xml'].includes(attachment.mime) ? 'text/plain' : attachment.mime);
+        expect(Buffer.from(preview.bytes)).toEqual(Buffer.from(attachment.dataUrl.split(',')[1], 'base64'));
+        expect(downloads).toHaveLength(downloadCount);
+        await popup.close();
+        const [download] = await Promise.all([
+          page.waitForEvent('download'), rows.nth(index).getByRole('link', { name: 'Download', exact: true }).click()
+        ]);
+        expect(download.suggestedFilename()).toBe(attachment.name);
+        expect(readFileSync((await download.path())!)).toEqual(Buffer.from(attachment.dataUrl.split(',')[1], 'base64'));
+      }
+      await page.setViewportSize({ width: 390, height: 844 });
+      await expectActionsAligned(rows, task.attachments.length);
+      await page.locator(surface === 'editor' ? '#taskModalCancelBtn' : '#taskDetailModalCloseBtn').click();
+      await page.setViewportSize({ width: 1280, height: 720 });
+    }
+  });
+}
