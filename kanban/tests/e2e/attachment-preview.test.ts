@@ -60,7 +60,7 @@ async function expectPreviewsAndDownloads(page: Page, rows: Locator) {
   }
   for (let index = 0; index < attachments.length; index++) {
     const [download] = await Promise.all([
-      page.waitForEvent('download'), rows.nth(index).getByRole('link', { name: 'Download', exact: true }).click()
+      page.waitForEvent('download'), rows.nth(index).getByRole('link', { name: /^Download(?: |$)/ }).click()
     ]);
     expect(download.suggestedFilename()).toBe(attachments[index].name);
     const path = await download.path();
@@ -68,20 +68,20 @@ async function expectPreviewsAndDownloads(page: Page, rows: Locator) {
   }
 }
 
-for (const surface of ['details', 'read-only details', 'editor']) {
+for (const surface of ['details', 'read-only details']) {
   test(`${surface}: images and PDFs open in new tabs; every format downloads and stays aligned`, async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'preview', title: fixture.board.settings.title,
       hasHandle: surface !== 'read-only details', tasks: fixture.board.tasks }], { selectedBoardId: 'preview' });
     const card = portfolioCard(page, fixture.board.tasks[0].title);
-    if (surface === 'editor') await card.locator('[data-action="edit-task"]').click();
-    else await card.click();
-    const rows = page.locator(surface === 'editor' ? '#taskAttachmentsList .attachment-editor-item' : '#detailAttachments .detail-attachment-item');
+    await card.click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    const rows = page.locator('#detailAttachments .detail-attachment-item');
     await expectPreviewsAndDownloads(page, rows);
     // The added action must still fit the existing mobile dialog layout.
     await page.setViewportSize({ width: 390, height: 844 });
     await expectActionsAligned(rows);
-    const list = page.locator(surface === 'editor' ? '#taskAttachmentsList' : '#detailAttachments');
+    const list = page.locator('#detailAttachments');
     const bounds = await list.boundingBox();
     expect(bounds!.x).toBeGreaterThanOrEqual(0);
     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
@@ -93,6 +93,7 @@ test('preview URLs are released when the dialog closes and recreated when reopen
   await seedPortfolioBoards(page, [{ id: 'preview', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks }], { selectedBoardId: 'preview' });
   const card = portfolioCard(page, fixture.board.tasks[0].title);
   await card.click();
+  await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
   const open = page.locator('#detailAttachments .attachment-open').first();
   await expect(open).toHaveAttribute('href', /^blob:/);
   const previousUrl = await open.getAttribute('href');
@@ -102,11 +103,12 @@ test('preview URLs are released when the dialog closes and recreated when reopen
   }, previousUrl);
   expect(released).toBe(true);
   await card.click();
+  await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
   await expect(open).toHaveAttribute('href', /^blob:/);
   expect(await open.getAttribute('href')).not.toBe(previousUrl);
 });
 
-for (const surface of ['details', 'read-only details', 'editor']) {
+for (const surface of ['details', 'read-only details']) {
   test(`${surface}: text, CSV, JSON, XML, images, audio and video open inline with original downloads`, async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'formats', title: fixture.board.settings.title,
@@ -115,9 +117,9 @@ for (const surface of ['details', 'read-only details', 'editor']) {
     page.on('download', download => downloads.push(download.suggestedFilename()));
     for (const task of fixture.board.tasks.slice(2)) {
       const card = portfolioCard(page, task.title);
-      if (surface === 'editor') await card.locator('[data-action="edit-task"]').click();
-      else await card.click();
-      const rows = page.locator(surface === 'editor' ? '#taskAttachmentsList .attachment-editor-item' : '#detailAttachments .detail-attachment-item');
+      await card.click();
+      await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+      const rows = page.locator('#detailAttachments .detail-attachment-item');
       await expect(rows.locator('.attachment-open')).toHaveCount(task.attachments.length);
       await expectActionsAligned(rows, task.attachments.length);
       for (let index = 0; index < task.attachments.length; index++) {
@@ -144,14 +146,14 @@ for (const surface of ['details', 'read-only details', 'editor']) {
         expect(downloads).toHaveLength(downloadCount);
         await popup.close();
         const [download] = await Promise.all([
-          page.waitForEvent('download'), rows.nth(index).getByRole('link', { name: 'Download', exact: true }).click()
+          page.waitForEvent('download'), rows.nth(index).getByRole('link', { name: /^Download(?: |$)/ }).click()
         ]);
         expect(download.suggestedFilename()).toBe(attachment.name);
         expect(readFileSync((await download.path())!)).toEqual(Buffer.from(attachment.dataUrl.split(',')[1], 'base64'));
       }
       await page.setViewportSize({ width: 390, height: 844 });
       await expectActionsAligned(rows, task.attachments.length);
-      await page.locator(surface === 'editor' ? '#taskModalCancelBtn' : '#taskDetailModalCloseBtn').click();
+      await page.locator('#taskDetailModalCloseBtn').click();
       await page.setViewportSize({ width: 1280, height: 720 });
     }
   });

@@ -101,8 +101,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     };
 
     return (
-        <section className="task-relations" aria-labelledby="taskRelationsHeading">
-            <h3 id="taskRelationsHeading">{t('relations.title')}</h3>
+        <section className="task-relations" aria-label={t('relations.title')}>
             <p className="relation-help">{t('relations.informative')}</p>
             {GROUPS.map((group) => (
                 <div className="relation-group" role="group" aria-label={t(`relations.${group}`)} key={group}>

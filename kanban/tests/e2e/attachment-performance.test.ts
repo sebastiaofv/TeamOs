@@ -32,7 +32,7 @@ function pdfOfSize(size: number) {
   return Buffer.from(document);
 }
 
-for (const surface of ['details', 'read-only details', 'editor', 'standalone']) {
+for (const surface of ['details', 'read-only details', 'standalone']) {
   test(`${surface}: a 100 KB PDF finishes loading in the native viewer within 2 seconds`, async ({ page }, testInfo) => {
     if (surface === 'standalone') {
       await page.goto(pathToFileURL(resolve('dist-standalone/index.html')).href);
@@ -45,8 +45,8 @@ for (const surface of ['details', 'read-only details', 'editor', 'standalone']) 
         dataUrl: `data:application/pdf;base64,${pdf.toString('base64')}`, sizeBytes: pdf.length }] }]
     }], { selectedBoardId: 'speed' });
     const card = portfolioCard(page, '100 KB PDF');
-    if (surface === 'editor') await card.locator('[data-action="edit-task"]').click();
-    else await card.click();
+    await card.click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     const downloads: string[] = [];
     page.on('download', download => downloads.push(download.suggestedFilename()));
     const start = performance.now();

@@ -48,8 +48,7 @@ export function PullRequestLinks({ value, onChange, readOnly = false, draft = fa
             await onChange(value.filter((_, current) => current !== index));
         } finally { busyRef.current = false; setBusy(false); }
     }
-    return <section className="pull-request-links" aria-labelledby={`${id}-heading`}>
-        <h3 id={`${id}-heading`}>{t('pullRequests.title')}</h3>
+    return <section className="pull-request-links" aria-label={t('pullRequests.title')}>
         <p className="pull-request-note">{t('pullRequests.localOnly')}</p>
         {draft && !readOnly && <p className="pull-request-note">{t('pullRequests.draftNote')}</p>}
         {!value.length ? <p className="pull-request-empty">{t('pullRequests.empty')}</p> : <ul className="pull-request-list">{value.map((url, index) => {

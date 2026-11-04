@@ -138,7 +138,7 @@ test.describe('task detail', () => {
     await expect(page.locator('#taskDetailModal')).toBeHidden();
   });
 
-  test('left-side checklist content requires Edit while sidebar properties are immediately editable', async ({ page }) => {
+  test('checklist completion saves directly from details', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 'd1',
@@ -150,11 +150,9 @@ test.describe('task detail', () => {
     await portfolioCard(page, 'Checklist task').click();
     const item = page.locator('#detailChecklist .detail-checklist-item').first();
 
-    await expect(item.locator('input[type="checkbox"]')).toBeDisabled();
+    await expect(item.locator('input[type="checkbox"]')).toBeEnabled();
     expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(0);
-    await page.locator('#taskDetailEditBtn').click();
-    await page.locator('#taskChecklistItems input[type="checkbox"]').first().check();
-    await page.locator('#taskModalSaveBtn').click();
+    await item.locator('input[type="checkbox"]').check();
     await waitForBoardWrites(page);
     await expect.poll(async () => (await readSavedBoard(page, 'd1')).board.tasks[0].checklist[0].done).toBe(true);
   });

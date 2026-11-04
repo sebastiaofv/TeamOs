@@ -135,6 +135,24 @@ function actionsSetup() {
 }
 
 describe('transfer persistence and recovery', () => {
+    it.each(['copy', 'move'] as const)('keeps a %s pending when saving its final receipt fails', async (mode) => {
+        const { store, actions, save } = actionsSetup();
+        let failed = false;
+        save.mockImplementation(async (record) => {
+            if (!failed && record?.id === 'Destination' && record.data.extensions.projectTransfers?.operations[0].status === 'complete') {
+                failed = true;
+                return false;
+            }
+            return true;
+        });
+        expect(await actions.transferPortfolioTask('Source', 1, mode)).toBe(false);
+        const operation = store.getState().portfolioBoards[1].data.extensions.projectTransfers!.operations[0];
+        expect(operation.status).toBe('pending');
+        expect(await actions.resumeProjectTransfer('Destination', operation.id)).toBe(true);
+        expect(store.getState().portfolioBoards[1].data.board.tasks).toHaveLength(2);
+        expect(store.getState().portfolioBoards[0].data.board.tasks).toHaveLength(mode === 'move' ? 1 : 2);
+        expect(store.getState().portfolioBoards[1].data.extensions.projectTransfers!.operations[0].status).toBe('complete');
+    });
     it('does not remove the source on a destination failure and retries without allocating another copy', async () => {
         const { store, actions, fail, writes } = actionsSetup(); fail('Destination');
         expect(await actions.transferPortfolioTask('Source', 1, 'copy')).toBe(false);

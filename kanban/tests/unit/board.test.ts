@@ -17,6 +17,7 @@ import {
   slugifyColumnName
 } from '../../src/domain/board';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, MAX_COLUMNS, TASK_TITLE_MAX_LENGTH } from '../../src/domain/constants';
+import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 
 
 describe('createPortfolioProjectColor', () => {
@@ -379,6 +380,28 @@ describe('validateBoardData', () => {
 
   it('accepts a well-formed board', () => {
     expect(() => validateBoardData(validBoard())).not.toThrow();
+  });
+
+  const attachment = { id: 'file', name: 'notes.txt', mime: 'text/plain', sizeBytes: 5, kind: 'file', dataUrl: 'data:text/plain;base64,SGVsbG8=', createdAt: '2026-01-02T10:30:00.000Z' };
+  it('round-trips attachment upload metadata while accepting legacy files without authors', () => {
+    const board = validBoard();
+    board.board.tasks = [fromAny(validTask({ attachments: [attachment, { ...attachment, id: 'new', uploadedBy: 'Ana' }] }))];
+    expect(() => validateBoardData(board)).not.toThrow();
+    const saved = serializeBoardDataFromObject(board);
+    expect(saved.board.tasks[0].attachments).toEqual([attachment, { ...attachment, id: 'new', uploadedBy: 'Ana' }]);
+    expect(() => validateBoardData(saved)).not.toThrow();
+  });
+
+  it.each(['', '   ', null, 42])('rejects invalid attachment uploader %j', (uploadedBy) => {
+    const board = validBoard();
+    board.board.tasks = [fromAny(validTask({ attachments: [{ ...attachment, uploadedBy }] }))];
+    expect(() => validateBoardData(board)).toThrow('Attachment uploadedBy must be a non-empty string.');
+  });
+
+  it('continues rejecting unexpected attachment fields', () => {
+    const board = validBoard();
+    board.board.tasks = [fromAny(validTask({ attachments: [{ ...attachment, uploadedBy: 'Ana', extra: true }] }))];
+    expect(() => validateBoardData(board)).toThrow('Invalid attachment structure.');
   });
 
   it('accepts a board with a well-formed task', () => {
