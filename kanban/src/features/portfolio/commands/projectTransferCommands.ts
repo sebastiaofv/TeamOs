@@ -25,6 +25,17 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             ...(state.portfolioTimelineSelection.boardId === boardId ? { portfolioTimelineSelection: { boardId, eventIndex: (data.extensions.timeline?.events.length || 1) - 1 } } : {}) }));
         markDirty(boardId); onBoardChanged(boardId);
     }
+    async function saveCompletedReceipt(destinationId: string, operation: TransferOperation): Promise<boolean> {
+        const next = cloneSerializable(getBoardRecord(destinationId)!.data);
+        for (const entry of transferBatch(next, operation)) entry.status = 'complete';
+        publish(destinationId, next);
+        if (await enqueueSave(getBoardRecord(destinationId))) return true;
+        // Keep the in-memory receipt recoverable too when its final write fails.
+        const pending = cloneSerializable(getBoardRecord(destinationId)!.data);
+        for (const entry of transferBatch(pending, operation)) entry.status = 'pending';
+        publish(destinationId, pending);
+        return false;
+    }
     async function finish(destinationId: string, operation: TransferOperation): Promise<boolean> {
         const destination = getBoardRecord(destinationId);
         if (!destination || !writable(destinationId)) throw new TransferError('unavailable');
@@ -36,10 +47,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (!await enqueueSave(getBoardRecord(destinationId))) return false;
             if (operation.mode === 'copy') {
                 if (operation.status === 'complete') return true;
-                const next = cloneSerializable(getBoardRecord(destinationId)!.data);
-                for (const entry of transferBatch(next, operation)) entry.status = 'complete';
-                publish(destinationId, next);
-                return Boolean(await enqueueSave(getBoardRecord(destinationId)));
+                return await saveCompletedReceipt(destinationId, operation);
             }
             await checkFiles();
             if (!getBoardRecord(destinationId)?.data.board.tasks.some((task) => task.permanentId === operation.to.permanentId)) throw new TransferError('stale');
@@ -49,10 +57,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const nextSource = removeTransferredSource(currentSource.data, operation, currentDestination.data);
             if (nextSource !== currentSource.data) publish(source!.id, nextSource);
             if (!await enqueueSave(getBoardRecord(source!.id))) return false;
-            const nextDestination = cloneSerializable(getBoardRecord(destinationId)!.data);
-            for (const entry of transferBatch(nextDestination, operation)) entry.status = 'complete';
-            publish(destinationId, nextDestination);
-            return Boolean(await enqueueSave(getBoardRecord(destinationId)));
+            return await saveCompletedReceipt(destinationId, operation);
         } finally { unlock(); onBoardChanged(destinationId); if (source) onBoardChanged(source.id); }
     }
     async function resumeProjectTransfer(destinationId: string, operationId: string): Promise<boolean> {

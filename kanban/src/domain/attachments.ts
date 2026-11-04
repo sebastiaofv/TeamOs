@@ -103,7 +103,8 @@ export function normalizeAttachmentRecord(raw: unknown): Attachment | null {
         sizeBytes,
         kind,
         dataUrl,
-        createdAt: normalizeTimestamp(raw.createdAt) || nowIso()
+        createdAt: normalizeTimestamp(raw.createdAt) || nowIso(),
+        ...(typeof raw.uploadedBy === 'string' && raw.uploadedBy.trim() ? { uploadedBy: raw.uploadedBy.trim() } : {})
     };
 }
 

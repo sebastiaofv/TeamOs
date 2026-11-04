@@ -18,6 +18,7 @@ import { TaskProperties } from './TaskProperties';
 import { TaskConversation } from './TaskConversation';
 import { TaskPullRequestLinks } from './PullRequestLinks';
 import { TaskHistory } from './TaskHistory';
+import { TaskAttachments } from './TaskAttachments';
 import { TaskRelations } from '@/features/portfolio/task/dialogs/TaskRelations';
 
 const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFields }[] = [
@@ -87,6 +88,7 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
     const tabs = [
         { id: 'details', label: 'history.details' },
         { id: 'relations', label: 'relations.title' },
+        { id: 'attachments', label: 'task.attachments' },
         { id: 'comments', label: 'comments.title' },
         { id: 'pullRequests', label: 'pullRequests.title' },
         { id: 'history', label: 'history.title' }
@@ -125,6 +127,9 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
         <div role="tabpanel" id="task-panel-comments" aria-labelledby="task-tab-comments" tabIndex={0} hidden={tab !== 'comments'}>
             {vm.conversationContext && <TaskConversation key={`${vm.conversationContext.boardId}:${vm.conversationContext.task.id}:${vm.conversationContext.eventIndex ?? 'current'}`} context={vm.conversationContext} />}
         </div>
+        <div role="tabpanel" id="task-panel-attachments" aria-labelledby="task-tab-attachments" tabIndex={0} hidden={tab !== 'attachments'}>
+            <TaskAttachments key={`${vm.boardId}:${vm.taskId}:${vm.history?.historicalIndex ?? 'current'}`} vm={vm} />
+        </div>
         <div role="tabpanel" id="task-panel-pullRequests" aria-labelledby="task-tab-pullRequests" tabIndex={0} hidden={tab !== 'pullRequests'}>
             {vm.pullRequestContext && <TaskPullRequestLinks key={`${vm.boardId}:${vm.taskId}`} {...vm.pullRequestContext} readOnly={vm.readOnly} />}
         </div>
@@ -158,6 +163,7 @@ function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
 
 function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
+    const { toggleTaskDetailChecklistItem } = usePortfolioActions();
     return (
         <dl className="detail-list workitem-supporting-content">
             <div className="detail-item workitem-section" hidden={!vm.checklist.length || !['task', 'bug'].includes(workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}))}>
@@ -171,7 +177,8 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
                                     <input
                                         type="checkbox"
                                         checked={item.done}
-                                        disabled
+                                        disabled={vm.readOnly}
+                                        onChange={(event) => void toggleTaskDetailChecklistItem(index, event.target.checked)}
                                         aria-label={t('editor.todoItem', { index: index + 1 })}
                                     />
                                     <span className="detail-checklist-text">{item.text}</span>
@@ -180,26 +187,6 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
                         ))}
                 </ul></dd>
             </div>
-            <div className="detail-item workitem-section" hidden={!vm.attachments.length}>
-                <dt className="detail-label">{t('task.attachments')}</dt>
-                <dd className="detail-attachments" id="detailAttachments">
-                    {vm.attachments.length === 0
-                        ? <div className="detail-attachments-empty">-</div>
-                        : vm.attachments.map((item) => (
-                            <div className="detail-attachment-item" key={item.id}>
-                                {item.isImage
-                                    ? <img className="detail-attachment-thumb" alt="" src={item.dataUrl} />
-                                    : <span className="attachment-editor-icon">{t('common.file')}</span>}
-                                <div className="detail-attachment-meta">
-                                    <div className="detail-attachment-name">{item.name}</div>
-                                    <div className="detail-attachment-sub">{item.subLabel}</div>
-                                </div>
-                                <a className="detail-attachment-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
-                            </div>
-                        ))}
-                </dd>
-            </div>
-
         </dl>
     );
 }

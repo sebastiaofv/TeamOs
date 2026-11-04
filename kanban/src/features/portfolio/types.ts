@@ -109,6 +109,7 @@ export type PortfolioCalendarItem = {
 export type SelectOption = { value: string; label: string };
 
 export type TaskEditorViewModel = {
+    boardId: string;
     openId: number;
     heading: string;
     initial: TaskEditorFields;
@@ -127,7 +128,7 @@ export type TaskDetailFields = Record<
     | 'status' | 'createdAt' | 'updatedAt' | 'dueDate' | 'phase' | 'milestone' | 'sprint',
     string
 >;
-export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string };
+export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string; createdAt: string; uploadedBy?: string };
 export type TaskRelationEntry = { permanentId?: string; boardId?: string; external?: boolean; unavailable?: boolean; displayId?: string; id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
 export type TaskDetailViewModel = {
     conversationContext?: { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };

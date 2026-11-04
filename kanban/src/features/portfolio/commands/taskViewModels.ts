@@ -141,6 +141,7 @@ export function buildTaskEditorViewModel(
     Object.assign(initial, { type: normalized ? workitemType(normalized) : 'task', parentId: normalized?.parentId ?? null, phaseMode: normalized?.phaseMode || (normalized?.phaseId ? 'explicit' : 'none'), milestoneMode: normalized?.milestoneMode || (normalized?.milestoneId ? 'explicit' : 'none') }, Object.fromEntries(WORKITEM_FIELDS.map((field) => [field, normalized?.[field] || ''])));
     return {
         editing: Boolean(normalized),
+        boardId: boardRecord.id,
         parentCandidates: boardRecord.data.board.tasks.filter((item) => ['epic', 'story'].includes(workitemType(item)) && item.id !== task?.id).map((item) => ({ displayId: item.displayId, id: item.id, title: item.title, type: workitemType(item) })),
         openId,
         heading: normalized ? translateCurrent('task.edit') : translateCurrent('task.new'),
@@ -192,9 +193,12 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
         checklist: normalizeChecklist(task.checklist)
             .map((item) => ({ text: item.text, done: Boolean(item.done) })),
         attachments: normalizeAttachmentList(getTaskAttachments(source.boardData, taskId))
+            .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
             .map((item) => ({
                 id: item.id,
                 name: item.name,
+                createdAt: item.createdAt,
+                uploadedBy: item.uploadedBy,
                 isImage: item.kind === 'image',
                 dataUrl: item.dataUrl,
                 subLabel: `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`

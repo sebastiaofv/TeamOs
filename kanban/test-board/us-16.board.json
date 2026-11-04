@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "schemaVersion": 2,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-01T09:00:00.000Z",
+    "updatedAt": "2026-10-19T10:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "To Do"
+      },
+      {
+        "status": "doing",
+        "title": "Doing"
+      },
+      {
+        "status": "done",
+        "title": "Done"
+      }
+    ],
+    "settings": {
+      "title": "US16 · Workitem feedback"
+    },
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Files and todo",
+        "description": "Toggle todo entries here. Add files in the Attachments tab.",
+        "status": "backlog",
+        "archived": false,
+        "checklist": [
+          {
+            "text": "Review the attachment",
+            "done": false
+          },
+          {
+            "text": "Prepare the initial draft",
+            "done": true
+          }
+        ],
+        "priority": null,
+        "dueDate": "",
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "assignees": [],
+        "responsible": "",
+        "attachments": [
+          {
+            "id": "old",
+            "name": "old.txt",
+            "kind": "file",
+            "mime": "text/plain",
+            "sizeBytes": 5,
+            "dataUrl": "data:text/plain;base64,SGVsbG8=",
+            "createdAt": "2026-01-01T00:00:00Z"
+          },
+          {
+            "id": "new",
+            "name": "new.txt",
+            "kind": "file",
+            "mime": "text/plain",
+            "sizeBytes": 5,
+            "dataUrl": "data:text/plain;base64,SGVsbG8=",
+            "createdAt": "2026-10-01T00:00:00Z",
+            "uploadedBy": "Ana"
+          },
+          {
+            "id": "middle",
+            "name": "middle.txt",
+            "kind": "file",
+            "mime": "text/plain",
+            "sizeBytes": 5,
+            "dataUrl": "data:text/plain;base64,SGVsbG8=",
+            "createdAt": "2026-05-01T00:00:00Z",
+            "uploadedBy": "Ana"
+          }
+        ]
+      },
+      {
+        "id": 123456,
+        "title": "Related workitem with a long ID",
+        "description": "The full ID must remain readable in Relations.",
+        "status": "backlog",
+        "archived": false,
+        "checklist": [],
+        "priority": null,
+        "dueDate": "",
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "assignees": [],
+        "responsible": "",
+        "displayId": "ABC-TK-123456"
+      },
+      {
+        "id": 3,
+        "title": "No files",
+        "description": "Use this item to verify the empty attachment tab.",
+        "status": "backlog",
+        "archived": false,
+        "checklist": [],
+        "priority": null,
+        "dueDate": "",
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "assignees": [],
+        "responsible": ""
+      }
+    ]
+  },
+  "extensions": {
+    "taskIdentity": {
+      "version": 1,
+      "highWaterMark": 123456
+    },
+    "taskRelations": {
+      "version": 1,
+      "relations": [
+        {
+          "sourceId": 1,
+          "targetId": 123456,
+          "kind": "related"
+        }
+      ]
+    }
+  }
+}

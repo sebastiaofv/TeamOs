@@ -207,6 +207,10 @@ describe('stripLegacyTaskAttachmentsFromExtensions', () => {
 });
 
 describe('normalizeAttachmentRecord', () => {
+  it('preserves a known uploader without inventing one for legacy attachments', () => {
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL, uploadedBy: ' Ana ' })?.uploadedBy).toBe('Ana');
+    expect(normalizeAttachmentRecord({ dataUrl: HELLO_DATA_URL })).not.toHaveProperty('uploadedBy');
+  });
   it('returns null for non-object input', () => {
     expect(normalizeAttachmentRecord(null)).toBeNull();
     expect(normalizeAttachmentRecord(undefined)).toBeNull();
