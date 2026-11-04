@@ -435,10 +435,12 @@ test.describe('task editor', () => {
       nodes.map((node) => (node as HTMLInputElement).value)
     ));
     const handle = (page: Page, index: number) => page.locator('#taskChecklistItems .checklist-editor-row').nth(index).locator('.checklist-editor-drag-handle');
-    // Waits for each keyboard step to land before the next key.
+    // The keyboard sensor binds its listener on a timer; wait for that and the layout.
     const announced = async (page: Page, text: string) => {
       await expect(page.getByText(text, { exact: true })).toBeAttached();
-      await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+      await page.evaluate(() => new Promise<void>((resolve) => {
+        setTimeout(() => requestAnimationFrame(() => resolve()), 0);
+      }));
     };
 
     test('Space picks an item up, arrow keys move it and Space drops it', async ({ page }) => {
@@ -628,6 +630,13 @@ test.describe('task editor', () => {
   });
 
   test('duplicate attachment uploads are skipped in the attachment tab', async ({ page }) => {
+    // Exercise the busy state even when local file reads would finish immediately.
+    await page.evaluate(() => {
+      const read = FileReader.prototype.readAsDataURL;
+      FileReader.prototype.readAsDataURL = function (blob) {
+        setTimeout(() => read.call(this, blob), 150);
+      };
+    });
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Task with file', status: 'backlog' }] }
     ], { selectedBoardId: 'p1' });
@@ -642,6 +651,8 @@ test.describe('task editor', () => {
     };
 
     await page.setInputFiles('#taskAttachmentsInput', filePayload);
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
+    await expect(page.locator('#taskAttachmentsAddBtn')).toBeEnabled();
     await page.setInputFiles('#taskAttachmentsInput', filePayload);
 
     await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
