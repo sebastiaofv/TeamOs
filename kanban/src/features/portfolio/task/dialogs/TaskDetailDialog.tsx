@@ -4,7 +4,7 @@ import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { WorkitemHierarchy, WorkitemLineage } from './WorkitemHierarchy';
 import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
-import { workitemType } from '@/domain/workitems';
+import { isPlanningUnit, workitemType } from '@/domain/workitems';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
@@ -28,6 +28,7 @@ const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFiel
     { label: 'task.blocker', id: 'detailBlockerReason', key: 'blockerReason' },
     { label: 'task.priority', id: 'detailPriority', key: 'priority' },
     { label: 'task.effort', id: 'detailEffort', key: 'effort' },
+    { label: 'task.storyPoints', id: 'detailStoryPoints', key: 'storyPoints' },
     { label: 'task.status', id: 'detailStatus', key: 'status' },
     { label: 'task.created', id: 'detailCreatedAt', key: 'createdAt' },
     { label: 'task.updated', id: 'detailUpdatedAt', key: 'updatedAt' },
@@ -139,7 +140,7 @@ function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
     const epic = workitemType(task || {}) === 'epic';
     const state = task && getWorkflow(vm.sourceBoardData, task).states.find((state) => state.id === task.status);
     const groups = [
-        { title: 'workitems.properties', fields: ['status', 'priority', 'effort', 'dueDate', 'blocked', 'blockerReason'] },
+        { title: 'workitems.properties', fields: ['status', 'priority', 'effort', 'storyPoints', 'dueDate', 'blocked', 'blockerReason'] },
         { title: 'workitems.people', fields: ['responsible', 'assignees', 'tags'] },
         { title: 'roadmap.planning', fields: ['phase', 'milestone', 'sprint'] },
         { title: 'history.title', fields: ['createdAt', 'updatedAt'] }
@@ -147,7 +148,8 @@ function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
     return <>{groups.map((group) => <section className="workitem-property-group" key={group.title}>
         <h3>{t(group.title)}</h3>
         <dl className="detail-list">{group.fields.flatMap((key) => {
-            if (epic && ['effort', 'sprint'].includes(key)) return [];
+            if (epic && ['effort', 'sprint', 'storyPoints'].includes(key)) return [];
+            if (key === 'storyPoints' && task && !isPlanningUnit(vm.sourceBoardData, task)) return [];
             const row = FIELD_ROWS.find((field) => field.key === key)!;
             return <div className={`detail-item detail-property-${key}`} key={key} hidden={(!vm.readOnly && group.title === 'roadmap.planning' && (key === 'phase' || key === 'milestone')) || (key === 'blockerReason' && vm.fields[key] === '-')}>
                 <dt className="detail-label">{t(row.label)}</dt><dd className="detail-value" id={row.id}>{key === 'status' && state ? <WorkflowStateBadge state={state} /> : vm.fields[key]}</dd>

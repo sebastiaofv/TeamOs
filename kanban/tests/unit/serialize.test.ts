@@ -379,7 +379,7 @@ describe('createBoardStateSnapshot', () => {
     };
     const out = createBoardStateSnapshot(input);
     expect('timeline' in out.extensions).toBe(false);
-    expect(out.extensions.roadmap).toEqual({ version: 4, milestones: [], phases: [], sprints: [] });
+    expect(out.extensions.roadmap).toEqual({ version: 5, milestones: [], phases: [], sprints: [] });
   });
 
   it('tolerates entirely absent boardData', () => {
@@ -451,7 +451,7 @@ describe('serializeBoardDataFromObject — ported from the Playwright suite', ()
     expect(() => validateBoardData(source)).not.toThrow();
 
     const s = serializeBoardDataFromObject(source);
-    expect(s.extensions.roadmap!.version).toBe(4);
+    expect(s.extensions.roadmap!.version).toBe(5);
     expect(s.extensions.roadmap!.milestones).toEqual([
       { id: 'milestone_alpha', title: 'Alpha', dueDate: '2026-04-15' }
     ]);
@@ -459,7 +459,7 @@ describe('serializeBoardDataFromObject — ported from the Playwright suite', ()
       { id: 'phase_foundation', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }
     ]);
     expect(s.extensions.roadmap!.sprints).toEqual([
-      { id: 'sprint_12', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }
+      { id: 'sprint_12', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14', status: 'done' }
     ]);
     expect(s.board.tasks[0]).toMatchObject({
       phaseId: 'phase_foundation',

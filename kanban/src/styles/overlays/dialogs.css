@@ -217,3 +217,9 @@
     margin: 0;
     accent-color: var(--accent);
 }
+
+/* Sprint notes can grow while the dialog actions remain in view. */
+#roadmapEntityModal .sprint-editor-modal { display: flex; flex-direction: column; overflow: hidden; max-width: 640px; }
+#roadmapEntityModal .sprint-editor-modal .modal-header,
+#roadmapEntityModal .sprint-editor-modal .modal-footer { flex-shrink: 0; }
+#roadmapEntityModal .sprint-editor-modal .modal-body { min-height: 0; overflow-y: auto; }

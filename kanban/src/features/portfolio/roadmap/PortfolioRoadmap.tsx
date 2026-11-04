@@ -1,3 +1,5 @@
+import { SprintAction } from './SprintAction';
+import { getSprintStatus } from '@/domain/roadmap';
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useShallow } from 'zustand/react/shallow';
@@ -102,7 +104,7 @@ function WorkArea({ row, view, canEdit, perspective, setPerspective }: { row: Ro
         {row.kind === 'sprints' || perspective === 'workitems' || !row.tasks.length ? <ScopeTable scope={row} view={view} scopeId={`roadmap-${row.key}`} />
             : groups.map((group) => <section className="roadmap-work-group" data-roadmap-group={group.referenceId || 'none'} key={group.key}>
                 <header><h5>{group.item?.title || (group.referenceId ? t('roadmap.missingReference', { id: group.referenceId }) : t(perspective === 'sprints' ? 'roadmap.noSprint' : 'roadmap.noMilestone'))}</h5>
-                    {group.item && <><span>{formatRoadmapDateRange(group.item, language)}</span><button className="btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${group.item.title}`} onClick={() => actions.openRoadmapEntityModal(perspective === 'sprints' ? 'sprints' : 'milestones', group.item!.id)}>{t('common.edit')}</button></>}
+                    {group.item && <><span>{formatRoadmapDateRange(group.item, language)}</span><button className="btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${group.item.title}`} onClick={() => actions.openRoadmapEntityModal(perspective === 'sprints' ? 'sprints' : 'milestones', group.item!.id)}>{t('common.edit')}</button>{perspective === 'sprints' && <SprintAction sprint={group.item} boardId={view.boardId} disabled={!canEdit} />}</>}
                 </header>
                 <ScopeTable scope={group} view={view} scopeId={`roadmap-${row.key}-${group.key}`} />
             </section>)}
@@ -129,7 +131,7 @@ function PlanningRow({ row, view, canEdit, perspective, setPerspective }: { row:
                 <h4 className="roadmap-row-title" title={`${item.title} · ${t(row.hasChildren ? 'roadmap.parentPhase' : 'roadmap.leafPhase')}`} id={`${rowId}-title`}>{item.title}</h4>
                 <span className="roadmap-row-meta">{formatRoadmapDateRange(item, language)}</span>
                 <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggle}>▤ {row.visibleCount}/{row.progress.associated}</button>
-                <div className="roadmap-row-actions"><button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${item.title}`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id)}>✎</button>
+                <div className="roadmap-row-actions">{row.kind === 'sprints' && <><span className={`table-status-badge sprint-status-${getSprintStatus(item)}`}>{t(`table.sprintStatus.${getSprintStatus(item)}`)}</span><SprintAction sprint={item} boardId={view.boardId} disabled={!canEdit} /></>}<button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${item.title}`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id)}>✎</button>
                     <button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.delete')} ${item.title}`} onClick={() => actions.deleteRoadmapEntity(row.kind, item.id)}>×</button>
                 </div>
             </div>
@@ -228,7 +230,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
                 const rows = kind === 'phases' ? view.phaseRows : view.sprintRows;
                 const label = t(kind === 'phases' ? 'roadmap.phase' : 'roadmap.sprint');
                 return <section className="roadmap-section" data-roadmap-kind={kind} key={kind} aria-label={t(kind === 'phases' ? 'roadmap.phases' : 'roadmap.sprints')}>
-                    {kind === 'sprints' && <header className="roadmap-section-header"><h3>{t('roadmap.sprints')}</h3><button className="roadmap-section-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label })} onClick={() => actions.openRoadmapEntityModal(kind)}>{t('roadmap.add', { label })}</button></header>}
+                    {kind === 'sprints' && <header className="roadmap-section-header"><h3>{t('roadmap.sprints')}</h3></header>}
                     <div className="roadmap-list">{!rows.length ? <p className="roadmap-empty">{t('roadmap.noItems', { label: label.toLowerCase() })}</p> : rows.map((row) => <PlanningRow key={row.key} row={row} view={view} canEdit={canEdit} perspective={perspectives[row.key] || 'workitems'} setPerspective={(value) => setPerspectives((current) => ({ ...current, [row.key]: value }))} />)}</div>
                 </section>;
             })}

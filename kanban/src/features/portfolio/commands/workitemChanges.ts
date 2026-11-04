@@ -1,3 +1,4 @@
+import { recordSprintCredits } from '@/domain/sprintResults';
 import { requestWorkitemAcceptance } from './workitemAcceptance';
 import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import type { BoardRecord } from '@/features/portfolio/types';
@@ -142,6 +143,8 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     for (const effect of effects) if (effect.blocked) void alert(translateCurrent('workitems.autoBlocked', { id: workitemLabelFor(draft.data, effect.storyId) }));
     syncWorkitemPlanning(draft.data, draft.data);
     if (JSON.stringify(stage.extensions.sprintParticipation) !== JSON.stringify(draft.data.extensions.sprintParticipation)) appendTimelineEvent(draft.data, { kind: 'sprint.participation.updated', entityType: 'board', entityId: 'board', summary: 'Sprint participation recorded', changes: { sprintParticipation: { before: stage.extensions.sprintParticipation ?? null, after: structuredClone(draft.data.extensions.sprintParticipation) } } });
+    recordSprintCredits(draft.data, current.data);
+    if (JSON.stringify(current.data.extensions.sprintResults) !== JSON.stringify(draft.data.extensions.sprintResults)) appendTimelineEvent(draft.data, { kind: 'sprint.results.updated', entityType: 'board', entityId: 'board', summary: 'Sprint results recorded', changes: { sprintResults: { before: current.data.extensions.sprintResults ?? null, after: structuredClone(draft.data.extensions.sprintResults) } } });
     syncProjectAssignments(draft.data);
     annotateTimelineOperation(current.data, draft.data, firstEvent, createTimelineEventId());
     reserveTaskIdentities(draft.data, current.data);

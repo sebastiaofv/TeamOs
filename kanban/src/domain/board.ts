@@ -1,3 +1,4 @@
+import { parseSprintResults } from './sprintResults';
 import { allPermanentRelations, assertPermanentGraph, parsePermanentRelations } from './permanentRelations';
 import { parseProjectTransfers } from './projectTransfers';
 import { assertWorkitems, WORKITEM_FIELDS } from './workitems';
@@ -254,6 +255,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid extensions structure.');
     }
     if (!('workflow' in extensions) && data.board.columns.length > MAX_COLUMNS) throw new Error(`Board cannot have more than ${MAX_COLUMNS} legacy columns.`);
+    parseSprintResults((extensions as Record<string, unknown>).sprintResults);
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
     const workflowData = { extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } };
     const functionalStatuses = new Set(getWorkflow(workflowData, 'functional').states.map((state) => state.id));
@@ -308,7 +310,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['permanentId', 'displayId', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
+        const optionalTaskKeys = new Set(['permanentId', 'displayId', 'tags', 'effort', 'storyPoints', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));

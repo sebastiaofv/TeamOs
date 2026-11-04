@@ -27,6 +27,10 @@ export function isValidRoadmapAssignment(roadmap: RoadmapExtension | null | unde
     return !value || Boolean(roadmap && (field === 'phaseId' ? isLeafPhase(roadmap.phases, value) : roadmap.milestones.some((item) => item.id === value)));
 }
 
+export function getSprintStatus(sprint: RoadmapItem, today = todayLocalIsoDate()): SprintCalendarStatus {
+    return sprint.status ?? getSprintCalendarStatus(sprint, today);
+}
+
 /** Start and end days are inclusive, using the project's local calendar day. */
 export function getSprintCalendarStatus(sprint: RoadmapItem, today: string): SprintCalendarStatus {
     return sprint.endDate && sprint.endDate < today ? 'done'
@@ -202,13 +206,13 @@ export function getRoadmapTaskFieldTasks(boardData: LooseBoardData | null | unde
     return tasks.filter((task) => task && refs.has(normalizeRoadmapRef(boardData?.board ? effectivePlanning(boardData as BoardData, task, fieldName as 'phaseId' | 'milestoneId') : task[fieldName])));
 }
 
-export function normalizeRoadmapItems(value: unknown, dateKeys: readonly RoadmapDateKey[], requiredDateKeys: readonly RoadmapDateKey[], allowParent = false, allowColor = false): RoadmapItem[] | null {
+export function normalizeRoadmapItems(value: unknown, dateKeys: readonly RoadmapDateKey[], requiredDateKeys: readonly RoadmapDateKey[], allowParent = false, allowColor = false, allowSprintFields = false): RoadmapItem[] | null {
     if (!Array.isArray(value)) return null;
     const normalized: RoadmapItem[] = [];
     const seenIds = new Set<string>();
     for (const item of value) {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-        const allowedKeys: string[] = ['id', 'title', ...dateKeys, ...(allowParent ? ['parentId'] : []), ...(allowColor ? ['color'] : [])];
+        const allowedKeys: string[] = ['id', 'title', ...dateKeys, ...(allowParent ? ['parentId'] : []), ...(allowColor ? ['color'] : []), ...(allowSprintFields ? ['status', 'goal', 'capacity', 'review', 'retrospective'] : [])];
         const keys = Object.keys(item);
         const hasRequiredKeys = typeof item.id === 'string' && item.id.trim()
             && typeof item.title === 'string' && item.title.trim();
@@ -220,6 +224,16 @@ export function normalizeRoadmapItems(value: unknown, dateKeys: readonly Roadmap
         seenIds.add(id);
 
         const normalizedItem: RoadmapItem = { id, title: item.title.trim() };
+        if (allowSprintFields) {
+            if ('status' in item && !['planned', 'active', 'done'].includes(item.status)) return null;
+            if ('capacity' in item && item.capacity !== null && (typeof item.capacity !== 'number' || !Number.isFinite(item.capacity) || item.capacity < 0)) return null;
+            for (const field of ['goal', 'review', 'retrospective'] as const) {
+                if (field in item && typeof item[field] !== 'string') return null;
+                if (field in item) normalizedItem[field] = item[field];
+            }
+            if ('status' in item) normalizedItem.status = item.status;
+            if ('capacity' in item) normalizedItem.capacity = item.capacity;
+        }
         if ('color' in item) {
             if (!allowColor || !isMilestoneColor(item.color)) return null;
             normalizedItem.color = item.color;
@@ -376,13 +390,15 @@ export function getVisibleRoadmapDateRange(roadmap: RoadmapExtension | null | un
 
 export function normalizeRoadmapExtension(value: unknown): RoadmapExtension | null {
     if (!isRecord(value)) return null;
-    if (![1, 2, 3, ROADMAP_VERSION].includes(Number(value.version))) return null;
+    if (![1, 2, 3, 4, ROADMAP_VERSION].includes(Number(value.version))) return null;
     if (!hasExactKeys(value, ['version', 'milestones', 'phases', 'sprints'])) return null;
 
     const milestones = normalizeRoadmapItems(value.milestones, ['dueDate'], ['dueDate'], false, Number(value.version) >= 3);
     const phases = normalizeRoadmapItems(value.phases, ['startDate', 'endDate'], ['startDate', 'endDate'], true, Number(value.version) >= 4);
-    const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate'], true);
+    const sprints = normalizeRoadmapItems(value.sprints, ['startDate', 'endDate'], ['startDate', 'endDate'], true, false, true);
     if (!milestones || !phases || !sprints) return null;
+    // Legacy statuses are inferred once on import and persisted on the next save.
+    sprints.forEach((sprint) => { sprint.status ??= getSprintCalendarStatus(sprint, todayLocalIsoDate()); });
     try { recalculatePhaseDates(phases); } catch { return null; }
 
     return {

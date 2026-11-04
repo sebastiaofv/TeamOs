@@ -161,7 +161,7 @@ test('Table filters type, Epic and Story before pagination and export', async ({
 test('Sprint expansion shows only participating child Tasks beneath their Story', async ({ page }) => {
     await seed(page); await page.locator('[data-view-mode="table"]').click(); await page.locator('[data-table-view="sprints"]').click();
     const sprint = page.locator('[data-table-sprint="current"]');
-    await sprint.locator(':scope > summary').click();
+    await sprint.locator(':scope > summary .table-sprint-name').click();
     const table = sprint.locator('table');
     await expect(sprint.locator('.workitem-tree')).toHaveCount(0);
     await expect(table).toContainText('Pagar com cartão');
@@ -192,7 +192,7 @@ test(`Sprint table and Roadmap retain recorded work and read-only details after 
     await page.getByRole('button', { name: 'Table', exact: true }).click();
     await page.locator('[data-table-view="sprints"]').click();
     const sprint = page.locator('[data-table-sprint="past"]');
-    await sprint.locator(':scope > summary').click();
+    await sprint.locator(':scope > summary .table-sprint-name').click();
     const table = sprint.locator('table');
     await table.getByRole('button', { name: 'Expand Recorded story', exact: true }).click();
     await table.getByRole('button', { name: 'Recorded child', exact: true }).click();

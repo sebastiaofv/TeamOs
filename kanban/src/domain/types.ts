@@ -33,6 +33,7 @@ export type WorkitemType = 'epic' | 'story' | 'task' | 'bug';
 export type PlanningMode = 'inherit' | 'none' | 'explicit';
 export type WorkitemAutomation = { version: 1; start?: { from: string[]; to: string }; finish?: { from: string[]; to: string } };
 export type WorkitemFields = {
+    storyPoints?: number | null;
     type?: WorkitemType;
     parentId?: number | null;
     objective?: string; scope?: string; businessValue?: string; acceptanceCriteria?: string;
@@ -92,7 +93,12 @@ export type BoardMeta = {
 export type RoadmapKind = 'milestones' | 'phases' | 'sprints';
 export type RoadmapDateKey = 'dueDate' | 'startDate' | 'endDate';
 // Milestones carry a dueDate; phases and sprints a startDate and endDate.
-export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string } & Partial<Record<RoadmapDateKey, string>>;
+export type SprintStatus = 'planned' | 'active' | 'done';
+export type SprintFields = { status?: SprintStatus; goal?: string; capacity?: number | null; review?: string; retrospective?: string };
+export type SprintCredit = { taskKey: string; taskId: number; sprintId: string; storyPoints: number; at: string };
+export type SprintClosure = { sprint: RoadmapItem; sprintId: string; closedAt: string; tasks: Task[]; workflow: Workflow; functionalWorkflow: Workflow; plannedPoints: number; completedIds: number[]; carryOverIds: number[]; velocity: number };
+export type SprintResults = { version: 1; credits: SprintCredit[]; closures: SprintClosure[] };
+export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string } & SprintFields & Partial<Record<RoadmapDateKey, string>>;
 export type RoadmapExtension = {
     version: number;
     milestones: RoadmapItem[];
@@ -179,6 +185,7 @@ export type BoardExtensions = {
     dayPlanner?: DayPlannerExtension;
     taskRelations?: TaskRelationsExtension;
     sprintCatalog?: SprintCatalog;
+    sprintResults?: SprintResults;
     teamOsKanban?: TeamOsExtensions;
 };
 

@@ -29,7 +29,7 @@ export function RoadmapEntityDialog() {
             <Dialog.Portal>
                 <Dialog.Overlay className="modal active" id="roadmapEntityModal">
                     <Dialog.Content
-                        className="modal-content"
+                        className={`modal-content${vm?.kind === 'sprints' && !vm.showExistingSprint ? ' sprint-editor-modal' : ''}`}
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
                         onEscapeKeyDown={escapeAnswersAppMessage}
@@ -75,8 +75,8 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
         existingSprintId: sprintRef, title: titleRef, dueDate: dueDateRef, startDate: startDateRef, endDate: endDateRef
     };
     const bind = (field: keyof RoadmapEntityFormDraft) => ({
-        value: draft[field],
-        onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setDraft((current) => ({ ...current, [field]: event.target.value }))
+        value: draft[field] ?? '',
+        onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setDraft((current) => ({ ...current, [field]: event.target.value }))
     });
     const hideTitle = vm.showExistingSprint;
     const hideSingleDate = vm.showExistingSprint || vm.dateMode !== 'single';
@@ -117,6 +117,16 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                         <label className="required" htmlFor="roadmapEntityTitle">{t('roadmapDialog.title')}</label>
                         <input type="text" id="roadmapEntityTitle" ref={titleRef} required maxLength={80} {...bind('title')} />
                     </div>
+                    {vm.kind === 'sprints' && !vm.showExistingSprint && <>
+                        {vm.itemId && <div className="form-group"><label htmlFor="sprintStatus">{t('task.status')}</label>
+                            <select id="sprintStatus" value={draft.status || 'planned'} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as NonNullable<RoadmapEntityDates['status']> }))}>
+                                {(['planned', 'active', 'done'] as const).map((status) => <option key={status} value={status}>{t(`table.sprintStatus.${status}`)}</option>)}
+                            </select></div>}
+                        <div className="form-group"><label htmlFor="sprintGoal">{t('sprint.goal')}</label><textarea id="sprintGoal" {...bind('goal')} /></div>
+                        <div className="form-group"><label htmlFor="sprintCapacity">{t('sprint.capacity')}</label><input id="sprintCapacity" type="number" min="0" step="any" value={draft.capacity ?? ''} onChange={(event) => setDraft((current) => ({ ...current, capacity: event.target.value === '' ? null : Number(event.target.value) }))} /></div>
+                        <div className="form-group"><label htmlFor="sprintReview">{t('sprint.review')}</label><textarea id="sprintReview" {...bind('review')} /></div>
+                        <div className="form-group"><label htmlFor="sprintRetrospective">{t('sprint.retrospective')}</label><textarea id="sprintRetrospective" {...bind('retrospective')} /></div>
+                    </>}
                     <div className={`roadmap-entity-date-row single${hideSingleDate ? ' hidden' : ''}`} id="roadmapEntitySingleDateRow">
                         <div className="form-group">
                             <label className="required" id="roadmapEntityDateLabel" htmlFor="roadmapEntityDate">{vm.dateLabel}</label>

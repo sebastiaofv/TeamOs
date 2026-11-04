@@ -6,6 +6,19 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    "task.storyPoints": "Story Points (SP)",
+    "sprint.goal": "Sprint Goal",
+    "sprint.capacity": "Sprint Capacity (SP)",
+    "sprint.review": "Sprint Review",
+    "sprint.retrospective": "Sprint Retrospective",
+    "sprint.start": "Start Sprint",
+    "sprint.finish": "Finish Sprint",
+    "sprint.updateStart": "Update the Sprint start date to today ({today})?",
+    "sprint.updateEnd": "Update the Sprint end date to today ({today})?",
+    "sprint.useToday": "Use today",
+    "sprint.keepDate": "Keep planned date",
+    "sprint.invalidCapacity": "Sprint Capacity must be a non-negative number.",
+
     "transfer.chooseProject": "Choose project",
     "transfer.field": "Field",
     "transfer.current": "Current value",
@@ -402,7 +415,7 @@ const en = {
     'table.noSprints': 'This project has no sprints yet.',
     'table.emptySprint': 'This sprint has no workitems.',
     'table.emptyPlanning': 'No workitems are waiting to be planned.',
-    'table.sprintDatesNote': 'Sprint status is based on its dates. Completeness uses all current members, including archived items, regardless of filters. Closure snapshots are not yet available.',
+    'table.sprintDatesNote': 'Sprint status is managed manually. Finished Sprints preserve their workitems and results at closure; unfinished work returns to Backlog. Completeness includes archived items and ignores filters.',
     'table.selectionChanged': 'The selected workitems changed or were already planned. Close this dialog and review your selection.',
     'table.addToSprint': 'Add to sprint',
     'roadmapDialog.noEligibleSprints': 'No Planned or Active sprints are available. Create a sprint to plan these workitems.',
@@ -962,6 +975,19 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    "task.storyPoints": "Story Points (SP)",
+    "sprint.goal": "Objetivo do Sprint",
+    "sprint.capacity": "Capacidade do Sprint (SP)",
+    "sprint.review": "Sprint Review",
+    "sprint.retrospective": "Sprint Retrospective",
+    "sprint.start": "Iniciar Sprint",
+    "sprint.finish": "Terminar Sprint",
+    "sprint.updateStart": "Atualizar a data de início do Sprint para hoje ({today})?",
+    "sprint.updateEnd": "Atualizar a data de fim do Sprint para hoje ({today})?",
+    "sprint.useToday": "Usar hoje",
+    "sprint.keepDate": "Manter data planeada",
+    "sprint.invalidCapacity": "A capacidade do Sprint tem de ser um número não negativo.",
+
     "transfer.chooseProject": "Escolher projeto",
     "transfer.field": "Campo",
     "transfer.current": "Valor atual",
@@ -1358,7 +1384,7 @@ const pt: Record<TranslationKey, string> = {
     'table.noSprints': 'Este projeto ainda não tem sprints.',
     'table.emptySprint': 'Este sprint não tem workitems.',
     'table.emptyPlanning': 'Não existem workitems por planear.',
-    'table.sprintDatesNote': 'O estado do sprint é calculado pelas datas. A conclusão considera todos os membros atuais, incluindo arquivados, independentemente dos filtros. Ainda não existem fotografias de encerramento.',
+    'table.sprintDatesNote': 'O estado do Sprint é gerido manualmente. Os Sprints terminados preservam os workitems e resultados no encerramento; o trabalho por concluir regressa ao Backlog. A conclusão inclui arquivados e ignora filtros.',
     'table.selectionChanged': 'Os workitems selecionados foram alterados ou já foram planeados. Feche este diálogo e reveja a seleção.',
     'table.addToSprint': 'Adicionar ao sprint',
     'roadmapDialog.noEligibleSprints': 'Não existem sprints planeados ou ativos disponíveis. Crie um sprint para planear estes workitems.',

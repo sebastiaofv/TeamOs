@@ -1,3 +1,4 @@
+import { SprintAction } from '@/features/portfolio/roadmap/SprintAction';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
@@ -68,12 +69,13 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
             : <>
                 <p className="table-sprint-note">{t('table.sprintDatesNote')}</p>
                 {groups.length === 0 && <p className="table-empty" role="status">{t('table.noSprints')}</p>}
-                {groups.map((group) => <SprintTableSection key={group.sprint.id} group={group} hidden={hidden} boardId={boardId} project={project} />)}
+                {groups.map((group) => <SprintTableSection key={group.sprint.id} group={group} hidden={hidden} boardId={boardId} project={project} canEdit={canCreate} />)}
             </>}
     </section>;
 }
 
-function SprintTableSection({ group, hidden, boardId, project }: { group: SprintTableGroup; hidden: boolean; boardId: string; project: string }) {
+function SprintTableSection({ group, hidden, boardId, project, canEdit }: { group: SprintTableGroup; hidden: boolean; boardId: string; project: string; canEdit: boolean }) {
+    const actions = usePortfolioActions();
     const { t, language } = useI18n();
     const [expanded, setExpanded] = useState(false);
     const completeness = group.completeness === null ? t('table.noCompleteness')
@@ -84,6 +86,8 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
             <span className="table-sprint-name">{t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}</span>
             <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
             <span>{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
+            <button className="btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${group.sprint.title}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); actions.openRoadmapEntityModal('sprints', group.sprint.id, { boardId }); }}>{t('common.edit')}</button>
+            <SprintAction sprint={group.sprint} boardId={boardId} disabled={!canEdit} />
             <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
         </summary>
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}

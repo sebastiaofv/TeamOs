@@ -42,7 +42,7 @@ type ReplayState = {
     extensions?: Record<string, unknown>;
 };
 
-const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'] as const;
+const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'storyPoints', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'] as const;
 
 export function createEmptyTimelineData(): TimelineExtension {
     return {
@@ -148,6 +148,7 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
+    if (event.kind === 'sprint.results.updated' && event.changes?.sprintResults) { nextState.extensions = { ...nextState.extensions, sprintResults: cloneSerializable(event.changes.sprintResults.after) }; return nextState; }
     if (event.kind === 'sprint.participation.updated' && event.changes?.sprintParticipation) { nextState.extensions = { ...nextState.extensions, sprintParticipation: cloneSerializable(event.changes.sprintParticipation.after) }; return nextState; }
     if (['task.comment.published', 'task.comment.referenced'].includes(event.kind) && typeof event.meta?.commentId === 'string') {
         const previous = nextState.extensions?.conversationRefs;
