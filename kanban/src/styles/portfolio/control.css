@@ -46,6 +46,10 @@
 .control-modal .detail-tabs button:disabled { opacity: .45; cursor: default; }
 .control-response, .control-tab-panel { padding: 26px 28px; }
 .control-modal .workitem-sidebar .form-group { margin-top: 12px; }
+/* Control tabs sit outside the scrolling body, so no sticky tab offset is needed. */
+@media (min-width: 761px) {
+    .control-modal .workitem-sidebar { top: 0; }
+}
 .control-type[data-control-kind="risks"] { color: #b42318; background: #fee4e2; }
 .control-type[data-control-kind="decisions"] { color: #5925dc; background: #ebe9fe; }
 .control-type[data-control-kind="deliverables"] { color: #026aa2; background: #e0f2fe; }

@@ -11,6 +11,32 @@ async function seed(page: Page, writable = true) {
 }
 const dialog = (page: Page) => page.locator('.control-modal').getByRole('dialog');
 
+for (const [kind, title] of [
+    ['Risks', 'Supplier availability'],
+    ['Decisions', 'Choose supported runtime'],
+    ['Deliverables', 'Release package']
+]) test(`${kind} sidebar starts at the top of the details panel on desktop`, async ({ page }) => {
+    await page.setViewportSize({ width: 1703, height: 857 });
+    await seed(page);
+    await page.getByRole('tab', { name: kind, exact: true }).click();
+    await page.getByRole('button', { name: title, exact: true }).click();
+    const panel = dialog(page).locator('#control-panel-details');
+    const sidebar = panel.locator('.workitem-sidebar');
+    const expectAligned = async () => {
+        const panelBox = await panel.boundingBox();
+        const sidebarBox = await sidebar.boundingBox();
+        expect(panelBox).not.toBeNull();
+        expect(sidebarBox).not.toBeNull();
+        expect(Math.abs(sidebarBox!.y - panelBox!.y)).toBeLessThanOrEqual(1);
+    };
+    await expectAligned();
+    await dialog(page).getByRole('button', { name: 'Edit', exact: true }).click();
+    await expectAligned();
+    await dialog(page).getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.getByRole('button', { name: 'New record', exact: true }).click();
+    await expectAligned();
+});
+
 for (const language of ['en', 'pt']) for (const [kind, tab, title] of [
     ['risks', 'Risks', 'Supplier availability'],
     ['decisions', 'Decisions', 'Choose supported runtime'],
