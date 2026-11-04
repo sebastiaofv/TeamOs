@@ -8,13 +8,14 @@ import { readFileAsDataUrl } from '@/infrastructure/browser/fileReader';
 import { useI18n } from '@/shared/i18n';
 import { lastCommentAuthor, rememberCommentAuthor } from '../../conversationDrafts';
 
-export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentBytes, showList = true, disabled = false, onBusyChange }: {
+export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentBytes, showList = true, disabled = false, onBusyChange, beforePick }: {
     boardId: string;
     value: Attachment[];
     onChange: (next: Attachment[]) => void | boolean | Promise<void | boolean>;
     showList?: boolean;
     disabled?: boolean;
     onBusyChange?: (busy: boolean) => void;
+    beforePick?: () => Promise<boolean>;
     otherAttachmentBytes: number;
 }) {
     const { t } = useI18n();
@@ -22,6 +23,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
     const [uploadedBy, setUploadedBy] = useState(() => lastCommentAuthor(boardId));
     const inputRef = useRef<HTMLInputElement>(null);
     const busyRef = useRef(false);
+    const preparingRef = useRef(false);
     const [busy, setBusy] = useState(false);
     const mountedRef = useRef(false);
 
@@ -29,6 +31,15 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
         mountedRef.current = true;
         return () => { mountedRef.current = false; };
     }, []);
+
+    async function pickFiles() {
+        if (disabled || busyRef.current || preparingRef.current) return;
+        preparingRef.current = true;
+        try {
+            if (beforePick && !await beforePick()) return;
+            if (mountedRef.current) inputRef.current?.click();
+        } finally { preparingRef.current = false; }
+    }
 
     const onFilesPicked = async (event: ChangeEvent<HTMLInputElement>) => {
         const input = event.target;
@@ -74,7 +85,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
                 <input id="taskAttachmentUploader" disabled={disabled || busy} type="text" autoComplete="off" value={uploadedBy} onChange={(event) => setUploadedBy(event.target.value)} />
             </div>
             <div className="attachment-editor-toolbar">
-                <button type="button" className="btn" id="taskAttachmentsAddBtn" disabled={disabled || busy} onClick={() => inputRef.current?.click()}>{t('editor.addFiles')}</button>
+                <button type="button" className="btn" id="taskAttachmentsAddBtn" disabled={disabled || busy} onClick={() => void pickFiles()}>{t('editor.addFiles')}</button>
                 <span className="attachment-editor-summary" id="taskAttachmentsSummary">{summary}</span>
             </div>
             <div className="attachment-editor-warnings" id="taskAttachmentsWarnings" role={messages.some((message) => message.type === 'error') ? 'alert' : 'status'} aria-live="polite" aria-atomic="true">

@@ -354,6 +354,28 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         });
     }
 
+    async function preparePortfolioTaskAttachmentWrite(boardId: string, taskId: number): Promise<boolean> {
+        const source = findPortfolioTaskSource(boardId, taskId);
+        const context = getState().portfolioDetailContext;
+        if (!source || !canUsePortfolioTaskMutations(boardId) || (context?.boardId === boardId && context.taskId === taskId && context.readOnly)) {
+            notifyPortfolioMutationUnavailable(boardId);
+            return false;
+        }
+        try {
+            // Ask during the Add Files gesture: the picker and FileReader may
+            // consume/expire activation before createWritable can ask for it.
+            const permission = await source.boardRecord.handle?.requestPermission?.({ mode: 'readwrite' });
+            if (permission !== undefined && permission !== 'granted') {
+                await alert(translateCurrent('attachments.writePermissionDenied'));
+                return false;
+            }
+            return true;
+        } catch (error) {
+            await alert(translateCurrent('messages.portfolioUpdateFailed', { error: (error as Error).message }));
+            return false;
+        }
+    }
+
     async function setPortfolioTaskAttachments(boardId: string, taskId: number, value: Attachment[], expected: Attachment[]): Promise<boolean> {
         const context = getState().portfolioDetailContext;
         if (!canUsePortfolioTaskMutations(boardId) || (context?.boardId === boardId && context.taskId === taskId && context.readOnly)) {
@@ -553,6 +575,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         saveTask,
         toggleTaskDetailChecklistItem,
         setPortfolioTaskAttachments,
+        preparePortfolioTaskAttachmentWrite,
         setPortfolioTaskProperties,
         movePortfolioTaskToStatus,
         performUndo,

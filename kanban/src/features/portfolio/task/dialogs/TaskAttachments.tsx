@@ -10,7 +10,7 @@ import { useI18n } from '@/shared/i18n';
 export function TaskAttachments({ vm }: { vm: TaskDetailViewModel }) {
     const { attachments } = vm;
     const { t, language } = useI18n();
-    const { setPortfolioTaskAttachments } = usePortfolioActions();
+    const { setPortfolioTaskAttachments, preparePortfolioTaskAttachmentWrite } = usePortfolioActions();
     const [busy, setBusy] = useState(false);
     const [picking, setPicking] = useState(false);
     const busyRef = useRef(false);
@@ -27,6 +27,7 @@ export function TaskAttachments({ vm }: { vm: TaskDetailViewModel }) {
     }
     return <div className="detail-attachments" id="detailAttachments">
         {!vm.readOnly && <AttachmentsEditor boardId={vm.boardId} value={value} showList={false} disabled={busy} onBusyChange={setPicking}
+            beforePick={() => preparePortfolioTaskAttachmentWrite(vm.boardId, vm.taskId)}
             onChange={(next) => setPortfolioTaskAttachments(vm.boardId, vm.taskId, next, value)}
             otherAttachmentBytes={calculateBoardAttachmentBytes(vm.sourceBoardData, { excludeTaskId: vm.taskId })} />}
         {attachments.length === 0 ? <p className="detail-attachments-empty">{t('editor.noAttachmentsYet')}</p>

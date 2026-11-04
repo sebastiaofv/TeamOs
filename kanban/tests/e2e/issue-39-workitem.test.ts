@@ -1,10 +1,91 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, waitForBoardWrites, answerAppMessage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, waitForBoardWrites, answerAppMessage, mockImportProjectsPicker } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-16.board.json', 'utf8'));
 
 test.beforeEach(async ({ page }) => { await gotoApp(page); });
+
+test('an attachment can be the first change to an imported legacy project', async ({ page }) => {
+  await seedPortfolioBoards(page, [{ id: 'p1', title: 'Imported project', acronym: null, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p1' });
+  await portfolioCard(page, 'Files and todo').click();
+  await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+  await page.setInputFiles('#taskAttachmentsInput', { name: 'first-change.txt', mimeType: 'text/plain', buffer: Buffer.from('first change after import') });
+  await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(4);
+  await waitForBoardWrites(page);
+  expect((await readSavedBoard(page, 'p1')).board.tasks[0].attachments).toHaveLength(4);
+});
+
+test('first attachment requests write permission before reading files consumes user activation', async ({ page }) => {
+  await mockImportProjectsPicker(page, [{ fileName: 'imported.board.json', payload: fixture }]);
+  await page.evaluate(async () => {
+    const [original] = await window.showOpenFilePicker!();
+    let text = await (await original.getFile()).text();
+    let granted = false;
+    let readStarted = false;
+    const read = FileReader.prototype.readAsDataURL;
+    FileReader.prototype.readAsDataURL = function (file) { readStarted = true; read.call(this, file); };
+    window.showOpenFilePicker = async () => [{
+      name: original.name,
+      async getFile() { return { name: original.name, size: new Blob([text]).size, lastModified: 1, async text() { return text; } }; },
+      async requestPermission(options) {
+        if (options.mode !== 'readwrite' || readStarted || !navigator.userActivation.isActive) throw new DOMException('Write permission requires user activation before reading', 'SecurityError');
+        granted = true;
+        return 'granted';
+      },
+      async createWritable() {
+        // Model the browser's first-write prompt after FileReader has lost activation.
+        if (!granted) throw new DOMException('Write permission requires user activation', 'SecurityError');
+        return { async write(value: string) { text = value; }, async close() {} };
+      }
+    }];
+  });
+  await page.locator('#importProjectsBtn').click();
+  await portfolioCard(page, 'Files and todo').click();
+  await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+  const chooser = page.waitForEvent('filechooser');
+  await page.locator('#taskAttachmentsAddBtn').click();
+  await (await chooser).setFiles({ name: 'first-change.txt', mimeType: 'text/plain', buffer: Buffer.from('first change after import') });
+  await expect(page.locator('#taskAttachmentsEditor')).toHaveAttribute('aria-busy', 'false', { timeout: 10000 });
+  const saved = await page.evaluate(async () => {
+    const [handle] = await window.showOpenFilePicker!();
+    return JSON.parse(await (await handle.getFile()).text());
+  });
+  expect(saved.board.tasks[0].attachments).toHaveLength(4);
+  expect(saved.board.tasks[0].attachments[3].dataUrl).toBe(`data:text/plain;base64,${Buffer.from('first change after import').toString('base64')}`);
+  expect(saved.extensions.timeline.events.some((event: { changes?: { attachments?: unknown } }) => event.changes?.attachments)).toBe(true);
+});
+
+for (const permission of ['denied', 'error'] as const) {
+  test(`first attachment leaves the project unchanged when write permission is ${permission}`, async ({ page }) => {
+    await mockImportProjectsPicker(page, [{ fileName: 'imported.board.json', payload: fixture }]);
+    await page.evaluate(async (permission) => {
+      const [original] = await window.showOpenFilePicker!();
+      window.showOpenFilePicker = async () => [{
+        ...original,
+        async requestPermission() {
+          if (permission === 'error') throw new DOMException('Permission unavailable', 'SecurityError');
+          return 'denied';
+        },
+        async createWritable() { throw new Error('Must not write without permission'); }
+      }];
+    }, permission);
+    await page.locator('#importProjectsBtn').click();
+    await portfolioCard(page, 'Files and todo').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    let pickerOpened = false;
+    page.on('filechooser', () => { pickerOpened = true; });
+    await page.locator('#taskAttachmentsAddBtn').click();
+    await answerAppMessage(page, { expectText: permission === 'denied' ? 'Allow changes to the project JSON' : 'Permission unavailable' });
+    expect(pickerOpened).toBe(false);
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(3);
+    const saved = await page.evaluate(async () => {
+      const [handle] = await window.showOpenFilePicker!();
+      return JSON.parse(await (await handle.getFile()).text());
+    });
+    expect(saved).toEqual(fixture);
+  });
+}
 
 test('creation shows details only and saved workitems accept attachments directly', async ({ page }) => {
   await seedPortfolioBoards(page, [{ id: 'p1', title: 'Project', hasHandle: true, tasks: [] }], { selectedBoardId: 'p1' });

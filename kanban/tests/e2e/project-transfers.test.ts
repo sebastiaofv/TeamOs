@@ -103,6 +103,51 @@ test('copy requires a destination, defaults its state, preserves the source and 
     await expect(page.getByRole('button', { name: 'Open related project', exact: true })).toBeVisible();
 });
 
+test('an attachment save error does not reopen a completed transfer', async ({ page }) => {
+    await seed(page);
+    await startTransfer(page, 'Copy');
+    await page.locator('#appMessageConfirmBtn').click();
+    await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
+    await selectPortfolioBoard(page, 'Maintenance');
+    await installControlledPortfolioWriter(page, { boardId: 'target', failWrites: 1 });
+    await portfolioCard(page, 'Transfer me').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await page.setInputFiles('#taskAttachmentsInput', { name: 'note.txt', mimeType: 'text/plain', buffer: Buffer.from('preserved on save failure') });
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
+    await expect(page.locator('#taskAttachmentsEditor')).toHaveAttribute('aria-busy', 'false');
+    await expect(page.getByRole('region', { name: 'Pending transfers', exact: true })).toHaveCount(0);
+    await page.locator('#taskDetailModalCloseBtn').click();
+    await expect(portfolioBoardChip(page, 'Maintenance')).toContainText('Save failed');
+    await portfolioBoardChip(page, 'Maintenance').locator('xpath=ancestor::details').locator('summary').click();
+    await portfolioBoardChip(page, 'Maintenance').getByRole('button', { name: 'Retry', exact: true }).click();
+    await expect.poll(async () => (await readSavedBoard(page, 'target')).board.tasks[1].attachments?.length).toBe(1);
+});
+
+for (const mode of ['Copy', 'Move'] as const) test(`${mode} remains recoverable when the final receipt write fails`, async ({ page }) => {
+    await seed(page);
+    await page.evaluate(async () => {
+        const handles = await window.showOpenFilePicker!();
+        const target = handles.find((handle) => handle.name === 'target.board.json')!;
+        const createWritable = target.createWritable.bind(target);
+        let attempts = 0;
+        target.createWritable = async () => {
+            if (++attempts === 2) throw new Error('Final receipt write failed');
+            return createWritable();
+        };
+    });
+    await startTransfer(page, mode);
+    await page.locator('#appMessageConfirmBtn').click();
+    await answerAppMessage(page, { expectText: 'Transfer incomplete.' });
+    await expect(page.getByRole('region', { name: 'Pending transfers', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Resume transfer', exact: true }).click();
+    await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
+    await expect(page.getByRole('region', { name: 'Pending transfers', exact: true })).toHaveCount(0);
+    const saved = await readSavedBoard(page, 'target');
+    expect(saved.board.tasks).toHaveLength(2);
+    expect(saved.extensions.projectTransfers.operations[0].status).toBe('complete');
+    expect((await readSavedBoard(page, 'source')).board.tasks).toHaveLength(mode === 'Move' ? 1 : 2);
+});
+
 for (const failure of ['target', 'source']) test(`move recovers a ${failure} write failure without duplicating the task`, async ({ page }) => {
     await seed(page);
     await installControlledPortfolioWriter(page, { boardId: failure, failWrites: 1 });
