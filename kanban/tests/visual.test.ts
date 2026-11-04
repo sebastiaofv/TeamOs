@@ -835,6 +835,21 @@ for (const theme of ['light', 'dark']) {
   }
 }
 
+for (const theme of ['light', 'dark']) {
+  test(`US-9 dashboard overview and sprint analytics (${theme})`, async ({ page }) => {
+    await gotoVisualApp(page, theme);
+    await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'));
+    const fixture = JSON.parse(readFileSync('test-board/us-9.board.json', 'utf8'));
+    await seedPortfolioBoards(page, [{ id: 'us9', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us9' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await page.mouse.move(1, 1);
+    await expect(page).toHaveScreenshot(`dashboard-overview-${theme}.png`, { animations: 'disabled' });
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
+    await page.mouse.move(1, 1);
+    await expect(page).toHaveScreenshot(`dashboard-sprints-${theme}.png`, { animations: 'disabled' });
+  });
+}
 test.describe('US-20 Project Control', () => {
   for (const theme of ['light', 'dark']) for (const width of [1280, 390]) {
     test(`tables and record dialog at ${width}px (${theme})`, async ({ page }) => {
