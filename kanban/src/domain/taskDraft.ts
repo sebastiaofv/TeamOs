@@ -86,11 +86,13 @@ export function moveChecklistItem<T>(items: T[], from: number, to: number, place
 export async function mergePickedAttachments(existing: readonly unknown[], files: Iterable<PickedFile>, {
     readFile,
     now = nowIso,
-    createId = createAttachmentId
+    createId = createAttachmentId,
+    uploadedBy
 }: {
     readFile: (file: PickedFile) => Promise<string>;
     now?: () => string;
     createId?: () => string;
+    uploadedBy?: string;
 }): Promise<{ attachments: Attachment[]; messages: DraftMessage[] }> {
     const next = normalizeAttachmentList(existing);
     const messages: DraftMessage[] = [];
@@ -127,7 +129,8 @@ export async function mergePickedAttachments(existing: readonly unknown[], files
                 sizeBytes: fileSize || estimateAttachmentDataUrlSizeBytes(dataUrl),
                 kind: classifyAttachmentKind(file.type, file.name),
                 dataUrl,
-                createdAt: now()
+                createdAt: now(),
+                ...(uploadedBy?.trim() ? { uploadedBy: uploadedBy.trim() } : {})
             });
             if (duplicateKey) seenKeys.add(duplicateKey);
         } catch (error) {

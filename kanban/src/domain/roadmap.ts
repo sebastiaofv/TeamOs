@@ -212,7 +212,7 @@ export function normalizeRoadmapItems(value: unknown, dateKeys: readonly Roadmap
     const seenIds = new Set<string>();
     for (const item of value) {
         if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
-        const allowedKeys: string[] = ['id', 'title', ...dateKeys, ...(allowParent ? ['parentId'] : []), ...(allowColor ? ['color'] : []), ...(allowSprintFields ? ['status', 'goal', 'capacity', 'review', 'retrospective'] : [])];
+        const allowedKeys: string[] = ['id', 'title', 'objective', ...dateKeys, ...(allowParent ? ['parentId'] : []), ...(allowColor ? ['color'] : []), ...(allowSprintFields ? ['status', 'goal', 'capacity', 'review', 'retrospective'] : [])];
         const keys = Object.keys(item);
         const hasRequiredKeys = typeof item.id === 'string' && item.id.trim()
             && typeof item.title === 'string' && item.title.trim();
@@ -233,6 +233,10 @@ export function normalizeRoadmapItems(value: unknown, dateKeys: readonly Roadmap
             }
             if ('status' in item) normalizedItem.status = item.status;
             if ('capacity' in item) normalizedItem.capacity = item.capacity;
+        }
+        if ('objective' in item) {
+            if (typeof item.objective !== 'string') return null;
+            normalizedItem.objective = item.objective;
         }
         if ('color' in item) {
             if (!allowColor || !isMilestoneColor(item.color)) return null;

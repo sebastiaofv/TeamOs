@@ -170,7 +170,7 @@ const FULL_TASK = {
     { text: 'Schedule announcement', done: true }
   ],
   attachments: [
-    { id: 'att_img', name: 'mockup.png', mime: 'image/png', sizeBytes: 68, kind: 'image', dataUrl: ONE_PIXEL_PNG, createdAt: FIXED_TIMESTAMP },
+    { id: 'att_img', name: 'mockup.png', mime: 'image/png', sizeBytes: 68, kind: 'image', dataUrl: ONE_PIXEL_PNG, createdAt: FIXED_TIMESTAMP, uploadedBy: 'Ana Silva' },
     { id: 'att_txt', name: 'notes.txt', mime: 'text/plain', sizeBytes: 16, kind: 'file', dataUrl: 'data:text/plain;base64,aGVsbG8gYXR0YWNobWVudA==', createdAt: FIXED_TIMESTAMP }
   ]
 };
@@ -277,7 +277,7 @@ test.describe('2.1a modals and toast', () => {
       await portfolioCard(page, 'Prepare launch checklist').click();
       await expect(page.locator('#taskDetailModal')).toBeVisible();
       await expect(page.locator('#detailAttachments')).toContainText('notes.txt');
-      await expect(page).toHaveScreenshot(`task-detail-full-${theme}.png`, { fullPage: true });
+      await expect(page).toHaveScreenshot(`task-detail-full-${theme}.png`, { fullPage: true, maxDiffPixelRatio: 0 });
     });
 
     test(`roadmap entity, new milestone (${theme})`, async ({ page }) => {
@@ -317,19 +317,42 @@ test.describe('2.1a modals and toast', () => {
     });
   }
 
-  test('task detail, attachments scrolled into view (light)', async ({ page }) => {
-    await gotoVisualApp(page, 'light');
-    await seedPortfolioBoards(page, [
-      { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
-    ], { selectedBoardId: 'v1' });
-    await portfolioCard(page, 'Prepare launch checklist').click();
-    await expect(page.locator('#taskDetailModal')).toBeVisible();
-    // The modal body scrolls; bring the attachment rows into view.
-    await page.locator('#detailAttachments').scrollIntoViewIfNeeded();
-    await expect(page.locator('#detailAttachments')).toBeVisible();
-    await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
-    await expect(page).toHaveScreenshot('task-detail-attachments-light.png', { fullPage: true });
-  });
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1280, 390]) {
+      test(`task detail, attachments tab at ${width}px (${theme})`, async ({ page }) => {
+        await gotoVisualApp(page, theme);
+        await page.setViewportSize({ width, height: 900 });
+        await seedPortfolioBoards(page, [
+          { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
+        ], { selectedBoardId: 'v1' });
+        await portfolioCard(page, 'Prepare launch checklist').click();
+        await expect(page.locator('#taskDetailModal')).toBeVisible();
+        await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+        await expect(page.locator('#detailAttachments')).toBeVisible();
+        await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
+        await expect(page.locator('#detailAttachments')).toContainText('Ana Silva');
+        await expect(page.locator('#detailAttachments')).toContainText('Unknown');
+        await expect(page).toHaveScreenshot(`task-detail-attachments-${theme}${width === 390 ? '-narrow' : ''}.png`, { fullPage: true });
+      });
+    }
+  }
+
+  for (const theme of ['light', 'dark']) {
+    for (const width of [1280, 390]) {
+      for (const tab of ['Relations', 'Pull Requests']) {
+        test(`workitem ${tab} tab at ${width}px (${theme})`, async ({ page }) => {
+          await gotoVisualApp(page, theme);
+          await page.setViewportSize({ width, height: 900 });
+          await seedPortfolioBoards(page, [{ id: 'v1', title: 'Launch', hasHandle: true, tasks: [
+            FULL_TASK, { id: 123456, displayId: 'ABC-TK-123456', title: 'Coordinate the review with all stakeholders', status: 'doing', responsible: 'Ana', assignees: ['Ana'] }
+          ], extensions: { ...ROADMAP, taskRelations: { version: 1, relations: [{ sourceId: 1, targetId: 123456, kind: 'related' }] } } }], { selectedBoardId: 'v1' });
+          await portfolioCard(page, 'Prepare launch checklist').click();
+          await page.getByRole('tab', { name: tab, exact: true }).click();
+          await expect(page).toHaveScreenshot(`workitem-${tab === 'Relations' ? 'relations' : 'pull-requests'}-${theme}-${width}.png`, { fullPage: true });
+        });
+      }
+    }
+  }
 
   test('task detail, read-only board (light)', async ({ page }) => {
     await gotoVisualApp(page, 'light');
@@ -393,10 +416,10 @@ test.describe('2.1a modals and toast', () => {
 test.describe('2.1b task editor', () => {
   test.use({ locale: 'en-US', timezoneId: 'UTC' });
 
-  async function captureEditor(page: Page, name: string) {
+  async function captureEditor(page: Page, name: string, maxDiffPixelRatio = 0.001) {
     await page.mouse.move(1, 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await expect(page).toHaveScreenshot(name, { fullPage: true });
+    await expect(page).toHaveScreenshot(name, { fullPage: true, maxDiffPixelRatio });
   }
 
   async function openFullTaskEditor(page: Page, theme: string) {
@@ -408,7 +431,7 @@ test.describe('2.1b task editor', () => {
     await expect(page.locator('#modalTitle')).toHaveText('Edit Task');
     await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(2);
     await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(3);
-    await expect(page.locator('#taskAttachmentsList .attachment-editor-item')).toHaveCount(2);
+    await expect(page.locator('#taskAttachmentsEditor')).toHaveCount(0);
   }
 
   for (const theme of ['light', 'dark']) {
@@ -419,7 +442,8 @@ test.describe('2.1b task editor', () => {
       ], { selectedBoardId: 'v1' });
       await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
       await expect(page.locator('#modalTitle')).toHaveText('New Task');
-      await captureEditor(page, `task-editor-new-${theme}.png`);
+      await expect(page.locator('#taskAttachmentsEditor')).toHaveCount(0);
+      await captureEditor(page, `task-editor-new-${theme}.png`, 0);
     });
 
     test(`task editor, edit populated (${theme})`, async ({ page }) => {
@@ -430,16 +454,21 @@ test.describe('2.1b task editor', () => {
     });
   }
 
-  test('task editor, attachments and picker error (light)', async ({ page }) => {
-    await openFullTaskEditor(page, 'light');
+  test('attachment tab, picker error (light)', async ({ page }) => {
+    await gotoVisualApp(page, 'light');
+    await seedPortfolioBoards(page, [
+      { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
+    ], { selectedBoardId: 'v1' });
+    await portfolioCard(page, 'Prepare launch checklist').click();
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     await page.setInputFiles('#taskAttachmentsInput', {
       name: 'huge.bin',
       mimeType: 'application/octet-stream',
       buffer: Buffer.alloc((10 * 1024 * 1024) + 1)
     });
     await expect(page.locator('#taskAttachmentsWarnings')).toContainText('huge.bin exceeds the 10 MB limit.');
-    await page.locator('#taskAttachmentsList').scrollIntoViewIfNeeded();
-    await captureEditor(page, 'task-editor-attachments-light.png');
+    await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(2);
+    await captureEditor(page, 'task-detail-attachments-picker-error-light.png');
   });
 
   test('task editor, checklist mid-drag (light)', async ({ page }) => {
@@ -804,6 +833,43 @@ for (const theme of ['light', 'dark']) {
     });
   }
 }
+
+test.describe('US-20 Project Control', () => {
+  for (const theme of ['light', 'dark']) for (const width of [1280, 390]) {
+    test(`tables and record dialog at ${width}px (${theme})`, async ({ page }) => {
+      await gotoVisualApp(page, theme);
+      await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'));
+      await page.setViewportSize({ width, height: 900 });
+      const fixture = JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
+      await seedPortfolioBoards(page, [{ id: 'control', title: 'Atlas control', hasHandle: true,
+        tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'control' });
+      await page.locator('[data-view-mode="control"]').click();
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`project-control-table-${theme}-${width}.png`, { fullPage: true });
+      await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+      await page.mouse.move(1, 1);
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-record-${theme}-${width}.png`);
+      await page.locator('.control-modal .control-people-editors').scrollIntoViewIfNeeded();
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-people-${theme}-${width}.png`);
+      await page.locator('.control-modal').getByRole('button', { name: 'Edit', exact: true }).click();
+      await page.locator('.control-modal').getByLabel('Type', { exact: true }).scrollIntoViewIfNeeded();
+      await page.mouse.move(1, 1);
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-editor-${theme}-${width}.png`);
+      await page.locator('.control-modal').getByRole('button', { name: 'Cancel', exact: true }).click();
+      await page.getByRole('button', { name: 'Supplier availability', exact: true }).click();
+      await page.getByRole('tab', { name: 'History', exact: true }).click();
+      await page.locator('.control-modal .history-entry summary').click();
+      await page.mouse.move(1, 1);
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-history-${theme}-${width}.png`);
+      await page.locator('.control-modal').getByRole('button', { name: 'Close', exact: true }).last().click();
+      await page.getByRole('button', { name: 'New record', exact: true }).click();
+      await page.locator('.control-modal').getByLabel('Type', { exact: true }).scrollIntoViewIfNeeded();
+      await page.mouse.move(1, 1);
+      await expect(page.locator('.control-modal .modal-content')).toHaveScreenshot(`project-control-creation-${theme}-${width}.png`);
+    });
+  }
+});
 
 test.describe('US-13 product navigation and transfer review', () => {
   for (const theme of ['light', 'dark']) for (const width of [1280, 390]) {

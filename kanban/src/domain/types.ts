@@ -27,6 +27,7 @@ export type Attachment = {
     kind: AttachmentKind;
     dataUrl: string;
     createdAt: string;
+    uploadedBy?: string;
 };
 
 export type WorkitemType = 'epic' | 'story' | 'task' | 'bug';
@@ -98,7 +99,7 @@ export type SprintFields = { status?: SprintStatus; goal?: string; capacity?: nu
 export type SprintCredit = { taskKey: string; taskId: number; sprintId: string; storyPoints: number; at: string };
 export type SprintClosure = { sprint: RoadmapItem; sprintId: string; closedAt: string; tasks: Task[]; workflow: Workflow; functionalWorkflow: Workflow; plannedPoints: number; completedIds: number[]; carryOverIds: number[]; velocity: number };
 export type SprintResults = { version: 1; credits: SprintCredit[]; closures: SprintClosure[] };
-export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string } & SprintFields & Partial<Record<RoadmapDateKey, string>>;
+export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string; objective?: string } & SprintFields & Partial<Record<RoadmapDateKey, string>>;
 export type RoadmapExtension = {
     version: number;
     milestones: RoadmapItem[];
@@ -170,6 +171,7 @@ export type ProjectData = {
     tags: string[];
 };
 export type BoardExtensions = {
+    projectControl?: import('./projectControl').ProjectControl;
     [key: string]: unknown;
     conversations?: Conversations;
     project?: ProjectData;

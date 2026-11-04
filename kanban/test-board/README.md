@@ -4,6 +4,7 @@ As histórias integradas têm os boards e roteiros nesta pasta em `main`; histó
 
 | História | Board | Roteiro |
 | --- | --- | --- |
+| US16 · branch `codex/issue-39-attachments-tab` · PR #61 | [us-16.board.json](us-16.board.json) | [us-16.md](us-16.md) |
 | US1 · integrada em `main` · PR #44 | [us-1.board.json](us-1.board.json) | [us-1.md](us-1.md) |
 | US2 · branch `us-2` · PR #45 | [us-2.board.json](https://github.com/sebastiaofv/TeamOs/blob/us-2/kanban/test-board/us-2.board.json) | [us-2.md](https://github.com/sebastiaofv/TeamOs/blob/us-2/kanban/test-board/us-2.md) |
 | US3 · integrada em `main` · PR #46 | [us-3.board.json](us-3.board.json) | [us-3.md](us-3.md) |
@@ -14,6 +15,7 @@ As histórias integradas têm os boards e roteiros nesta pasta em `main`; histó
 | US6 · branch `us-6` | [us-6.board.json](us-6.board.json) | [us-6.md](us-6.md) |
 | US11 · integrada em `main` · PR #55 | [us-11.board.json](us-11.board.json) | [us-11.md](us-11.md) |
 | US12 · branch `feature/us-12-workitem-types` · issue #36 | [Checkout](us-12.board.json) + [Suporte](us-12-support.board.json) | [us-12.md](us-12.md) |
+| US20 · branch `codex/us-20-project-control` · issue #43 | [us-20.board.json](us-20.board.json) | [us-20.md](us-20.md) |
 | US13 · branch `codex/us-13-product-project-transfers` · issue #37 | [Construção](us-13.board.json) + [Manutenção](us-13-maintenance.board.json) + [Outro produto](us-13-other.board.json) + [Autónomo](us-13-independent.board.json) + [Hierarquia](us-13-hierarchy.board.json) | [us-13.md](us-13.md) |
 | US22 · branch `codex/us-22-sprint-lifecycle` · issue #57 | [us-22.board.json](us-22.board.json) | [us-22.md](us-22.md) |
 | US21 · integrada em `main` · PR #55 | [us-21.board.json](us-21.board.json) | [us-21.md](us-21.md) |

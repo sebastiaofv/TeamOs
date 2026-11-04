@@ -1,5 +1,7 @@
 import { closeSprint } from '@/domain/sprintResults';
 import type { SprintStatus } from '@/domain/types';
+import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
+import { controlRecords, saveControlRecord } from '@/domain/projectControl';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { eligibleSprint, isPlanningUnit, WorkitemError } from '@/domain/workitems';
 // Roadmap editing, sprint assignment, and row expansion.
@@ -36,7 +38,7 @@ import { isMilestoneColor, milestoneColor, nextMilestoneColor } from '@/domain/m
 
 export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate' | 'endDate';
 
-export type RoadmapEntityInput = Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate' | 'parentId' | 'color' | 'status' | 'goal' | 'capacity' | 'review' | 'retrospective', unknown>>;
+export type RoadmapEntityInput = { controlIds?: string[]; controlAuthor?: string } & Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate' | 'parentId' | 'color' | 'objective' | 'status' | 'goal' | 'capacity' | 'review' | 'retrospective', unknown>>;
 
 type RoadmapEntityDraft = {
     kind: unknown;
@@ -75,13 +77,15 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const boardId = options.boardId || getState().selectedPortfolioBoardId;
         const boardRecord = boardId ? getBoardRecord(boardId) : null;
         if (!boardRecord) return;
-        if (!canUsePortfolioTaskMutations(boardId)) {
+        if (!itemId && !canUsePortfolioTaskMutations(boardId)) {
             notifyPortfolioMutationUnavailable(boardId);
             return;
         }
         const config = getRoadmapEntityConfig(kind);
         if (!config) return;
-        const roadmap = getRoadmapExtension(boardRecord.data) || createEmptyRoadmapExtension();
+        const preview = getSelectedPortfolioTimelineView(getState());
+        const boardData = preview?.boardRecord.id === boardId && preview.isPreview ? preview.projectedBoard || boardRecord.data : boardRecord.data;
+        const roadmap = getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
         const items = Array.isArray(roadmap[config.itemsKey]) ? roadmap[config.itemsKey] : [];
         const item = itemId ? items.find((entry) => entry.id === itemId) : null;
         const mode = options.mode || 'default';
@@ -91,6 +95,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 ...(options.unplannedTaskIds ? { unplannedTaskIds: [...new Set(options.unplannedTaskIds)] } : {}) }
         });
         openDialogFn('roadmapEntity', {
+            boardId, boardData, readOnly: !canUsePortfolioTaskMutations(boardId),
             kind,
             itemId: item?.id || '',
             mode,
@@ -106,6 +111,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             initial: {
                 title: item?.title || '',
                 ...(kind === 'sprints' ? { status: item ? getSprintStatus(item) : 'planned', goal: item?.goal || '', capacity: item?.capacity ?? null, review: item?.review || '', retrospective: item?.retrospective || '' } : {}),
+                objective: item?.objective || '',
                 dueDate: item?.dueDate || '',
                 startDate: item?.startDate || '',
                 endDate: item?.endDate || '',
@@ -394,7 +400,13 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             if (context.kind !== 'sprints') nextItem.color = isMilestoneColor(input.color) ? input.color
                 : previousItem ? milestoneColor(previousItem, index) : nextMilestoneColor(items);
             if (['phases', 'sprints'].includes(context.kind) && draft.parentId) nextItem.parentId = draft.parentId;
-            if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem)) return false;
+            const objective = String(input.objective ?? previousItem?.objective ?? '');
+            if (context.kind !== 'sprints' && (objective || previousItem?.objective !== undefined)) nextItem.objective = objective;
+            const relationKey = context.kind === 'phases' ? 'phaseIds' : 'milestoneIds';
+            const controlIds = input.controlIds;
+            if (controlIds?.some((id) => !controlRecords(boardData).some((record) => record.id === id))) throw new Error(translateCurrent('control.stale'));
+            const associationsChanged = context.kind !== 'sprints' && controlIds !== undefined && controlRecords(boardData).some((record) => record.related[relationKey].includes(nextId) !== controlIds.includes(record.id));
+            if (previousItem && JSON.stringify(previousItem) === JSON.stringify(nextItem) && !associationsChanged) return false;
 
             if (context.kind === 'phases') {
                 const actual = boardData.board.tasks.filter((task) => task.phaseId === draft.parentId).map((task) => task.id).sort((a, b) => a - b);
@@ -408,6 +420,13 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 items.push(nextItem);
             }
 
+            if (context.kind !== 'sprints' && controlIds) {
+                for (const record of controlRecords(boardData)) {
+                    const linked = record.related[relationKey].includes(nextId);
+                    const wanted = controlIds.includes(record.id);
+                    if (linked !== wanted) saveControlRecord(boardData, { ...record, related: { ...record.related, [relationKey]: wanted ? [...record.related[relationKey], nextId] : record.related[relationKey].filter((id) => id !== nextId) } }, input.controlAuthor || 'Anonymous');
+                }
+            }
             appendTimelineEvent(boardData, {
                 kind: 'roadmap.updated',
                 entityType: 'board',

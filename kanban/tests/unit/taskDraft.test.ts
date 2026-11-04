@@ -144,6 +144,14 @@ describe('moveChecklistItem', () => {
 });
 
 describe('mergePickedAttachments', () => {
+  it('records the uploader only on new files and preserves existing authorship', async () => {
+    const existing = record({ uploadedBy: 'Ana' });
+    const legacy = record({ id: 'legacy', name: 'legacy.txt' });
+    const result = await mergePickedAttachments([existing, legacy], [pickedFile('new.txt', 3)], { ...fakeDeps(), uploadedBy: '  Bruno  ' });
+    expect(result.attachments[0].uploadedBy).toBe('Ana');
+    expect(result.attachments[1]).not.toHaveProperty('uploadedBy');
+    expect(result.attachments[2].uploadedBy).toBe('Bruno');
+  });
   it('reads new files into attachment records', async () => {
     const result = await mergePickedAttachments([], [pickedFile('n.txt', 3), pickedFile('p.png', 3, 'image/png')], fakeDeps());
     expect(result).toEqual({
