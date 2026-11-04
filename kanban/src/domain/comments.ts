@@ -59,7 +59,7 @@ export function validateCommentInput(input: CommentInput): void {
 
 export function parseConversations(value: unknown, sequence?: readonly TimelineEvent[]): Conversations | undefined {
     if (value === undefined) {
-        if (sequence?.some((event) => event.kind === 'task.comment.published')) throw new CommentError('record');
+        if (sequence?.some((event) => ['task.comment.published', 'task.comment.referenced'].includes(event.kind))) throw new CommentError('record');
         return undefined;
     }
     if (!hasExactKeys(value, ['version', 'entries']) || value.version !== 1 || !Array.isArray(value.entries)) throw new CommentError('record');
@@ -87,6 +87,12 @@ export function parseConversations(value: unknown, sequence?: readonly TimelineE
     }
     if (sequence?.some((event) => event.kind === 'task.comment.published' && !ids.has(String(event.meta?.commentId)))) throw new CommentError('record');
     if (sequence && sequence.filter((event) => event.kind === 'task.comment.published').length !== value.entries.length) throw new CommentError('record');
+    for (const event of sequence || []) if (event.kind === 'task.comment.referenced') {
+        const comment = value.entries.find((entry) => entry.id === event.meta?.commentId);
+        if (!comment || typeof event.meta?.workitemKey !== 'string' || !event.meta.workitemKey
+            || !Number.isSafeInteger(Number(event.entityId)) || Number(event.entityId) <= 0
+            || eventIndices.get(String(comment.eventId))! >= eventIndices.get(event.id)!) throw new CommentError('record');
+    }
     return cloneSerializable(value) as Conversations;
 }
 
@@ -98,7 +104,10 @@ export function getComments(data: LooseBoardData | null | undefined): WorkitemCo
 export function visibleComments(data: BoardData, task: Task, cutoff?: number): WorkitemComment[] {
     const key = conversationWorkitemKey(data, task, cutoff);
     const indices = new Map(events(data).map((event, index) => [event.id, index]));
-    return getComments(data).filter((comment) => comment.workitemKey === key && (cutoff === undefined || (indices.get(comment.eventId) ?? Infinity) <= cutoff));
+    const referenced = new Set(events(data).slice(0, cutoff === undefined ? undefined : cutoff + 1)
+        .filter((event) => event.kind === 'task.comment.referenced' && event.entityId === String(task.id) && event.meta?.workitemKey === key)
+        .map((event) => event.meta?.commentId));
+    return getComments(data).filter((comment) => (comment.workitemKey === key || referenced.has(comment.id)) && (cutoff === undefined || (indices.get(comment.eventId) ?? Infinity) <= cutoff));
 }
 
 /** Content is canonical here, once. The caller appends the lightweight canonical event in the same mutation. */

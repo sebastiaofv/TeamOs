@@ -1,4 +1,5 @@
 import { ControlError } from '@/domain/projectControl';
+import { isProjectTransferLocked } from './projectTransferLocks';
 import { WorkitemError } from '@/domain/workitems';
 import type { BoardData, Task } from '@/domain/types';
 import type { BoardRecord, DialogName } from '@/features/portfolio/types';
@@ -61,7 +62,7 @@ export function createBoardMutationContext({
     }
 
     function canUsePortfolioTaskMutations(boardId: string): boolean {
-        return isPortfolioBoardMutable(boardId) && !isBoardInHistoricalPreview(getState(), boardId);
+        return isPortfolioBoardMutable(boardId) && !isBoardInHistoricalPreview(getState(), boardId) && !isProjectTransferLocked(boardId);
     }
 
     function notifyPortfolioMutationUnavailable(boardId: string): void {
@@ -127,7 +128,7 @@ export function createBoardMutationContext({
         getState, commitState, getBoardRecord, findPortfolioTaskSource,
         isPortfolioBoardMutable, canUsePortfolioTaskMutations, notifyPortfolioMutationUnavailable,
         runPortfolioBoardMutation, runPortfolioTaskMutation,
-        alert, confirm, choose, prompt, closeDialogFn, openDialogFn
+        alert, confirm, choose, prompt, closeDialogFn, openDialogFn, enqueueSave, markDirty, onBoardChanged
     };
 }
 

@@ -1,19 +1,27 @@
-import { workitemType } from '@/domain/workitems';
+import { validParent, workitemType } from '@/domain/workitems';
 import type { PortfolioRow } from '@/features/portfolio/types';
 
-export type TableRowGroup = { row: PortfolioRow; children: PortfolioRow[] };
+export type TableRowGroup = { row: PortfolioRow; children: TableRowGroup[] };
+export type VisibleTableRow = { row: PortfolioRow; depth: number; hasChildren: boolean };
 
-/** Group after filtering/sorting so matching children remain reachable even if their Story is filtered out. */
+/** Group after filtering/sorting: a matching descendant stays reachable when its parent is filtered out. */
 export function groupTableRows(rows: PortfolioRow[], nested: boolean): TableRowGroup[] {
-    const stories = new Set(nested ? rows.filter((row) => workitemType(row.task) === 'story').map((row) => row.taskId) : []);
-    const children = new Map<number, PortfolioRow[]>();
-    const roots: PortfolioRow[] = [];
-    for (const row of rows) {
-        if (workitemType(row.task) === 'task' && row.task.parentId != null && stories.has(row.task.parentId)) {
-            const siblings = children.get(row.task.parentId) || [];
-            siblings.push(row);
-            children.set(row.task.parentId, siblings);
-        } else roots.push(row);
+    const groups = rows.map((row): TableRowGroup => ({ row, children: [] }));
+    const byId = new Map(groups.map((group) => [`${group.row.boardId}:${group.row.taskId}`, group]));
+    const roots: TableRowGroup[] = [];
+    for (const group of groups) {
+        const { row } = group;
+        const parent = nested && row.task.parentId != null ? byId.get(`${row.boardId}:${row.task.parentId}`) : undefined;
+        if (parent && parent !== group && validParent(workitemType(row.task), parent.row.task)) parent.children.push(group);
+        else roots.push(group);
     }
-    return roots.map((row) => ({ row, children: children.get(row.taskId) || [] }));
+    return roots;
+}
+
+/** Pagination applies to complete root groups before expanding any number of hierarchy levels. */
+export function visibleTableRows(groups: TableRowGroup[], expanded: ReadonlySet<number>, depth = 0): VisibleTableRow[] {
+    return groups.flatMap(({ row, children }) => [
+        { row, depth, hasChildren: children.length > 0 },
+        ...(expanded.has(row.taskId) ? visibleTableRows(children, expanded, depth + 1) : [])
+    ]);
 }

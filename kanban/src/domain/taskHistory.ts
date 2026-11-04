@@ -21,7 +21,7 @@ export type TaskHistoryProjection = {
 type State = NonNullable<Parameters<typeof applyTimelineEventToState>[0]>;
 type Labels = Record<string, Record<string, string>>;
 type Relations = { sourceId: number; targetId: number; kind: string }[];
-const OMIT_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'statusChangedAt', 'assignee', 'assigneeIds', 'responsibleId']);
+const OMIT_FIELDS = new Set(['id', 'createdAt', 'updatedAt', 'statusChangedAt', 'assignee', 'assigneeIds', 'responsibleId', 'permanentId']);
 
 function taskIn(state: State | null | undefined, id: number): Record<string, unknown> | undefined {
     return Array.isArray(state?.board?.tasks) ? state.board.tasks.find((task) => task && typeof task === 'object' && Number(task.id) === id) : undefined;
@@ -160,7 +160,8 @@ export function projectTaskHistory(data: BoardData, selectedTask: Task, eventInd
                 before: reference(field, safeValue(field, change.before), event, 'before', null, data),
                 after: reference(field, safeValue(field, change.after), event, 'after', null, data) });
         }
-        const publication = own && event.kind === 'task.comment.published';
+        if (own && event.meta?.transfer) changes.push({ field: 'transfer', before: null, after: event.meta.transfer });
+        const publication = own && ['task.comment.published', 'task.comment.referenced'].includes(event.kind);
         if (!changes.length && !publication && !(own && ['task.created', 'task.deleted', 'task.updated', 'task.status.changed', 'task.archived', 'task.restored'].includes(event.kind))) continue;
         // A known no-op is not a fictitious update. Unknown legacy details remain explicit.
         if (!changes.length && !publication && beforeTask && afterTask && event.changes) continue;
@@ -197,6 +198,11 @@ export function projectTaskHistory(data: BoardData, selectedTask: Task, eventInd
         existing.author ||= entry.author; existing.localAuthor ||= entry.localAuthor;
     }
     result.entries = [...grouped.values()].sort((a, b) => b.index - a.index);
+    const archive = data.extensions.projectTransfers?.operations.filter((operation) => operation.mode === 'move' && operation.to.permanentId === selectedTask.permanentId).at(-1)?.history || [];
+    if (archive.length) {
+        const seen = new Set(result.entries.map((entry) => entry.id));
+        result.entries.push(...cloneSerializable(archive.filter((entry) => !seen.has(entry.id))));
+    }
     result.baselineOnly = !result.entries.length && Boolean(target?.startsWith('baseline:'));
     return result;
 }

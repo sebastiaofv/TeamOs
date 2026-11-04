@@ -21,11 +21,19 @@ export function useReturnFocus({ initialFocus, selectInitial = false }: {
     return {
         onOpenAutoFocus: (event: Event) => {
             returnTargetRef.current = document.activeElement as HTMLElement | null;
+            const content = event.target instanceof HTMLElement ? event.target : null;
             if (initialFocus?.current) {
                 event.preventDefault();
-                initialFocus.current.focus();
+                initialFocus.current.focus({ preventScroll: true });
                 if (selectInitial) initialFocus.current.select?.();
             }
+            // Radix's default focus can target a control below a long review.
+            // Reset after it runs so every newly opened dialog starts at its top.
+            requestAnimationFrame(() => {
+                if (!content?.isConnected) return;
+                content.scrollTop = 0;
+                content.querySelectorAll('.modal-body').forEach((body) => { body.scrollTop = 0; });
+            });
         },
         onCloseAutoFocus: (event: Event) => {
             event.preventDefault();

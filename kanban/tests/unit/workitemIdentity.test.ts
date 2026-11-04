@@ -123,7 +123,7 @@ describe('permanent workitem IDs', () => {
         const tasks = structuredClone(raw.board.tasks), timeline = structuredClone(raw.extensions.timeline);
         const migrated = serializeBoardDataFromObject(raw);
         validateBoardData(migrated);
-        expect(migrated.meta.schemaVersion).toBe(5);
+        expect(migrated.meta.schemaVersion).toBe(6);
         expect(migrated.board.tasks.map((task) => task.id)).toEqual(tasks.map((task: { id: number }) => task.id));
         expect(migrated.board.tasks.every((task) => task.displayId === undefined)).toBe(true);
         expect(migrated.extensions.timeline).toEqual(timeline);

@@ -1,3 +1,4 @@
+import { groupTableRows, visibleTableRows } from '@/features/portfolio/table/tableHierarchy';
 import { describe, expect, it } from 'vitest';
 import { formatTableTimestamp } from '../../src/features/portfolio/table/tablePresentation';
 import { buildSprintTableGroups, currentSprintRosters, unplannedTableRows } from '../../src/features/portfolio/table/tableViews';
@@ -91,4 +92,19 @@ describe('preconfigured table views', () => {
     expect(group.rows.map(({ taskId }) => taskId)).toEqual([1, 2, 4]);
     expect(group).toMatchObject({ total: 2, completed: 1, completeness: 50 });
   });
+});
+
+
+it('keeps a deleted historical Story and its formerly participating Task in the same project hierarchy', () => {
+  const board = createEmptyProjectData('Project');
+  board.extensions.roadmap = { version: 1, phases: [], milestones: [], sprints: [{ id: 'past', title: 'Past', startDate: '2020-01-01', endDate: '2020-01-15' }] };
+  const story = normalizeTask({ id: 1, title: 'Deleted Story', type: 'story', sprintId: 'past' });
+  const child = normalizeTask({ id: 2, title: 'Former child', type: 'task', parentId: 1, sprintId: 'past' });
+  board.extensions.sprintParticipation = { version: 1, entries: [story, child].map((task) => ({ sprintId: 'past', task, at: '2020-01-15T12:00:00Z' })) };
+  const live = { ...child, parentId: null, sprintId: '' };
+  board.board.tasks = [live];
+  const [roster] = currentSprintRosters(board, [{ ...row(2), task: live }]);
+  expect(roster.rows.map((row) => row.boardId)).toEqual(['p', 'p']);
+  const visible = visibleTableRows(groupTableRows(roster.rows, true), new Set([1]));
+  expect(visible.map(({ row, depth }) => [row.taskId, depth, row.historical])).toEqual([[1, 0, true], [2, 1, true]]);
 });

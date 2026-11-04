@@ -15,7 +15,9 @@ import { migrateProjectData, parseProjectData, syncProjectAssignments } from '@/
 import { validatePullRequestTimeline } from './pullRequests';
 import { getWorkflow, parseWorkflow } from './workflow';
 import { parseBoardView } from './boardView';
-import { reserveTaskIdentities } from './taskIdentity';
+import { ensurePermanentTaskIdentities, reserveTaskIdentities } from './taskIdentity';
+import { parsePermanentRelations } from './permanentRelations';
+import { parseProjectTransfers } from './projectTransfers';
 import { parseConversations } from './comments';
 export { getBoardExtensionsObject, getTeamOsExtensionsObject } from './extensions';
 export { areSerializableValuesEqual, cloneSerializable } from './serializable';
@@ -44,6 +46,8 @@ export function normalizeBoardExtensionsValue(
         : {}) as BoardExtensions;
     if (nextExtensions.project !== undefined) nextExtensions.project = parseProjectData(nextExtensions.project);
     if (nextExtensions.projectControl !== undefined) nextExtensions.projectControl = parseProjectControl(nextExtensions.projectControl);
+    if (nextExtensions.permanentRelations !== undefined) nextExtensions.permanentRelations = parsePermanentRelations(nextExtensions.permanentRelations);
+    if (nextExtensions.projectTransfers !== undefined) nextExtensions.projectTransfers = parseProjectTransfers(nextExtensions.projectTransfers);
     delete nextExtensions.conversationRefs;
     if (!includeTimeline) delete nextExtensions.conversations;
     else if (nextExtensions.conversations !== undefined || normalizeTimelineExtension(nextExtensions.timeline)?.events.some((event) => event.kind === 'task.comment.published')) {
@@ -135,6 +139,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
             taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
         })
     };
+    ensurePermanentTaskIdentities(result);
     syncProjectAssignments(result);
     return result;
 }
@@ -180,6 +185,7 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
             taskIds: new Set(normalizedTasks.map((task) => Number(task.id)))
         })
     };
+    ensurePermanentTaskIdentities(result);
     syncProjectAssignments(result);
     return result;
 }

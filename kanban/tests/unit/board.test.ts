@@ -274,7 +274,7 @@ describe('createEmptyProjectData', () => {
 
   it('sets meta.schemaVersion to 2 and meta.appId to teamos-kanban', () => {
     const data = createEmptyProjectData('Title');
-    expect(data.meta.schemaVersion).toBe(5);
+    expect(data.meta.schemaVersion).toBe(6);
     expect(data.meta.appId).toBe('teamos-kanban');
   });
 

@@ -280,7 +280,7 @@ test.describe('roadmap', () => {
     await page.getByRole('button', { name: 'Show tasks for Foundation' }).click();
     await expect(page.locator('[data-roadmap-task-list="phase:p1"]')).toContainText('Task A');
     await expect(page.locator('[data-roadmap-task-list="phase:p1"] table.workitems-table')).toHaveCount(1);
-    await expect(page.locator('[data-roadmap-task-list="phase:p1"] th[data-column="responsible"]')).toHaveCount(1);
+    await expect(page.locator('[data-roadmap-task-list="phase:p1"] th[data-column="assignees"]')).toHaveCount(1);
     await expect(page.locator('[data-roadmap-task-list="phase:p1"] .portfolio-task-card, [data-roadmap-task-list="phase:p1"] .roadmap-row-timeline-bar')).toHaveCount(0);
   });
 

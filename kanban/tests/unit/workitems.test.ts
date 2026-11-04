@@ -110,13 +110,13 @@ describe('US-12 workitem domain', () => {
     });
     it('migrates old files to Task without retroactive inheritance or rewritten history', () => {
         const data = project(); data.meta.schemaVersion = 3; data.board.tasks = [normalizeTask({ id: 77, title: 'Legacy', status: 'doing' })];
-        const next = serializeBoardDataFromObject(data); expect(next.meta.schemaVersion).toBe(5); expect(next.board.tasks[0]).toMatchObject({ id: 77, type: 'task', phaseMode: 'none', status: 'doing' });
+        const next = serializeBoardDataFromObject(data); expect(next.meta.schemaVersion).toBe(6); expect(next.board.tasks[0]).toMatchObject({ id: 77, type: 'task', phaseMode: 'none', status: 'doing' });
     });
 });
 
 describe('US-12 transfer boundary for US-13', () => {
-    it('allows a copy without transferring children but rejects moving an attached parent', () => {
-        const data = project(); expect(() => assertWorkitemTransfer(data, 1, 'copy')).not.toThrow(); expect(() => assertWorkitemTransfer(data, 1, 'move')).toThrow('children'); expect(() => assertWorkitemTransfer(data, 3, 'move')).not.toThrow();
+    it('allows copies and moving parents whose descendants have not started', () => {
+        const data = project(); expect(() => assertWorkitemTransfer(data, 1, 'copy')).not.toThrow(); expect(() => assertWorkitemTransfer(data, 1, 'move')).not.toThrow(); expect(() => assertWorkitemTransfer(data, 3, 'move')).not.toThrow();
     });
     it('preserves acceptance on moves, requires a new local author on copies and clears current acceptance in non-completed destinations', () => {
         const source = item(1, 'story', { acceptance: { author: 'Original', at: '2026-01-01T00:00:00Z', local: true } });

@@ -1,3 +1,5 @@
+import { projectNameKey } from '@/domain/projectData';
+import { allPermanentRelations, assertPermanentGraph } from '@/domain/permanentRelations';
 import type { BoardRecord, PortfolioFilters } from '@/features/portfolio/types';
 import type { AppState } from './slices';
 import {
@@ -109,9 +111,31 @@ export function derivePortfolioState(state: AppState, previous: Partial<AppState
     const boardsChanged = state.portfolioBoards !== previous.portfolioBoards;
     const portfolioBoards = boardsChanged ? syncPortfolioProjectColors(state) : state.portfolioBoards;
     const next: AppState = { ...state, portfolioBoards };
+    if (boardsChanged) {
+        assertPermanentGraph(allPermanentRelations(portfolioBoards));
+        const loaded = new Set(portfolioBoards.map((board) => board.data.extensions.project?.id));
+        const sources = new Map((state.unloadedRelationSources || []).filter((entry) => !loaded.has(entry.projectId)).map((entry) => [entry.projectId, entry]));
+        for (const board of previous.portfolioBoards || []) {
+            const projectId = board.data.extensions.project?.id;
+            if (projectId && !loaded.has(projectId) && board.data.extensions.permanentRelations?.relations.length) sources.set(projectId, { projectId, relations: board.data.extensions.permanentRelations.relations });
+        }
+        next.unloadedRelationSources = portfolioBoards.length ? [...sources.values()] : [];
+    }
     const { selectedBoardId, viewMode } = normalizeSelection(next);
     next.selectedPortfolioBoardId = selectedBoardId;
     next.selectedPortfolioViewMode = viewMode;
+    if (boardsChanged || selectedBoardId !== previous.selectedPortfolioBoardId || state.productProjectSelectionByKey !== previous.productProjectSelectionByKey) {
+        const groups = new Map<string, string[]>();
+        for (const board of portfolioBoards) {
+            const key = projectNameKey(board.data.extensions.project?.productName || '');
+            if (key) groups.set(key, [...(groups.get(key) || []), board.id]);
+        }
+        const rememberedSelections = new Map(Object.entries(state.productProjectSelectionByKey));
+        next.productProjectSelectionByKey = Object.fromEntries([...groups].map(([key, ids]) => {
+            const remembered = rememberedSelections.get(key) || '';
+            return [key, ids.includes(selectedBoardId) ? selectedBoardId : ids.includes(remembered) ? remembered : ids[ids.length - 1]];
+        }));
+    }
     const inputs: (keyof AppState)[] = [
         'portfolioBoards', 'selectedPortfolioBoardId', 'portfolioFilters',
         'portfolioSortKey', 'portfolioSortDir', 'portfolioTimelineSelection',

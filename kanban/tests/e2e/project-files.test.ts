@@ -30,9 +30,9 @@ test.describe('project files', () => {
     await mockNewProjectFlow(page, { fileName: 'project-alpha.json' });
 
     await page.locator('#newProjectBtn').click();
-    await page.locator('#appMessageInput').fill('Project Alpha');
-    await page.locator('#appMessageConfirmBtn').click();
-    await answerAppMessage(page, { expectText: 'unique acronym', input: 'ALP' });
+    await page.getByLabel('Project name', { exact: true }).fill('Project Alpha');
+    await page.locator('#projectAcronym').fill('ALP');
+    await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
 
     await expect(page.locator('.portfolio-chip.active')).toContainText('Project Alpha');
     await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toBeVisible();
@@ -49,11 +49,11 @@ test.describe('project files', () => {
     expect(saved.board.tasks).toEqual([]);
   });
 
-  test('new project flow aborts cleanly if name prompt is canceled after file picker', async ({ page }) => {
+  test('new project settings cancel without opening a file or writing a project', async ({ page }) => {
     await mockNewProjectFlow(page, { fileName: 'canceled.json' });
 
     await page.locator('#newProjectBtn').click();
-    await answerAppMessage(page, { button: 'Cancel' });
+    await page.locator('#projectSettingsModal').getByRole('button', { name: 'Cancel', exact: true }).click();
 
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
 

@@ -4,13 +4,14 @@ import { useI18n, type TranslationKey } from '@/shared/i18n';
 import { formatFileSize } from '@/domain/util';
 
 const FIELDS: Record<string, TranslationKey> = {
-    title: 'task.title', description: 'task.description', status: 'task.status', assignees: 'task.assignees', responsible: 'task.responsible',
+    transfer: 'history.transfer', title: 'task.title', description: 'task.description', status: 'task.status', assignees: 'task.assignees', responsible: 'task.responsible',
     tags: 'task.tags', priority: 'task.priority', effort: 'task.effort', dueDate: 'task.due', blocked: 'task.blocked', blockerReason: 'task.blocker',
     checklist: 'task.todoList', attachments: 'task.attachments', archived: 'table.archived', phaseId: 'task.phase', milestoneId: 'task.milestone', sprintId: 'task.sprint',
     planner: 'history.planner', relations: 'history.relations', existence: 'history.existence', pullRequests: 'history.pullRequests'
 };
 
 function operation(entry: TaskHistoryEntry, t: ReturnType<typeof useI18n>['t']): string {
+    if (entry.kinds.includes('task.transferred') || entry.kinds.includes('task.comment.referenced')) return t('history.transfer');
     if (entry.kinds.includes('board.restored')) return t('history.projectRestore');
     if (entry.kinds.includes('task.created')) return t('history.created');
     if (entry.kinds.includes('task.deleted')) return t('history.deleted');
