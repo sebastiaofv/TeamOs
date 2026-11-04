@@ -92,6 +92,7 @@ export function portfolioSortSelectValueFromKey(sortKey: unknown): 'name' | 'pri
 }
 
 export function normalizePortfolioViewMode(value: unknown): PortfolioViewMode {
+    if (value === 'dashboard') return 'dashboard';
     if (value === 'control') return 'control';
     if (value === 'table') return 'table';
     if (value === 'roadmap') return 'roadmap';

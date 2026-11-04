@@ -1,0 +1,4197 @@
+{
+  "meta": {
+    "schemaVersion": 5,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-01T09:00:00.000Z",
+    "updatedAt": "2026-11-01T09:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "To Do"
+      },
+      {
+        "status": "doing",
+        "title": "In progress"
+      },
+      {
+        "status": "ready-to-test",
+        "title": "Ready to test"
+      },
+      {
+        "status": "testing",
+        "title": "Testing"
+      },
+      {
+        "status": "re-analysis",
+        "title": "Re-analysis"
+      },
+      {
+        "status": "accepted",
+        "title": "Validated"
+      },
+      {
+        "status": "cancelled",
+        "title": "Cancelled"
+      },
+      {
+        "status": "duplication",
+        "title": "Duplication"
+      }
+    ],
+    "settings": {
+      "title": "US-9 · Dashboard sections"
+    },
+    "tasks": [
+      {
+        "id": 901,
+        "title": "Delivery epic",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "epic",
+        "parentId": null,
+        "status": "doing",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "api",
+        "phaseMode": "explicit",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": ""
+      },
+      {
+        "id": 902,
+        "title": "Story awaiting functional validation",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "story",
+        "parentId": 901,
+        "status": "ready-to-test",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "api",
+        "phaseMode": "explicit",
+        "milestoneId": "release",
+        "milestoneMode": "explicit",
+        "sprintId": "active"
+      },
+      {
+        "id": 903,
+        "title": "Validated implementation",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": 902,
+        "status": "accepted",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-10-20",
+        "priority": null,
+        "effort": null,
+        "phaseId": "api",
+        "phaseMode": "inherit",
+        "milestoneId": "release",
+        "milestoneMode": "inherit",
+        "sprintId": "active"
+      },
+      {
+        "id": 904,
+        "title": "Archived pending integration",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": 902,
+        "status": "to-do",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": true,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-10-25",
+        "priority": null,
+        "effort": null,
+        "phaseId": "api",
+        "phaseMode": "explicit",
+        "milestoneId": "release",
+        "milestoneMode": "explicit",
+        "sprintId": "active"
+      },
+      {
+        "id": 905,
+        "title": "UX build with manual blocker",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "doing",
+        "assignees": [
+          "Bruno"
+        ],
+        "responsible": "Bruno",
+        "tags": [],
+        "blocked": true,
+        "blockerReason": "Waiting for reviewed copy.",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-10-31",
+        "priority": null,
+        "effort": null,
+        "phaseId": "ux",
+        "phaseMode": "explicit",
+        "milestoneId": "release",
+        "milestoneMode": "explicit",
+        "sprintId": "active"
+      },
+      {
+        "id": 906,
+        "title": "Dependency blocked follow-up",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "backlog",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-10-20",
+        "priority": null,
+        "effort": null,
+        "phaseId": "ux",
+        "phaseMode": "explicit",
+        "milestoneId": "release",
+        "milestoneMode": "explicit",
+        "sprintId": "future"
+      },
+      {
+        "id": 907,
+        "title": "Cancelled scope item",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "cancelled",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-10-10",
+        "priority": null,
+        "effort": null,
+        "phaseId": "cancelled-only",
+        "phaseMode": "explicit",
+        "milestoneId": "cancelled-milestone",
+        "milestoneMode": "explicit",
+        "sprintId": ""
+      },
+      {
+        "id": 908,
+        "title": "Independent validated task",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "accepted",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "ux",
+        "phaseMode": "explicit",
+        "milestoneId": "release",
+        "milestoneMode": "explicit",
+        "sprintId": "past"
+      },
+      {
+        "id": 909,
+        "title": "Unplanned bug without due date",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "bug",
+        "parentId": null,
+        "status": "to-do",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "phaseMode": "none",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": ""
+      },
+      {
+        "id": 910,
+        "title": "Story started then completed",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "story",
+        "parentId": null,
+        "status": "accepted",
+        "assignees": [
+          "Marta"
+        ],
+        "responsible": "Marta",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "ux",
+        "phaseMode": "explicit",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": "",
+        "displayId": "ATL-US-910",
+        "acceptance": {
+          "author": "Marta",
+          "at": "2026-10-30T18:00:00.000Z",
+          "local": true
+        }
+      },
+      {
+        "id": 911,
+        "title": "Independent task started",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "testing",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "ux",
+        "phaseMode": "explicit",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": "",
+        "displayId": "ATL-TK-911"
+      },
+      {
+        "id": 912,
+        "title": "Independent completed at end boundary",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "accepted",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "ux",
+        "phaseMode": "explicit",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": "",
+        "displayId": "ATL-TK-912"
+      },
+      {
+        "id": 913,
+        "title": "Child task excluded from period",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": 910,
+        "status": "testing",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "ux",
+        "phaseMode": "explicit",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": "",
+        "displayId": "ATL-TK-913"
+      },
+      {
+        "id": 914,
+        "title": "Bug excluded from activity lists",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "bug",
+        "parentId": null,
+        "status": "doing",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "ux",
+        "phaseMode": "explicit",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": "",
+        "displayId": "ATL-BG-914"
+      },
+      {
+        "id": 915,
+        "title": "Completed phase work",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "accepted",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "finished",
+        "phaseMode": "explicit",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": "",
+        "displayId": "ATL-TK-915"
+      },
+      {
+        "id": 916,
+        "title": "Overdue parent phase work",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "doing",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "late",
+        "phaseMode": "explicit",
+        "milestoneId": "late-milestone",
+        "milestoneMode": "explicit",
+        "sprintId": "",
+        "displayId": "ATL-TK-916"
+      },
+      {
+        "id": 917,
+        "title": "Future phase work",
+        "description": "Fictitious dashboard acceptance scenario.",
+        "type": "task",
+        "parentId": null,
+        "status": "doing",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "future",
+        "phaseMode": "explicit",
+        "milestoneId": "",
+        "milestoneMode": "none",
+        "sprintId": "",
+        "displayId": "ATL-TK-917"
+      }
+    ]
+  },
+  "extensions": {
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "To Do",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "In progress",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "ready-to-test",
+          "name": "Ready to test",
+          "color": "#a78bfa",
+          "category": "in-progress"
+        },
+        {
+          "id": "testing",
+          "name": "Testing",
+          "color": "#38bdf8",
+          "category": "in-progress"
+        },
+        {
+          "id": "re-analysis",
+          "name": "Re-analysis",
+          "color": "#fb923c",
+          "category": "in-progress"
+        },
+        {
+          "id": "accepted",
+          "name": "Validated",
+          "color": "#34d399",
+          "category": "completed"
+        },
+        {
+          "id": "cancelled",
+          "name": "Cancelled",
+          "color": "#f87171",
+          "category": "cancelled"
+        },
+        {
+          "id": "duplication",
+          "name": "Duplication",
+          "color": "#e879f9",
+          "category": "cancelled"
+        }
+      ],
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "accepted",
+        "cancelled": "cancelled"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "cancelled",
+          "duplication"
+        ],
+        "to-do": [
+          "doing",
+          "cancelled",
+          "duplication"
+        ],
+        "doing": [
+          "ready-to-test",
+          "accepted",
+          "cancelled",
+          "duplication"
+        ],
+        "ready-to-test": [
+          "testing",
+          "cancelled",
+          "duplication"
+        ],
+        "testing": [
+          "accepted",
+          "re-analysis",
+          "cancelled",
+          "duplication"
+        ],
+        "re-analysis": [
+          "doing",
+          "cancelled",
+          "duplication"
+        ],
+        "accepted": [
+          "doing"
+        ],
+        "cancelled": [],
+        "duplication": []
+      }
+    },
+    "roadmap": {
+      "version": 4,
+      "phases": [
+        {
+          "id": "delivery",
+          "title": "Delivery programme",
+          "startDate": "2026-10-01",
+          "endDate": "2026-11-15"
+        },
+        {
+          "id": "api",
+          "parentId": "delivery",
+          "title": "API delivery",
+          "startDate": "2026-10-01",
+          "endDate": "2026-11-15"
+        },
+        {
+          "id": "ux",
+          "parentId": "delivery",
+          "title": "UX delivery",
+          "startDate": "2026-10-15",
+          "endDate": "2026-11-10"
+        },
+        {
+          "id": "empty",
+          "title": "Empty phase",
+          "startDate": "2026-11-20",
+          "endDate": "2026-11-25"
+        },
+        {
+          "id": "cancelled-only",
+          "title": "Cancelled scope",
+          "startDate": "2026-10-01",
+          "endDate": "2026-10-15"
+        },
+        {
+          "id": "finished",
+          "title": "Completed parent phase",
+          "startDate": "2026-09-01",
+          "endDate": "2026-09-30"
+        },
+        {
+          "id": "late",
+          "title": "Overdue parent phase",
+          "startDate": "2026-09-01",
+          "endDate": "2026-10-20"
+        },
+        {
+          "id": "future",
+          "title": "Future parent phase",
+          "startDate": "2026-11-10",
+          "endDate": "2026-12-10"
+        }
+      ],
+      "milestones": [
+        {
+          "id": "release",
+          "title": "Public release",
+          "dueDate": "2026-11-15"
+        },
+        {
+          "id": "empty-milestone",
+          "title": "Unassigned checkpoint",
+          "dueDate": "2026-10-20"
+        },
+        {
+          "id": "cancelled-milestone",
+          "title": "Cancelled checkpoint",
+          "dueDate": "2026-10-15"
+        },
+        {
+          "id": "late-milestone",
+          "title": "Overdue checkpoint",
+          "dueDate": "2026-10-20"
+        },
+        {
+          "id": "next-empty",
+          "title": "Next unassigned checkpoint",
+          "dueDate": "2026-11-02"
+        }
+      ],
+      "sprints": [
+        {
+          "id": "past",
+          "title": "Discovery",
+          "startDate": "2026-10-01",
+          "endDate": "2026-10-14"
+        },
+        {
+          "id": "active",
+          "title": "Implementation",
+          "startDate": "2026-10-15",
+          "endDate": "2026-11-05"
+        },
+        {
+          "id": "future",
+          "title": "Hardening",
+          "startDate": "2026-11-06",
+          "endDate": "2026-11-19"
+        }
+      ]
+    },
+    "taskRelations": {
+      "version": 1,
+      "relations": [
+        {
+          "sourceId": 905,
+          "targetId": 906,
+          "kind": "blocks"
+        }
+      ]
+    },
+    "timeline": {
+      "version": 1,
+      "baselineEventId": "baseline-us9",
+      "events": [
+        {
+          "id": "baseline-us9",
+          "at": "2026-10-15T09:00:00.000Z",
+          "kind": "board.baseline",
+          "entityType": "board",
+          "entityId": "board",
+          "summary": "First recorded project snapshot",
+          "snapshot": {
+            "meta": {
+              "schemaVersion": 5,
+              "appId": "teamos-kanban",
+              "createdAt": "2026-10-01T09:00:00.000Z",
+              "updatedAt": "2026-10-30T12:00:00.000Z"
+            },
+            "board": {
+              "columns": [
+                {
+                  "status": "backlog",
+                  "title": "Backlog"
+                },
+                {
+                  "status": "to-do",
+                  "title": "To Do"
+                },
+                {
+                  "status": "doing",
+                  "title": "In progress"
+                },
+                {
+                  "status": "ready-to-test",
+                  "title": "Ready to test"
+                },
+                {
+                  "status": "testing",
+                  "title": "Testing"
+                },
+                {
+                  "status": "re-analysis",
+                  "title": "Re-analysis"
+                },
+                {
+                  "status": "accepted",
+                  "title": "Validated"
+                },
+                {
+                  "status": "cancelled",
+                  "title": "Cancelled"
+                },
+                {
+                  "status": "duplication",
+                  "title": "Duplication"
+                }
+              ],
+              "settings": {
+                "title": "US-9 · Atlas project dashboard"
+              },
+              "tasks": [
+                {
+                  "id": 901,
+                  "title": "Delivery epic",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "epic",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": ""
+                },
+                {
+                  "id": 902,
+                  "title": "Story awaiting functional validation",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "story",
+                  "parentId": 901,
+                  "status": "ready-to-test",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 903,
+                  "title": "Validated implementation",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 902,
+                  "status": "doing",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-20",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "inherit",
+                  "milestoneId": "release",
+                  "milestoneMode": "inherit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 904,
+                  "title": "Archived pending integration",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 902,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": true,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-25",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 905,
+                  "title": "UX build with manual blocker",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [
+                    "Bruno"
+                  ],
+                  "responsible": "Bruno",
+                  "tags": [],
+                  "blocked": true,
+                  "blockerReason": "Waiting for reviewed copy.",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-31",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 906,
+                  "title": "Dependency blocked follow-up",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "backlog",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-20",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 907,
+                  "title": "Cancelled scope item",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "cancelled",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-10",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "cancelled-only",
+                  "phaseMode": "explicit",
+                  "milestoneId": "cancelled-milestone",
+                  "milestoneMode": "explicit",
+                  "sprintId": ""
+                },
+                {
+                  "id": 908,
+                  "title": "Independent validated task",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "past"
+                },
+                {
+                  "id": 909,
+                  "title": "Unplanned bug without due date",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "bug",
+                  "parentId": null,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "",
+                  "phaseMode": "none",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": ""
+                },
+                {
+                  "id": 910,
+                  "title": "Story started then completed",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "story",
+                  "parentId": null,
+                  "status": "to-do",
+                  "assignees": [
+                    "Marta"
+                  ],
+                  "responsible": "Marta",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-US-910"
+                },
+                {
+                  "id": 911,
+                  "title": "Independent task started",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "to-do",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-911"
+                },
+                {
+                  "id": 912,
+                  "title": "Independent completed at end boundary",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-912"
+                },
+                {
+                  "id": 913,
+                  "title": "Child task excluded from period",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 910,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-913"
+                },
+                {
+                  "id": 914,
+                  "title": "Bug excluded from activity lists",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "bug",
+                  "parentId": null,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-BG-914"
+                },
+                {
+                  "id": 915,
+                  "title": "Completed phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "finished",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-915"
+                },
+                {
+                  "id": 916,
+                  "title": "Overdue parent phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "late",
+                  "phaseMode": "explicit",
+                  "milestoneId": "late-milestone",
+                  "milestoneMode": "explicit",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-916"
+                },
+                {
+                  "id": 917,
+                  "title": "Future phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "future",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-917"
+                }
+              ]
+            },
+            "extensions": {
+              "workflow": {
+                "version": 2,
+                "states": [
+                  {
+                    "id": "backlog",
+                    "name": "Backlog",
+                    "color": "#94a3b8",
+                    "category": "backlog"
+                  },
+                  {
+                    "id": "to-do",
+                    "name": "To Do",
+                    "color": "#60a5fa",
+                    "category": "to-do"
+                  },
+                  {
+                    "id": "doing",
+                    "name": "In progress",
+                    "color": "#fbbf24",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "ready-to-test",
+                    "name": "Ready to test",
+                    "color": "#a78bfa",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "testing",
+                    "name": "Testing",
+                    "color": "#38bdf8",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "re-analysis",
+                    "name": "Re-analysis",
+                    "color": "#fb923c",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "accepted",
+                    "name": "Validated",
+                    "color": "#34d399",
+                    "category": "completed"
+                  },
+                  {
+                    "id": "cancelled",
+                    "name": "Cancelled",
+                    "color": "#f87171",
+                    "category": "cancelled"
+                  },
+                  {
+                    "id": "duplication",
+                    "name": "Duplication",
+                    "color": "#e879f9",
+                    "category": "cancelled"
+                  }
+                ],
+                "entryStateId": "to-do",
+                "references": {
+                  "backlog": "backlog",
+                  "to-do": "to-do",
+                  "in-progress": "doing",
+                  "completed": "accepted",
+                  "cancelled": "cancelled"
+                },
+                "transitions": {
+                  "backlog": [
+                    "to-do",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "to-do": [
+                    "doing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "doing": [
+                    "ready-to-test",
+                    "accepted",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "ready-to-test": [
+                    "testing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "testing": [
+                    "accepted",
+                    "re-analysis",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "re-analysis": [
+                    "doing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "accepted": [
+                    "doing"
+                  ],
+                  "cancelled": [],
+                  "duplication": []
+                }
+              },
+              "roadmap": {
+                "version": 4,
+                "phases": [
+                  {
+                    "id": "delivery",
+                    "title": "Delivery programme",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-11-15"
+                  },
+                  {
+                    "id": "api",
+                    "parentId": "delivery",
+                    "title": "API delivery",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-11-15"
+                  },
+                  {
+                    "id": "ux",
+                    "parentId": "delivery",
+                    "title": "UX delivery",
+                    "startDate": "2026-10-15",
+                    "endDate": "2026-11-10"
+                  },
+                  {
+                    "id": "empty",
+                    "title": "Empty phase",
+                    "startDate": "2026-11-20",
+                    "endDate": "2026-11-25"
+                  },
+                  {
+                    "id": "cancelled-only",
+                    "title": "Cancelled scope",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-10-15"
+                  },
+                  {
+                    "id": "finished",
+                    "title": "Completed parent phase",
+                    "startDate": "2026-09-01",
+                    "endDate": "2026-09-30"
+                  },
+                  {
+                    "id": "late",
+                    "title": "Overdue parent phase",
+                    "startDate": "2026-09-01",
+                    "endDate": "2026-10-20"
+                  },
+                  {
+                    "id": "future",
+                    "title": "Future parent phase",
+                    "startDate": "2026-11-10",
+                    "endDate": "2026-12-10"
+                  }
+                ],
+                "milestones": [
+                  {
+                    "id": "release",
+                    "title": "Public release",
+                    "dueDate": "2026-11-15"
+                  },
+                  {
+                    "id": "empty-milestone",
+                    "title": "Unassigned checkpoint",
+                    "dueDate": "2026-10-20"
+                  },
+                  {
+                    "id": "cancelled-milestone",
+                    "title": "Cancelled checkpoint",
+                    "dueDate": "2026-10-15"
+                  },
+                  {
+                    "id": "late-milestone",
+                    "title": "Overdue checkpoint",
+                    "dueDate": "2026-10-20"
+                  },
+                  {
+                    "id": "next-empty",
+                    "title": "Next unassigned checkpoint",
+                    "dueDate": "2026-11-02"
+                  }
+                ],
+                "sprints": [
+                  {
+                    "id": "past",
+                    "title": "Discovery",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-10-14"
+                  },
+                  {
+                    "id": "active",
+                    "title": "Implementation",
+                    "startDate": "2026-10-15",
+                    "endDate": "2026-11-05"
+                  },
+                  {
+                    "id": "future",
+                    "title": "Hardening",
+                    "startDate": "2026-11-06",
+                    "endDate": "2026-11-19"
+                  }
+                ]
+              },
+              "taskRelations": {
+                "version": 1,
+                "relations": [
+                  {
+                    "sourceId": 905,
+                    "targetId": 906,
+                    "kind": "blocks"
+                  }
+                ]
+              },
+              "projectControl": {
+                "version": 3,
+                "lastNumber": 8,
+                "records": [
+                  {
+                    "id": "ATL-RK-1",
+                    "kind": "risks",
+                    "title": "Open high risk",
+                    "description": "Fictitious Open high risk",
+                    "status": "open",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-RK-2",
+                    "kind": "risks",
+                    "title": "Risk closed after period",
+                    "description": "Fictitious Risk closed after period",
+                    "status": "open",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-RK-3",
+                    "kind": "risks",
+                    "title": "Risk already closed",
+                    "description": "Fictitious Risk already closed",
+                    "status": "closed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-4",
+                    "kind": "deliverables",
+                    "title": "Open delivery",
+                    "description": "Fictitious Open delivery",
+                    "status": "in-progress",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-5",
+                    "kind": "deliverables",
+                    "title": "Accepted delivery in period",
+                    "description": "Fictitious Accepted delivery in period",
+                    "status": "planned",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-6",
+                    "kind": "deliverables",
+                    "title": "Accepted before period",
+                    "description": "Fictitious Accepted before period",
+                    "status": "accepted",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "2026-10-05",
+                    "acceptedDate": "2026-10-06",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DC-7",
+                    "kind": "decisions",
+                    "title": "Pending architecture decision",
+                    "description": "Fictitious Pending architecture decision",
+                    "status": "proposed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DC-8",
+                    "kind": "decisions",
+                    "title": "Decision resolved after period",
+                    "description": "Fictitious Decision resolved after period",
+                    "status": "proposed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "2026-11-01",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "completed-us9",
+          "at": "2026-10-20T10:00:00.000Z",
+          "kind": "task.status.changed",
+          "entityType": "task",
+          "entityId": "903",
+          "summary": "Implementation validated",
+          "changes": {
+            "status": {
+              "before": "doing",
+              "after": "accepted"
+            }
+          }
+        },
+        {
+          "id": "sections-910-doing",
+          "at": "2026-10-24T00:00:00.000Z",
+          "kind": "task.status.changed",
+          "entityType": "task",
+          "entityId": "910",
+          "summary": "Status changed for 910",
+          "changes": {
+            "status": {
+              "before": "to-do",
+              "after": "doing"
+            }
+          }
+        },
+        {
+          "id": "scope-us9",
+          "at": "2026-10-25T12:00:00.000Z",
+          "kind": "task.updated",
+          "entityType": "task",
+          "entityId": "906",
+          "summary": "Follow-up reassigned to hardening",
+          "changes": {
+            "sprintId": {
+              "before": "active",
+              "after": "future"
+            }
+          }
+        },
+        {
+          "id": "sections-911-doing",
+          "at": "2026-10-25T12:00:00.000Z",
+          "kind": "task.status.changed",
+          "entityType": "task",
+          "entityId": "911",
+          "summary": "Status changed for 911",
+          "changes": {
+            "status": {
+              "before": "to-do",
+              "after": "doing"
+            }
+          }
+        },
+        {
+          "id": "sections-911-testing",
+          "at": "2026-10-26T12:00:00.000Z",
+          "kind": "task.status.changed",
+          "entityType": "task",
+          "entityId": "911",
+          "summary": "Status changed for 911",
+          "changes": {
+            "status": {
+              "before": "doing",
+              "after": "testing"
+            }
+          }
+        },
+        {
+          "id": "sections-913-testing",
+          "at": "2026-10-28T12:00:00.000Z",
+          "kind": "task.status.changed",
+          "entityType": "task",
+          "entityId": "913",
+          "summary": "Status changed for 913",
+          "changes": {
+            "status": {
+              "before": "to-do",
+              "after": "testing"
+            }
+          }
+        },
+        {
+          "id": "sections-914-doing",
+          "at": "2026-10-28T12:00:00.000Z",
+          "kind": "task.status.changed",
+          "entityType": "task",
+          "entityId": "914",
+          "summary": "Status changed for 914",
+          "changes": {
+            "status": {
+              "before": "to-do",
+              "after": "doing"
+            }
+          }
+        },
+        {
+          "id": "latest-us9",
+          "at": "2026-10-30T12:00:00.000Z",
+          "kind": "board.settings.updated",
+          "entityType": "board",
+          "entityId": "board",
+          "summary": "Latest saved project observation",
+          "changes": {
+            "title": {
+              "before": "US-9 · Atlas project dashboard",
+              "after": "US-9 · Atlas project dashboard"
+            }
+          }
+        },
+        {
+          "id": "sections-910-accepted",
+          "at": "2026-10-30T18:00:00.000Z",
+          "kind": "task.status.changed",
+          "entityType": "task",
+          "entityId": "910",
+          "summary": "Status changed for 910",
+          "changes": {
+            "status": {
+              "before": "doing",
+              "after": "accepted"
+            }
+          }
+        },
+        {
+          "id": "sections-912-accepted",
+          "at": "2026-10-30T23:59:59.999Z",
+          "kind": "task.status.changed",
+          "entityType": "task",
+          "entityId": "912",
+          "summary": "Status changed for 912",
+          "changes": {
+            "status": {
+              "before": "to-do",
+              "after": "accepted"
+            }
+          }
+        },
+        {
+          "id": "sections-control",
+          "at": "2026-10-31T23:59:59.999Z",
+          "kind": "board.control.updated",
+          "entityType": "board",
+          "entityId": "board",
+          "summary": "Delivery accepted",
+          "snapshot": {
+            "meta": {
+              "schemaVersion": 5,
+              "appId": "teamos-kanban",
+              "createdAt": "2026-10-01T09:00:00.000Z",
+              "updatedAt": "2026-10-30T12:00:00.000Z"
+            },
+            "board": {
+              "columns": [
+                {
+                  "status": "backlog",
+                  "title": "Backlog"
+                },
+                {
+                  "status": "to-do",
+                  "title": "To Do"
+                },
+                {
+                  "status": "doing",
+                  "title": "In progress"
+                },
+                {
+                  "status": "ready-to-test",
+                  "title": "Ready to test"
+                },
+                {
+                  "status": "testing",
+                  "title": "Testing"
+                },
+                {
+                  "status": "re-analysis",
+                  "title": "Re-analysis"
+                },
+                {
+                  "status": "accepted",
+                  "title": "Validated"
+                },
+                {
+                  "status": "cancelled",
+                  "title": "Cancelled"
+                },
+                {
+                  "status": "duplication",
+                  "title": "Duplication"
+                }
+              ],
+              "settings": {
+                "title": "US-9 · Atlas project dashboard"
+              },
+              "tasks": [
+                {
+                  "id": 901,
+                  "title": "Delivery epic",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "epic",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": ""
+                },
+                {
+                  "id": 902,
+                  "title": "Story awaiting functional validation",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "story",
+                  "parentId": 901,
+                  "status": "ready-to-test",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 903,
+                  "title": "Validated implementation",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 902,
+                  "status": "accepted",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-20",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "inherit",
+                  "milestoneId": "release",
+                  "milestoneMode": "inherit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 904,
+                  "title": "Archived pending integration",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 902,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": true,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-25",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 905,
+                  "title": "UX build with manual blocker",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [
+                    "Bruno"
+                  ],
+                  "responsible": "Bruno",
+                  "tags": [],
+                  "blocked": true,
+                  "blockerReason": "Waiting for reviewed copy.",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-31",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 906,
+                  "title": "Dependency blocked follow-up",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "backlog",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-20",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "future"
+                },
+                {
+                  "id": 907,
+                  "title": "Cancelled scope item",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "cancelled",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-10",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "cancelled-only",
+                  "phaseMode": "explicit",
+                  "milestoneId": "cancelled-milestone",
+                  "milestoneMode": "explicit",
+                  "sprintId": ""
+                },
+                {
+                  "id": 908,
+                  "title": "Independent validated task",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "past"
+                },
+                {
+                  "id": 909,
+                  "title": "Unplanned bug without due date",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "bug",
+                  "parentId": null,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "",
+                  "phaseMode": "none",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": ""
+                },
+                {
+                  "id": 910,
+                  "title": "Story started then completed",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "story",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [
+                    "Marta"
+                  ],
+                  "responsible": "Marta",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-US-910",
+                  "acceptance": {
+                    "author": "Marta",
+                    "at": "2026-10-30T18:00:00.000Z",
+                    "local": true
+                  }
+                },
+                {
+                  "id": 911,
+                  "title": "Independent task started",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "testing",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-911"
+                },
+                {
+                  "id": 912,
+                  "title": "Independent completed at end boundary",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-912"
+                },
+                {
+                  "id": 913,
+                  "title": "Child task excluded from period",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 910,
+                  "status": "testing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-913"
+                },
+                {
+                  "id": 914,
+                  "title": "Bug excluded from activity lists",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "bug",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-BG-914"
+                },
+                {
+                  "id": 915,
+                  "title": "Completed phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "finished",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-915"
+                },
+                {
+                  "id": 916,
+                  "title": "Overdue parent phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "late",
+                  "phaseMode": "explicit",
+                  "milestoneId": "late-milestone",
+                  "milestoneMode": "explicit",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-916"
+                },
+                {
+                  "id": 917,
+                  "title": "Future phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "future",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-917"
+                }
+              ]
+            },
+            "extensions": {
+              "workflow": {
+                "version": 2,
+                "states": [
+                  {
+                    "id": "backlog",
+                    "name": "Backlog",
+                    "color": "#94a3b8",
+                    "category": "backlog"
+                  },
+                  {
+                    "id": "to-do",
+                    "name": "To Do",
+                    "color": "#60a5fa",
+                    "category": "to-do"
+                  },
+                  {
+                    "id": "doing",
+                    "name": "In progress",
+                    "color": "#fbbf24",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "ready-to-test",
+                    "name": "Ready to test",
+                    "color": "#a78bfa",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "testing",
+                    "name": "Testing",
+                    "color": "#38bdf8",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "re-analysis",
+                    "name": "Re-analysis",
+                    "color": "#fb923c",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "accepted",
+                    "name": "Validated",
+                    "color": "#34d399",
+                    "category": "completed"
+                  },
+                  {
+                    "id": "cancelled",
+                    "name": "Cancelled",
+                    "color": "#f87171",
+                    "category": "cancelled"
+                  },
+                  {
+                    "id": "duplication",
+                    "name": "Duplication",
+                    "color": "#e879f9",
+                    "category": "cancelled"
+                  }
+                ],
+                "entryStateId": "to-do",
+                "references": {
+                  "backlog": "backlog",
+                  "to-do": "to-do",
+                  "in-progress": "doing",
+                  "completed": "accepted",
+                  "cancelled": "cancelled"
+                },
+                "transitions": {
+                  "backlog": [
+                    "to-do",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "to-do": [
+                    "doing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "doing": [
+                    "ready-to-test",
+                    "accepted",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "ready-to-test": [
+                    "testing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "testing": [
+                    "accepted",
+                    "re-analysis",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "re-analysis": [
+                    "doing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "accepted": [
+                    "doing"
+                  ],
+                  "cancelled": [],
+                  "duplication": []
+                }
+              },
+              "roadmap": {
+                "version": 4,
+                "phases": [
+                  {
+                    "id": "delivery",
+                    "title": "Delivery programme",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-11-15"
+                  },
+                  {
+                    "id": "api",
+                    "parentId": "delivery",
+                    "title": "API delivery",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-11-15"
+                  },
+                  {
+                    "id": "ux",
+                    "parentId": "delivery",
+                    "title": "UX delivery",
+                    "startDate": "2026-10-15",
+                    "endDate": "2026-11-10"
+                  },
+                  {
+                    "id": "empty",
+                    "title": "Empty phase",
+                    "startDate": "2026-11-20",
+                    "endDate": "2026-11-25"
+                  },
+                  {
+                    "id": "cancelled-only",
+                    "title": "Cancelled scope",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-10-15"
+                  },
+                  {
+                    "id": "finished",
+                    "title": "Completed parent phase",
+                    "startDate": "2026-09-01",
+                    "endDate": "2026-09-30"
+                  },
+                  {
+                    "id": "late",
+                    "title": "Overdue parent phase",
+                    "startDate": "2026-09-01",
+                    "endDate": "2026-10-20"
+                  },
+                  {
+                    "id": "future",
+                    "title": "Future parent phase",
+                    "startDate": "2026-11-10",
+                    "endDate": "2026-12-10"
+                  }
+                ],
+                "milestones": [
+                  {
+                    "id": "release",
+                    "title": "Public release",
+                    "dueDate": "2026-11-15"
+                  },
+                  {
+                    "id": "empty-milestone",
+                    "title": "Unassigned checkpoint",
+                    "dueDate": "2026-10-20"
+                  },
+                  {
+                    "id": "cancelled-milestone",
+                    "title": "Cancelled checkpoint",
+                    "dueDate": "2026-10-15"
+                  },
+                  {
+                    "id": "late-milestone",
+                    "title": "Overdue checkpoint",
+                    "dueDate": "2026-10-20"
+                  },
+                  {
+                    "id": "next-empty",
+                    "title": "Next unassigned checkpoint",
+                    "dueDate": "2026-11-02"
+                  }
+                ],
+                "sprints": [
+                  {
+                    "id": "past",
+                    "title": "Discovery",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-10-14"
+                  },
+                  {
+                    "id": "active",
+                    "title": "Implementation",
+                    "startDate": "2026-10-15",
+                    "endDate": "2026-11-05"
+                  },
+                  {
+                    "id": "future",
+                    "title": "Hardening",
+                    "startDate": "2026-11-06",
+                    "endDate": "2026-11-19"
+                  }
+                ]
+              },
+              "taskRelations": {
+                "version": 1,
+                "relations": [
+                  {
+                    "sourceId": 905,
+                    "targetId": 906,
+                    "kind": "blocks"
+                  }
+                ]
+              },
+              "projectControl": {
+                "version": 3,
+                "lastNumber": 8,
+                "records": [
+                  {
+                    "id": "ATL-RK-1",
+                    "kind": "risks",
+                    "title": "Open high risk",
+                    "description": "Fictitious Open high risk",
+                    "status": "open",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-RK-2",
+                    "kind": "risks",
+                    "title": "Risk closed after period",
+                    "description": "Fictitious Risk closed after period",
+                    "status": "open",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-RK-3",
+                    "kind": "risks",
+                    "title": "Risk already closed",
+                    "description": "Fictitious Risk already closed",
+                    "status": "closed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-4",
+                    "kind": "deliverables",
+                    "title": "Open delivery",
+                    "description": "Fictitious Open delivery",
+                    "status": "in-progress",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-5",
+                    "kind": "deliverables",
+                    "title": "Accepted delivery in period",
+                    "description": "Fictitious Accepted delivery in period",
+                    "status": "accepted",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "2026-10-29",
+                    "acceptedDate": "2026-10-30",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-6",
+                    "kind": "deliverables",
+                    "title": "Accepted before period",
+                    "description": "Fictitious Accepted before period",
+                    "status": "accepted",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "2026-10-05",
+                    "acceptedDate": "2026-10-06",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DC-7",
+                    "kind": "decisions",
+                    "title": "Pending architecture decision",
+                    "description": "Fictitious Pending architecture decision",
+                    "status": "proposed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DC-8",
+                    "kind": "decisions",
+                    "title": "Decision resolved after period",
+                    "description": "Fictitious Decision resolved after period",
+                    "status": "proposed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "2026-11-01",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "sections-control-latest",
+          "at": "2026-11-01T09:00:00.000Z",
+          "kind": "board.control.updated",
+          "entityType": "board",
+          "entityId": "board",
+          "summary": "Risk closed and decision approved",
+          "snapshot": {
+            "meta": {
+              "schemaVersion": 5,
+              "appId": "teamos-kanban",
+              "createdAt": "2026-10-01T09:00:00.000Z",
+              "updatedAt": "2026-10-30T12:00:00.000Z"
+            },
+            "board": {
+              "columns": [
+                {
+                  "status": "backlog",
+                  "title": "Backlog"
+                },
+                {
+                  "status": "to-do",
+                  "title": "To Do"
+                },
+                {
+                  "status": "doing",
+                  "title": "In progress"
+                },
+                {
+                  "status": "ready-to-test",
+                  "title": "Ready to test"
+                },
+                {
+                  "status": "testing",
+                  "title": "Testing"
+                },
+                {
+                  "status": "re-analysis",
+                  "title": "Re-analysis"
+                },
+                {
+                  "status": "accepted",
+                  "title": "Validated"
+                },
+                {
+                  "status": "cancelled",
+                  "title": "Cancelled"
+                },
+                {
+                  "status": "duplication",
+                  "title": "Duplication"
+                }
+              ],
+              "settings": {
+                "title": "US-9 · Atlas project dashboard"
+              },
+              "tasks": [
+                {
+                  "id": 901,
+                  "title": "Delivery epic",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "epic",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": ""
+                },
+                {
+                  "id": 902,
+                  "title": "Story awaiting functional validation",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "story",
+                  "parentId": 901,
+                  "status": "ready-to-test",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 903,
+                  "title": "Validated implementation",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 902,
+                  "status": "accepted",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-20",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "inherit",
+                  "milestoneId": "release",
+                  "milestoneMode": "inherit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 904,
+                  "title": "Archived pending integration",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 902,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": true,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-25",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "api",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 905,
+                  "title": "UX build with manual blocker",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [
+                    "Bruno"
+                  ],
+                  "responsible": "Bruno",
+                  "tags": [],
+                  "blocked": true,
+                  "blockerReason": "Waiting for reviewed copy.",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-31",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "active"
+                },
+                {
+                  "id": 906,
+                  "title": "Dependency blocked follow-up",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "backlog",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-20",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "future"
+                },
+                {
+                  "id": 907,
+                  "title": "Cancelled scope item",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "cancelled",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "2026-10-10",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "cancelled-only",
+                  "phaseMode": "explicit",
+                  "milestoneId": "cancelled-milestone",
+                  "milestoneMode": "explicit",
+                  "sprintId": ""
+                },
+                {
+                  "id": 908,
+                  "title": "Independent validated task",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "release",
+                  "milestoneMode": "explicit",
+                  "sprintId": "past"
+                },
+                {
+                  "id": 909,
+                  "title": "Unplanned bug without due date",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "bug",
+                  "parentId": null,
+                  "status": "to-do",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "",
+                  "phaseMode": "none",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": ""
+                },
+                {
+                  "id": 910,
+                  "title": "Story started then completed",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "story",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [
+                    "Marta"
+                  ],
+                  "responsible": "Marta",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-US-910",
+                  "acceptance": {
+                    "author": "Marta",
+                    "at": "2026-10-30T18:00:00.000Z",
+                    "local": true
+                  }
+                },
+                {
+                  "id": 911,
+                  "title": "Independent task started",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "testing",
+                  "assignees": [
+                    "Ana"
+                  ],
+                  "responsible": "Ana",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-911"
+                },
+                {
+                  "id": 912,
+                  "title": "Independent completed at end boundary",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-912"
+                },
+                {
+                  "id": 913,
+                  "title": "Child task excluded from period",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": 910,
+                  "status": "testing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-913"
+                },
+                {
+                  "id": 914,
+                  "title": "Bug excluded from activity lists",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "bug",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "ux",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-BG-914"
+                },
+                {
+                  "id": 915,
+                  "title": "Completed phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "accepted",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "finished",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-915"
+                },
+                {
+                  "id": 916,
+                  "title": "Overdue parent phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "late",
+                  "phaseMode": "explicit",
+                  "milestoneId": "late-milestone",
+                  "milestoneMode": "explicit",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-916"
+                },
+                {
+                  "id": 917,
+                  "title": "Future phase work",
+                  "description": "Fictitious dashboard acceptance scenario.",
+                  "type": "task",
+                  "parentId": null,
+                  "status": "doing",
+                  "assignees": [],
+                  "responsible": "",
+                  "tags": [],
+                  "blocked": false,
+                  "blockerReason": "",
+                  "checklist": [],
+                  "attachments": [],
+                  "archived": false,
+                  "createdAt": "2026-10-01T09:00:00.000Z",
+                  "updatedAt": "2026-10-01T09:00:00.000Z",
+                  "dueDate": "",
+                  "priority": null,
+                  "effort": null,
+                  "phaseId": "future",
+                  "phaseMode": "explicit",
+                  "milestoneId": "",
+                  "milestoneMode": "none",
+                  "sprintId": "",
+                  "displayId": "ATL-TK-917"
+                }
+              ]
+            },
+            "extensions": {
+              "workflow": {
+                "version": 2,
+                "states": [
+                  {
+                    "id": "backlog",
+                    "name": "Backlog",
+                    "color": "#94a3b8",
+                    "category": "backlog"
+                  },
+                  {
+                    "id": "to-do",
+                    "name": "To Do",
+                    "color": "#60a5fa",
+                    "category": "to-do"
+                  },
+                  {
+                    "id": "doing",
+                    "name": "In progress",
+                    "color": "#fbbf24",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "ready-to-test",
+                    "name": "Ready to test",
+                    "color": "#a78bfa",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "testing",
+                    "name": "Testing",
+                    "color": "#38bdf8",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "re-analysis",
+                    "name": "Re-analysis",
+                    "color": "#fb923c",
+                    "category": "in-progress"
+                  },
+                  {
+                    "id": "accepted",
+                    "name": "Validated",
+                    "color": "#34d399",
+                    "category": "completed"
+                  },
+                  {
+                    "id": "cancelled",
+                    "name": "Cancelled",
+                    "color": "#f87171",
+                    "category": "cancelled"
+                  },
+                  {
+                    "id": "duplication",
+                    "name": "Duplication",
+                    "color": "#e879f9",
+                    "category": "cancelled"
+                  }
+                ],
+                "entryStateId": "to-do",
+                "references": {
+                  "backlog": "backlog",
+                  "to-do": "to-do",
+                  "in-progress": "doing",
+                  "completed": "accepted",
+                  "cancelled": "cancelled"
+                },
+                "transitions": {
+                  "backlog": [
+                    "to-do",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "to-do": [
+                    "doing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "doing": [
+                    "ready-to-test",
+                    "accepted",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "ready-to-test": [
+                    "testing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "testing": [
+                    "accepted",
+                    "re-analysis",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "re-analysis": [
+                    "doing",
+                    "cancelled",
+                    "duplication"
+                  ],
+                  "accepted": [
+                    "doing"
+                  ],
+                  "cancelled": [],
+                  "duplication": []
+                }
+              },
+              "roadmap": {
+                "version": 4,
+                "phases": [
+                  {
+                    "id": "delivery",
+                    "title": "Delivery programme",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-11-15"
+                  },
+                  {
+                    "id": "api",
+                    "parentId": "delivery",
+                    "title": "API delivery",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-11-15"
+                  },
+                  {
+                    "id": "ux",
+                    "parentId": "delivery",
+                    "title": "UX delivery",
+                    "startDate": "2026-10-15",
+                    "endDate": "2026-11-10"
+                  },
+                  {
+                    "id": "empty",
+                    "title": "Empty phase",
+                    "startDate": "2026-11-20",
+                    "endDate": "2026-11-25"
+                  },
+                  {
+                    "id": "cancelled-only",
+                    "title": "Cancelled scope",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-10-15"
+                  },
+                  {
+                    "id": "finished",
+                    "title": "Completed parent phase",
+                    "startDate": "2026-09-01",
+                    "endDate": "2026-09-30"
+                  },
+                  {
+                    "id": "late",
+                    "title": "Overdue parent phase",
+                    "startDate": "2026-09-01",
+                    "endDate": "2026-10-20"
+                  },
+                  {
+                    "id": "future",
+                    "title": "Future parent phase",
+                    "startDate": "2026-11-10",
+                    "endDate": "2026-12-10"
+                  }
+                ],
+                "milestones": [
+                  {
+                    "id": "release",
+                    "title": "Public release",
+                    "dueDate": "2026-11-15"
+                  },
+                  {
+                    "id": "empty-milestone",
+                    "title": "Unassigned checkpoint",
+                    "dueDate": "2026-10-20"
+                  },
+                  {
+                    "id": "cancelled-milestone",
+                    "title": "Cancelled checkpoint",
+                    "dueDate": "2026-10-15"
+                  },
+                  {
+                    "id": "late-milestone",
+                    "title": "Overdue checkpoint",
+                    "dueDate": "2026-10-20"
+                  },
+                  {
+                    "id": "next-empty",
+                    "title": "Next unassigned checkpoint",
+                    "dueDate": "2026-11-02"
+                  }
+                ],
+                "sprints": [
+                  {
+                    "id": "past",
+                    "title": "Discovery",
+                    "startDate": "2026-10-01",
+                    "endDate": "2026-10-14"
+                  },
+                  {
+                    "id": "active",
+                    "title": "Implementation",
+                    "startDate": "2026-10-15",
+                    "endDate": "2026-11-05"
+                  },
+                  {
+                    "id": "future",
+                    "title": "Hardening",
+                    "startDate": "2026-11-06",
+                    "endDate": "2026-11-19"
+                  }
+                ]
+              },
+              "taskRelations": {
+                "version": 1,
+                "relations": [
+                  {
+                    "sourceId": 905,
+                    "targetId": 906,
+                    "kind": "blocks"
+                  }
+                ]
+              },
+              "projectControl": {
+                "version": 3,
+                "lastNumber": 8,
+                "records": [
+                  {
+                    "id": "ATL-RK-1",
+                    "kind": "risks",
+                    "title": "Open high risk",
+                    "description": "Fictitious Open high risk",
+                    "status": "open",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-RK-2",
+                    "kind": "risks",
+                    "title": "Risk closed after period",
+                    "description": "Fictitious Risk closed after period",
+                    "status": "closed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-RK-3",
+                    "kind": "risks",
+                    "title": "Risk already closed",
+                    "description": "Fictitious Risk already closed",
+                    "status": "closed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-4",
+                    "kind": "deliverables",
+                    "title": "Open delivery",
+                    "description": "Fictitious Open delivery",
+                    "status": "in-progress",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-5",
+                    "kind": "deliverables",
+                    "title": "Accepted delivery in period",
+                    "description": "Fictitious Accepted delivery in period",
+                    "status": "accepted",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "2026-10-29",
+                    "acceptedDate": "2026-10-30",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DL-6",
+                    "kind": "deliverables",
+                    "title": "Accepted before period",
+                    "description": "Fictitious Accepted before period",
+                    "status": "accepted",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "2026-10-05",
+                    "acceptedDate": "2026-10-06",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DC-7",
+                    "kind": "decisions",
+                    "title": "Pending architecture decision",
+                    "description": "Fictitious Pending architecture decision",
+                    "status": "proposed",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  },
+                  {
+                    "id": "ATL-DC-8",
+                    "kind": "decisions",
+                    "title": "Decision resolved after period",
+                    "description": "Fictitious Decision resolved after period",
+                    "status": "approved",
+                    "owner": "",
+                    "assignees": [],
+                    "tags": [],
+                    "probability": "high",
+                    "impact": "high",
+                    "mitigationPlan": "Monitor weekly",
+                    "contingencyPlan": "",
+                    "decisionMaker": "",
+                    "decisionDate": "2026-11-01",
+                    "rationale": "",
+                    "validator": "",
+                    "dueDate": "2026-11-06",
+                    "deliveredDate": "",
+                    "acceptedDate": "",
+                    "materializedDate": "",
+                    "actualImpact": "",
+                    "related": {
+                      "phaseIds": [
+                        "ux"
+                      ],
+                      "milestoneIds": []
+                    },
+                    "createdAt": "2026-10-01T09:00:00.000Z",
+                    "updatedAt": "2026-10-01T09:00:00.000Z",
+                    "comments": [],
+                    "history": []
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "projectControl": {
+      "version": 3,
+      "lastNumber": 8,
+      "records": [
+        {
+          "id": "ATL-RK-1",
+          "kind": "risks",
+          "title": "Open high risk",
+          "description": "Fictitious Open high risk",
+          "status": "open",
+          "owner": "",
+          "assignees": [],
+          "tags": [],
+          "probability": "high",
+          "impact": "high",
+          "mitigationPlan": "Monitor weekly",
+          "contingencyPlan": "",
+          "decisionMaker": "",
+          "decisionDate": "",
+          "rationale": "",
+          "validator": "",
+          "dueDate": "2026-11-06",
+          "deliveredDate": "",
+          "acceptedDate": "",
+          "materializedDate": "",
+          "actualImpact": "",
+          "related": {
+            "phaseIds": [
+              "ux"
+            ],
+            "milestoneIds": []
+          },
+          "createdAt": "2026-10-01T09:00:00.000Z",
+          "updatedAt": "2026-10-01T09:00:00.000Z",
+          "comments": [],
+          "history": []
+        },
+        {
+          "id": "ATL-RK-2",
+          "kind": "risks",
+          "title": "Risk closed after period",
+          "description": "Fictitious Risk closed after period",
+          "status": "closed",
+          "owner": "",
+          "assignees": [],
+          "tags": [],
+          "probability": "high",
+          "impact": "high",
+          "mitigationPlan": "Monitor weekly",
+          "contingencyPlan": "",
+          "decisionMaker": "",
+          "decisionDate": "",
+          "rationale": "",
+          "validator": "",
+          "dueDate": "2026-11-06",
+          "deliveredDate": "",
+          "acceptedDate": "",
+          "materializedDate": "",
+          "actualImpact": "",
+          "related": {
+            "phaseIds": [
+              "ux"
+            ],
+            "milestoneIds": []
+          },
+          "createdAt": "2026-10-01T09:00:00.000Z",
+          "updatedAt": "2026-10-01T09:00:00.000Z",
+          "comments": [],
+          "history": []
+        },
+        {
+          "id": "ATL-RK-3",
+          "kind": "risks",
+          "title": "Risk already closed",
+          "description": "Fictitious Risk already closed",
+          "status": "closed",
+          "owner": "",
+          "assignees": [],
+          "tags": [],
+          "probability": "high",
+          "impact": "high",
+          "mitigationPlan": "Monitor weekly",
+          "contingencyPlan": "",
+          "decisionMaker": "",
+          "decisionDate": "",
+          "rationale": "",
+          "validator": "",
+          "dueDate": "2026-11-06",
+          "deliveredDate": "",
+          "acceptedDate": "",
+          "materializedDate": "",
+          "actualImpact": "",
+          "related": {
+            "phaseIds": [
+              "ux"
+            ],
+            "milestoneIds": []
+          },
+          "createdAt": "2026-10-01T09:00:00.000Z",
+          "updatedAt": "2026-10-01T09:00:00.000Z",
+          "comments": [],
+          "history": []
+        },
+        {
+          "id": "ATL-DL-4",
+          "kind": "deliverables",
+          "title": "Open delivery",
+          "description": "Fictitious Open delivery",
+          "status": "in-progress",
+          "owner": "",
+          "assignees": [],
+          "tags": [],
+          "probability": "high",
+          "impact": "high",
+          "mitigationPlan": "Monitor weekly",
+          "contingencyPlan": "",
+          "decisionMaker": "",
+          "decisionDate": "",
+          "rationale": "",
+          "validator": "",
+          "dueDate": "2026-11-06",
+          "deliveredDate": "",
+          "acceptedDate": "",
+          "materializedDate": "",
+          "actualImpact": "",
+          "related": {
+            "phaseIds": [
+              "ux"
+            ],
+            "milestoneIds": []
+          },
+          "createdAt": "2026-10-01T09:00:00.000Z",
+          "updatedAt": "2026-10-01T09:00:00.000Z",
+          "comments": [],
+          "history": []
+        },
+        {
+          "id": "ATL-DL-5",
+          "kind": "deliverables",
+          "title": "Accepted delivery in period",
+          "description": "Fictitious Accepted delivery in period",
+          "status": "accepted",
+          "owner": "",
+          "assignees": [],
+          "tags": [],
+          "probability": "high",
+          "impact": "high",
+          "mitigationPlan": "Monitor weekly",
+          "contingencyPlan": "",
+          "decisionMaker": "",
+          "decisionDate": "",
+          "rationale": "",
+          "validator": "",
+          "dueDate": "2026-11-06",
+          "deliveredDate": "2026-10-29",
+          "acceptedDate": "2026-10-30",
+          "materializedDate": "",
+          "actualImpact": "",
+          "related": {
+            "phaseIds": [
+              "ux"
+            ],
+            "milestoneIds": []
+          },
+          "createdAt": "2026-10-01T09:00:00.000Z",
+          "updatedAt": "2026-10-01T09:00:00.000Z",
+          "comments": [],
+          "history": []
+        },
+        {
+          "id": "ATL-DL-6",
+          "kind": "deliverables",
+          "title": "Accepted before period",
+          "description": "Fictitious Accepted before period",
+          "status": "accepted",
+          "owner": "",
+          "assignees": [],
+          "tags": [],
+          "probability": "high",
+          "impact": "high",
+          "mitigationPlan": "Monitor weekly",
+          "contingencyPlan": "",
+          "decisionMaker": "",
+          "decisionDate": "",
+          "rationale": "",
+          "validator": "",
+          "dueDate": "2026-11-06",
+          "deliveredDate": "2026-10-05",
+          "acceptedDate": "2026-10-06",
+          "materializedDate": "",
+          "actualImpact": "",
+          "related": {
+            "phaseIds": [
+              "ux"
+            ],
+            "milestoneIds": []
+          },
+          "createdAt": "2026-10-01T09:00:00.000Z",
+          "updatedAt": "2026-10-01T09:00:00.000Z",
+          "comments": [],
+          "history": []
+        },
+        {
+          "id": "ATL-DC-7",
+          "kind": "decisions",
+          "title": "Pending architecture decision",
+          "description": "Fictitious Pending architecture decision",
+          "status": "proposed",
+          "owner": "",
+          "assignees": [],
+          "tags": [],
+          "probability": "high",
+          "impact": "high",
+          "mitigationPlan": "Monitor weekly",
+          "contingencyPlan": "",
+          "decisionMaker": "",
+          "decisionDate": "",
+          "rationale": "",
+          "validator": "",
+          "dueDate": "2026-11-06",
+          "deliveredDate": "",
+          "acceptedDate": "",
+          "materializedDate": "",
+          "actualImpact": "",
+          "related": {
+            "phaseIds": [
+              "ux"
+            ],
+            "milestoneIds": []
+          },
+          "createdAt": "2026-10-01T09:00:00.000Z",
+          "updatedAt": "2026-10-01T09:00:00.000Z",
+          "comments": [],
+          "history": []
+        },
+        {
+          "id": "ATL-DC-8",
+          "kind": "decisions",
+          "title": "Decision resolved after period",
+          "description": "Fictitious Decision resolved after period",
+          "status": "approved",
+          "owner": "",
+          "assignees": [],
+          "tags": [],
+          "probability": "high",
+          "impact": "high",
+          "mitigationPlan": "Monitor weekly",
+          "contingencyPlan": "",
+          "decisionMaker": "",
+          "decisionDate": "2026-11-01",
+          "rationale": "",
+          "validator": "",
+          "dueDate": "2026-11-06",
+          "deliveredDate": "",
+          "acceptedDate": "",
+          "materializedDate": "",
+          "actualImpact": "",
+          "related": {
+            "phaseIds": [
+              "ux"
+            ],
+            "milestoneIds": []
+          },
+          "createdAt": "2026-10-01T09:00:00.000Z",
+          "updatedAt": "2026-10-01T09:00:00.000Z",
+          "comments": [],
+          "history": []
+        }
+      ]
+    }
+  }
+}

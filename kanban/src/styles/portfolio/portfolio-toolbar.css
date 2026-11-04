@@ -111,6 +111,8 @@
 
 .portfolio-view-toggle {
     display: inline-flex;
+    flex-wrap: wrap;
+    max-width: 100%;
     border: 1px solid var(--border);
     background: var(--bg-primary);
 }

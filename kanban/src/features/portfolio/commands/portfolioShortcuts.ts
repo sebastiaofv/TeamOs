@@ -68,6 +68,7 @@ function findVisibleRow(state: AppState, ref: CardRef | null): PortfolioRow | nu
 
 // Card shortcuts act on the hovered card, falling back to the selected one.
 function getShortcutTargetRow(state = getState()): PortfolioRow | null {
+    if (state.selectedPortfolioViewMode === 'dashboard') return null;
     return findVisibleRow(state, state.hoveredPortfolioCardRef)
         || findVisibleRow(state, state.selectedPortfolioCardRef);
 }
@@ -75,6 +76,7 @@ function getShortcutTargetRow(state = getState()): PortfolioRow | null {
 // The selected card scrolls itself into view (PortfolioTaskCard).
 export function selectAdjacentPortfolioCard(step: number): void {
     const state = getState();
+    if (state.selectedPortfolioViewMode === 'dashboard') return;
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     if (rows.length === 0) {
         useAppStore.setState({ selectedPortfolioCardRef: null });
