@@ -24,7 +24,7 @@ export default defineConfig({
   webServer: {
     // Build first and never reuse a server, so the suite always runs against a
     // fresh dist/.
-    command: `npm run build && npm run preview -- --port ${PORT}`,
+    command: `npm run build && npm run build:standalone && npm run preview -- --port ${PORT}`,
     port: PORT,
     reuseExistingServer: false,
     timeout: 60_000

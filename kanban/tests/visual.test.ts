@@ -330,6 +330,7 @@ test.describe('2.1a modals and toast', () => {
         await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
         await expect(page.locator('#detailAttachments')).toBeVisible();
         await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
+        await expect(page.locator('#detailAttachments .attachment-open')).toHaveCount(2);
         await expect(page.locator('#detailAttachments')).toContainText('Ana Silva');
         await expect(page.locator('#detailAttachments')).toContainText('Unknown');
         await expect(page).toHaveScreenshot(`task-detail-attachments-${theme}${width === 390 ? '-narrow' : ''}.png`, { fullPage: true });
