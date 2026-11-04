@@ -9,6 +9,12 @@ export default defineConfig({
   testMatch: '**/*.test.ts',
   testIgnore: '**/unit/**',
   timeout: 30_000,
+  // One retry in CI, so `trace: 'on-first-retry'` records a trace for a
+  // failing test; locally a failure stays a failure.
+  retries: process.env.CI ? 1 : 0,
+  // In CI: inline annotations on the PR, plus an HTML report for the
+  // workflow's failure artifact.
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   expect: {
     timeout: 5_000,
     toHaveScreenshot: {
