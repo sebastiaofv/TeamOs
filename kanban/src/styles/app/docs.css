@@ -1,0 +1,574 @@
+/* In-app documentation. Uses the shared theme tokens only, so light and dark
+   themes need no overrides; tinted surfaces mix a token into --bg-card. */
+
+.docs-toggle-icon {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.docs-toggle-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+}
+
+.view[hidden],
+.docs-view[hidden] {
+    display: none;
+}
+
+.docs-view {
+    flex: 1;
+    min-height: 0;
+    background: var(--bg-primary);
+}
+
+.docs-layout {
+    display: grid;
+    grid-template-columns: minmax(240px, 288px) minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+}
+
+.docs-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+/* Contents sidebar */
+
+.docs-sidebar {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border-right: 1px solid var(--border);
+    background: var(--bg-card);
+}
+
+.docs-contents-toggle {
+    display: none;
+}
+
+.docs-sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+}
+
+.docs-search {
+    position: relative;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.docs-search input {
+    width: 100%;
+    padding: 7px 10px 7px 30px;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    font-size: 12px;
+}
+
+.docs-search input:focus {
+    border-color: var(--accent);
+}
+
+.docs-search-icon {
+    position: absolute;
+    left: 26px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -5px;
+    fill: none;
+    stroke: var(--text-muted);
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    pointer-events: none;
+}
+
+.docs-no-results {
+    padding: 16px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.docs-toc {
+    list-style: none;
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px 0 24px;
+}
+
+.docs-toc ol {
+    list-style: none;
+    padding-bottom: 6px;
+}
+
+.docs-toc-heading {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 10px 16px 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.docs-toc-number {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.docs-toc-section.is-current .docs-toc-heading,
+.docs-toc-section.is-current .docs-toc-number {
+    color: var(--text-primary);
+}
+
+.docs-toc-link {
+    display: block;
+    padding: 5px 16px 5px 40px;
+    border-left: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.docs-toc-link:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.docs-toc-link[aria-current="page"] {
+    border-left-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.docs-toc-link:focus-visible {
+    outline-offset: -2px;
+}
+
+/* Article */
+
+.docs-article {
+    overflow-y: auto;
+    min-height: 0;
+    scroll-behavior: smooth;
+}
+
+.docs-article-inner {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 32px 40px 56px;
+    font-size: 14px;
+    line-height: 1.65;
+}
+
+.docs-breadcrumb {
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.docs-title {
+    font-size: 26px;
+    line-height: 1.25;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+}
+
+.docs-title:focus {
+    outline: none;
+}
+
+.docs-title:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 4px;
+}
+
+.docs-lead {
+    margin-top: 10px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.docs-body {
+    display: grid;
+    gap: 14px;
+    padding-top: 20px;
+}
+
+.docs-h2 {
+    margin-top: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.docs-p,
+.docs-list li,
+.docs-steps li {
+    color: var(--text-primary);
+}
+
+.docs-body code {
+    padding: 1px 5px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font: 0.86em ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-wrap: anywhere;
+}
+
+.docs-body kbd {
+    display: inline-block;
+    min-width: 22px;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font: 600 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-align: center;
+    vertical-align: 1px;
+}
+
+.docs-link {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+}
+
+.docs-link:hover {
+    color: var(--accent-hover);
+    text-decoration-thickness: 2px;
+}
+
+.docs-list {
+    display: grid;
+    gap: 6px;
+    padding-left: 20px;
+}
+
+.docs-list li::marker {
+    color: var(--text-muted);
+}
+
+/* Numbered steps: square counters in the app's flat style. */
+.docs-steps {
+    list-style: none;
+    counter-reset: docs-step;
+    display: grid;
+    gap: 10px;
+}
+
+.docs-steps li {
+    counter-increment: docs-step;
+    position: relative;
+    padding-left: 38px;
+    min-height: 24px;
+}
+
+.docs-steps li::before {
+    content: counter(docs-step);
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--accent);
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Callouts: the label states the kind of guidance. */
+.docs-callout {
+    --callout: var(--text-muted);
+    border: 1px solid var(--border-light);
+    border-left: 3px solid var(--callout);
+    background: color-mix(in srgb, var(--callout) 7%, var(--bg-card));
+    padding: 10px 14px;
+    display: grid;
+    gap: 4px;
+}
+
+.docs-callout-method { --callout: var(--accent); }
+.docs-callout-rule { --callout: var(--priority-medium); }
+.docs-callout-tip { --callout: var(--priority-low); }
+.docs-callout-note { --callout: var(--text-muted); }
+
+.docs-callout-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-primary);
+}
+
+.docs-callout p:not(.docs-callout-title) {
+    font-size: 13px;
+}
+
+/* Term lists render as a definition table on wide screens. */
+.docs-terms {
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+}
+
+.docs-term {
+    display: grid;
+    grid-template-columns: minmax(140px, 200px) 1fr;
+    gap: 16px;
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.docs-term:last-child {
+    border-bottom: none;
+}
+
+.docs-term dt {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.docs-term dd {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.docs-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-light);
+}
+
+.docs-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-card);
+    font-size: 13px;
+}
+
+.docs-table th,
+.docs-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-light);
+    text-align: left;
+    vertical-align: top;
+}
+
+.docs-table thead th {
+    background: var(--bg-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.docs-table tbody th {
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.docs-table tbody tr:last-child > * {
+    border-bottom: none;
+}
+
+.docs-embed .help-manual {
+    font-size: 13px;
+}
+
+.docs-embed .help-intro-text {
+    font-size: 14px;
+}
+
+/* Related topics and pager */
+
+.docs-related {
+    margin-top: 32px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border-light);
+}
+
+.docs-related-title {
+    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.docs-related ul {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+}
+
+.docs-related-link,
+.docs-pager-link {
+    display: grid;
+    gap: 2px;
+    height: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.docs-related-link:hover,
+.docs-pager-link:hover {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 5%, var(--bg-card));
+}
+
+.docs-related-name {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.docs-related-summary {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.docs-pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.docs-pager-link span:last-child {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.docs-pager-next {
+    text-align: right;
+}
+
+/* Small screens: the contents collapse behind a disclosure button. */
+@media (max-width: 860px) {
+    .docs-layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .docs-sidebar {
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .docs-contents-toggle {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 16px;
+        border: none;
+        background: var(--bg-card);
+        text-align: left;
+    }
+
+    .docs-contents-current {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 600;
+    }
+
+    .docs-contents-chevron {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        transition: transform 0.15s ease;
+    }
+
+    .docs-sidebar.is-expanded .docs-contents-chevron {
+        transform: rotate(180deg);
+    }
+
+    .docs-sidebar-panel {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        max-height: min(70vh, 560px);
+        border-bottom: 1px solid var(--border);
+        background: var(--bg-card);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.16);
+    }
+
+    .docs-sidebar.is-expanded .docs-sidebar-panel {
+        display: flex;
+    }
+
+    .docs-article-inner {
+        padding: 20px 16px 40px;
+    }
+
+    .docs-title {
+        font-size: 22px;
+    }
+
+    .docs-lead {
+        font-size: 15px;
+    }
+
+    .docs-term {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2px;
+    }
+
+    .docs-pager {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .docs-pager-next {
+        text-align: left;
+    }
+
+    .docs-table tbody th {
+        white-space: normal;
+    }
+}

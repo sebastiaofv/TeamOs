@@ -3,7 +3,7 @@ import { ProjectControlDialog } from '@/features/portfolio/control/ControlRecord
 import { PendingProjectTransfers } from '@/features/portfolio/projects/PendingProjectTransfers';
 import { ErrorBoundary } from '@/app/ErrorBoundary';
 import { AppHeader } from '@/app/AppHeader';
-import { HelpDialog } from '@/app/overlays/HelpDialog';
+import { DocsView } from '@/app/docs/DocsView';
 import { ShortcutsDialog } from '@/app/overlays/ShortcutsDialog';
 import { RoadmapEntityDialog } from '@/features/portfolio/roadmap/RoadmapEntityDialog';
 import { TaskDetailDialog } from '@/features/portfolio/task/dialogs/TaskDetailDialog';
@@ -73,12 +73,15 @@ function AppContent() {
     const dashboardActive = Boolean(selectedBoardId) && viewMode === 'dashboard';
     const controlActive = Boolean(selectedBoardId) && viewMode === 'control';
     const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
+    const docsOpen = useAppStore((state) => state.appMode === 'docs');
 
     return (
         <>
-            <a className="skip-link" href="#portfolioMain">{t('common.skipToContent')}</a>
+            <a className="skip-link" href={docsOpen ? '#docsTopicTitle' : '#portfolioMain'}>{t('common.skipToContent')}</a>
             <AppHeader theme={theme} onToggleTheme={toggleTheme} />
-            <main className={`view${fileDropActive ? ' file-drop-active' : ''}`} id="portfolioView" aria-labelledby="appTitle">
+            {/* Hidden, not unmounted, while the documentation is open: the
+                workspace keeps its selection, view, filters and drafts. */}
+            <main className={`view${fileDropActive ? ' file-drop-active' : ''}`} id="portfolioView" aria-labelledby="appTitle" hidden={docsOpen}>
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
                     <PortfolioToolbar />
                     <PortfolioChips />
@@ -99,13 +102,13 @@ function AppContent() {
                 </div>
                 <div className="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">{t('app.dropProjectFiles')}</div>
             </main>
+            <DocsView />
             <ErrorBoundary name="Dialogs" onError={() => closeAllDialogs(actions)}>
                 <AppSettingsDialog showTimeline={showTimeline} onShowTimelineChange={(visible) => {
                     if (!visible) actions.clearPortfolioTimelineSelection({ keepModals: true });
                     setShowTimeline(visible);
                 }} />
                 <ShortcutsDialog />
-                <HelpDialog />
                 <CommandPalette />
                 <ProjectControlDialog />
                 <TaskDetailDialog />

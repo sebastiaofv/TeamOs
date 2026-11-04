@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runPaletteAction } from '../../src/features/portfolio/palette/paletteActions';
+import { keepsDocsOpen, runPaletteAction } from '../../src/features/portfolio/palette/paletteActions';
 import { loadRecentPaletteItems, rememberPaletteItem } from '../../src/features/portfolio/palette/recentItems';
 
 // Loosely typed so tests can read each fake's `.mock` calls.
@@ -9,7 +9,7 @@ function deps(): any {
     moveTask: vi.fn(async () => true), toggleAssignee: vi.fn(async () => true), setPriority: vi.fn(async () => true),
     planTask: vi.fn(async () => true), createTask: vi.fn(async () => 21),
     setBoardSearch: vi.fn(), setViewMode: vi.fn(), selectBoard: vi.fn(), resetFilters: vi.fn(), openFilters: vi.fn(),
-    toggleTheme: vi.fn(), toggleLanguage: vi.fn(), openShortcuts: vi.fn(), openHelp: vi.fn(), openPaletteHelp: vi.fn(),
+    toggleTheme: vi.fn(), toggleLanguage: vi.fn(), openShortcuts: vi.fn(), openHelp: vi.fn(), openViewHelp: vi.fn(), openPaletteHelp: vi.fn(),
     newProject: vi.fn(), importProjects: vi.fn(),
     taskInfo: vi.fn(() => ({ title: 'Write spec', status: 'to-do' })),
     showUndo: vi.fn((_message: string, fn: () => unknown) => { d.undo = fn; }),
@@ -17,6 +17,16 @@ function deps(): any {
   };
   return d;
 }
+
+describe('keepsDocsOpen', () => {
+  it('keeps documentation open only for actions that do not need the workspace', () => {
+    expect(keepsDocsOpen({ type: 'command', id: 'open-palette-help' })).toBe(true);
+    expect(keepsDocsOpen({ type: 'command', id: 'toggle-theme' })).toBe(true);
+    expect(keepsDocsOpen({ type: 'openTask', boardId: 'app', taskId: 1 })).toBe(true);
+    expect(keepsDocsOpen({ type: 'command', id: 'view-board' })).toBe(false);
+    expect(keepsDocsOpen({ type: 'filterBoard', text: 'login' })).toBe(false);
+  });
+});
 
 describe('runPaletteAction', () => {
   it('filters the board and runs view commands', async () => {
@@ -26,7 +36,11 @@ describe('runPaletteAction', () => {
     await runPaletteAction({ type: 'command', id: 'clear-board-filter' }, d);
     await runPaletteAction({ type: 'openRoadmap', boardId: 'web' }, d);
     await runPaletteAction({ type: 'command', id: 'open-palette-help' }, d);
+    await runPaletteAction({ type: 'command', id: 'open-help' }, d);
+    await runPaletteAction({ type: 'command', id: 'open-view-help' }, d);
     expect(d.openPaletteHelp).toHaveBeenCalled();
+    expect(d.openHelp).toHaveBeenCalled();
+    expect(d.openViewHelp).toHaveBeenCalled();
     expect(d.setBoardSearch.mock.calls).toEqual([['login'], ['']]);
     expect(d.setViewMode.mock.calls).toEqual([['planner'], ['roadmap']]);
     expect(d.selectBoard).toHaveBeenCalledWith('web');

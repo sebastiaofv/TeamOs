@@ -182,32 +182,39 @@ test.describe('command palette', () => {
     await expect(bravoProject).toBeVisible();
   });
 
-  test('Help has a Command palette tab whose examples open the palette pre-filled', async ({ page }) => {
-    await page.getByRole('button', { name: 'Help' }).click();
-    const help = page.locator('#helpModal');
-    await expect(help.getByRole('tab', { name: 'Guide' })).toHaveAttribute('aria-selected', 'true');
-    await expect(help).toContainText('Drag cards between columns');
+  test('the documentation palette guide has examples that open the palette pre-filled', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open documentation' }).click();
+    const docs = page.locator('#docsView');
+    await docs.getByRole('link', { name: 'Command palette', exact: true }).click();
+    await expect(docs.getByRole('heading', { level: 1 })).toHaveText('Command palette');
+    await expect(docs).toContainText('+ Fix login crash @ana !high #auth ~S due:fri in:mobile');
 
-    await help.getByRole('tab', { name: 'Guide' }).focus();
-    await page.keyboard.press('ArrowRight');
-    await expect(help.getByRole('tab', { name: 'Command palette' })).toHaveAttribute('aria-selected', 'true');
-    await expect(help.getByRole('tab', { name: 'Command palette' })).toBeFocused();
-    await expect(help.getByRole('tabpanel')).toContainText('+ Fix login crash @ana !high #auth ~S due:fri in:mobile');
-
-    await help.getByRole('button', { name: 'Try "#auth" in the command palette' }).click();
-    await expect(help).toHaveCount(0);
+    await docs.getByRole('button', { name: 'Try "#auth" in the command palette' }).click();
     await expect(input(page)).toHaveValue('#auth');
     await expect(palette(page).locator('.palette-item', { hasText: 'Login bug' })).toBeVisible();
   });
 
-  test('the palette opens its own help', async ({ page }) => {
+  test('the palette opens its own help in the documentation', async ({ page }) => {
     await openPalette(page);
     await input(page).fill('how to use');
     // "Filter board by" is always first.
     await page.keyboard.press('ArrowDown');
     await expect(activeItem(page)).toContainText('How to use the command palette');
     await page.keyboard.press('Enter');
-    await expect(page.locator('#helpModal').getByRole('tab', { name: 'Command palette' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('#docsView')).toBeVisible();
+    await expect(page.locator('#docsTopicTitle')).toHaveText('Command palette');
+  });
+
+  test('running a workspace command from the documentation returns to the workspace', async ({ page }) => {
+    await page.getByRole('button', { name: 'Open documentation' }).click();
+    await expect(page.locator('#docsView')).toBeVisible();
+    await page.keyboard.press('Control+k');
+    await input(page).fill('Go to Calendar');
+    await page.keyboard.press('ArrowDown');
+    await expect(activeItem(page)).toContainText('Go to Calendar');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#docsView')).toBeHidden();
+    await expect(page.locator('#portfolioCalendarView')).toBeVisible();
   });
 
   test('is listed in the keyboard shortcuts dialog', async ({ page }) => {

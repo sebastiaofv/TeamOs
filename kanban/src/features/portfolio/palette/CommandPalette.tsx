@@ -23,7 +23,9 @@ import { toggleThemePreference } from '@/shared/hooks/useTheme';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { formatPlannerDateLabel, useI18n } from '@/shared/i18n';
 import { buildPaletteModel, type PaletteFrame, type PaletteIcon, type PaletteItem } from './paletteModel';
-import { runPaletteAction, type PaletteDeps } from './paletteActions';
+import { keepsDocsOpen, runPaletteAction, type PaletteDeps } from './paletteActions';
+import { closeDocs, openDocs, openDocsForCurrentView } from '@/app/docs/docsMode';
+import { PALETTE_DOCS_TOPIC } from '@/app/docs/docsModel';
 import { loadRecentPaletteItems, rememberPaletteItem } from './recentItems';
 import { requestOpenFilters } from './openCommandPalette';
 import { clearTableFilters, setTableFilter } from '@/features/portfolio/table/tableControls';
@@ -117,8 +119,9 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         toggleTheme: () => toggleThemePreference(),
         toggleLanguage,
         openShortcuts: () => openDialog('shortcuts'),
-        openHelp: () => openDialog('help'),
-        openPaletteHelp: () => openDialog('help', { tab: 'palette' }),
+        openHelp: () => openDocs(),
+        openViewHelp: () => openDocsForCurrentView(),
+        openPaletteHelp: () => openDocs(PALETTE_DOCS_TOPIC),
         newProject: () => createNewProject(),
         importProjects: () => importPortfolioProjects(),
         taskInfo: (boardId, taskId) => {
@@ -160,6 +163,7 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         }
         if (item.recentKey) rememberPaletteItem(item.recentKey);
         closeDialog('commandPalette');
+        if (!keepsDocsOpen(action)) closeDocs();
         void runPaletteAction(action, deps);
     };
 
