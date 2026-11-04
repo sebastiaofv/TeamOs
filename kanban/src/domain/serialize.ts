@@ -1,3 +1,4 @@
+import { parseProjectControl } from './projectControl';
 import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData } from './types';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, DAY_PLANNER_EXTENSION_KEY, DEFAULT_BOARD_TITLE, ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, defaultColumns } from './constants';
 import { getLegacyTaskAttachmentsFromExtensions, stripLegacyTaskAttachmentsFromExtensions } from './attachments';
@@ -44,6 +45,7 @@ export function normalizeBoardExtensionsValue(
         ? { ...base }
         : {}) as BoardExtensions;
     if (nextExtensions.project !== undefined) nextExtensions.project = parseProjectData(nextExtensions.project);
+    if (nextExtensions.projectControl !== undefined) nextExtensions.projectControl = parseProjectControl(nextExtensions.projectControl);
     if (nextExtensions.permanentRelations !== undefined) nextExtensions.permanentRelations = parsePermanentRelations(nextExtensions.permanentRelations);
     if (nextExtensions.projectTransfers !== undefined) nextExtensions.projectTransfers = parseProjectTransfers(nextExtensions.projectTransfers);
     delete nextExtensions.conversationRefs;

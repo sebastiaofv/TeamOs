@@ -1,3 +1,5 @@
+import { removeDeletedControlLinks } from '@/domain/projectControl';
+import { lastCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
 import { requestWorkitemAcceptance } from './workitemAcceptance';
 import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import type { BoardRecord } from '@/features/portfolio/types';
@@ -72,6 +74,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     for (const task of current.data.board.tasks) if (!boardSnapshotRecorded && task.id !== taskId && !nextIds.has(task.id)) {
         recordTaskTimelineEvent(draft.data, captureTaskTimelineSnapshot(current.data, task.id), null);
     }
+    if (removeDeletedControlLinks(draft.data, current.data, lastCommentAuthor(current.id))) appendTimelineEvent(draft.data, { kind: 'board.control.associations', entityType: 'board', entityId: 'board', summary: 'Project Control associations updated after element deletion', snapshot: createBoardStateSnapshot(draft.data) });
     const stage = cloneSerializable(draft.data);
     syncWorkitemPlanning(draft.data, current.data);
     const effects = applyStoryAutomation(draft.data, current.data);
