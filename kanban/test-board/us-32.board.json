@@ -1,0 +1,116 @@
+{
+  "meta": {
+    "schemaVersion": 3,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-11-03T09:00:00.000Z",
+    "updatedAt": "2026-11-03T09:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "To Do"
+      },
+      {
+        "status": "doing",
+        "title": "In Progress"
+      },
+      {
+        "status": "done",
+        "title": "Done"
+      }
+    ],
+    "settings": {
+      "title": "US-32 · Temas da aplicação"
+    },
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Validar legibilidade dos cards e controlos",
+        "description": "Dados fictícios para validar Clássico/Moderno e Claro/Escuro. A aparência não deve alterar este projeto.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "2026-11-06",
+        "priority": null,
+        "status": "backlog"
+      },
+      {
+        "id": 2,
+        "title": "Comparar cores e tipografia nos quatro modos",
+        "description": "Dados fictícios para validar Clássico/Moderno e Claro/Escuro. A aparência não deve alterar este projeto.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "2026-11-06",
+        "priority": "medium",
+        "status": "to-do"
+      },
+      {
+        "id": 3,
+        "title": "Rever tabelas densas e formulários",
+        "description": "Dados fictícios para validar Clássico/Moderno e Claro/Escuro. A aparência não deve alterar este projeto.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "2026-11-06",
+        "priority": "high",
+        "status": "doing",
+        "blocked": true,
+        "blockerReason": "A aguardar revisão visual"
+      },
+      {
+        "id": 4,
+        "title": "Confirmar contraste e estados concluídos",
+        "description": "Dados fictícios para validar Clássico/Moderno e Claro/Escuro. A aparência não deve alterar este projeto.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "2026-11-06",
+        "priority": "low",
+        "status": "done"
+      },
+      {
+        "id": 5,
+        "title": "Item arquivado para testar filtros",
+        "description": "Dados fictícios para validar Clássico/Moderno e Claro/Escuro. A aparência não deve alterar este projeto.",
+        "assignees": [],
+        "responsible": "",
+        "tags": [],
+        "checklist": [],
+        "attachments": [],
+        "archived": true,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "2026-11-06",
+        "priority": null,
+        "status": "done"
+      }
+    ]
+  },
+  "extensions": {}
+}
