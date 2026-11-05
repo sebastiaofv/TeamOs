@@ -75,7 +75,7 @@ export type PortfolioFilters = {
 };
 export type PortfolioSortKey = 'board' | 'task' | 'column' | 'priority' | 'effort' | 'score' | 'dueDate' | 'updatedAt';
 export type SortDir = 'asc' | 'desc';
-export type PortfolioViewMode = 'board' | 'table' | 'roadmap' | 'calendar' | 'planner' | 'control';
+export type PortfolioViewMode = 'board' | 'table' | 'roadmap' | 'calendar' | 'planner' | 'dashboard' | 'control';
 export type PlannerMode = 'day' | 'week';
 export type CalendarView = 'year' | 'month';
 export type CalendarDisplayMode = 'calendar' | 'heatmap';
@@ -130,7 +130,7 @@ export type TaskDetailFields = Record<
     | 'status' | 'createdAt' | 'updatedAt' | 'dueDate' | 'phase' | 'milestone' | 'sprint',
     string
 >;
-export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string; createdAt: string; uploadedBy?: string };
+export type TaskDetailAttachment = { id: string; name: string; isImage: boolean; dataUrl: string; subLabel: string; previewMime: string | null; createdAt: string; uploadedBy?: string };
 export type TaskRelationEntry = { permanentId?: string; boardId?: string; external?: boolean; unavailable?: boolean; displayId?: string; id: number; title: string; status: string; statusKey: TaskStatus; responsible: string; archived: boolean };
 export type TaskDetailViewModel = {
     conversationContext?: { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };
@@ -172,10 +172,8 @@ export type RoadmapEntityViewModel = {
 };
 
 // The task the command palette opened for (open, hovered or selected card),
-// and text to start with (e.g. an example from Help).
+// and text to start with (e.g. an example from the documentation).
 export type CommandPaletteProps = { contextTask: { boardId: string; taskId: number } | null; initialQuery?: string };
-export type HelpTab = 'guide' | 'palette';
-export type HelpDialogProps = { tab?: HelpTab };
 
 export type DialogPropsByName = {
     projectControl: { boardId: string; recordId?: string; kind: import('@/domain/projectControl').ControlKind };
@@ -186,7 +184,6 @@ export type DialogPropsByName = {
     taskDetail: TaskDetailViewModel;
     roadmapEntity: RoadmapEntityViewModel;
     shortcuts: null;
-    help: HelpDialogProps | null;
 };
 export type DialogName = keyof DialogPropsByName;
 

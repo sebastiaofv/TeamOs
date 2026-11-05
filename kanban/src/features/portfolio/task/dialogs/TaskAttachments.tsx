@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { calculateBoardAttachmentBytes, getTaskAttachments } from '@/domain/attachments';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { showConfirm } from '@/app/overlays/appMessages';
+import { AttachmentOpenLink } from './AttachmentOpenLink';
 import { AttachmentsEditor } from './editor/AttachmentsEditor';
 import type { TaskDetailViewModel } from '@/features/portfolio/types';
 import { formatDateTime } from '@/domain/calendar';
@@ -45,7 +46,7 @@ export function TaskAttachments({ vm }: { vm: TaskDetailViewModel }) {
                         <div className="detail-attachment-meta"><div className="detail-attachment-name">{item.name}</div><div className="detail-attachment-sub">{item.subLabel}</div></div>
                     </div></td>
                     <td>{item.uploadedBy || t('attachments.unknownAuthor')}</td>
-                    <td><div className="attachment-table-actions"><a className="detail-attachment-download" href={item.dataUrl} download={item.name || 'attachment'} aria-label={`${t('common.download')} ${item.name}`}>{t('common.download')}</a>{!vm.readOnly && <button type="button" className="attachment-remove-btn" disabled={busy || picking} aria-label={t('editor.removeAttachment', { name: item.name })} onClick={() => void remove(item.id, item.name)}>×</button>}</div></td>
+                    <td><div className="attachment-table-actions"><div className="attachment-preview-actions"><AttachmentOpenLink className="detail-attachment-open attachment-open" dataUrl={item.dataUrl} previewMime={item.previewMime} /><a className="detail-attachment-download attachment-download" href={item.dataUrl} download={item.name || 'attachment'} aria-label={`${t('common.download')} ${item.name}`}>{t('common.download')}</a></div>{!vm.readOnly && <button type="button" className="attachment-remove-btn" disabled={busy || picking} aria-label={t('editor.removeAttachment', { name: item.name })} onClick={() => void remove(item.id, item.name)}>×</button>}</div></td>
                 </tr>)}</tbody>
             </table>}
     </div>;

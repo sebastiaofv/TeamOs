@@ -184,10 +184,6 @@
     overflow: auto;
 }
 
-#helpModal .modal-content {
-    max-width: 760px;
-}
-
 @media (max-width: 600px) {
     .modal-content,
     #shortcutsModal .modal-content {

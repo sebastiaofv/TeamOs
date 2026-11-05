@@ -6,6 +6,7 @@
 @import './portfolio/planner.css';
 @import './portfolio/table.css';
 @import './portfolio/roadmap.css';
+@import './portfolio/dashboard.css';
 @import './portfolio/timeline.css';
 @import './portfolio/board.css';
 @import './overlays/dialogs.css';
@@ -17,5 +18,6 @@
 @import './portfolio/task-detail.css';
 @import './overlays/project-settings.css';
 @import './portfolio/control.css';
+@import './app/docs.css';
 @import './foundation/selects.css';
 @import './foundation/theme-dark.css';

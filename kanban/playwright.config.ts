@@ -9,6 +9,12 @@ export default defineConfig({
   testMatch: '**/*.test.ts',
   testIgnore: '**/unit/**',
   timeout: 30_000,
+  // One retry in CI, so `trace: 'on-first-retry'` records a trace for a
+  // failing test; locally a failure stays a failure.
+  retries: process.env.CI ? 1 : 0,
+  // In CI: inline annotations on the PR, plus an HTML report for the
+  // workflow's failure artifact.
+  reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
   expect: {
     timeout: 5_000,
     toHaveScreenshot: {
@@ -24,7 +30,7 @@ export default defineConfig({
   webServer: {
     // Build first and never reuse a server, so the suite always runs against a
     // fresh dist/.
-    command: `npm run build && npm run preview -- --port ${PORT}`,
+    command: `npm run build && npm run build:standalone && npm run preview -- --port ${PORT}`,
     port: PORT,
     reuseExistingServer: false,
     timeout: 60_000

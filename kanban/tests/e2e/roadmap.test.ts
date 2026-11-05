@@ -781,12 +781,12 @@ test.describe('roadmap', () => {
     await expect(page.locator('#roadmapEntityModal')).toBeVisible();
 
     await page.keyboard.press('h');
-    await expect(page.locator('#helpModal')).toBeHidden();
+    await expect(page.locator('#docsView')).toBeHidden();
     await expect(page.locator('#roadmapEntityModal')).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
-    await expect(page.locator('#helpModal')).toBeHidden();
+    await expect(page.locator('#docsView')).toBeHidden();
   });
 
   const ROADMAP_EXTENSION = {

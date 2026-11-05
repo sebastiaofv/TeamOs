@@ -132,20 +132,6 @@
     gap: 14px;
 }
 
-.help-intro {
-    border: 1px solid var(--border);
-    background: var(--bg-primary);
-    padding: 12px 14px;
-}
-
-.help-intro-title {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--text-secondary);
-    margin-bottom: 6px;
-}
-
 .help-intro-text {
     font-size: 13px;
     color: var(--text-primary);
@@ -197,46 +183,6 @@
     .help-grid {
         grid-template-columns: 1fr;
     }
-}
-
-/* Help dialog tabs */
-.help-tabs {
-    display: flex;
-    gap: 2px;
-    padding: 0 16px;
-    border-bottom: 1px solid var(--border-light);
-}
-
-.help-tab {
-    position: relative;
-    top: 1px;
-    padding: 8px 14px;
-    border: 1px solid transparent;
-    border-bottom: none;
-    background: none;
-    color: var(--text-secondary);
-    font: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    cursor: pointer;
-}
-
-.help-tab:hover {
-    color: var(--text-primary);
-}
-
-.help-tab.active {
-    border-color: var(--border-light);
-    background: var(--bg-card);
-    color: var(--text-primary);
-    box-shadow: inset 0 2px 0 var(--accent);
-}
-
-.help-tab:focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: -2px;
 }
 
 /* Command palette guide */

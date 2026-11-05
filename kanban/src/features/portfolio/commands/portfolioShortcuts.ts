@@ -7,6 +7,7 @@ import type { CardRef, DialogName, PortfolioRow } from '@/features/portfolio/typ
 import type { DetailContext } from '@/features/portfolio/state/slices';
 import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
+import { closeDocs, toggleDocs } from '@/app/docs/docsMode';
 import { getPortfolioMutationActions, type PortfolioMutationActions } from './portfolioCommands';
 import {
     resetPortfolioFilters,
@@ -21,7 +22,9 @@ import { openCommandPalette } from '@/features/portfolio/palette/openCommandPale
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { clearTableFilters, setTableSort } from '@/features/portfolio/table/tableControls';
 
-export type ShortcutContext = 'global' | 'taskModal' | 'detailModal' | 'roadmapEntityModal' | 'shortcutsModal' | 'helpModal' | 'paletteModal' | 'appSettingsModal';
+// 'docs' is the documentation page with no dialog open: only shortcuts that
+// make sense away from the workspace apply there.
+export type ShortcutContext = 'global' | 'docs' | 'taskModal' | 'detailModal' | 'roadmapEntityModal' | 'shortcutsModal' | 'paletteModal' | 'appSettingsModal';
 
 export type Shortcut = {
     id: string;
@@ -68,6 +71,7 @@ function findVisibleRow(state: AppState, ref: CardRef | null): PortfolioRow | nu
 
 // Card shortcuts act on the hovered card, falling back to the selected one.
 function getShortcutTargetRow(state = getState()): PortfolioRow | null {
+    if (state.selectedPortfolioViewMode === 'dashboard') return null;
     return findVisibleRow(state, state.hoveredPortfolioCardRef)
         || findVisibleRow(state, state.selectedPortfolioCardRef);
 }
@@ -75,6 +79,7 @@ function getShortcutTargetRow(state = getState()): PortfolioRow | null {
 // The selected card scrolls itself into view (PortfolioTaskCard).
 export function selectAdjacentPortfolioCard(step: number): void {
     const state = getState();
+    if (state.selectedPortfolioViewMode === 'dashboard') return;
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     if (rows.length === 0) {
         useAppStore.setState({ selectedPortfolioCardRef: null });
@@ -141,35 +146,35 @@ const MOVE_SHORTCUTS: [string, TaskStatus, string][] = [
 export function createPortfolioShortcuts(actions: PortfolioMutationActions = getPortfolioMutationActions()): Shortcut[] {
     return [
     {
-        id: 'open-palette', section: 'Global', keys: ['Ctrl/⌘', 'K'], description: 'Open the command palette', contexts: ['global', 'detailModal'],
+        id: 'open-palette', section: 'Global', keys: ['Ctrl/⌘', 'K'], description: 'Open the command palette', contexts: ['global', 'docs', 'detailModal'],
         allowWhileTyping: true,
         match: (event) => (event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'k',
         handler: () => openCommandPalette()
     },
     {
-        id: 'focus-search', section: 'Global', keys: ['/'], description: 'Search tasks and commands', contexts: ['global'],
+        id: 'focus-search', section: 'Global', keys: ['/'], description: 'Search tasks and commands', contexts: ['global', 'docs'],
         match: (event) => noModifiers(event) && !event.shiftKey && event.key === '/',
         handler: () => openCommandPalette()
     },
     {
-        id: 'new-project', section: 'Global', keys: ['N'], description: 'Create a new project', contexts: ['global'],
+        id: 'new-project', section: 'Global', keys: ['N'], description: 'Create a new project', contexts: ['global', 'docs'],
         match: (event) => noModifiers(event) && isKey(event, 'n'),
-        handler: () => { void createNewProject(); }
+        handler: () => { closeDocs(); void createNewProject(); }
     },
     {
-        id: 'import-projects', section: 'Global', keys: ['I'], description: 'Import projects', contexts: ['global'],
+        id: 'import-projects', section: 'Global', keys: ['I'], description: 'Import projects', contexts: ['global', 'docs'],
         match: (event) => noModifiers(event) && isKey(event, 'i'),
-        handler: () => { void importPortfolioProjects(); }
+        handler: () => { closeDocs(); void importPortfolioProjects(); }
     },
     {
-        id: 'open-shortcuts', section: 'Global', keys: ['?'], description: 'Open keyboard shortcuts', contexts: ['global'],
+        id: 'open-shortcuts', section: 'Global', keys: ['?'], description: 'Open keyboard shortcuts', contexts: ['global', 'docs'],
         match: (event) => noModifiers(event) && (event.key === '?' || (event.key === '/' && event.shiftKey)),
         handler: () => openDialog('shortcuts')
     },
     {
-        id: 'open-help', section: 'Global', keys: ['H'], description: 'Open help manual', contexts: ['global'],
+        id: 'open-help', section: 'Global', keys: ['H'], description: 'Open or close the documentation', contexts: ['global', 'docs'],
         match: (event) => noModifiers(event) && isKey(event, 'h'),
-        handler: () => openDialog('help')
+        handler: () => toggleDocs({ moveFocus: true })
     },
     {
         id: 'reset-filters', section: 'Global', keys: ['R'], description: 'Reset filters and sort', contexts: ['global'],
@@ -298,7 +303,7 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
     },
     {
         id: 'close-modal', section: 'Modal', keys: ['Esc'], description: 'Close open modal',
-        contexts: ['taskModal', 'detailModal', 'roadmapEntityModal', 'shortcutsModal', 'helpModal', 'appSettingsModal'], allowWhileTyping: true,
+        contexts: ['taskModal', 'detailModal', 'roadmapEntityModal', 'shortcutsModal', 'appSettingsModal'], allowWhileTyping: true,
         match: (event) => event.key === 'Escape',
         handler: () => {
             actions.closeTaskEditor();
@@ -320,7 +325,6 @@ const SHORTCUT_CONTEXT_BY_DIALOG: Record<DialogName, ShortcutContext> = {
     taskDetail: 'detailModal',
     roadmapEntity: 'roadmapEntityModal',
     shortcuts: 'shortcutsModal',
-    help: 'helpModal',
     commandPalette: 'paletteModal'
 };
 
@@ -342,7 +346,8 @@ export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMu
     // An open app message owns the keyboard until it is answered.
     if (getState().appMessage) return;
     const activeDialog = getState().activeDialog;
-    const contextName = (activeDialog && SHORTCUT_CONTEXT_BY_DIALOG[activeDialog]) || 'global';
+    const contextName = (activeDialog && SHORTCUT_CONTEXT_BY_DIALOG[activeDialog])
+        || (getState().appMode === 'docs' ? 'docs' : 'global');
     const typing = isTyping();
     const shortcuts = actions === getPortfolioMutationActions()
         ? SHORTCUTS
@@ -352,7 +357,7 @@ export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMu
         // Card shortcuts must not target the hidden Board's independent rows.
         if (contextName === 'global' && getState().selectedPortfolioViewMode === 'table'
             && entry.section === 'Cards') continue;
-        if (contextName === 'global' && !areSingleKeyShortcutsEnabled() && isSingleKeyShortcut(entry)) continue;
+        if ((contextName === 'global' || contextName === 'docs') && !areSingleKeyShortcutsEnabled() && isSingleKeyShortcut(entry)) continue;
         if (typing && !entry.allowWhileTyping) continue;
         if (!entry.match(event)) continue;
         if (entry.when && !entry.when()) continue;

@@ -235,20 +235,19 @@ for (const theme of ['light', 'dark']) {
     await expect(page).toHaveScreenshot(`shortcuts-${theme}.png`, { fullPage: true });
   });
 
-  test(`help dialog open (${theme})`, async ({ page }) => {
+  test(`documentation page (${theme})`, async ({ page }) => {
     await gotoVisualApp(page, theme);
-    await page.locator('#openHelpBtn').click();
-    await expect(page.locator('#helpModal')).toBeVisible();
-    await expect(page.locator('#helpModal')).toContainText('Drag cards between columns');
-    await expect(page).toHaveScreenshot(`help-${theme}.png`, { fullPage: true });
+    await page.locator('#docsToggleBtn').click();
+    await expect(page.locator('#docsTopicTitle')).toHaveText('What TeamOS is');
+    await expect(page).toHaveScreenshot(`docs-${theme}.png`, { fullPage: true });
   });
 
-  test(`help command palette tab (${theme})`, async ({ page }) => {
+  test(`documentation palette guide (${theme})`, async ({ page }) => {
     await gotoVisualApp(page, theme);
-    await page.locator('#openHelpBtn').click();
-    await page.locator('#helpModal').getByRole('tab', { name: 'Command palette' }).click();
-    await expect(page.locator('#helpModal')).toContainText('Create a task in one line');
-    await expect(page).toHaveScreenshot(`help-palette-${theme}.png`, { fullPage: true });
+    await page.locator('#docsToggleBtn').click();
+    await page.locator('#docsView').getByRole('link', { name: 'Command palette', exact: true }).click();
+    await expect(page.locator('#docsView')).toContainText('Create a task in one line');
+    await expect(page).toHaveScreenshot(`docs-palette-${theme}.png`, { fullPage: true });
   });
 }
 
@@ -330,6 +329,7 @@ test.describe('2.1a modals and toast', () => {
         await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
         await expect(page.locator('#detailAttachments')).toBeVisible();
         await expect(page.locator('#detailAttachments .detail-attachment-item')).toHaveCount(2);
+        await expect(page.locator('#detailAttachments .attachment-open')).toHaveCount(2);
         await expect(page.locator('#detailAttachments')).toContainText('Ana Silva');
         await expect(page.locator('#detailAttachments')).toContainText('Unknown');
         await expect(page).toHaveScreenshot(`task-detail-attachments-${theme}${width === 390 ? '-narrow' : ''}.png`, { fullPage: true });
@@ -834,6 +834,21 @@ for (const theme of ['light', 'dark']) {
   }
 }
 
+for (const theme of ['light', 'dark']) {
+  test(`US-9 dashboard overview and sprint analytics (${theme})`, async ({ page }) => {
+    await gotoVisualApp(page, theme);
+    await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'));
+    const fixture = JSON.parse(readFileSync('test-board/us-9.board.json', 'utf8'));
+    await seedPortfolioBoards(page, [{ id: 'us9', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us9' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await page.mouse.move(1, 1);
+    await expect(page).toHaveScreenshot(`dashboard-overview-${theme}.png`, { animations: 'disabled' });
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
+    await page.mouse.move(1, 1);
+    await expect(page).toHaveScreenshot(`dashboard-sprints-${theme}.png`, { animations: 'disabled' });
+  });
+}
 test.describe('US-20 Project Control', () => {
   for (const theme of ['light', 'dark']) for (const width of [1280, 390]) {
     test(`tables and record dialog at ${width}px (${theme})`, async ({ page }) => {

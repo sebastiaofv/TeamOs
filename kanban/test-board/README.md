@@ -13,12 +13,14 @@ As histórias integradas têm os boards e roteiros nesta pasta em `main`; histó
 | US8 · branch `us-8` | [us-8.board.json](us-8.board.json) | [us-8.md](us-8.md) |
 | US4 · branch `us-4` | [us-4.board.json](us-4.board.json) | [us-4.md](us-4.md) |
 | US6 · branch `us-6` | [us-6.board.json](us-6.board.json) | [us-6.md](us-6.md) |
+| US9 · branch `codex/us-9-project-dashboard` · issue #33 | [us-9.board.json](us-9.board.json) | [us-9.md](us-9.md) |
 | US11 · integrada em `main` · PR #55 | [us-11.board.json](us-11.board.json) | [us-11.md](us-11.md) |
 | US12 · branch `feature/us-12-workitem-types` · issue #36 | [Checkout](us-12.board.json) + [Suporte](us-12-support.board.json) | [us-12.md](us-12.md) |
 | US20 · branch `codex/us-20-project-control` · issue #43 | [us-20.board.json](us-20.board.json) | [us-20.md](us-20.md) |
 | US13 · branch `codex/us-13-product-project-transfers` · issue #37 | [Construção](us-13.board.json) + [Manutenção](us-13-maintenance.board.json) + [Outro produto](us-13-other.board.json) + [Autónomo](us-13-independent.board.json) + [Hierarquia](us-13-hierarchy.board.json) | [us-13.md](us-13.md) |
 | US22 · branch `codex/us-22-sprint-lifecycle` · issue #57 | [us-22.board.json](us-22.board.json) | [us-22.md](us-22.md) |
 | US21 · integrada em `main` · PR #55 | [us-21.board.json](us-21.board.json) | [us-21.md](us-21.md) |
+| US23 · branch `codex/us-23-browser-attachments` · issue #62 | [us-23.board.json](us-23.board.json) | [us-23.md](us-23.md) |
 
 Para US1 e US3, usar a aplicação de `main`. Para histórias pendentes, usar o branch correspondente. Os boards das histórias anteriores podem estar presentes por herança do branch base; cada nova história acrescenta apenas os seus próprios ficheiros.
 
@@ -29,3 +31,5 @@ As datas são fixas em outubro/novembro de 2026; navegar para esse período no C
 ## Condição para próximas histórias
 
 Cada issue deve fornecer, no seu próprio branch e PR, um board JSON válido em `kanban/test-board/us-N.board.json` e o respetivo roteiro em `kanban/test-board/us-N.md`, com cenários representativos dos critérios de aceitação, estados vazios e casos-limite relevantes, passos e resultados esperados. O `README.md` desta pasta reúne as instruções gerais. Usar o esquema suportado pela respetiva implementação e validar o board antes do PR.
+
+- [US-9 Dashboard sections feedback](us-9-sections.md) — `us-9-sections.board.json`: nine sections, visibility, historical periods, category charts and Project Control records.

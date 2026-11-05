@@ -126,6 +126,7 @@
     color: var(--text-secondary);
 }
 
+.detail-attachment-open,
 .detail-attachment-download {
     display: inline-flex;
     align-items: center;
@@ -140,10 +141,20 @@
     letter-spacing: 0.4px;
 }
 
+.detail-attachment-open:hover,
 .detail-attachment-download:hover {
     background: var(--bg-secondary);
     border-color: var(--text-secondary);
 }
+
+.attachment-preview-actions {
+    display: grid;
+    grid-template-columns: 68px auto;
+    gap: 6px;
+    align-items: center;
+}
+.attachment-preview-actions .attachment-open { grid-column: 1; justify-content: center; }
+.attachment-preview-actions .attachment-download { grid-column: 2; grid-row: 1; }
 .task-conversation { min-width: 0; }
 .task-conversation h3 { font-size: 13px; margin: 0; }
 .comment-note, .comment-empty { color: var(--text-secondary); font-size: 11px; margin-block: 8px; }

@@ -29,6 +29,37 @@ export function classifyAttachmentKind(mime: unknown, fileName: unknown): Attach
     return 'file';
 }
 
+const PREVIEW_MIME_BY_EXTENSION: Record<string, string> = {
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif',
+    webp: 'image/webp', bmp: 'image/bmp', ico: 'image/x-icon', avif: 'image/avif',
+    pdf: 'application/pdf', txt: 'text/plain', csv: 'text/plain', json: 'application/json', xml: 'text/plain',
+    mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg', mp4: 'video/mp4', webm: 'video/webm'
+};
+const PREVIEW_MIME_ALIASES: Record<string, string> = {
+    'image/jpg': 'image/jpeg', 'text/json': 'application/json',
+    // CSV is downloaded by browsers when served as text/csv. Display its source
+    // as text instead, also keeping XML previews independent of stylesheets.
+    'text/csv': 'text/plain', 'application/csv': 'text/plain',
+    'text/xml': 'text/plain', 'application/xml': 'text/plain',
+    'audio/mp3': 'audio/mpeg', 'audio/x-wav': 'audio/wav', 'audio/wave': 'audio/wav',
+    'audio/vnd.wave': 'audio/wav', 'application/ogg': 'audio/ogg'
+};
+const PREVIEW_MIMES = new Set(Object.values(PREVIEW_MIME_BY_EXTENSION));
+
+export function getAttachmentPreviewMime(attachment: { name: string; mime: string; dataUrl: string }): string | null {
+    // The embedded type takes precedence. Only fall back to the filename for
+    // missing/generic types; an HTML or Office file must never become a preview.
+    const embeddedMime = /^data:([^;,]*)/i.exec(attachment.dataUrl)?.[1] || '';
+    for (const candidate of [embeddedMime, attachment.mime]) {
+        const mime = candidate.split(';')[0].trim().toLowerCase();
+        if (!mime || mime === 'application/octet-stream') continue;
+        if (Object.hasOwn(PREVIEW_MIME_ALIASES, mime)) return PREVIEW_MIME_ALIASES[mime];
+        return PREVIEW_MIMES.has(mime) ? mime : null;
+    }
+    const extension = attachment.name.split('.').pop()?.toLowerCase() || '';
+    return Object.hasOwn(PREVIEW_MIME_BY_EXTENSION, extension) ? PREVIEW_MIME_BY_EXTENSION[extension] : null;
+}
+
 export function createAttachmentId(): string {
     return `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }

@@ -21,7 +21,8 @@ test.describe('app shell', () => {
     await expect(page.locator('#boardView')).toHaveCount(0);
     await expect(page.locator('.header-actions > #importProjectsBtn')).toBeVisible();
     await expect(page.locator('.header-actions > #newProjectBtn')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Help' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open documentation' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Help', exact: true })).toHaveCount(0);
     await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
     await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
     await expect(page.getByRole('button', { name: 'Technical Board', exact: true })).toHaveCount(0);
@@ -74,13 +75,13 @@ test.describe('app shell', () => {
 
     await expect(toggle).toHaveText('EN');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.locator('#openHelpBtn')).toHaveText('Help');
+    await expect(page.locator('#docsToggleBtn')).toHaveAttribute('aria-label', 'Open documentation');
 
     await toggle.click();
 
     await expect(toggle).toHaveText('PT');
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
-    await expect(page.locator('#openHelpBtn')).toHaveText('Ajuda');
+    await expect(page.locator('#docsToggleBtn')).toHaveAttribute('aria-label', 'Abrir documentação');
     await expect(page.locator('#openShortcutsBtn')).toHaveText('Atalhos');
     expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanLanguage'))).toBe('pt');
 
@@ -88,7 +89,7 @@ test.describe('app shell', () => {
 
     await expect(page.locator('#languageToggleBtn')).toHaveText('PT');
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
-    await expect(page.locator('#openHelpBtn')).toHaveText('Ajuda');
+    await expect(page.locator('#docsToggleBtn')).toHaveAttribute('aria-label', 'Abrir documentação');
 
     await page.locator('#languageToggleBtn').click();
     await expect(page.locator('#languageToggleBtn')).toHaveText('EN');
@@ -146,15 +147,6 @@ test.describe('app shell', () => {
     await expect(page.locator('#portfolioCalendarView')).toBeHidden();
   });
 
-  test('help button opens and closes help modal', async ({ page }) => {
-    await page.getByRole('button', { name: 'Help' }).click();
-    await expect(page.locator('#helpModal')).toBeVisible();
-    await expect(page.locator('#helpModal')).toContainText('Drag cards between columns');
-
-    await page.keyboard.press('Escape');
-    await expect(page.locator('#helpModal')).toBeHidden();
-  });
-
   test('keyboard shortcut opens shortcuts modal', async ({ page }) => {
     await page.keyboard.press('Shift+/');
     await expect(page.locator('#shortcutsModal')).toBeVisible();
@@ -165,10 +157,11 @@ test.describe('app shell', () => {
     await expect(page.locator('#shortcutsModal')).toBeHidden();
   });
 
-  test('keyboard shortcuts can open help and import projects', async ({ page }) => {
+  test('keyboard shortcuts can open documentation and import projects', async ({ page }) => {
     await page.keyboard.press('h');
-    await expect(page.locator('#helpModal')).toBeVisible();
-    await page.keyboard.press('Escape');
+    await expect(page.locator('#docsView')).toBeVisible();
+    await page.keyboard.press('h');
+    await expect(page.locator('#portfolioView')).toBeVisible();
 
     await mockImportProjectsPicker(page, [
       {
@@ -183,31 +176,6 @@ test.describe('app shell', () => {
     await page.keyboard.press('i');
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Imported Via Shortcut');
     await expect(portfolioCard(page, 'Shortcut import task')).toBeVisible();
-  });
-
-  for (const method of ['Escape', 'close button', 'footer button', 'overlay click']) {
-    test(`help dialog takes focus and returns it to the Help button when closed by ${method}`, async ({ page }) => {
-      const trigger = page.locator('#openHelpBtn');
-      await trigger.click();
-      await expect(page.locator('#helpModal')).toBeVisible();
-      await expect.poll(() => focusIsInside(page, '#helpModal')).toBe(true);
-
-      await closeDialogBy(page, 'helpModal', method);
-
-      await expect(page.locator('#helpModal')).toHaveCount(0);
-      await expect(trigger).toBeFocused();
-    });
-  }
-
-  test('help dialog opened by shortcut returns focus to the page body on close', async ({ page }) => {
-    await page.keyboard.press('h');
-    await expect(page.locator('#helpModal')).toBeVisible();
-    await expect.poll(() => focusIsInside(page, '#helpModal')).toBe(true);
-
-    await page.keyboard.press('Escape');
-
-    await expect(page.locator('#helpModal')).toHaveCount(0);
-    await expect.poll(() => page.evaluate(() => document.activeElement === document.body)).toBe(true);
   });
 
   for (const method of ['Escape', 'close button', 'footer button', 'overlay click']) {
