@@ -10,7 +10,7 @@ async function seed(page: Page, writable = true) {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'sections', title: data.board.settings.title, hasHandle: writable, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sections' });
     await page.locator('[data-view-mode="dashboard"]').click();
-    await page.getByLabel('Start date', { exact: true }).fill('2026-10-24');
+    await page.getByLabel('Start date', { exact: true }).fill('24/10/2026');
 }
 
 test('nine sections appear in the requested order; visibility affects entire sections and supports all/none', async ({ page }) => {
@@ -36,7 +36,7 @@ test('nine sections appear in the requested order; visibility affects entire sec
 
 test('period activity uses category changes, independent Tasks and Stories, and end-date status/responsibility', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('End date', { exact: true }).fill('2026-10-30');
+    await page.getByLabel('End date', { exact: true }).fill('30/10/2026');
     const started = section(page, 'started');
     const completed = section(page, 'completedInPeriod');
     await expect(started.locator('tbody tr')).toHaveCount(2);
@@ -53,9 +53,9 @@ test('period activity uses category changes, independent Tasks and Stories, and 
     await started.getByRole('button', { name: 'Independent task started', exact: true }).click();
     await expect(page.locator('#taskDetailModal')).toContainText('Testing');
     await page.keyboard.press('Escape');
-    await page.getByLabel('Start date', { exact: true }).fill('2026-10-26');
+    await page.getByLabel('Start date', { exact: true }).fill('26/10/2026');
     await expect(started.locator('tbody tr')).toHaveCount(0); // Doing → Testing stays in the same category.
-    await page.getByLabel('End date', { exact: true }).fill('2026-10-29');
+    await page.getByLabel('End date', { exact: true }).fill('29/10/2026');
     await expect(completed.locator('tbody tr')).toHaveCount(0);
     await expect(section(page, 'currentlyInProgress')).toContainText('Story started then completed');
 });
@@ -64,7 +64,7 @@ test('historical controls show risks and decisions still open at end date and de
     await seed(page);
     await expect(section(page, 'openRisks').locator('tbody tr')).toHaveCount(1);
     await expect(section(page, 'decisions').locator('tbody tr')).toHaveCount(1);
-    await page.getByLabel('End date', { exact: true }).fill('2026-10-31');
+    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
     await expect(section(page, 'openRisks').locator('tbody tr')).toHaveCount(2);
     await expect(section(page, 'decisions').locator('tbody tr')).toHaveCount(2);
     await expect(section(page, 'deliverables').locator('tbody tr')).toHaveCount(2);
@@ -88,7 +88,7 @@ test('historical controls show risks and decisions still open at end date and de
 
 test('overview excludes child/future/completed phases and shares warning treatment with overdue milestones', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('End date', { exact: true }).fill('2026-10-31');
+    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
     const overview = section(page, 'projectOverview');
     await expect(overview).toContainText('Overdue parent phase');
     await expect(overview).toContainText('Delivery programme');
@@ -115,8 +115,8 @@ test('active sprint displays shared planning-unit completion, dates and navigati
     await seed(page);
     const sprint = section(page, 'activeSprint');
     await expect(sprint).toContainText('Sprint 2 - Implementation');
-    await expect(sprint).toContainText('2026-10-15');
-    await expect(sprint).toContainText('2026-11-05');
+    await expect(sprint).toContainText('15/10/2026');
+    await expect(sprint).toContainText('05/11/2026');
     await expect(sprint).toContainText('0%'); // Story validation and independent Task are still open.
     await sprint.getByRole('button', { name: 'Sprint 2 - Implementation', exact: true }).click();
     await expect(page.locator('[data-roadmap-task-list="sprint:active"]')).toBeVisible();
@@ -146,7 +146,7 @@ for (const theme of ['light', 'dark']) test(`Portuguese read-only sections remai
 test('consultation leaves the project file untouched', async ({ page }) => {
     await seed(page);
     const before = await readSavedBoard(page, 'sections');
-    await page.getByLabel('End date', { exact: true }).fill('2026-10-31');
+    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
     await section(page, 'openRisks').getByRole('button', { name: 'Risk closed after period', exact: true }).click();
     await page.keyboard.press('Escape');
     await page.locator('[data-dashboard-kpi="progress"]').click();

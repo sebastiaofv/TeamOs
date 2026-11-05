@@ -163,7 +163,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                         >×</button>
                     )}
                 </div>
-                {viewMode !== 'dashboard' && <PortfolioToolbarFilters />}
+                {viewMode !== 'dashboard' && viewMode !== 'board' && <PortfolioToolbarFilters />}
                 <div className="filter-group">
                     <label htmlFor="portfolioSortSelect">{t('toolbar.sort')}</label>
                     <select id="portfolioSortSelect" ref={sortRef} value={sortValue} onChange={(event) => {
@@ -207,17 +207,10 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
                     >{t('toolbar.roadmap')}</button>
                     <button className={`btn${viewMode === 'control' ? ' active' : ''}${hasSelectedBoard ? '' : ' hidden'}`} type="button" data-view-mode="control" aria-pressed={viewMode === 'control'} onClick={() => setPortfolioViewMode('control')}>{t('control.view')}</button>
                     <button
-                        className={`btn${viewMode === 'calendar' ? ' active' : ''}`}
-                        type="button"
-                        data-view-mode="calendar"
-                        aria-pressed={viewMode === 'calendar'}
-                        onClick={() => setPortfolioViewMode('calendar')}
-                    >{t('toolbar.calendar')}</button>
-                    <button
-                        className={`btn${viewMode === 'planner' ? ' active' : ''}`}
+                        className={`btn${viewMode === 'planner' || viewMode === 'calendar' ? ' active' : ''}`}
                         type="button"
                         data-view-mode="planner"
-                        aria-pressed={viewMode === 'planner'}
+                        aria-pressed={viewMode === 'planner' || viewMode === 'calendar'}
                         onClick={() => setPortfolioViewMode('planner')}
                     >{t('toolbar.planner')}</button>
                 </div>
@@ -245,7 +238,7 @@ function ChipList({ state }: { state: ChipState }) {
                 <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={(event) => { selectPortfolioBoard(board.id); const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; }}>
                     {board.title || board.fileName}
                     {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
-                    {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}> • {saveUi.text}</span>}
+                    {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}>{saveUi.status === 'saving' && <span className="save-spinner" aria-hidden="true" />} {saveUi.text}</span>}
                 </button>
                 <button className="chip-link chip-settings" type="button" data-action="project-settings" data-board-id={board.id}
                     aria-label={t('project.settingsFor', { name: board.title || board.fileName })} title={t('project.settings')}

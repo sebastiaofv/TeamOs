@@ -31,7 +31,6 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     const portfolioAssignee = filters.assignee || '';
     const portfolioBlocked = normalizePortfolioBlockedFilter(filters.blocked || 'all');
     const portfolioEffort = filters.effort || '';
-    const portfolioArchive = filters.archive || 'active';
 
     if (portfolioSearch) params.set('pq', portfolioSearch);
     if (portfolioPriority) params.set('pp', portfolioPriority);
@@ -39,7 +38,6 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (filters.responsible) params.set('pr', filters.responsible);
     if (portfolioBlocked !== 'all') params.set('pbk', portfolioBlocked);
     if (portfolioEffort) params.set('pe', portfolioEffort);
-    if (portfolioArchive !== 'active') params.set('pa', portfolioArchive);
     if (filters.statuses.length) params.set('pst', filters.statuses.join(','));
     if (filters.phaseId) params.set('pph', filters.phaseId);
     if (filters.milestoneId) params.set('pm', filters.milestoneId);
@@ -76,7 +74,6 @@ export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDef
             responsible: readQueryParam('pr', '', windowRef),
             blocked: readQueryParam('pbk', 'all', windowRef),
             effort: readQueryParam('pe', '', windowRef),
-            archive: readQueryParam('pa', 'active', windowRef),
             statuses: readQueryParam('pst', '', windowRef).split(','),
             phaseId: readQueryParam('pph', '', windowRef),
             milestoneId: readQueryParam('pm', '', windowRef),

@@ -1,3 +1,4 @@
+import { workitemType } from '@/domain/workitems';
 import { workitemLabel } from '@/domain/taskIdentity';
 // The command palette's results for a query: sections of items, each carrying
 // a plain action descriptor that paletteActions runs. Pure, so it can be
@@ -38,7 +39,6 @@ export type PaletteAction =
     | { type: 'openTask'; boardId: string; taskId: number }
     | { type: 'editTask'; boardId: string; taskId: number }
     | { type: 'moveTask'; boardId: string; taskId: number; status: TaskStatus }
-    | { type: 'toggleArchive'; boardId: string; taskId: number }
     | { type: 'toggleAssignee'; boardId: string; taskId: number; name: string }
     | { type: 'setResponsible'; boardId: string; taskId: number; name: string }
     | { type: 'setPriority'; boardId: string; taskId: number; priority: Priority | null }
@@ -219,11 +219,9 @@ function taskActionItems(ctx: Ctx, row: PortfolioRow, compact: boolean): Palette
     items.push(item('assign', 'assign', ctx.t('palette.assign'), step('assignee')));
     items.push(item('responsible', 'assign', ctx.t('palette.setResponsible'), step('responsible')));
     if (!compact) items.push(item('priority', 'priority', ctx.t('palette.setPriority'), step('priority')));
-    items.push(item('plan', 'plan', ctx.t('palette.plan'), step('plan')));
+    if (workitemType(row.task) === 'task') items.push(item('plan', 'plan', ctx.t('palette.plan'), step('plan')));
     if (!compact) {
         items.push(item('edit', 'edit', ctx.t('palette.edit'), { type: 'editTask', boardId, taskId }, ['E']));
-        items.push(item('archive', 'archive', ctx.t(row.task.archived ? 'palette.restore' : 'palette.archive'),
-            { type: 'toggleArchive', boardId, taskId }, ['X']));
     }
     return items;
 }
@@ -271,6 +269,7 @@ function stepItems(ctx: Ctx, frame: Extract<PaletteFrame, { kind: 'step' }>, row
                 { checked: row.task.priority === priority }));
     }
     if (frame.step === 'plan') {
+        if (workitemType(row.task) !== 'task') return [];
         return planSlots(ctx).filter((slot) => matches(slot.label))
             .map((slot) => choice(`${slot.date}-${slot.startMinutes}`, 'time', slot.label,
                 { type: 'planTask', boardId, taskId, date: slot.date, startMinutes: slot.startMinutes }));
@@ -322,7 +321,7 @@ function planQuery(ctx: Ctx, match: RegExpExecArray): PaletteModel {
         ? clampPlannerStart(Number(match[2]) * 60 + Number(match[3] || 0), PLANNER_DEFAULT_BLOCK_MINUTES)
         : null;
     const items = ctx.rows
-        .filter((row) => canEdit(row) && !row.task.archived)
+        .filter((row) => canEdit(row) && workitemType(row.task) === 'task')
         .map((row) => [row, scoreText(row.task.title, text)] as const)
         .filter(([, score]) => score > 0)
         .sort((a, b) => b[1] - a[1])
@@ -391,7 +390,6 @@ function search(ctx: Ctx): PaletteModel {
     });
     // Recently used tasks rank a little higher, but only when they match.
     const tasks = ctx.rows
-        .filter((row) => !row.task.archived)
         .map((row) => {
             const score = taskScore(row, q, boardTitle(findBoard(ctx, row.boardId)));
             return [row, score > 0 && ctx.recent.includes(`task:${rowKey(row)}`) ? score + 5 : score] as const;
@@ -425,7 +423,7 @@ function home(ctx: Ctx): PaletteModel {
         const [kind, first, second] = key.split(':');
         if (kind === 'task') {
             const row = findRow(ctx, first, Number(second));
-            return row && !row.task.archived ? [taskItem(ctx, row, '')] : [];
+            return row ? [taskItem(ctx, row, '')] : [];
         }
         if (kind === 'project') {
             const board = findBoard(ctx, first);

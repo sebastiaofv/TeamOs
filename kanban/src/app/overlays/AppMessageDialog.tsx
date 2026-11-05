@@ -116,6 +116,7 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                             id="appMessageInput"
                             aria-labelledby="appMessageText"
                             required={message.input.required}
+                            readOnly={message.input.readOnly}
                             ref={inputRef}
                             value={inputValue}
                             onChange={(event) => setInputValue(event.target.value)}

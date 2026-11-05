@@ -26,7 +26,7 @@ export type AppMessage = {
     id: number;
     title: string;
     text: string;
-    input?: { defaultValue: string; required?: boolean };
+    input?: { defaultValue: string; required?: boolean; readOnly?: boolean };
     selection?: { required?: boolean; label: string; options: { value: unknown; label: string }[] };
     selections?: MessageSelection[];
     buttons: AppMessageButton[];

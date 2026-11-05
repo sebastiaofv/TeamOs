@@ -7,8 +7,7 @@ import {
   waitForBoardWrites,
   portfolioCard,
   focusIsInside,
-  closeDialogBy,
-  answerAppMessage
+  closeDialogBy
 } from '../support/portfolio';
 
 test.describe('task detail', () => {
@@ -130,11 +129,9 @@ test.describe('task detail', () => {
 
     const card = portfolioCard(page, 'Forget me');
     await card.hover();
-    await card.locator('button[title="Archive"]').click();
-    await answerAppMessage(page, { button: 'Archive' });
+    await card.locator('.task-advance').click();
     await waitForBoardWrites(page);
 
-    await expect(page.locator('#undoToast')).toBeVisible();
     await expect(page.locator('#taskDetailModal')).toBeHidden();
   });
 
@@ -180,18 +177,18 @@ test.describe('task detail', () => {
     await seedPortfolioBoards(page, [
       { id: 'd1', title: 'Detail Project', hasHandle: true, tasks: [{ id: 1, title: 'Undo in detail', status: 'backlog' }] }
     ], { selectedBoardId: 'd1' });
+    await portfolioCard(page, 'Undo in detail').hover();
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.locator('#commandPaletteInput').fill('to-do');
+    await page.locator('.palette-item').first().click();
+    await expect(page.locator('#undoToast')).toBeVisible();
     await portfolioCard(page, 'Undo in detail').click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
-
-    await page.keyboard.press('x');
-    await answerAppMessage(page, { button: 'Archive' });
-    await expect(page.locator('#undoToast')).toBeVisible();
-    await waitForBoardWrites(page, 1);
 
     await page.locator('#undoBtn').click();
 
     await waitForBoardWrites(page, 2);
-    await expect.poll(async () => (await readSavedBoard(page, 'd1')).board.tasks[0].archived).toBe(false);
+    await expect.poll(async () => (await readSavedBoard(page, 'd1')).board.tasks[0].status).toBe('backlog');
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await expect(page.locator('#detailTitle')).toHaveText('Undo in detail');
   });

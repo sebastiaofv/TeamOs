@@ -1,3 +1,4 @@
+import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import type { DraftMessage } from '@/features/portfolio/types';
 import type { Attachment } from '@/domain/types';
@@ -22,7 +23,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
 }) {
     const { t } = useI18n();
     const [pickerMessages, setPickerMessages] = useState<DraftMessage[]>([]);
-    const [uploadedBy, setUploadedBy] = useState(() => lastCommentAuthor(boardId));
+    const [uploaderDraft, setUploadedBy] = useState(() => lastCommentAuthor(boardId));
     const inputRef = useRef<HTMLInputElement>(null);
     const busyRef = useRef(false);
     const preparingRef = useRef(false);
@@ -33,6 +34,9 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
         mountedRef.current = true;
         return () => { mountedRef.current = false; };
     }, []);
+
+    const actor = projectActor(boardId);
+    const uploadedBy = actor?.name || uploaderDraft;
 
     async function pickFiles() {
         if (disabled || busyRef.current || preparingRef.current) return;
@@ -84,7 +88,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
         <div className="attachment-editor" id="taskAttachmentsEditor" aria-label={t('task.attachments')} aria-busy={busy}>
             <div className="attachment-uploader form-group">
                 <label htmlFor="taskAttachmentUploader">{t('attachments.uploadedBy')}</label>
-                <input id="taskAttachmentUploader" disabled={disabled || busy} type="text" autoComplete="off" value={uploadedBy} onChange={(event) => setUploadedBy(event.target.value)} />
+                <input id="taskAttachmentUploader" readOnly={Boolean(actor)} disabled={disabled || busy} type="text" autoComplete="off" value={uploadedBy} onChange={(event) => setUploadedBy(event.target.value)} />
             </div>
             <div className="attachment-editor-toolbar">
                 <button type="button" className="btn" id="taskAttachmentsAddBtn" disabled={disabled || busy} onClick={() => void pickFiles()}>{t('editor.addFiles')}</button>

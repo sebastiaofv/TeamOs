@@ -312,7 +312,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['permanentId', 'displayId', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
+        const optionalTaskKeys = new Set(['severity', 'permanentId', 'displayId', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -400,7 +400,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if (task.blocked === true && !normalizeBlockerReason(task.blockerReason)) {
             throw new Error('Blocked tasks require blockerReason.');
         }
-        const taskStatuses = workflowKind(task) === 'functional' && 'functionalWorkflow' in extensions ? functionalStatuses : statuses;
+        const taskStatuses = task.type === 'bug' && statuses.has(task.status) ? statuses : workflowKind(task) === 'functional' && 'functionalWorkflow' in extensions ? functionalStatuses : statuses;
         if (typeof task.status !== 'string' || !taskStatuses.has(task.status)) {
             throw new Error('Task status is invalid.');
         }

@@ -52,7 +52,7 @@ describe('independent technical and functional workflows', () => {
         expect(getWorkflow(data, { type: 'story' })).toEqual(original);
         expect(getWorkflow(data, { type: 'epic' })).toEqual(original);
         expect(getWorkflow(data, { type: 'task' })).toEqual(technical);
-        expect(getWorkflow(data, { type: 'bug' })).toEqual(technical);
+        expect(getWorkflow(data, { type: 'bug' })).toEqual(original);
         expect(getWorkflow(data, {})).toEqual(technical);
     });
 

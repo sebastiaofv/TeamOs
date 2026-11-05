@@ -1,3 +1,4 @@
+import { parseDateInput } from '@/domain/dates';
 import { WORKITEM_TYPES } from '@/domain/workitems';
 import type { WorkitemType } from '@/domain/types';
 // Parses the palette's quick-create line:
@@ -46,6 +47,8 @@ function resolveDueDate(value: string, today: string): string {
     const word = value.toLowerCase();
     if (word === 'today') return today;
     if (word === 'tomorrow') return shiftPlannerDate(today, 1);
+    const date = parseDateInput(value);
+    if (date) return date;
     if (parseRoadmapIsoDate(value)) return value;
     const weekday = word.length >= 3 ? WEEKDAYS.findIndex((name) => name.startsWith(word)) : -1;
     const todayDate = parseRoadmapIsoDate(today);

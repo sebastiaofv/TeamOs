@@ -193,7 +193,7 @@ test('US-13 fixtures expose explicit mapping, planning removal, preserved commen
     await expect(page.locator('#appMessageConfirmBtn')).toBeEnabled();
     await expect(page.locator('.transfer-workitem h4')).toContainText('Reparar portão');
     for (const field of await page.locator('select[data-field]:not([data-field="state"])').all()) await expect(field).toHaveValue('__remove__');
-    await expect(page.locator('.transfer-workitem')).toContainText('2026-10-29 · 09:00–10:00');
+    await expect(page.locator('.transfer-workitem')).toContainText('29/10/2026 · 09:00–10:00');
     await expect(page.locator('.transfer-workitem')).toContainText('Exterior');
     await page.locator('[data-field="member-0"]').selectOption({ label: 'Bruno' });
     await page.locator('[data-field="tag-0"]').selectOption({ label: 'maintenance' });
@@ -293,12 +293,12 @@ test('copying a Story to Done requires fresh acceptance and cancellation leaves 
         expect((await readSavedBoard(page, 'target')).board.tasks).toHaveLength(0);
         if (cancel) await page.locator('#appMessageCancelBtn').click();
         else {
-            await page.locator('#appMessageInput').fill('New reviewer');
+            await expect(page.locator('#appMessageInput')).toHaveAttribute('readonly', '');
             await page.locator('#appMessageConfirmBtn').click();
             await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
         }
     }
-    expect((await readSavedBoard(page, 'target')).board.tasks[0].acceptance.author).toBe('New reviewer');
+    expect((await readSavedBoard(page, 'target')).board.tasks[0].acceptance.author).toBe('Test user');
     expect((await readSavedBoard(page, 'source')).board.tasks[0].acceptance.author).toBe('Original author');
 });
 

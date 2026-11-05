@@ -66,7 +66,7 @@ export function createPlannerActions(
     async function addPlannerBlock(boardId: string, taskId: number, date: string, startMinutes: number): Promise<boolean> {
         const record = getBoardRecord(boardId);
         if (!record || !parseRoadmapIsoDate(date)) return false;
-        if (!record.data.board.tasks.some((task) => Number(task.id) === Number(taskId))) return false;
+        if (!record.data.board.tasks.some((task) => Number(task.id) === Number(taskId) && (!task.type || task.type === 'task'))) return false;
         const block: DayPlanBlock = { id: createDayPlanBlockId(), taskId: Number(taskId), date, ...createPlannerBlockTimes(startMinutes) };
         const added = await putBlock(boardId, block);
         if (added) showUndo(translateCurrent('planner.blockAdded'), () => dropBlock(boardId, block.id));

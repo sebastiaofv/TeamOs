@@ -223,12 +223,6 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
         when: canMutateTargetRow,
         handler: withTargetRow((row) => actions.editPortfolioTask(row.boardId, row.taskId))
     },
-    {
-        id: 'card-archive', section: 'Cards', keys: ['X'], description: 'Archive/restore hovered or selected card', contexts: ['global'],
-        match: (event) => noModifiers(event) && isKey(event, 'x'),
-        when: canMutateTargetRow,
-        handler: withTargetRow((row) => { void actions.togglePortfolioArchiveTask(row.boardId, row.taskId); })
-    },
     ...MOVE_SHORTCUTS.map(([key, status, label]): Shortcut => ({
         id: `move-${status}`,
         section: 'Cards',
@@ -294,12 +288,6 @@ export function createPortfolioShortcuts(actions: PortfolioMutationActions = get
         match: (event) => noModifiers(event) && isKey(event, 'e'),
         when: canEditOpenDetail,
         handler: withOpenDetail((context) => actions.editPortfolioTask(context.boardId, context.taskId))
-    },
-    {
-        id: 'detail-archive', section: 'Task Detail', keys: ['X'], description: 'Archive/restore open task', contexts: ['detailModal'],
-        match: (event) => noModifiers(event) && isKey(event, 'x'),
-        when: canEditOpenDetail,
-        handler: withOpenDetail((context) => { void actions.togglePortfolioArchiveTask(context.boardId, context.taskId); })
     },
     {
         id: 'close-modal', section: 'Modal', keys: ['Esc'], description: 'Close open modal',

@@ -30,14 +30,14 @@ describe('permanent workitem IDs', () => {
     it('allocates one sequence across all four types and preserves legacy IDs and history on reopen', async () => {
         const { create, current } = setup();
         for (const type of ['epic', 'story', 'task', 'bug'] as const) await create(type);
-        expect(current().board.tasks.map(workitemId)).toEqual(['1201', 'CHK-EP-1202', 'CHK-US-1203', 'CHK-TK-1204', 'CHK-BG-1205']);
+        expect(current().board.tasks.map(workitemId)).toEqual(['1201', 'CHK-EP-1202', 'CHK-US-1203', 'CHK-TK-1204', 'CHK-BG-1205', 'CHK-TK-1206']);
         const saved = serializeBoardDataFromObject(current());
         validateBoardData(saved);
         const reopened = serializeBoardDataFromObject(JSON.parse(JSON.stringify(saved)));
         expect(reopened.board.tasks).toEqual(saved.board.tasks);
         const replayed = reconstructBoardStateFromTimeline(reopened, reopened.extensions.timeline!.events.length - 1);
         expect(replayed.board.tasks.map(workitemId)).toEqual(saved.board.tasks.map(workitemId));
-        expect(saved.extensions.timeline!.events.filter((event) => event.kind === 'task.created').map((event) => event.snapshot!.displayId)).toEqual(['CHK-EP-1202', 'CHK-US-1203', 'CHK-TK-1204', 'CHK-BG-1205']);
+        expect(saved.extensions.timeline!.events.filter((event) => event.kind === 'task.created').map((event) => event.snapshot!.displayId)).toEqual(['CHK-EP-1202', 'CHK-US-1203', 'CHK-TK-1204', 'CHK-BG-1205', 'CHK-TK-1206']);
     });
 
     it('requests the missing legacy acronym once and replays configuration before the new item', async () => {
@@ -47,7 +47,7 @@ describe('permanent workitem IDs', () => {
         expect(current().extensions.project!.acronym).toBe('CHK');
         const replayed = reconstructBoardStateFromTimeline(current(), current().extensions.timeline!.events.length - 1);
         expect(replayed.extensions.project!.acronym).toBe('CHK');
-        expect(replayed.board.tasks.map(workitemId)).toEqual(['1201', 'CHK-TK-1202', 'CHK-BG-1203']);
+        expect(replayed.board.tasks.map(workitemId)).toEqual(['1201', 'CHK-TK-1202', 'CHK-BG-1203', 'CHK-TK-1204']);
     });
 
     it('does not consume a sequence or write when legacy configuration is cancelled or invalid', async () => {
@@ -68,7 +68,7 @@ describe('permanent workitem IDs', () => {
         expect(await actions.saveProjectSettings('p', draft, original)).toBe(true);
         await actions.setPortfolioTaskPriority('p', 1202, 'high');
         await create('bug');
-        expect(current().board.tasks.map(workitemId)).toEqual(['1201', 'CHK-TK-1202', 'PAY-BG-1203']);
+        expect(current().board.tasks.map(workitemId)).toEqual(['1201', 'CHK-TK-1202', 'PAY-BG-1203', 'PAY-TK-1204']);
     });
 
     it('rejects changes to the stored ID and type, including adding an ID to a legacy item', async () => {
@@ -92,13 +92,13 @@ describe('permanent workitem IDs', () => {
         actions.setPortfolioTimelineSelection('p', 0);
         expect(await actions.restorePortfolioTimelineSelection()).toBe(true);
         expect(current().board.tasks.map(workitemId)).toEqual(['1201']);
-        expect(await create('epic')).toBe(1204);
-        expect(current().board.tasks[1].displayId).toBe('CHK-EP-1204');
+        expect(await create('epic')).toBe(1205);
+        expect(current().board.tasks[1].displayId).toBe('CHK-EP-1205');
     });
 
     it('requires valid unique acronyms and rejects collisions atomically', async () => {
         const { create, current, store, actions } = setup();
-        for (const acronym of ['', 'ABCD', 'A1', 'ab', 'á']) expect(() => parseProjectData({ ...current().extensions.project, acronym })).toThrow();
+        for (const acronym of ['', 'ABCDE', 'A1', 'ab', 'á']) expect(() => parseProjectData({ ...current().extensions.project, acronym })).toThrow();
         const other = createEmptyProjectData('Other', 'OTH');
         store.setState({ portfolioBoards: [...store.getState().portfolioBoards, fromPartial({ id: 'other', data: other, title: 'Other', handle: {} })] });
         const original = structuredClone({ name: 'Checkout', project: current().extensions.project! });

@@ -1,3 +1,5 @@
+import { SaveButton } from '@/features/portfolio/projects/ProjectSaveStatus';
+import { DateInput } from '@/shared/ui/DateInput';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '../WorkitemTypeBadge';
 import { WORKITEM_TYPES, validParent } from '@/domain/workitems';
@@ -73,6 +75,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
 }) {
     const { saveTask, confirmResponsibleParticipantRemoval } = usePortfolioActions();
     const { t } = useI18n();
+    const [busy, setBusy] = useState(false);
     const [form, setForm] = useState<TaskEditorFields>(() => ({ ...vm.initial }));
     const blockerReasonRef = useRef<HTMLTextAreaElement>(null);
     const dueDateRef = useRef<HTMLInputElement>(null);
@@ -82,11 +85,14 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
     const update = <K extends keyof TaskEditorFields>(field: K, fieldValue: TaskEditorFields[K]) => setForm((current) => ({ ...current, [field]: fieldValue }));
     const bind = (field: TextField) => ({
         value: form[field],
-        onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => update(field, event.target.value)
+        onChange: (event: { target: { value: string } }) => update(field, event.target.value)
     });
     const submit = async () => {
-        const result = await saveTask(buildTaskDraft(form));
-        if (result?.focusField) fieldRefs[result.focusField].current?.focus();
+        if (busy || !document.querySelector<HTMLFormElement>('#taskForm')?.reportValidity()) return;
+        setBusy(true);
+        try { const result = await saveTask(buildTaskDraft(form));
+            if (result?.focusField) fieldRefs[result.focusField].current?.focus();
+        } finally { setBusy(false); }
     };
 
     useLayoutEffect(() => {
@@ -129,7 +135,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         <label htmlFor="taskDescription">{t('task.description')}</label>
                         <textarea id="taskDescription" {...bind('description')} />
                     </div>
-                    {(form.type === 'epic' ? ['objective', 'scope', 'businessValue'] as const : form.type === 'story' ? ['acceptanceCriteria'] as const : form.type === 'bug' ? ['stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment'] as const : []).map((field) => <div className="form-group" key={field}><label htmlFor={`workitem-${field}`}>{t(`workitems.${field}`)}</label><textarea id={`workitem-${field}`} value={form[field] || ''} onChange={(event) => update(field, event.target.value)} /></div>)}
+                    {(form.type === 'epic' ? ['objective', 'scope', 'businessValue'] as const : form.type === 'story' ? ['acceptanceCriteria'] as const : form.type === 'bug' ? ['stepsToReproduce', 'expectedResult', 'actualResult', 'environment'] as const : []).map((field) => <div className="form-group" key={field}><label htmlFor={`workitem-${field}`}>{t(`workitems.${field}`)}</label><textarea id={`workitem-${field}`} value={form[field] || ''} onChange={(event) => update(field, event.target.value)} /></div>)}
                     {['task', 'bug'].includes(form.type || 'task') && <div className="form-group">
                         <label id="taskTodoListLabel">{t('task.todoList')}</label>
                         <ChecklistEditor value={form.checklist} onChange={(next) => update('checklist', next)} />
@@ -142,7 +148,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             const type = event.target.value as NonNullable<TaskEditorFields['type']>;
                             setForm((current) => ({ ...current, type, parentId: null, ...(type === 'epic' ? { effort: '', pullRequests: [] } : {}) }));
                         }}>{WORKITEM_TYPES.map((type) => <option key={type} value={type}>{t(`workitems.type.${type}`)}</option>)}</select></div>
-                        {['story', 'task'].includes(form.type || 'task') && <div className="form-group"><label htmlFor="workitemParent">{t('workitems.parent')}</label><select id="workitemParent" value={form.parentId || ''} onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value ? Number(event.target.value) : null, phaseMode: event.target.value && !current.phaseId ? 'inherit' : current.phaseMode, milestoneMode: event.target.value && !current.milestoneId ? 'inherit' : current.milestoneMode }))}>
+                        {['story', 'bug', 'task'].includes(form.type || 'task') && <div className="form-group"><label htmlFor="workitemParent">{t('workitems.parent')}</label><select id="workitemParent" value={form.parentId || ''} onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value ? Number(event.target.value) : null, phaseMode: event.target.value && !current.phaseId ? 'inherit' : current.phaseMode, milestoneMode: event.target.value && !current.milestoneId ? 'inherit' : current.milestoneMode }))}>
                             <option value="">{t('common.none')}</option>{vm.parentCandidates?.filter((parent) => validParent(form.type || 'task', parent)).map((parent) => <option key={parent.id} value={parent.id}>{workitemLabel(parent)} {parent.title}</option>)}
                         </select></div>}
                     </div>
@@ -150,7 +156,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             <section className="workitem-property-group"><h3>{t('workitems.properties')}</h3>
                     <div className="form-group">
                         <label htmlFor="taskDueDate">{t('task.due')}</label>
-                        <input type="date" id="taskDueDate" ref={dueDateRef} {...bind('dueDate')} />
+                        <DateInput  id="taskDueDate" ref={dueDateRef} {...bind('dueDate')} />
                     </div>
                     <div className="form-row">
                         <div className="form-group">
@@ -227,7 +233,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
             </div>
             <div className="modal-footer">
                 <Dialog.Close className="btn" id="taskModalCancelBtn">{t('common.cancel')}</Dialog.Close>
-                <button className="btn btn-primary" id="taskModalSaveBtn" onClick={submit}>{t(form.type && form.type !== 'task' ? 'common.save' : 'task.save')}</button>
+                <SaveButton boardId={vm.boardId} busy={busy} className="btn btn-primary" id="taskModalSaveBtn" onClick={submit}>{t(form.type && form.type !== 'task' ? 'common.save' : 'task.save')}</SaveButton>
             </div>
         </>
     );

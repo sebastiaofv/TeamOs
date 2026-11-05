@@ -85,7 +85,7 @@ function plannerValues(event: TimelineEvent, language: Language): Record<string,
 
 export function describeTimelineEvent(event: TimelineEvent | null | undefined, language: Language): string {
     if (!event) return '';
-    if (event.kind === 'task.relations.updated' && /[A-Z]{1,3}-(EP|US|TK|BG)-[1-9][0-9]*$/.test(event.summary)) {
+    if (event.kind === 'task.relations.updated' && /[A-Z]{1,4}-(EP|US|TK|BG)-[1-9][0-9]*$/.test(event.summary)) {
         return translate(language, 'relations.event', { id: event.summary.split(': ').at(-1)! }).replace('#', '');
     }
     for (const descriptor of DESCRIPTORS[event.kind] || []) {

@@ -54,7 +54,7 @@ test('responsible and participant filters combine across all views, including em
   await page.getByLabel('Participant', { exact: true }).selectOption('Rui');
   await page.keyboard.press('Escape');
   expect(new URL(page.url()).searchParams.get('pr')).toBe('Ana');
-  for (const view of ['board', 'table', 'roadmap', 'calendar', 'planner']) {
+  for (const view of ['board', 'table', 'roadmap', 'planner']) {
     await page.locator(`[data-view-mode="${view}"]`).click();
     await openFiltersPanel(page);
     await expect(page.locator('#portfolioResponsibleFilter')).toHaveValue('Ana');

@@ -1,3 +1,4 @@
+import { DateInput } from '@/shared/ui/DateInput';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { workitemLabel } from '@/domain/taskIdentity';
@@ -38,7 +39,7 @@ export function TaskProperties({ vm, task }: { vm: TaskDetailViewModel; task: Ta
                     <option value="">{t('common.none')}</option>{['XS', 'S', 'M', 'L', 'XL'].map((value) => <option key={value}>{value}</option>)}
                 </select></div>}
             <div className="form-group"><label htmlFor="detailDueDateInput">{t('task.due')}</label>
-                <input id="detailDueDateInput" type="date" value={task.dueDate || ''} onChange={(event) => save({ dueDate: event.target.value })} /></div>
+                <DateInput id="detailDueDateInput"  value={task.dueDate || ''} onChange={(event) => save({ dueDate: event.target.value })} /></div>
             <BlockerEditor key={`${task.id}:${task.blocked}:${task.blockerReason}`} task={task} effectiveBlocked={isTaskBlocked(data, task.id) || permanentBlockedIds(data, projects, unavailable.flatMap((entry) => entry.relations)).has(task.id)} save={save} />
         </section>
         <section className="workitem-property-group"><h3>{t('workitems.people')}</h3>
@@ -55,7 +56,7 @@ export function TaskProperties({ vm, task }: { vm: TaskDetailViewModel; task: Ta
                 <TagEditor value={task.tags} suggestions={project.tags} onChange={(tags) => save({ tags })} /></div>
         </section>
         <section className="workitem-property-group"><h3>{t('roadmap.planning')}</h3>
-            {['story', 'task'].includes(type) && <div className="form-group"><label htmlFor="detailParentInput">{t('workitems.parent')}</label>
+            {['story', 'bug', 'task'].includes(type) && <div className="form-group"><label htmlFor="detailParentInput">{t('workitems.parent')}</label>
                 <select id="detailParentInput" value={task.parentId || ''} onChange={(event) => save({ parentId: event.target.value ? Number(event.target.value) : null })}>
                     <option value="">{t('common.none')}</option>{data.board.tasks.filter((parent) => parent.id !== task.id && validParent(type, parent)).map((parent) => <option key={parent.id} value={parent.id}>{workitemLabel(parent)} {parent.title}</option>)}
                 </select></div>}

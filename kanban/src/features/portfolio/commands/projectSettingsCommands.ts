@@ -51,5 +51,16 @@ export function createProjectSettingsActions(context: BoardMutationContext) {
             return true;
         }, { onMutated: () => closeDialogFn('projectSettings') });
     }
-    return { openProjectSettings, saveProjectSettings };
+    async function addProjectMember(boardId: string, name: string): Promise<string | null> {
+        const id = crypto.randomUUID();
+        let applied = false;
+        await runPortfolioBoardMutation(boardId, (data) => {
+            const project = data.extensions.project!;
+            applyProjectSettings(data, { name: data.board.settings.title, project: { ...project, members: [...project.members, { id, name: name.trim() }] } });
+            appendTimelineEvent(data, { kind: 'board.project.updated', entityType: 'board', entityId: project.id, summary: translateCurrent('project.updated'), snapshot: createBoardStateSnapshot(data), meta: { author: name.trim(), memberId: id } });
+            return true;
+        }, { onMutated: () => { applied = true; } });
+        return applied ? id : null;
+    }
+    return { openProjectSettings, saveProjectSettings, addProjectMember };
 }

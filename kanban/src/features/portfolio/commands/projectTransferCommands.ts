@@ -1,3 +1,4 @@
+import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { childTransferReview, projectTransferFields } from './projectTransferReview';
 import { requestWorkitemAcceptance } from './workitemAcceptance';
 import { assertWorkitemTransfer, transferDescendants, workitemType, WorkitemError } from '@/domain/workitems';
@@ -20,6 +21,9 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
     const writable = (id: string) => Boolean(getBoardRecord(id)?.handle) && !isBoardInHistoricalPreview(getState(), id)
         && !['conflict', 'watch-error'].includes(getState().projectSaveStateById.get(id)?.watchStatus || '');
     function publish(boardId: string, data: BoardData) {
+        const firstEvent = getBoardRecord(boardId)?.data.extensions.timeline?.events.length || 0;
+        const actor = projectActor(boardId);
+        if (actor) for (const event of data.extensions.timeline?.events.slice(firstEvent) || []) event.meta = { ...event.meta, author: event.meta?.author || actor.name, memberId: actor.id };
         validateBoardData(data);
         commitState((state) => ({ portfolioBoards: state.portfolioBoards.map((board) => board.id === boardId ? { ...board, data } : board),
             ...(state.portfolioTimelineSelection.boardId === boardId ? { portfolioTimelineSelection: { boardId, eventIndex: (data.extensions.timeline?.events.length || 1) - 1 } } : {}) }));
@@ -120,7 +124,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (statusCategory(stateId, destination.data, task) === 'completed' && ['story', 'bug'].includes(workitemType(task)) && !(mode === 'move' && task.acceptance)) {
                 // This item arrives without children; its new local number cannot refer to destination children.
                 const preview = { ...task, id: nextTaskIdForBoard(destination), status: stateId };
-                const author = await requestWorkitemAcceptance(destination.data, preview, prompt);
+                const author = await requestWorkitemAcceptance(destination.data, preview, prompt, projectActor(destinationId)?.name);
                 if (author === null) return false;
                 acceptanceAuthor = author;
             }

@@ -555,9 +555,9 @@ describe('formatDateTime', () => {
     expect(formatDateTime('not-a-date')).toBe('-');
   });
 
-  it('formats a valid ISO timestamp using the platform locale formatter', () => {
+  it('formats a valid ISO timestamp as day/month/year in UTC', () => {
     const iso = '2024-03-05T12:34:56.000Z';
-    expect(formatDateTime(iso)).toBe(new Date(iso).toLocaleString());
+    expect(formatDateTime(iso)).toBe('05/03/2024 12:34:56');
   });
 });
 

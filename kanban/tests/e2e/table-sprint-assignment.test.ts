@@ -31,7 +31,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   const select = page.locator('#roadmapEntityExistingSprint');
   await expect(select).toBeFocused();
   await expect(select.locator('option')).toHaveText([
-    'Select sprint', 'Sprint 2 - Current • 2026-10-19 to 2026-10-19', 'Sprint 3 - Next • 2026-10-20 to 2026-11-01'
+    'Select sprint', 'Sprint 2 - Current • 19/10/2026 to 19/10/2026', 'Sprint 3 - Next • 20/10/2026 to 01/11/2026'
   ]);
   await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeDisabled();
   await select.selectOption('planned');
@@ -56,7 +56,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   expect(saved.extensions.timeline.events.findLast((event: { kind: string }) => event.kind === 'roadmap.bulk-assigned').meta).toMatchObject({ action: 'assign-existing', taskIds: [1, 2] });
   expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(1);
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
-  await expect(page.locator('#tableCounts')).toHaveText('1 of 1 workitems · 1 active · 0 archived');
+  await expect(page.locator('#tableCounts')).toHaveText('1 of 1 workitems');
   await expect(add).toBeDisabled();
   await page.locator('#workitemsTable [data-task-id="3"] input').check();
   await add.click();

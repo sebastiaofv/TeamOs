@@ -89,7 +89,7 @@ for (const width of [1440, 390]) test(`sidebar edits stay usable and types have 
     await page.getByRole('combobox', { name: 'Responsible', exact: true }).selectOption('Rui');
     await expect(page.locator('#taskAssigneeItems')).toContainText('Rui');
     await page.getByRole('combobox', { name: 'Effort', exact: true }).selectOption('XL');
-    await page.locator('#taskDetailModal').getByLabel('Due', { exact: true }).fill('2026-11-10');
+    await page.locator('#taskDetailModal').getByLabel('Due', { exact: true }).fill('10/11/2026');
     await page.locator('#detailBlockedInput').check();
     await page.locator('#detailBlockerInput').fill('Awaiting review');
     await page.locator('#detailBlockerInput').press('Tab');

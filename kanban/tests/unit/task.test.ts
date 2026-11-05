@@ -515,9 +515,9 @@ describe('isTaskOverdue', () => {
     expect(isTaskOverdue(fromAny(task))).toBe(false);
   });
 
-  it('returns false for an overdue-by-date task that is archived', () => {
+  it('includes overdue items carrying a retired archive flag', () => {
     const task = { dueDate: localIsoDateOffset(-1), status: 'doing', archived: true };
-    expect(isTaskOverdue(fromAny(task))).toBe(false);
+    expect(isTaskOverdue(fromAny(task))).toBe(true);
   });
 });
 

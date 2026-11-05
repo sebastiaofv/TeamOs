@@ -1,3 +1,5 @@
+import { formatTimestamp } from '@/domain/dates';
+import { projectActor, selectProjectMember, useProjectIdentityRevision } from '@/features/portfolio/projects/projectIdentity';
 import { controlRecords } from '@/domain/projectControl';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -24,7 +26,7 @@ function PlainCommentText({ text }: { text: string }) {
 }
 
 export function TaskConversation({ context }: { context: ConversationContext }) {
-    const { t, language } = useI18n();
+    const { t } = useI18n();
     const board = useAppStore((state) => state.portfolioBoards.find((item) => item.id === context.boardId));
     const { publishPortfolioComment, publishControlComment } = usePortfolioActions();
     useConversationDraftRevision();
@@ -43,7 +45,10 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
     const sessionKey = draftKey(context.boardId, identity);
     const stored = getConversationDraft(sessionKey);
     const draftContext = { projectId: context.boardId, taskId: record?.id || context.task!.id, workitemKey: identity, title: record?.title || context.task!.title };
-    const draft = stored || { ...draftContext, id: '', text: '', author: lastCommentAuthor(context.boardId), images: [] };
+    const rawDraft = stored || { ...draftContext, id: '', text: '', author: lastCommentAuthor(context.boardId), images: [] };
+    useProjectIdentityRevision();
+    const actor = projectActor(context.boardId);
+    const draft = actor ? { ...rawDraft, author: actor.name } : rawDraft;
     const comments = record?.comments || (board && context.task ? visibleComments(board.data, context.task, context.eventIndex) : []);
     const shown = comments.slice(-visible).reverse();
     const people = [...new Set(board?.data.board.tasks.flatMap((task) => task.assignees) || [])];
@@ -112,14 +117,14 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
             <div className="comment-composer-heading">
                 <h3>{t('comments.addComment')}</h3>
                 <div className="comment-posting-as">
-                    <span>{t('comments.postingAs')} <strong>{draft.author || t('comments.author')}</strong></span><span aria-hidden="true">·</span>
-                    <button type="button" className="comment-change-author" aria-expanded={editingAuthor} aria-controls="commentAuthorEditor" onClick={() => {
+                    <span>{t('comments.postingAs')} {actor ? <select id="commentIdentity" aria-label={t('identity.member')} value={actor.id} onChange={(event) => selectProjectMember(context.boardId, event.target.value)}>{board?.data.extensions.project?.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}<option value="@new">{t('identity.create')}</option></select> : <strong>{draft.author || t('comments.author')}</strong>}</span><span aria-hidden="true">·</span>
+                    {!actor && <button type="button" className="comment-change-author" aria-expanded={editingAuthor} aria-controls="commentAuthorEditor" onClick={() => {
                         setEditingAuthor(true);
                         requestAnimationFrame(() => authorInput.current?.focus());
-                    }}>{t('comments.changeAuthor')}</button>
+                    }}>{t('comments.changeAuthor')}</button>}
                 </div>
             </div>
-            {editingAuthor && <div id="commentAuthorEditor" className="comment-author-editor">
+            {!actor && editingAuthor && <div id="commentAuthorEditor" className="comment-author-editor">
                 <label htmlFor="commentAuthor">{t('comments.author')}</label>
                 <input ref={authorInput} id="commentAuthor" list="commentAuthorSuggestions" autoComplete="off" value={draft.author} onChange={(e) => { rememberCommentAuthor(context.boardId, e.target.value); update({ author: e.target.value, error: undefined }); }} onBlur={() => { if (draft.author.trim()) setEditingAuthor(false); }} onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) { event.preventDefault(); event.stopPropagation(); if (draft.author.trim()) { setEditingAuthor(false); document.getElementById('commentText')?.focus(); } }
@@ -145,7 +150,7 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
         <div className="comment-list-heading"><h3 id="taskConversationHeading">{t('comments.title')} ({comments.length})</h3><span>{t('comments.newestFirst')}</span></div>
         {!comments.length && <p className="comment-empty">{t('comments.empty')}</p>}
         <ol className="comment-list" ref={list}>{shown.map((comment) => <li className="comment-publication" data-comment-id={comment.id} key={comment.id}>
-            <header><strong>{comment.author.name}</strong><span>{t('comments.localAuthor')}</span><time dateTime={comment.at}>{new Date(comment.at).toLocaleString(language === 'pt' ? 'pt-PT' : 'en', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</time></header>
+            <header><strong>{comment.author.name}</strong><span>{t('comments.localAuthor')}</span><time dateTime={comment.at}>{formatTimestamp(comment.at)}</time></header>
             {comment.text && <PlainCommentText text={comment.text} />}
             {comment.images.length > 0 && <div className="comment-images">{comment.images.map(imageCard)}</div>}
         </li>)}</ol>

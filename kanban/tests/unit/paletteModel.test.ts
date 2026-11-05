@@ -68,7 +68,7 @@ describe('buildPaletteModel', () => {
   it('puts "Filter board by" first, then matching tasks, projects and commands', () => {
     const model = buildPaletteModel(input({ query: 'login' }));
     expect(model.sections[0].items[0]).toMatchObject({ label: 'Filter board by "login"', action: { type: 'filterBoard', text: 'login' } });
-    expect(labels(model, 'tasks')).toEqual(['Login bug on Android']);
+    expect(labels(model, 'tasks')).toEqual(['Login bug on Android', 'Old login page']);
     const task = model.sections.find((section) => section.id === 'tasks')!.items[0];
     expect(task.detail).toBe('#7 · Mobile App · In progress · Marta');
     expect(task.ranges).toEqual([[0, 5]]);
@@ -112,7 +112,7 @@ describe('buildPaletteModel', () => {
     expect(model.breadcrumbs).toEqual(['#7 Login bug on Android']);
     expect(labels(model, 'actions')).toEqual([
       'Open details', 'Move to Ready to test', 'Move to Done', 'Move to Cancelled', 'Move to Duplication', 'Move to…',
-      'Assign…', 'Set responsible…', 'Set priority…', 'Plan in Day Planner…', 'Edit', 'Archive'
+      'Assign…', 'Set responsible…', 'Set priority…', 'Plan in Day Planner…', 'Edit'
     ]);
     const readOnly = buildPaletteModel(input({ stack: [{ kind: 'task', boardId: 'ops', taskId: 3 }] }));
     expect(labels(readOnly, 'actions')).toEqual(['Open details']);

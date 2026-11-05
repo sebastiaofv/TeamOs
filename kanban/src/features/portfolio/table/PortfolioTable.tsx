@@ -1,3 +1,4 @@
+import { formatDate } from '@/domain/dates';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
@@ -84,15 +85,15 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
             <span className="table-sprint-name">{t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}</span>
             <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
             <span>{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
-            <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
+            <span className="table-sprint-dates">{formatDate(group.sprint.startDate || '') || t('table.notDefined')} → {formatDate(group.sprint.endDate || '') || t('table.notDefined')}</span>
         </summary>
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
             sourceRows={group.rows} canCreate={false} scope={`sprint-${group.sprint.id}`} nested />}
     </details>;
 }
 
-export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', planning = false, scope = '', compact = false, emptyLabel, nested = false }: {
-    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; planning?: boolean; scope?: string; compact?: boolean; emptyLabel?: string; nested?: boolean;
+export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', planning = false, scope = '', compact = false, emptyLabel, nested = false, bare = false }: {
+    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; planning?: boolean; scope?: string; compact?: boolean; emptyLabel?: string; nested?: boolean; bare?: boolean;
 }) {
     const { t, language } = useI18n();
     const today = useLocalToday();
@@ -102,7 +103,8 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const hierarchyDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
     const [hierarchy, setHierarchy] = useState({ type: '', epic: '', story: '' });
-    const [columns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
+    const [selectedColumns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
+    const columns = selectedColumns.filter((column) => column !== 'archived' && (!bare || column !== 'story'));
     const sort = useAppStore((state) => state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT);
     const [page, setPage] = useState(0);
     const [pageScope, setPageScope] = useState({ filters, sort });
@@ -119,7 +121,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const pageRows = visibleTableRows(rowGroups.slice(currentPage * pageSize, (currentPage + 1) * pageSize), expandedRows);
     const selectedCount = sourceRows.filter((row) => selected.has(row.taskId)).length;
     const allPageSelected = pageRows.length > 0 && pageRows.every(({ row }) => selected.has(row.taskId));
-    const activeCount = sourceRows.filter((row) => !row.task.archived).length;
     function clearFilters() {
         clearTableFilters();
         setPage(0);
@@ -156,6 +157,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     function cellText(row: PortfolioRow, column: TableColumnId): string {
         const value = tableCellValue(row, column, boardData);
         if (!value) return t('table.notDefined');
+        if (column === 'dueDate') return formatDate(value);
         if (column === 'type') return t(`workitems.type.${workitemType(row.task)}`);
         if (column === 'status') return row.columnTitle || row.task.status;
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
@@ -173,7 +175,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
 
     return (
         <div className={`table-panel${compact ? ' table-panel-compact' : ''}`}>
-            <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
+            {!bare && <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
                 <summary className="btn" hidden={!compact}>{t('roadmap.tableOptions')}</summary>
             <div className="table-heading">
                 <div className="table-tools">
@@ -181,7 +183,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                         <summary className="btn" ref={columnDisclosure.summaryRef}>{t('table.columns')}</summary>
                         <div className="table-column-panel" data-table-panel>
                             <div className="table-column-options">
-                                {[...columns, ...TABLE_COLUMNS.filter((column) => !columns.includes(column))].map((column) => {
+                                {[...columns, ...TABLE_COLUMNS.filter((column) => column !== 'archived' && !columns.includes(column))].map((column) => {
                                     const required = column === 'id' || column === 'title';
                                     const index = columns.indexOf(column);
                                     const label = t(COLUMN_LABELS[column]);
@@ -219,9 +221,9 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                     <button className="btn" id={scopedId('tableExportCsv')} disabled={rows.length === 0} onClick={exportCsv}>{t('table.export')}</button>
                 </div>
             </div>
-            </details>
-            <div className="table-summary">
-                <p role="status" aria-live="polite" id={scopedId('tableCounts')}>{t('table.counts', { visible: rows.length, total: sourceRows.length, active: activeCount, archived: sourceRows.length - activeCount })}</p>
+            </details>}
+            {!bare && <div className="table-summary">
+                <p role="status" aria-live="polite" id={scopedId('tableCounts')}>{t('table.visibleCount', { visible: rows.length, total: sourceRows.length })}</p>
                 <span role="status">{t('table.selected', { count: selectedCount })}</span>
                 {selectedCount > 0 && <button className="btn" onClick={() => setSelected(new Set())}>{t('table.clearSelection')}</button>}
                 {planning && canCreate && <button className="btn btn-primary" id="tableCreateSprint" disabled={selectedCount === 0}
@@ -231,8 +233,8 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                     title={!hasAssignableSprints ? t('roadmapDialog.noEligibleSprints') : undefined}
                     onClick={() => actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'assign-sprint-from-selection',
                         unplannedTaskIds: sourceRows.filter((row) => selected.has(row.taskId)).map((row) => row.taskId) })}>{t('table.addToSprint')}</button>}
-            </div>
-            {rows.length === 0 ? <div className="table-empty" role="status">
+            </div>}
+            {rows.length === 0 && !bare ? <div className="table-empty" role="status">
                 <p>{sourceRows.length === 0 && emptyLabel ? emptyLabel : t(sourceRows.length === 0 ? scope ? 'table.emptySprint' : planning ? 'table.emptyPlanning' : 'table.empty' : 'table.noResults')}</p>
                 {sourceRows.length === 0 && canCreate
                     ? <button className="btn btn-primary" id="tableCreateTask" onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: createType })}>{t('table.create')}</button>
@@ -250,7 +252,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                                 </button>
                             </th>)}
                         </tr></thead>
-                        <tbody>{pageRows.map(({ row, depth, hasChildren }) => {
+                        <tbody>{bare && !rows.length && <tr><td colSpan={columns.length + 1}>{emptyLabel || t('table.noResults')}</td></tr>}{pageRows.map(({ row, depth, hasChildren }) => {
                             const workflowState = getWorkflow(row.boardData || boardData, row.task).states.find((state) => state.id === row.task.status);
                             return <tr key={`${boardId}:${row.taskId}`} data-board-id={boardId} data-task-id={row.taskId} data-depth={nested ? depth : undefined}
                             onClick={(event) => { if (!(event.target as HTMLElement).closest('button,input,a,label')) openDetails(row, event); }}>
@@ -276,7 +278,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                         </tr>; })}</tbody>
                     </table>
                 </div>
-                <nav className="table-pagination" aria-label={t('table.view')}>
+                {(!bare || pageCount > 1) && <nav className="table-pagination" aria-label={t('table.view')}>
                     <label htmlFor={scopedId('tablePageSize')}>{t('table.pageSize')}
                         <span className="table-select table-page-size-select">
                             <select id={scopedId('tablePageSize')} value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }}>
@@ -288,7 +290,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                     <button className="btn" id={scopedId('tablePreviousPage')} disabled={currentPage === 0} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage - 1); }}>{t('table.previous')}</button>
                     <span role="status">{t('table.page', { current: currentPage + 1, total: pageCount })}</span>
                     <button className="btn" id={scopedId('tableNextPage')} disabled={currentPage >= pageCount - 1} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage + 1); }}>{t('table.next')}</button>
-                </nav>
+                </nav>}
             </>}
         </div>
     );

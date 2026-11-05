@@ -1,3 +1,4 @@
+import { ProjectIdentityDialog } from '@/features/portfolio/projects/ProjectIdentityDialog';
 import { PortfolioControl } from '@/features/portfolio/control/PortfolioControl';
 import { ProjectControlDialog } from '@/features/portfolio/control/ControlRecordDialog';
 import { PendingProjectTransfers } from '@/features/portfolio/projects/PendingProjectTransfers';
@@ -17,7 +18,6 @@ import { PortfolioBulkActions, PortfolioChips, PortfolioToolbar } from '@/featur
 import { PortfolioBoard } from '@/features/portfolio/board/PortfolioBoard';
 import { PortfolioTimeline } from '@/features/portfolio/timeline/PortfolioTimeline';
 import { PortfolioRoadmap } from '@/features/portfolio/roadmap/PortfolioRoadmap';
-import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
 import { PortfolioPlanner } from '@/features/portfolio/planner/PortfolioPlanner';
 import { PortfolioDashboard } from '@/features/portfolio/dashboard/PortfolioDashboard';
 import { PortfolioTable } from '@/features/portfolio/table/PortfolioTable';
@@ -68,8 +68,7 @@ function AppContent() {
     const hasBoards = useAppStore((state) => state.portfolioBoards.length > 0);
     const selectedBoardId = useAppStore((state) => state.selectedPortfolioBoardId);
     const roadmapActive = Boolean(selectedBoardId) && viewMode === 'roadmap';
-    const calendarActive = hasBoards && viewMode === 'calendar';
-    const plannerActive = hasBoards && viewMode === 'planner';
+    const plannerActive = hasBoards && (viewMode === 'planner' || viewMode === 'calendar');
     const dashboardActive = Boolean(selectedBoardId) && viewMode === 'dashboard';
     const controlActive = Boolean(selectedBoardId) && viewMode === 'control';
     const tableActive = Boolean(selectedBoardId) && viewMode === 'table';
@@ -91,12 +90,11 @@ function AppContent() {
                         <PendingProjectTransfers />
                         {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
-                        <PortfolioBoard hidden={roadmapActive || calendarActive || plannerActive || tableActive || dashboardActive || controlActive} />
+                        <PortfolioBoard hidden={roadmapActive || plannerActive || tableActive || dashboardActive || controlActive} />
                         <PortfolioDashboard hidden={!dashboardActive} />
                         <PortfolioControl hidden={!controlActive} />
                         <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
-                        <PortfolioCalendar hidden={!calendarActive} />
                         <PortfolioPlanner hidden={!plannerActive} />
                     </div>
                 </div>
@@ -115,6 +113,7 @@ function AppContent() {
                 <RoadmapEntityDialog />
                 <TaskEditorDialog />
                 <ProjectSettingsDialog />
+                <ProjectIdentityDialog />
                 <AppMessageDialog />
                 <UndoToast />
             </ErrorBoundary>

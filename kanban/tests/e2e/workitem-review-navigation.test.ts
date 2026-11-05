@@ -146,14 +146,14 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.locator('[data-view-mode="roadmap"]').click();
     await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
     const phase = page.locator('[data-roadmap-task-list="phase:p"]');
-    await expect(phase.locator('thead th')).toHaveText(headings);
+    await expect(phase.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
     await phase.getByRole('button', { name: 'Expand Epic', exact: true }).click();
     await phase.getByRole('button', { name: 'Expand Story', exact: true }).click();
     await expect(phase.locator('tbody tr')).toHaveCount(6);
     await expect(phase.locator('[data-task-id="3"]')).toHaveAttribute('data-depth', '2');
     await page.locator('.milestone-annotation[data-roadmap-id="m"]').click();
     const milestone = page.locator('#milestoneWorkitemsModal');
-    await expect(milestone.locator('thead th')).toHaveText(headings);
+    await expect(milestone.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
     await milestone.getByRole('button', { name: 'Expand Epic', exact: true }).click();
     await milestone.getByRole('button', { name: 'Expand Story', exact: true }).click();
     await expect(milestone.locator('[data-task-id="3"]')).toHaveAttribute('data-depth', '2');
@@ -165,7 +165,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.getByRole('button', { name: 'Show tasks for Sprint', exact: true }).click();
     const sprint = page.locator('[data-roadmap-task-list="sprint:s"]');
     await expect(sprint.locator('.workitem-tree')).toHaveCount(0);
-    await expect(sprint.locator('thead th')).toHaveText(headings);
+    await expect(sprint.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
     await expect(sprint.locator('tbody tr')).toHaveCount(2);
     await sprint.getByRole('button', { name: 'Expand Story', exact: true }).click();
     await expect(sprint.locator('tbody tr')).toHaveCount(3);

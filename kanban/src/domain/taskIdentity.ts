@@ -34,7 +34,7 @@ const TYPE_CODES = { epic: 'EP', story: 'US', task: 'TK', bug: 'BG' } as const;
 
 /** Persisted at creation; never recompute from mutable project settings. */
 export function createWorkitemDisplayId(acronym: string, task: Pick<import('./types').Task, 'id' | 'type'>): string {
-    if (!/^[A-Z]{1,3}$/.test(acronym)) throw new Error('Project Acronym must contain one to three letters.');
+    if (!/^[A-Z]{1,4}$/.test(acronym)) throw new Error('Project Acronym must contain one to four letters.');
     return `${acronym}-${TYPE_CODES[task.type || 'task']}-${task.id}`;
 }
 

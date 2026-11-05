@@ -54,7 +54,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Criar um novo projeto' },
                     { kind: 'steps', items: [
                         'Clique em **+ Novo projeto** na barra superior (ou prima [[N]]).',
-                        'Preencha as definições: o **Nome do projeto** e uma **Sigla do projeto** com 1 a 3 letras são obrigatórios. A sigla é o prefixo dos IDs dos novos workitems, por exemplo `CHK-US-2`.',
+                        'Preencha as definições: o **Nome do projeto** e uma **Sigla do projeto** com 1 a 4 letras são obrigatórios. A sigla é o prefixo dos IDs dos novos workitems, por exemplo `CHK-US-2`.',
                         'Opcionalmente, acrescente descrição, produto, membros e etiquetas. Pode alterar tudo isto mais tarde.',
                         'Escolha onde guardar o ficheiro `.board.json`. O projeto é adicionado ao portefólio e selecionado.'
                     ] },
@@ -151,7 +151,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Escrever uma boa User Story' },
                     { kind: 'p', text: 'Um formato comum é: **Como** tipo de utilizador, **quero** uma capacidade, **para** obter um benefício. Acrescente Critérios de aceitação que qualquer pessoa possa verificar, como “Dado…, quando…, então…”.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Boas Stories são Independentes, Negociáveis, Valiosas, Estimáveis, Pequenas e Testáveis (INVEST). Se uma Story não couber num sprint, divida-a por passo do processo, regra de negócio ou variação de dados.' },
-                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma User Story só pode pertencer a um Epic. Uma Task pode pertencer a um Epic ou a uma User Story, ou ser independente. Os Bugs ficam fora da hierarquia. O tipo de um workitem não pode mudar depois de criado.' }
+                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma User Story só pode pertencer a um Epic. Uma Task pode pertencer a um Epic, User Story ou Bug, ou ser independente. Os Bugs usam o workflow funcional e recebem uma Task de execução ao criar. O tipo de um workitem não pode mudar depois de criado.' }
                 ],
                 related: ['wi-types', 'wi-hierarchy', 'wi-acceptance']
             },
@@ -176,7 +176,7 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Executar no Board Kanban',
                 summary: 'Torne o trabalho visível, limite o trabalho em curso e remova bloqueios rapidamente.',
                 blocks: [
-                    { kind: 'p', text: 'Durante o sprint, o [Board](wf-board) é a imagem partilhada do trabalho da equipa. O **Board Técnico** mostra Tasks e Bugs (as Tasks de uma Story aparecem enquanto o sprint da Story está ativo). O **Board Funcional** mostra User Stories.' },
+                    { kind: 'p', text: 'Durante o sprint, o [Board](wf-board) é a imagem partilhada do trabalho da equipa. O **Board Técnico** mostra Tasks. O **Board Funcional** mostra User Stories e Bugs.' },
                     { kind: 'list', items: [
                         '**Puxe, não empurre**: comece um novo item apenas quando terminar outro.',
                         '**Torne os bloqueios explícitos**: marque um item como bloqueado com um motivo, ou associe-o como bloqueado por outro workitem.',
@@ -215,7 +215,7 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'O que a metodologia recomenda e o que o TeamOS efetivamente impõe.',
                 blocks: [
                     { kind: 'table', head: ['Tema', 'Recomendação Agile', 'O que o TeamOS impõe'], rows: [
-                        ['Hierarquia', 'Epics contêm Stories; Stories contêm Tasks', 'Stories só sob Epics; Tasks sob Epics ou Stories; Bugs fora da hierarquia; sem ciclos'],
+                        ['Hierarquia', 'Epics contêm Stories; Stories contêm Tasks', 'Stories e Bugs sob Epics; Tasks sob Epics, Stories ou Bugs; sem ciclos'],
                         ['Aceitação', 'Aceitar com base em critérios acordados', 'Uma Story precisa de Critérios de aceitação e de não ter Tasks pendentes para ser concluída; Stories e Bugs exigem uma aceitação funcional com autor'],
                         ['Workflow', 'Acordar uma definição clara de cada estado', 'Os movimentos têm de seguir as transições configuradas'],
                         ['Planeamento de sprint', 'Comprometer-se com o que cabe', 'As Tasks de Stories seguem a Story; só sprints Planeados/Ativos aceitam trabalho'],
@@ -258,7 +258,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'p', text: 'Abra as Definições do projeto com a roda dentada junto ao chip do projeto. A janela tem três separadores: **Geral**, **Workflow técnico** e **Workflow funcional**. As alterações de todos os separadores formam um único rascunho e só são aplicadas quando clica em **Guardar**; Cancelar, Escape ou fechar a janela descarta-as.' },
                     { kind: 'terms', items: [
                         ['Nome do projeto', 'Obrigatório. Mudar o nome do projeto ou do ficheiro não altera a sua identidade.'],
-                        ['Sigla do projeto', '1 a 3 letras, única entre os projetos abertos. É o prefixo dos IDs dos novos workitems (EP, US, TK, BG). Os IDs existentes nunca mudam.'],
+                        ['Sigla do projeto', '1 a 4 letras, única entre os projetos abertos. É o prefixo dos IDs dos novos workitems (EP, US, TK, BG). Os IDs existentes nunca mudam.'],
                         ['Descrição', 'Texto livre: um bom lugar para o objetivo do projeto e os acordos da equipa.'],
                         ['Estado', 'Planeado, Ativo, Em pausa, Concluído ou Arquivado. Apenas informativo: nem Arquivado oculta ou bloqueia o projeto.'],
                         ['Produto', 'Agrupamento opcional; consulte [Produtos](projects-products).'],
@@ -338,7 +338,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Epic', '`EP`', 'Objetivo / Resultado esperado, Âmbito, Valor de negócio', 'Funcional'],
                         ['User Story', '`US`', 'Critérios de aceitação', 'Funcional'],
                         ['Task', '`TK`', '—', 'Técnico'],
-                        ['Bug', '`BG`', 'Passos para reproduzir, Resultado esperado, Resultado observado, Gravidade, Ambiente / Versão', 'Técnico']
+                        ['Bug', '`BG`', 'Passos para reproduzir, Resultado esperado, Resultado observado, Ambiente / Versão', 'Funcional']
                     ] },
                     { kind: 'p', text: 'Os IDs combinam a sigla do projeto, o tipo e um número partilhado pelo projeto, por exemplo `CHK-US-2`. IDs e tipos nunca mudam depois da criação e os números apagados não são reutilizados.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Os Epics não podem ter Esforço, alocação a Sprint nem ligações de Pull Request: são planeados através das suas Stories e Tasks.' },
@@ -354,7 +354,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Hierarquia' },
                     { kind: 'list', items: [
                         'Epic → User Story → Task, e ainda Tasks diretamente sob um Epic.',
-                        'As Tasks independentes e todos os Bugs não têm pai.',
+                        'As Tasks independentes não têm pai. Os Bugs podem ter Tasks e recebem uma automaticamente ao criar.',
                         'O pai tem de estar no mesmo projeto; os ciclos são rejeitados.',
                         'Para apagar ou mover um workitem com filhos, mova ou desassocie primeiro os filhos.'
                     ] },
@@ -378,7 +378,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'list', items: [
                         '**Criar workitem** acima do Board ou na Tabela (selecione primeiro um único projeto).',
                         'A partir dos detalhes de um pai, para criar um filho.',
-                        'No Calendário, num dia, para definir o prazo.',
+                        'Defina o prazo no editor em dd/mm/aaaa; consulte os prazos em Planeador → Calendar.',
                         'Na [paleta de comandos](prod-palette) com `+ Título @pessoa !high #etiqueta ~S due:fri`.'
                     ] },
                     { kind: 'terms', items: [
@@ -392,7 +392,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Bloqueada', 'Um bloqueio manual que exige um motivo.'],
                         ['Fase / Marco / Sprint', 'Associações de planeamento; consulte [Planeamento](plan-inheritance).']
                     ] },
-                    { kind: 'p', text: 'Guardar um novo workitem abre os seus detalhes. Prima [[Ctrl/⌘]] + [[Enter]] para guardar a partir do editor. **Arquivar** oculta um workitem mas mantém-no; **Apagar** remove-o definitivamente após confirmação.' }
+                    { kind: 'p', text: 'Guardar um novo workitem abre os seus detalhes. Prima [[Ctrl/⌘]] + [[Enter]] para guardar a partir do editor. **Eliminar**, no menu ⋯ dos detalhes, remove o workitem definitivamente após confirmação.' }
                 ],
                 related: ['wi-types', 'wi-collab', 'agile-backlog']
             },
@@ -463,7 +463,7 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'terms', items: [
                         ['Workflow funcional', 'Aplica-se a Epics e User Stories: como uma necessidade avança da ideia até à aceitação.'],
-                        ['Workflow técnico', 'Aplica-se a Tasks e Bugs: como o trabalho de execução avança de por iniciar até concluído.']
+                        ['Workflow técnico', 'Aplica-se a Tasks: como o trabalho de execução avança de por iniciar até concluído.']
                     ] },
                     { kind: 'p', text: 'Ambos são editados nas Definições do projeto e são independentes: alterar um não afeta o outro. Os projetos mais antigos mantêm o processo existente até um workflow ser editado.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Mantenha o workflow funcional próximo de como o cliente vê o progresso (pronto, em desenvolvimento, em validação, aceite) e o workflow técnico próximo de como a equipa trabalha (por iniciar, em curso, revisão, testes, concluído).' }
@@ -511,7 +511,7 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'p', text: 'Com um projeto selecionado, o Quadro oferece duas perspetivas:' },
                     { kind: 'terms', items: [
-                        ['Board Técnico', 'Tasks e Bugs. As Tasks que pertencem a uma Story aparecem quando o sprint da Story está ativo.'],
+                        ['Board Técnico', 'Tasks. Apenas Sprints ativos está selecionado por defeito; desmarque para incluir Tasks sem Sprint e outros Sprints.'],
                         ['Board Funcional', 'User Stories.']
                     ] },
                     { kind: 'p', text: 'As colunas mostram os estados Por iniciar, Em curso e Concluído. Os itens em Backlog são trabalhados na Tabela ou nos detalhes e **enviados para o Board** quando estiverem prontos. Use **Colunas do Board** para ocultar estados de que não precisa; ocultar uma coluna nunca move nem apaga workitems. Com **Todos os projetos** selecionado, o quadro agrupa os cartões por categoria entre projetos.' },
@@ -521,7 +521,7 @@ export const DOCS_PT: DocSection[] = [
                         'Com o teclado, selecione um cartão com [[J]] / [[K]] e prima [[1]]–[[4]] para o mover.',
                         'Abra a [paleta de comandos](prod-palette) sobre um cartão e escolha **Mover para…**.'
                     ] },
-                    { kind: 'p', text: 'Os cartões mostram ID, título, pessoas, etiquetas, prioridade, esforço, prazo, bloqueio, progresso da lista de tarefas e, nas Stories, o progresso de execução. Clique num cartão para ver os detalhes; use o menu ⋯ para editar, arquivar, copiar ou mover.' },
+                    { kind: 'p', text: 'Os cartões mostram ID, título, pessoas, etiquetas, prioridade, esforço, prazo, bloqueio, progresso da lista de tarefas e, nas Stories, o progresso de execução. Clique num cartão para ver os detalhes; altere o responsável no cartão ou avance com a seta superior direita. O menu ⋯ permite copiar ou mover; Eliminar está no menu ⋯ dos detalhes.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Um movimento não permitido pelo workflow é recusado. Mover uma Story ou um Bug para Concluído pede a [aceitação funcional](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -613,13 +613,13 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'plan-calendar',
                 title: 'Calendário',
-                summary: 'Veja prazos e períodos do roadmap por ano ou por mês, em vários projetos.',
+                summary: 'Consulte prazos de Tasks e carga de trabalho por mês ou ano dentro de Planeador → Calendar.',
                 blocks: [
                     { kind: 'list', items: [
                         'A **vista anual** mostra doze mini-meses; clique num mês para o abrir.',
-                        'A **vista mensal** lista os workitems de cada dia e as fases, marcos e sprints que o abrangem.',
-                        'O **Mapa de calor** colore os dias pelo número de workitems com prazo: mais escuro significa mais.',
-                        'Num projeto com permissão de escrita, use o + de um dia para criar um workitem com prazo nesse dia.'
+                        'A **vista mensal** apresenta exclusivamente os prazos das Tasks.',
+                        'O **Mapa de calor** colore os dias pelo número de Tasks com prazo: mais escuro significa mais.',
+                        'O calendário serve para consulta; o planeamento por blocos continua nas vistas Dia e Semana.'
                     ] },
                     { kind: 'callout', tone: 'tip', text: 'Use o Mapa de calor para detetar semanas sobrecarregadas antes de chegarem e reequilibre prazos ou o âmbito dos sprints.' }
                 ],
@@ -724,7 +724,7 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'list', items: [
                         '**Pesquisa**: escreva na [paleta de comandos](prod-palette) e escolha **Filtrar quadro por “…”**. A barra de ferramentas mostra o filtro ativo; clique em × para o limpar.',
-                        '**Filtros**: arquivo, bloqueio, responsável, participante, prioridade, esforço e planeamento. Os filtros ativos aparecem como chips removíveis.',
+                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Os filtros ativos aparecem como chips removíveis.',
                         '**Ordenação**: por prioridade, esforço, pontuação ou nome, ascendente ou descendente.',
                         '**Repor**: prima [[R]] para repor filtros e ordenação.'
                     ] },
@@ -761,7 +761,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'p', text: 'Não há botão Guardar para o projeto: cada alteração é guardada no ficheiro assim que a faz. O chip do projeto mostra **A guardar**, **Por guardar**, **Falha ao guardar**, **Conflito** ou **Atualização externa** quando relevante.' },
                     { kind: 'list', items: [
                         'Se uma gravação falhar, a alteração continua aplicada na aplicação; use **Tentar guardar novamente** no chip.',
-                        'Ações como arquivar ou mover a partir da paleta mostram **Desfazer** durante alguns segundos.',
+                        'Ações como mover a partir da paleta mostram **Desfazer** durante alguns segundos.',
                         'Os editores e janelas (editor de workitem, Definições do projeto) só se aplicam quando os guarda.'
                     ] },
                     { kind: 'callout', tone: 'tip', text: 'Mantenha os ficheiros de projeto numa pasta sincronizada ou com cópia de segurança. O ficheiro é o seu projeto.' }

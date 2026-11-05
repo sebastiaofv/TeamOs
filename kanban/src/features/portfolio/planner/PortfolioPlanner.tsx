@@ -1,3 +1,4 @@
+import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -34,6 +35,7 @@ import {
     type PlannerViewModel
 } from '@/features/portfolio/queries';
 import {
+    setPortfolioViewMode,
     setPortfolioPlannerMode,
     shiftPortfolioPlannerDate,
     showPortfolioPlannerToday
@@ -121,7 +123,7 @@ function withDraft(model: PlannerViewModel, draft: PlannerGestureDraft | null): 
     };
 }
 
-function PlannerHeader({ model }: { model: PlannerViewModel }) {
+function PlannerHeader({ model, calendar, onCalendar }: { model: PlannerViewModel; calendar: boolean; onCalendar: (value: boolean) => void }) {
     const { language, t } = useI18n();
     const week = model.mode === 'week';
     const first = model.days[0]?.date || model.date;
@@ -132,17 +134,18 @@ function PlannerHeader({ model }: { model: PlannerViewModel }) {
     const ratio = model.capacityMinutes > 0 ? Math.min(1, model.plannedMinutes / model.capacityMinutes) : 0;
     return (
         <header className="planner-header">
-            <div className="planner-nav">
+            <div className={`planner-nav${calendar ? ' hidden' : ''}`}>
                 <button className="btn" type="button" aria-label={week ? t('planner.previousWeek') : t('planner.previousDay')} onClick={() => shiftPortfolioPlannerDate(-1)}>‹</button>
                 <button className="btn" type="button" onClick={() => showPortfolioPlannerToday()}>{t('planner.today')}</button>
                 <button className="btn" type="button" aria-label={week ? t('planner.nextWeek') : t('planner.nextDay')} onClick={() => shiftPortfolioPlannerDate(1)}>›</button>
             </div>
-            <h2 className="planner-period" id="portfolioPlannerPeriod" aria-live="polite">{label}</h2>
+            <h2 hidden={calendar} className="planner-period" id="portfolioPlannerPeriod" aria-live="polite">{label}</h2>
             <div className="planner-mode-toggle" role="group" aria-label={t('planner.rangeLabel')}>
-                <button className={`btn${week ? '' : ' active'}`} type="button" aria-pressed={!week} onClick={() => setPortfolioPlannerMode('day')}>{t('planner.day')}</button>
-                <button className={`btn${week ? ' active' : ''}`} type="button" aria-pressed={week} onClick={() => setPortfolioPlannerMode('week')}>{t('planner.week')}</button>
+                <button className={`btn${week ? '' : ' active'}`} type="button" aria-pressed={!week && !calendar} onClick={() => { onCalendar(false); setPortfolioPlannerMode('day'); }}>{t('planner.day')}</button>
+                <button className={`btn${week ? ' active' : ''}`} type="button" aria-pressed={week && !calendar} onClick={() => { onCalendar(false); setPortfolioPlannerMode('week'); }}>{t('planner.week')}</button>
+                <button className={`btn${calendar ? ' active' : ''}`} type="button" aria-pressed={calendar} onClick={() => onCalendar(true)}>{t('toolbar.calendar')}</button>
             </div>
-            <div className="planner-summary">
+            <div hidden={calendar} className="planner-summary">
                 <span>{t('planner.summary', { planned: formatPlannerDuration(model.plannedMinutes), capacity: formatPlannerDuration(model.capacityMinutes) })}</span>
                 <span className="planner-summary-bar" aria-hidden="true"><i style={{ width: `${ratio * 100}%` }} /></span>
             </div>
@@ -161,14 +164,15 @@ function ConnectedPlanner() {
         activeLanguage: s.activeLanguage
     })));
     const actions = usePortfolioActions();
-    const [includeParents, setIncludeParents] = useState(false);
+    const calendar = useAppStore((state) => state.selectedPortfolioViewMode === 'calendar');
+    const setCalendar = (value: boolean) => setPortfolioViewMode(value ? 'calendar' : 'planner');
     const [trayStatuses, setTrayStatuses] = useState<TaskStatus[]>(DEFAULT_TRAY_STATUSES);
     const [preview, setPreview] = useState<PlannerDropPreview | null>(null);
     const [activeItem, setActiveItem] = useState<PlannerTrayItem | null>(null);
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
     const now = useNow();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const model = buildPortfolioPlannerViewModel(state, { today: todayLocalIsoDate(), trayStatuses, includeParents });
+    const model = buildPortfolioPlannerViewModel(state, { today: todayLocalIsoDate(), trayStatuses });
 
     const sensors = useSensors(
         // A short move before dragging keeps clicks on the card working.
@@ -243,9 +247,10 @@ function ConnectedPlanner() {
             onDragEnd={onDragEnd}
             onDragCancel={clearDrag}
         >
-            <PlannerHeader model={model} />
-            <div className="planner-body">
-                <PlannerTray includeParents={includeParents} onIncludeParents={setIncludeParents} groups={model.trayGroups} statuses={trayStatuses} onToggleStatus={toggleStatus} />
+            <PlannerHeader model={model} calendar={calendar} onCalendar={setCalendar} />
+            <PortfolioCalendar hidden={!calendar} />
+            <div className={`planner-body${calendar ? ' hidden' : ''}`}>
+                <PlannerTray groups={model.trayGroups} statuses={trayStatuses} onToggleStatus={toggleStatus} />
                 <PlannerGrid
                     model={withDraft(model, gesture.draft)}
                     nowMinutes={nowMinutes}

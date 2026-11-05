@@ -1,3 +1,4 @@
+import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import type { BoardMutationContext } from './mutationContext';
 import { controlRecords, parseProjectControl, saveControlRecord, type ControlRecord } from '@/domain/projectControl';
 import { appendTimelineEvent } from '@/domain/timeline';
@@ -11,6 +12,7 @@ import { translateCurrent } from '@/shared/i18n';
 export function createProjectControlActions({ runPortfolioBoardMutation, alert }: BoardMutationContext) {
     return {
         async saveProjectControl(boardId: string, input: ControlRecord, author: string, onApplied?: (record: ControlRecord) => void, acronym?: string) {
+            author = projectActor(boardId)?.name || author;
             let savedRecord: ControlRecord | undefined;
             let unchanged = false;
             const applied = await runPortfolioBoardMutation(boardId, (data) => {
@@ -18,7 +20,7 @@ export function createProjectControlActions({ runPortfolioBoardMutation, alert }
                 // Do not overwrite an edit made while this form was open (including external reloads).
                 if (before && before.updatedAt !== input.updatedAt) throw new Error(translateCurrent('control.stale'));
                 if (!input.id && !data.extensions.project?.acronym) {
-                    if (!data.extensions.project || !/^[A-Z]{1,3}$/.test(acronym || '')) throw new ProjectDataError('acronym');
+                    if (!data.extensions.project || !/^[A-Z]{1,4}$/.test(acronym || '')) throw new ProjectDataError('acronym');
                     data.extensions.project.acronym = acronym;
                 }
                 const saved = saveControlRecord(data, input, author);
@@ -33,6 +35,7 @@ export function createProjectControlActions({ runPortfolioBoardMutation, alert }
         },
         async publishControlComment(boardId: string, recordId: string, input: CommentInput, onApplied: () => void) {
             try {
+                input = { ...input, author: projectActor(boardId)?.name || input.author };
                 validateCommentInput(input);
                 for (const image of input.images) await validateCommentImagePixels(image);
                 return await runPortfolioBoardMutation(boardId, (data) => {

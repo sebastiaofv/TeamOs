@@ -54,12 +54,12 @@ test.describe('filters and sort', () => {
       };
     }));
     const expected = await readFields();
-    expect(expected).toHaveLength(10);
+    expect(expected).toHaveLength(9);
     await page.keyboard.press('Escape');
     await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
     await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching workitem');
 
-    for (const view of ['board', 'roadmap', 'calendar', 'planner', 'table']) {
+    for (const view of ['board', 'roadmap', 'planner', 'table']) {
       await page.locator(`[data-view-mode="${view}"]`).click();
       await openFiltersPanel(page);
       expect(await readFields()).toEqual(expected);
@@ -228,7 +228,6 @@ test.describe('filters and sort', () => {
     await setBoardSearch(page, 'a');
     await page.locator('#portfolioSortSelect').selectOption('score');
     await openFiltersPanel(page);
-    await page.locator('#portfolioArchiveFilter').selectOption('all');
     await page.locator('#portfolioBlockedFilter').selectOption('blocked');
     await page.locator('#portfolioAssigneeFilter').selectOption('Bruno');
     await page.locator('#portfolioPriorityFilter').selectOption('high');
@@ -237,7 +236,6 @@ test.describe('filters and sort', () => {
     await expect(page.locator('.portfolio-task-card')).toHaveCount(1);
     await page.locator('#resetPortfolioFiltersBtn').click();
 
-    await expect(page.locator('#portfolioArchiveFilter')).toHaveValue('active');
     await expect(page.locator('#portfolioBlockedFilter')).toHaveValue('all');
     await expect(page.locator('#portfolioAssigneeFilter')).toHaveValue('');
     await expect(page.locator('#portfolioPriorityFilter')).toHaveValue('');
@@ -322,7 +320,6 @@ test.describe('filters and sort', () => {
     await page.keyboard.press('r');
     await expect(page.locator('#portfolioSearchClearBtn')).toHaveCount(0);
     await openFiltersPanel(page);
-    await expect(page.locator('#portfolioArchiveFilter')).toHaveValue('active');
     await expect(page.locator('#portfolioPriorityFilter')).toHaveValue('');
     await expect(page.locator('#portfolioEffortFilter')).toHaveValue('');
     await expect(page.locator('#portfolioSortSelect')).toHaveValue('priority');

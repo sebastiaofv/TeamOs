@@ -21,7 +21,6 @@ import {
 import { todayLocalIsoDate } from '@/domain/util';
 import { addRoadmapDays } from '@/domain/roadmap';
 import { createPortfolioProjectColor } from '@/domain/board';
-import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { getCalendarMonthLabel, getCalendarMonthName, getCalendarWeekdayName, useI18n } from '@/shared/i18n';
 
 export type CalendarState = Pick<AppState,
@@ -247,10 +246,7 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
     const weekCount = getPortfolioCalendarMiniMonthCellCount(year, month) / 7;
     const taskCounts = heatmap ? getPortfolioCalendarTaskCountsByDay(items) : null;
     const heatStats = heatmap ? getPortfolioCalendarMonthHeatStats(taskCounts, year, month) : null;
-    const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
-    const canCreateTasks = Boolean(state.selectedPortfolioBoardId)
-        && Boolean(selectedBoard?.handle)
-        && !isBoardInHistoricalPreview(state, state.selectedPortfolioBoardId);
+    const canCreateTasks = false;
 
     return (
         <div className="portfolio-calendar-month-grid surface-card surface-border" aria-label={getCalendarMonthLabel(language, year, month)}>

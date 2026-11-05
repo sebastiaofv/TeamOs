@@ -29,7 +29,7 @@ describe('Roadmap clarification view models', () => {
     it('keeps global progress stable under archive/status filters and passing time', () => {
         const { store, view } = setup();
         const initial = view().phaseRows.find((row) => row.item?.id === 'delivery')!;
-        expect(initial.visibleCount).toBe(3);
+        expect(initial.visibleCount).toBe(4);
         store.setState({ portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: ['done'] } });
         const filtered = view().phaseRows.find((row) => row.item?.id === 'delivery')!;
         expect(filtered.visibleCount).toBe(1); expect(filtered.progress).toEqual(initial.progress);

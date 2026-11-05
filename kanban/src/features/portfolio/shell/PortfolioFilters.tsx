@@ -57,15 +57,12 @@ function usePortfolioFilterFields() {
         return {
             key, id, label: label.replace(/:$/, ''), options, value: filters[key], multiple, hint,
             changed: key === 'statuses' ? filters.statuses.length > 0 : filters[key] !== DEFAULT_PORTFOLIO_FILTERS[key],
-            onChange: (value) => setPortfolioFilter(key, value)
+            onChange: (value) => { if (key === 'sprintId') useAppStore.setState({ portfolioBoardActiveSprintsOnly: false }); setPortfolioFilter(key, value); }
         };
     }
 
     // Every view shares this field list, order, options and session state.
     const fields = [
-        field('archive', t('toolbar.archive'), 'portfolioArchiveFilter', [
-            { value: 'active', label: t('toolbar.activeOnly') }, { value: 'all', label: t('toolbar.activeAndArchived') }, { value: 'archived', label: t('toolbar.archivedOnly') }
-        ]),
         field('blocked', t('toolbar.blocked'), 'portfolioBlockedFilter', [
             { value: 'all', label: t('common.all') }, { value: 'blocked', label: t('toolbar.blockedOnly') }, { value: 'unblocked', label: t('toolbar.unblockedOnly') }
         ]),

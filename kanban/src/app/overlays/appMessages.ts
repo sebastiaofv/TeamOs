@@ -9,7 +9,7 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { translateCurrent } from '@/shared/i18n';
 
 export type ConfirmOptions = { review?: import('@/app/types').AppMessageReview; title?: string; confirmLabel?: string; danger?: boolean; selections?: MessageSelection[] };
-export type PromptOptions = { title?: string; confirmLabel?: string; required?: boolean };
+export type PromptOptions = { title?: string; confirmLabel?: string; required?: boolean; readOnly?: boolean };
 export type Choice<T> = { value: T; label: string; primary?: boolean };
 
 type PendingMessage = { message: AppMessage; resolve: (value: unknown) => void };
@@ -71,11 +71,11 @@ export function showConfirm(text: string, { title, confirmLabel, danger = false,
 }
 
 // Resolves with the entered text, or null when cancelled.
-export function showPrompt(text: string, defaultValue: unknown = '', { title, confirmLabel, required = false }: PromptOptions = {}): Promise<string | null> {
+export function showPrompt(text: string, defaultValue: unknown = '', { title, confirmLabel, required = false, readOnly = false }: PromptOptions = {}): Promise<string | null> {
     return request({
         title: title || translateCurrent('messages.input'),
         text,
-        input: { defaultValue: String(defaultValue ?? ''), ...(required ? { required } : {}) },
+        input: { ...(readOnly ? { readOnly } : {}), defaultValue: String(defaultValue ?? ''), ...(required ? { required } : {}) },
         buttons: [
             { label: translateCurrent('messages.cancel'), value: null, cancel: true },
             { label: confirmLabel || translateCurrent('common.ok'), primary: true, submitsInput: true }

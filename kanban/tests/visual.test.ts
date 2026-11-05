@@ -105,7 +105,7 @@ test.describe('US-01 workitems table', () => {
       }], { selectedBoardId: 'table' });
       await page.locator('[data-view-mode="table"]').click();
       await page.locator('#tableCsvSeparator').selectOption(';');
-      await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
+      await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(3);
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`workitems-table-${theme}.png`, { fullPage: true });
@@ -291,9 +291,9 @@ test.describe('2.1a modals and toast', () => {
       await expect(page).toHaveScreenshot(`roadmap-new-milestone-${theme}.png`, { fullPage: true });
     });
 
-    test(`undo toast after archiving (${theme})`, async ({ page }) => {
+    test(`undo toast after moving (${theme})`, async ({ page }) => {
       // The toast hides after 5 s. Fake timers flow with real time until paused,
-      // so pause well after archiving (a full minute of headroom for slow
+      // so pause well after moving (a full minute of headroom for slow
       // seeding): showUndo's timer can never fire.
       await page.clock.install({ time: FIXED_TIME });
       await page.setViewportSize({ width: 1280, height: 800 });
@@ -303,13 +303,14 @@ test.describe('2.1a modals and toast', () => {
       await page.goto('/');
       await expect(page.locator('#portfolioView')).toBeVisible();
       await seedPortfolioBoards(page, [
-        { id: 'v1', title: 'Launch', hasHandle: true, tasks: [{ id: 1, title: 'Archive me', status: 'backlog' }] }
+        { id: 'v1', title: 'Launch', hasHandle: true, tasks: [{ id: 1, title: 'Move me', status: 'backlog' }] }
       ], { selectedBoardId: 'v1' });
       await page.clock.pauseAt(new Date('2026-02-26T12:01:00Z'));
-      const card = portfolioCard(page, 'Archive me');
+      const card = portfolioCard(page, 'Move me');
       await card.hover();
-      await card.locator('button[title="Archive"]').click();
-      await answerAppMessage(page, { button: 'Archive' });
+      await page.keyboard.press('ControlOrMeta+k');
+      await page.locator('#commandPaletteInput').fill('to-do');
+      await page.locator('.palette-item').first().click();
       await expect(page.locator('#undoToast')).toBeVisible();
       await page.mouse.move(1, 1);
       await expect(page).toHaveScreenshot(`undo-toast-${theme}.png`, { fullPage: true });
@@ -383,7 +384,7 @@ test.describe('2.1a modals and toast', () => {
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await page.getByRole('button', { name: 'Edit Build' }).click();
     await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Edit Phase');
-    await expect(page.locator('#roadmapEntityStartDate')).toHaveValue('2026-02-01');
+    await expect(page.locator('#roadmapEntityStartDate')).toHaveValue('01/02/2026');
     await expect(page).toHaveScreenshot('roadmap-edit-phase-light.png', { fullPage: true });
   });
 
@@ -524,7 +525,6 @@ test.describe('2.2 toolbar and chips', () => {
     }], { selectedBoardId: 'v1' });
     await setBoardSearch(page, 'launch');
     await openFiltersPanel(page);
-    await page.locator('#portfolioArchiveFilter').selectOption('all');
     await page.locator('#portfolioBlockedFilter').selectOption('blocked');
     await page.locator('#portfolioAssigneeFilter').selectOption('Ana');
     await page.locator('#portfolioPriorityFilter').selectOption('high');
@@ -730,7 +730,8 @@ test.describe('2.5 roadmap and 2.6 calendar views', () => {
         tasks: [{ id: 1, title: 'Due task', status: 'backlog', dueDate: '2026-03-10' }],
         extensions: ROADMAP
       }], { selectedBoardId: 'calendar' });
-      await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+      await page.getByRole('button', { name: 'Day Planner', exact: true }).click();
+    await page.getByRole('button', { name: 'Calendar', exact: true }).click();
       await expect(page.locator('.portfolio-calendar-month-card')).toHaveCount(12);
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -750,6 +751,7 @@ test.describe('2.5 roadmap and 2.6 calendar views', () => {
       ],
       extensions: ROADMAP
     }], { selectedBoardId: 'calendar-month' });
+    await page.getByRole('button', { name: 'Day Planner', exact: true }).click();
     await page.getByRole('button', { name: 'Calendar', exact: true }).click();
     await page.getByRole('button', { name: 'Heat Map' }).click();
     await page.getByRole('button', { name: 'Open March 2026' }).click();

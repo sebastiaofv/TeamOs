@@ -5,9 +5,9 @@ import { getSprintCalendarStatus } from './roadmap';
 import { nowIso, todayLocalIsoDate } from './util';
 
 export const WORKITEM_TYPES = ['epic', 'story', 'task', 'bug'] as const;
-export const WORKITEM_FIELDS = ['objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment'] as const;
+export const WORKITEM_FIELDS = ['objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'environment'] as const;
 export function workitemFieldNames(type: WorkitemType): readonly typeof WORKITEM_FIELDS[number][] {
-    return type === 'epic' ? ['objective', 'scope', 'businessValue'] : type === 'story' ? ['acceptanceCriteria'] : type === 'bug' ? ['stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment'] : [];
+    return type === 'epic' ? ['objective', 'scope', 'businessValue'] : type === 'story' ? ['acceptanceCriteria'] : type === 'bug' ? ['stepsToReproduce', 'expectedResult', 'actualResult', 'environment'] : [];
 }
 export const workitemType = (task: Pick<Task, 'type'>): WorkitemType => task.type || 'task';
 export class WorkitemError extends Error {
@@ -30,10 +30,10 @@ export function parentOf(data: BoardData, task: Task): Task | undefined { return
 export function storyOf(data: BoardData, task: Task): Task | undefined { const parent = parentOf(data, task); return parent && workitemType(parent) === 'story' ? parent : undefined; }
 export function epicOf(data: BoardData, task: Task): Task | undefined {
     const parent = parentOf(data, task);
-    return parent && workitemType(parent) === 'epic' ? parent : parent && workitemType(parent) === 'story' ? parentOf(data, parent) : undefined;
+    return parent && workitemType(parent) === 'epic' ? parent : parent && ['story', 'bug'].includes(workitemType(parent)) ? parentOf(data, parent) : undefined;
 }
 export function validParent(type: WorkitemType, parent: Pick<Task, 'type'>): boolean {
-    return type === 'story' ? workitemType(parent) === 'epic' : type === 'task' && ['epic', 'story'].includes(workitemType(parent));
+    return ['story', 'bug'].includes(type) ? workitemType(parent) === 'epic' : type === 'task' && ['epic', 'story', 'bug'].includes(workitemType(parent));
 }
 export function eligibleSprint(data: BoardData, id: string): boolean {
     const sprint = data.extensions.roadmap?.sprints.find((item) => item.id === id);
@@ -57,7 +57,7 @@ export function workitemProgress(data: BoardData, id: number) {
     return { total: children.length, eligible, completed, cancelled, percent: eligible ? completed / eligible * 100 : null };
 }
 export function isPlanningUnit(data: BoardData, task: Task): boolean {
-    return workitemType(task) !== 'epic' && !(workitemType(task) === 'task' && workitemType(parentOf(data, task) || {}) === 'story');
+    return workitemType(task) !== 'epic' && !(workitemType(task) === 'task' && ['story', 'bug'].includes(workitemType(parentOf(data, task) || {})));
 }
 export function assertWorkitems(data: BoardData, previous?: BoardData): void {
     const byId = new Map(data.board.tasks.map((task) => [task.id, task]));
@@ -67,7 +67,7 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
         if (!WORKITEM_TYPES.includes(type)) throw new WorkitemError('type');
         const before = previousById.get(task.id);
         if (task.displayId !== undefined) {
-            if (typeof task.displayId !== 'string' || !/^[A-Z]{1,3}-(EP|US|TK|BG)-[1-9][0-9]*$/.test(task.displayId) || task.displayId !== createWorkitemDisplayId(task.displayId.split('-')[0], task)) throw new WorkitemError('data');
+            if (typeof task.displayId !== 'string' || !/^[A-Z]{1,4}-(EP|US|TK|BG)-[1-9][0-9]*$/.test(task.displayId) || task.displayId !== createWorkitemDisplayId(task.displayId.split('-')[0], task)) throw new WorkitemError('data');
         }
         if (before?.permanentId && task.permanentId !== before.permanentId) throw new WorkitemError('immutable');
         if (before && task.displayId !== before.displayId) throw new WorkitemError('immutable');
@@ -79,6 +79,7 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
             while (cursor) { if (seen.has(cursor.id)) throw new WorkitemError('parent'); seen.add(cursor.id); cursor = cursor.parentId == null ? undefined : byId.get(cursor.parentId); }
         }
         if (type === 'epic' && (task.effort || task.sprintId || task.pullRequests?.length)) throw new WorkitemError('epic');
+        if (task.severity !== undefined && typeof task.severity !== 'string') throw new WorkitemError('data');
         for (const field of WORKITEM_FIELDS) if (task[field] !== undefined && typeof task[field] !== 'string') throw new WorkitemError('data');
         for (const mode of [task.phaseMode, task.milestoneMode]) if (mode !== undefined && !['inherit', 'none', 'explicit'].includes(mode)) throw new WorkitemError('data');
         if (task.acceptance !== undefined && (!task.acceptance || typeof task.acceptance.author !== 'string' || !task.acceptance.author.trim() || !Number.isFinite(Date.parse(task.acceptance.at)) || task.acceptance.local !== true)) throw new WorkitemError('data');
@@ -90,8 +91,8 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
     validateAutomation(data, data.extensions.workitemAutomation);
 }
 export function assertAcceptance(data: BoardData, task: Task): void {
-    if (workitemType(task) === 'story') {
-        if (!task.acceptanceCriteria?.trim()) throw new WorkitemError('criteria');
+    if (['story', 'bug'].includes(workitemType(task))) {
+        if (workitemType(task) === 'story' && !task.acceptanceCriteria?.trim()) throw new WorkitemError('criteria');
         if (childrenOf(data, task.id).some((child) => !isTerminal(data, child))) throw new WorkitemError('pending');
     }
 }
@@ -122,7 +123,7 @@ export function syncWorkitemPlanning(data: BoardData, previous: BoardData): void
     for (const task of data.board.tasks) {
         const before = previousById.get(task.id);
         const parent = task.parentId == null ? undefined : byId.get(task.parentId);
-        if (workitemType(task) === 'task' && parent && workitemType(parent) === 'story' && !isTerminal(data, task)) task.sprintId = eligibleSprint(data, parent.sprintId) ? parent.sprintId : '';
+        if (workitemType(task) === 'task' && parent && ['story', 'bug'].includes(workitemType(parent)) && !isTerminal(data, task)) task.sprintId = eligibleSprint(data, parent.sprintId) ? parent.sprintId : '';
         else if (before?.parentId && !task.parentId && !isTerminal(data, task) && !eligibleSprint(data, task.sprintId)) task.sprintId = '';
         if (task.parentId && !before) { task.phaseMode ??= 'inherit'; task.milestoneMode ??= 'inherit'; }
         if (before?.sprintId && before.sprintId !== task.sprintId) {
@@ -160,12 +161,8 @@ export function applyStoryAutomation(data: BoardData, previous: BoardData): { st
     }
     return effects;
 }
-export function taskInTechnicalBoard(data: BoardData, task: Task): boolean {
-    if (!['task', 'bug'].includes(workitemType(task))) return false;
-    const parent = parentOf(data, task);
-    if (!parent || workitemType(parent) !== 'story') return true;
-    const sprint = data.extensions.roadmap?.sprints.find((item) => item.id === task.sprintId);
-    return Boolean(sprint && getSprintCalendarStatus(sprint, todayLocalIsoDate()) === 'active');
+export function taskInTechnicalBoard(_data: BoardData, task: Task): boolean {
+    return workitemType(task) === 'task';
 }
 
 export function sprintMembers(data: BoardData, sprintId: string): Task[] {

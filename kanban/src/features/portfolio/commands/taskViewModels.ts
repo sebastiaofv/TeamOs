@@ -143,7 +143,7 @@ export function buildTaskEditorViewModel(
     return {
         editing: Boolean(normalized),
         boardId: boardRecord.id,
-        parentCandidates: boardRecord.data.board.tasks.filter((item) => ['epic', 'story'].includes(workitemType(item)) && item.id !== task?.id).map((item) => ({ displayId: item.displayId, id: item.id, title: item.title, type: workitemType(item) })),
+        parentCandidates: boardRecord.data.board.tasks.filter((item) => ['epic', 'story', 'bug'].includes(workitemType(item)) && item.id !== task?.id).map((item) => ({ displayId: item.displayId, id: item.id, title: item.title, type: workitemType(item) })),
         openId,
         heading: normalized ? translateCurrent('task.edit') : translateCurrent('task.new'),
         initial,

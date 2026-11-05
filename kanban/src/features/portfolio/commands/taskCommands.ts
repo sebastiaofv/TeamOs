@@ -188,33 +188,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         openPortfolioTaskDetails(boardId, taskId);
     }
 
-    async function togglePortfolioArchiveTask(boardId: string, taskId: number) {
-        const source = findPortfolioTaskSource(boardId, taskId);
-        if (!source) return;
-        const wasArchived = Boolean(source.task.archived);
-        if (!wasArchived) {
-            const title = String(source.task.title || '').trim() || translateCurrent('messages.thisTask');
-            if (!(await confirm(translateCurrent('messages.archiveQuestion', { title }), {
-                title: translateCurrent('messages.archiveTask'),
-                confirmLabel: translateCurrent('messages.archive')
-            }))) return;
-        }
-
-        const changed = await runPortfolioTaskMutation(boardId, taskId, (task) => {
-            task.archived = !task.archived;
-            return true;
-        });
-        if (!changed || wasArchived) return;
-
-        showUndo(translateCurrent('task.archiveSuccess'), async () => {
-            await runPortfolioTaskMutation(boardId, taskId, (task) => {
-                if (!task.archived) return false;
-                task.archived = false;
-                return true;
-            });
-        });
-    }
-
     async function deletePortfolioTask(boardId: string, taskId: number) {
         const source = findPortfolioTaskSource(boardId, taskId);
         if (!source) return;
@@ -570,7 +543,6 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         closeTaskEditor,
         closeTaskDetail,
         openPortfolioTaskDetailsForCalendar,
-        togglePortfolioArchiveTask,
         deletePortfolioTask,
         saveTask,
         toggleTaskDetailChecklistItem,

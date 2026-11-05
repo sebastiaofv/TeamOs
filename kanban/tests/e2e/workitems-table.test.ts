@@ -206,7 +206,7 @@ test.describe('workitems table', () => {
     await page.locator('#portfolioFiltersBtn').click();
     await expect(page.locator('#portfolioToolbar #portfolioFiltersPanel')).toBeVisible();
     const fields = page.locator('#portfolioFiltersPanel .portfolio-filters-field');
-    await expect(fields).toContainText(['Archive', 'Blocked', 'Responsible', 'Participant', 'Priority', 'Effort']);
+    await expect(fields).toContainText(['Blocked', 'Responsible', 'Participant', 'Priority', 'Effort']);
     await page.locator('#portfolioEffortFilter').selectOption('S');
     await expectRowIds(page, [2]);
     await page.locator('#resetPortfolioFiltersBtn').click();
@@ -279,7 +279,7 @@ test.describe('workitems table', () => {
     await expect(page.locator('#portfolioFiltersBtn')).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator('[data-view-mode="table"]')).toHaveAttribute('aria-pressed', 'true');
     await page.keyboard.press('Escape');
-    await expect(page.locator('#portfolioArchiveFilter')).toBeHidden();
+    await expect(page.locator('#portfolioBlockedFilter')).toBeHidden();
   });
 
   test('keeps workitems in view on narrow screens instead of stacking all filters above them', async ({ page }) => {
@@ -289,11 +289,11 @@ test.describe('workitems table', () => {
       tasks: [{ id: 1, title: 'Visible workitem' }]
     }], { selectedBoardId: 'compact' });
     await openTable(page, false);
-    await expect(page.locator('#portfolioArchiveFilter')).toBeHidden();
+    await expect(page.locator('#portfolioBlockedFilter')).toBeHidden();
     await expect(page.locator('#portfolioToolbar #portfolioFiltersBtn')).toBeVisible();
     await expect(tableRow(page, 1)).toBeInViewport();
     await page.locator('#portfolioFiltersBtn').click();
-    await expect(page.locator('#portfolioArchiveFilter')).toBeVisible();
+    await expect(page.locator('#portfolioBlockedFilter')).toBeVisible();
     await expect.poll(() => page.locator('#portfolioFiltersPanel').evaluate((node) => node.getBoundingClientRect().bottom)).toBeLessThanOrEqual(844);
     const fields = await page.locator('#portfolioFiltersPanel .portfolio-filters-field').evaluateAll((nodes) => nodes.map((node) => {
       const rect = node.getBoundingClientRect();
@@ -307,9 +307,9 @@ test.describe('workitems table', () => {
         expect(field.right <= other.left || other.right <= field.left || field.bottom <= other.top || other.bottom <= field.top).toBe(true);
       }
     }
-    await page.locator('#portfolioArchiveFilter').focus();
+    await page.locator('#portfolioBlockedFilter').focus();
     await page.keyboard.press('Escape');
-    await expect(page.locator('#portfolioArchiveFilter')).toBeHidden();
+    await expect(page.locator('#portfolioBlockedFilter')).toBeHidden();
     await expect(page.locator('#portfolioFiltersBtn')).toBeFocused();
     await page.locator('#portfolioFiltersBtn').click();
     await page.locator('#tableColumns > summary').focus();
@@ -321,39 +321,17 @@ test.describe('workitems table', () => {
     await expect(page.locator('#tableColumns > summary')).toBeFocused();
   });
 
-  test('is project-scoped and distinguishes active, all and archived items with counts', async ({ page }) => {
-    await seedPortfolioBoards(page, [{
-      id: 'alpha', title: 'Alpha', hasHandle: true,
-      tasks: [
-        { id: 1, title: 'Backlog item' },
-        { id: 2, title: 'Doing item', status: 'doing' },
-        { id: 3, title: 'Completed but active', status: 'done' },
-        { id: 4, title: 'Archived backlog', archived: true },
-        { id: 5, title: 'Archived done', status: 'done', archived: true }
-      ]
-    }, {
-      id: 'beta', title: 'Beta', hasHandle: true,
-      tasks: [{ id: 1, title: 'Other project item' }]
-    }]);
-
-    await expect(page.locator('[data-view-mode="table"]')).toBeHidden();
-    await selectPortfolioBoard(page, 'Alpha');
-    await expect(page.locator('[data-view-mode="table"]')).toHaveAccessibleName('Table');
-    await openTable(page);
-
-    await expectTableFilter(page, '#portfolioArchiveFilter', 'active');
-    await expectRowIds(page, [1, 2, 3]);
-    await expect(page.locator('#portfolioTable')).toContainText('3 of 5 workitems · 3 active · 2 archived');
+  test('is project-scoped and includes workitems with legacy archive metadata', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'alpha', title: 'Alpha', hasHandle: true, tasks: [
+      { id: 1, title: 'Backlog item' }, { id: 2, title: 'Doing item', status: 'doing' }, { id: 3, title: 'Completed', status: 'done' },
+      { id: 4, title: 'Legacy backlog', archived: true }, { id: 5, title: 'Legacy done', status: 'done', archived: true }
+    ] }, { id: 'beta', title: 'Beta', hasHandle: true, tasks: [{ id: 1, title: 'Other project item' }] }]);
+    await selectPortfolioBoard(page, 'Alpha'); await openTable(page);
+    await expectRowIds(page, [1, 2, 3, 4, 5]);
+    await expect(page.locator('#portfolioTable')).toContainText('5 of 5 workitems');
+    await expect(page.locator('#portfolioArchiveFilter')).toHaveCount(0);
     await expectColumnOrder(page, DEFAULT_COLUMNS);
     await expect(page.locator('#portfolioTable')).not.toContainText('Other project item');
-
-    await selectTableFilter(page, '#portfolioArchiveFilter', 'all');
-    await expectRowIds(page, [1, 2, 3, 4, 5]);
-    await expect(page.locator('#portfolioTable')).toContainText('5 of 5 workitems · 3 active · 2 archived');
-
-    await selectTableFilter(page, '#portfolioArchiveFilter', 'archived');
-    await expectRowIds(page, [4, 5]);
-    await expect(page.locator('#portfolioTable')).toContainText('2 of 5 workitems · 3 active · 2 archived');
   });
 
   test('combines multi-status, assignee and text filters and searches descriptions and numeric IDs', async ({ page }) => {
@@ -370,9 +348,9 @@ test.describe('workitems table', () => {
     await openTable(page);
 
     await selectTableFilter(page, '#portfolioStatusesFilter', ['doing', 'to-do']);
-    await expectRowIds(page, [11, 12, 13]);
+    await expectRowIds(page, [11, 12, 13, 15]);
     await selectTableFilter(page, '#portfolioAssigneeFilter', { label: 'Ana' });
-    await expectRowIds(page, [11, 12]);
+    await expectRowIds(page, [11, 12, 15]);
     await setTableSearch(page, 'needle');
     await expectRowIds(page, [11]);
     await setTableSearch(page, '12');
@@ -383,8 +361,8 @@ test.describe('workitems table', () => {
 
     await clearTableViewFilters(page);
     await expectTableSearch(page, '');
-    await expectTableFilter(page, '#portfolioArchiveFilter', 'active');
-    await expectRowIds(page, [11, 12, 13, 14]);
+    await expectTableFilter(page, '#portfolioBlockedFilter', 'all');
+    await expectRowIds(page, [11, 12, 13, 14, 15]);
   });
 
   test('combines roadmap, priority and blocked filters using real entity IDs', async ({ page }) => {
@@ -703,11 +681,11 @@ test.describe('workitems table', () => {
 
       const csv = parseCsv(await exportCsv(page), separator);
       expect(csv[0]).toEqual(['ID', 'Due', 'Title']);
-      expect(csv).toHaveLength(101);
+      expect(csv).toHaveLength(102);
       expect(csv.slice(1).map((row) => Number(row[0]))).toEqual(
-        Array.from({ length: 100 }, (_, index) => 100 - index)
+        [103, ...Array.from({ length: 100 }, (_, index) => 100 - index)]
       );
-      expect(csv.slice(1).every((row) => row.length === 3 && row[1] === '2026-04-30')).toBe(true);
+      expect(csv.slice(1).filter((row) => row[0] !== '103').every((row) => row.length === 3 && row[1] === '30/04/2026')).toBe(true);
       for (let index = 0; index < 4; index += 1) {
         expect(csv.find((row) => row[0] === String(index + 1))?.[2]).toBe(`'${specialTitles[index]}`);
       }
@@ -759,7 +737,7 @@ test.describe('workitems table', () => {
     await expect(page.locator('#tablePageSize')).toHaveValue('50');
     await expectRowIds(page, Array.from({ length: 50 }, (_, index) => index + 1));
     await expect(page.locator('#portfolioTable')).toContainText('Page 1 of 200');
-    await expect(page.locator('#portfolioTable')).toContainText('10000 active');
+    await expect(page.locator('#portfolioTable')).toContainText('10000 workitems');
     await expect(page.locator('#tablePreviousPage')).toBeDisabled();
     await page.locator('#tableNextPage').click();
     await expectRowIds(page, Array.from({ length: 50 }, (_, index) => index + 51));

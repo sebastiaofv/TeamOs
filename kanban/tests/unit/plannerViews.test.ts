@@ -85,7 +85,7 @@ describe('buildPortfolioPlannerViewModel', () => {
     ], null)], { portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, archive: 'all' } });
     const [done, archived] = buildPortfolioPlannerViewModel(s, { today: TODAY, trayStatuses: ACTIVE }).days[0].blocks;
     expect(done).toMatchObject({ done: true, archived: false, canEdit: false });
-    expect(archived).toMatchObject({ done: false, archived: true });
+    expect(archived).toMatchObject({ done: false, archived: false });
   });
 
   it('builds tray groups from the visible rows filtered by status, flagging planned tasks', () => {

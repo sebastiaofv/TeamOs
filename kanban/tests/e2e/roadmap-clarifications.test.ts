@@ -29,10 +29,10 @@ test('compact phase/sprint rows share tables and execution progress; Today spans
         return { height: row.getBoundingClientRect().height, centerDifference: Math.abs(name.y + name.height / 2 - dates.y - dates.height / 2), overlap: labels.right - track.left };
     });
     expect(geometry.height).toBeLessThanOrEqual(40); expect(geometry.centerDifference).toBeLessThan(2); expect(geometry.overlap).toBeLessThanOrEqual(1);
-    await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
-    await expect(area(page, 'phase:delivery').locator('table.workitems-table')).toHaveCount(1);
-    expect(await ids(area(page, 'phase:delivery'))).toEqual([501, 502, 504]);
-    await expect(area(page, 'phase:delivery').locator('.portfolio-task-card, .roadmap-row-timeline-bar')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Show tasks for API', exact: true }).click();
+    await expect(area(page, 'phase:api').locator('table.workitems-table')).toHaveCount(1);
+    expect(await ids(area(page, 'phase:api'))).toEqual([501, 502]);
+    await expect(area(page, 'phase:api').locator('.portfolio-task-card, .roadmap-row-timeline-bar')).toHaveCount(0);
     await page.getByRole('button', { name: 'Show tasks for October execution', exact: true }).click();
     await page.locator('#portfolioRoadmapView').evaluate((element) => { element.scrollTop = 0; element.scrollLeft = 0; });
     expect(await ids(area(page, 'sprint:october'))).toEqual([501, 502, 506, 507]);
@@ -114,8 +114,7 @@ test('leaf arrows expose workitems and parent work/table expansion remains indep
     await leaf.focus(); await page.keyboard.press('Enter');
     await expect(leaf).toHaveAttribute('aria-expanded', 'true');
     await expect(area(page, 'phase:api')).toBeVisible();
-    await page.getByRole('button', { name: 'Show tasks for Engineering', exact: true }).click();
-    await page.getByRole('button', { name: 'Hide tasks for Engineering', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Show tasks for Engineering', exact: true })).toHaveCount(0);
     await expect(area(page, 'phase:api')).toBeVisible();
     const parent = page.getByRole('button', { name: 'Expand/collapse subphases of Engineering', exact: true });
     await parent.click(); await expect(area(page, 'phase:api')).toHaveCount(0);
@@ -128,7 +127,7 @@ test('milestone colours are suggested, editable and persisted; history collapses
     await page.getByRole('button', { name: 'Add Milestone', exact: true }).click();
     await expect(page.getByRole('radio', { name: 'Amber', exact: true })).toBeChecked();
     await page.getByRole('radio', { name: 'Blue', exact: true }).check();
-    await page.locator('#roadmapEntityTitle').fill('Review colour'); await page.locator('#roadmapEntityDate').fill('2026-11-01');
+    await page.locator('#roadmapEntityTitle').fill('Review colour'); await page.locator('#roadmapEntityDate').fill('01/11/2026');
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap.milestones.find((item: { id: string }) => item.id === 'review-colour').color).toBe('#2563eb');
     await page.locator('.milestone-annotation[data-roadmap-id="review-colour"]').click();
@@ -142,7 +141,7 @@ test('milestone colours are suggested, editable and persisted; history collapses
     await showTimeline(page);
     const panel = page.locator('#portfolioTimelinePanel');
     await expect(panel).toHaveClass(/collapsed/); await expect(panel.locator('.timeline-panel-subtitle')).toContainText('Review colour');
-    for (const mode of ['board', 'table', 'calendar', 'planner', 'roadmap']) {
+    for (const mode of ['board', 'table', 'planner', 'roadmap']) {
         await page.locator(`#portfolioViewModeToggle [data-view-mode="${mode}"]`).click();
         await expect(panel.locator('.timeline-body')).toBeHidden();
         await panel.locator('.timeline-toggle-btn').click(); await expect(panel.locator('.timeline-body')).toBeVisible();
@@ -152,22 +151,13 @@ test('milestone colours are suggested, editable and persisted; history collapses
     expect(await readSavedBoard(page, 'p')).toEqual(before);
 });
 
-test('phase-scoped sprint/milestone perspectives exclude other work and keep absent associations independent', async ({ page }) => {
+test('leaf workitem tables omit perspective controls and the User Story column', async ({ page }) => {
     await seed(page);
-    await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
-    const work = area(page, 'phase:delivery');
-    await work.getByRole('button', { name: 'By sprint', exact: true }).click();
-    expect(await ids(work.locator('[data-roadmap-group="october"]'))).toEqual([501, 502]);
-    expect(await ids(work.locator('[data-roadmap-group="none"]'))).toEqual([504]);
-    await page.getByLabel('Workitem archive visibility', { exact: true }).selectOption('all');
-    expect(await ids(work.locator('[data-roadmap-group="none"]'))).toEqual([503, 504]);
-    await work.getByRole('button', { name: 'By milestone', exact: true }).click();
-    expect(await ids(work.locator('[data-roadmap-group="release"]'))).toEqual([501, 502, 503]);
-    expect(await ids(work.locator('[data-roadmap-group="none"]'))).toEqual([504]);
-    await expect(page.locator('#roadmap-row-phase-delivery .roadmap-bar-value')).toHaveText('25%');
-    await page.getByRole('group', { name: 'Workitem completion filter', exact: true }).getByRole('button', { name: 'Completed', exact: true }).click();
-    expect(await ids(work)).toEqual([501]);
-    await expect(page.locator('#roadmap-row-phase-delivery .roadmap-bar-value')).toHaveText('25%');
+    await page.getByRole('button', { name: 'Show tasks for API', exact: true }).click();
+    const work = area(page, 'phase:api');
+    expect(await ids(work)).toEqual([501, 502]);
+    await expect(work.locator('.table-heading, .roadmap-perspectives, .table-summary')).toHaveCount(0);
+    await expect(work.getByRole('columnheader', { name: 'User Story', exact: true })).toHaveCount(0);
     expect((await readSavedBoard(page, 'p')).extensions.timeline).toBeUndefined();
 });
 
@@ -203,8 +193,7 @@ test('milestone diamonds open the shared table modal and returning from a workit
     await expect(modal.getByRole('heading', { name: 'Public release', exact: true })).toBeVisible();
     await expect(modal.locator('.milestone-modal-heading')).toContainText('15/12/2026');
     await expect(modal.locator('.milestone-diamond')).toHaveText('25%');
-    expect(await ids(modal)).toEqual([501, 502, 506]);
-    await modal.getByLabel('Workitem archive visibility', { exact: true }).selectOption('all');
+    expect(await ids(modal)).toEqual([501, 502, 503, 506]);
     expect(await ids(modal)).toEqual([501, 502, 503, 506]);
     await modal.getByRole('checkbox', { name: 'Select API contracts', exact: true }).check();
     await modal.getByRole('button', { name: 'API contracts', exact: true }).click();
@@ -228,6 +217,7 @@ test('nearby milestones remain separately accessible, empty groups use N/A, and 
     await expect(modal.locator('.milestone-diamond')).toHaveText('N/A');
     await expect(modal).toContainText('No tasks assigned');
     await expect(modal.getByRole('button', { name: 'Edit', exact: true })).toBeDisabled();
+    await modal.locator('.modal-footer summary').click();
     await expect(modal.getByRole('button', { name: 'Delete', exact: true })).toBeDisabled();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: 'Add Phase', exact: true })).toBeDisabled();
@@ -240,13 +230,13 @@ test('parent-only phase moves save and structural confirmations identify archive
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap.phases.find((phase: { id: string }) => phase.id === 'future').parentId).toBe('delivery');
     await page.getByRole('button', { name: 'Delete Interface', exact: true }).click();
-    await expect(page.locator('#appMessageModal')).toContainText('#503 · Archived research · Archived');
+    await expect(page.locator('#appMessageModal')).toContainText('#503 · Archived research');
     await expect(page.locator('#appMessageModal')).toContainText('#504 · UI build');
     await answerAppMessage(page, { button: 'Cancel' });
     await page.getByRole('button', { name: 'Add Phase', exact: true }).click();
     await page.locator('#roadmapEntityTitle').fill('Frontend detail'); await page.locator('#roadmapPhaseParent').selectOption('ui');
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
-    await expect(page.locator('#appMessageModal')).toContainText('#503 · Archived research · Archived');
+    await expect(page.locator('#appMessageModal')).toContainText('#503 · Archived research');
     await answerAppMessage(page, { button: 'Frontend detail', expectText: '#504 · UI build' });
     await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks.find((task: { id: number }) => task.id === 503).phaseId).toBe('frontend-detail');
     const data = await readSavedBoard(page, 'p');

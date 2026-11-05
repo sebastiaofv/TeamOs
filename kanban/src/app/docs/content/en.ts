@@ -54,7 +54,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Create a new project' },
                     { kind: 'steps', items: [
                         'Click **+ New Project** in the top bar (or press [[N]]).',
-                        'Fill in the project settings: the **Project name** and a **Project Acronym** of 1 to 3 letters are required. The acronym prefixes new workitem IDs, for example `CHK-US-2`.',
+                        'Fill in the project settings: the **Project name** and a **Project Acronym** of 1 to 4 letters are required. The acronym prefixes new workitem IDs, for example `CHK-US-2`.',
                         'Optionally add a description, a product, members and tags. You can change all of this later.',
                         'Choose where to save the `.board.json` file. The project is added to the portfolio and selected.'
                     ] },
@@ -151,7 +151,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Writing a good User Story' },
                     { kind: 'p', text: 'A common format is: **As** a type of user, **I want** a capability, **so that** I obtain a benefit. Follow it with Acceptance Criteria that anyone can check, such as “Given…, when…, then…”.' },
                     { kind: 'callout', tone: 'method', title: 'Agile practice', text: 'Good Stories are Independent, Negotiable, Valuable, Estimable, Small and Testable (INVEST). If a Story cannot be finished in one sprint, split it by workflow step, business rule or data variation.' },
-                    { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A User Story can only belong to an Epic. A Task can belong to an Epic or a User Story, or be independent. Bugs stay outside the hierarchy. A workitem\'s type cannot change after creation.' }
+                    { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A User Story can only belong to an Epic. A Task can belong to an Epic, a User Story or a Bug, or be independent. Bugs use the functional workflow and receive an execution Task when created. A workitem\'s type cannot change after creation.' }
                 ],
                 related: ['wi-types', 'wi-hierarchy', 'wi-acceptance']
             },
@@ -176,7 +176,7 @@ export const DOCS_EN: DocSection[] = [
                 title: 'Executing on the Kanban board',
                 summary: 'Make work visible, limit work in progress and remove blockers quickly.',
                 blocks: [
-                    { kind: 'p', text: 'During the sprint, the [Board](wf-board) is the team\'s shared picture of the work. The **Technical Board** shows Tasks and Bugs (Tasks of a Story appear while the Story\'s sprint is active). The **Functional Board** shows User Stories.' },
+                    { kind: 'p', text: 'During the sprint, the [Board](wf-board) is the team\'s shared picture of the work. The **Technical Board** shows Tasks. The **Functional Board** shows User Stories and Bugs.' },
                     { kind: 'list', items: [
                         '**Pull, do not push**: start a new item only when you finish one.',
                         '**Make blockers explicit**: mark an item as blocked with a reason, or link it as blocked by another workitem.',
@@ -215,7 +215,7 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'What the methodology recommends, and what TeamOS actually enforces.',
                 blocks: [
                     { kind: 'table', head: ['Topic', 'Agile recommendation', 'What TeamOS enforces'], rows: [
-                        ['Hierarchy', 'Epics contain Stories; Stories contain Tasks', 'Stories only under Epics; Tasks under Epics or Stories; Bugs outside the hierarchy; no cycles'],
+                        ['Hierarchy', 'Epics contain Stories; Stories contain Tasks', 'Stories and Bugs under Epics; Tasks under Epics, Stories or Bugs; no cycles'],
                         ['Acceptance', 'Accept against agreed criteria', 'A Story needs Acceptance Criteria and no pending Tasks to complete; Stories and Bugs require a named functional acceptance'],
                         ['Workflow', 'Agree on a clear definition of each state', 'Moves must follow the configured transitions'],
                         ['Sprint planning', 'Commit to what fits', 'Story Tasks follow their Story; only Planned/Active sprints accept work'],
@@ -258,7 +258,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'p', text: 'Open Project settings with the gear beside the project chip. The dialog has three tabs: **General**, **Technical workflow** and **Functional workflow**. Changes in all tabs are kept as one draft and apply only when you click **Save**; Cancel, Escape or closing the dialog discards them.' },
                     { kind: 'terms', items: [
                         ['Project name', 'Required. Renaming the project or the file does not change its identity.'],
-                        ['Project Acronym', '1 to 3 letters, unique among the open projects. It prefixes the IDs of new workitems (EP, US, TK, BG). Existing IDs never change.'],
+                        ['Project Acronym', '1 to 4 letters, unique among the open projects. It prefixes the IDs of new workitems (EP, US, TK, BG). Existing IDs never change.'],
                         ['Description', 'Free text: a good place for the project\'s goal and team agreements.'],
                         ['Status', 'Planned, Active, Paused, Completed or Archived. Informative only: even Archived does not hide or lock the project.'],
                         ['Product', 'Optional grouping; see [Products](projects-products).'],
@@ -280,7 +280,7 @@ export const DOCS_EN: DocSection[] = [
                     ] },
                     { kind: 'list', items: [
                         'Member names must be unique, ignoring case and outer spaces.',
-                        'Renaming a member updates all current assignments, including archived workitems.',
+                        'Renaming a member updates all current assignments, including existing workitems.',
                         'A member who is still assigned cannot be removed: replace or remove those assignments first.',
                         'Removing the responsible participant from a workitem asks for confirmation, because it also clears responsibility.'
                     ] },
@@ -296,7 +296,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'p', text: 'New projects start with the removable tags `bug`, `feature`, `improvement` and `documentation`. Add or remove tags in Project settings → General.' },
                     { kind: 'list', items: [
                         'A tag has 1 to 30 characters; a workitem can have up to 10 tags.',
-                        'Tags in use (including on archived workitems) cannot be removed until they are removed from those workitems.',
+                        'Tags in use (including existing workitems) cannot be removed until they are removed from those workitems.',
                         'Search `#tag` in the [command palette](prod-palette) to find tagged workitems, or add `#tag` when creating a task in one line.'
                     ] },
                     { kind: 'callout', tone: 'tip', text: 'Use tags for cross-cutting concerns (area, component, customer) rather than for status or priority, which have their own fields.' }
@@ -338,7 +338,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Epic', '`EP`', 'Objective / Expected Outcome, Scope, Business Value', 'Functional'],
                         ['User Story', '`US`', 'Acceptance Criteria', 'Functional'],
                         ['Task', '`TK`', '—', 'Technical'],
-                        ['Bug', '`BG`', 'Steps to Reproduce, Expected Result, Actual Result, Severity, Environment / Version', 'Technical']
+                        ['Bug', '`BG`', 'Steps to Reproduce, Expected Result, Actual Result, Environment / Version', 'Functional']
                     ] },
                     { kind: 'p', text: 'IDs combine the project acronym, the type and a number shared by the project, for example `CHK-US-2`. IDs and types never change after creation, and deleted numbers are not reused.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Epics cannot have Effort, a Sprint allocation or Pull Request links: they are planned through their Stories and Tasks.' },
@@ -354,7 +354,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Hierarchy' },
                     { kind: 'list', items: [
                         'Epic → User Story → Task, plus Tasks directly under an Epic.',
-                        'Independent Tasks and all Bugs have no parent.',
+                        'Independent Tasks have no parent. Bugs can contain Tasks and receive one automatically at creation.',
                         'The parent must be in the same project; cycles are rejected.',
                         'To delete or move a workitem with children, first move or detach the children.'
                     ] },
@@ -364,7 +364,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Related to', 'A symmetric, informative link.'],
                         ['Blocks / Blocked by', 'A dependency. Unfinished blockers mark the dependent workitem as blocked.']
                     ] },
-                    { kind: 'p', text: 'Open a workitem\'s details → Relations to **Link workitem** (search by ID or title, including completed and archived items) or **Create related** (a new Backlog item that inherits only phase and milestone).' },
+                    { kind: 'p', text: 'Open a workitem\'s details → Relations to **Link workitem** (search by ID or title, including completed items) or **Create related** (a new Backlog item that inherits only phase and milestone).' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A pair of workitems has at most one relationship, self-links are not allowed and dependency cycles are rejected. Relationships survive moves between projects.' }
                 ],
                 related: ['wi-dependencies', 'plan-inheritance', 'projects-transfers']
@@ -378,7 +378,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'list', items: [
                         '**Create workitem** above the Board or in the Table (select a single project first).',
                         'From a parent\'s details, to create a child.',
-                        'From the Calendar, on a day, to set its due date.',
+                        'Set its due date in the editor using dd/mm/yyyy; consult deadlines in Day Planner → Calendar.',
                         'In the [command palette](prod-palette) with `+ Title @person !high #tag ~S due:fri`.'
                     ] },
                     { kind: 'terms', items: [
@@ -392,7 +392,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Blocked', 'A manual block that requires a reason.'],
                         ['Phase / Milestone / Sprint', 'Planning associations; see [Planning](plan-inheritance).']
                     ] },
-                    { kind: 'p', text: 'Saving a new workitem opens its details. Press [[Ctrl/⌘]] + [[Enter]] to save from the editor. **Archive** hides a workitem while keeping it; **Delete** removes it permanently after confirmation.' }
+                    { kind: 'p', text: 'Saving a new workitem opens its details. Press [[Ctrl/⌘]] + [[Enter]] to save from the editor. **Delete** is in the details ⋯ menu and removes the workitem permanently after confirmation.' }
                 ],
                 related: ['wi-types', 'wi-collab', 'agile-backlog']
             },
@@ -422,7 +422,7 @@ export const DOCS_EN: DocSection[] = [
                 blocks: [
                     { kind: 'terms', items: [
                         ['Manual block', 'Tick **Blocked** in the editor and describe what is blocking. Clear it when resolved.'],
-                        ['Dependency block', 'Derived automatically from unfinished direct blockers (Blocks / Blocked by), including archived ones. It clears when the blockers are completed or the link is removed.']
+                        ['Dependency block', 'Derived automatically from unfinished direct blockers (Blocks / Blocked by). It clears when the blockers are completed or the link is removed.']
                     ] },
                     { kind: 'p', text: 'Both appear on cards and in details and are included by the **Blocked** filter. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Dependencies are informative: they do not prevent status changes, and a dependency never overwrites a manual block.' }
@@ -437,7 +437,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Comments' },
                     { kind: 'list', items: [
                         'Plain text up to 10,000 characters plus up to 10 images (PNG, JPEG or WebP, 10 MiB each). Paste screenshots directly.',
-                        'Choose your local author name before posting. [[Ctrl/⌘]] + [[Enter]] publishes.',
+                        'Choose your project member when opening the project; comments and attachment uploads use that identity. [[Ctrl/⌘]] + [[Enter]] publishes.',
                         'Published comments cannot be edited or deleted in the app. Unsent drafts are kept for the session.'
                     ] },
                     { kind: 'h', text: 'Attachments' },
@@ -463,7 +463,7 @@ export const DOCS_EN: DocSection[] = [
                 blocks: [
                     { kind: 'terms', items: [
                         ['Functional workflow', 'Applies to Epics and User Stories: how a need progresses from idea to acceptance.'],
-                        ['Technical workflow', 'Applies to Tasks and Bugs: how execution work progresses from to-do to done.']
+                        ['Technical workflow', 'Applies to Tasks: how execution work progresses from to-do to done.']
                     ] },
                     { kind: 'p', text: 'Both are edited in Project settings and are independent: changing one does not affect the other. Older projects keep their existing process until a workflow is edited.' },
                     { kind: 'callout', tone: 'method', title: 'Agile practice', text: 'Keep the functional workflow close to how the customer sees progress (ready, in development, in validation, accepted), and the technical workflow close to how the team works (to do, in progress, review, testing, done).' }
@@ -498,7 +498,7 @@ export const DOCS_EN: DocSection[] = [
                         'In **States & transitions**, add or edit states: name, colour and category. Use the arrows to reorder them.',
                         'For each state, select its **Allowed destinations**. Return transitions are configured on the destination state.',
                         'In **Entry & references**, choose the Board entry state and the reference state for each category.',
-                        'Save. If states were removed or categories changed, choose a destination for affected workitems (archived ones included) and confirm the impact.'
+                        'Save. If states were removed or categories changed, choose a destination for affected workitems and confirm the impact.'
                     ] },
                     { kind: 'callout', tone: 'tip', text: 'An “Unreachable from Backlog” warning means no path leads to that state: add an incoming transition before saving.' }
                 ],
@@ -511,8 +511,8 @@ export const DOCS_EN: DocSection[] = [
                 blocks: [
                     { kind: 'p', text: 'With a project selected, the Board offers two perspectives:' },
                     { kind: 'terms', items: [
-                        ['Technical Board', 'Tasks and Bugs. Tasks that belong to a Story appear when the Story\'s sprint is active.'],
-                        ['Functional Board', 'User Stories.']
+                        ['Technical Board', 'Tasks. Active Sprints only is selected by default; clear it to include unsprinted Tasks and other Sprints.'],
+                        ['Functional Board', 'User Stories and Bugs.']
                     ] },
                     { kind: 'p', text: 'Columns show the To do, In progress and Completed states. Backlog items are worked in the Table or details and **sent to the Board** when ready. Use **Board columns** to hide states you do not need; hiding a column never moves or deletes workitems. With **All projects** selected, the board groups cards by category across projects.' },
                     { kind: 'h', text: 'Moving cards' },
@@ -521,7 +521,7 @@ export const DOCS_EN: DocSection[] = [
                         'With the keyboard, select a card with [[J]] / [[K]] and press [[1]]–[[4]] to move it.',
                         'Open the [command palette](prod-palette) on a card and choose **Move to…**.'
                     ] },
-                    { kind: 'p', text: 'Cards show the ID, title, people, tags, priority, effort, due date, blocking, checklist progress and, for Stories, execution progress. Click a card for details; use its ⋯ menu to edit, archive, copy or move it.' },
+                    { kind: 'p', text: 'Cards show the ID, title, people, tags, priority, effort, due date, blocking, checklist progress and, for Stories, execution progress. Click a card for details; change its responsible person directly or use the top-right arrow to advance along an allowed transition. The ⋯ menu offers copy and move; Delete is in the details ⋯ menu.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A move not allowed by the workflow is refused. Moving a Story or Bug to Completed asks for [functional acceptance](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -570,7 +570,7 @@ export const DOCS_EN: DocSection[] = [
                         'Select a project and open **Roadmap**.',
                         'Use **+ Phase**, **+ Milestone** and **+ Sprint** to create items, with dates and a colour.',
                         'Assign workitems to a leaf phase and a milestone in the workitem editor (or let children [inherit](plan-inheritance)).',
-                        'Expand a phase to see its workitems by workitem, by sprint or by milestone, and follow its progress.'
+                        'Expand a leaf phase to see its workitem table and progress. Parent phases only expand their child hierarchy.'
                     ] },
                     { kind: 'p', text: 'Progress counts completed eligible workitems (cancelled ones are excluded). Deliverables awaiting acceptance in Project Control keep phase and milestone progress below 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A phase with subphases cannot be deleted in cascade: move or delete the subphases first. Deleting a phase or milestone with assigned workitems asks you to reallocate or explicitly clear them.' }
@@ -613,13 +613,13 @@ export const DOCS_EN: DocSection[] = [
             {
                 id: 'plan-calendar',
                 title: 'Calendar',
-                summary: 'See due dates and roadmap periods by year or by month, across projects.',
+                summary: 'Consult Task deadlines and workload by year or month inside Day Planner → Calendar.',
                 blocks: [
                     { kind: 'list', items: [
                         '**Year view** shows twelve mini-months; click a month to open it.',
-                        '**Month view** lists each day\'s workitems and the phases, milestones and sprints that span it.',
-                        '**Heat Map** colours days by how many workitems are due: darker means more.',
-                        'On a writable project, use the + on a day to create a workitem due that day.'
+                        '**Month view** lists only Task deadlines.',
+                        '**Heat Map** colours days by the number of Task deadlines: darker means more.',
+                        'Calendar is for consultation; schedule time blocks in Day and Week.'
                     ] },
                     { kind: 'callout', tone: 'tip', text: 'Use the Heat Map to spot overloaded weeks before they arrive, then rebalance due dates or sprint scope.' }
                 ],
@@ -724,7 +724,7 @@ export const DOCS_EN: DocSection[] = [
                 blocks: [
                     { kind: 'list', items: [
                         '**Search**: type in the [command palette](prod-palette) and choose **Filter board by “…”**. The toolbar shows the active filter; click × to clear it.',
-                        '**Filters**: archive state, blocked, responsible person, participant, priority, effort and planning. Active filters appear as removable chips.',
+                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Active filters appear as removable chips.',
                         '**Sort**: by priority, effort, score or name, ascending or descending.',
                         '**Reset**: press [[R]] to reset filters and sort.'
                     ] },
@@ -761,7 +761,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'p', text: 'There is no Save button for the project: each change is saved to its file as soon as you make it. The project chip shows **Saving**, **Unsaved**, **Save failed**, **Conflict** or **External update** when relevant.' },
                     { kind: 'list', items: [
                         'If a save fails, your change stays applied in the app; use **Retry save** on the chip.',
-                        'Actions such as archiving or moving from the palette show **Undo** for a few seconds.',
+                        'Moving from the palette shows **Undo** for a few seconds.',
                         'Editors and dialogs (workitem editor, Project settings) apply only when you save them.'
                     ] },
                     { kind: 'callout', tone: 'tip', text: 'Keep project files in a synced or backed-up folder. The file is your project.' }

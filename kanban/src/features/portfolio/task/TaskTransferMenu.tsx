@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
 
-export function TaskTransferMenu({ boardId, taskId, historical = false }: { boardId: string; taskId: number; historical?: boolean }) {
-    const { transferPortfolioTask } = usePortfolioActions();
+export function TaskTransferMenu({ boardId, taskId, historical = false, allowDelete = false }: { boardId: string; taskId: number; historical?: boolean; allowDelete?: boolean }) {
+    const { transferPortfolioTask, deletePortfolioTask } = usePortfolioActions();
     const { t } = useI18n();
     const menu = useRef<HTMLDetailsElement>(null);
     useEffect(() => {
@@ -27,6 +27,7 @@ export function TaskTransferMenu({ boardId, taskId, historical = false }: { boar
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true">{mode === 'copy' ? <><rect x="7" y="7" width="10" height="10" rx="1" /><path d="M4 13H3V3h10v1" /></> : <><path d="M3 10h12m-5-5 5 5-5 5M17 3v14" /></>}</svg>
                 {t(`transfer.${mode}`)}
             </button>)}
+            {allowDelete && <button type="button" disabled={historical} onClick={() => { if (menu.current) menu.current.open = false; void deletePortfolioTask(boardId, taskId); }}>{t('common.delete')}</button>}
         </div>
     </details>;
 }

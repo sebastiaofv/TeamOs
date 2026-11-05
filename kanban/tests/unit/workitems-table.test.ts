@@ -35,11 +35,11 @@ function roadmapBoard() {
 }
 
 describe('workitem table filters', () => {
-  it('defaults to active workitems including completed ones, with explicit all/archived views', () => {
+  it('includes all items and ignores retired archive filter values', () => {
     const rows = [row(1), row(2, { status: 'done' }), row(3, { archived: true })];
-    expect(ids(filterTableRows(rows, filters()))).toEqual([1, 2]);
+    expect(ids(filterTableRows(rows, filters()))).toEqual([1, 2, 3]);
     expect(ids(filterTableRows(rows, filters({ archive: 'all' })))).toEqual([1, 2, 3]);
-    expect(ids(filterTableRows(rows, filters({ archive: 'archived' })))).toEqual([3]);
+    expect(ids(filterTableRows(rows, filters({ archive: 'archived' })))).toEqual([1, 2, 3]);
     expect(filterTableRows([], filters())).toEqual([]);
     expect(filterTableRows(rows, filters({ search: 'absent' }))).toEqual([]);
   });
@@ -53,7 +53,7 @@ describe('workitem table filters', () => {
     const exclusions: Partial<Task>[] = [
       { description: 'Different text' }, { status: 'backlog' }, { assignees: ['Rui'] },
       { phaseId: 'design' }, { milestoneId: 'other' }, { sprintId: 's2' },
-      { priority: 'low' }, { blocked: false }, { archived: true }
+      { priority: 'low' }, { blocked: false }
     ];
     const rows = [row(1, target), row(2, { ...target, status: 'done' }),
       ...exclusions.map((fields, index) => row(index + 3, { ...target, ...fields }))];
@@ -217,7 +217,7 @@ describe('workitem table CSV', () => {
     const selectedIds = new Set([2]);
     const filtered = filterTableRows(rows, filters());
     expect(filtered.filter((item) => selectedIds.has(item.task.id))).toHaveLength(1);
-    expect(buildTableCsv(filtered, ['id'], null)).toBe('id\r\n1\r\n2\r\n1');
+    expect(buildTableCsv(filtered, ['id'], null)).toBe('id\r\n1\r\n2\r\n3\r\n1');
   });
 });
 
@@ -229,7 +229,7 @@ describe.each([1, 100, 10_000])('workitem table at %i records', (count) => {
     }));
     const original = structuredClone(rows);
     const expected = Array.from({ length: count }, (_, index) => index + 1)
-      .filter((id) => (id - 1) % 5 !== 4 && (id - 1) % 2 === 0);
+      .filter((id) => (id - 1) % 2 === 0);
     const result = sortTableRows(filterTableRows(rows, filters({
       search: 'needle', statuses: ['doing'], assignee: 'Ana'
     })), 'title', 'desc', null);

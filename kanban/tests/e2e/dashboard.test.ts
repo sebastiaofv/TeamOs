@@ -84,7 +84,7 @@ test('overview shows parent phases only; scope and read-only drilldowns retain c
     await expect(page.locator('#taskDetailModal')).toContainText('Archived pending integration');
     await page.keyboard.press('Escape');
     await page.locator('[data-dashboard-planning="delivery"]').getByRole('button', { name: 'Delivery programme', exact: true }).click();
-    await expect(page.locator('[data-roadmap-task-list="phase:delivery"]')).toBeVisible();
+    await expect(page.locator('[data-roadmap-task-list="phase:delivery"]')).toHaveCount(0);
     await page.locator('[data-view-mode="dashboard"]').click();
     await expect(page.getByLabel('Planning scope', { exact: true })).toHaveValue('api');
     await page.locator('[data-dashboard-active-sprint="active"]').getByRole('button', { name: 'Sprint 2 - Implementation', exact: true }).click();
@@ -120,10 +120,10 @@ test('external file reload refreshes metrics and clears stale source lists', asy
 
 test('historical period uses saved observations and historical drilldowns instead of current task status', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('Start date', { exact: true }).fill('2026-10-16');
-    await page.getByLabel('End date', { exact: true }).fill('2026-10-19');
+    await page.getByLabel('Start date', { exact: true }).fill('16/10/2026');
+    await page.getByLabel('End date', { exact: true }).fill('19/10/2026');
     await expect(page.getByText('No recorded observations in this period.', { exact: true })).toBeVisible();
-    await page.getByLabel('Start date', { exact: true }).fill('2026-10-21');
+    await page.getByLabel('Start date', { exact: true }).fill('21/10/2026');
     await expect(page.getByRole('alert')).toContainText('The end date');
     await page.getByLabel('Snapshot', { exact: true }).selectOption('0');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');

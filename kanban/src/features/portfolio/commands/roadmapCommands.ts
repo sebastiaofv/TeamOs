@@ -52,7 +52,7 @@ type RoadmapEntityDraft = {
 export function createRoadmapActions({ getState, commitState, getBoardRecord, canUsePortfolioTaskMutations,
     notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, runPortfolioTaskMutation, alert, confirm, choose, closeDialogFn, openDialogFn }: BoardMutationContext,
 { getSelectedPortfolioBulkTaskIds, clearPortfolioBulkSelection }: Pick<BoardInteractions, 'getSelectedPortfolioBulkTaskIds' | 'clearPortfolioBulkSelection'>) {
-    const impactText = (tasks: Task[]) => tasks.length ? `\n\n${tasks.map((task) => `${workitemLabel(task)} · ${task.title}${task.archived ? ` · ${translateCurrent('table.archived')}` : ''}`).join('\n')}` : '';
+    const impactText = (tasks: Task[]) => tasks.length ? `\n\n${tasks.map((task) => `${workitemLabel(task)} · ${task.title}`).join('\n')}` : '';
     const getRoadmapLabel = (kind: RoadmapKind, tr: typeof translateCurrent = translateCurrent): string => kind === 'milestones'
         ? tr('roadmap.milestone')
         : kind === 'phases'
@@ -340,7 +340,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
             if (context.kind !== 'sprints') nextItem.color = isMilestoneColor(input.color) ? input.color
                 : previousItem ? milestoneColor(previousItem, index) : nextMilestoneColor(items);
-            if (['phases', 'sprints'].includes(context.kind) && draft.parentId) nextItem.parentId = draft.parentId;
+            if (context.kind === 'phases' && draft.parentId) nextItem.parentId = draft.parentId;
             const objective = String(input.objective ?? previousItem?.objective ?? '');
             if (context.kind !== 'sprints' && (objective || previousItem?.objective !== undefined)) nextItem.objective = objective;
             const relationKey = context.kind === 'phases' ? 'phaseIds' : 'milestoneIds';

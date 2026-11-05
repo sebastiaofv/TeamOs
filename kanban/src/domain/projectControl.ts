@@ -60,7 +60,7 @@ export function parseProjectControl(value: unknown): ProjectControl | undefined 
     const ids = new Set<string>();
     for (const item of value.records) {
         if (!isRecord(item) || typeof item.id !== 'string' || !CONTROL_KINDS.includes(item.kind as ControlKind)) fail();
-        const idPattern = new RegExp(`^(?:PC|[A-Z]{1,3}-${CONTROL_TYPE_CODES[item.kind as ControlKind]})-([1-9]\\d*)$`);
+        const idPattern = new RegExp(`^(?:PC|[A-Z]{1,4}-${CONTROL_TYPE_CODES[item.kind as ControlKind]})-([1-9]\\d*)$`);
         const number = item.id.match(idPattern)?.[1];
         if (!number || !Number.isSafeInteger(Number(number)) || ids.has(item.id) || Number(number) > Number(value.lastNumber)) fail();
         ids.add(item.id);
@@ -125,7 +125,7 @@ export function saveControlRecord(data: BoardData, input: ControlRecord, author:
     const timeline = data.extensions.timeline;
     const lastNumber = (timeline?.events || []).reduce((highest, event) => Math.max(highest, event.snapshot?.extensions?.projectControl?.lastNumber || 0), extension.lastNumber);
     const record = cloneSerializable(input);
-    if (!before && !/^[A-Z]{1,3}$/.test(data.extensions.project?.acronym || '')) throw new ProjectDataError('acronym');
+    if (!before && !/^[A-Z]{1,4}$/.test(data.extensions.project?.acronym || '')) throw new ProjectDataError('acronym');
     record.id = before?.id || `${data.extensions.project!.acronym}-${CONTROL_TYPE_CODES[record.kind]}-${lastNumber + 1}`;
     if (before && before.kind !== record.kind) fail();
     record.title = record.title.trim();

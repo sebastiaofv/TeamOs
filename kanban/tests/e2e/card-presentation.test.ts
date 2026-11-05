@@ -21,7 +21,7 @@ for (const width of [1280, 390]) {
             await expect(card.locator('.task-title')).toHaveText('Pagar com cartão');
             await expect(card.locator('.task-card-id')).toContainText('1202');
             await expect(card.getByText('Ana', { exact: true })).toHaveCount(1);
-            await expect(card).not.toContainText('Rui');
+            await expect(card.locator('select')).toContainText('Rui');
             await expect(card).not.toContainText('Checkout acessível');
             await expect(card.locator('.task-tag-label, .task-tag-assignee, .task-tag-age, .task-tag-score, .effort-dot')).toHaveCount(0);
             await expect(card.locator('.task-card-progress')).toContainText('Tarefas: 50%');

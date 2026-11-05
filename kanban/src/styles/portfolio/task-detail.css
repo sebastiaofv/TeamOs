@@ -774,3 +774,6 @@
 .workitem-sidebar .form-group > select, .workitem-sidebar .form-group > input[type="date"], .workitem-sidebar .form-group > textarea { width: 100%; }
 
 .attachment-table-actions { display: flex; align-items: center; gap: 12px; }
+
+.comment-posting-as select { max-width: 180px; min-width: 0; width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.comment-posting-as > span { min-width: 0; max-width: 100%; }
