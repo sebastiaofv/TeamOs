@@ -97,7 +97,7 @@ for (const scenario of ['no sprints', 'all Done', 'read-only'] as const) {
 }
 
 for (const view of ['Table', 'Board']) {
-  test(`an open ${view} sprint picker removes a sprint when it becomes Done at midnight`, async ({ page }) => {
+  test(`an open ${view} sprint picker retains manual status across midnight`, async ({ page }) => {
     await page.clock.install({ time: new Date('2026-10-19T23:59:58Z') });
     await page.clock.pauseAt(new Date('2026-10-19T23:59:59Z'));
     await gotoApp(page);
@@ -120,9 +120,9 @@ for (const view of ['Table', 'Board']) {
     await select.selectOption('ending');
     await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeEnabled();
     await page.clock.fastForward(2000);
-    await expect(select.locator('option[value="ending"]')).toHaveCount(0);
-    await expect(select).toHaveValue('');
-    await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeDisabled();
+    await expect(select.locator('option[value="ending"]')).toHaveCount(1);
+    await expect(select).toHaveValue('ending');
+    await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeEnabled();
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
     await select.selectOption('next');
     await page.locator('#roadmapEntityModalSaveBtn').click();

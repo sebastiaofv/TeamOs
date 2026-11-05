@@ -5,7 +5,7 @@ import { formatFileSize } from '@/domain/util';
 
 const FIELDS: Record<string, TranslationKey> = {
     transfer: 'history.transfer', title: 'task.title', description: 'task.description', status: 'task.status', assignees: 'task.assignees', responsible: 'task.responsible',
-    tags: 'task.tags', priority: 'task.priority', effort: 'task.effort', dueDate: 'task.due', blocked: 'task.blocked', blockerReason: 'task.blocker',
+    tags: 'task.tags', priority: 'task.priority', effort: 'task.effort', storyPoints: 'task.storyPoints', dueDate: 'task.due', blocked: 'task.blocked', blockerReason: 'task.blocker',
     checklist: 'task.todoList', attachments: 'task.attachments', archived: 'table.archived', phaseId: 'task.phase', milestoneId: 'task.milestone', sprintId: 'task.sprint',
     planner: 'history.planner', relations: 'history.relations', existence: 'history.existence', pullRequests: 'history.pullRequests'
 };

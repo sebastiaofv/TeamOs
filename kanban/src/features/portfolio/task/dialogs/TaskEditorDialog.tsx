@@ -1,3 +1,4 @@
+import { STORY_POINT_OPTIONS } from '@/domain/sprintResults';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '../WorkitemTypeBadge';
 import { WORKITEM_TYPES, validParent } from '@/domain/workitems';
@@ -140,9 +141,9 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                     <div className="form-row">
                         <div className="form-group"><label htmlFor="workitemType">{t('workitems.type')}</label><select id="workitemType" value={form.type || 'task'} disabled={vm.editing} onChange={(event) => {
                             const type = event.target.value as NonNullable<TaskEditorFields['type']>;
-                            setForm((current) => ({ ...current, type, parentId: null, ...(type === 'epic' ? { effort: '', pullRequests: [] } : {}) }));
+                            setForm((current) => ({ ...current, type, parentId: null, ...(type === 'epic' ? { effort: '', storyPoints: null, pullRequests: [] } : {}) }));
                         }}>{WORKITEM_TYPES.map((type) => <option key={type} value={type}>{t(`workitems.type.${type}`)}</option>)}</select></div>
-                        {['story', 'task'].includes(form.type || 'task') && <div className="form-group"><label htmlFor="workitemParent">{t('workitems.parent')}</label><select id="workitemParent" value={form.parentId || ''} onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value ? Number(event.target.value) : null, phaseMode: event.target.value && !current.phaseId ? 'inherit' : current.phaseMode, milestoneMode: event.target.value && !current.milestoneId ? 'inherit' : current.milestoneMode }))}>
+                        {['story', 'task'].includes(form.type || 'task') && <div className="form-group"><label htmlFor="workitemParent">{t('workitems.parent')}</label><select id="workitemParent" value={form.parentId || ''} onChange={(event) => setForm((current) => ({ ...current, parentId: event.target.value ? Number(event.target.value) : null, ...(vm.parentCandidates?.find((parent) => parent.id === Number(event.target.value))?.type === 'story' ? { storyPoints: null } : {}), phaseMode: event.target.value && !current.phaseId ? 'inherit' : current.phaseMode, milestoneMode: event.target.value && !current.milestoneId ? 'inherit' : current.milestoneMode }))}>
                             <option value="">{t('common.none')}</option>{vm.parentCandidates?.filter((parent) => validParent(form.type || 'task', parent)).map((parent) => <option key={parent.id} value={parent.id}>{workitemLabel(parent)} {parent.title}</option>)}
                         </select></div>}
                     </div>
@@ -166,6 +167,11 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                             </select>
                         </div>}
                     </div>
+                    {form.type !== 'epic' && !(form.type === 'task' && vm.parentCandidates?.find((parent) => parent.id === form.parentId)?.type === 'story') && <div className="form-group">
+                        <label htmlFor="taskStoryPoints">{t('task.storyPoints')}</label>
+                        <select id="taskStoryPoints" value={form.storyPoints ?? ''} onChange={(event) => update('storyPoints', event.target.value === '' ? null : Number(event.target.value))}>
+                            <option value="">{t('common.none')}</option>{[...new Set([...STORY_POINT_OPTIONS, ...(form.storyPoints == null ? [] : [form.storyPoints])])].sort((a, b) => a - b).map((value) => <option key={value} value={value}>{value}</option>)}
+                        </select></div>}
                     <div className="form-group">
                         <label htmlFor="taskBlocked">{t('task.blocked')}</label>
                         <div className="form-checkbox-row">

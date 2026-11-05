@@ -14,6 +14,7 @@ import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 import { MILESTONE_PALETTE } from '@/domain/milestonePresentation';
+import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 
 type RoadmapEntityFormDraft = RoadmapEntityDates & { existingSprintId: string; parentId: string };
 
@@ -32,7 +33,7 @@ export function RoadmapEntityDialog() {
             <Dialog.Portal>
                 <Dialog.Overlay className="modal active" id="roadmapEntityModal">
                     <Dialog.Content
-                        className="modal-content"
+                        className={`modal-content${vm?.kind === 'sprints' && !vm.showExistingSprint ? ' sprint-editor-modal' : ''}`}
                         aria-describedby={undefined}
                         onPointerDownOutside={keepOpenOnUndoToast}
                         onEscapeKeyDown={escapeAnswersAppMessage}
@@ -60,7 +61,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     titleRef: RefObject<HTMLInputElement | null>;
     sprintRef: RefObject<HTMLSelectElement | null>;
 }) {
-    const { saveRoadmapEntity } = usePortfolioActions();
+    const { saveRoadmapEntity, deleteRoadmapEntity, closeRoadmapEntity } = usePortfolioActions();
     const { t, language } = useI18n();
     const today = useLocalToday();
     const assignmentBoard = useAppStore((state) => {
@@ -73,6 +74,32 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     const [controlIds, setControlIds] = useState(() => controlRecords(controlBoard).filter((record) => (vm.kind === 'phases' ? record.related.phaseIds : record.related.milestoneIds).includes(vm.itemId)).map((record) => record.id));
     const [draft, setDraft] = useState<RoadmapEntityFormDraft>(() => ({ ...vm.initial, existingSprintId: '', parentId: vm.parentId || '' }));
     const selectedSprintId = sprintOptions.some((option) => option.value === draft.existingSprintId) ? draft.existingSprintId : '';
+    const isSprintEditor = vm.kind === 'sprints' && !vm.showExistingSprint;
+    // Sprint duration in business days: start + duration gives the end date,
+    // and start + end gives the duration (see domain/businessDays).
+    const [duration, setDuration] = useState(() => String(businessDaysBetween(vm.initial.startDate || '', vm.initial.endDate || '') ?? ''));
+    const changeSprintDates = (field: 'startDate' | 'endDate' | 'duration', value: string) => {
+        if (field === 'duration') {
+            setDuration(value);
+            const days = value === '' ? NaN : Number(value);
+            const endDate = draft.startDate ? addBusinessDays(draft.startDate, days) : '';
+            if (endDate) setDraft((current) => ({ ...current, endDate }));
+            return;
+        }
+        const next = { ...draft, [field]: value };
+        if (field === 'startDate') {
+            const days = duration === '' ? NaN : Number(duration);
+            const endDate = value ? addBusinessDays(value, days) : '';
+            if (endDate) next.endDate = endDate;
+            else setDuration(String(businessDaysBetween(value, next.endDate || '') ?? ''));
+        } else {
+            setDuration(String(businessDaysBetween(next.startDate || '', value) ?? ''));
+        }
+        setDraft(next);
+    };
+    const bindSprintDate = (field: 'startDate' | 'endDate') => isSprintEditor
+        ? { value: draft[field] ?? '', onChange: (event: ChangeEvent<HTMLInputElement>) => changeSprintDates(field, event.target.value) }
+        : bind(field);
     const dueDateRef = useRef<HTMLInputElement>(null);
     const startDateRef = useRef<HTMLInputElement>(null);
     const endDateRef = useRef<HTMLInputElement>(null);
@@ -81,8 +108,8 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
         existingSprintId: sprintRef, title: titleRef, dueDate: dueDateRef, startDate: startDateRef, endDate: endDateRef
     };
     const bind = (field: keyof RoadmapEntityFormDraft) => ({
-        value: draft[field],
-        onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setDraft((current) => ({ ...current, [field]: event.target.value }))
+        value: draft[field] ?? '',
+        onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setDraft((current) => ({ ...current, [field]: event.target.value }))
     });
     const hideTitle = vm.showExistingSprint;
     const hideSingleDate = vm.showExistingSprint || vm.dateMode !== 'single';
@@ -106,6 +133,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                         <select id="roadmapPhaseParent" value={draft.parentId} onChange={(event) => {
                             const parentId = event.target.value;
                             const parent = vm.phases?.find((phase) => phase.id === parentId);
+                            if (!vm.itemId && parent) setDuration(String(businessDaysBetween(parent.startDate || '', parent.endDate || '') ?? ''));
                             setDraft((current) => ({ ...current, parentId, ...(!vm.itemId && parent ? { startDate: parent.startDate || '', endDate: parent.endDate || '' } : {}) }));
                         }}><option value="">{t('common.none')}</option>{vm.phaseOptions?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
                         {vm.datesCalculated && <p className="field-hint">{t('roadmap.calculatedDates')}</p>}
@@ -124,6 +152,16 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                         <label className="required" htmlFor="roadmapEntityTitle">{t('roadmapDialog.title')}</label>
                         <input type="text" id="roadmapEntityTitle" ref={titleRef} required maxLength={80} {...bind('title')} />
                     </div>
+                    {vm.kind === 'sprints' && !vm.showExistingSprint && <>
+                        {vm.itemId && <div className="form-group"><label htmlFor="sprintStatus">{t('task.status')}</label>
+                            <select id="sprintStatus" value={draft.status || 'planned'} onChange={(event) => setDraft((current) => ({ ...current, status: event.target.value as NonNullable<RoadmapEntityDates['status']> }))}>
+                                {(['planned', 'active', 'done'] as const).map((status) => <option key={status} value={status}>{t(`table.sprintStatus.${status}`)}</option>)}
+                            </select></div>}
+                        <div className="form-group"><label htmlFor="sprintGoal">{t('sprint.goal')}</label><textarea id="sprintGoal" {...bind('goal')} /></div>
+                        <div className="form-group"><label htmlFor="sprintCapacity">{t('sprint.capacity')}</label><input id="sprintCapacity" type="number" min="0" step="any" value={draft.capacity ?? ''} onChange={(event) => setDraft((current) => ({ ...current, capacity: event.target.value === '' ? null : Number(event.target.value) }))} /></div>
+                        <div className="form-group"><label htmlFor="sprintReview">{t('sprint.review')}</label><textarea id="sprintReview" {...bind('review')} /></div>
+                        <div className="form-group"><label htmlFor="sprintRetrospective">{t('sprint.retrospective')}</label><textarea id="sprintRetrospective" {...bind('retrospective')} /></div>
+                    </>}
                     {vm.kind !== 'sprints' && <label className="form-group">{t('control.objective')}<textarea aria-label={t('control.objective')} id="roadmapEntityObjective" value={draft.objective || ''} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} rows={3} /></label>}
                     <div className={`roadmap-entity-date-row single${hideSingleDate ? ' hidden' : ''}`} id="roadmapEntitySingleDateRow">
                         <div className="form-group">
@@ -136,14 +174,18 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                             <input type="radio" name="milestoneColor" value={color.value} checked={draft.color === color.value} aria-label={t(`roadmap.color.${color.id}`)} onChange={() => setDraft((current) => ({ ...current, color: color.value }))} /><span aria-hidden="true" />
                         </label>)}
                     </fieldset>}
-                    <div className={`roadmap-entity-date-row${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
+                    <div className={`roadmap-entity-date-row${isSprintEditor ? ' with-duration' : ''}${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityStartDate">{t('roadmapDialog.startDate')}</label>
-                            <input type="date" id="roadmapEntityStartDate" ref={startDateRef} readOnly={vm.datesCalculated} {...bind('startDate')} />
+                            <input type="date" id="roadmapEntityStartDate" ref={startDateRef} readOnly={vm.datesCalculated} {...bindSprintDate('startDate')} />
                         </div>
+                        {isSprintEditor && <div className="form-group">
+                            <label htmlFor="sprintDuration">{t('sprint.duration')}</label>
+                            <input type="number" id="sprintDuration" min="0" step="1" inputMode="numeric" readOnly={vm.datesCalculated} value={duration} onChange={(event) => changeSprintDates('duration', event.target.value)} />
+                        </div>}
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityEndDate">{t('roadmapDialog.endDate')}</label>
-                            <input type="date" id="roadmapEntityEndDate" ref={endDateRef} readOnly={vm.datesCalculated} {...bind('endDate')} />
+                            <input type="date" id="roadmapEntityEndDate" ref={endDateRef} readOnly={vm.datesCalculated} {...bindSprintDate('endDate')} />
                         </div>
                     </div>
                     </fieldset>
@@ -151,6 +193,8 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 </form>
             </div>
             <div className="modal-footer">
+                {isSprintEditor && vm.itemId && vm.initial.status === 'planned' && !vm.readOnly && <button type="button" className="btn btn-danger roadmap-entity-delete" id="roadmapEntityModalDeleteBtn"
+                    onClick={() => void deleteRoadmapEntity('sprints', vm.itemId, { boardId: vm.boardId, onApplied: closeRoadmapEntity })}>{t('sprint.delete')}</button>}
                 <Dialog.Close className="btn" id="roadmapEntityModalCancelBtn">{t('roadmapDialog.cancel')}</Dialog.Close>
                 <button
                     className="btn btn-primary"

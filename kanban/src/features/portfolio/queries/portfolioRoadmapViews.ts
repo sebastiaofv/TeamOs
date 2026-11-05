@@ -46,13 +46,16 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
             boardId: board.id, boardTitle: board.title, boardFileName: board.fileName,
             taskIndex: -1, ...byId.get(task.id), taskId: task.id,
             task: participation.isCurrent(task.id) ? byId.get(task.id)?.task || task : task, boardData: context,
-            canMutate: false, historical: historical || !participation.isCurrent(task.id)
+            canMutate: false, historical: historical || !participation.isCurrent(task.id), liveDetails: !historical && byId.has(task.id)
         })) : tasks.flatMap((task) => byId.get(task.id) ? [byId.get(task.id)!] : []);
         const progress = participation ? planningProgress(participation.planningMembers.filter((task) => ids.has(task.id)), context, { leavesOnly: false }) : planningProgress(tasks, context);
         if (item && /^phases?:/.test(key)) progress.percent = gateControlProgress(boardData, 'phases', phaseDescendants(roadmap.phases, item.id), progress.percent);
         if (item && /^milestones?:/.test(key)) progress.percent = gateControlProgress(boardData, 'milestones', new Set([item.id]), progress.percent);
+        // Count only workitems without children in this scope, so a Story with 3 Tasks counts 3, not 4.
+        const leaves = scopedTasks.filter((task) => !scopedTasks.some((child) => child.parentId === task.id));
+        progress.associated = leaves.length;
         return { key, item, boardData: context, participation: participation || undefined, tasks: scopedTasks, rows,
-            visibleCount: scopedTasks.filter((task) => taskMatchesPortfolioFilters(task, filters, context)).length,
+            visibleCount: leaves.filter((task) => taskMatchesPortfolioFilters(task, filters, context)).length,
             progress };
     };
     function grouped(tasks: Task[], kind: 'sprints' | 'milestones'): RoadmapWorkScope[] {
@@ -68,7 +71,9 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
         return { ...scope(`phase:${item.id}`, item, tasks), kind: 'phases', depth, hasChildren, treeCollapsed: Boolean(expanded[`tree:${item.id}`]), expanded: Boolean(expanded[`phase:${item.id}`]),
             sprintGroups: [...grouped(tasks, 'sprints'), ...roadmap.sprints.filter((sprint) => sprint.parentId === item.id && !tasks.some((task) => task.sprintId === sprint.id)).map((sprint) => scope(`sprint:${sprint.id}`, sprint, getRoadmapTaskFieldTasks(boardData, 'sprintId', sprint.id)))], milestoneGroups: grouped(tasks, 'milestones') };
     });
-    const sprintRows: RoadmapPlanningRow[] = roadmap.sprints.filter((sprint) => !sprint.parentId || !roadmap.phases.some((phase) => phase.id === sprint.parentId)).sort(compareRoadmapItemsByDate).map((item) => ({ ...scope(`sprint:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'sprintId', item.id)),
+    // Every Sprint gets its own row, including those nested in a Phase, so its
+    // lifecycle actions (Edit, Start, Finish) are always reachable.
+    const sprintRows: RoadmapPlanningRow[] = [...roadmap.sprints].sort(compareRoadmapItemsByDate).map((item) => ({ ...scope(`sprint:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'sprintId', item.id)),
         kind: 'sprints', depth: 0, hasChildren: false, treeCollapsed: false, expanded: Boolean(expanded[`sprint:${item.id}`]), sprintGroups: [], milestoneGroups: [] }));
     const milestones: RoadmapMilestoneMarker[] = roadmap.milestones.map((item, index) => ({ ...item, color: milestoneColor(item, index) })).sort(compareRoadmapItemsByDate).map((item) => {
         return { ...scope(`milestone:${item.id}`, item, getRoadmapTaskFieldTasks(boardData, 'milestoneId', item.id)), position: getRoadmapTimelinePlacement(item, range)?.point || 0 };

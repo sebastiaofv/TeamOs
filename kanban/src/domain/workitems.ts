@@ -1,7 +1,7 @@
 import type { BoardData, Task, WorkitemType, WorkitemAutomation } from './types';
 import { createWorkitemDisplayId } from './taskIdentity';
-import { canTransition, getWorkflow, statusCategory } from './workflow';
-import { getSprintCalendarStatus } from './roadmap';
+import { canTransition, getWorkflow, LEGACY_FUNCTIONAL_TYPES, statusCategory, workflowKind } from './workflow';
+import { getSprintStatus } from './roadmap';
 import { nowIso, todayLocalIsoDate } from './util';
 
 export const WORKITEM_TYPES = ['epic', 'story', 'task', 'bug'] as const;
@@ -37,7 +37,7 @@ export function validParent(type: WorkitemType, parent: Pick<Task, 'type'>): boo
 }
 export function eligibleSprint(data: BoardData, id: string): boolean {
     const sprint = data.extensions.roadmap?.sprints.find((item) => item.id === id);
-    return Boolean(sprint && getSprintCalendarStatus(sprint, todayLocalIsoDate()) !== 'done');
+    return Boolean(sprint && getSprintStatus(sprint, todayLocalIsoDate()) !== 'done' && !data.extensions.sprintResults?.closures.some((closure) => closure.sprintId === id));
 }
 export function effectivePlanning(data: BoardData, task: Task, field: 'phaseId' | 'milestoneId'): string {
     const seen = new Set<number>(); let current: Task | undefined = task;
@@ -55,6 +55,14 @@ export function workitemProgress(data: BoardData, id: number) {
     const eligible = children.length - cancelled;
     const completed = children.filter((task) => statusCategory(task.status, data, task) === 'completed').length;
     return { total: children.length, eligible, completed, cancelled, percent: eligible ? completed / eligible * 100 : null };
+}
+/** Whether a planning unit still has work to plan. A Story with Tasks has
+ * pending work while any of its Tasks is not Done/Cancelled, whatever the
+ * Story's own status (it may await business validation); a Story without
+ * Tasks, an independent Task and a Bug follow their own status. */
+export function hasPendingWork(data: BoardData, task: Task): boolean {
+    const children = workitemType(task) === 'story' ? childrenOf(data, task.id) : [];
+    return children.length ? children.some((child) => !isTerminal(data, child)) : !isTerminal(data, task);
 }
 export function isPlanningUnit(data: BoardData, task: Task): boolean {
     return workitemType(task) !== 'epic' && !(workitemType(task) === 'task' && workitemType(parentOf(data, task) || {}) === 'story');
@@ -78,6 +86,7 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
             const seen = new Set([task.id]); let cursor: Task | undefined = parent;
             while (cursor) { if (seen.has(cursor.id)) throw new WorkitemError('parent'); seen.add(cursor.id); cursor = cursor.parentId == null ? undefined : byId.get(cursor.parentId); }
         }
+        if (task.storyPoints != null && (typeof task.storyPoints !== 'number' || !Number.isFinite(task.storyPoints) || task.storyPoints < 0 || !isPlanningUnit(data, task))) throw new WorkitemError('data');
         if (type === 'epic' && (task.effort || task.sprintId || task.pullRequests?.length)) throw new WorkitemError('epic');
         for (const field of WORKITEM_FIELDS) if (task[field] !== undefined && typeof task[field] !== 'string') throw new WorkitemError('data');
         for (const mode of [task.phaseMode, task.milestoneMode]) if (mode !== undefined && !['inherit', 'none', 'explicit'].includes(mode)) throw new WorkitemError('data');
@@ -91,7 +100,6 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
 }
 export function assertAcceptance(data: BoardData, task: Task): void {
     if (workitemType(task) === 'story') {
-        if (!task.acceptanceCriteria?.trim()) throw new WorkitemError('criteria');
         if (childrenOf(data, task.id).some((child) => !isTerminal(data, child))) throw new WorkitemError('pending');
     }
 }
@@ -121,6 +129,7 @@ export function syncWorkitemPlanning(data: BoardData, previous: BoardData): void
     previous.board.tasks.forEach((task) => capture(task, false));
     for (const task of data.board.tasks) {
         const before = previousById.get(task.id);
+        if (!isPlanningUnit(data, task)) delete task.storyPoints;
         const parent = task.parentId == null ? undefined : byId.get(task.parentId);
         if (workitemType(task) === 'task' && parent && workitemType(parent) === 'story' && !isTerminal(data, task)) task.sprintId = eligibleSprint(data, parent.sprintId) ? parent.sprintId : '';
         else if (before?.parentId && !task.parentId && !isTerminal(data, task) && !eligibleSprint(data, task.sprintId)) task.sprintId = '';
@@ -150,7 +159,7 @@ export function applyStoryAutomation(data: BoardData, previous: BoardData): { st
         handled.add(story.id);
         const children = childrenOf(data, story.id).filter((child) => statusCategory(child.status, data, child) !== 'cancelled');
         const old = childrenOf(previous, story.id).filter((child) => statusCategory(child.status, previous, child) !== 'cancelled');
-        const started = (list: Task[], board: BoardData) => list.some((child) => ['in-progress', 'completed'].includes(statusCategory(child.status, board, child)));
+        const started = (list: Task[], board: BoardData) => list.some((child) => ['in-progress', 'testing', 'completed'].includes(statusCategory(child.status, board, child)));
         const finished = (list: Task[], board: BoardData) => list.length > 0 && list.every((child) => statusCategory(child.status, board, child) === 'completed');
         const rule = finished(children, data) && !finished(old, previous) ? data.extensions.workitemAutomation?.finish : started(children, data) && !started(old, previous) ? data.extensions.workitemAutomation?.start : undefined;
         if (!rule?.from.includes(story.status) || rule.to === story.status) continue;
@@ -160,15 +169,20 @@ export function applyStoryAutomation(data: BoardData, previous: BoardData): { st
     }
     return effects;
 }
+export function taskInFunctionalBoard(data: BoardData, task: Task): boolean {
+    return workitemType(task) !== 'epic' && workflowKind(task, data) === 'functional';
+}
 export function taskInTechnicalBoard(data: BoardData, task: Task): boolean {
-    if (!['task', 'bug'].includes(workitemType(task))) return false;
+    if (workitemType(task) === 'epic' || workflowKind(task, data) !== 'technical') return false;
     const parent = parentOf(data, task);
     if (!parent || workitemType(parent) !== 'story') return true;
     const sprint = data.extensions.roadmap?.sprints.find((item) => item.id === task.sprintId);
-    return Boolean(sprint && getSprintCalendarStatus(sprint, todayLocalIsoDate()) === 'active');
+    return Boolean(sprint && getSprintStatus(sprint, todayLocalIsoDate()) === 'active');
 }
 
 export function sprintMembers(data: BoardData, sprintId: string): Task[] {
+    const closure = data.extensions.sprintResults?.closures.find((entry) => entry.sprintId === sprintId);
+    if (closure) return structuredClone(closure.tasks);
     const members = new Map<number, Task>();
     for (const entry of data.extensions.sprintParticipation?.entries || []) if (entry.sprintId === sprintId) members.set(entry.task.id, structuredClone(entry.task));
     for (const task of data.board.tasks) {
@@ -182,12 +196,14 @@ export function sprintMembers(data: BoardData, sprintId: string): Task[] {
     return [...members.values()];
 }
 
-/** One consultation context for actual participation, independent of live parent/allocation changes.
- * Workflow presentation stays with the supplied project; no historical workflow is invented.
+/** One consultation context independent of live parent/allocation changes.
+ * Closed Sprints use recorded workflow definitions; legacy participation keeps
+ * the supplied project context rather than inventing historical definitions.
  */
 export function consultSprintParticipation(data: BoardData, sprintId: string) {
     const members = structuredClone(sprintMembers(data, sprintId));
-    const boardData = { ...data, board: { ...data.board, tasks: members } };
+    const closure = data.extensions.sprintResults?.closures.find((entry) => entry.sprintId === sprintId);
+    const boardData = { ...data, extensions: { ...data.extensions, ...(closure ? { workflow: closure.workflow, functionalWorkflow: closure.functionalWorkflow, workflowTypes: closure.workflowTypes || { version: 1, functional: [...LEGACY_FUNCTIONAL_TYPES] } } : {}) }, board: { ...data.board, tasks: members } };
     const currentIds = new Set(eligibleSprint(data, sprintId)
         ? data.board.tasks.filter((task) => task.sprintId === sprintId).map((task) => task.id) : []);
     return {

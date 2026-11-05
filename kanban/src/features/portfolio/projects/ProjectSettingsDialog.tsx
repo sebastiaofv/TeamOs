@@ -171,8 +171,8 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
             </form>
         </div>
         {(['technical', 'functional'] as const).map((kind) => <div key={kind} className="project-settings-workflow" role="tabpanel" id={`project-settings-panel-${kind}`} aria-labelledby={`project-settings-tab-${kind}`} hidden={tab !== kind}>
-            <p className="project-workflow-help">{t(`project.workflow.${kind}Help`)}</p>
-            {tab === kind && <WorkflowEditor data={vm.data} readOnly={vm.readOnly} busy={saving} editor={editor[kind]} />}
+            <p className="project-workflow-help">{t('project.workflow.appliesTo', { types: editor.types.functional.length === 0 && kind === 'functional' || editor.types.functional.length === 4 && kind === 'technical' ? t('project.workflow.noTypes') : (['epic', 'story', 'task', 'bug'] as const).filter((type) => editor.types.functional.includes(type) === (kind === 'functional')).map((type) => t(`workitems.type.${type}`)).join(', ') })}</p>
+            {tab === kind && <WorkflowEditor data={vm.data} readOnly={vm.readOnly} busy={saving} editor={editor[kind]} types={editor.types} />}
             {editor[kind].error && <div className="workflow-validation" role="alert">{editor[kind].error}</div>}
         </div>)}
         <div className="modal-footer workflow-modal-footer">

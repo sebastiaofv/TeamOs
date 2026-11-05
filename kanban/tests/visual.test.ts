@@ -84,7 +84,7 @@ test.describe('US-01 workitems table', () => {
       await expect(page).toHaveScreenshot(`table-review-assign-${theme}.png`);
       await page.locator('#roadmapEntityModalCancelBtn').click();
       await page.locator('[data-table-view="sprints"]').click();
-      await page.locator('[data-table-sprint="active"] > summary').click();
+      await page.locator('[data-table-sprint="active"] > summary .table-sprint-name').click();
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`table-review-sprints-${theme}.png`);

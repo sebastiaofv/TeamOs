@@ -342,7 +342,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
     }
 
     // Only sidebar properties can be changed here; content stays behind Edit.
-    function setPortfolioTaskProperties(boardId: string, taskId: number, changes: Partial<Pick<Task, 'priority' | 'effort' | 'dueDate' | 'blocked' | 'blockerReason' | 'tags' | 'parentId' | 'sprintId'>>) {
+    function setPortfolioTaskProperties(boardId: string, taskId: number, changes: Partial<Pick<Task, 'priority' | 'effort' | 'storyPoints' | 'dueDate' | 'blocked' | 'blockerReason' | 'tags' | 'parentId' | 'sprintId'>>) {
         return runPortfolioTaskMutation(boardId, taskId, (task, draft) => {
             if (Object.entries(changes).every(([field, value]) => JSON.stringify(task[field as keyof Task]) === JSON.stringify(value))) return false;
             if (changes.dueDate && !normalizeDueDate(changes.dueDate)) throw new Error(translateCurrent('validation.dueDate'));

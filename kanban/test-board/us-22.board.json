@@ -1,0 +1,623 @@
+{
+  "meta": {
+    "schemaVersion": 6,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-11-04T12:00:00.000Z",
+    "updatedAt": "2026-11-04T12:00:00.000Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "To Do"
+      },
+      {
+        "status": "doing",
+        "title": "In progress"
+      },
+      {
+        "status": "ready-to-test",
+        "title": "Ready to test"
+      },
+      {
+        "status": "testing",
+        "title": "Testing"
+      },
+      {
+        "status": "re-analysis",
+        "title": "Re-analysis"
+      },
+      {
+        "status": "done",
+        "title": "Done"
+      },
+      {
+        "status": "cancelled",
+        "title": "Cancelled"
+      },
+      {
+        "status": "duplication",
+        "title": "Duplication"
+      }
+    ],
+    "tasks": [
+      {
+        "type": "epic",
+        "pullRequests": [],
+        "id": 1,
+        "title": "Checkout acessível",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": null,
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": null,
+        "permanentId": "us22-workitem-1",
+        "displayId": "SPR-EP-1",
+        "objective": "Melhorar checkout",
+        "scope": "Pagamentos",
+        "businessValue": "Reduzir abandono"
+      },
+      {
+        "type": "story",
+        "pullRequests": [],
+        "id": 2,
+        "title": "Pagar com cartão",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "delivery",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": 1,
+        "permanentId": "us22-workitem-2",
+        "displayId": "SPR-US-2",
+        "acceptanceCriteria": "Pagamento e comprovativo validados funcionalmente.",
+        "storyPoints": 8
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 3,
+        "title": "Validar formulário de pagamento",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "delivery",
+        "status": "done",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": 2,
+        "permanentId": "us22-workitem-3",
+        "displayId": "SPR-TK-3"
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 4,
+        "title": "Integrar confirmação do pagamento",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "delivery",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": 2,
+        "permanentId": "us22-workitem-4",
+        "displayId": "SPR-TK-4"
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 5,
+        "title": "Atualizar documentação",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "delivery",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": null,
+        "permanentId": "us22-workitem-5",
+        "displayId": "SPR-TK-5",
+        "storyPoints": 3
+      },
+      {
+        "type": "bug",
+        "pullRequests": [],
+        "id": 6,
+        "title": "Corrigir comprovativo duplicado",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "delivery",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": null,
+        "permanentId": "us22-workitem-6",
+        "displayId": "SPR-BG-6",
+        "storyPoints": 5
+      },
+      {
+        "type": "story",
+        "pullRequests": [],
+        "id": 7,
+        "title": "Consultar recibo",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "delivery",
+        "status": "doing",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": 1,
+        "permanentId": "us22-workitem-7",
+        "displayId": "SPR-US-7",
+        "acceptanceCriteria": "Pagamento e comprovativo validados funcionalmente.",
+        "storyPoints": 2
+      },
+      {
+        "type": "story",
+        "pullRequests": [],
+        "id": 8,
+        "title": "Melhorar mensagens de erro",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "",
+        "status": "backlog",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": 1,
+        "permanentId": "us22-workitem-8",
+        "displayId": "SPR-US-8",
+        "acceptanceCriteria": "Pagamento e comprovativo validados funcionalmente.",
+        "storyPoints": 5
+      },
+      {
+        "type": "task",
+        "pullRequests": [],
+        "id": 9,
+        "title": "Task por planear",
+        "description": "Dados fictícios para validar a US-22.",
+        "assignees": [
+          "Ana"
+        ],
+        "responsible": "Ana",
+        "tags": [
+          "pagamentos"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-04T12:00:00.000Z",
+        "updatedAt": "2026-11-04T12:00:00.000Z",
+        "dueDate": "",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "delivery",
+        "milestoneId": "release",
+        "sprintId": "",
+        "status": "backlog",
+        "assigneeIds": [
+          "us12-checkout-member-1"
+        ],
+        "responsibleId": "us12-checkout-member-1",
+        "parentId": null,
+        "permanentId": "us22-workitem-9",
+        "displayId": "SPR-TK-9",
+        "storyPoints": 1
+      }
+    ],
+    "settings": {
+      "title": "US-22 · Gestão manual dos Sprints"
+    }
+  },
+  "extensions": {
+    "project": {
+      "version": 1,
+      "id": "us22-sprint-lifecycle",
+      "description": "Objetivos, capacidade, estimativas independentes de Effort, encerramento e carry-over sem perder resultados.",
+      "status": "active",
+      "members": [
+        {
+          "id": "us12-checkout-member-1",
+          "name": "Ana"
+        },
+        {
+          "id": "us12-checkout-member-2",
+          "name": "Rui"
+        },
+        {
+          "id": "us12-checkout-member-3",
+          "name": "Marta QA"
+        }
+      ],
+      "tags": [
+        "pagamentos",
+        "acessibilidade",
+        "frontend",
+        "backend",
+        "documentação"
+      ],
+      "acronym": "SPR"
+    },
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "To Do",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "In progress",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "ready-to-test",
+          "name": "Ready to test",
+          "color": "#a78bfa",
+          "category": "testing"
+        },
+        {
+          "id": "testing",
+          "name": "Testing",
+          "color": "#38bdf8",
+          "category": "testing"
+        },
+        {
+          "id": "re-analysis",
+          "name": "Re-analysis",
+          "color": "#fb923c",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Done",
+          "color": "#34d399",
+          "category": "completed"
+        },
+        {
+          "id": "cancelled",
+          "name": "Cancelled",
+          "color": "#f87171",
+          "category": "cancelled"
+        },
+        {
+          "id": "duplication",
+          "name": "Duplication",
+          "color": "#e879f9",
+          "category": "cancelled"
+        }
+      ],
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "done",
+        "cancelled": "cancelled",
+        "testing": "ready-to-test"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "cancelled",
+          "duplication"
+        ],
+        "to-do": [
+          "doing",
+          "cancelled",
+          "duplication"
+        ],
+        "doing": [
+          "ready-to-test",
+          "done",
+          "cancelled",
+          "duplication"
+        ],
+        "ready-to-test": [
+          "testing",
+          "doing",
+          "cancelled",
+          "duplication"
+        ],
+        "testing": [
+          "done",
+          "re-analysis",
+          "cancelled",
+          "duplication"
+        ],
+        "re-analysis": [
+          "doing",
+          "cancelled",
+          "duplication"
+        ],
+        "done": [
+          "doing"
+        ],
+        "cancelled": [],
+        "duplication": []
+      }
+    },
+    "roadmap": {
+      "version": 5,
+      "milestones": [
+        {
+          "id": "release",
+          "title": "Primeira entrega",
+          "color": "#2563eb",
+          "dueDate": "2026-11-13"
+        },
+        {
+          "id": "accessible",
+          "title": "Revisão de acessibilidade",
+          "color": "#7c3aed",
+          "dueDate": "2026-11-20"
+        }
+      ],
+      "phases": [
+        {
+          "id": "checkout",
+          "title": "Checkout",
+          "startDate": "2026-10-01",
+          "endDate": "2026-12-04"
+        },
+        {
+          "id": "discovery",
+          "title": "Análise",
+          "color": "#7c3aed",
+          "parentId": "checkout",
+          "startDate": "2026-10-01",
+          "endDate": "2026-10-18"
+        },
+        {
+          "id": "delivery",
+          "title": "Entrega",
+          "color": "#2563eb",
+          "parentId": "checkout",
+          "startDate": "2026-10-19",
+          "endDate": "2026-11-15"
+        },
+        {
+          "id": "stabilization",
+          "title": "Estabilização",
+          "color": "#0f766e",
+          "parentId": "checkout",
+          "startDate": "2026-11-16",
+          "endDate": "2026-12-04"
+        }
+      ],
+      "sprints": [
+        {
+          "id": "delivery",
+          "title": "Entrega incremental",
+          "parentId": "delivery",
+          "startDate": "2026-11-01",
+          "endDate": "2026-11-14",
+          "status": "planned",
+          "goal": "Entregar pagamentos e comprovativos",
+          "capacity": 21,
+          "review": "",
+          "retrospective": ""
+        },
+        {
+          "id": "next",
+          "title": "Próxima entrega",
+          "parentId": "delivery",
+          "startDate": "2026-11-15",
+          "endDate": "2026-11-30",
+          "status": "planned",
+          "goal": "Validação e estabilização",
+          "capacity": 13,
+          "review": "",
+          "retrospective": ""
+        },
+        {
+          "id": "empty",
+          "title": "Sprint vazio com datas antigas",
+          "startDate": "2026-09-07",
+          "endDate": "2026-09-18",
+          "status": "planned",
+          "goal": "Testar datas independentes do estado",
+          "capacity": 0
+        }
+      ]
+    },
+    "sprintCatalog": {
+      "version": 1,
+      "lastNumber": 3,
+      "entries": [
+        {
+          "sprintId": "delivery",
+          "number": 1,
+          "createdAt": "2026-11-04T12:00:00.000Z"
+        },
+        {
+          "sprintId": "next",
+          "number": 2,
+          "createdAt": "2026-11-04T12:00:00.000Z"
+        },
+        {
+          "sprintId": "empty",
+          "number": 3,
+          "createdAt": "2026-11-04T12:00:00.000Z"
+        }
+      ]
+    }
+  }
+}

@@ -890,13 +890,13 @@ describe('normalizeRoadmapExtension', () => {
       version: ROADMAP_VERSION,
       milestones: [{ id: 'm1', title: 'Launch', dueDate: '2024-06-15' }],
       phases: [{ id: 'p1', title: 'Phase 1', startDate: '2024-01-01', endDate: '2024-02-01' }],
-      sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14' }]
+      sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14', status: 'done' }]
     };
     expect(normalizeRoadmapExtension(value)).toEqual({
       version: ROADMAP_VERSION,
       milestones: [{ id: 'm1', title: 'Launch', dueDate: '2024-06-15' }],
       phases: [{ id: 'p1', title: 'Phase 1', startDate: '2024-01-01', endDate: '2024-02-01' }],
-      sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14' }]
+      sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14', status: 'done' }]
     });
   });
 
@@ -912,7 +912,7 @@ const VALID_ROADMAP = {
   version: ROADMAP_VERSION,
   milestones: [{ id: 'm1', title: 'Launch', dueDate: '2024-06-15' }],
   phases: [{ id: 'p1', title: 'Phase 1', startDate: '2024-01-01', endDate: '2024-02-01' }],
-  sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14' }]
+  sprints: [{ id: 's1', title: 'Sprint 1', startDate: '2024-01-01', endDate: '2024-01-14', status: 'done' }]
 };
 
 describe('clearInvalidRoadmapTaskRefs', () => {

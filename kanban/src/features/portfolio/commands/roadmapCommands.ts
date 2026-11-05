@@ -1,7 +1,10 @@
+import { closeSprint, startSprint } from '@/domain/sprintResults';
+import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
+import type { SprintStatus } from '@/domain/types';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
 import { controlRecords, saveControlRecord } from '@/domain/projectControl';
 import { workitemLabel } from '@/domain/taskIdentity';
-import { isPlanningUnit, WorkitemError } from '@/domain/workitems';
+import { eligibleSprint, hasPendingWork, isPlanningUnit, WorkitemError } from '@/domain/workitems';
 // Roadmap editing, sprint assignment, and row expansion.
 
 import type { RoadmapItem, RoadmapKind, Task } from '@/domain/types';
@@ -9,14 +12,13 @@ import type { RoadmapEntityMode, SelectOption } from '@/features/portfolio/types
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
 import { touchTask } from '@/domain/task';
-import { statusCategory } from '@/domain/workflow';
 import {
     createEmptyRoadmapExtension,
     formatRoadmapDateRange,
     getRoadmapEntityConfig,
     getRoadmapExtension,
     getRoadmapExtensionObject,
-    getSprintCalendarStatus,
+    getSprintStatus,
     normalizeRoadmapDate,
     normalizeRoadmapRef,
     parseRoadmapIsoDate,
@@ -36,7 +38,7 @@ import { isMilestoneColor, milestoneColor, nextMilestoneColor } from '@/domain/m
 
 export type RoadmapFocusField = 'existingSprintId' | 'title' | 'dueDate' | 'startDate' | 'endDate';
 
-export type RoadmapEntityInput = { controlIds?: string[]; controlAuthor?: string } & Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate' | 'parentId' | 'color' | 'objective', unknown>>;
+export type RoadmapEntityInput = { controlIds?: string[]; controlAuthor?: string } & Partial<Record<'kind' | 'itemId' | 'title' | 'existingSprintId' | 'dueDate' | 'startDate' | 'endDate' | 'parentId' | 'color' | 'objective' | 'status' | 'goal' | 'capacity' | 'review' | 'retrospective', unknown>>;
 
 type RoadmapEntityDraft = {
     kind: unknown;
@@ -47,10 +49,15 @@ type RoadmapEntityDraft = {
     startDate: string;
     endDate: string;
     parentId: string;
+    status: SprintStatus;
+    goal: string;
+    capacity: number | null;
+    review: string;
+    retrospective: string;
 };
 
 export function createRoadmapActions({ getState, commitState, getBoardRecord, canUsePortfolioTaskMutations,
-    notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, runPortfolioTaskMutation, alert, confirm, choose, closeDialogFn, openDialogFn }: BoardMutationContext,
+    notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, runPortfolioTaskMutation, alert, confirm, choose, prompt, closeDialogFn, openDialogFn }: BoardMutationContext,
 { getSelectedPortfolioBulkTaskIds, clearPortfolioBulkSelection }: Pick<BoardInteractions, 'getSelectedPortfolioBulkTaskIds' | 'clearPortfolioBulkSelection'>) {
     const impactText = (tasks: Task[]) => tasks.length ? `\n\n${tasks.map((task) => `${workitemLabel(task)} · ${task.title}${task.archived ? ` · ${translateCurrent('table.archived')}` : ''}`).join('\n')}` : '';
     const getRoadmapLabel = (kind: RoadmapKind, tr: typeof translateCurrent = translateCurrent): string => kind === 'milestones'
@@ -103,6 +110,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             showExistingSprint: assignExistingMode,
             initial: {
                 title: item?.title || '',
+                ...(kind === 'sprints' ? { status: item ? getSprintStatus(item) : 'planned', goal: item?.goal || '', capacity: item?.capacity ?? null, review: item?.review || '', retrospective: item?.retrospective || '' } : {}),
                 objective: item?.objective || '',
                 dueDate: item?.dueDate || '',
                 startDate: item?.startDate || '',
@@ -110,7 +118,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 ...(kind !== 'sprints' ? { color: item ? milestoneColor(item, items.indexOf(item)) : nextMilestoneColor(items) } : {})
             },
             parentId: item?.parentId || '',
-            phaseOptions: roadmap.phases.filter((phase) => !item || !phaseDescendants(roadmap.phases, item.id).has(phase.id)).map((phase) => ({ value: phase.id, label: phase.title })),
+            phaseOptions: roadmap.phases.filter((phase) => kind !== 'phases' || !item || !phaseDescendants(roadmap.phases, item.id).has(phase.id)).map((phase) => ({ value: phase.id, label: phase.title })),
             phases: roadmap.phases,
             datesCalculated: kind === 'phases' && roadmap.phases.some((phase) => phase.parentId === itemId),
             sprintOptions: assignExistingMode
@@ -143,7 +151,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const unplannedTaskIds = getState().roadmapEntityContext?.unplannedTaskIds;
         const selectedTaskIds = unplannedTaskIds || getSelectedPortfolioBulkTaskIds(boardId);
         if (selectedTaskIds.length === 0) return false;
-        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardRecord.data, task)) && !task.sprintId))) {
+        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && hasPendingWork(boardRecord.data, task) && !task.sprintId))) {
             alert(translateCurrent('table.selectionChanged'));
             return false;
         }
@@ -156,7 +164,9 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 id: slugifyRoadmapEntityId(draft.title, getSprintCatalog(boardData).entries.map((entry) => ({ id: entry.sprintId }))),
                 title: draft.title,
                 startDate: draft.startDate,
-                endDate: draft.endDate
+                endDate: draft.endDate,
+                status: 'planned', goal: draft.goal, capacity: draft.capacity, review: draft.review, retrospective: draft.retrospective,
+                ...(draft.parentId ? { parentId: draft.parentId } : {})
             };
             const taskIdSet = new Set(selectedTaskIds.map((taskId) => Number(taskId)));
             let assignedCount = 0;
@@ -207,11 +217,11 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const sprint = Array.isArray(roadmap.sprints)
                 ? roadmap.sprints.find((entry) => entry.id === normalizedSprintId)
                 : null;
-            if (!sprint || getSprintCalendarStatus(sprint, todayLocalIsoDate()) === 'done') {
+            if (!sprint || !eligibleSprint(boardData, sprint.id)) {
                 alert(translateCurrent('roadmapDialog.sprintUnavailable'));
                 return false;
             }
-            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task)) && !task.sprintId))) {
+            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && hasPendingWork(boardData, task) && !task.sprintId))) {
                 alert(translateCurrent('table.selectionChanged'));
                 return false;
             }
@@ -249,6 +259,75 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         });
     }
 
+    // Asks which end date a Sprint should keep once its start moves to today:
+    // the one that preserves the planned duration in business days, the
+    // planned one, or a date the user enters. Resolves null when cancelled.
+    async function chooseSprintEndDate(plannedStart: string, plannedEnd: string, newStart: string): Promise<string | null> {
+        const duration = businessDaysBetween(plannedStart, plannedEnd);
+        const recalculated = duration === null ? '' : addBusinessDays(newStart, duration);
+        if (recalculated && recalculated === plannedEnd) return plannedEnd;
+        const choice = await choose(recalculated
+            ? translateCurrent('sprint.endDateAfterStart', { start: newStart, days: duration ?? 0, end: recalculated, planned: plannedEnd })
+            : translateCurrent('sprint.endDateAfterStartNoDuration', { start: newStart, planned: plannedEnd }), [
+            ...(recalculated ? [{ value: 'recalculate', label: translateCurrent('sprint.useRecalculatedEnd', { end: recalculated }), primary: true }] : []),
+            { value: 'keep', label: translateCurrent('sprint.keepPlannedEnd', { end: plannedEnd }) },
+            { value: 'custom', label: translateCurrent('sprint.enterEndDate') }
+        ]);
+        if (choice === null) return null;
+        if (choice === 'recalculate') return recalculated;
+        if (choice === 'keep') return plannedEnd;
+        let value = recalculated || plannedEnd;
+        for (;;) {
+            const entered = await prompt(translateCurrent('sprint.enterEndDateQuestion', { start: newStart }), value, { inputType: 'date', required: true, title: translateCurrent('roadmapDialog.endDate') });
+            if (entered === null) return null;
+            const endDate = normalizeRoadmapDate(entered);
+            if (endDate && endDate >= newStart) return endDate;
+            value = entered;
+            await alert(translateCurrent('roadmap.dateOrderInvalid'));
+        }
+    }
+
+    async function prepareSprintDates(draft: { status: SprintStatus; startDate: string; endDate: string }, previousStatus: SprintStatus): Promise<boolean> {
+        if (draft.status === previousStatus || draft.status === 'planned') return true;
+        const field = draft.status === 'active' ? 'startDate' : 'endDate';
+        const today = todayLocalIsoDate();
+        if (draft[field] !== today) {
+            const choice = await choose(translateCurrent(draft.status === 'active' ? 'sprint.updateStart' : 'sprint.updateEnd', { today }), [
+                { value: 'today', label: translateCurrent('sprint.useToday') },
+                { value: 'keep', label: translateCurrent('sprint.keepDate') }
+            ]);
+            if (choice === null) return false;
+            if (choice === 'today' && field === 'startDate') {
+                const endDate = await chooseSprintEndDate(draft.startDate, draft.endDate, today);
+                if (endDate === null) return false;
+                draft.endDate = endDate;
+            }
+            if (choice === 'today') draft[field] = today;
+        }
+        if (draft.startDate > draft.endDate) { await alert(translateCurrent('roadmap.dateOrderInvalid')); return false; }
+        return true;
+    }
+
+    async function changeSprintStatus(boardId: string, sprintId: string, status: SprintStatus) {
+        if (!canUsePortfolioTaskMutations(boardId)) { notifyPortfolioMutationUnavailable(boardId); return; }
+        const current = getBoardRecord(boardId)?.data;
+        const sprint = getRoadmapExtension(current)?.sprints.find((item) => item.id === sprintId);
+        if (!sprint || getSprintStatus(sprint) === status) return;
+        const next = { ...sprint, status, startDate: sprint.startDate || '', endDate: sprint.endDate || '' };
+        if (!(await prepareSprintDates(next, getSprintStatus(sprint)))) return;
+        if (getBoardRecord(boardId)?.data !== current) { await alert(translateCurrent('roadmap.impactChanged')); return; }
+        return runPortfolioBoardMutation(boardId, (data) => {
+            const roadmap = getRoadmapExtensionObject(data, { create: true });
+            const index = roadmap.sprints.findIndex((item) => item.id === sprintId);
+            if (index < 0) return false;
+            if (status === 'done') closeSprint(data, sprintId, next);
+            if (status === 'active') startSprint(data, sprintId);
+            roadmap.sprints[index] = next;
+            appendTimelineEvent(data, { kind: 'roadmap.updated', entityType: 'board', entityId: 'board', summary: `${next.title}: ${status}`, snapshot: createBoardStateSnapshot(data), meta: { roadmapKind: 'sprints', roadmapItemId: sprintId, action: status } });
+            return true;
+        });
+    }
+
     async function saveRoadmapEntity(input: RoadmapEntityInput = {}): Promise<{ focusField: RoadmapFocusField } | undefined> {
         const draft: RoadmapEntityDraft = {
             kind: input.kind,
@@ -258,7 +337,10 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             dueDate: normalizeRoadmapDate(input.dueDate),
             startDate: normalizeRoadmapDate(input.startDate),
             endDate: normalizeRoadmapDate(input.endDate),
-            parentId: normalizeRoadmapRef(input.parentId)
+            parentId: normalizeRoadmapRef(input.parentId),
+            status: input.status === 'active' || input.status === 'done' ? input.status : 'planned',
+            goal: String(input.goal || ''), capacity: input.capacity === '' || input.capacity == null ? null : Number(input.capacity),
+            review: String(input.review || ''), retrospective: String(input.retrospective || '')
         };
         const context = getState().roadmapEntityContext;
         if (!context?.boardId) return;
@@ -301,6 +383,16 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 return { focusField: 'endDate' };
             }
         }
+        if (context.kind === 'sprints') {
+            if (draft.capacity !== null && (!Number.isFinite(draft.capacity) || draft.capacity < 0)) { await alert(translateCurrent('sprint.invalidCapacity')); return; }
+            const data = getBoardRecord(context.boardId)?.data;
+            const previous = getRoadmapExtension(data)?.sprints.find((item) => item.id === draft.itemId);
+            draft.status = previous ? (input.status === undefined ? getSprintStatus(previous) : draft.status) : 'planned';
+            if (previous && draft.status !== getSprintStatus(previous)) {
+                if (!(await prepareSprintDates(draft, getSprintStatus(previous)))) return;
+                if (getBoardRecord(context.boardId)?.data !== data) { await alert(translateCurrent('roadmap.impactChanged')); return; }
+            }
+        }
         if (context.mode === 'create-sprint-from-selection') {
             const changed = await createSprintFromSelection(context.boardId, draft);
             if (!changed) return;
@@ -338,6 +430,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const nextItem: RoadmapItem = config.dateMode === 'single'
                 ? { id: nextId, title: draft.title, dueDate: draft.dueDate }
                 : { id: nextId, title: draft.title, startDate: draft.startDate, endDate: draft.endDate };
+            if (context.kind === 'sprints') Object.assign(nextItem, { status: draft.status, goal: draft.goal, capacity: draft.capacity, review: draft.review, retrospective: draft.retrospective });
             if (context.kind !== 'sprints') nextItem.color = isMilestoneColor(input.color) ? input.color
                 : previousItem ? milestoneColor(previousItem, index) : nextMilestoneColor(items);
             if (['phases', 'sprints'].includes(context.kind) && draft.parentId) nextItem.parentId = draft.parentId;
@@ -354,6 +447,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 if (expectedParentImpact && JSON.stringify(actual) !== JSON.stringify(expectedParentImpact)) throw new Error(translateCurrent('roadmap.impactChanged'));
                 updatePhase(boardData, nextItem, relocation);
             } else if (index >= 0) {
+                if (context.kind === 'sprints' && nextItem.status === 'done' && getSprintStatus(previousItem!) !== 'done') closeSprint(boardData, nextId, nextItem);
+                if (context.kind === 'sprints' && nextItem.status === 'active' && getSprintStatus(previousItem!) !== 'active') startSprint(boardData, nextId);
                 items[index] = nextItem;
             } else {
                 if (context.kind === 'sprints') registerSprintCreation(boardData, nextId, nowIso());
@@ -388,8 +483,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (changed) closeRoadmapEntity();
     }
 
-    async function deleteRoadmapEntity(kind: RoadmapKind, itemId: string, options: { onApplied?: () => void } = {}) {
-        const boardId = getState().selectedPortfolioBoardId;
+    async function deleteRoadmapEntity(kind: RoadmapKind, itemId: string, options: { onApplied?: () => void; boardId?: string } = {}) {
+        const boardId = options.boardId || getState().selectedPortfolioBoardId;
         const boardRecord = boardId ? getBoardRecord(boardId) : null;
         const config = getRoadmapEntityConfig(kind);
         if (!boardRecord || !config) return;
@@ -402,6 +497,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const item = roadmap[config.itemsKey].find((entry) => entry.id === itemId);
         if (!item) return;
         if (kind === 'phases' && roadmap.phases.some((phase) => phase.parentId === itemId)) { await alert(translateCurrent('roadmap.hasChildren')); return; }
+        // Only Planned Sprints can be deleted; their workitems return to planning with unchanged statuses.
+        if (kind === 'sprints' && getSprintStatus(item) !== 'planned') { await alert(translateCurrent('sprint.deletePlannedOnly')); return; }
         const label = getRoadmapLabel(kind);
         const affected = boardRecord.data.board.tasks.filter((task) => task[config.taskField] === itemId);
         let relocation: string | undefined;
@@ -413,7 +510,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             if (choice === null) return;
             relocation = choice;
         } else {
-            const confirmed = await confirm(translateCurrent(kind === 'sprints' ? 'roadmap.deleteQuestion' : 'roadmap.deletePlanningQuestion', { title: item.title }) + impactText(affected), {
+            const confirmed = await confirm(translateCurrent(kind === 'sprints' ? (affected.length ? 'sprint.deleteQuestion' : 'roadmap.deleteQuestion') : 'roadmap.deletePlanningQuestion', { title: item.title, count: affected.length }) + impactText(affected), {
                 title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
                 confirmLabel: translateCurrent('common.delete'), danger: true
             });
@@ -428,6 +525,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const actual = boardData.board.tasks.filter((task) => task[config.taskField] === itemId).map((task) => task.id).sort((a, b) => a - b);
             if (JSON.stringify(actual) !== JSON.stringify(affected.map((task) => task.id).sort((a, b) => a - b))) throw new Error(translateCurrent('roadmap.impactChanged'));
             const removed = items[index];
+            if (kind === 'sprints' && getSprintStatus(removed) !== 'planned') throw new Error(translateCurrent('roadmap.impactChanged'));
             if (kind !== 'sprints') deletePlanningGroup(boardData, kind, itemId, relocation);
             else items.splice(index, 1);
             const tasks = Array.isArray(boardData.board?.tasks) ? boardData.board.tasks : [];
@@ -468,6 +566,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 return true;
             });
         },
+        changeSprintStatus,
         openRoadmapEntityModal,
         closeRoadmapEntity,
         togglePortfolioRoadmapRowExpanded,

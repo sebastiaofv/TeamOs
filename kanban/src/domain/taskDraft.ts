@@ -192,6 +192,7 @@ export function buildTaskDraft(form: TaskEditorFields): TaskDraft {
         dueDate: normalizeDueDate(form.dueDate),
         priority: normalizePriority(form.priority),
         effort: normalizeEffort(form.effort),
+        ...(form.storyPoints !== undefined ? { storyPoints: form.storyPoints } : {}),
         phaseId: normalizeRoadmapRef(form.phaseId),
         milestoneId: normalizeRoadmapRef(form.milestoneId)
     };

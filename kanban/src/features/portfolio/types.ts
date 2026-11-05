@@ -52,6 +52,8 @@ export type PortfolioRow = {
     columnTitle?: string;
     canMutate: boolean;
     historical?: boolean;
+    /** A frozen Sprint row whose workitem still exists: its details open with current data. */
+    liveDetails?: boolean;
     boardData?: BoardData | null;
     task: Task;
 };
@@ -126,7 +128,7 @@ export type TaskEditorViewModel = {
 };
 
 export type TaskDetailFields = Record<
-    | 'title' | 'description' | 'assignees' | 'responsible' | 'tags' | 'blocked' | 'blockerReason' | 'priority' | 'effort'
+    | 'title' | 'description' | 'assignees' | 'responsible' | 'tags' | 'blocked' | 'blockerReason' | 'priority' | 'effort' | 'storyPoints'
     | 'status' | 'createdAt' | 'updatedAt' | 'dueDate' | 'phase' | 'milestone' | 'sprint',
     string
 >;
@@ -149,7 +151,7 @@ export type TaskDetailViewModel = {
 };
 
 export type RoadmapEntityMode = 'default' | 'create-sprint-from-selection' | 'assign-sprint-from-selection';
-export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string; color?: string; objective?: string };
+export type RoadmapEntityDates = import('@/domain/types').SprintFields & { title: string; dueDate: string; startDate: string; endDate: string; color?: string; objective?: string };
 export type RoadmapEntityViewModel = {
     boardId: string;
     boardData?: BoardData;

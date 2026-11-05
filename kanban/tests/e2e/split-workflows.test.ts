@@ -4,7 +4,8 @@ import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites } from
 
 test('settings keep independent workflow drafts and apply labels and colours to the respective boards and items', async ({ page }) => {
     await gotoApp(page);
-    await seedPortfolioBoards(page, [{ id: 'p', title: 'Two processes', hasHandle: true, extensions: { workflow: defaultWorkflow() }, tasks: [
+    // This project keeps Bugs on the technical workflow through its workitem type settings.
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Two processes', hasHandle: true, extensions: { workflow: defaultWorkflow(), workflowTypes: { version: 1, functional: ['epic', 'story'] } }, tasks: [
         { id: 1, title: 'Implementation task', type: 'task', status: 'doing' },
         { id: 2, title: 'Product story', type: 'story', status: 'doing' },
         { id: 3, title: 'Product epic', type: 'epic', status: 'doing' },
@@ -15,7 +16,7 @@ test('settings keep independent workflow drafts and apply labels and colours to 
     const tabs = modal.getByRole('tablist', { name: 'Project settings', exact: true });
     await expect(tabs.getByRole('tab')).toHaveText(['General', 'Technical workflow', 'Functional workflow']);
     await tabs.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
-    await expect(modal).toContainText('Applies to Tasks and Bugs.');
+    await expect(modal).toContainText('Applies to: Task, Bug.');
     await modal.locator('[data-state-choice="doing"]').click();
     await modal.getByRole('textbox', { name: 'Title 3', exact: true }).fill('Implementation');
     await modal.getByLabel('Color', { exact: true }).fill('#112233');
@@ -23,7 +24,7 @@ test('settings keep independent workflow drafts and apply labels and colours to 
     await tabs.getByRole('tab', { name: 'Technical workflow', exact: true }).focus();
     await page.keyboard.press('ArrowRight');
     await expect(tabs.getByRole('tab', { name: 'Functional workflow', exact: true })).toBeFocused();
-    await expect(modal).toContainText('Applies to Stories and Epics.');
+    await expect(modal).toContainText('Applies to: Epic, User Story.');
     await modal.locator('[data-state-choice="doing"]').click();
     await expect(modal.getByRole('textbox', { name: 'Title 3', exact: true })).toHaveValue('In progress');
     await modal.getByRole('textbox', { name: 'Title 3', exact: true }).fill('Functional analysis');

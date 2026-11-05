@@ -1,3 +1,4 @@
+import { parseSprintResults } from './sprintResults';
 import { parseProjectControl } from './projectControl';
 import { allPermanentRelations, assertPermanentGraph, parsePermanentRelations } from './permanentRelations';
 import { parseProjectTransfers } from './projectTransfers';
@@ -22,7 +23,7 @@ import { createProjectData, parseProjectData, validateProjectReferences } from '
 import { isLeafPhase } from './phaseTree';
 import { parsePullRequestLinks, validatePullRequestTimeline } from './pullRequests';
 import { parseBoardView } from './boardView';
-import { parseWorkflow, defaultWorkflow, getWorkflow, workflowKind } from './workflow';
+import { parseWorkflow, parseWorkflowTypes, defaultWorkflow, getWorkflow, workflowKind, DEFAULT_FUNCTIONAL_TYPES } from './workflow';
 import { parseTaskIdentityReservation } from './taskIdentity';
 import { parseConversations } from './comments';
 
@@ -142,7 +143,7 @@ export function createEmptyProjectData(title: string | null | undefined, acronym
                 title: projectTitle
             }
         },
-        extensions: { project: { ...createProjectData(), acronym }, workflow: defaultWorkflow() }
+        extensions: { project: { ...createProjectData(), acronym }, workflow: defaultWorkflow(), workflowTypes: { version: 1, functional: [...DEFAULT_FUNCTIONAL_TYPES] } }
     };
 }
 
@@ -258,12 +259,14 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         throw new Error('Invalid extensions structure.');
     }
     if (!('workflow' in extensions) && data.board.columns.length > MAX_COLUMNS) throw new Error(`Board cannot have more than ${MAX_COLUMNS} legacy columns.`);
+    parseSprintResults((extensions as Record<string, unknown>).sprintResults);
     parseProjectControl((extensions as Record<string, unknown>).projectControl);
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
     const workflowData = { extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } };
     const functionalStatuses = new Set(getWorkflow(workflowData, 'functional').states.map((state) => state.id));
     parseBoardView((extensions as Record<string, unknown>).boardView, new Set(getWorkflow(workflowData).states.map((state) => state.id)), functionalStatuses);
     if ('functionalWorkflow' in extensions) parseWorkflow(extensions.functionalWorkflow);
+    parseWorkflowTypes((extensions as Record<string, unknown>).workflowTypes);
     if ('workflow' in extensions) {
         const workflow = parseWorkflow(extensions.workflow);
         if (data.board.columns.length !== workflow.states.length || data.board.columns.some((col, index) => col.status !== workflow.states[index].id || col.title !== workflow.states[index].name)) throw new Error('Workflow columns do not match states.');
@@ -313,7 +316,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     const taskIds = new Set<number>();
     data.board.tasks.forEach((task) => {
         const baseKeys = ['id', 'title', 'description', 'checklist', 'archived', 'createdAt', 'updatedAt', 'dueDate', 'priority', 'status'];
-        const optionalTaskKeys = new Set(['permanentId', 'displayId', 'tags', 'effort', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
+        const optionalTaskKeys = new Set(['permanentId', 'displayId', 'tags', 'effort', 'storyPoints', 'attachments', 'assignee', 'assignees', 'responsible', 'assigneeIds', 'responsibleId', 'blocked', 'blockerReason', 'statusChangedAt', 'phaseId', 'milestoneId', 'sprintId', 'pullRequests', 'type', 'parentId', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory', ...WORKITEM_FIELDS]);
         const taskKeys = Object.keys(task || {});
         const hasAllRequired = baseKeys.every((key) => taskKeys.includes(key));
         const hasOnlyAllowed = taskKeys.every((key) => baseKeys.includes(key) || optionalTaskKeys.has(key));
@@ -401,7 +404,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if (task.blocked === true && !normalizeBlockerReason(task.blockerReason)) {
             throw new Error('Blocked tasks require blockerReason.');
         }
-        const taskStatuses = workflowKind(task) === 'functional' && 'functionalWorkflow' in extensions ? functionalStatuses : statuses;
+        const taskStatuses = workflowKind(task, workflowData) === 'functional' && 'functionalWorkflow' in extensions ? functionalStatuses : statuses;
         if (typeof task.status !== 'string' || !taskStatuses.has(task.status)) {
             throw new Error('Task status is invalid.');
         }

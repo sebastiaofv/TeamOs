@@ -290,10 +290,10 @@ describe('transfer lifecycle regressions', () => {
         delete task.acceptance;
         expect(() => prepareProjectTransfer(source, destination, task.id, 'move', 'done', mapping, projects)).toThrow('author');
     });
-    it('rejects missing Story criteria even with an author and keeps a failed move from changing hierarchy', () => {
+    it('accepts a completed Story without criteria (US-22) and keeps a failed move from changing hierarchy', () => {
         const { source, destination, projects } = scenario();
         source.data.board.tasks[0].type = 'story';
-        expect(() => prepareProjectTransfer(source, destination, 1, 'copy', 'done', mapping, projects, undefined, [], 'Reviewer')).toThrow('criteria');
+        expect(() => prepareProjectTransfer(source, destination, 1, 'copy', 'done', mapping, projects, undefined, [], 'Reviewer')).not.toThrow();
         source.data.board.tasks[1].parentId = 1;
         const before = structuredClone(source.data);
         expect(() => prepareProjectTransfer(source, destination, 1, 'move', 'doing', mapping, projects)).toThrow('Backlog or To-do');

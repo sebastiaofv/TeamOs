@@ -173,7 +173,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.locator('[data-view-mode="table"]').click();
     await page.locator('[data-table-view="sprints"]').click();
     const mainSprint = page.locator('[data-table-sprint="s"]');
-    await mainSprint.locator(':scope > summary').click();
+    await mainSprint.locator(':scope > summary .table-sprint-name').click();
     await mainSprint.getByRole('button', { name: 'Expand Story', exact: true }).click();
     await expect(mainSprint.locator('thead th')).toHaveText(headings);
     await expect(mainSprint.locator('tbody tr')).toHaveCount(3);
