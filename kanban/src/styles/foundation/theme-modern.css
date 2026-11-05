@@ -1,0 +1,105 @@
+/* Opt-in only: Classic keeps its existing cascade, metrics and semantic colors.
+   Inter is bundled locally so both builds work without a font service. */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2');
+}
+
+:root[data-theme-style="modern"] {
+    --bg-primary: #f8f8f6;
+    --bg-secondary: #efeeeb;
+    --bg-card: #ffffff;
+    --border: #d2cfca;
+    --border-light: #e5e3de;
+    --control-border: #8b8882;
+    --text-primary: #292825;
+    --text-secondary: #605d57;
+    --text-muted: #706c65;
+    --accent: #73569a;
+    --accent-hover: #5d427e;
+    --accent-contrast: #ffffff;
+    --focus-ring: #73569a;
+    --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --radius-control: 5px;
+    --radius-card: 7px;
+    --radius-panel: 9px;
+    --shadow-card: 0 1px 3px rgb(28 25 23 / 4%);
+    --shadow-panel: 0 8px 28px rgb(28 25 23 / 10%);
+}
+
+:root[data-theme-style="modern"][data-theme="dark"] {
+    --bg-primary: #191919;
+    --bg-secondary: #2b2a29;
+    --bg-card: #222221;
+    --border: #474541;
+    --border-light: #373633;
+    --control-border: #8c8880;
+    --text-primary: #ededea;
+    --text-secondary: #c4c1bb;
+    --text-muted: #aaa7a1;
+    --accent: #c4ace0;
+    --accent-hover: #d7c6e9;
+    --accent-contrast: #23192e;
+    --focus-ring: #c4ace0;
+    --shadow-card: 0 1px 3px rgb(0 0 0 / 10%);
+    --shadow-panel: 0 8px 28px rgb(0 0 0 / 24%);
+}
+
+:root[data-theme-style="modern"] body { font-family: var(--font-ui); }
+
+:root[data-theme-style="modern"] :is(button, summary.btn, select, textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"])) {
+    border-radius: var(--radius-control);
+}
+
+/* Labels and icons identify actions; quiet hover/focus states replace the
+   repeated outlines. Form fields keep a stronger boundary for visibility. */
+:root[data-theme-style="modern"] .btn { border-color: transparent; background: transparent; }
+:root[data-theme-style="modern"] .btn:hover { border-color: transparent; background: var(--bg-secondary); }
+:root[data-theme-style="modern"] .btn:is(.active, [aria-pressed="true"]) { color: var(--accent); background: var(--bg-secondary); }
+:root[data-theme-style="modern"] .btn.btn-primary { color: var(--accent-contrast); background: var(--accent); border-color: var(--accent); }
+:root[data-theme-style="modern"] .btn.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+:root[data-theme-style="modern"] :is(select, textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"])) { border-color: var(--control-border); }
+
+:root[data-theme-style="modern"] :is(.modal-content, .palette, .board-column-panel, .table-column-panel, .table-hierarchy-filter-panel, .portfolio-filters-panel) {
+    border-radius: var(--radius-panel);
+    box-shadow: var(--shadow-panel);
+}
+
+:root[data-theme-style="modern"] :is(.task-card, .dashboard-panel, .portfolio-calendar-month-card, .table-scroll, .control-table-scroll, .docs-table-wrap, .docs-callout, .docs-pager-link, .docs-related-link, .undo-toast) {
+    border-radius: var(--radius-card);
+}
+
+:root[data-theme-style="modern"] :is(.task-card, .dashboard-panel, .portfolio-calendar-month-card) {
+    border-color: var(--border-light);
+    box-shadow: var(--shadow-card);
+}
+
+:root[data-theme-style="modern"] :is(.header, .portfolio-toolbar, .portfolio-chips, .workitem-board-toolbar) { border-bottom-color: var(--border-light); }
+:root[data-theme-style="modern"] :is(.header, .workitem-board-toolbar) { background: var(--bg-card); }
+:root[data-theme-style="modern"] .portfolio-view-toggle { gap: 2px; padding: 2px; border: 0; border-radius: var(--radius-card); background: var(--bg-primary); }
+:root[data-theme-style="modern"] .portfolio-view-toggle .btn { border: 0; border-radius: var(--radius-control); }
+:root[data-theme-style="modern"] .portfolio-board-grid { padding: 8px 12px 12px; background: var(--bg-primary); }
+:root[data-theme-style="modern"] .workitem-board-columns { gap: 12px; background: var(--bg-primary); }
+:root[data-theme-style="modern"] .portfolio-column { border: 0; background: var(--bg-primary); }
+:root[data-theme-style="modern"] .portfolio-column-header { padding: 12px 8px; border: 0; background: transparent; }
+:root[data-theme-style="modern"] .portfolio-column-body { padding: 6px 2px; }
+:root[data-theme-style="modern"] .column-title { color: var(--text-secondary); text-transform: none; letter-spacing: 0; }
+:root[data-theme-style="modern"] .column-count { border: 0; background: var(--bg-secondary); }
+:root[data-theme-style="modern"] :is(.column-count, .portfolio-chip, .table-status-badge, .table-blocked-badge, .palette-crumb) { border-radius: var(--radius-control); }
+:root[data-theme-style="modern"] .task-card:hover { border-color: var(--control-border); }
+:root[data-theme-style="modern"] .modal-content { background: var(--bg-card); }
+:root[data-theme-style="modern"] .modal-header { border-radius: var(--radius-panel) var(--radius-panel) 0 0; }
+:root[data-theme-style="modern"] .modal-footer { border-radius: 0 0 var(--radius-panel) var(--radius-panel); }
+:root[data-theme-style="modern"] .modal-title { text-transform: none; letter-spacing: 0; }
+:root[data-theme-style="modern"] .palette { overflow: hidden; }
+
+/* Custom workflow and semantic colors keep their existing meaning. */
+:root[data-theme-style="modern"] .portfolio-column-body.drag-over,
+:root[data-theme-style="modern"] .roadmap-row[data-roadmap-id]:hover,
+:root[data-theme-style="modern"] .portfolio-calendar-day-cell-actionable:hover,
+:root[data-theme-style="modern"] .portfolio-calendar-day-cell-actionable:focus-within {
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-primary));
+}

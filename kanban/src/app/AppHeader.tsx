@@ -1,9 +1,12 @@
+import teamosLogo from '@/assets/teamos-logo.svg';
+import teamosLogoDark from '@/assets/teamos-logo-dark.svg';
 import type { Theme } from '@/shared/types/ui';
 import { openDialog } from '@/app/overlays/dialogs';
 import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { closeDocs, DOCS_TOGGLE_ID, toggleDocs } from '@/app/docs/docsMode';
 import { useI18n } from '@/shared/i18n';
+import { ThemePicker } from '@/app/ThemePicker';
 
 // One button, two states: a book opens the documentation; an application icon
 // returns to the workspace. The label always names the available action.
@@ -45,8 +48,17 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
     const languageLabel = language === 'en' ? t('language.switchToPt') : t('language.switchToEn');
     return (
         <header className="header">
-            <h1 className="app-title" id="appTitle">TeamOS → Kanban</h1>
+            <h1 className="app-title" id="appTitle">
+                <img
+                    className="app-logo"
+                    src={theme === 'dark' ? teamosLogoDark : teamosLogo}
+                    alt="Teamos"
+                    width="100"
+                    height="25"
+                />
+            </h1>
             <div className="header-actions">
+                <ThemePicker />
                 <button
                     className="btn icon-btn theme-toggle-btn"
                     id="themeToggleBtn"

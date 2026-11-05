@@ -211,9 +211,10 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     if (!hasExactKeys(data, ['meta', 'board', 'extensions'])) {
         throw new Error('Invalid file root structure.');
     }
-    if (!hasExactKeys(data.meta, ['schemaVersion', 'appId', 'createdAt', 'updatedAt'])) {
+    if (!hasExactKeys(data.meta, ['schemaVersion', 'appId', 'createdAt', 'updatedAt']) && !hasExactKeys(data.meta, ['schemaVersion', 'appId', 'createdAt', 'updatedAt', 'revision'])) {
         throw new Error('Invalid meta structure.');
     }
+    if ('revision' in data.meta && (!Number.isSafeInteger(data.meta.revision) || Number(data.meta.revision) < 0)) throw new Error('Invalid meta.revision.');
     const schemaVersion = data.meta.schemaVersion;
     if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4 && schemaVersion !== 5 && schemaVersion !== BOARD_SCHEMA_VERSION) {
         throw new Error(`Unsupported schemaVersion. Expected ${BOARD_SCHEMA_VERSION}.`);

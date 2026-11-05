@@ -33,7 +33,7 @@ export function conversationWorkitemKey(data: LooseBoardData, task: Pick<Task, '
             else { active = null; currentSignature = ''; }
         }
         else if (event.kind === 'task.deleted' && Number(event.entityId) === task.id) { active = null; currentSignature = ''; }
-        else if (event.kind === 'board.restored' && Array.isArray(event.snapshot?.board?.tasks)) {
+        else if (['board.restored', 'board.reconciled'].includes(event.kind) && Array.isArray(event.snapshot?.board?.tasks)) {
             const restored = event.snapshot.board.tasks.find((item) => item && item.id === task.id);
             if (!restored) { active = null; currentSignature = ''; continue; }
             const known = registry.get(signature(restored));

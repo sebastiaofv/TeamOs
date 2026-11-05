@@ -126,6 +126,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
     const result: BoardData = {
         meta: {
             schemaVersion: BOARD_SCHEMA_VERSION,
+            ...(meta.revision !== undefined ? { revision: Number(meta.revision) } : {}),
             appId: BOARD_APP_ID,
             createdAt: normalizeTimestamp(meta.createdAt) || now,
             updatedAt: normalizeTimestamp(meta.updatedAt) || normalizeTimestamp(meta.createdAt) || now
@@ -173,6 +174,7 @@ export function serializeBoardDataFromObject(boardData: unknown): BoardData {
     const result: BoardData = {
         meta: {
             schemaVersion: BOARD_SCHEMA_VERSION,
+            ...(meta.revision !== undefined ? { revision: Number(meta.revision) } : {}),
             appId: BOARD_APP_ID,
             createdAt: normalizeTimestamp(meta.createdAt) || now,
             updatedAt: now

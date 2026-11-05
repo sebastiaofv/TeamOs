@@ -162,7 +162,7 @@ test('manual volume fixture paginates by publication order and historic snapshot
     expect((await readSavedBoard(page, 'p')).extensions.conversations.entries).toHaveLength(56);
 });
 
-test('conflict reload warns before losing unsaved publications and offers a complete recovery download', async ({ page }, testInfo) => {
+test('independent external edits preserve unsaved publications and the unsent composer draft', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Conflict comments', hasHandle: true, tasks: [{ id: 1, title: 'Conflict item', status: 'to-do' }] }], { selectedBoardId: 'p' });
     const external = await readSavedBoard(page, 'p');
@@ -176,14 +176,9 @@ test('conflict reload warns before losing unsaved publications and offers a comp
     await page.keyboard.press('Escape');
     external.board.tasks[0].title = 'External item';
     await mutateExternalBoardFile(page, { boardId: 'p', payload: external }); await triggerExternalFileCheck(page);
-    await page.locator('#appMessageModal').getByRole('button', { name: 'Reload from disk', exact: true }).click();
-    await expect(page.locator('#appMessageModal')).toContainText('locally available published comments');
-    const downloadPromise = page.waitForEvent('download');
-    await page.getByRole('button', { name: 'Download recovery copy', exact: true }).click();
-    const download = await downloadPromise; const path = testInfo.outputPath('comments-recovery.json'); await download.saveAs(path);
-    expect(JSON.parse(readFileSync(path, 'utf8')).publishedComments[0].text).toBe('Locally published, not saved');
-    await expect(page.locator('#appMessageModal')).toHaveCount(0);
-    await portfolioCard(page, 'Conflict item').click();
+    await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.conversations.entries[0].text).toBe('Locally published, not saved');
+    await expect(page.locator('#projectReconciliationModal')).toHaveCount(0);
+    await portfolioCard(page, 'External item').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
     await expect(page.locator('.comment-publication')).toHaveCount(1);
     await expect(page.locator('#commentText')).toHaveValue('Unsent draft also survives');

@@ -2,7 +2,6 @@ import { showTimeline } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 
 import {
-  answerAppMessage,
   appMessage,
   buildBoardPayload,
   focusIsInside,
@@ -869,16 +868,18 @@ test.describe('workitems table', () => {
       })
     });
     await triggerExternalFileCheck(page);
-    await expect(appMessage(page)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Resolve', exact: true })).toBeVisible();
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
     expect((await readSavedBoard(page, 'conflict')).board.tasks[0].title).toBe('External item');
-    await answerAppMessage(page, { button: 'Reload from disk', expectText: 'changed on disk' });
+    await page.getByRole('button', { name: 'Resolve', exact: true }).click();
+    await page.getByRole('button', { name: 'Keep all external', exact: true }).click();
+    await page.getByRole('button', { name: 'Apply decisions and save', exact: true }).click();
 
     await expect(tableRow(page, 1)).toContainText('External item');
     await expect(tableRow(page, 1)).not.toContainText('Local unsaved item');
     await expectTableFilter(page, '#portfolioStatusesFilter', ['doing']);
     await expect(page.locator('.portfolio-chip.active')).not.toContainText('Save failed');
-    expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
+    await expect.poll(() => page.evaluate(() => window.__portfolioTestWrites.length)).toBe(1);
   });
 
   test('invalid external JSON preserves the current table and reports a watch error without writing', async ({ page }) => {
