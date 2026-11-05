@@ -2,7 +2,7 @@ import { workitemType } from '@/domain/workitems';
 // Day planner view model: tray groups from the visible rows and per-day
 // blocks from every project in scope.
 
-import type { BoardData, Effort, Priority, ProjectColor, Task, TaskStatus } from '@/domain/types';
+import type { BoardData, Effort, Priority, ProjectColor, Task, TaskStatus, WorkflowCategory } from '@/domain/types';
 import type { BoardRecord, PlannerMode } from '@/features/portfolio/types';
 import { createPortfolioProjectColor } from '@/domain/board';
 import {
@@ -131,7 +131,7 @@ export function buildPortfolioPlannerViewModel(
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;
         const category = statusCategory(status, row.boardData || board.data, row.task);
-        const trayStatus = ({ backlog: 'backlog', 'to-do': 'to-do', 'in-progress': 'doing', completed: 'done', cancelled: 'cancelled' })[category];
+        const trayStatus = ({ backlog: 'backlog', 'to-do': 'to-do', 'in-progress': 'doing', testing: 'testing', completed: 'done', cancelled: 'cancelled' } satisfies Record<WorkflowCategory, string>)[category];
         if (!statusSet.has(trayStatus)) return;
         let group = groups.get(board.id);
         if (!group) {

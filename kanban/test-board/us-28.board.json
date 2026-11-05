@@ -1,0 +1,203 @@
+{
+  "meta": {
+    "schemaVersion": 6,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-10-01T09:00:00.000Z",
+    "updatedAt": "2026-10-01T09:00:00.000Z",
+    "revision": 0
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "A fazer"
+      },
+      {
+        "status": "doing",
+        "title": "Em curso"
+      },
+      {
+        "status": "done",
+        "title": "Concluído"
+      }
+    ],
+    "tasks": [
+      {
+        "id": 1,
+        "permanentId": "workitem:us28:1",
+        "displayId": "CON-TK-1",
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "none",
+        "milestoneMode": "none",
+        "title": "Preparar proposta",
+        "description": "Editar este campo numa sessão e o título noutra.",
+        "assignees": [
+          "Ana"
+        ],
+        "assigneeIds": [
+          "person-1"
+        ],
+        "responsible": "Ana",
+        "responsibleId": "person-1",
+        "tags": [
+          "feature"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [
+          {
+            "text": "Inspeção efetuada",
+            "done": true
+          },
+          {
+            "text": "Validar resultado",
+            "done": false
+          }
+        ],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "to-do",
+        "pullRequests": []
+      },
+      {
+        "id": 2,
+        "permanentId": "workitem:us28:2",
+        "displayId": "CON-TK-2",
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "none",
+        "milestoneMode": "none",
+        "title": "Rever orçamento",
+        "description": "Editar este workitem na segunda sessão para uma integração independente.",
+        "assignees": [
+          "Ana"
+        ],
+        "assigneeIds": [
+          "person-1"
+        ],
+        "responsible": "Ana",
+        "responsibleId": "person-1",
+        "tags": [
+          "feature"
+        ],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [
+          {
+            "text": "Inspeção efetuada",
+            "done": true
+          },
+          {
+            "text": "Validar resultado",
+            "done": false
+          }
+        ],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-10-01T09:00:00.000Z",
+        "updatedAt": "2026-10-01T09:00:00.000Z",
+        "dueDate": "2026-11-15",
+        "priority": "high",
+        "effort": "M",
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "to-do",
+        "pullRequests": []
+      }
+    ],
+    "settings": {
+      "title": "US-28 · Projeto partilhado"
+    }
+  },
+  "extensions": {
+    "project": {
+      "version": 1,
+      "id": "project-us28-shared",
+      "acronym": "CON",
+      "description": "Abrir o mesmo ficheiro em duas sessões para verificar a integração e a recuperação.",
+      "status": "active",
+      "members": [
+        {
+          "id": "person-1",
+          "name": "Ana"
+        }
+      ],
+      "tags": [
+        "feature"
+      ],
+      "productName": "House"
+    },
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "A fazer",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "Em curso",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Concluído",
+          "color": "#34d399",
+          "category": "completed"
+        }
+      ],
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "done"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "doing",
+          "done"
+        ],
+        "to-do": [
+          "backlog",
+          "doing",
+          "done"
+        ],
+        "doing": [
+          "backlog",
+          "to-do",
+          "done"
+        ],
+        "done": [
+          "backlog",
+          "to-do",
+          "doing"
+        ]
+      }
+    }
+  }
+}

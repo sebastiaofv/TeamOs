@@ -11,3 +11,5 @@ Scope: [4 November agreement](https://github.com/sebastiaofv/TeamOs/issues/54#is
 7. Create a project with a four-letter acronym; existing shorter acronyms and workitem IDs remain valid. Enter dates as **dd/mm/yyyy** and verify invalid dates cannot be saved. Slow a file write and observe save spinners on buttons and autosave status. Find Delete in modal ⋯ menus. Confirm archive commands, shortcuts and filters are absent; legacy archived items remain visible.
 
 Compatibility: file dates remain ISO, existing IDs/history and retired archive metadata remain readable, legacy Bug state IDs are mapped to the equivalent functional category when necessary, and legacy Sprint-phase links are discarded during normalization.
+
+After syncing main (US-22/28/32): verify the configurable workflow type assignments still govern both Boards and auto-created Bug child Tasks. Sprint start/finish actions, frozen closure results and Story Points coexist with the active-Sprint checkbox. Sprint duration and the custom end-date prompt use dd/mm/yyyy; invalid dates must keep the prompt open. Planned Sprint deletion lives in the modal ⋯ menu and is absent for Active/Done Sprints.

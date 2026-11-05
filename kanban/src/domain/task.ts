@@ -79,6 +79,7 @@ export function buildTaskFieldsFromDraft(draft: TaskDraft) {
         dueDate: draft.dueDate,
         priority: draft.priority,
         effort: draft.effort,
+        ...(draft.storyPoints !== undefined ? { storyPoints: draft.storyPoints } : {}),
         phaseId: draft.phaseId,
         milestoneId: draft.milestoneId
     };
@@ -251,6 +252,7 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
         dueDate: normalizeDueDate(task.dueDate),
         priority: normalizePriority(task.priority),
         effort: normalizeEffort(task.effort),
+        ...(task.storyPoints !== undefined ? { storyPoints: task.storyPoints as number | null } : {}),
         phaseId: normalizeRoadmapRef(task.phaseId),
         milestoneId: normalizeRoadmapRef(task.milestoneId),
         sprintId: normalizeRoadmapRef(task.sprintId),

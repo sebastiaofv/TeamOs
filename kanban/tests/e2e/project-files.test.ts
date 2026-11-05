@@ -380,16 +380,18 @@ test.describe('project files', () => {
       })
     });
     await triggerExternalFileCheck(page);
-    await answerAppMessage(page, { button: 'Keep local edits', expectText: 'unsaved edits' });
+    await page.getByRole('button', { name: 'Resolve', exact: true }).click();
+    await page.getByRole('button', { name: 'Keep all mine', exact: true }).click();
+    await page.getByRole('button', { name: 'Apply decisions and save', exact: true }).click();
 
     await expect.poll(async () => (await page.evaluate(() => (window.__portfolioTestWrites || []).length))).toBe(1);
-    await expect(page.locator('#portfolio-backlog-column .portfolio-task-card').filter({ hasText: 'Local unsaved edit' })).toBeVisible();
+    await expect(page.locator('#portfolio-done-column .portfolio-task-card').filter({ hasText: 'Local unsaved edit' })).toBeVisible();
     // No save/watch status label on the chip: saved, and no conflict pending.
     // (Checking the chip's whole text would match the board title "Conflict Local".)
-    await expect(activeChip.locator('.chip-save-state')).toHaveCount(0);
+    await expect(activeChip).not.toContainText('Unsaved');
 
     const saved = await readSavedBoard(page, 'c1');
-    expect(saved.board.tasks.find((task: any) => task.id === 1)).toMatchObject({ title: 'Local unsaved edit', status: 'backlog' });
+    expect(saved.board.tasks.find((task: any) => task.id === 1)).toMatchObject({ title: 'Local unsaved edit', status: 'done' });
   });
 
   test('external change conflict can reload from disk and discard unsaved local edits', async ({ page }) => {
@@ -415,7 +417,9 @@ test.describe('project files', () => {
       })
     });
     await triggerExternalFileCheck(page);
-    await answerAppMessage(page, { button: 'Reload from disk', expectText: '"Conflict Reload" changed on disk' });
+    await page.getByRole('button', { name: 'Resolve', exact: true }).click();
+    await page.getByRole('button', { name: 'Keep all external', exact: true }).click();
+    await page.getByRole('button', { name: 'Apply decisions and save', exact: true }).click();
 
     await expect(page.locator('#portfolio-doing-column .portfolio-task-card').filter({ hasText: 'Disk wins title' })).toBeVisible();
     await expect(portfolioCard(page, 'Local edited title')).toHaveCount(0);
@@ -423,7 +427,7 @@ test.describe('project files', () => {
     await expect(activeChip).not.toContainText('Unsaved');
 
     const writes = await page.evaluate(() => (window.__portfolioTestWrites || []).length);
-    expect(writes).toBe(0);
+    expect(writes).toBe(1);
   });
 
   test('invalid external file does not replace in-memory board and reports watch error', async ({ page }) => {

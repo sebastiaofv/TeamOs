@@ -12,7 +12,7 @@ describe('hierarchical planning', () => {
     it('validates and round-trips the manual board and migrates v1 without changing IDs', () => {
         const data = fixture(); validateBoardData(data);
         const next = serializeBoardDataFromObject(data); validateBoardData(next);
-        expect(next.extensions.roadmap).toEqual({ ...data.extensions.roadmap, version: 5 });
+        expect(next.extensions.roadmap).toEqual(normalizeRoadmapExtension(data.extensions.roadmap));
         expect(next.board.tasks.map((task) => task.id)).toEqual(data.board.tasks.map((task) => task.id));
         expect(normalizeRoadmapExtension({ version: 1, phases: [], milestones: [], sprints: [] })?.version).toBe(5);
     });

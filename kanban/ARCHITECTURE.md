@@ -28,6 +28,8 @@ result. Infrastructure owns file and browser details behind small interfaces.
 - `features/portfolio/commands/workitemAcceptance.ts` shares completion validation and explicit author confirmation between normal changes and project transfers. Transfer drafts also enforce the domain guards for parent/child moves and acceptance; their destination-first persistence remains coordinated by `projectTransferCommands.ts`. Returning comments retain their canonical publication and gain a `task.comment.referenced` event for the new local lifecycle, preserving historical views.
 - `features/portfolio/projects/useProjectSettingsEditor.ts` owns the joint General/Workflow draft, validation, and save lifecycle. The views render and edit that model; `projectSettingsCommands.ts` owns injectable impact confirmation and the single atomic settings write.
 
+- `domain/projectMerge.ts` merges normalized base/local/external versions by permanent entity identity and field; `projectMergeIntegrity.ts` isolates connected entities when validation fails. `infrastructure/persistence/projectFiles.ts` is the shared conditional-save path for edits and watcher checks, with Web Locks, exact written baselines, post-write verification and IndexedDB recovery. `meta.revision` is a save counter; raw text hashes detect changes. `board.reconciled` checkpoints preserve the accepted state in replay.
+
 ## Folder map
 
 ```text

@@ -1,5 +1,5 @@
 /* Imported in cascade order: later files override earlier ones. base.css holds
-   theme variables and shared surfaces; theme-dark.css must stay last. */
+   theme variables and shared surfaces; appearance overrides follow dark mode. */
 @import './foundation/base.css';
 @import './portfolio/portfolio-toolbar.css';
 @import './portfolio/calendar.css';
@@ -17,7 +17,10 @@
 @import './portfolio/undo-toast.css';
 @import './portfolio/task-detail.css';
 @import './overlays/project-settings.css';
+@import './overlays/project-reconciliation.css';
 @import './portfolio/control.css';
 @import './app/docs.css';
 @import './foundation/selects.css';
 @import './foundation/theme-dark.css';
+@import './foundation/theme-modern.css';
+@import './app/theme-picker.css';

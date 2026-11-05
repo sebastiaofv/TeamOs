@@ -52,6 +52,8 @@ export type PortfolioRow = {
     columnTitle?: string;
     canMutate: boolean;
     historical?: boolean;
+    /** A frozen Sprint row whose workitem still exists: its details open with current data. */
+    liveDetails?: boolean;
     boardData?: BoardData | null;
     task: Task;
 };
@@ -81,6 +83,8 @@ export type CalendarDisplayMode = 'calendar' | 'heatmap';
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'error';
 export type WatchStatus = 'idle' | 'external' | 'conflict' | 'watch-error';
 export type ProjectSaveState = {
+    reconciliation?: import('@/domain/projectMerge').ProjectMerge;
+    recoveryError?: string;
     status: SaveStatus;
     lastErrorMessage: string;
     lastSavedAt: string;
@@ -124,7 +128,7 @@ export type TaskEditorViewModel = {
 };
 
 export type TaskDetailFields = Record<
-    | 'title' | 'description' | 'assignees' | 'responsible' | 'tags' | 'blocked' | 'blockerReason' | 'priority' | 'effort'
+    | 'title' | 'description' | 'assignees' | 'responsible' | 'tags' | 'blocked' | 'blockerReason' | 'priority' | 'effort' | 'storyPoints'
     | 'status' | 'createdAt' | 'updatedAt' | 'dueDate' | 'phase' | 'milestone' | 'sprint',
     string
 >;
@@ -147,7 +151,7 @@ export type TaskDetailViewModel = {
 };
 
 export type RoadmapEntityMode = 'default' | 'create-sprint-from-selection' | 'assign-sprint-from-selection';
-export type RoadmapEntityDates = { title: string; dueDate: string; startDate: string; endDate: string; color?: string; objective?: string };
+export type RoadmapEntityDates = import('@/domain/types').SprintFields & { title: string; dueDate: string; startDate: string; endDate: string; color?: string; objective?: string };
 export type RoadmapEntityViewModel = {
     boardId: string;
     boardData?: BoardData;
@@ -174,6 +178,7 @@ export type RoadmapEntityViewModel = {
 export type CommandPaletteProps = { contextTask: { boardId: string; taskId: number } | null; initialQuery?: string };
 
 export type DialogPropsByName = {
+    projectReconciliation: { boardId: string };
     projectControl: { boardId: string; recordId?: string; kind: import('@/domain/projectControl').ControlKind };
     appSettings: null;
     projectSettings: { boardId: string; data: BoardData; readOnly: boolean; onCreate?: (data: BoardData) => Promise<boolean> };

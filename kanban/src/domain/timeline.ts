@@ -12,7 +12,7 @@ import type {
 import type { TaskRelation } from '@/domain/types';
 import { ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION } from './constants';
 import { getTaskAttachments } from './attachments';
-import { createBoardStateSnapshot } from './serialize';
+import { createBoardStateSnapshot, hashTextContent } from './serialize';
 import { getBoardExtensionsObject } from './extensions';
 import { cloneSerializable, areSerializableValuesEqual } from './serializable';
 import { nowIso } from './util';
@@ -42,7 +42,7 @@ type ReplayState = {
     extensions?: Record<string, unknown>;
 };
 
-const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'] as const;
+const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'storyPoints', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'] as const;
 
 export function createEmptyTimelineData(): TimelineExtension {
     return {
@@ -134,7 +134,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
-    if (['board.restored', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations'].includes(event.kind) && event.snapshot) {
+    if (['board.restored', 'board.reconciled', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations'].includes(event.kind) && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
 
@@ -148,6 +148,7 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         : {};
     const tasks = board.tasks;
     const settings = board.settings;
+    if (event.kind === 'sprint.results.updated' && event.changes?.sprintResults) { nextState.extensions = { ...nextState.extensions, sprintResults: cloneSerializable(event.changes.sprintResults.after) }; return nextState; }
     if (event.kind === 'sprint.participation.updated' && event.changes?.sprintParticipation) { nextState.extensions = { ...nextState.extensions, sprintParticipation: cloneSerializable(event.changes.sprintParticipation.after) }; return nextState; }
     if (['task.comment.published', 'task.comment.referenced'].includes(event.kind) && typeof event.meta?.commentId === 'string') {
         const previous = nextState.extensions?.conversationRefs;
@@ -292,14 +293,17 @@ export function ensureBoardTimelineBaseline(boardData: LooseBoardData): Timeline
         return timeline;
     }
 
+    // Opening the same legacy file in two sessions must seed the same history
+    // identity; later user events still receive unique IDs.
+    const snapshot = createBoardStateSnapshot(boardData);
     const baselineEvent: TimelineEvent = {
-        id: createTimelineEventId(),
-        at: nowIso(),
+        id: `baseline_${hashTextContent(JSON.stringify(snapshot))}`,
+        at: snapshot.meta.updatedAt,
         kind: 'board.baseline',
         entityType: 'board',
         entityId: 'board',
         summary: 'Baseline snapshot created',
-        snapshot: createBoardStateSnapshot(boardData)
+        snapshot
     };
     timeline.version = TIMELINE_VERSION;
     timeline.baselineEventId = baselineEvent.id;

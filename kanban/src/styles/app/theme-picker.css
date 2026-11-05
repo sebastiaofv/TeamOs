@@ -1,0 +1,33 @@
+.theme-picker-btn { flex: 0 0 auto; }
+.theme-picker-icon { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+.theme-picker {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    width: min(300px, calc(100vw - 24px));
+    padding: 16px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-panel, 0);
+    box-shadow: var(--shadow-panel, 0 8px 28px rgb(0 0 0 / 16%));
+    font: inherit;
+}
+
+.theme-picker fieldset { border: 0; min-width: 0; }
+.theme-picker legend { margin-bottom: 12px; font-size: 13px; font-weight: 600; }
+.theme-picker-option { display: flex; align-items: center; gap: 10px; padding: 10px; margin-bottom: 8px; border: 1px solid var(--border); border-radius: var(--radius-control, 0); cursor: pointer; }
+.theme-picker-option:hover { background: var(--bg-secondary); }
+.theme-picker-option:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.theme-picker-copy { flex: 1; min-width: 0; }
+.theme-picker-name { display: block; font-size: 13px; font-weight: 600; }
+.theme-picker-description { display: block; margin-top: 3px; font-size: 11px; line-height: 1.5; color: var(--text-secondary); }
+.theme-picker input { width: 16px; height: 16px; flex: 0 0 auto; accent-color: var(--accent); }
+.theme-picker > p { font-size: 11px; line-height: 1.5; color: var(--text-secondary); }
+.theme-preview { display: grid; place-items: center; width: 38px; height: 42px; flex: 0 0 auto; border: 1px solid; font-size: 16px; }
+.theme-preview-classic { font-family: Arial, sans-serif; color: #0066cc; background: #fafafa; border-color: #939393; }
+.theme-preview-modern { font-family: 'Inter', sans-serif; color: #73569a; background: #f8f8f6; border-color: #d2cfca; border-radius: 5px; }
+:root[data-theme="dark"] .theme-preview-classic { color: #64a8ff; background: #25282d; border-color: #8c96a3; }
+:root[data-theme="dark"] .theme-preview-modern { color: #c4ace0; background: #222221; border-color: #8c8880; }

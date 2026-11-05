@@ -28,7 +28,7 @@ const ids = (page: Page, id = 's1') => sprint(page, id).locator('tbody tr').eval
 test('expands Story children within each Sprint table and preserves detail navigation, selection and keyboard collapse', async ({ page }) => {
     await seed(page);
     await expect(sprint(page).locator('table')).toHaveCount(0);
-    await sprint(page).locator(':scope > summary').click();
+    await sprint(page).locator(':scope > summary .table-sprint-name').click();
     const table = sprint(page).locator('table');
     await expect(sprint(page).locator('.workitem-tree')).toHaveCount(0);
     await expect(sprint(page).locator(':scope > summary')).toContainText('33.3% complete (1/3)');
@@ -49,7 +49,7 @@ test('expands Story children within each Sprint table and preserves detail navig
     await page.keyboard.press('Enter');
     await expect.poll(() => ids(page)).toEqual([1, 4, 5]);
     await expect(table.getByRole('button', { name: 'Expand Story Zeta', exact: true })).toBeFocused();
-    await sprint(page, 's2').locator(':scope > summary').click();
+    await sprint(page, 's2').locator(':scope > summary .table-sprint-name').click();
     await expect.poll(() => ids(page, 's2')).toEqual([6, 8]);
     await expect(sprint(page, 's2').locator('.table-tree-toggle')).toHaveCount(0);
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
@@ -58,7 +58,7 @@ test('expands Story children within each Sprint table and preserves detail navig
 test('filters and exports participating children even while collapsed and sorts siblings beneath their Story', async ({ page }) => {
     await seed(page);
     const section = sprint(page);
-    await section.locator(':scope > summary').click();
+    await section.locator(':scope > summary .table-sprint-name').click();
     const downloadPromise = page.waitForEvent('download');
     await section.getByRole('button', { name: 'Export CSV', exact: true }).click();
     const download = await downloadPromise;
@@ -91,7 +91,7 @@ test('filters and exports participating children even while collapsed and sorts 
 test('paginates whole Story groups so expanding a row never separates children onto another page', async ({ page }) => {
     await seed(page, true, true);
     const section = sprint(page);
-    await section.locator(':scope > summary').click();
+    await section.locator(':scope > summary .table-sprint-name').click();
     await section.locator('#tablePageSize-sprint-s1').selectOption('25');
     await expect(section.locator('tbody tr')).toHaveCount(25);
     await section.getByRole('button', { name: 'Expand Story Zeta', exact: true }).click();
@@ -109,7 +109,7 @@ test('supports read-only Sprint drilldown in Portuguese on a narrow screen', asy
     await seed(page, false);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.locator('#languageToggleBtn').click();
-    await sprint(page).locator(':scope > summary').click();
+    await sprint(page).locator(':scope > summary .table-sprint-name').click();
     await sprint(page).getByRole('button', { name: 'Expandir Story Zeta', exact: true }).click();
     await sprint(page).getByRole('button', { name: 'Child Alpha', exact: true }).click();
     await expect(page.locator('#detailTitle')).toHaveText('Child Alpha');

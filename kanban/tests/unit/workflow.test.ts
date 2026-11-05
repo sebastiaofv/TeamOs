@@ -94,10 +94,14 @@ describe('project workflows', () => {
         const output = serializeBoardDataFromObject(input); validateBoardData(output);
         expect(output.board.tasks.map((t) => [t.id, t.status])).toEqual(input.board.tasks.map((t: { id: number; status: string }) => [t.id, t.status]));
     });
-    it('starts new projects with five categories, nine states, reanalysis cycles and terminal Done/Cancelled states', () => {
+    it('starts new projects with six categories, nine states, reanalysis cycles and terminal Done/Cancelled states', () => {
         const data = createEmptyProjectData('New process');
         const workflow = data.extensions.workflow!;
-        expect(new Set(workflow.states.map((state) => state.category))).toEqual(new Set(['backlog', 'to-do', 'in-progress', 'completed', 'cancelled']));
+        expect(new Set(workflow.states.map((state) => state.category))).toEqual(new Set(['backlog', 'to-do', 'in-progress', 'testing', 'completed', 'cancelled']));
+        // Testing (US-22) holds Ready to test and Testing, and can return to In progress.
+        expect(workflow.states.filter((state) => state.category === 'testing').map((state) => state.id)).toEqual(['ready-to-test', 'testing']);
+        expect(workflow.references.testing).toBe('ready-to-test');
+        expect(canTransition(data, 'ready-to-test', 'doing')).toBe(true);
         expect(workflow.states).toHaveLength(9);
         expect(workflow.states.filter((state) => state.category === 'cancelled').map((state) => state.name)).toEqual(['Cancelled', 'Duplication']);
         for (const [from, to] of [['backlog', 'to-do'], ['to-do', 'doing'], ['doing', 'ready-to-test'], ['ready-to-test', 'testing'], ['testing', 'done'], ['testing', 're-analysis'], ['re-analysis', 'doing'], ['doing', 'done']]) expect(canTransition(data, from, to)).toBe(true);

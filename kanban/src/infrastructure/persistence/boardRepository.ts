@@ -14,6 +14,9 @@ import { validateConversationPixels } from '@/infrastructure/browser/commentImag
 
 export type BoardFileMeta = { lastModified: number; size: number; textHash: string };
 export type BoardSnapshot = { parsed: BoardData; fileMeta: BoardFileMeta };
+// The baseline is the version actually imported, never a later disk reread.
+export const importedProjectSnapshots = new WeakMap<BoardFileHandle, BoardSnapshot>();
+
 export type ImportResult = { loaded: BoardRecord[]; errors: string[] };
 
 function getLooseFileSourceKey(file: BoardFile): string {
@@ -66,18 +69,13 @@ export const BoardRepository = {
         const { file } = await this.readHandleFileMeta(handle);
         return this.readFileSnapshot(file);
     },
-    async saveRecord(boardRecord: BoardRecord | null | undefined): Promise<boolean> {
-        if (!boardRecord || !boardRecord.handle) return false;
-        const payload = this.serialize(boardRecord.data);
-        await validateConversationPixels(payload);
-        await writeJsonToFileHandle(boardRecord.handle, payload);
-        return true;
-    },
     async createRecordFromFile({ file, handle = null }: { file: BoardFile; handle?: BoardFileHandle | null }): Promise<BoardRecord> {
         assertRequiredExtension(file?.name || '', BOARD_FILE_EXTENSION, 'Project file');
-        const parsed: unknown = JSON.parse(await file.text());
+        const text = await file.text();
+        const parsed: unknown = JSON.parse(text);
         this.validate(parsed);
         await validateConversationPixels(parsed as BoardData);
+        if (handle) importedProjectSnapshots.set(handle, { parsed: parsed as BoardData, fileMeta: { lastModified: Number(file.lastModified) || 0, size: Number(file.size) || 0, textHash: hashTextContent(text) } });
         return createPortfolioRecord({
             handle,
             ...(!handle ? { sourceKey: getLooseFileSourceKey(file) } : {}),

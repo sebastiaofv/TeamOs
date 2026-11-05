@@ -25,6 +25,7 @@ test('manual US-12 projects import together and preserve types, states and repea
     await expect(page.locator('.portfolio-task-card[data-task-id="1208"]')).toHaveAttribute('data-status', 'building');
     await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
     await expect(page.locator('.portfolio-task-card')).toHaveCount(9);
+    await expect(page.locator('#portfolio-doing-column .portfolio-task-card[data-task-id="1207"][data-status="review"]')).toHaveCount(1);
     await expect(page.locator('.portfolio-task-card[data-task-id="1201"]')).toHaveCount(0);
     await page.screenshot({ path: testInfo.outputPath('all-functional.png'), animations: 'disabled' });
     await selectPortfolioBoard(page, 'US-12 · Checkout');

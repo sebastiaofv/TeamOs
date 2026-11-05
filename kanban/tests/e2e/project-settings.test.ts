@@ -218,7 +218,7 @@ test('project tabs retain both drafts and save the intended project together', a
     await tabs.getByRole('tab', { name: 'General', exact: true }).focus();
     await page.keyboard.press('ArrowRight');
     await expect(tabs.getByRole('tab', { name: 'Technical workflow', exact: true })).toBeFocused();
-    await expect(modal.getByRole('tablist', { name: 'Workflow settings sections', exact: true }).getByRole('tab')).toHaveCount(2);
+    await expect(modal.getByRole('tablist', { name: 'Workflow settings sections', exact: true }).getByRole('tab')).toHaveCount(3);
     await modal.locator('[data-state-choice="to-do"]').click();
     await modal.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
     await modal.getByRole('tab', { name: 'Entry & references', exact: true }).click();

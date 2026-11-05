@@ -1,5 +1,8 @@
 import { DeleteMenu } from '@/shared/ui/DeleteMenu';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { SprintAction } from './SprintAction';
+import { SprintPoints } from './SprintPoints';
+import { getSprintStatus } from '@/domain/roadmap';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useShallow } from 'zustand/react/shallow';
 import type { PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope } from '@/features/portfolio/types';
@@ -11,7 +14,7 @@ import { allWorkflowStates } from '@/domain/workflow';
 import { formatDueDateForUi } from '@/domain/calendar';
 import { selectRoadmapMilestone } from '@/features/portfolio/commands/roadmapNavigation';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
-import { WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
+import { formatClosureDate, WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
 import { useI18n } from '@/shared/i18n';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { layoutMilestones, MILESTONE_LANE_HEIGHT, MILESTONE_LABEL_WIDTH } from '@/domain/milestonePresentation';
@@ -56,11 +59,12 @@ function CompletionControl({ view }: { view: PortfolioRoadmapViewModel }) {
     const choices = [
         { key: 'all', label: t('common.all'), ids: [] as string[] },
         { key: 'open', label: t('roadmap.notCompleted'), ids: allWorkflowStates(view.boardData).filter((column) => !['completed', 'cancelled'].includes(column.category)).map((column) => column.id) || [] },
+        { key: 'testing', label: t('workflow.testing'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'testing').map((column) => column.id) || [] },
         { key: 'completed', label: t('roadmap.completed'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'completed').map((column) => column.id) || [] },
         { key: 'cancelled', label: t('roadmap.cancelled'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'cancelled').map((column) => column.id) || [] }
     ];
     return <div className="roadmap-completion-controls" role="group" aria-label={t('roadmap.completionFilter')}>
-        {choices.filter((choice) => choice.key !== 'cancelled' || choice.ids.length).map((choice) => <button className="btn" type="button" key={choice.key}
+        {choices.filter((choice) => !['cancelled', 'testing'].includes(choice.key) || choice.ids.length).map((choice) => <button className="btn" type="button" key={choice.key}
             aria-pressed={selected.length === choice.ids.length && selected.every((id) => choice.ids.includes(id))} onClick={() => setPortfolioFilter('statuses', choice.ids)}>{choice.label}</button>)}
     </div>;
 }
@@ -68,9 +72,11 @@ function CompletionControl({ view }: { view: PortfolioRoadmapViewModel }) {
 function ScopeTable({ scope, view, scopeId }: { scope: RoadmapWorkScope; view: PortfolioRoadmapViewModel; scopeId: string }) {
     const { t } = useI18n();
     if (!view.boardData) return null;
+    const closure = /^sprints?:/.test(scope.key) && scope.item ? view.boardData.extensions.sprintResults?.closures.find((entry) => entry.sprintId === scope.item!.id) : undefined;
     return <div className="roadmap-scope-table">
         <WorkitemTable bare nested hidden={false} boardId={view.boardId} project={`${view.boardTitle}${scope.item ? ` · ${scope.item.title}` : ''}`} boardData={scope.boardData}
             sourceRows={scope.rows} canCreate={false} scope={domId(scopeId)} emptyLabel={t('roadmap.noTasksAssigned')} />
+        {closure && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(closure.closedAt) })}</p>}
     </div>;
 }
 
@@ -100,8 +106,8 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
                 <h4 className="roadmap-row-title" title={`${item.title} · ${t(row.hasChildren ? 'roadmap.parentPhase' : 'roadmap.leafPhase')}`} id={`${rowId}-title`}>{item.title}</h4>
                 <span className="roadmap-row-meta">{formatRoadmapDateRange(item, language)}</span>
                 {!row.hasChildren && <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggle}>▤ {row.visibleCount}/{row.progress.associated}</button>}
-                <div className="roadmap-row-actions"><button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${item.title}`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id)}>✎</button>
-                    <button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.delete')} ${item.title}`} onClick={() => actions.deleteRoadmapEntity(row.kind, item.id)}>×</button>
+                <div className="roadmap-row-actions">{row.kind === 'sprints' && <>{view.boardData && <SprintPoints data={view.boardData} sprintId={item.id} />}<span className={`table-status-badge sprint-status-${getSprintStatus(item)}`}>{t(`table.sprintStatus.${getSprintStatus(item)}`)}</span><SprintAction sprint={item} boardId={view.boardId} disabled={!canEdit} /></>}<button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${item.title}`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id)}>✎</button>
+                    {(row.kind !== 'sprints' || getSprintStatus(item) === 'planned') && <button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.delete')} ${item.title}`} onClick={() => actions.deleteRoadmapEntity(row.kind, item.id, { boardId: view.boardId })}>×</button>}
                 </div>
             </div>
             <div className="roadmap-row-track">
@@ -199,7 +205,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
                 const rows = kind === 'phases' ? view.phaseRows : view.sprintRows;
                 const label = t(kind === 'phases' ? 'roadmap.phase' : 'roadmap.sprint');
                 return <section className="roadmap-section" data-roadmap-kind={kind} key={kind} aria-label={t(kind === 'phases' ? 'roadmap.phases' : 'roadmap.sprints')}>
-                    {kind === 'sprints' && <header className="roadmap-section-header"><h3>{t('roadmap.sprints')}</h3><button className="roadmap-section-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label })} onClick={() => actions.openRoadmapEntityModal(kind)}>{t('roadmap.add', { label })}</button></header>}
+                    {kind === 'sprints' && <header className="roadmap-section-header"><h3>{t('roadmap.sprints')}</h3></header>}
                     <div className="roadmap-list">{!rows.length ? <p className="roadmap-empty">{t('roadmap.noItems', { label: label.toLowerCase() })}</p> : rows.map((row) => <PlanningRow key={row.key} row={row} view={view} canEdit={canEdit} />)}</div>
                 </section>;
             })}

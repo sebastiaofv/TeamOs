@@ -20,7 +20,7 @@ import type {
 } from '@/features/portfolio/types';
 import type { TaskStatus, RoadmapKind, TaskRelationKind } from '@/domain/types';
 import type { AppMessage } from '@/app/types';
-import type { Language, Theme } from '@/shared/types/ui';
+import type { Language, Theme, ThemeStyle } from '@/shared/types/ui';
 import type { TableSort } from '@/features/portfolio/table/tableModel';
 import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 
@@ -75,6 +75,7 @@ export type UiSlice = {
     undoAction: (() => unknown) | null;
     undoToast: { message: string } | null;
     activeTheme: Theme;
+    activeThemeStyle: ThemeStyle;
     activeLanguage: Language;
     activeDialog: DialogName | null;
     dialogProps: DialogPropsByName[DialogName] | null;
@@ -141,6 +142,7 @@ export function createUiSlice(): UiSlice {
         undoAction: null,
         undoToast: null,
         activeTheme: 'light',
+        activeThemeStyle: 'classic',
         activeLanguage: 'en',
         activeDialog: null,
         dialogProps: null,

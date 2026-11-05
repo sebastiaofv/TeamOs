@@ -1,27 +1,28 @@
-import type { BoardData, LooseBoardData, Workflow, WorkflowCategory, WorkflowKind } from './types';
+import type { BoardData, LooseBoardData, Workflow, WorkflowCategory, WorkflowKind, WorkflowTypes, WorkitemType } from './types';
 import { cloneSerializable } from './serializable';
 import { isRecord, nowIso } from './util';
 
-export const WORKFLOW_CATEGORIES: WorkflowCategory[] = ['backlog', 'to-do', 'in-progress', 'completed', 'cancelled'];
-export const BOARD_WORKFLOW_CATEGORIES: WorkflowCategory[] = ['to-do', 'in-progress', 'completed'];
+/** Testing sits between In progress and Completed: development is finished but the workitem is not complete. */
+export const WORKFLOW_CATEGORIES: WorkflowCategory[] = ['backlog', 'to-do', 'in-progress', 'testing', 'completed', 'cancelled'];
+export const BOARD_WORKFLOW_CATEGORIES: WorkflowCategory[] = ['to-do', 'in-progress', 'testing', 'completed'];
 
 export function defaultWorkflow(): Workflow {
     const states: Workflow['states'] = [
         { id: 'backlog', name: 'Backlog', color: '#94a3b8', category: 'backlog' },
         { id: 'to-do', name: 'To Do', color: '#60a5fa', category: 'to-do' },
         { id: 'doing', name: 'In progress', color: '#fbbf24', category: 'in-progress' },
-        { id: 'ready-to-test', name: 'Ready to test', color: '#a78bfa', category: 'in-progress' },
-        { id: 'testing', name: 'Testing', color: '#38bdf8', category: 'in-progress' },
+        { id: 'ready-to-test', name: 'Ready to test', color: '#a78bfa', category: 'testing' },
+        { id: 'testing', name: 'Testing', color: '#38bdf8', category: 'testing' },
         { id: 're-analysis', name: 'Re-analysis', color: '#fb923c', category: 'in-progress' },
         { id: 'done', name: 'Done', color: '#34d399', category: 'completed' },
         { id: 'cancelled', name: 'Cancelled', color: '#f87171', category: 'cancelled' },
         { id: 'duplication', name: 'Duplication', color: '#e879f9', category: 'cancelled' }
     ];
     const cancel = ['cancelled', 'duplication'];
-    return { version: 2, states, entryStateId: 'to-do', references: { backlog: 'backlog', 'to-do': 'to-do', 'in-progress': 'doing', completed: 'done', cancelled: 'cancelled' },
+    return { version: 2, states, entryStateId: 'to-do', references: { backlog: 'backlog', 'to-do': 'to-do', 'in-progress': 'doing', testing: 'ready-to-test', completed: 'done', cancelled: 'cancelled' },
         transitions: {
             backlog: ['to-do', ...cancel], 'to-do': ['doing', ...cancel], doing: ['ready-to-test', 'done', ...cancel],
-            'ready-to-test': ['testing', ...cancel], testing: ['done', 're-analysis', ...cancel], 're-analysis': ['doing', ...cancel],
+            'ready-to-test': ['testing', 'doing', ...cancel], testing: ['done', 're-analysis', ...cancel], 're-analysis': ['doing', ...cancel],
             done: [], cancelled: [], duplication: []
         } };
 }
@@ -47,6 +48,7 @@ export function legacyWorkflow(columns?: unknown): Workflow {
         names.add(state.name.toLowerCase());
     }
     delete workflow.references.cancelled;
+    delete workflow.references.testing;
     workflow.transitions = Object.fromEntries(workflow.states.map((state) => [state.id, workflow.states.filter((other) => other.id !== state.id).map((other) => other.id)]));
     return workflow;
 }
@@ -68,13 +70,54 @@ export function parseWorkflow(value: unknown): Workflow {
 
 export type WorkflowSubject = WorkflowKind | { type?: unknown };
 
-export function workflowKind(subject?: WorkflowSubject | null): WorkflowKind {
-    return typeof subject === 'string' ? subject : subject?.type === 'story' || subject?.type === 'bug' || subject?.type === 'epic' ? 'functional' : 'technical';
+const WORKFLOW_TYPE_IDS: readonly WorkitemType[] = ['epic', 'story', 'task', 'bug'];
+/** Projects follow this association unless their settings say otherwise. */
+export const DEFAULT_FUNCTIONAL_TYPES: readonly WorkitemType[] = ['epic', 'story', 'bug'];
+/** The association before it became configurable, kept for Sprint closures recorded under it. */
+export const LEGACY_FUNCTIONAL_TYPES: readonly WorkitemType[] = ['epic', 'story'];
+
+export function parseWorkflowTypes(value: unknown): WorkflowTypes | undefined {
+    if (value === undefined) return undefined;
+    if (!isRecord(value) || value.version !== 1 || Object.keys(value).length !== 2 || !Array.isArray(value.functional)
+        || value.functional.some((type) => !WORKFLOW_TYPE_IDS.includes(type as WorkitemType)) || new Set(value.functional).size !== value.functional.length) throw new Error('Invalid extensions.workflowTypes.');
+    return { version: 1, functional: WORKFLOW_TYPE_IDS.filter((type) => (value.functional as unknown[]).includes(type)) };
+}
+
+export function functionalWorkitemTypes(data?: LooseBoardData | null): WorkitemType[] {
+    return [...(parseWorkflowTypes(data?.extensions?.workflowTypes)?.functional ?? DEFAULT_FUNCTIONAL_TYPES)];
+}
+
+export function workflowKind(subject?: WorkflowSubject | null, data?: LooseBoardData | null): WorkflowKind {
+    if (typeof subject === 'string') return subject;
+    const type = WORKFLOW_TYPE_IDS.includes(subject?.type as WorkitemType) ? subject!.type as WorkitemType : 'task';
+    return functionalWorkitemTypes(data).includes(type) ? 'functional' : 'technical';
+}
+
+/** Moves each workitem whose type changes workflow to the state with the same
+ * category in its new workflow (the category reference, else the Board entry),
+ * keeping its status when that state already exists there. */
+export function applyWorkflowTypes(data: BoardData, functional: readonly WorkitemType[]): number[] {
+    const before = { extensions: { ...data.extensions }, board: { columns: data.board.columns } };
+    const next: WorkflowTypes = { version: 1, functional: WORKFLOW_TYPE_IDS.filter((type) => functional.includes(type)) };
+    const after = { ...before, extensions: { ...before.extensions, workflowTypes: next } };
+    const moved: number[] = [];
+    const at = nowIso();
+    for (const task of data.board.tasks) {
+        if (workflowKind(task, before) === workflowKind(task, after)) continue;
+        const target = getWorkflow(after, task);
+        if (target.states.some((state) => state.id === task.status)) continue;
+        const category = statusCategory(task.status, before, task);
+        task.status = target.references[category] || target.states.find((state) => state.category === category)?.id || target.entryStateId;
+        task.updatedAt = at;
+        moved.push(task.id);
+    }
+    data.extensions.workflowTypes = next;
+    return moved;
 }
 
 /** Older projects share their existing process until either workflow is edited. */
 export function getWorkflow(data?: LooseBoardData | null, subject?: WorkflowSubject | null): Workflow {
-    if (workflowKind(subject) === 'functional' && data?.extensions?.functionalWorkflow !== undefined) return parseWorkflow(data.extensions.functionalWorkflow);
+    if (workflowKind(subject, data) === 'functional' && data?.extensions?.functionalWorkflow !== undefined) return parseWorkflow(data.extensions.functionalWorkflow);
     return data?.extensions?.workflow ? parseWorkflow(data.extensions.workflow) : legacyWorkflow(data?.board?.columns);
 }
 
@@ -140,7 +183,7 @@ export function canTransition(data: LooseBoardData, from: string, to: string, su
 
 export function applyWorkflow(data: BoardData, workflow: Workflow, relocations: Record<string, string>, kind: WorkflowKind = 'technical'): void {
     assertWorkflow(workflow);
-    const tasks = data.board.tasks.filter((task) => workflowKind(task) === kind);
+    const tasks = data.board.tasks.filter((task) => workflowKind(task, data) === kind);
     const ids = new Set(workflow.states.map((state) => state.id));
     if (tasks.some((task) => !ids.has(task.status) && !ids.has(relocations[task.status]))) throw new Error('Choose a destination for every removed state in use.');
     // Freeze the old shared process before changing the technical workflow.

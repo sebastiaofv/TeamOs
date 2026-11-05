@@ -2,6 +2,7 @@ import { sprintPhaseDateConflicts } from '@/domain/sprintPhaseDates';
 import { recalculatePhaseDates } from '@/domain/phaseTree';
 import { formatDate } from '@/domain/dates';
 import { projectActor } from '@/features/portfolio/projects/projectIdentity';
+import { recordSprintCredits } from '@/domain/sprintResults';
 import { removeDeletedControlLinks } from '@/domain/projectControl';
 import { lastCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
 import { requestWorkitemAcceptance } from './workitemAcceptance';
@@ -38,10 +39,10 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     for (const bug of draft.data.board.tasks.filter((task) => task.type === 'bug' && !current.data.board.tasks.some((before) => before.id === task.id))) {
         const id = nextTaskIdForBoard({ data: draft.data });
         draft.data.board.tasks.push(normalizeTask({ id, type: 'task', parentId: bug.id, title: bug.title,
-            description: bug.description, status: getWorkflow(draft.data, 'technical').entryStateId,
+            description: bug.description, status: getWorkflow(draft.data, { type: 'task' }).entryStateId,
             assignees: bug.assignees, responsible: bug.responsible, priority: bug.priority, effort: bug.effort,
             dueDate: bug.dueDate, sprintId: bug.sprintId, phaseMode: 'inherit', milestoneMode: 'inherit',
-            createdAt: bug.createdAt, updatedAt: bug.updatedAt }, { includeStatusChangedAt: false, workflow: getWorkflow(draft.data) }));
+            createdAt: bug.createdAt, updatedAt: bug.updatedAt }, { includeStatusChangedAt: false, workflow: getWorkflow(draft.data, { type: 'task' }) }));
     }
     ensurePermanentTaskIdentities({ ...draft.data, board: { ...draft.data.board, tasks: draft.data.board.tasks.filter((task) => !current.data.board.tasks.some((previous) => previous.id === task.id)) } });
     const boardSnapshotRecorded = draft.data.extensions.timeline?.events.slice(firstEvent).some((event) => Boolean(event.snapshot?.board));
@@ -178,6 +179,8 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     for (const effect of effects) if (effect.blocked) void alert(translateCurrent('workitems.autoBlocked', { id: workitemLabelFor(draft.data, effect.storyId) }));
     syncWorkitemPlanning(draft.data, draft.data);
     if (JSON.stringify(stage.extensions.sprintParticipation) !== JSON.stringify(draft.data.extensions.sprintParticipation)) appendTimelineEvent(draft.data, { kind: 'sprint.participation.updated', entityType: 'board', entityId: 'board', summary: 'Sprint participation recorded', changes: { sprintParticipation: { before: stage.extensions.sprintParticipation ?? null, after: structuredClone(draft.data.extensions.sprintParticipation) } } });
+    recordSprintCredits(draft.data, current.data);
+    if (JSON.stringify(current.data.extensions.sprintResults) !== JSON.stringify(draft.data.extensions.sprintResults)) appendTimelineEvent(draft.data, { kind: 'sprint.results.updated', entityType: 'board', entityId: 'board', summary: 'Sprint results recorded', changes: { sprintResults: { before: current.data.extensions.sprintResults ?? null, after: structuredClone(draft.data.extensions.sprintResults) } } });
     syncProjectAssignments(draft.data);
     annotateTimelineOperation(current.data, draft.data, firstEvent, createTimelineEventId());
     const actor = projectActor(current.id);

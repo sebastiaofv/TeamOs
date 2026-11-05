@@ -1,7 +1,7 @@
-import { getSprintCalendarStatus } from '@/domain/roadmap';
+import { getSprintStatus } from '@/domain/roadmap';
 import { todayLocalIsoDate } from '@/domain/util';
 import { translateCurrent } from '@/shared/i18n';
-import { taskInTechnicalBoard, workitemType } from '@/domain/workitems';
+import { taskInFunctionalBoard, taskInTechnicalBoard, workitemType } from '@/domain/workitems';
 import type { BoardColumn, WorkflowCategory } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getWorkflow, allWorkflowStates, statusCategory } from '@/domain/workflow';
@@ -32,9 +32,9 @@ export function buildPortfolioBoardView(state: SelectorState, mode?: 'technical'
         const data = row.boardData || boards.find((board) => board.id === row.boardId)?.data;
         if (activeSprintsOnly && !state?.portfolioFilters?.sprintId) {
             const sprint = data?.extensions.roadmap?.sprints.find((entry) => entry.id === row.task.sprintId);
-            if (!sprint || getSprintCalendarStatus(sprint, today) !== 'active') return;
+            if (!sprint || getSprintStatus(sprint, today) !== 'active') return;
         }
-        if (mode && (!data || (mode === 'functional' ? !['story', 'bug'].includes(workitemType(row.task)) : !taskInTechnicalBoard(data, row.task)))) return;
+        if (mode && (!data || (mode === 'functional' ? !taskInFunctionalBoard(data, row.task) : !taskInTechnicalBoard(data, row.task)))) return;
         if (!visibility.has(row.boardId) || visibility.get(row.boardId)?.has(row.task.status)) return;
         const category = statusCategory(row.task.status, data, row.task);
         const key = mode && !state?.selectedPortfolioBoardId ? ({ 'in-progress': 'doing', completed: 'done' } as Record<string, string>)[category] || category : row.task.status;

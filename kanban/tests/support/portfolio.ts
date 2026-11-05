@@ -73,7 +73,7 @@ function buildTaskPayload(task: SeedTask, index: number) {
       ? [task.assignee.trim()]
       : [];
   return {
-    ...Object.fromEntries(['permanentId', 'displayId', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'].filter((key) => Object.hasOwn(task, key)).map((key) => [key, task[key]])),
+    ...Object.fromEntries(['storyPoints', 'permanentId', 'displayId', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'].filter((key) => Object.hasOwn(task, key)).map((key) => [key, task[key]])),
     id: task.id ?? index + 1,
     title: task.title,
     description: task.description || '',
@@ -591,17 +591,20 @@ async function mockImportProjectsPicker(page: Page, payloads: { fileName: string
 
 async function mutateExternalBoardFile(
   page: Page,
-  { boardId, payload, invalidText = null }: { boardId: string; payload?: unknown; invalidText?: string | null }
+  { boardId, payload, invalidText = null, preserveRevision = false }: { boardId: string; payload?: unknown; invalidText?: string | null; preserveRevision?: boolean }
 ) {
-  await page.evaluate(({ boardId, payload, invalidText }) => {
+  await page.evaluate(({ boardId, payload, invalidText, preserveRevision }) => {
     if (!window.__portfolioDiskByBoardId || !window.__portfolioDiskByBoardId[boardId]) {
       throw new Error(`Disk state not found for board: ${boardId}`);
     }
     const disk = window.__portfolioDiskByBoardId[boardId];
+    // Simulate a current cooperating writer unless a revision is explicitly supplied.
+    const version = payload as { meta?: { revision?: number } } | undefined;
+    if (version?.meta && !preserveRevision) version.meta.revision = Math.max(version.meta.revision || 0, JSON.parse(disk.text).meta.revision || 0) + 1;
     const nextText = typeof invalidText === 'string' ? invalidText : JSON.stringify(payload, null, 2);
     disk.text = nextText;
     disk.lastModified = (Number(disk.lastModified) || Date.now()) + 1000;
-  }, { boardId, payload, invalidText });
+  }, { boardId, payload, invalidText, preserveRevision });
 }
 
 // Runs the app's external-change check the way the browser does: a window

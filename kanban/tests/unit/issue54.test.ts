@@ -49,6 +49,26 @@ describe('issue 54 agreed planning changes', () => {
         expect(replayed.board.tasks).toEqual(saved.board.tasks);
     });
 
+    it('creates a Bug execution Task in its configured workflow without duplicate Story Points', async () => {
+        const { data, actions, current } = setup();
+        const functional = defaultWorkflow();
+        functional.states[1].id = 'functional-to-do';
+        functional.entryStateId = 'functional-to-do';
+        functional.references['to-do'] = 'functional-to-do';
+        functional.transitions['functional-to-do'] = functional.transitions['to-do'];
+        delete functional.transitions['to-do'];
+        for (const key of Object.keys(functional.transitions)) functional.transitions[key] = functional.transitions[key].map((id) => id === 'to-do' ? 'functional-to-do' : id);
+        data.extensions.functionalWorkflow = functional;
+        data.extensions.workflowTypes = { version: 1, functional: ['epic', 'story', 'bug', 'task'] };
+        await actions.createPortfolioTaskFromFields('p', { type: 'bug', title: 'Configured workflow', assignees: [], tags: [], priority: null, effort: null, dueDate: '' });
+        await actions.setPortfolioTaskProperties('p', current().board.tasks[0].id, { storyPoints: 8 });
+        const [bug, task] = current().board.tasks;
+        expect(bug.storyPoints).toBe(8);
+        expect(task).toMatchObject({ type: 'task', parentId: bug.id, status: 'functional-to-do' });
+        expect(task.storyPoints).toBeUndefined();
+        expect(() => validateBoardData(current())).not.toThrow();
+    });
+
     it('maps a legacy Bug to a functional state of the same category and accepts retired severity data', () => {
         const { data } = setup();
         const functional = defaultWorkflow();
@@ -58,6 +78,7 @@ describe('issue 54 agreed planning changes', () => {
         delete functional.transitions.doing;
         for (const state of Object.keys(functional.transitions)) functional.transitions[state] = functional.transitions[state].map((id) => id === 'doing' ? 'analysis' : id);
         data.extensions.functionalWorkflow = functional;
+        delete data.extensions.workflowTypes; // Legacy files predate configurable workflow assignments.
         data.board.tasks.push(normalizeTask({ id: 9, title: 'Legacy Bug', type: 'bug', status: 'doing', assigneeIds: [], responsibleId: '' }));
         data.board.tasks[0].severity = 'critical';
         expect(() => validateBoardData(data)).not.toThrow();

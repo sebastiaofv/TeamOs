@@ -119,6 +119,7 @@ export function buildTaskEditorViewModel(
             dueDate: normalizeDueDate(normalized.dueDate) || '',
             priority: normalizePriority(normalized.priority) || '',
             effort: normalizeEffort(normalized.effort) || '',
+            storyPoints: normalized.storyPoints,
             phaseId: knownRef(phaseOptions, normalized.phaseId),
             milestoneId: knownRef(milestoneOptions, normalized.milestoneId)
         }
@@ -183,6 +184,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
                 ? ({ high: translateCurrent('toolbar.high'), medium: translateCurrent('toolbar.medium'), low: translateCurrent('toolbar.low') }[task.priority] || task.priority)
                 : '-',
             effort: task.effort || '-',
+            storyPoints: task.storyPoints == null ? '-' : String(task.storyPoints),
             status: (statusMap[task.status] || task.status) || '-',
             createdAt: formatDateTime(task.createdAt, getCurrentLanguage() === 'pt' ? 'pt-PT' : undefined),
             updatedAt: formatDateTime(task.updatedAt, getCurrentLanguage() === 'pt' ? 'pt-PT' : undefined),

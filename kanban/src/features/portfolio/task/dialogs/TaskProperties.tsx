@@ -1,4 +1,5 @@
 import { DateInput } from '@/shared/ui/DateInput';
+import { STORY_POINT_OPTIONS } from '@/domain/sprintResults';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { workitemLabel } from '@/domain/taskIdentity';
@@ -37,6 +38,10 @@ export function TaskProperties({ vm, task }: { vm: TaskDetailViewModel; task: Ta
             {type !== 'epic' && <div className="form-group"><label htmlFor="detailEffortInput">{t('task.effort')}</label>
                 <select id="detailEffortInput" value={task.effort || ''} onChange={(event) => save({ effort: normalizeEffort(event.target.value) })}>
                     <option value="">{t('common.none')}</option>{['XS', 'S', 'M', 'L', 'XL'].map((value) => <option key={value}>{value}</option>)}
+                </select></div>}
+            {isPlanningUnit(data, task) && <div className="form-group"><label htmlFor="detailStoryPointsInput">{t('task.storyPoints')}</label>
+                <select id="detailStoryPointsInput" value={task.storyPoints ?? ''} onChange={(event) => save({ storyPoints: event.target.value === '' ? null : Number(event.target.value) })}>
+                    <option value="">{t('common.none')}</option>{[...new Set([...STORY_POINT_OPTIONS, ...(task.storyPoints == null ? [] : [task.storyPoints])])].sort((a, b) => a - b).map((value) => <option key={value} value={value}>{value}</option>)}
                 </select></div>}
             <div className="form-group"><label htmlFor="detailDueDateInput">{t('task.due')}</label>
                 <DateInput id="detailDueDateInput"  value={task.dueDate || ''} onChange={(event) => save({ dueDate: event.target.value })} /></div>

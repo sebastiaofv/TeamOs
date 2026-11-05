@@ -1,4 +1,6 @@
 import { formatDate } from '@/domain/dates';
+import { SprintAction } from '@/features/portfolio/roadmap/SprintAction';
+import { SprintPoints } from '@/features/portfolio/roadmap/SprintPoints';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
@@ -69,12 +71,19 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
             : <>
                 <p className="table-sprint-note">{t('table.sprintDatesNote')}</p>
                 {groups.length === 0 && <p className="table-empty" role="status">{t('table.noSprints')}</p>}
-                {groups.map((group) => <SprintTableSection key={group.sprint.id} group={group} hidden={hidden} boardId={boardId} project={project} />)}
+                {groups.map((group) => <SprintTableSection key={group.sprint.id} group={group} hidden={hidden} boardId={boardId} project={project} canEdit={canCreate} sprintPointsData={boardData} />)}
             </>}
     </section>;
 }
 
-function SprintTableSection({ group, hidden, boardId, project }: { group: SprintTableGroup; hidden: boolean; boardId: string; project: string }) {
+/** DD/MM/YYYY in the viewer's local time zone. */
+export function formatClosureDate(iso: string): string {
+    const date = new Date(iso);
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+}
+
+function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPointsData }: { group: SprintTableGroup; hidden: boolean; boardId: string; project: string; canEdit: boolean; sprintPointsData: BoardData }) {
+    const actions = usePortfolioActions();
     const { t, language } = useI18n();
     const [expanded, setExpanded] = useState(false);
     const completeness = group.completeness === null ? t('table.noCompleteness')
@@ -85,8 +94,12 @@ function SprintTableSection({ group, hidden, boardId, project }: { group: Sprint
             <span className="table-sprint-name">{t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}</span>
             <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
             <span>{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
+            {sprintPointsData && <SprintPoints data={sprintPointsData} sprintId={group.sprint.id} />}
+            <button className="btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${group.sprint.title}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); actions.openRoadmapEntityModal('sprints', group.sprint.id, { boardId }); }}>{t('common.edit')}</button>
+            <SprintAction sprint={group.sprint} boardId={boardId} disabled={!canEdit} />
             <span className="table-sprint-dates">{formatDate(group.sprint.startDate || '') || t('table.notDefined')} → {formatDate(group.sprint.endDate || '') || t('table.notDefined')}</span>
         </summary>
+        {expanded && group.closedAt && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(group.closedAt) })}</p>}
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
             sourceRows={group.rows} canCreate={false} scope={`sprint-${group.sprint.id}`} nested />}
     </details>;
@@ -152,7 +165,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
             : target?.querySelector<HTMLButtonElement>('button.table-item-link');
         trigger?.focus({ preventScroll: true });
         actions.setSelectedPortfolioCard(boardId, row.taskId);
-        actions.openPortfolioTaskDetails(boardId, row.taskId, row.historical ? { boardData: row.boardData || boardData, readOnly: true } : undefined);
+        actions.openPortfolioTaskDetails(boardId, row.taskId, row.historical && !row.liveDetails ? { boardData: row.boardData || boardData, readOnly: true } : undefined);
     }
     function cellText(row: PortfolioRow, column: TableColumnId): string {
         const value = tableCellValue(row, column, boardData);

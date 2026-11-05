@@ -51,10 +51,10 @@ describe('US-12 workitem domain', () => {
         expect(workitemProgress(data, 2)).toMatchObject({ percent: null, cancelled: 1 });
         data.board.tasks.push(item(5, 'task', { parentId: 2, status: 'done' })); expect(workitemProgress(data, 2).percent).toBe(100);
     });
-    it('requires criteria and terminal Tasks before Story acceptance, including stories without Tasks', () => {
+    it('requires terminal Tasks, but not Acceptance Criteria, before Story acceptance (US-22)', () => {
         const data = project(); expect(() => assertAcceptance(data, data.board.tasks[1])).toThrow('pending');
         data.board.tasks[2].status = 'cancelled'; expect(() => assertAcceptance(data, data.board.tasks[1])).not.toThrow();
-        data.board.tasks[1].acceptanceCriteria = ''; expect(() => assertAcceptance(data, data.board.tasks[1])).toThrow('criteria');
+        data.board.tasks[1].acceptanceCriteria = ''; expect(() => assertAcceptance(data, data.board.tasks[1])).not.toThrow();
     });
     it('resolves recursive inheritance, explicit override and None independently', () => {
         const data = project(); data.board.tasks[0].phaseId = 'phase'; data.board.tasks[0].milestoneId = 'milestone';

@@ -104,7 +104,7 @@ test('responsible and participant filters combine in planning and sprint tables 
   await page.locator('[data-table-view="sprints"]').click();
   const sprint = page.locator('[data-table-sprint="s1"]');
   await expect(sprint.locator(':scope > summary')).toContainText('50% complete (1/2)');
-  await sprint.locator(':scope > summary').click();
+  await sprint.locator(':scope > summary .table-sprint-name').click();
   await expect(sprint.locator('tbody tr')).toHaveCount(1);
   await expect(sprint.locator('tbody tr')).toContainText('Matching sprint item');
 });

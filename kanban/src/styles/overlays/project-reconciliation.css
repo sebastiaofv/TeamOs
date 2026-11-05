@@ -1,0 +1,15 @@
+.project-conflict-notice, .project-merge-notice { margin: 8px 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); }
+.project-conflict-notice { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.project-conflict-notice small { flex-basis: 100%; }
+.reconciliation-dialog { width: min(1100px, calc(100vw - 32px)); max-width: 1100px; }
+.reconciliation-actions { display: flex; gap: 8px; margin: 12px 0; }
+.reconciliation-conflict { border: 1px solid var(--border); border-radius: 8px; margin: 12px 0; padding: 12px; min-width: 0; }
+.reconciliation-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.reconciliation-values pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; font-size: 12px; padding: 8px; background: var(--bg-secondary); }
+@media (max-width: 650px) { .reconciliation-values { grid-template-columns: 1fr; } }
+
+.reconciliation-description { margin: 8px 0 0; font-size: 13px; line-height: 1.5; }
+.reconciliation-dialog .modal-header { gap: 16px; align-items: flex-start; }
+.reconciliation-dialog .modal-close { flex-shrink: 0; }
+.reconciliation-error { margin: 0 20px 12px; }
+.reconciliation-values input { margin-right: 6px; }

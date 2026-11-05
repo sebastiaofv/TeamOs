@@ -459,7 +459,7 @@ describe('serializeBoardDataFromObject — ported from the Playwright suite', ()
       { id: 'phase_foundation', title: 'Foundation', startDate: '2026-04-01', endDate: '2026-04-30' }
     ]);
     expect(s.extensions.roadmap!.sprints).toEqual([
-      { id: 'sprint_12', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }
+      { id: 'sprint_12', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14', status: 'done' }
     ]);
     expect(s.board.tasks[0]).toMatchObject({
       phaseId: 'phase_foundation',

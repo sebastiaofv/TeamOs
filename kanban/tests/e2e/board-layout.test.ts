@@ -27,6 +27,7 @@ test('both boards share a single row of workflow columns including backlog and d
         geometry.push(columns);
         if (mode === 'Technical Board') {
             await expect(page.locator('#portfolio-backlog-column')).toContainText('Implementation');
+            // Bugs follow the functional workflow by default (US-22).
             await expect(portfolioCard(page, 'Defect')).toHaveCount(0);
             await expect(portfolioCard(page, 'Independent execution')).toBeVisible();
             await expect(portfolioCard(page, 'Customer need')).toHaveCount(0);

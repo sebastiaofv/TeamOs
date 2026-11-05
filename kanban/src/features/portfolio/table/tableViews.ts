@@ -1,17 +1,17 @@
 import { getWorkflow } from '@/domain/workflow';
-import { isPlanningUnit, eligibleSprint, consultSprintParticipation, type SprintParticipation } from '@/domain/workitems';
+import { isPlanningUnit, eligibleSprint, consultSprintParticipation, hasPendingWork, type SprintParticipation } from '@/domain/workitems';
 import type { BoardData, RoadmapItem, SprintIdentity } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getSprintCatalog } from '@/domain/sprintCatalog';
-import { getSprintCalendarStatus, type SprintCalendarStatus } from '@/domain/roadmap';
+import { getSprintStatus, type SprintCalendarStatus } from '@/domain/roadmap';
 import { statusCategory } from '@/domain/workflow';
 
 export type TableView = 'hierarchy' | 'all' | 'unplanned' | 'sprints' | 'epics' | 'stories' | 'independent';
 export type { SprintCalendarStatus } from '@/domain/roadmap';
 
-/** A sprint owns its roster, not the live task's single sprintId. A future
- * closure adapter can provide immutable rows and boardData for each sprint,
- * including the same task in several rosters, without changing the renderer.
+/** Each Sprint owns a roster independent of the live allocation. Closure data
+ * supplies immutable workitems and workflow context, including carried work
+ * appearing in multiple Sprints.
  */
 export type SprintTableRoster = {
     sprint: RoadmapItem;
@@ -20,6 +20,7 @@ export type SprintTableRoster = {
     source: 'current' | 'closure';
     participation?: SprintParticipation;
     identity?: SprintIdentity;
+    closedAt?: string;
 };
 export type SprintTableGroup = SprintTableRoster & {
     status: SprintCalendarStatus;
@@ -32,7 +33,7 @@ export type SprintTableGroup = SprintTableRoster & {
 };
 
 export function unplannedTableRows(rows: PortfolioRow[]): PortfolioRow[] {
-    return rows.filter(({ task, boardData }) => !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task)) && (!boardData || isPlanningUnit(boardData, task)) && (!task.sprintId || Boolean(boardData && !eligibleSprint(boardData, task.sprintId))));
+    return rows.filter(({ task, boardData }) => (boardData ? isPlanningUnit(boardData, task) && hasPendingWork(boardData, task) : !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task))) && (!task.sprintId || Boolean(boardData && !eligibleSprint(boardData, task.sprintId))));
 }
 
 /** Use recorded participation for both planning rows and their participating children. */
@@ -44,9 +45,10 @@ export function currentSprintRosters(boardData: BoardData, rows: PortfolioRow[])
         const snapshot = participation.boardData;
         const rosterRows = participation.members.map((task): PortfolioRow => {
             const current = rows.find((row) => row.taskId === task.id);
-            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || rows[0]?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, columnTitle: getWorkflow(boardData, task).states.find((state) => state.id === task.status)?.name, boardData: snapshot, task };
+            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || rows[0]?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, liveDetails: Boolean(current && !current.historical), columnTitle: getWorkflow(snapshot, task).states.find((state) => state.id === task.status)?.name, boardData: snapshot, task };
         });
-        return { sprint, boardData: snapshot, participation, source: 'current', rows: rosterRows, identity: identities.get(sprint.id) };
+        const closure = boardData.extensions.sprintResults?.closures.find((entry) => entry.sprintId === sprint.id);
+        return { sprint, boardData: snapshot, participation, source: closure ? 'closure' : 'current', rows: rosterRows, identity: identities.get(sprint.id), ...(closure ? { closedAt: closure.closedAt } : {}) };
     });
 }
 
@@ -57,7 +59,7 @@ export function buildSprintTableGroups(rosters: SprintTableRoster[], today: stri
         const completed = planningRows.filter(({ task }) => statusCategory(task.status, roster.boardData, task) === 'completed').length;
         const cancelled = planningRows.filter(({ task }) => statusCategory(task.status, roster.boardData, task) === 'cancelled').length;
         const eligible = planningRows.length - cancelled;
-        const status = roster.source === 'closure' ? 'done' : getSprintCalendarStatus(roster.sprint, today);
+        const status = roster.source === 'closure' ? 'done' : getSprintStatus(roster.sprint, today);
         return {
             ...roster, rows: roster.source === 'closure' ? rows.map((row) => ({ ...row, historical: true, canMutate: false, boardData: roster.boardData })) : rows,
             status, completed, cancelled, total: planningRows.length, completeness: eligible ? completed / eligible * 100 : null,
