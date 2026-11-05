@@ -235,20 +235,19 @@ for (const theme of ['light', 'dark']) {
     await expect(page).toHaveScreenshot(`shortcuts-${theme}.png`, { fullPage: true });
   });
 
-  test(`help dialog open (${theme})`, async ({ page }) => {
+  test(`documentation page (${theme})`, async ({ page }) => {
     await gotoVisualApp(page, theme);
-    await page.locator('#openHelpBtn').click();
-    await expect(page.locator('#helpModal')).toBeVisible();
-    await expect(page.locator('#helpModal')).toContainText('Drag cards between columns');
-    await expect(page).toHaveScreenshot(`help-${theme}.png`, { fullPage: true });
+    await page.locator('#docsToggleBtn').click();
+    await expect(page.locator('#docsTopicTitle')).toHaveText('What TeamOS is');
+    await expect(page).toHaveScreenshot(`docs-${theme}.png`, { fullPage: true });
   });
 
-  test(`help command palette tab (${theme})`, async ({ page }) => {
+  test(`documentation palette guide (${theme})`, async ({ page }) => {
     await gotoVisualApp(page, theme);
-    await page.locator('#openHelpBtn').click();
-    await page.locator('#helpModal').getByRole('tab', { name: 'Command palette' }).click();
-    await expect(page.locator('#helpModal')).toContainText('Create a task in one line');
-    await expect(page).toHaveScreenshot(`help-palette-${theme}.png`, { fullPage: true });
+    await page.locator('#docsToggleBtn').click();
+    await page.locator('#docsView').getByRole('link', { name: 'Command palette', exact: true }).click();
+    await expect(page.locator('#docsView')).toContainText('Create a task in one line');
+    await expect(page).toHaveScreenshot(`docs-palette-${theme}.png`, { fullPage: true });
   });
 }
 

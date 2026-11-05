@@ -25,9 +25,9 @@ describe('dialog actions', () => {
   it('openDialog sets activeDialog and notifies', () => {
     const listener = listen();
 
-    openDialog('help');
+    openDialog('shortcuts');
 
-    expect(useAppStore.getState().activeDialog).toBe('help');
+    expect(useAppStore.getState().activeDialog).toBe('shortcuts');
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
@@ -40,7 +40,7 @@ describe('dialog actions', () => {
   it('openDialog without props clears stale dialogProps', () => {
     useAppStore.setState({ dialogProps: fromAny({ stale: true }) });
 
-    openDialog('help');
+    openDialog('shortcuts');
 
     expect(useAppStore.getState().dialogProps).toBe(null);
   });
@@ -77,12 +77,12 @@ describe('dialog actions', () => {
   });
 
   it('closeDialog(name) does nothing when a different dialog is open', () => {
-    openDialog('help');
+    openDialog('shortcuts');
     const listener = listen();
 
     closeDialog('taskDetail');
 
-    expect(useAppStore.getState().activeDialog).toBe('help');
+    expect(useAppStore.getState().activeDialog).toBe('shortcuts');
     expect(listener).not.toHaveBeenCalled();
   });
 

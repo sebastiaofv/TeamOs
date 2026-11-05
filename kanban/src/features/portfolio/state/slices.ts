@@ -78,7 +78,14 @@ export type UiSlice = {
     activeDialog: DialogName | null;
     dialogProps: DialogPropsByName[DialogName] | null;
     appMessage: AppMessage | null;
+    // Workspace or in-app documentation. Switching only swaps the main area;
+    // the workspace stays mounted, so its selection, view and drafts survive.
+    appMode: AppMode;
+    // The documentation topic shown (and reopened) in docs mode.
+    docsTopicId: string;
 };
+
+export type AppMode = 'workspace' | 'docs';
 
 export type FilesSlice = {
     projectSaveStateById: Map<string, ProjectSaveState>;
@@ -137,7 +144,9 @@ export function createUiSlice(): UiSlice {
         dialogProps: null,
         // The open in-app alert/confirm/prompt (actions/appMessages.ts). Kept
         // apart from activeDialog so it can stack above an open dialog.
-        appMessage: null
+        appMessage: null,
+        appMode: 'workspace',
+        docsTopicId: ''
     };
 }
 

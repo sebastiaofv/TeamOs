@@ -31,6 +31,7 @@ export type PaletteDeps = {
     toggleLanguage: () => void;
     openShortcuts: () => void;
     openHelp: () => void;
+    openViewHelp: () => void;
     openPaletteHelp: () => void;
     newProject: () => unknown;
     importProjects: () => unknown;
@@ -38,6 +39,13 @@ export type PaletteDeps = {
     showUndo: (message: string, undo: () => unknown) => void;
     t: (key: TranslationKey, values?: Record<string, string | number>) => string;
 };
+
+// Actions that make sense while reading the documentation. Every other action
+// works on the workspace, so it is shown again first.
+export function keepsDocsOpen(action: PaletteAction): boolean {
+    if (action.type === 'openTask') return true;
+    return action.type === 'command' && ['toggle-theme', 'toggle-language', 'open-shortcuts', 'open-help', 'open-view-help', 'open-palette-help'].includes(action.id);
+}
 
 export async function runPaletteAction(action: PaletteAction, deps: PaletteDeps): Promise<void> {
     switch (action.type) {
@@ -82,6 +90,7 @@ export async function runPaletteAction(action: PaletteAction, deps: PaletteDeps)
         case 'toggle-language': deps.toggleLanguage(); return;
         case 'open-shortcuts': deps.openShortcuts(); return;
         case 'open-help': deps.openHelp(); return;
+        case 'open-view-help': deps.openViewHelp(); return;
         case 'open-palette-help': deps.openPaletteHelp(); return;
         case 'new-project': await deps.newProject(); return;
         case 'import-projects': await deps.importProjects(); return;

@@ -19,6 +19,7 @@ A portfolio Kanban app for `*.board.json` project files, built with Vite, React,
 - **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
 - **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
 - **Table perspectives** (single project) — ALL presents collapsible Epic → Story → Task rows, direct Epic Tasks and independent Tasks/Bugs. The same table renders Roadmap phases, milestones and sprints, including recorded participation. Matching descendants stay visible when filters remove their ancestors; pagination keeps whole root groups together. Existing type-specific views, All Tasks & Bugs, Unplanned (not Done and no sprint) with selection-to-sprint creation, and collapsible per-sprint tables. Stories expand directly into participating Task rows within each sprint table; independent Tasks and Bugs appear at the top level. Sorting keeps children beneath their Story, pagination keeps each group together, and CSV includes all filtered workitems even when collapsed. Sprint headers retain dates, date-derived Planned/Active/Done status and completeness over unique planning units, including archived items, without counting Story Tasks twice. Filters affect rows/CSV, not the sprint denominator. Timestamps display as UTC `yyyy-mm-dd HH:mm:ss`; columns have minimum widths, two-line cells and horizontal scrolling, with colored status and blocked badges.
+- **In-app documentation** — the book button in the top bar (or `H`) swaps the workspace for a navigable documentation page and back; the button then shows an application icon. The workspace stays mounted while hidden, so open projects, selection, view, filters and drafts are preserved, and the documentation works with no project open. Ten sections cover getting started, the Agile methodology as applied in TeamOS (distinguishing methodological advice from rules the app enforces), projects, workitems, workflows, planning, views, files and history, productivity, and an end-to-end example with FAQ. It has a searchable contents sidebar with the active topic marked, related-topic links and previous/next navigation, follows the light/dark theme and EN/PT language, and collapses its contents on small screens. The command palette guide and the shortcut reference are rendered from the live app. Content lives in `src/app/docs/content/{en,pt}.ts`; unit tests keep both outlines and every internal link in sync.
 - **Light and dark theme.**
 
 ## Data and persistence
@@ -75,7 +76,7 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 | `Ctrl/⌘` + `K` | Open the command palette |
 | `/` | Search tasks and commands (opens the command palette) |
 | `N` / `I` | New project / import projects |
-| `H` | Help |
+| `H` | Open or close the documentation |
 | `R` | Reset filters and sort |
 | `S` | Focus sort control |
 | `[` / `]` | Previous / next project chip |

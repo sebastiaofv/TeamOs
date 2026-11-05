@@ -37,6 +37,7 @@ src/
 │   ├── App.tsx                  # root composition
 │   ├── AppHeader.tsx            # top-level shell controls
 │   ├── providers/               # React context providers
+│   ├── docs/                    # in-app documentation page, mode toggle, EN/PT content
 │   └── overlays/                # app-wide dialogs and messages
 ├── domain/                      # pure board, task, roadmap, timeline rules
 ├── features/portfolio/          # the portfolio feature

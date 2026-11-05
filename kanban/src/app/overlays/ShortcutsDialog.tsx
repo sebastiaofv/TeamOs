@@ -57,17 +57,10 @@ function ShortcutSections({ registry, groups }: { registry: Shortcut[]; groups: 
     );
 }
 
-export function ShortcutsDialog() {
-    const open = useAppStore((s) => s.activeDialog === 'shortcuts');
-    const returnFocus = useReturnFocus();
+// The localized shortcut registry, grouped as in the Shortcuts dialog. Also
+// rendered by the documentation, so both always list the same shortcuts.
+export function ShortcutReference() {
     const { t } = useI18n();
-    const [singleKeyShortcutsEnabled, setShortcutsEnabled] = useState(() => areSingleKeyShortcutsEnabled());
-    useEffect(() => {
-        if (!open) return undefined;
-        const refresh = () => setShortcutsEnabled(areSingleKeyShortcutsEnabled());
-        window.addEventListener('teamOs:shortcut-preference-changed', refresh);
-        return () => window.removeEventListener('teamOs:shortcut-preference-changed', refresh);
-    }, [open]);
     const localizedShortcuts = SHORTCUTS.map((entry) => {
         const description = entry.id.startsWith('move-')
             ? t('shortcuts.cardMove', {
@@ -85,7 +78,7 @@ export function ShortcutsDialog() {
                 'new-project': t('shortcuts.newProject'),
                 'import-projects': t('shortcuts.importProjects'),
                 'open-shortcuts': t('shortcuts.openShortcuts'),
-                'open-help': t('shortcuts.openHelp'),
+                'open-help': t('shortcuts.openDocs'),
                 'reset-filters': t('shortcuts.resetFilters'),
                 'focus-sort': t('shortcuts.focusSort'),
                 'project-prev': t('shortcuts.projectPrev'),
@@ -132,6 +125,20 @@ export function ShortcutsDialog() {
         }
     ];
 
+    return <ShortcutSections registry={localizedShortcuts} groups={groups} />;
+}
+
+export function ShortcutsDialog() {
+    const open = useAppStore((s) => s.activeDialog === 'shortcuts');
+    const returnFocus = useReturnFocus();
+    const { t } = useI18n();
+    const [singleKeyShortcutsEnabled, setShortcutsEnabled] = useState(() => areSingleKeyShortcutsEnabled());
+    useEffect(() => {
+        if (!open) return undefined;
+        const refresh = () => setShortcutsEnabled(areSingleKeyShortcutsEnabled());
+        window.addEventListener('teamOs:shortcut-preference-changed', refresh);
+        return () => window.removeEventListener('teamOs:shortcut-preference-changed', refresh);
+    }, [open]);
     return (
         <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeDialog('shortcuts'); }}>
             <Dialog.Portal>
@@ -164,7 +171,7 @@ export function ShortcutsDialog() {
                                 <p id="singleKeyShortcutsDescription">{t('shortcuts.enableDescription')}</p>
                             </div>
                             <div className="shortcuts-list" id="shortcutsList">
-                                <ShortcutSections registry={localizedShortcuts} groups={groups} />
+                                <ShortcutReference />
                             </div>
                         </div>
                         <div className="modal-footer">

@@ -1,7 +1,43 @@
 import type { Theme } from '@/shared/types/ui';
 import { openDialog } from '@/app/overlays/dialogs';
 import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
+import { useAppStore } from '@/features/portfolio/state/store';
+import { closeDocs, DOCS_TOGGLE_ID, toggleDocs } from '@/app/docs/docsMode';
 import { useI18n } from '@/shared/i18n';
+
+// One button, two states: a book opens the documentation; an application icon
+// returns to the workspace. The label always names the available action.
+function DocsToggleButton() {
+    const { t } = useI18n();
+    const docsOpen = useAppStore((state) => state.appMode === 'docs');
+    const label = docsOpen ? t('docs.back') : t('docs.open');
+    return (
+        <button
+            className={`btn icon-btn docs-toggle-btn${docsOpen ? ' active' : ''}`}
+            id={DOCS_TOGGLE_ID}
+            type="button"
+            aria-label={label}
+            title={label}
+            aria-controls={docsOpen ? 'docsView' : 'portfolioView'}
+            data-docs-open={docsOpen ? 'true' : 'false'}
+            onClick={() => toggleDocs()}
+        >
+            {docsOpen ? (
+                <svg className="docs-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                </svg>
+            ) : (
+                <svg className="docs-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M2 4.5h6a4 4 0 0 1 4 4V21a3 3 0 0 0-3-3H2Z" />
+                    <path d="M22 4.5h-6a4 4 0 0 0-4 4V21a3 3 0 0 1 3-3h7Z" />
+                </svg>
+            )}
+        </button>
+    );
+}
 
 export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleTheme: () => void }) {
     const { language, languageCode, toggleLanguage, t } = useI18n();
@@ -58,9 +94,9 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                     onClick={toggleLanguage}
                 >{languageCode}</button>
                 <button className="btn" id="openShortcutsBtn" type="button" onClick={() => openDialog('shortcuts')}>{t('header.shortcuts')}</button>
-                <button className="btn" id="openHelpBtn" type="button" onClick={() => openDialog('help')}>{t('header.help')}</button>
-                <button className="btn" id="importProjectsBtn" type="button" onClick={() => { void importPortfolioProjects(); }}>{t('header.importProjects')}</button>
-                <button className="btn btn-primary" id="newProjectBtn" type="button" onClick={() => { void createNewProject(); }}>{t('header.newProject')}</button>
+                <DocsToggleButton />
+                <button className="btn" id="importProjectsBtn" type="button" onClick={() => { closeDocs(); void importPortfolioProjects(); }}>{t('header.importProjects')}</button>
+                <button className="btn btn-primary" id="newProjectBtn" type="button" onClick={() => { closeDocs(); void createNewProject(); }}>{t('header.newProject')}</button>
             </div>
         </header>
     );

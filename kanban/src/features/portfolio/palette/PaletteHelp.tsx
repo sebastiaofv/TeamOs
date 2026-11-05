@@ -1,5 +1,5 @@
-// The "Command palette" tab of the Help dialog: how to open and use the
-// palette, with examples that open it pre-filled.
+// The command palette guide shown in the documentation: how to open and use
+// the palette, with examples that open it pre-filled.
 
 import type { TranslationKey } from '@/shared/i18n';
 import { useI18n } from '@/shared/i18n';
@@ -49,14 +49,11 @@ export function PaletteHelp() {
     const keys = PALETTE_SHORTCUT_LABEL;
     return (
         <div className="help-manual palette-help">
-            <div className="help-intro">
-                <div className="help-intro-title">{t('paletteHelp.tabPalette')}</div>
-                <div className="help-intro-text">{t('paletteHelp.intro')}</div>
-            </div>
+            <p className="help-intro-text">{t('paletteHelp.intro')}</p>
 
             <div className="help-grid">
                 <section className="help-card" aria-labelledby="palette-help-open">
-                    <h3 className="help-card-title" id="palette-help-open">{t('paletteHelp.openTitle')}</h3>
+                    <h2 className="help-card-title" id="palette-help-open">{t('paletteHelp.openTitle')}</h2>
                     <ul>
                         <li>{t('paletteHelp.openShortcut', { keys })}</li>
                         <li>{t('paletteHelp.openSlash')}</li>
@@ -66,7 +63,7 @@ export function PaletteHelp() {
                 </section>
 
                 <section className="help-card" aria-labelledby="palette-help-keys">
-                    <h3 className="help-card-title" id="palette-help-keys">{t('paletteHelp.keysTitle')}</h3>
+                    <h2 className="help-card-title" id="palette-help-keys">{t('paletteHelp.keysTitle')}</h2>
                     <dl className="palette-help-keys">
                         <dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>{t('paletteHelp.keyMove')}</dd>
                         <dt><kbd>Enter</kbd></dt><dd>{t('paletteHelp.keyRun')}</dd>
@@ -77,7 +74,7 @@ export function PaletteHelp() {
             </div>
 
             <section className="help-card" aria-labelledby="palette-help-find">
-                <h3 className="help-card-title" id="palette-help-find">{t('paletteHelp.findTitle')}</h3>
+                <h2 className="help-card-title" id="palette-help-find">{t('paletteHelp.findTitle')}</h2>
                 <ul className="palette-help-examples">
                     {FIND_EXAMPLES.map((example) => <ExampleRow example={example} key={example.query} />)}
                 </ul>
@@ -85,7 +82,7 @@ export function PaletteHelp() {
 
             <div className="help-grid">
                 <section className="help-card" aria-labelledby="palette-help-act">
-                    <h3 className="help-card-title" id="palette-help-act">{t('paletteHelp.actTitle')}</h3>
+                    <h2 className="help-card-title" id="palette-help-act">{t('paletteHelp.actTitle')}</h2>
                     <ul>
                         <li>{t('paletteHelp.act1', { keys })}</li>
                         <li>{t('paletteHelp.act2')}</li>
@@ -95,7 +92,7 @@ export function PaletteHelp() {
                 </section>
 
                 <section className="help-card" aria-labelledby="palette-help-filter">
-                    <h3 className="help-card-title" id="palette-help-filter">{t('paletteHelp.filterTitle')}</h3>
+                    <h2 className="help-card-title" id="palette-help-filter">{t('paletteHelp.filterTitle')}</h2>
                     <ul>
                         <li>{t('paletteHelp.filter1')}</li>
                         <li>{t('paletteHelp.filter2')}</li>
@@ -104,7 +101,7 @@ export function PaletteHelp() {
             </div>
 
             <section className="help-card" aria-labelledby="palette-help-create">
-                <h3 className="help-card-title" id="palette-help-create">{t('paletteHelp.createTitle')}</h3>
+                <h2 className="help-card-title" id="palette-help-create">{t('paletteHelp.createTitle')}</h2>
                 <p>{t('paletteHelp.create1')}</p>
                 <div className="palette-help-sample">
                     <code>{CREATE_EXAMPLE}</code>
@@ -126,7 +123,7 @@ export function PaletteHelp() {
             </section>
 
             <section className="help-card" aria-labelledby="palette-help-plan">
-                <h3 className="help-card-title" id="palette-help-plan">{t('paletteHelp.planTitle')}</h3>
+                <h2 className="help-card-title" id="palette-help-plan">{t('paletteHelp.planTitle')}</h2>
                 <ul className="palette-help-examples">
                     {PLAN_EXAMPLES.map((example) => <ExampleRow example={example} key={example.query} />)}
                 </ul>
