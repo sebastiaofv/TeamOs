@@ -10,6 +10,7 @@
 .portfolio-empty-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; }
 :root[data-theme-style="modern"] .portfolio-empty-actions .btn:not(.btn-primary) { border-color: var(--border); background: var(--bg-card); }
 .header-actions { flex-wrap: wrap; max-width: 100%; }
+.header-project-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .header-project-context { display: flex; align-items: center; gap: 16px; min-width: 0; margin-left: 18px; font-size: 16px; font-weight: 600; line-height: 1.4; }
 .header-project-context > :first-child { color: var(--text-muted); font-weight: 400; }
 .header-project-context > :last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 28vw; }

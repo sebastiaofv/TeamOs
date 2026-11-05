@@ -10,8 +10,8 @@ export function PortfolioEmptyState() {
             <h2 id="emptyWorkspaceTitle">{t('toolbar.noProjectsLoaded')}</h2>
             <p>{t('workspace.emptyDescription')}</p>
             <div className="portfolio-empty-actions">
-                <button className="btn" type="button" onClick={() => { void importPortfolioProjects(); }}><WorkspaceIcon name="folder" />{t('workspace.importProject')}</button>
-                <button className="btn btn-primary" type="button" onClick={() => { void createNewProject(); }}><WorkspaceIcon name="plus" />{t('workspace.createProject')}</button>
+                <button className="btn" type="button" onClick={() => { void importPortfolioProjects(); }}><WorkspaceIcon name="folder" />{t('header.importProjects')}</button>
+                <button className="btn btn-primary" type="button" onClick={() => { void createNewProject(); }}><WorkspaceIcon name="plus" />{t('header.newProject')}</button>
             </div>
         </div>
     </section>;

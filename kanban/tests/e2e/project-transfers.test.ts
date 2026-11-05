@@ -63,7 +63,7 @@ test('products use a compact dropdown, support keyboard selection and update onl
     await expect(house.getByRole('button', { name: 'Construction', exact: true })).not.toBeVisible();
     await house.locator('summary').focus(); await page.keyboard.press('Enter');
     await expect(house.getByRole('button', { name: 'Construction', exact: true })).toBeVisible();
-    await expect(house.getByRole('button', { name: '+ New Project', exact: true })).toBeVisible();
+    await expect(house.getByRole('button', { name: 'New Project', exact: true })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(house.locator('summary')).toBeFocused();
     await house.locator('summary').click();
@@ -364,7 +364,7 @@ test('creating within a product opens settings with required name and acronym an
     await mockNewProjectFlow(page, { fileName: 'new-house-project.json' });
     const menu = page.locator('.product-group').filter({ has: page.getByRole('button', { name: 'House', exact: true }) });
     await menu.locator('summary').click();
-    await menu.getByRole('button', { name: '+ New Project', exact: true }).click();
+    await menu.getByRole('button', { name: 'New Project', exact: true }).click();
     const dialog = page.locator('#projectSettingsModal');
     await expect(page.getByLabel('Product', { exact: true })).toHaveValue('House');
     await expect(page.getByLabel('Project name', { exact: true })).toHaveAttribute('required');

@@ -30,7 +30,7 @@ test.describe('app shell', () => {
     await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toHaveCount(0);
     await expect(page.getByText('All columns are hidden. Use Board columns to show them again.', { exact: true })).toHaveCount(0);
     await mockImportProjectsPicker(page, [{ fileName: 'welcome.board.json', payload: buildBoardPayload({ title: 'Welcome project', tasks: [] }) }]);
-    await page.getByRole('button', { name: 'Import a project', exact: true }).click();
+    await page.locator('#portfolioEmptyState').getByRole('button', { name: 'Import Projects', exact: true }).click();
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Welcome project');
     await expect(page.locator('#portfolioEmptyState')).toHaveCount(0);
   });
