@@ -191,19 +191,19 @@ test.describe('workitems table', () => {
     await gotoApp(page);
   });
 
-  test('keeps search, Filters and sort in the shared toolbar below project selection', async ({ page }) => {
+  test('keeps search, Filters and sort on the left of the existing table heading', async ({ page }) => {
     await seedPortfolioBoards(page, [{
       id: 'toolbar', title: 'Original toolbar', hasHandle: true,
       tasks: [{ id: 1, title: 'Zeta controls', effort: 'L', priority: 'high' }, { id: 2, title: 'Alpha controls', effort: 'S', priority: 'medium' }]
     }], { selectedBoardId: 'toolbar' });
     await openTable(page);
-    await expect(page.locator('#portfolioQueryToolbar #portfolioFiltersBtn')).toBeVisible();
+    await expect(page.locator('#portfolioTable .table-heading #portfolioFiltersBtn')).toBeVisible();
     await expect(page.locator('#portfolioSearchInput')).toHaveValue('');
-    await expect(page.locator('#portfolioQueryToolbar #portfolioSortSelect')).toBeVisible();
+    await expect(page.locator('#portfolioTable .table-heading #portfolioSortSelect')).toBeVisible();
     await expect(page.locator('#tableSearch')).toHaveCount(0);
     await expect(page.locator('#portfolioTable #tableFilters')).toHaveCount(0);
     await page.locator('#portfolioFiltersBtn').click();
-    await expect(page.locator('#portfolioQueryToolbar #portfolioFiltersPanel')).toBeVisible();
+    await expect(page.locator('#portfolioTable .table-heading #portfolioFiltersPanel')).toBeVisible();
     const fields = page.locator('#portfolioFiltersPanel .portfolio-filters-field');
     await expect(fields).toContainText(['Blocked', 'Responsible', 'Participant', 'Priority', 'Effort']);
     await page.locator('#portfolioEffortFilter').selectOption('S');
@@ -289,7 +289,7 @@ test.describe('workitems table', () => {
     }], { selectedBoardId: 'compact' });
     await openTable(page, false);
     await expect(page.locator('#portfolioBlockedFilter')).toBeHidden();
-    await expect(page.locator('#portfolioQueryToolbar #portfolioFiltersBtn')).toBeVisible();
+    await expect(page.locator('#portfolioTable .table-heading #portfolioFiltersBtn')).toBeVisible();
     await expect(tableRow(page, 1)).toBeInViewport();
     await page.locator('#portfolioFiltersBtn').click();
     await expect(page.locator('#portfolioBlockedFilter')).toBeVisible();

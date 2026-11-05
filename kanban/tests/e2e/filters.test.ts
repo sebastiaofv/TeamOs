@@ -61,10 +61,14 @@ test.describe('filters and sort', () => {
 
     for (const view of ['board', 'roadmap', 'planner', 'table']) {
       await page.locator(`[data-view-mode="${view}"]`).click();
-      await openFiltersPanel(page);
-      expect(await readFields()).toEqual(expected);
-      await expect(page.locator('#portfolioFiltersBtn .portfolio-filters-badge')).toHaveText('4');
-      await page.keyboard.press('Escape');
+      if (view === 'board' || view === 'table') {
+        await openFiltersPanel(page);
+        expect(await readFields()).toEqual(expected);
+        await expect(page.locator('#portfolioFiltersBtn .portfolio-filters-badge')).toHaveText('4');
+        await page.keyboard.press('Escape');
+      } else {
+        await expect(page.locator('#portfolioSearchInput, #portfolioFiltersBtn, #portfolioSortSelect')).toHaveCount(0);
+      }
       if (view === 'board') {
         await expect(page.locator('#portfolioBoard .task-title')).toHaveText(['Matching workitem']);
       } else if (view === 'roadmap') {

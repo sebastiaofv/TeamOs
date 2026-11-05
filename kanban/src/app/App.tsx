@@ -16,7 +16,6 @@ import { AppMessageDialog } from '@/app/overlays/AppMessageDialog';
 import { UndoToast } from '@/features/portfolio/shell/UndoToast';
 import { CommandPalette } from '@/features/portfolio/palette/CommandPalette';
 import { PortfolioBulkActions, PortfolioChips, PortfolioToolbar } from '@/features/portfolio/shell/PortfolioControls';
-import { PortfolioQueryToolbar } from '@/features/portfolio/shell/PortfolioQueryToolbar';
 import { PortfolioEmptyState } from '@/features/portfolio/shell/PortfolioEmptyState';
 import { PortfolioBoard } from '@/features/portfolio/board/PortfolioBoard';
 import { PortfolioTimeline } from '@/features/portfolio/timeline/PortfolioTimeline';
@@ -85,7 +84,7 @@ function AppContent() {
                 workspace keeps its selection, view, filters and drafts. */}
             <main className={`view${fileDropActive ? ' file-drop-active' : ''}`} id="portfolioView" aria-labelledby="appTitle" hidden={docsOpen}>
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
-                    {hasBoards && <><PortfolioToolbar /><PortfolioChips /><PortfolioQueryToolbar /></>}
+                    {hasBoards && <><PortfolioToolbar /><PortfolioChips /></>}
                     <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive || controlActive ? ' table-active' : ''}${dashboardActive ? ' dashboard-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />

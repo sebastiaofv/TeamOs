@@ -1,3 +1,4 @@
+import { PortfolioQueryControls } from '@/features/portfolio/shell/PortfolioQueryControls';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { useState, type ReactNode } from 'react';
@@ -145,6 +146,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                     {(['technical', 'functional'] as const).map((value) => <button className={`btn${mode === value ? ' active' : ''}`} type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{t(`workitems.${value}`)}</button>)}
                     <div className="workitem-board-actions">
                         {canAddTasks && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}>{t('table.create')}</button>}
+                        <PortfolioQueryControls />
                         <label className="board-active-sprints"><input type="checkbox" checked={activeSprintsOnly && !state.portfolioFilters.sprintId} onChange={(event) => { setActiveSprintsOnly(event.target.checked); if (event.target.checked) setPortfolioFilter('sprintId', ''); }} />{t('board.activeSprintsOnly')}</label>
                         <BoardColumnMenu mode={mode} />
                     </div>

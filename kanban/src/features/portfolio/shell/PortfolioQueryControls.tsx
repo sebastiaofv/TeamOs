@@ -10,13 +10,12 @@ import { useI18n } from '@/shared/i18n';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { PortfolioActiveFilters, PortfolioToolbarFilters } from './PortfolioFilters';
 
-/** Shared query controls live below project selection, outside every view. */
-export function PortfolioQueryToolbar() {
-    const view = useAppStore((state) => state.selectedPortfolioViewMode);
-    return view === 'dashboard' || view === 'control' ? null : <QueryToolbarContent />;
+/** Reused fields inside the active view's existing toolbar. */
+export function PortfolioQueryControls({ active = true }: { active?: boolean }) {
+    return active ? <QueryControlsContent /> : null;
 }
 
-function QueryToolbarContent() {
+function QueryControlsContent() {
     const { t } = useI18n();
     const state = useAppStore(useShallow((s) => ({
         filters: s.portfolioFilters, sort: s.portfolioSortKey, view: s.selectedPortfolioViewMode,
@@ -30,7 +29,7 @@ function QueryToolbarContent() {
     const sortValue = table ? tableSortValue : portfolioSortSelectValueFromKey(state.sort);
     const sortRef = useFocusTarget<HTMLSelectElement>('portfolioSort');
     const search = state.filters.search;
-    return <section className="portfolio-query-toolbar" id="portfolioQueryToolbar" aria-label={t('toolbar.filters')}>
+    return <div className="portfolio-query-fields" role="group" aria-label={t('toolbar.filters')}>
         <div className="portfolio-query-controls">
             <div className="section-search">
                 <WorkspaceIcon name="search" />
@@ -61,5 +60,5 @@ function QueryToolbarContent() {
         </div>
         <PortfolioActiveFilters />
         {!table && <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{t('toolbar.resultsCount', { count: state.count })}</span>}
-    </section>;
+    </div>;
 }

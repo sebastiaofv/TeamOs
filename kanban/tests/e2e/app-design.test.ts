@@ -5,7 +5,7 @@ import { gotoApp, seedPortfolioBoards, readSavedBoard, selectPortfolioBoard } fr
 const fixture = JSON.parse(readFileSync('test-board/us-24.board.json', 'utf8'));
 
 for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark']) for (const width of [1280, 960, 390]) {
-    test(`shared query toolbar stays below projects and preserves the project at ${width}px (${style}/${mode})`, async ({ page }, testInfo) => {
+    test(`query controls use existing view toolbars and preserve the project at ${width}px (${style}/${mode})`, async ({ page }, testInfo) => {
         await page.setViewportSize({ width, height: 900 });
         await page.clock.setFixedTime('2026-11-05T12:00:00Z');
         await page.addInitScript(({ style, mode }) => {
@@ -58,24 +58,31 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await page.locator('#portfolioSearchBtn').click();
         await expect(page.locator('#commandPaletteInput')).toBeFocused();
         await page.keyboard.press('Escape');
-        const sections = { table: '#portfolioTable', board: '#portfolioBoard', roadmap: '#portfolioRoadmapView', planner: '#portfolioPlannerView' };
+        const sections = { table: '#portfolioTable .table-heading', board: '.workitem-board-toolbar' };
         for (const [view, section] of Object.entries(sections)) {
             await page.locator(`[data-view-mode="${view}"]`).click();
-            await expect(page.locator('#portfolioQueryToolbar #portfolioSearchInput')).toBeVisible();
-            await expect(page.locator('#portfolioQueryToolbar #portfolioFiltersBtn')).toBeVisible();
-            await expect(page.locator(`${section} #portfolioSearchInput, ${section} #portfolioFiltersBtn, ${section} #portfolioSortSelect`)).toHaveCount(0);
-            const chipsBounds = await page.locator('#portfolioBoardsChips').boundingBox();
-            const toolbarBounds = await page.locator('#portfolioQueryToolbar').boundingBox();
-            expect(toolbarBounds!.y).toBeGreaterThanOrEqual(chipsBounds!.y + chipsBounds!.height);
-            if (width >= 960) {
-                const controlsBounds = await page.locator('.portfolio-query-controls').boundingBox();
-                expect(controlsBounds!.x).toBeGreaterThan(100);
-                expect(controlsBounds!.x + controlsBounds!.width).toBeCloseTo(width - 16, 0);
-            }
+            await expect(page.locator(`${section} #portfolioSearchInput`)).toBeVisible();
+            await expect(page.locator(`${section} #portfolioFiltersBtn`)).toBeVisible();
+            await expect(page.locator('#portfolioQueryToolbar')).toHaveCount(0);
             await expect(page.locator('#portfolioSortSelect')).toHaveCount(1);
+            for (const control of await page.locator(`${section} #portfolioSearchInput, ${section} #portfolioFiltersBtn, ${section} #portfolioSortSelect, ${section} .table-tools > button`).all()) {
+                const bounds = await control.boundingBox();
+                expect(bounds!.x).toBeGreaterThanOrEqual(0);
+                expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+            }
+            if (width === 1280 && view === 'table') {
+                const queries = await page.locator(`${section} .portfolio-query-fields`).boundingBox();
+                const tools = await page.locator(`${section} .table-tools`).boundingBox();
+                expect(queries!.x + queries!.width).toBeLessThanOrEqual(tools!.x);
+            }
+            if (view === 'board') await page.screenshot({ path: testInfo.outputPath('board.png'), animations: 'disabled' });
             await page.locator('#portfolioSearchBtn').focus();
             await page.keyboard.press('s');
-            await expect(page.locator('#portfolioQueryToolbar #portfolioSortSelect')).toBeFocused();
+            await expect(page.locator(`${section} #portfolioSortSelect`)).toBeFocused();
+        }
+        for (const view of ['dashboard', 'control', 'roadmap', 'planner']) {
+            await page.locator(`[data-view-mode="${view}"]`).click();
+            await expect(page.locator('#portfolioSearchInput, #portfolioFiltersBtn, #portfolioSortSelect')).toHaveCount(0);
         }
         await page.locator('[data-view-mode="table"]').click();
         await expect(page.locator('#workitemsTable tbody tr').first()).toBeInViewport();

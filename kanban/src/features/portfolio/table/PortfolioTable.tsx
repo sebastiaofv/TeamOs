@@ -1,3 +1,4 @@
+import { PortfolioQueryControls } from '@/features/portfolio/shell/PortfolioQueryControls';
 import { formatDate } from '@/domain/dates';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { SprintAction } from '@/features/portfolio/roadmap/SprintAction';
@@ -70,6 +71,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
         {view !== 'sprints' ? <WorkitemTable key={view} hidden={hidden} boardId={boardId} project={project} boardData={boardData}
             sourceRows={view === 'unplanned' ? unplannedTableRows(sourceRows) : sourceRows.filter((row) => view === 'epics' ? workitemType(row.task) === 'epic' : view === 'stories' ? workitemType(row.task) === 'story' : view === 'hierarchy' ? true : view === 'independent' ? isPlanningUnit(boardData, row.task) && workitemType(row.task) !== 'story' : ['task', 'bug'].includes(workitemType(row.task)))} canCreate={canCreate} createType={view === 'epics' ? 'epic' : view === 'stories' ? 'story' : 'task'} planning={view === 'unplanned'} nested={view === 'hierarchy'} />
             : <>
+                <div className="table-heading"><PortfolioQueryControls active={!hidden} /></div>
                 <p className="table-sprint-note">{t('table.sprintDatesNote')}</p>
                 {groups.length === 0 && <p className="table-empty" role="status">{t('table.noSprints')}</p>}
                 {groups.map((group) => <SprintTableSection key={group.sprint.id} group={group} hidden={hidden} boardId={boardId} project={project} canEdit={canCreate} sprintPointsData={boardData} />)}
@@ -192,6 +194,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
             {!bare && <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
                 <summary className="btn" hidden={!compact}>{t('roadmap.tableOptions')}</summary>
             <div className="table-heading">
+                <PortfolioQueryControls active={!hidden && !scope && !compact} />
                 <div className="table-tools">
                     <details id={scopedId('tableColumns')} className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
                         <summary className="btn" ref={columnDisclosure.summaryRef}><WorkspaceIcon name="columns" />{t('table.columns')}</summary>

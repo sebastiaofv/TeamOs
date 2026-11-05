@@ -31,14 +31,15 @@
 .section-sort { gap: 6px; min-height: 34px; padding-left: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); }
 .section-sort label { text-transform: none; letter-spacing: normal; font-size: 12px; white-space: nowrap; }
 .section-sort select { min-height: 32px; max-width: 160px; border: 0; background-color: transparent; color: var(--text-primary); }
-.portfolio-query-toolbar .portfolio-filters-btn { min-height: 34px; }
+.portfolio-query-fields .portfolio-filters-btn { min-height: 34px; }
 .portfolio-filters-panel { position: fixed; overflow: auto; }
-.portfolio-query-toolbar .portfolio-active-filters { padding: 10px 0 0; border: 0; background: transparent; }
-.portfolio-query-toolbar { flex-shrink: 0; min-width: 0; padding: 12px 16px; border-bottom: 1px solid var(--border-light); background: var(--bg-card); }
-.portfolio-query-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; max-width: 760px; margin-left: auto; }
-.portfolio-query-toolbar .portfolio-active-filters { justify-content: flex-end; }
+.portfolio-query-fields .portfolio-active-filters { padding: 10px 0 0; border: 0; background: transparent; }
+.portfolio-query-fields { flex: 1 1 400px; min-width: 0; max-width: 720px; }
+.portfolio-query-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.workitem-board-actions .portfolio-query-fields .portfolio-active-filters { justify-content: flex-end; }
 .workitem-board-toolbar { flex-wrap: wrap; gap: 8px; }
-.workitem-board-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+.workitem-board-actions { display: flex; flex: 1; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; margin-left: auto; }
+.workitem-board-actions .portfolio-query-fields { flex: 0 1 520px; }
 #portfolioBoard .workitem-board-toolbar > .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight: 600; }
 #portfolioBoard .workitem-board-toolbar > .btn[aria-pressed="true"]:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .portfolio-roadmap-view { container: roadmapViewport / size; }
@@ -47,7 +48,7 @@
 @container roadmapViewport (max-height: 480px) {
     .roadmap-view-controls, .roadmap-axis-shell { position: relative; top: auto; }
 }
-.table-tools { align-items: center; }
+.table-tools { align-items: center; margin-left: auto; min-width: 0; max-width: 100%; }
 .table-heading .table-export { margin-left: auto; }
 .table-pagination label { margin-right: auto; }
 .table-status-badge[data-state-color] { background: var(--state-color); color: var(--state-foreground); border-color: var(--state-color); }
@@ -69,9 +70,9 @@
 :root[data-theme-style="modern"] .roadmap-scope-table .table-panel { padding: 0; border: 0; border-radius: 0; box-shadow: none; }
 :root[data-theme-style="modern"] .section-search, :root[data-theme-style="modern"] .section-sort { border-color: var(--control-border); border-radius: var(--radius-control); }
 :root[data-theme-style="modern"] .section-search input { border: 0; border-radius: 0; }
-:root[data-theme-style="modern"] .portfolio-query-toolbar .portfolio-filters-btn, :root[data-theme-style="modern"] .table-tools .table-columns > summary, :root[data-theme-style="modern"] .table-tools .table-hierarchy-options > summary { border-color: var(--border); background: var(--bg-card); }
-:root[data-theme-style="modern"] .portfolio-query-toolbar .btn:hover { background: var(--bg-secondary); }
-:root[data-theme-style="modern"] .portfolio-query-toolbar .btn.btn-primary:hover { background: var(--accent-hover); }
+:root[data-theme-style="modern"] .portfolio-query-fields .portfolio-filters-btn, :root[data-theme-style="modern"] .table-tools .table-columns > summary, :root[data-theme-style="modern"] .table-tools .table-hierarchy-options > summary { border-color: var(--border); background: var(--bg-card); }
+:root[data-theme-style="modern"] .portfolio-query-fields .btn:hover { background: var(--bg-secondary); }
+:root[data-theme-style="modern"] .portfolio-query-fields .btn.btn-primary:hover { background: var(--accent-hover); }
 :root[data-theme-style="modern"] .workitems-table th, :root[data-theme-style="modern"] .workitems-table td { padding: 13px 14px; }
 :root[data-theme-style="modern"] .workitems-table th { font-size: 12px; background: color-mix(in srgb, var(--bg-secondary) 65%, var(--bg-card)); }
 :root[data-theme-style="modern"] .workitems-table tbody tr:hover, :root[data-theme-style="modern"] .workitems-table tbody tr:focus-within { background: color-mix(in srgb, var(--accent) 4%, var(--bg-card)); }
@@ -92,6 +93,9 @@
     .table-view-options .btn { flex: none; }
     .portfolio-view-toggle .btn, :root[data-theme-style="modern"] .portfolio-view-toggle .btn { padding: 10px 8px; gap: 6px; font-size: 12px; }
     .portfolio-query-controls { gap: 8px; }
+    .workitem-board-actions { flex: 1 1 100%; }
+    .workitem-board-actions .portfolio-query-fields { flex-basis: 100%; }
+    .table-tools { flex-shrink: 1; justify-content: flex-end; }
     .section-search { flex-basis: 100%; max-width: none; }
     .section-sort > .workspace-icon { display: none; }
     .table-heading .table-export { margin-left: 0; flex-wrap: wrap; }

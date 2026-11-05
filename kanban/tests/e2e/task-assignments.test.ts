@@ -56,10 +56,14 @@ test('responsible and participant filters combine across all views, including em
   expect(new URL(page.url()).searchParams.get('pr')).toBe('Ana');
   for (const view of ['board', 'table', 'roadmap', 'planner']) {
     await page.locator(`[data-view-mode="${view}"]`).click();
-    await openFiltersPanel(page);
-    await expect(page.locator('#portfolioResponsibleFilter')).toHaveValue('Ana');
-    await expect(page.getByLabel('Participant', { exact: true })).toHaveValue('Rui');
-    await page.keyboard.press('Escape');
+    if (view === 'board' || view === 'table') {
+      await openFiltersPanel(page);
+      await expect(page.locator('#portfolioResponsibleFilter')).toHaveValue('Ana');
+      await expect(page.getByLabel('Participant', { exact: true })).toHaveValue('Rui');
+      await page.keyboard.press('Escape');
+    } else {
+      await expect(page.locator('#portfolioFiltersBtn')).toHaveCount(0);
+    }
     if (view === 'board') await expect(page.locator('#portfolioBoard .task-title')).toHaveText(['Matching item']);
     if (view === 'table') await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching item');
     if (view === 'roadmap') {
