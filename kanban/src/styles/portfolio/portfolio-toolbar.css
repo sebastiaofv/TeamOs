@@ -8,19 +8,6 @@
     flex-wrap: wrap;
 }
 
-.portfolio-toolbar-left,
-.portfolio-toolbar-right {
-    display: inline-flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.portfolio-toolbar-left {
-    flex: 1;
-    min-width: 0;
-}
-
 .portfolio-chips {
     padding: 10px 16px;
     border-bottom: 1px solid var(--border-light);
@@ -96,17 +83,6 @@
 
 .chip-save-state.external {
     color: var(--accent);
-}
-
-.portfolio-toolbar input,
-.portfolio-toolbar select {
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    font-size: 12px;
-}
-
-.portfolio-toolbar input {
-    padding: 6px 12px;
 }
 
 .portfolio-view-toggle {
@@ -328,21 +304,6 @@
     .portfolio-toolbar {
         align-items: stretch;
         padding: 10px 12px;
-    }
-
-    .portfolio-toolbar-left,
-    .portfolio-toolbar-right {
-        width: 100%;
-        gap: 8px;
-    }
-
-    .portfolio-toolbar-left .search-box {
-        flex: 1 1 100%;
-        max-width: none;
-    }
-
-    .portfolio-toolbar-right {
-        justify-content: space-between;
     }
 
     .portfolio-chips {

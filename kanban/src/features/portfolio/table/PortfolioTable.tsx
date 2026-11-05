@@ -1,4 +1,6 @@
 import { formatDate } from '@/domain/dates';
+import { PortfolioSectionControls } from '@/features/portfolio/shell/PortfolioSectionControls';
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { SprintAction } from '@/features/portfolio/roadmap/SprintAction';
 import { SprintPoints } from '@/features/portfolio/roadmap/SprintPoints';
 import { workitemLabel } from '@/domain/taskIdentity';
@@ -69,6 +71,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
         {view !== 'sprints' ? <WorkitemTable key={view} hidden={hidden} boardId={boardId} project={project} boardData={boardData}
             sourceRows={view === 'unplanned' ? unplannedTableRows(sourceRows) : sourceRows.filter((row) => view === 'epics' ? workitemType(row.task) === 'epic' : view === 'stories' ? workitemType(row.task) === 'story' : view === 'hierarchy' ? true : view === 'independent' ? isPlanningUnit(boardData, row.task) && workitemType(row.task) !== 'story' : ['task', 'bug'].includes(workitemType(row.task)))} canCreate={canCreate} createType={view === 'epics' ? 'epic' : view === 'stories' ? 'story' : 'task'} planning={view === 'unplanned'} nested={view === 'hierarchy'} />
             : <>
+                <PortfolioSectionControls active={!hidden} />
                 <p className="table-sprint-note">{t('table.sprintDatesNote')}</p>
                 {groups.length === 0 && <p className="table-empty" role="status">{t('table.noSprints')}</p>}
                 {groups.map((group) => <SprintTableSection key={group.sprint.id} group={group} hidden={hidden} boardId={boardId} project={project} canEdit={canCreate} sprintPointsData={boardData} />)}
@@ -191,9 +194,10 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
             {!bare && <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
                 <summary className="btn" hidden={!compact}>{t('roadmap.tableOptions')}</summary>
             <div className="table-heading">
+                <PortfolioSectionControls active={!hidden && !scope && !compact}>
                 <div className="table-tools">
                     <details id={scopedId('tableColumns')} className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
-                        <summary className="btn" ref={columnDisclosure.summaryRef}>{t('table.columns')}</summary>
+                        <summary className="btn" ref={columnDisclosure.summaryRef}><WorkspaceIcon name="columns" />{t('table.columns')}</summary>
                         <div className="table-column-panel" data-table-panel>
                             <div className="table-column-options">
                                 {[...columns, ...TABLE_COLUMNS.filter((column) => column !== 'archived' && !columns.includes(column))].map((column) => {
@@ -221,8 +225,14 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
             </div>
 </div>
                     </details>
-            {canCreate && sourceRows.length > 0 && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: createType })}>{t('table.create')}</button>}
+            {canCreate && sourceRows.length > 0 && <button className="btn btn-primary" type="button" onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: createType })}><WorkspaceIcon name="plus" />{t('table.create')}</button>}
                 </div>
+                </PortfolioSectionControls>
+            </div>
+            </details>}
+            {!bare && <div className="table-summary">
+                <p role="status" aria-live="polite" id={scopedId('tableCounts')}>{t('table.visibleCount', { visible: rows.length, total: sourceRows.length })}</p>
+                <span role="status">{t('table.selected', { count: selectedCount })}</span>
                 <div className="table-export">
                     <label htmlFor={scopedId('tableCsvSeparator')}>{t('table.separator')}</label>
                     <span className="table-select table-csv-select">
@@ -233,11 +243,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                     </span>
                     <button className="btn" id={scopedId('tableExportCsv')} disabled={rows.length === 0} onClick={exportCsv}>{t('table.export')}</button>
                 </div>
-            </div>
-            </details>}
-            {!bare && <div className="table-summary">
-                <p role="status" aria-live="polite" id={scopedId('tableCounts')}>{t('table.visibleCount', { visible: rows.length, total: sourceRows.length })}</p>
-                <span role="status">{t('table.selected', { count: selectedCount })}</span>
                 {selectedCount > 0 && <button className="btn" onClick={() => setSelected(new Set())}>{t('table.clearSelection')}</button>}
                 {planning && canCreate && <button className="btn btn-primary" id="tableCreateSprint" disabled={selectedCount === 0}
                     onClick={() => actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'create-sprint-from-selection',

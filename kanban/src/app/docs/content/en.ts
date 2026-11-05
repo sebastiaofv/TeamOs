@@ -30,12 +30,12 @@ export const DOCS_EN: DocSection[] = [
             {
                 id: 'start-layout',
                 title: 'Finding your way around',
-                summary: 'The screen is made of the top bar, the project toolbar, the project chips and the active view.',
+                summary: 'The top bar holds global actions; navigation and project selection lead to each view, with its controls beside the content.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Top bar', 'Theme, app settings, language, keyboard shortcuts, this documentation, Import Projects and New Project. It is always available, including while you read the documentation.'],
+                        ['Top bar', 'The search icon (opens the [command palette](prod-palette)), theme, app settings, language, keyboard shortcuts, this documentation, Import Projects and New Project. It is always available, including while you read the documentation.'],
                         ['Documentation button', 'The book icon opens this documentation in place of the workspace. While reading, it shows an application icon: click it to return exactly where you were.'],
-                        ['Toolbar', 'The search box (opens the [command palette](prod-palette)), Filters, Sort and the view switcher.'],
+                        ['Navigation', 'The view buttons sit on the left below the top bar. Search, filters and sort live beside the content in each section; Table also groups columns and workitem creation above its rows.'],
                         ['Project chips', 'Switch between **All projects** and a single project. Each chip shows the save state and has a gear for [Project settings](projects-settings). Projects sharing a product are grouped.'],
                         ['View', 'The main area: Board, Dashboard, Table, Roadmap, Project Control, Calendar or Day Planner.'],
                         ['Timeline bar', 'Optional. Enable it in App settings to scrub through a project\'s [history](files-history).']
@@ -723,8 +723,8 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'Narrow every view to what matters right now.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Search**: type in the [command palette](prod-palette) and choose **Filter board by “…”**. The toolbar shows the active filter; click × to clear it.',
-                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Active filters appear as removable chips.',
+                        '**Search**: use the search field beside the content, or open the [command palette](prod-palette) with the top-bar magnifying glass or [[Ctrl/⌘]] + [[K]] and choose **Filter board by “…”**. The section shows the current query; click × to clear it.',
+                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Open Filters next to the Board, Table, Roadmap or Planner content. Active filters appear there as removable chips.',
                         '**Sort**: by priority, effort, score or name, ascending or descending.',
                         '**Reset**: press [[R]] to reset filters and sort.'
                     ] },

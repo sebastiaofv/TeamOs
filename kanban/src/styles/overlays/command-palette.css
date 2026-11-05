@@ -128,8 +128,7 @@
     flex: none;
 }
 
-.palette kbd,
-.palette-search-kbd {
+.palette kbd {
     padding: 0 5px;
     border: 1px solid var(--border);
     border-bottom-width: 2px;
@@ -193,73 +192,6 @@
 
 .palette-footer-tip {
     margin-left: auto;
-}
-
-/* Toolbar search box that opens the palette */
-.palette-search {
-    display: flex;
-    flex: 0 1 280px;
-    align-items: stretch;
-    min-width: 0;
-}
-
-.palette-search-btn {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    padding: 6px 10px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-muted);
-    font: inherit;
-    font-size: 12px;
-    text-align: left;
-    cursor: text;
-}
-
-.palette-search-btn:hover {
-    border-color: var(--text-secondary);
-}
-
-.palette-search-btn:focus-visible,
-.palette-search-clear:focus-visible {
-    outline: 2px solid var(--focus-ring);
-    outline-offset: 1px;
-}
-
-.palette-search-btn.has-value {
-    border-color: var(--accent);
-    color: var(--text-primary);
-}
-
-.palette-search-icon {
-    flex: none;
-    width: 14px;
-    height: 14px;
-}
-
-.palette-search-text {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-}
-
-.palette-search-clear {
-    padding: 0 10px;
-    border: 1px solid var(--accent);
-    border-left: none;
-    background: var(--bg-card);
-    color: var(--text-secondary);
-    font-size: 15px;
-    cursor: pointer;
-}
-
-.palette-search-clear:hover {
-    color: var(--text-primary);
 }
 
 @media (max-width: 760px) {

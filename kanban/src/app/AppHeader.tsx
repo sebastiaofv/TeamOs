@@ -7,6 +7,8 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { closeDocs, DOCS_TOGGLE_ID, toggleDocs } from '@/app/docs/docsMode';
 import { useI18n } from '@/shared/i18n';
 import { ThemePicker } from '@/app/ThemePicker';
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
+import { openCommandPalette, PALETTE_SHORTCUT_LABEL } from '@/features/portfolio/palette/openCommandPalette';
 
 // One button, two states: a book opens the documentation; an application icon
 // returns to the workspace. The label always names the available action.
@@ -46,6 +48,8 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
     const { language, languageCode, toggleLanguage, t } = useI18n();
     const themeLabel = theme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark');
     const languageLabel = language === 'en' ? t('language.switchToPt') : t('language.switchToEn');
+    const project = useAppStore((state) => state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId)?.title);
+    const search = useAppStore((state) => state.portfolioFilters.search);
     return (
         <header className="header">
             <h1 className="app-title" id="appTitle">
@@ -56,8 +60,12 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                     width="100"
                     height="25"
                 />
+                {project && <span className="header-project-context"><span aria-hidden="true">/</span><span title={project}>{project}</span></span>}
             </h1>
             <div className="header-actions">
+                <button className={`btn icon-btn header-search-btn${search ? ' has-value' : ''}`} id="portfolioSearchBtn" type="button"
+                    aria-haspopup="dialog" aria-label={search ? `${t('palette.openButton')}: ${search}` : t('palette.openButton')}
+                    title={`${t('palette.openButton')} (${PALETTE_SHORTCUT_LABEL})`} onClick={() => openCommandPalette()}><WorkspaceIcon name="search" /></button>
                 <ThemePicker />
                 <button
                     className="btn icon-btn theme-toggle-btn"

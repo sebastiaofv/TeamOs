@@ -180,7 +180,7 @@ test.describe('filters and sort', () => {
     await page.locator('#portfolioPriorityFilter').selectOption('high');
     await page.locator('#portfolioBoardsChips .portfolio-chip').filter({ hasText: 'Bravo Project' }).getByRole('button', { name: 'Bravo Project', exact: true }).click();
 
-    await expect(page.locator('#portfolioSearchBtn')).toContainText('task');
+    await expect(page.locator('#sectionSearchInput')).toHaveValue('task');
     await openFiltersPanel(page);
     await expect(page.locator('#portfolioPriorityFilter')).toHaveValue('high');
     await expect(page.locator('#portfolioBoardsChips .portfolio-chip.active')).toContainText('Bravo Project');
@@ -240,7 +240,7 @@ test.describe('filters and sort', () => {
     await expect(page.locator('#portfolioAssigneeFilter')).toHaveValue('');
     await expect(page.locator('#portfolioPriorityFilter')).toHaveValue('');
     await expect(page.locator('#portfolioEffortFilter')).toHaveValue('');
-    await expect(page.locator('#portfolioSearchBtn')).toContainText('a');
+    await expect(page.locator('#sectionSearchInput')).toHaveValue('a');
     await expect(page.locator('#portfolioSortSelect')).toHaveValue('score');
     await expect(page.locator('.portfolio-task-card')).toHaveCount(2);
 

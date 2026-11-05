@@ -60,7 +60,7 @@ test.describe('command palette', () => {
   test('filters the board by text and clears it from the toolbar', async ({ page }) => {
     await setBoardSearch(page, 'login');
     await expect(page.locator('.portfolio-task-card')).toHaveCount(1);
-    await expect(page.locator('#portfolioSearchBtn')).toContainText('login');
+    await expect(page.locator('#sectionSearchInput')).toHaveValue('login');
     expect(new URL(page.url()).searchParams.get('pq')).toBe('login');
 
     await page.locator('#portfolioSearchClearBtn').click();

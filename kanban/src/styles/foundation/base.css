@@ -269,22 +269,6 @@ textarea::placeholder {
     justify-content: space-between;
 }
 
-.search-box {
-    flex: 1;
-    max-width: 300px;
-}
-
-.search-box input {
-    width: 100%;
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    font-size: 12px;
-}
-
-.search-box input:focus {
-    border-color: var(--accent);
-}
-
 .filter-group {
     display: flex;
     gap: 8px;

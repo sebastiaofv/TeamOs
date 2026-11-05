@@ -1,4 +1,5 @@
 import { DeleteMenu } from '@/shared/ui/DeleteMenu';
+import { PortfolioSectionControls } from '@/features/portfolio/shell/PortfolioSectionControls';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { SprintAction } from './SprintAction';
 import { SprintPoints } from './SprintPoints';
@@ -169,12 +170,12 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
     const style = { '--roadmap-label-width': `${labelWidth ?? view.labelWidth}px`, '--roadmap-temporal-min': `${640 * zoom}px` } as CSSProperties;
     const selected = milestones.find((item) => item.item?.id === milestoneId);
     return <div className="roadmap-workspace" style={{ '--roadmap-controls-height': `${controls.height}px` } as CSSProperties}>
-        <div ref={controls.ref} className="roadmap-view-controls"><CompletionControl view={view} />
+        <div ref={controls.ref} className="roadmap-view-controls"><PortfolioSectionControls><CompletionControl view={view} />
             <label>{t('roadmap.labelWidth')}<input aria-label={t('roadmap.labelWidth')} type="range" min="280" max="720" step="10" value={labelWidth ?? view.labelWidth} onChange={(event) => setLabelWidth(Number(event.target.value))} /></label>
             <label>{t('roadmap.zoom')}<select aria-label={t('roadmap.zoom')} value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{[1, 1.25, 1.5, 2].map((value) => <option value={value} key={value}>{value * 100}%</option>)}</select></label>
             <button className="btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.milestone') })} onClick={() => actions.openRoadmapEntityModal('milestones')}>{t('roadmap.add', { label: t('roadmap.milestone') })}</button>
             <button className="btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.phase') })} onClick={() => actions.openRoadmapEntityModal('phases')}>{t('roadmap.add', { label: t('roadmap.phase') })}</button>
-        </div>
+        </PortfolioSectionControls></div>
         <div className="portfolio-roadmap-timeline surface-page surface-border" style={style}>
             <div className="roadmap-temporal-overlay" aria-hidden="true">
                 {axisTicks.map((tick) => <span className="roadmap-grid-guide" key={tick.position} style={{ left: `${tick.position}%`, top: 18 }} />)}

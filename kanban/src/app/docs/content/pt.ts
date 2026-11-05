@@ -30,12 +30,12 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'start-layout',
                 title: 'Orientação no ecrã',
-                summary: 'O ecrã é composto pela barra superior, a barra de ferramentas, os chips de projeto e a vista ativa.',
+                summary: 'A barra superior reúne as ações globais; a navegação e a seleção de projeto dão acesso a cada vista, com os controlos junto do conteúdo.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Barra superior', 'Tema, definições da aplicação, idioma, atalhos de teclado, esta documentação, Importar projetos e Novo projeto. Está sempre disponível, mesmo enquanto lê a documentação.'],
+                        ['Barra superior', 'Lupa de pesquisa (abre a [paleta de comandos](prod-palette)), tema, definições da aplicação, idioma, atalhos de teclado, esta documentação, Importar projetos e Novo projeto. Está sempre disponível, mesmo enquanto lê a documentação.'],
                         ['Botão de documentação', 'O ícone de livro abre esta documentação no lugar do espaço de trabalho. Durante a leitura mostra um ícone de aplicação: clique para voltar exatamente onde estava.'],
-                        ['Barra de ferramentas', 'A caixa de pesquisa (abre a [paleta de comandos](prod-palette)), Filtros, Ordenação e o seletor de vistas.'],
+                        ['Navegação', 'Os botões de vista ficam à esquerda, por baixo da barra superior. Pesquisa, filtros e ordenação aparecem junto do conteúdo de cada secção; a Tabela reúne também as colunas e a criação de workitems acima das linhas.'],
                         ['Chips de projeto', 'Alternam entre **Todos os projetos** e um único projeto. Cada chip mostra o estado de gravação e tem uma roda dentada para as [Definições do projeto](projects-settings). Os projetos do mesmo produto aparecem agrupados.'],
                         ['Vista', 'A área principal: Quadro, Dashboard, Tabela, Roadmap, Controlo do projeto, Calendário ou Planeador.'],
                         ['Barra do histórico', 'Opcional. Ative-a nas Definições da aplicação para percorrer o [histórico](files-history) de um projeto.']
@@ -723,8 +723,8 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Reduza cada vista ao que importa neste momento.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Pesquisa**: escreva na [paleta de comandos](prod-palette) e escolha **Filtrar quadro por “…”**. A barra de ferramentas mostra o filtro ativo; clique em × para o limpar.',
-                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Os filtros ativos aparecem como chips removíveis.',
+                        '**Pesquisa**: use o campo junto do conteúdo, ou abra a [paleta de comandos](prod-palette) pela lupa na barra superior ou com [[Ctrl/⌘]] + [[K]] e escolha **Filtrar quadro por “…”**. A secção mostra a pesquisa atual; clique em × para a limpar.',
+                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Abra Filtros junto do Quadro, da Tabela, do Roadmap ou do Planeador. Os filtros ativos aparecem aí como chips removíveis.',
                         '**Ordenação**: por prioridade, esforço, pontuação ou nome, ascendente ou descendente.',
                         '**Repor**: prima [[R]] para repor filtros e ordenação.'
                     ] },

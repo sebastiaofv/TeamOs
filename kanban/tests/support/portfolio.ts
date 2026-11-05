@@ -378,7 +378,7 @@ async function waitForBoardWrites(page: Page, minCount = 1) {
 }
 
 // Filters the board by text through the command palette (the toolbar search
-// box opens it; the first result is "Filter board by ..."). An empty text
+// icon opens it; the first result is "Filter board by ..."). An empty text
 // clears the filter.
 async function setBoardSearch(page: Page, text: string) {
   if (!text) {
@@ -394,7 +394,7 @@ async function setBoardSearch(page: Page, text: string) {
   await expect(page.locator('#commandPalette')).toHaveCount(0);
 }
 
-// Opens the toolbar's Filters panel (if it is not already open), where the
+// Opens the current section's Filters panel (if it is not already open), where the
 // archive, blocked, assignee, priority and effort selects live.
 async function openFiltersPanel(page: Page) {
   const button = page.locator('#portfolioFiltersBtn');

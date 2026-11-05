@@ -1,4 +1,5 @@
 import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
+import { PortfolioSectionControls } from '@/features/portfolio/shell/PortfolioSectionControls';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -247,6 +248,7 @@ function ConnectedPlanner() {
             onDragEnd={onDragEnd}
             onDragCancel={clearDrag}
         >
+            <PortfolioSectionControls />
             <PlannerHeader model={model} calendar={calendar} onCalendar={setCalendar} />
             <PortfolioCalendar hidden={!calendar} />
             <div className={`planner-body${calendar ? ' hidden' : ''}`}>

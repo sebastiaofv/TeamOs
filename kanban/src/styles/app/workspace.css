@@ -1,0 +1,93 @@
+/* Shared structure; appearance continues to use the selected theme's tokens. */
+.workspace-icon { flex: none; vertical-align: middle; }
+.header-actions { flex-wrap: wrap; max-width: 100%; }
+.header-project-context { display: flex; align-items: center; gap: 16px; min-width: 0; margin-left: 18px; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.header-project-context > :first-child { color: var(--text-muted); font-weight: 400; }
+.header-project-context > :last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 28vw; }
+.header-search-btn { position: relative; }
+.header-search-btn.has-value::after { content: ''; width: 5px; height: 5px; position: absolute; top: 3px; right: 3px; background: var(--accent); border-radius: 50%; }
+.portfolio-toolbar { padding: 0 16px; min-height: 50px; flex-shrink: 0; }
+.portfolio-view-toggle { border: 0; background: transparent; gap: 6px; padding: 0; border-radius: 0; }
+.portfolio-view-toggle .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 12px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--text-secondary); }
+.portfolio-view-toggle .btn.active { color: var(--accent); border-bottom-color: var(--accent); background: transparent; }
+.portfolio-view-toggle .btn:hover { background: var(--bg-secondary); }
+.section-controls { width: 100%; min-width: 0; }
+.section-controls-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.section-controls-row > .btn, .section-controls-row .table-tools .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; }
+.section-search { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 160px; max-width: 520px; min-height: 34px; padding: 0 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); }
+.section-search:focus-within { border-color: var(--accent); outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.section-search input { width: 100%; min-width: 0; padding: 7px 0; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 12px; outline: none; }
+.section-search input::-webkit-search-cancel-button { display: none; }
+.section-search-clear { background: transparent; border: 0; padding: 2px 4px; color: var(--text-secondary); font: inherit; cursor: pointer; }
+.section-search-clear:focus-visible { outline: 2px solid var(--focus-ring); }
+.section-sort { gap: 6px; min-height: 34px; padding-left: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); }
+.section-sort label { text-transform: none; letter-spacing: normal; font-size: 12px; white-space: nowrap; }
+.section-sort select { min-height: 32px; max-width: 160px; border: 0; background-color: transparent; color: var(--text-primary); }
+.section-controls .portfolio-filters-btn { min-height: 34px; }
+.portfolio-filters-panel { position: fixed; overflow: auto; }
+.section-controls .portfolio-active-filters { padding: 10px 0 0; border: 0; background: transparent; }
+.workitem-board-toolbar { flex-wrap: wrap; gap: 8px; }
+.workitem-board-toolbar > .section-controls { flex-basis: 100%; }
+.workitem-board-toolbar .board-column-menu { margin-left: auto; }
+.portfolio-planner-view > .section-controls { flex-shrink: 0; padding: 12px 16px; border-bottom: 1px solid var(--border-light); background: var(--bg-card); }
+.roadmap-view-controls > .section-controls { flex: 1; }
+.roadmap-view-controls .section-controls-row { align-items: center; }
+.portfolio-roadmap-view { container: roadmapViewport / size; }
+/* Expanded history and small windows can leave too little room for sticky
+   controls plus the timeline axis. Let both scroll so rows stay reachable. */
+@container roadmapViewport (max-height: 480px) {
+    .roadmap-view-controls, .roadmap-axis-shell { position: relative; top: auto; }
+}
+.table-tools { align-items: center; }
+.table-heading > .section-controls .table-tools { display: contents; }
+.table-heading .table-export { margin-left: auto; }
+.table-pagination label { margin-right: auto; }
+.table-status-badge[data-state-color] { background: var(--state-color); color: var(--state-foreground); border-color: var(--state-color); }
+
+/* Modern's quieter surfaces and tinted status badges follow the US-24 reference. */
+:root[data-theme-style="modern"] .header { padding: 16px 24px; }
+:root[data-theme-style="modern"] .header-actions > .btn:not(.icon-btn, .language-toggle-btn) { min-height: 36px; }
+:root[data-theme-style="modern"] .portfolio-toolbar { background: var(--bg-card); }
+:root[data-theme-style="modern"] .portfolio-view-toggle { gap: 10px; padding: 0; border-radius: 0; background: transparent; }
+:root[data-theme-style="modern"] .portfolio-view-toggle .btn { padding: 16px 14px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+:root[data-theme-style="modern"] .portfolio-view-toggle .btn.active { border-bottom-color: var(--accent); background: transparent; }
+:root[data-theme-style="modern"] .portfolio-view-toggle .btn:hover { background: var(--bg-secondary); }
+:root[data-theme-style="modern"] .portfolio-chips { padding-block: 12px; background: var(--bg-card); }
+:root[data-theme-style="modern"] .portfolio-table { gap: 16px; padding: 20px; }
+:root[data-theme-style="modern"] .table-view-options { gap: 8px; }
+:root[data-theme-style="modern"] .table-view-options .btn { padding: 9px 14px; border: 1px solid var(--border-light); background: var(--bg-card); }
+:root[data-theme-style="modern"] .table-view-options .btn.active { border-color: color-mix(in srgb, var(--accent) 40%, var(--border-light)); background: color-mix(in srgb, var(--accent) 10%, var(--bg-card)); }
+:root[data-theme-style="modern"] .table-panel { padding: 18px; gap: 16px; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-panel); box-shadow: var(--shadow-card); }
+:root[data-theme-style="modern"] .roadmap-scope-table .table-panel { padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+:root[data-theme-style="modern"] .section-search, :root[data-theme-style="modern"] .section-sort { border-color: var(--control-border); border-radius: var(--radius-control); }
+:root[data-theme-style="modern"] .section-search input { border: 0; border-radius: 0; }
+:root[data-theme-style="modern"] .section-controls .portfolio-filters-btn, :root[data-theme-style="modern"] .section-controls .table-columns > summary, :root[data-theme-style="modern"] .section-controls .table-hierarchy-options > summary { border-color: var(--border); background: var(--bg-card); }
+:root[data-theme-style="modern"] .section-controls .btn:hover { background: var(--bg-secondary); }
+:root[data-theme-style="modern"] .section-controls .btn.btn-primary:hover { background: var(--accent-hover); }
+:root[data-theme-style="modern"] .workitems-table th, :root[data-theme-style="modern"] .workitems-table td { padding: 13px 14px; }
+:root[data-theme-style="modern"] .workitems-table th { font-size: 12px; background: color-mix(in srgb, var(--bg-secondary) 65%, var(--bg-card)); }
+:root[data-theme-style="modern"] .workitems-table tbody tr:hover, :root[data-theme-style="modern"] .workitems-table tbody tr:focus-within { background: color-mix(in srgb, var(--accent) 4%, var(--bg-card)); }
+:root[data-theme-style="modern"] .table-status-badge[data-state-color] { display: inline-flex; align-items: center; gap: 7px; padding: 4px 9px; background: color-mix(in srgb, var(--state-color) 16%, var(--bg-card)); border-color: color-mix(in srgb, var(--state-color) 28%, var(--bg-card)); color: var(--text-primary); }
+:root[data-theme-style="modern"] .table-status-badge[data-state-color]::before { content: ''; width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--state-color); }
+:root[data-theme-style="modern"] .table-pagination { padding-top: 14px; border-top: 1px solid var(--border-light); }
+
+@media (max-width: 760px) {
+    .header-actions { flex-wrap: wrap; overflow: visible; gap: 6px; }
+    .header-actions .btn:not(.icon-btn) { padding-inline: 10px; font-size: 12px; }
+    .header-project-context { font-size: 13px; gap: 10px; margin-left: 10px; }
+    .header-project-context > :last-child { max-width: 45vw; }
+    .portfolio-toolbar { padding-inline: 10px; }
+    .portfolio-view-toggle { gap: 0; }
+    .portfolio-view-toggle { flex-wrap: nowrap; overflow-x: auto; width: 100%; }
+    .portfolio-view-toggle .btn { flex: none; }
+    .table-view-options { flex-wrap: nowrap; overflow-x: auto; }
+    .table-view-options .btn { flex: none; }
+    .portfolio-view-toggle .btn, :root[data-theme-style="modern"] .portfolio-view-toggle .btn { padding: 10px 8px; gap: 6px; font-size: 12px; }
+    .section-controls-row { gap: 8px; }
+    .section-search { flex-basis: 100%; max-width: none; }
+    .section-sort > .workspace-icon { display: none; }
+    .table-heading .table-export { margin-left: 0; flex-wrap: wrap; }
+    :root[data-theme-style="modern"] .header { padding: 12px; }
+    :root[data-theme-style="modern"] .portfolio-table { padding: 10px; gap: 12px; }
+    :root[data-theme-style="modern"] .table-panel { padding: 12px; gap: 12px; }
+}

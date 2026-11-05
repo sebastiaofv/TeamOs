@@ -1,5 +1,5 @@
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
-import { PortfolioToolbarFilters } from '@/features/portfolio/shell/PortfolioFilters';
+import { PortfolioSectionControls } from '@/features/portfolio/shell/PortfolioSectionControls';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -144,12 +144,11 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
             <div className="workitem-board-shell">
                 <div className="workitem-board-toolbar" role="group" aria-label={t('workitems.type')}>
                     {(['technical', 'functional'] as const).map((value) => <button className={`btn${mode === value ? ' active' : ''}`} type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{t(`workitems.${value}`)}</button>)}
-                    <div className="workitem-board-actions">
+                    <PortfolioSectionControls>
                         {canAddTasks && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}>{t('table.create')}</button>}
-                        <PortfolioToolbarFilters />
                         <label className="board-active-sprints"><input type="checkbox" checked={activeSprintsOnly && !state.portfolioFilters.sprintId} onChange={(event) => { setActiveSprintsOnly(event.target.checked); if (event.target.checked) setPortfolioFilter('sprintId', ''); }} />{t('board.activeSprintsOnly')}</label>
                         <BoardColumnMenu mode={mode} />
-                    </div>
+                    </PortfolioSectionControls>
                 </div>
                 <div className="workitem-board-columns">
                     {!columns.length && <p className="board-columns-empty" role="status">{t('board.allColumnsHidden')}</p>}

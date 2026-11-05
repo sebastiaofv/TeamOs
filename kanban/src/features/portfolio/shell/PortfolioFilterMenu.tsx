@@ -2,7 +2,7 @@
 // filter tags. Filters apply as soon as they change; the panel closes on an
 // outside click, Escape, or Done, returning focus to the button.
 
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { OPEN_FILTERS_EVENT } from '@/features/portfolio/palette/openCommandPalette';
 
@@ -38,12 +38,39 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
     const titleId = useId();
 
     const close = (returnFocus: boolean) => {
         setOpen(false);
         if (returnFocus) buttonRef.current?.focus();
     };
+
+    // Section controls may sit much lower than the old global toolbar. Keep
+    // their menu inside the viewport, opening upwards when there is more room.
+    useLayoutEffect(() => {
+        if (!open) return;
+        const place = () => {
+            const button = buttonRef.current;
+            const panel = panelRef.current;
+            if (!button || !panel) return;
+            const rect = button.getBoundingClientRect();
+            const width = Math.min(320, window.innerWidth - 24);
+            const below = Math.max(0, window.innerHeight - rect.bottom - 20);
+            const above = Math.max(0, rect.top - 20);
+            const upwards = below < Math.min(panel.scrollHeight, 400) && above > below;
+            const available = upwards ? above : below;
+            const height = Math.min(panel.scrollHeight, available);
+            Object.assign(panel.style, {
+                width: `${width}px`, left: `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`,
+                top: `${upwards ? rect.top - height - 8 : rect.bottom + 8}px`, maxHeight: `${available}px`
+            });
+        };
+        place();
+        window.addEventListener('resize', place);
+        window.addEventListener('scroll', place, true);
+        return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
+    }, [open]);
 
     // The command palette's "Open filters" command.
     useEffect(() => {
@@ -89,7 +116,7 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                 {activeCount > 0 && <span className="portfolio-filters-badge" aria-hidden="true">{activeCount}</span>}
             </button>
             {open && (
-                <div className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id="portfolioFiltersPanel" role="dialog" aria-labelledby={titleId}>
+                <div ref={panelRef} className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id="portfolioFiltersPanel" role="dialog" aria-labelledby={titleId}>
                     <div className="portfolio-filters-panel-head">
                         <h2 id={titleId}>{t('toolbar.filtersButton')}</h2>
                         <button className="btn-text" id="resetPortfolioFiltersBtn" type="button" disabled={!activeCount} onClick={onClear}>
