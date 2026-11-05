@@ -3,9 +3,8 @@ import type {
     PortfolioCalendarItem,
     PortfolioCalendarViewModel
 } from '@/features/portfolio/types';
-import type { BoardData, ProjectColor } from '@/domain/types';
+import type { ProjectColor } from '@/domain/types';
 import { getBoardRecord, type SelectorState } from './portfolioRowViews';
-import { getSelectedPortfolioTimelineView } from './portfolioTimelineViews';
 import {
     comparePortfolioCalendarItems,
     normalizeDueDate
@@ -13,12 +12,8 @@ import {
 import {
     createPortfolioProjectColor
 } from '@/domain/board';
-import {
-    formatRoadmapDateRange,
-    getRoadmapEntityConfig,
-    getRoadmapItemDateBounds,
-    getRoadmapExtension
-} from '@/domain/roadmap';
+import { getRoadmapItemDateBounds } from '@/domain/roadmap';
+import { workitemType } from '@/domain/workitems';
 
 type CalendarItemInput = {
     id: string;
@@ -36,24 +31,6 @@ type CalendarItemInput = {
     startDate?: string;
     endDate?: string;
 };
-
-function getCalendarBoardSources(state: SelectorState): { boardRecord: BoardRecord; boardData: BoardData; historical: boolean }[] {
-    const selectedBoardId = state?.selectedPortfolioBoardId || '';
-    if (selectedBoardId) {
-        const timelineView = getSelectedPortfolioTimelineView(state);
-        const boardRecord = timelineView?.boardRecord || getBoardRecord(state, selectedBoardId);
-        const boardData = timelineView?.isPreview
-            ? (timelineView.projectedBoard || boardRecord?.data || null)
-            : (boardRecord?.data || timelineView?.projectedBoard || null);
-        return boardRecord && boardData
-            ? [{ boardRecord, boardData, historical: Boolean(timelineView?.isPreview) }]
-            : [];
-    }
-
-    return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : [])
-        .filter((board) => board?.data)
-        .map((boardRecord) => ({ boardRecord, boardData: boardRecord.data, historical: false }));
-}
 
 function getBoardColor(boardRecord: BoardRecord | null | undefined): ProjectColor {
     return boardRecord?.projectColor || createPortfolioProjectColor(boardRecord?.colorSeed || 0);
@@ -84,6 +61,7 @@ function buildPortfolioCalendarItems(state: SelectorState): PortfolioCalendarIte
     const rows = Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
 
     rows.forEach((row) => {
+        if (workitemType(row.task) !== 'task') return;
         const dueDate = normalizeDueDate(row?.task?.dueDate);
         if (!dueDate) return;
         const boardRecord = getBoardRecord(state, row.boardId);
@@ -101,32 +79,6 @@ function buildPortfolioCalendarItems(state: SelectorState): PortfolioCalendarIte
             historical: Boolean(row.historical)
         });
         if (item) items.push(item);
-    });
-
-    getCalendarBoardSources(state).forEach(({ boardRecord, boardData, historical }) => {
-        const roadmap = getRoadmapExtension(boardData);
-        (['milestones', 'phases', 'sprints'] as const).forEach((kind) => {
-            const config = getRoadmapEntityConfig(kind);
-            const records = Array.isArray(roadmap?.[kind]) ? roadmap[kind] : [];
-            records.forEach((entry) => {
-                const item = createPortfolioCalendarItem({
-                    id: `${kind}:${boardRecord.id}:${entry.id}`,
-                    kind: config?.singular || kind,
-                    roadmapKind: kind,
-                    boardId: boardRecord.id,
-                    boardTitle: boardRecord.title,
-                    boardFileName: boardRecord.fileName,
-                    projectColor: getBoardColor(boardRecord),
-                    title: entry.title || '',
-                    subtitle: formatRoadmapDateRange(entry, state?.activeLanguage || 'en'),
-                    dueDate: entry.dueDate,
-                    startDate: entry.startDate,
-                    endDate: entry.endDate,
-                    historical
-                });
-                if (item) items.push(item);
-            });
-        });
     });
 
     return items.sort(comparePortfolioCalendarItems);

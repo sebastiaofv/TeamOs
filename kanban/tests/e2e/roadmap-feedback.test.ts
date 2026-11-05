@@ -67,8 +67,8 @@ test('axis uses separate years and denser dates, and phase colours survive editi
 test('phase creation persists the chosen palette colour and default deletion clears only phase associations', async ({ page }) => {
     await page.getByRole('button', { name: 'Add Phase', exact: true }).click();
     await page.locator('#roadmapEntityTitle').fill('New phase');
-    await page.locator('#roadmapEntityStartDate').fill('2027-01-01');
-    await page.locator('#roadmapEntityEndDate').fill('2027-01-31');
+    await page.locator('#roadmapEntityStartDate').fill('01/01/2027');
+    await page.locator('#roadmapEntityEndDate').fill('31/01/2027');
     await page.getByRole('radio', { name: 'Teal', exact: true }).check();
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'feedback')).extensions.roadmap.phases.find((phase: { id: string }) => phase.id === 'new-phase')?.color).toBe('#0f766e');

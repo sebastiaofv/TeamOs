@@ -1,3 +1,4 @@
+import { formatDate } from '@/domain/dates';
 import { useCallback, useLayoutEffect } from 'react';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { LANGUAGE_STORAGE_KEY } from '@/domain/constants';
@@ -313,6 +314,7 @@ const en = {
     "workitems.actualResult": "Actual Result",
     "workitems.severity": "Severity",
     "workitems.environment": "Environment / Version",
+    "workitems.acceptAsQuestion": "Accept {id} {title} as functionally validated by {author}? This local identity is not authenticated.",
     "workitems.acceptQuestion": "Accept {id} {title} as functionally validated? Enter your local author name. This name is not verified.",
     "workitems.acceptance": "Functional acceptance · local / unverified",
     "workitems.accept": "Accept workitem",
@@ -334,6 +336,8 @@ const en = {
     "workitems.advance": "Advance to {state}",
     "workitems.keepState": "Keep current state",
     "workitems.createStory": "Create User Story",
+    "workitems.bugs": "Bugs",
+    "workitems.createBug": "Create Bug",
     "workitems.createTask": "Create Task",
     "workitems.automation": "Story automation",
     "workitems.start": "Execution starts",
@@ -360,14 +364,30 @@ const en = {
     'project.general': 'General',
     'project.workflow.technical': 'Technical workflow',
     'project.workflow.functional': 'Functional workflow',
-    'project.workflow.technicalHelp': 'Applies to Tasks and Bugs.',
-    'project.workflow.functionalHelp': 'Applies to Stories and Epics.',
+    'project.workflow.technicalHelp': 'Applies to Tasks.',
+    'project.workflow.functionalHelp': 'Applies to Stories, Bugs and Epics.',
     'project.memberInUseHelp': 'In use · remove this person’s assignments before removing the member.',
     'project.tagInUseHelp': 'In use · remove this tag from items before removing it here.',
     'project.settingsFor': 'Settings for {name}',
     "project.acronym": "Project Acronym",
-    "project.acronymHelp": "Choose a unique acronym of 1 to 3 letters. It identifies new workitems; existing IDs are preserved.",
-    "project.error.acronym": "Project Acronym must contain 1 to 3 letters (A–Z).",
+    "table.visibleCount": "{visible} of {total} workitems",
+    "planning.phaseDatesConflict": "The Sprint period falls outside the dates of the phases below. For each phase, choose its current dates or the dates extended to cover the Sprint. Each option shows the start and end dates.",
+    "planning.phaseDatesTitle": "Sprint and phase dates",
+    "planning.currentDates": "{start} – {end} (current dates)",
+    "planning.sprintDates": "{start} – {end} (cover Sprint)",
+    "planning.datesUpdated": "Phase dates updated to cover Sprint allocation",
+    "identity.title": "Who are you?",
+    "identity.help": "Select your project member. Your comments, attachments and changes will use this identity.",
+    "identity.member": "Project member",
+    "identity.choose": "Select a member",
+    "identity.create": "Create a member",
+    "identity.name": "Member name",
+    "identity.readOnly": "This read-only project has no members. Continue to consult it; reopen with write access to create a member.",
+    "board.activeSprintsOnly": "Active Sprints only",
+    "board.notAssigned": "Not assigned",
+    "board.advanceTo": "Advance to {state}",
+    "project.acronymHelp": "Choose a unique acronym of 1 to 4 letters. It identifies new workitems; existing IDs are preserved.",
+    "project.error.acronym": "Project Acronym must contain 1 to 4 letters (A–Z).",
     "project.error.duplicateAcronym": "This acronym already belongs to another open project.",
     'project.name': 'Project name',
     'project.members': 'Members',
@@ -919,7 +939,7 @@ const en = {
     'paletteHelp.tokPriority': 'Priority: high, medium or low',
     'paletteHelp.tokTag': 'Add a tag',
     'paletteHelp.tokEffort': 'Effort: XS, S, M, L or XL',
-    'paletteHelp.tokDue': 'Due date: today, tomorrow, a weekday or YYYY-MM-DD',
+    'paletteHelp.tokDue': 'Due date: today, tomorrow, a weekday or DD/MM/YYYY',
     'paletteHelp.tokProject': 'Project (otherwise the current one)',
     'paletteHelp.planTitle': 'Plan your day',
     'paletteHelp.exPlanTime': 'Put the matching task in today\'s plan at 14:00, for one hour',
@@ -1511,6 +1531,7 @@ const pt: Record<TranslationKey, string> = {
     "workitems.actualResult": "Resultado observado",
     "workitems.severity": "Gravidade",
     "workitems.environment": "Ambiente / Versão",
+    "workitems.acceptAsQuestion": "Aceitar {id} {title} como validado funcionalmente por {author}? Esta identidade local não é autenticada.",
     "workitems.acceptQuestion": "Aceitar {id} {title} como validado funcionalmente? Introduza o seu nome de autor local. Este nome não é verificado.",
     "workitems.acceptance": "Aceitação funcional · local / não verificada",
     "workitems.accept": "Aceitar workitem",
@@ -1532,6 +1553,8 @@ const pt: Record<TranslationKey, string> = {
     "workitems.advance": "Avançar para {state}",
     "workitems.keepState": "Manter estado atual",
     "workitems.createStory": "Criar User Story",
+    "workitems.bugs": "Bugs",
+    "workitems.createBug": "Criar Bug",
     "workitems.createTask": "Criar Task",
     "workitems.automation": "Automatismos das Stories",
     "workitems.start": "Início de execução",
@@ -1558,13 +1581,29 @@ const pt: Record<TranslationKey, string> = {
     'project.general': 'Geral',
     'project.workflow.technical': 'Workflow técnico',
     'project.workflow.functional': 'Workflow funcional',
-    'project.workflow.technicalHelp': 'Aplica-se a Tasks e Bugs.',
-    'project.workflow.functionalHelp': 'Aplica-se a Stories e Epics.',
+    'project.workflow.technicalHelp': 'Aplica-se a Tasks.',
+    'project.workflow.functionalHelp': 'Aplica-se a Stories, Bugs e Epics.',
     'project.memberInUseHelp': 'Em uso · retire as atribuições desta pessoa antes de remover o membro.',
     'project.tagInUseHelp': 'Em uso · retire esta tag dos itens antes de a remover aqui.',
     'project.settingsFor': 'Definições de {name}',
     "project.acronym": "Sigla do projeto",
-    "project.acronymHelp": "Escolha uma sigla única de 1 a 3 letras. Será utilizada nos IDs dos novos workitems; os IDs existentes são preservados.",
+    "table.visibleCount": "{visible} de {total} workitems",
+    "planning.phaseDatesConflict": "O período do Sprint ultrapassa as datas das fases abaixo. Para cada fase, escolha as datas atuais ou as datas alargadas para abranger o Sprint. Cada opção apresenta as datas de início e fim.",
+    "planning.phaseDatesTitle": "Datas do Sprint e da fase",
+    "planning.currentDates": "{start} – {end} (datas atuais)",
+    "planning.sprintDates": "{start} – {end} (abranger o Sprint)",
+    "planning.datesUpdated": "Datas da fase atualizadas para abranger o Sprint",
+    "identity.title": "Quem é?",
+    "identity.help": "Selecione o seu membro do projeto. Os comentários, anexos e alterações usarão esta identidade.",
+    "identity.member": "Membro do projeto",
+    "identity.choose": "Selecionar um membro",
+    "identity.create": "Criar um membro",
+    "identity.name": "Nome do membro",
+    "identity.readOnly": "Este projeto só de leitura não tem membros. Continue a consulta; reabra com permissão de escrita para criar um membro.",
+    "board.activeSprintsOnly": "Apenas Sprints ativos",
+    "board.notAssigned": "Não atribuído",
+    "board.advanceTo": "Avançar para {state}",
+    "project.acronymHelp": "Escolha uma sigla única de 1 a 4 letras. Será utilizada nos IDs dos novos workitems; os IDs existentes são preservados.",
     "project.error.acronym": "A sigla do projeto deve conter entre 1 e 3 letras (A–Z).",
     "project.error.duplicateAcronym": "Esta sigla já pertence a outro projeto aberto.",
     'project.name': 'Nome do projeto',
@@ -2117,7 +2156,7 @@ const pt: Record<TranslationKey, string> = {
     'paletteHelp.tokPriority': 'Prioridade: high, medium ou low',
     'paletteHelp.tokTag': 'Adicionar uma etiqueta',
     'paletteHelp.tokEffort': 'Esforço: XS, S, M, L ou XL',
-    'paletteHelp.tokDue': 'Prazo: today, tomorrow, um dia da semana ou AAAA-MM-DD',
+    'paletteHelp.tokDue': 'Prazo: today, tomorrow, um dia da semana ou DD/MM/AAAA',
     'paletteHelp.tokProject': 'Projeto (senão, o atual)',
     'paletteHelp.planTitle': 'Planear o dia',
     'paletteHelp.exPlanTime': 'Colocar a tarefa correspondente no plano de hoje às 14:00, durante uma hora',
@@ -2447,18 +2486,12 @@ export function getCalendarMonthLabel(language: Language, year: number, month: n
     return `${getCalendarMonthName(language, month)} ${year}`;
 }
 
-const PLANNER_DATE_FORMATS: Record<'long' | 'medium' | 'short', Intl.DateTimeFormatOptions> = {
-    long: { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' },
-    medium: { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' },
-    short: { weekday: 'short', day: 'numeric', timeZone: 'UTC' }
-};
-
-// "Friday, 25 Sep 2026" (long), "Fri 25 Sep" (medium) or "Fri 25" (short) for a YYYY-MM-DD date.
+/** Keep weekday context while every full date uses the shared day/month/year format. */
 export function formatPlannerDateLabel(language: Language, isoDate: string, style: 'long' | 'medium' | 'short' = 'long'): string {
     const [year, month, day] = isoDate.split('-').map(Number);
     if (!year || !month || !day) return isoDate;
-    const options = PLANNER_DATE_FORMATS[style];
-    return new Intl.DateTimeFormat(language === 'pt' ? 'pt-PT' : 'en-GB', options).format(new Date(Date.UTC(year, month - 1, day)));
+    const weekday = new Intl.DateTimeFormat(language === 'pt' ? 'pt-PT' : 'en-GB', { weekday: style === 'long' ? 'long' : 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(year, month - 1, day)));
+    return `${weekday}${style === 'long' ? ',' : ''} ${formatDate(isoDate)}`;
 }
 
 export function getCurrentLanguage(): Language {

@@ -96,8 +96,8 @@ test.describe('task editor', () => {
 
     const backlogColumn = page.locator('#portfolio-backlog-column');
     await expect(backlogColumn).toContainText('Investigate deploy issue');
-    await expect(backlogColumn).not.toContainText('Alex');
-    await expect(backlogColumn).not.toContainText('Sam');
+    await expect(backlogColumn.locator('.task-card-owner select')).toContainText('Alex');
+    await expect(backlogColumn.locator('select')).toContainText('Sam');
     await expect(backlogColumn).toContainText('Blocked');
 
     await waitForBoardWrites(page);
@@ -197,7 +197,7 @@ test.describe('task editor', () => {
     expect(result.taskAssignees).toEqual(['Jamie']);
     expect(result.savedAssignees).toEqual(['Jamie']);
     await expect(portfolioCard(page, 'Task A').locator('.task-tag-assignee')).toHaveCount(0);
-    await expect(portfolioCard(page, 'Task A')).not.toContainText('Sam');
+    await expect(portfolioCard(page, 'Task A').locator('.task-card-owner select')).toContainText('Sam');
   });
 
   test('tags can be added on task create and remain in details without cluttering cards', async ({ page }) => {
@@ -311,15 +311,15 @@ test.describe('task editor', () => {
     expect(result.tags).toEqual(['new']);
   });
 
-  test('due date input uses native date picker and saves ISO to JSON', async ({ page }) => {
+  test('due date input uses day/month/year input and saves ISO to JSON', async ({ page }) => {
     await seedPortfolioBoards(page, [
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
-    await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'date');
+    await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'text');
     await page.locator('#taskName').fill('Date formatting task');
-    await page.locator('#taskDueDate').fill('2026-03-05');
+    await page.locator('#taskDueDate').fill('05/03/2026');
     await page.locator('#taskModal .btn-primary').click();
     await expect(page.locator('#taskModal')).toBeHidden();
 
@@ -342,10 +342,10 @@ test.describe('task editor', () => {
     expect(result.savedDueDate).toBe('2026-03-05');
 
     await expect(page.locator('#detailTitle')).toHaveText('Date formatting task');
-    await expect(page.locator('#detailDueDateInput')).toHaveValue('2026-03-05');
+    await expect(page.locator('#detailDueDateInput')).toHaveValue('05/03/2026');
   });
 
-  test('editing a task preloads the native due date picker with the saved ISO value', async ({ page }) => {
+  test('editing a task preloads the day/month/year input with the saved ISO value', async ({ page }) => {
     await seedPortfolioBoards(page, [
       {
         id: 'p1',
@@ -357,8 +357,8 @@ test.describe('task editor', () => {
 
     await openTaskEditor(page, 'Bad date task');
     await expect(page.locator('#modalTitle')).toHaveText('Edit Task');
-    await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'date');
-    await expect(page.locator('#taskDueDate')).toHaveValue('2026-03-05');
+    await expect(page.locator('#taskDueDate')).toHaveAttribute('type', 'text');
+    await expect(page.locator('#taskDueDate')).toHaveValue('05/03/2026');
   });
 
   test('checklist items can be reordered in the task modal', async ({ page }) => {
@@ -509,7 +509,7 @@ test.describe('task editor', () => {
 
     await portfolioCard(page, 'Task with file').click();
     await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
-    await page.locator('#taskAttachmentUploader').fill('Ana Silva');
+    await expect(page.locator('#taskAttachmentUploader')).toHaveAttribute('readonly', '');
 
     await page.setInputFiles('#taskAttachmentsInput', {
       name: 'note.txt',
@@ -541,7 +541,7 @@ test.describe('task editor', () => {
     expect(saved.attachmentCount).toBe(1);
     expect(saved.attachmentName).toBe('note.txt');
     expect(saved.attachmentMime).toBe('text/plain');
-    expect(saved.uploadedBy).toBe('Ana Silva');
+    expect(saved.uploadedBy).toBe('Test user');
     expect(Number.isNaN(Date.parse(saved.uploadedAt))).toBe(false);
     expect(saved.legacyAttachmentMapPresent).toBe(false);
 
@@ -552,7 +552,7 @@ test.describe('task editor', () => {
     await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     const table = page.getByRole('table', { name: 'Attachments', exact: true });
     await expect(table.getByRole('columnheader')).toHaveText(['Uploaded at', 'Attachment name', 'Uploaded by', 'Actions']);
-    await expect(table.getByRole('row').nth(1)).toContainText('Ana Silva');
+    await expect(table.getByRole('row').nth(1)).toContainText('Test user');
     await expect(table.locator('time')).toHaveAttribute('datetime', saved.uploadedAt);
     await expect(page.locator('#detailAttachments')).toContainText('note.txt');
     await expect(page.locator('#detailAttachments .detail-attachment-download')).toHaveCount(1);
@@ -560,14 +560,19 @@ test.describe('task editor', () => {
     await table.getByRole('link', { name: 'Download note.txt', exact: true }).click();
     expect((await downloadPromise).suggestedFilename()).toBe('note.txt');
 
-    await expect(page.locator('#taskAttachmentUploader')).toHaveValue('Ana Silva');
-    await page.locator('#taskAttachmentUploader').fill('Bruno');
+    await expect(page.locator('#taskAttachmentUploader')).toHaveValue('Test user');
+    await page.getByRole('tab', { name: 'Comments', exact: true }).click();
+    await expect(page.locator('.comment-posting-as select')).toHaveCount(0);
+    await expect(page.locator('.comment-posting-as')).toContainText('Test user');
+    await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
+    await expect(page.locator('#taskAttachmentUploader')).toHaveValue('Test user');
+    await expect(page.locator('#taskAttachmentUploader')).toHaveAttribute('readonly', '');
     await page.setInputFiles('#taskAttachmentsInput', { name: 'second.txt', mimeType: 'text/plain', buffer: Buffer.from('second file') });
     await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(2);
     await page.locator('#taskDetailModalCloseBtn').click();
     await waitForBoardWrites(page);
     const updated = await readSavedBoard(page, 'p1');
-    expect(updated.board.tasks[0].attachments.map((item: { uploadedBy?: string }) => item.uploadedBy)).toEqual(['Ana Silva', 'Bruno']);
+    expect(updated.board.tasks[0].attachments.map((item: { uploadedBy?: string }) => item.uploadedBy)).toEqual(['Test user', 'Test user']);
     expect(updated.board.tasks[0].attachments[0].createdAt).toBe(saved.uploadedAt);
     const firstUploadIndex = updated.extensions.timeline.events.findIndex((event: { changes?: { attachments?: { after: unknown[] } } }) => event.changes?.attachments?.after.length === 1);
     expect(firstUploadIndex).toBeGreaterThan(0);
@@ -577,8 +582,8 @@ test.describe('task editor', () => {
     await portfolioCard(page, 'Task with file').click();
     await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
-    await expect(page.locator('#detailAttachments')).toContainText('Ana Silva');
-    await expect(page.locator('#detailAttachments')).not.toContainText('Bruno');
+    await expect(page.locator('#detailAttachments')).toContainText('Test user');
+    await expect(page.locator('#detailAttachments')).not.toContainText('second.txt');
     await expect(page.locator('#taskDetailEditBtn')).toHaveCount(0);
     await expect(page.locator('#taskAttachmentsAddBtn')).toHaveCount(0);
     await expect(page.locator('#detailAttachments button')).toHaveCount(0);
@@ -886,8 +891,9 @@ test.describe('task editor', () => {
 
     const card = portfolioCard(page, 'Archive me');
     await card.hover();
-    await card.locator('button[title="Archive"]').click();
-    await answerAppMessage(page, { button: 'Archive' });
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.locator('#commandPaletteInput').fill('to-do');
+    await page.locator('.palette-item').first().click();
     await expect(page.locator('#undoToast')).toBeVisible();
 
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();

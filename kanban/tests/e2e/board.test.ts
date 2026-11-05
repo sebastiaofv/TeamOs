@@ -21,10 +21,10 @@ test.describe('board', () => {
 
     await page.locator('#languageToggleBtn').click();
 
-    await expect(page.locator('#portfolio-backlog-heading')).toHaveText('Backlog');
-    await expect(page.locator('.portfolio-column[data-status="to-do"] .column-title')).toHaveText('A fazer');
-    await expect(page.locator('.portfolio-column[data-status="doing"] .column-title')).toHaveText('Em curso');
-    await expect(page.locator('.portfolio-column[data-status="done"] .column-title')).toHaveText('Concluído');
+    await expect(page.locator('#portfolio-backlog-heading')).toContainText('Backlog');
+    await expect(page.locator('.portfolio-column[data-status="to-do"] .column-title')).toContainText('A fazer');
+    await expect(page.locator('.portfolio-column[data-status="doing"] .column-title')).toContainText('Em curso');
+    await expect(page.locator('.portfolio-column[data-status="done"] .column-title')).toContainText('Concluído');
   });
 
   test('selected mutable project creates tasks from the Board toolbar and auto-saves', async ({ page }) => {
@@ -69,7 +69,7 @@ test.describe('board', () => {
     await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(0);
     await expect(page.locator('.portfolio-chip.active')).toContainText('Read Only (Read-only)');
-    await expect(portfolioCard(page, 'RO Task').locator('button[title="Read-only (no file handle)"]')).toHaveCount(3);
+    await expect(portfolioCard(page, 'RO Task').locator('button[title="Read-only (no file handle)"]')).toHaveCount(2);
   });
 
   test('task card delete removes the task and persists the board', async ({ page }) => {
@@ -123,113 +123,15 @@ test.describe('board', () => {
     expect(result.writes).toEqual([]);
   });
 
-  test('archive confirms before archiving a task', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Archive me', status: 'backlog', archived: false }] }
-    ], { selectedBoardId: 'p1' });
-
-    const card = portfolioCard(page, 'Archive me');
-    await card.hover();
-
-    await card.locator('button[title="Archive"]').click();
-    await answerAppMessage(page, { button: 'Archive', expectText: 'Archive "Archive me"?' });
-
-    await expect(portfolioCard(page, 'Archive me')).toHaveCount(0);
-
-    await waitForBoardWrites(page);
-    const result = await page.evaluate(() => ({
-      archived: JSON.parse(window.__portfolioDiskByBoardId.p1.text).board.tasks.find((task: any) => task.id === 1)?.archived,
-      writes: window.__portfolioTestWrites || []
-    }));
-
-    expect(result.archived).toBe(true);
-    expect(result.writes.length).toBeGreaterThan(0);
-  });
-
-  test('archive cancel leaves the task untouched', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Keep archive', status: 'backlog', archived: false }] }
-    ], { selectedBoardId: 'p1' });
-
-    const card = portfolioCard(page, 'Keep archive');
-    await card.hover();
-    await card.locator('button[title="Archive"]').click();
-    await answerAppMessage(page, { button: 'Cancel' });
-
-    await expect(portfolioCard(page, 'Keep archive')).toBeVisible();
-
-    const result = await page.evaluate(() => ({
-      archived: JSON.parse(window.__portfolioDiskByBoardId.p1.text).board.tasks.find((task: any) => task.id === 1)?.archived,
-      writes: window.__portfolioTestWrites || []
-    }));
-
-    expect(result.archived).toBe(false);
-    expect(result.writes).toEqual([]);
-  });
-
-  test('archiving a task can be undone from the toast', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Undo me', status: 'backlog', archived: false }] }
-    ], { selectedBoardId: 'p1' });
-
-    const card = portfolioCard(page, 'Undo me');
-    await card.hover();
-    await card.locator('button[title="Archive"]').click();
-    await answerAppMessage(page, { button: 'Archive' });
-
-    await expect(portfolioCard(page, 'Undo me')).toHaveCount(0);
-    await expect(page.locator('#undoToast')).toHaveClass(/active/);
-
-    await page.locator('#undoBtn').click();
-    await expect(portfolioCard(page, 'Undo me')).toBeVisible();
-
-    // One write for the archive, one for the undo.
-    await waitForBoardWrites(page, 2);
-    const result = await page.evaluate(() => ({
-      archived: JSON.parse(window.__portfolioDiskByBoardId.p1.text).board.tasks.find((task: any) => task.id === 1)?.archived,
-      writes: window.__portfolioTestWrites || []
-    }));
-
-    expect(result.archived).toBe(false);
-    expect(result.writes.length).toBeGreaterThan(0);
-  });
-
-  test('undo toast is removed from the page after clicking Undo', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Toast task', status: 'backlog' }] }
-    ], { selectedBoardId: 'p1' });
-
-    const card = portfolioCard(page, 'Toast task');
-    await card.hover();
-    await card.locator('button[title="Archive"]').click();
-    await answerAppMessage(page, { button: 'Archive' });
-    await expect(page.locator('#undoToast')).toBeVisible();
-    await expect(page.locator('#undoToastText')).toHaveText('Task archived');
-
-    await page.locator('#undoBtn').click();
-
+  test('archive commands and shortcuts are absent and legacy archived work stays visible', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Legacy work', hasHandle: true, tasks: [{ id: 1, title: 'Still visible', status: 'to-do', archived: true }] }], { selectedBoardId: 'p' });
+    const card = portfolioCard(page, 'Still visible');
+    await expect(card).toBeVisible();
+    await expect(card.locator('[data-action="archive-task"]')).toHaveCount(0);
+    await card.hover(); await page.keyboard.press('x');
+    await expect(card).toBeVisible();
+    await expect(page.locator('#appMessageModal')).toHaveCount(0);
     await expect(page.locator('#undoToast')).toHaveCount(0);
-    await expect(portfolioCard(page, 'Toast task')).toBeVisible();
-  });
-
-  test('clicking Undo in the toast keeps the shortcuts dialog open', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      { id: 'p1', title: 'Project One', hasHandle: true, tasks: [{ id: 1, title: 'Undo under dialog', status: 'backlog' }] }
-    ], { selectedBoardId: 'p1' });
-
-    const card = portfolioCard(page, 'Undo under dialog');
-    await card.hover();
-    await card.locator('button[title="Archive"]').click();
-    await answerAppMessage(page, { button: 'Archive' });
-    await expect(page.locator('#undoToast')).toBeVisible();
-
-    await page.locator('#openShortcutsBtn').click();
-    await expect(page.locator('#shortcutsModal')).toBeVisible();
-
-    await page.locator('#undoBtn').click();
-
-    await expect(portfolioCard(page, 'Undo under dialog')).toBeVisible();
-    await expect(page.locator('#shortcutsModal')).toBeVisible();
   });
 
   test('card keyboard shortcuts support selection, move, open details, and edit/save', async ({ page }) => {

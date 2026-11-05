@@ -42,6 +42,7 @@ export type PortfolioSlice = {
     productProjectSelectionByKey: Record<string, string>;
     selectedPortfolioViewMode: PortfolioViewMode;
     portfolioFilters: PortfolioFilters;
+    portfolioBoardActiveSprintsOnly: boolean;
     portfolioTableSortByBoardId: Record<string, TableSort>;
     portfolioSortKey: PortfolioSortKey;
     portfolioSortDir: SortDir;
@@ -105,6 +106,7 @@ export function createPortfolioSlice(): PortfolioSlice {
         productProjectSelectionByKey: {},
         selectedPortfolioViewMode: 'board',
         portfolioTableSortByBoardId: {},
+        portfolioBoardActiveSprintsOnly: true,
         portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: [] },
         portfolioSortKey: 'priority',
         portfolioSortDir: 'asc',

@@ -34,7 +34,7 @@ for (const finish of ['button', 'editor'] as const) {
     await expect(roadmapSprint.getByRole('button', { name: 'Start Sprint', exact: true })).toBeVisible();
     await roadmapSprint.getByRole('button', { name: 'Start Sprint', exact: true }).click();
     await answerChainedMessage(page, { button: 'Use today', expectText: 'start date' });
-    await answerAppMessage(page, { button: 'Keep 2026-11-14', expectText: '10 business days' });
+    await answerAppMessage(page, { button: 'Keep 14/11/2026', expectText: '10 business days' });
     await waitForBoardWrites(page);
     expect((await readSavedBoard(page, 'p')).extensions.roadmap.sprints[0]).toMatchObject({ status: 'active', startDate: '2026-11-04' });
     await expect(roadmapSprint.getByRole('button', { name: 'Finish Sprint', exact: true })).toBeVisible();
@@ -140,8 +140,8 @@ test('Table selection creates a Planned Sprint with goals/capacity even when all
   await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
   await page.locator('#tableCreateSprint').click();
   await page.locator('#roadmapEntityTitle').fill('Old dates');
-  await page.locator('#roadmapEntityStartDate').fill('2000-01-01');
-  await page.locator('#roadmapEntityEndDate').fill('2000-01-14');
+  await page.locator('#roadmapEntityStartDate').fill('01/01/2000');
+  await page.locator('#roadmapEntityEndDate').fill('14/01/2000');
   await page.locator('#sprintGoal').fill('Manually start later');
   await page.locator('#sprintCapacity').fill('34');
   await page.locator('#roadmapEntityModalSaveBtn').click();
@@ -165,22 +165,25 @@ test('Sprint dates follow the duration in business days, and starting late asks 
   const nested = page.locator('[data-roadmap-kind="sprints"] [data-roadmap-kind="sprint"][data-roadmap-id="delivery"]');
   await expect(nested.getByRole('button', { name: 'Start Sprint', exact: true })).toBeVisible();
   await nested.getByRole('button', { name: 'Edit Nested', exact: true }).click();
-  // A Sprint sharing its id with its parent Phase still shows that Phase as its parent.
-  await expect(page.locator('#roadmapPhaseParent')).toHaveValue('delivery');
+  // #54 detaches Sprints from phases while retaining the Sprint editor and business-day calculation.
+  await expect(page.locator('#roadmapPhaseParent')).toHaveCount(0);
   await expect(page.locator('#sprintDuration')).toHaveValue('10');
-  await page.locator('#roadmapEntityStartDate').fill('2026-11-04');
-  await expect(page.locator('#roadmapEntityEndDate')).toHaveValue('2026-11-18');
+  await page.locator('#roadmapEntityStartDate').fill('04/11/2026');
+  await expect(page.locator('#roadmapEntityEndDate')).toHaveValue('18/11/2026');
   await page.locator('#sprintDuration').fill('5');
-  await expect(page.locator('#roadmapEntityEndDate')).toHaveValue('2026-11-11');
-  await page.locator('#roadmapEntityEndDate').fill('2026-11-20');
+  await expect(page.locator('#roadmapEntityEndDate')).toHaveValue('11/11/2026');
+  await page.locator('#roadmapEntityEndDate').fill('20/11/2026');
   await expect(page.locator('#sprintDuration')).toHaveValue('12');
   await page.locator('#roadmapEntityModalCancelBtn').click();
   await nested.getByRole('button', { name: 'Start Sprint', exact: true }).click();
   await answerChainedMessage(page, { button: 'Use today', expectText: 'start date' });
-  await answerChainedMessage(page, { button: 'Enter another date', expectText: 'ends on 2026-11-18' });
-  await answerChainedMessage(page, { input: '2026-11-03', expectText: 'on or after 2026-11-04' });
+  await answerChainedMessage(page, { button: 'Enter another date', expectText: 'ends on 18/11/2026' });
+  await answerChainedMessage(page, { input: '31/02/2026', expectText: 'on or after 04/11/2026' });
+  await expect(page.locator('#appMessageInput')).toHaveValue('31/02/2026');
+  await expect(page.locator('#appMessageInput')).toBeVisible();
+  await answerChainedMessage(page, { input: '03/11/2026', expectText: 'on or after 04/11/2026' });
   await answerChainedMessage(page, { button: 'OK', expectText: 'must be on or after the start date' });
-  await answerAppMessage(page, { input: '2026-11-25', expectText: 'on or after 2026-11-04' });
+  await answerAppMessage(page, { input: '25/11/2026', expectText: 'on or after 04/11/2026' });
   await waitForBoardWrites(page);
   expect((await readSavedBoard(page, 'p')).extensions.roadmap.sprints[0]).toMatchObject({ status: 'active', startDate: '2026-11-04', endDate: '2026-11-25' });
 });

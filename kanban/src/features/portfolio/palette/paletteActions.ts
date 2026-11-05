@@ -14,7 +14,6 @@ const STATUS_KEYS: Record<TaskStatus, TranslationKey> = {
 export type PaletteDeps = {
     openTask: (boardId: string, taskId: number) => void;
     editTask: (boardId: string, taskId: number) => void;
-    toggleArchive: (boardId: string, taskId: number) => unknown;
     selectCard: (boardId: string, taskId: number) => void;
     moveTask: (boardId: string, taskId: number, status: TaskStatus) => Promise<boolean>;
     toggleAssignee: (boardId: string, taskId: number, name: string) => Promise<boolean>;
@@ -52,7 +51,6 @@ export async function runPaletteAction(action: PaletteAction, deps: PaletteDeps)
     case 'filterBoard': deps.setBoardSearch(action.text); return;
     case 'openTask': deps.openTask(action.boardId, action.taskId); return;
     case 'editTask': deps.editTask(action.boardId, action.taskId); return;
-    case 'toggleArchive': await deps.toggleArchive(action.boardId, action.taskId); return;
     case 'toggleAssignee': await deps.toggleAssignee(action.boardId, action.taskId, action.name); return;
     case 'setResponsible': await deps.setResponsible(action.boardId, action.taskId, action.name); return;
     case 'setPriority': await deps.setPriority(action.boardId, action.taskId, action.priority); return;

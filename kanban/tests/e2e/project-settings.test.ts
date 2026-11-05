@@ -201,7 +201,7 @@ test('archived is informational and invalid member names leave the draft availab
     await expect(page.locator('#taskModal')).toBeVisible();
     await page.keyboard.press('Escape');
     await openFiltersPanel(page); // Project lifecycle must not alter the independent task archive filter.
-    await expect(page.locator('#portfolioArchiveFilter')).toHaveValue('active');
+    await expect(page.locator('#portfolioArchiveFilter')).toHaveCount(0);
 });
 
 test('project tabs retain both drafts and save the intended project together', async ({ page }) => {

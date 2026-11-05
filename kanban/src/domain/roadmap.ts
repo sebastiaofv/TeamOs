@@ -1,3 +1,4 @@
+import { formatDate } from './dates';
 import { effectivePlanning, sprintMembers } from './workitems';
 import type { BoardData } from './types';
 import type {
@@ -73,10 +74,10 @@ export function formatRoadmapAxisDate(date: unknown, language: Language = 'en'):
 
 export function formatRoadmapDateRange(item: RoadmapItemLike, language: Language = 'en'): string {
     if (!item || typeof item !== 'object') return '';
-    if (item.dueDate) return language === 'pt' ? `Prazo ${item.dueDate}` : `Due ${item.dueDate}`;
+    if (item.dueDate) return language === 'pt' ? `Prazo ${formatDate(item.dueDate)}` : `Due ${formatDate(item.dueDate)}`;
     if (item.startDate && item.endDate) return language === 'pt'
-        ? `${item.startDate} a ${item.endDate}`
-        : `${item.startDate} to ${item.endDate}`;
+        ? `${formatDate(item.startDate)} a ${formatDate(item.endDate)}`
+        : `${formatDate(item.startDate)} to ${formatDate(item.endDate)}`;
     return '';
 }
 
@@ -409,7 +410,7 @@ export function normalizeRoadmapExtension(value: unknown): RoadmapExtension | nu
         version: ROADMAP_VERSION,
         milestones,
         phases,
-        sprints
+        sprints: sprints.map(({ parentId: _parentId, ...sprint }) => sprint)
     };
 }
 

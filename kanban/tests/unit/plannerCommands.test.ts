@@ -148,7 +148,7 @@ describe('planner commands', () => {
     } finally {
       useAppStore.setState({ activeLanguage: 'en' });
     }
-    expect(plannerEvents(events)[0].summary).toBe('Planned "Plan me" on Fri 25 Sept, 09:00–09:15');
+    expect(plannerEvents(events)[0].summary).toBe('Planned "Plan me" on Fri 25/09/2026, 09:00–09:15');
   });
 
   it('shows the planner as it was at a previewed timeline event', async () => {

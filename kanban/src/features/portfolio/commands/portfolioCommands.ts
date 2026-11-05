@@ -50,7 +50,6 @@ export const {
     closeTaskEditor,
     closeTaskDetail,
     openPortfolioTaskDetailsForCalendar,
-    togglePortfolioArchiveTask,
     deletePortfolioTask,
     saveTask,
     toggleTaskDetailChecklistItem,

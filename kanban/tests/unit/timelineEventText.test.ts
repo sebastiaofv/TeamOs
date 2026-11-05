@@ -53,7 +53,7 @@ describe('describeTimelineEvent', () => {
     const planned = event('planner.block.added', 'Planned "Write "spec"" on Fri 25 Sept, 09:00–10:00', {
       entityType: 'task', entityId: '1', changes: { block: { before: null, after: block } }
     });
-    expect(describeTimelineEvent(planned, 'en')).toBe('Planned "Write "spec"" on Fri 25 Sept, 09:00–10:00');
+    expect(describeTimelineEvent(planned, 'en')).toBe('Planned "Write "spec"" on Fri 25/09/2026, 09:00–10:00');
     expect(describeTimelineEvent(planned, 'pt')).toMatch(/^"Write "spec"" planeada para sexta.*25.*, 09:00–10:00$/);
 
     const removed = event('planner.block.removed', 'Removed "Write spec" from the plan (Fri 25 Sept, 09:00–10:00)', {

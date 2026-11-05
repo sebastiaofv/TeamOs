@@ -1,7 +1,10 @@
+import { DeleteMenu } from '@/shared/ui/DeleteMenu';
+import { SaveButton } from '@/features/portfolio/projects/ProjectSaveStatus';
+import { DateInput } from '@/shared/ui/DateInput';
 import { ControlAssociations } from '@/features/portfolio/control/ControlAssociations';
 import { controlRecords } from '@/domain/projectControl';
 import { lastCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
-import { useRef, useState, type ChangeEvent, type CSSProperties, type RefObject } from 'react';
+import { useRef, useState, type CSSProperties, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { RoadmapEntityDates, RoadmapEntityViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -64,6 +67,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     const { saveRoadmapEntity, deleteRoadmapEntity, closeRoadmapEntity } = usePortfolioActions();
     const { t, language } = useI18n();
     const today = useLocalToday();
+    const [busy, setBusy] = useState(false);
     const assignmentBoard = useAppStore((state) => {
         const context = state.roadmapEntityContext;
         return context?.mode === 'assign-sprint-from-selection' ? state.portfolioBoards.find((board) => board.id === context.boardId)?.data : undefined;
@@ -98,7 +102,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
         setDraft(next);
     };
     const bindSprintDate = (field: 'startDate' | 'endDate') => isSprintEditor
-        ? { value: draft[field] ?? '', onChange: (event: ChangeEvent<HTMLInputElement>) => changeSprintDates(field, event.target.value) }
+        ? { value: draft[field] ?? '', onChange: (event: { target: { value: string } }) => changeSprintDates(field, event.target.value) }
         : bind(field);
     const dueDateRef = useRef<HTMLInputElement>(null);
     const startDateRef = useRef<HTMLInputElement>(null);
@@ -107,9 +111,9 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     const fieldRefs: Record<RoadmapFocusField, RefObject<HTMLElement | null>> = {
         existingSprintId: sprintRef, title: titleRef, dueDate: dueDateRef, startDate: startDateRef, endDate: endDateRef
     };
-    const bind = (field: keyof RoadmapEntityFormDraft) => ({
+    const bind = (field: Exclude<keyof RoadmapEntityFormDraft, 'capacity'>) => ({
         value: draft[field] ?? '',
-        onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setDraft((current) => ({ ...current, [field]: event.target.value }))
+        onChange: (event: { target: { value: string } }) => setDraft((current) => ({ ...current, [field]: event.target.value }))
     });
     const hideTitle = vm.showExistingSprint;
     const hideSingleDate = vm.showExistingSprint || vm.dateMode !== 'single';
@@ -121,6 +125,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 <Dialog.Title asChild>
                     <span className="modal-title" id="roadmapEntityModalTitle">{vm.heading}</span>
                 </Dialog.Title>
+                {vm.itemId && (vm.kind !== 'sprints' || vm.initial.status === 'planned') && <DeleteMenu disabled={vm.readOnly || busy} onDelete={() => deleteRoadmapEntity(vm.kind, vm.itemId, { boardId: vm.boardId, onApplied: closeRoadmapEntity })} />}
                 <Dialog.Close className="modal-close" id="roadmapEntityModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
             </div>
             <div className="modal-body">
@@ -128,7 +133,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                     <fieldset disabled={vm.readOnly} className="roadmap-edit-fields">
                     <input type="hidden" id="roadmapEntityKind" value={vm.kind} />
                     <input type="hidden" id="roadmapEntityId" value={vm.itemId} />
-                    {(vm.kind === 'phases' || vm.kind === 'sprints') && <div className="form-group">
+                    {vm.kind === 'phases' && <div className="form-group">
                         <label htmlFor="roadmapPhaseParent">{t('roadmap.parentPhase')}</label>
                         <select id="roadmapPhaseParent" value={draft.parentId} onChange={(event) => {
                             const parentId = event.target.value;
@@ -150,7 +155,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                     </div>
                     <div className={`form-group${hideTitle ? ' hidden' : ''}`}>
                         <label className="required" htmlFor="roadmapEntityTitle">{t('roadmapDialog.title')}</label>
-                        <input type="text" id="roadmapEntityTitle" ref={titleRef} required maxLength={80} {...bind('title')} />
+                        <input type="text" id="roadmapEntityTitle" ref={titleRef} required={!hideTitle} maxLength={80} {...bind('title')} />
                     </div>
                     {vm.kind === 'sprints' && !vm.showExistingSprint && <>
                         {vm.itemId && <div className="form-group"><label htmlFor="sprintStatus">{t('task.status')}</label>
@@ -166,7 +171,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                     <div className={`roadmap-entity-date-row single${hideSingleDate ? ' hidden' : ''}`} id="roadmapEntitySingleDateRow">
                         <div className="form-group">
                             <label className="required" id="roadmapEntityDateLabel" htmlFor="roadmapEntityDate">{vm.dateLabel}</label>
-                            <input type="date" id="roadmapEntityDate" ref={dueDateRef} {...bind('dueDate')} />
+                            <DateInput  id="roadmapEntityDate" ref={dueDateRef} {...bind('dueDate')} />
                         </div>
                     </div>
                     {vm.kind !== 'sprints' && <fieldset className="form-group milestone-color-picker"><legend>{t(vm.kind === 'phases' ? 'roadmap.phaseColor' : 'roadmap.milestoneColor')}</legend>
@@ -177,7 +182,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                     <div className={`roadmap-entity-date-row${isSprintEditor ? ' with-duration' : ''}${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityStartDate">{t('roadmapDialog.startDate')}</label>
-                            <input type="date" id="roadmapEntityStartDate" ref={startDateRef} readOnly={vm.datesCalculated} {...bindSprintDate('startDate')} />
+                            <DateInput  id="roadmapEntityStartDate" ref={startDateRef} readOnly={vm.datesCalculated} {...bindSprintDate('startDate')} />
                         </div>
                         {isSprintEditor && <div className="form-group">
                             <label htmlFor="sprintDuration">{t('sprint.duration')}</label>
@@ -185,7 +190,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                         </div>}
                         <div className="form-group">
                             <label className="required" htmlFor="roadmapEntityEndDate">{t('roadmapDialog.endDate')}</label>
-                            <input type="date" id="roadmapEntityEndDate" ref={endDateRef} readOnly={vm.datesCalculated} {...bindSprintDate('endDate')} />
+                            <DateInput  id="roadmapEntityEndDate" ref={endDateRef} readOnly={vm.datesCalculated} {...bindSprintDate('endDate')} />
                         </div>
                     </div>
                     </fieldset>
@@ -193,20 +198,22 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 </form>
             </div>
             <div className="modal-footer">
-                {isSprintEditor && vm.itemId && vm.initial.status === 'planned' && !vm.readOnly && <button type="button" className="btn btn-danger roadmap-entity-delete" id="roadmapEntityModalDeleteBtn"
-                    onClick={() => void deleteRoadmapEntity('sprints', vm.itemId, { boardId: vm.boardId, onApplied: closeRoadmapEntity })}>{t('sprint.delete')}</button>}
                 <Dialog.Close className="btn" id="roadmapEntityModalCancelBtn">{t('roadmapDialog.cancel')}</Dialog.Close>
-                <button
+                <SaveButton boardId={vm.boardId} busy={busy}
                     className="btn btn-primary"
                     id="roadmapEntityModalSaveBtn"
                     disabled={vm.readOnly || Boolean(assignmentBoard && vm.showExistingSprint && !selectedSprintId)}
                     onClick={async () => {
+                        if (busy || !document.querySelector<HTMLFormElement>('#roadmapEntityForm')?.reportValidity()) return;
+                        setBusy(true);
+                        try {
                         const result = await saveRoadmapEntity({ kind: vm.kind, itemId: vm.itemId, ...draft, controlIds, controlAuthor: lastCommentAuthor(vm.boardId) });
                         if (result?.focusField) fieldRefs[result.focusField].current?.focus();
+                        } finally { setBusy(false); }
                     }}
                 >
                     {vm.saveLabel}
-                </button>
+                </SaveButton>
             </div>
         </>
     );

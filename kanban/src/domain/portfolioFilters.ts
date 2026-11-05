@@ -7,7 +7,7 @@ import type { PortfolioFilters } from '@/features/portfolio/types';
 import type { Task, TaskStatus, LooseBoardData } from './types';
 import { getRoadmapExtension } from './roadmap';
 import { phaseDescendants } from './phaseTree';
-import { EFFORT_BUCKETS, isArchiveFilter } from './constants';
+import { EFFORT_BUCKETS } from './constants';
 import { normalizeAssignee, normalizePortfolioBlockedFilter, taskAssignees } from './task';
 import { matchesPeopleFilter } from './peopleFilters';
 
@@ -15,7 +15,7 @@ export type PortfolioFilterName = keyof PortfolioFilters;
 
 export const DEFAULT_PORTFOLIO_FILTERS: Readonly<PortfolioFilters> = Object.freeze({
     search: '',
-    archive: 'active',
+    archive: 'all',
     blocked: 'all',
     assignee: '',
     responsible: '',
@@ -37,7 +37,7 @@ function includesValue<T>(values: readonly T[], value: unknown): value is T {
 export function normalizePortfolioFilterValue<K extends PortfolioFilterName>(name: K, value: unknown): PortfolioFilters[K] {
     let normalized: PortfolioFilters[PortfolioFilterName];
     if (name === 'search') normalized = String(value ?? '');
-    else if (name === 'archive') normalized = isArchiveFilter(value) ? value : 'active';
+    else if (name === 'archive') normalized = 'all';
     else if (name === 'blocked') normalized = normalizePortfolioBlockedFilter(value);
     else if (name === 'assignee' || name === 'responsible') normalized = normalizeAssignee(value);
     else if (name === 'priority') normalized = includesValue(PRIORITY_FILTER_VALUES, value) ? value : '';
@@ -65,7 +65,7 @@ export function normalizePortfolioFilterSet(filters: Partial<Record<PortfolioFil
 
 // The filters shown in the toolbar's Filters panel, in panel order. Search has
 // its own box and is not one of them.
-export const PANEL_PORTFOLIO_FILTERS = ['archive', 'blocked', 'responsible', 'assignee', 'priority', 'effort', 'statuses', 'phaseId', 'milestoneId', 'sprintId'] as const;
+export const PANEL_PORTFOLIO_FILTERS = ['blocked', 'responsible', 'assignee', 'priority', 'effort', 'statuses', 'phaseId', 'milestoneId', 'sprintId'] as const;
 export type PanelPortfolioFilterName = typeof PANEL_PORTFOLIO_FILTERS[number];
 
 export function getActivePortfolioFilterNames(filters: Partial<Record<PortfolioFilterName, unknown>> | null | undefined): PanelPortfolioFilterName[] {
@@ -76,8 +76,6 @@ export function getActivePortfolioFilterNames(filters: Partial<Record<PortfolioF
 
 /** Shared by every view: filters are ANDed, selected statuses are ORed. */
 export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilters, data?: LooseBoardData | null): boolean {
-    if (filters.archive === 'active' && task.archived) return false;
-    if (filters.archive === 'archived' && !task.archived) return false;
     if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
     if (!matchesPeopleFilter(taskAssignees(task), filters.assignee)) return false;
     if (!matchesPeopleFilter(task.responsible ? [task.responsible] : [], filters.responsible)) return false;

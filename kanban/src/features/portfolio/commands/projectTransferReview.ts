@@ -1,3 +1,4 @@
+import { formatDate } from '@/domain/dates';
 import type { AppMessageReview, MessageSelection } from '@/app/types';
 import type { BoardData, Task } from '@/domain/types';
 import { transferMemberInputs, transferRemovals, type TransferMapping } from '@/domain/projectTransfers';
@@ -38,7 +39,7 @@ export function projectTransferFields(source: BoardData, destination: BoardData,
                 : entry.kind === 'sprints' ? (roadmap?.sprints || []).filter((sprint) => eligibleSprint(destination, sprint.id)) : [];
         const parents = entry.kind === 'parent' ? destination.board.tasks.filter((parent) => validParent(workitemType(task), parent)).map((parent) => ({ value: String(parent.id), label: `${parent.displayId || `#${parent.id}`} ${parent.title}` })) : [];
         fields.push({ required: true, id: `${prefix}association-${index}`, label: t(`transfer.kind.${entry.kind}`),
-            current: `${entry.title}${entry.date ? ` · ${entry.date}` : ''}${entry.start ? ` · ${entry.start}–${entry.end}` : ''}`,
+            current: `${entry.title}${entry.date ? ` · ${formatDate(entry.date)}` : ''}${entry.start ? ` · ${entry.start}–${entry.end}` : ''}`,
             options: [remove, ...choices.map((item) => ({ value: item.id, label: item.title })), ...parents] });
     }
     for (const field of fields) {

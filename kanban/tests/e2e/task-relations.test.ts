@@ -27,7 +27,7 @@ test('compact relation groups show current status and responsible first names, n
   const dependent = relations.getByRole('group', { name: 'Blocks', exact: true });
   await expect(dependent.getByLabel('Status', { exact: true })).toHaveText('done');
   await expect(dependent.getByLabel('Responsible', { exact: true })).toHaveText('José');
-  await expect(dependent.getByRole('button', { name: '#3 Archived dependent · Archived', exact: true })).toBeVisible();
+  await expect(dependent.getByRole('button', { name: '#3 Archived dependent', exact: true })).toBeVisible();
   await expect(relations.getByRole('group', { name: 'Related to', exact: true }).getByLabel('Responsible', { exact: true })).toHaveText('—');
 
   await page.locator('#taskDetailModalCloseBtn').click();
@@ -148,12 +148,12 @@ test('links archived workitems by ID, previews direction, navigates both ways, r
   await expect(relations.locator('select')).toHaveCount(1);
   await picker.click();
   await expect(relations.getByRole('listbox').getByRole('option')).toHaveText([
-    '#2 Archived blocker · backlog · Archived', '#3 Other item · done'
+    '#2 Archived blocker · backlog', '#3 Other item · done'
   ]);
   await picker.fill('#2');
   await expect(relations.getByRole('listbox').getByRole('option')).toHaveCount(1);
   await relations.getByRole('option', { name: /#2 Archived blocker/ }).click();
-  await expect(picker).toHaveValue('#2 Archived blocker · backlog · Archived');
+  await expect(picker).toHaveValue('#2 Archived blocker · backlog');
   await expect(picker).toHaveAttribute('aria-expanded', 'false');
   await relations.getByLabel('Relation of the selected workitem').selectOption('blockedBy');
   await expect(relations.getByRole('status')).toHaveText('Workitem #1 is blocked by #2.');

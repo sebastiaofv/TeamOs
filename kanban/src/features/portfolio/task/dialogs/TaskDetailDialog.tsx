@@ -1,3 +1,4 @@
+import { SaveIndicator } from '@/features/portfolio/projects/ProjectSaveStatus';
 import { TaskTransferMenu } from '../TaskTransferMenu';
 import { workitemLabelFor } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
@@ -67,7 +68,7 @@ export function TaskDetailDialog() {
                                 <div className="workitem-eyebrow">{vm && <><WorkitemTypeBadge type={workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {})} /><span>{workitemLabelFor(vm.sourceBoardData, vm.taskId)}</span><span className="workitem-project">{vm.sourceBoardData.board.settings.title}</span></>}</div>
                                 <Dialog.Title className="workitem-title" id="detailTitle">{vm?.fields.title}</Dialog.Title>
                             </div>
-                            <div className="workitem-header-actions">{vm && <TaskTransferMenu boardId={vm.boardId} taskId={vm.taskId} historical={vm.history?.historicalIndex !== undefined} />}{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}
+                            <div className="workitem-header-actions">{vm && <SaveIndicator boardId={vm.boardId} />}{vm && <TaskTransferMenu boardId={vm.boardId} taskId={vm.taskId} allowDelete historical={vm.readOnly} />}{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}
                                 <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                             </div>
                         </div>
@@ -168,7 +169,7 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
     const { toggleTaskDetailChecklistItem } = usePortfolioActions();
     return (
         <dl className="detail-list workitem-supporting-content">
-            <div className="detail-item workitem-section" hidden={!vm.checklist.length || !['task', 'bug'].includes(workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}))}>
+            {workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}) === 'task' && <div className="detail-item workitem-section" hidden={!vm.checklist.length}>
                 <dt className="detail-label">{t('task.todoList')} <span className="detail-tab-count">{vm.checklist.filter((item) => item.done).length}/{vm.checklist.length}</span></dt>
                 <dd><ul className="detail-checklist" id="detailChecklist">
                     {vm.checklist.length === 0
@@ -188,7 +189,7 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
                             </li>
                         ))}
                 </ul></dd>
-            </div>
+            </div>}
         </dl>
     );
 }

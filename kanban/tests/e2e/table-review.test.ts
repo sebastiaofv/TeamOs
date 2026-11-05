@@ -14,8 +14,8 @@ test('planning view selects eligible workitems and reuses sprint creation withou
   await page.getByRole('checkbox', { name: 'Select this page', exact: true }).check();
   await page.getByRole('button', { name: 'Create Sprint', exact: true }).click();
   await page.locator('#roadmapEntityTitle').fill('Sprint from table');
-  await page.locator('#roadmapEntityStartDate').fill('2026-11-01');
-  await page.locator('#roadmapEntityEndDate').fill('2026-11-14');
+  await page.locator('#roadmapEntityStartDate').fill('01/11/2026');
+  await page.locator('#roadmapEntityEndDate').fill('14/11/2026');
   await page.getByRole('button', { name: 'Save Item', exact: true }).click();
   await confirmWorkitemChanges(page);
   await waitForBoardWrites(page);
@@ -37,14 +37,14 @@ test('table dates, status colors, blocked emphasis and minimum widths match the 
     { id: 2, title: 'To do', status: 'to-do' }, { id: 3, title: 'Doing', status: 'doing' }, { id: 4, title: 'Done', status: 'done' }
   ] }], { selectedBoardId: 'p' });
   await page.locator('[data-view-mode="table"]').click();
-  await expect(page.locator('#workitemsTable [data-task-id="1"] [data-column="updatedAt"]')).toHaveText('2026-10-17 10:27:42');
+  await expect(page.locator('#workitemsTable [data-task-id="1"] [data-column="updatedAt"]')).toHaveText('17/10/2026 10:27:42');
   await page.locator('#tableColumns summary').click();
-  for (const column of ['blocked', 'blockerReason', 'dueDate', 'createdAt', 'milestone', 'sprint', 'effort', 'tags', 'archived']) {
+  for (const column of ['blocked', 'blockerReason', 'dueDate', 'createdAt', 'milestone', 'sprint', 'effort', 'tags']) {
     await page.locator(`#tableColumn-${column}`).check();
   }
   await page.keyboard.press('Escape');
   const first = page.locator('#workitemsTable [data-task-id="1"]');
-  await expect(first.locator('[data-column="dueDate"]')).toHaveText('2026-10-20');
+  await expect(first.locator('[data-column="dueDate"]')).toHaveText('20/10/2026');
   await expect(first.locator('[data-column="blocked"] .table-blocked-badge')).toHaveText('Yes');
   for (const status of ['backlog', 'to-do', 'doing', 'done']) await expect(page.locator(`#workitemsTable .status-${status}`)).toHaveCount(1);
   const colors = await page.locator('#workitemsTable .table-status-badge').evaluateAll(nodes => nodes.map(node => getComputedStyle(node).backgroundColor));
@@ -84,14 +84,14 @@ test('sprint sections retain counts while collapsed and show only their own filt
   const future = page.locator('[data-table-sprint="future"]');
   await expect(past.locator(':scope > summary')).toContainText('Done');
   await expect(past.locator(':scope > summary')).toContainText('66.7% complete (2/3)');
-  await expect(past.locator(':scope > summary')).toContainText('2026-10-01 → 2026-10-10');
+  await expect(past.locator(':scope > summary')).toContainText('01/10/2026 → 10/10/2026');
   await expect(active.locator(':scope > summary')).toContainText('Active');
   await expect(future.locator(':scope > summary')).toContainText('Planned');
   await expect(future.locator(':scope > summary')).toContainText('N/A (0/0)');
   await past.locator(':scope > summary').focus();
   await page.keyboard.press('Enter');
   await active.locator(':scope > summary .table-sprint-name').click();
-  await expect(past.locator('tbody tr')).toHaveCount(2);
+  await expect(past.locator('tbody tr')).toHaveCount(3);
   await expect(active.locator('tbody tr')).toHaveCount(1);
   const downloadPromise = page.waitForEvent('download');
   await past.getByRole('button', { name: 'Export CSV', exact: true }).click();
@@ -128,8 +128,8 @@ test('planning cancellation preserves items and table selection stays independen
   await expect(page.locator('#workitemsTable [data-task-id="1"] input[type="checkbox"]')).toBeChecked();
   await page.locator('#tableCreateSprint').click();
   await page.locator('#roadmapEntityTitle').fill('Only table selection');
-  await page.locator('#roadmapEntityStartDate').fill('2026-11-01');
-  await page.locator('#roadmapEntityEndDate').fill('2026-11-14');
+  await page.locator('#roadmapEntityStartDate').fill('01/11/2026');
+  await page.locator('#roadmapEntityEndDate').fill('14/11/2026');
   await page.getByRole('button', { name: 'Save Item', exact: true }).click();
   await confirmWorkitemChanges(page);
   await waitForBoardWrites(page);

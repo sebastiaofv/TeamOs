@@ -1,10 +1,14 @@
+import { DateInput } from '@/shared/ui/DateInput';
+import { SaveButton, SaveIndicator } from '@/features/portfolio/projects/ProjectSaveStatus';
+import { formatTimestamp } from '@/domain/dates';
+import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { navigateControlTabs } from './controlTabNavigation';
 import { getProjectData } from '@/domain/projectData';
 import { setTaskResponsible, removeTaskParticipant } from '@/domain/taskAssignments';
 import { AssigneeEditor } from '@/features/portfolio/task/dialogs/editor/AssigneeEditor';
 import { TagEditor } from '@/features/portfolio/task/dialogs/editor/TagEditor';
 import { todayLocalIsoDate } from '@/domain/util';
-import { useLayoutEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { CONTROL_KINDS, CONTROL_STATUSES, ASSESSMENTS, controlRecords, newControlRecord, riskLevel, type ControlKind, type ControlRecord } from '@/domain/projectControl';
 import type { BoardData } from '@/domain/types';
@@ -34,7 +38,7 @@ export function ProjectControlDialog() {
 
 export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = false, onClose, onSaved }: { boardId: string; recordId?: string; kind: ControlKind; data: BoardData; readOnly?: boolean; onClose: () => void; onSaved?: (record: ControlRecord) => void }) {
     const record = controlRecords(data).find((item) => item.id === recordId);
-    const { t, language } = useI18n();
+    const { t } = useI18n();
     const { saveProjectControl, confirmResponsibleParticipantRemoval } = usePortfolioActions();
     const project = getProjectData(data);
     const [draft, setDraft] = useState(() => structuredClone(record || newControlRecord(kind)));
@@ -86,8 +90,8 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
     const field = (key: keyof ControlRecord, type: 'text' | 'date' | 'textarea' = 'text') => {
         const mainField = ['title', 'description', 'rationale', 'mitigationPlan', 'contingencyPlan', 'actualImpact'].includes(key);
         if (mainField && !editing) return <section className="workitem-section" key={key}><h3>{t(`control.${key}` as TranslationKey)}</h3><p className="detail-value">{String(draft[key]) || '—'}</p></section>;
-        const props = { id: `control-${key}`, 'aria-label': t(`control.${key}` as TranslationKey), value: String(draft[key]), disabled: readonly || busy, onBlur: () => { if (!editing && !mainField && draft[key] !== record?.[key]) void save(draft, false); }, onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft((current) => ({ ...current, [key]: event.target.value })) };
-        return <div className="form-group" key={key}><label htmlFor={props.id}>{t(`control.${key}` as TranslationKey)}</label>{type === 'textarea' ? <textarea {...props} rows={3} maxLength={10000} /> : <input {...props} ref={key === 'title' ? titleRef : undefined} type={type} maxLength={key === 'title' ? 200 : 500} required={key === 'title' && tab === 'details'} />}</div>;
+        const props = { id: `control-${key}`, 'aria-label': t(`control.${key}` as TranslationKey), value: String(draft[key]), disabled: readonly || busy, onBlur: () => { if (!editing && !mainField && draft[key] !== record?.[key]) void save(draft, false); }, onChange: (event: { target: { value: string } }) => setDraft((current) => ({ ...current, [key]: event.target.value })) };
+        return <div className="form-group" key={key}><label htmlFor={props.id}>{t(`control.${key}` as TranslationKey)}</label>{type === 'textarea' ? <textarea {...props} rows={3} maxLength={10000} /> : type === 'date' ? <DateInput {...props} /> : <input {...props} ref={key === 'title' ? titleRef : undefined} type={type} maxLength={key === 'title' ? 200 : 500} required={key === 'title' && tab === 'details'} />}</div>;
     };
     function update(next: ControlRecord) {
         setDraft(next);
@@ -111,7 +115,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                     <div className="workitem-eyebrow"><ControlTypeBadge kind={activeKind} />{record && <span>{record.id}</span>}<span className="workitem-project">{data.board.settings.title}</span></div>
                     <Dialog.Title className="workitem-title">{record?.title || `${t('control.new')} · ${t(`control.type.${activeKind}`)}`}</Dialog.Title>
                 </div>
-                <div className="workitem-header-actions">{readonly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}<Dialog.Close className="modal-close" aria-label={t('common.close')} disabled={busy}>×</Dialog.Close></div>
+                <div className="workitem-header-actions"><SaveIndicator boardId={boardId} />{readonly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}<Dialog.Close className="modal-close" aria-label={t('common.close')} disabled={busy}>×</Dialog.Close></div>
             </div>
             <div className="detail-tabs" role="tablist" aria-label={t('control.view')}>{tabs.map((value) => <button key={value} type="button" role="tab" id={`control-tab-${value}`} aria-controls={`control-panel-${value}`} aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigateControlTabs(event, tabs.filter((entry) => record || entry === 'details' || entry === 'response'), value, setTab)} disabled={(value === 'comments' || value === 'history') && !record} onClick={() => setTab(value)}>{t(`control.${value}`)}</button>)}</div>
             <div className="modal-body">
@@ -154,9 +158,9 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                                     </fieldset>
                                 </section>
                                 <section className="workitem-property-group"><h3>{t('control.history')}</h3>
-                                    {record && <dl className="detail-list">{(['createdAt', 'updatedAt'] as const).map((key) => <div className="detail-item" key={key}><dt className="detail-label">{t(`control.${key}`)}</dt><dd className="detail-value">{new Date(record[key]).toLocaleString(language === 'pt' ? 'pt-PT' : 'en')}</dd></div>)}</dl>}
-                                    {!readonly && <label className="form-group">{t('control.author')}<input id="control-author" required={tab === 'details'} disabled={busy} value={author} onChange={(event) => setAuthor(event.target.value)} /></label>}
-                                    {!record && !data.extensions.project?.acronym && <label className="form-group">{t('project.acronym')}<input aria-label={t('project.acronym')} required={tab === 'details'} pattern="[A-Z]{1,3}" maxLength={3} disabled={readonly || busy} value={acronym} onChange={(event) => setAcronym(event.target.value.toUpperCase())} /><span className="field-hint">{t('project.acronymHelp')}</span></label>}
+                                    {record && <dl className="detail-list">{(['createdAt', 'updatedAt'] as const).map((key) => <div className="detail-item" key={key}><dt className="detail-label">{t(`control.${key}`)}</dt><dd className="detail-value">{formatTimestamp(record[key])}</dd></div>)}</dl>}
+                                    {!readonly && <label className="form-group">{t('control.author')}<input id="control-author" required={tab === 'details'} disabled={busy} readOnly={Boolean(projectActor(boardId))} value={projectActor(boardId)?.name || author} onChange={(event) => setAuthor(event.target.value)} /></label>}
+                                    {!record && !data.extensions.project?.acronym && <label className="form-group">{t('project.acronym')}<input aria-label={t('project.acronym')} required={tab === 'details'} pattern="[A-Z]{1,4}" maxLength={4} disabled={readonly || busy} value={acronym} onChange={(event) => setAcronym(event.target.value.toUpperCase())} /><span className="field-hint">{t('project.acronymHelp')}</span></label>}
                                 </section>
                             </aside>
                         </div>
@@ -168,7 +172,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                 {tab === 'history' && record && <div role="tabpanel" id="control-panel-history" aria-labelledby="control-tab-history" tabIndex={0} className="control-tab-panel"><ControlRecordHistory record={record} /></div>}
                 </>}
             </div>
-            <div className="modal-footer"><Dialog.Close className="btn" disabled={busy}>{t(editing && !readonly ? 'common.cancel' : 'common.close')}</Dialog.Close>{!readonly && (editing ? <button key="save" className="btn btn-primary" type="submit" form="control-record-form" disabled={busy}>{t('common.save')}</button> : record && <button key="edit" className="btn btn-primary" type="button" disabled={busy} onClick={edit}>{t('common.edit')}</button>)}</div>
+            <div className="modal-footer"><Dialog.Close className="btn" disabled={busy}>{t(editing && !readonly ? 'common.cancel' : 'common.close')}</Dialog.Close>{!readonly && (editing ? <SaveButton boardId={boardId} busy={busy} key="save" className="btn btn-primary" type="submit" form="control-record-form" disabled={busy}>{t('common.save')}</SaveButton> : record && <button key="edit" className="btn btn-primary" type="button" disabled={busy} onClick={edit}>{t('common.edit')}</button>)}</div>
         </Dialog.Content>
     </Dialog.Overlay></Dialog.Portal></Dialog.Root>;
 }

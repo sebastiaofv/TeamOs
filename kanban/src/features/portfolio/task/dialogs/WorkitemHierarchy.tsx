@@ -1,3 +1,4 @@
+import { formatTimestamp } from '@/domain/dates';
 import { workitemLabel } from '@/domain/taskIdentity';
 import type { TaskDetailViewModel } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -35,16 +36,16 @@ export function WorkitemHierarchy({ vm }: { vm: TaskDetailViewModel }) {
         {WORKITEM_FIELDS.filter((field) => task[field]).map((field) => <section className={`workitem-section workitem-field-block workitem-field-${field}`} key={field}>
             <h3>{t(`workitems.${field}`)}</h3><p className="workitem-field">{task[field]}</p>
         </section>)}
-        {['epic', 'story'].includes(type) && <section className="workitem-progress" aria-label={t('workitems.executionProgress')}>
+        {['epic', 'story', 'bug'].includes(type) && <section className="workitem-progress" aria-label={t('workitems.executionProgress')}>
             <div className="workitem-progress-heading"><span>{t('workitems.executionProgress')}</span><strong>{progress.percent === null ? '—' : `${Math.round(progress.percent)}%`}</strong></div>
             <div className="workitem-progress-track" role="progressbar" aria-label={t('workitems.executionProgress')} aria-valuenow={progress.percent ?? undefined} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${progress.percent || 0}%` }} /></div>
             <p role="status">{progress.percent === null ? t('workitems.noProgress') : `${progress.completed}/${progress.eligible} ${t(type === 'epic' ? 'workitems.childWorkitems' : 'workitems.tasks')}`}</p>
         </section>}
         {type === 'story' && task.acceptance && children.some((child) => !isTerminal(data, child)) && <p className="workitem-acceptance" role="status">{t('workitems.reopened', { id: children.find((child) => !isTerminal(data, child))?.id || '', parent: task.id })}</p>}
-        {task.acceptance && <p className="workitem-acceptance">{t('workitems.acceptance')}: <strong>{task.acceptance.author}</strong> · {new Date(task.acceptance.at).toLocaleString()}</p>}
-        {(type === 'epic' ? ['story', 'task'] as const : type === 'story' ? ['task'] as const : []).map((childType) => <section key={childType} className="workitem-section workitem-child-section">
-            <div className="workitem-section-heading"><h3>{t(childType === 'story' ? 'workitems.stories' : 'workitems.tasks')} <span className="detail-tab-count">{children.filter((child) => workitemType(child) === childType).length}</span></h3>
-                {!vm.readOnly && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateChildTask(vm.boardId, task.id, childType)}>{t(childType === 'story' ? 'workitems.createStory' : 'workitems.createTask')}</button>}
+        {task.acceptance && <p className="workitem-acceptance">{t('workitems.acceptance')}: <strong>{task.acceptance.author}</strong> · {formatTimestamp(task.acceptance.at)}</p>}
+        {(type === 'epic' ? ['story', 'bug', 'task'] as const : ['story', 'bug'].includes(type) ? ['task'] as const : []).map((childType) => <section key={childType} className="workitem-section workitem-child-section">
+            <div className="workitem-section-heading"><h3>{t(childType === 'story' ? 'workitems.stories' : childType === 'bug' ? 'workitems.bugs' : 'workitems.tasks')} <span className="detail-tab-count">{children.filter((child) => workitemType(child) === childType).length}</span></h3>
+                {!vm.readOnly && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateChildTask(vm.boardId, task.id, childType)}>{t(childType === 'story' ? 'workitems.createStory' : childType === 'bug' ? 'workitems.createBug' : 'workitems.createTask')}</button>}
             </div>
             <ul>{children.filter((child) => workitemType(child) === childType).map((child) => {
                 const state = getWorkflow(data, child).states.find((state) => state.id === child.status);

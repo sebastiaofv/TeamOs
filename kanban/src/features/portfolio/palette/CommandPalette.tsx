@@ -95,7 +95,6 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
     const deps: PaletteDeps = useMemo(() => ({
         openTask: (boardId, taskId) => actions.openPortfolioTaskDetailsForCalendar(boardId, taskId),
         editTask: (boardId, taskId) => actions.editPortfolioTask(boardId, taskId),
-        toggleArchive: (boardId, taskId) => actions.togglePortfolioArchiveTask(boardId, taskId),
         selectCard: (boardId, taskId) => actions.setSelectedPortfolioCard(boardId, taskId),
         moveTask: (boardId, taskId, status) => actions.movePortfolioTaskToStatus(boardId, taskId, status),
         toggleAssignee: (boardId, taskId, name) => actions.togglePortfolioTaskAssignee(boardId, taskId, name),

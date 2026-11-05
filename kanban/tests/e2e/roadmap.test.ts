@@ -37,8 +37,8 @@ test.describe('roadmap', () => {
     await expect(page.getByRole('button', { name: 'Add to Existing Sprint' })).toHaveCount(0);
     await page.getByRole('button', { name: 'Create Sprint' }).click();
     await page.fill('#roadmapEntityTitle', 'Sprint 12');
-    await page.fill('#roadmapEntityStartDate', '2026-04-01');
-    await page.fill('#roadmapEntityEndDate', '2026-04-14');
+    await page.fill('#roadmapEntityStartDate', '01/04/2026');
+    await page.fill('#roadmapEntityEndDate', '14/04/2026');
     await page.getByRole('button', { name: 'Save Item' }).click();
   await confirmWorkitemChanges(page);
 
@@ -116,8 +116,8 @@ test.describe('roadmap', () => {
 
     await page.getByRole('button', { name: 'Create Sprint' }).click();
     await page.fill('#roadmapEntityTitle', 'Sprint 12');
-    await page.fill('#roadmapEntityStartDate', '2026-04-01');
-    await page.fill('#roadmapEntityEndDate', '2026-04-14');
+    await page.fill('#roadmapEntityStartDate', '01/04/2026');
+    await page.fill('#roadmapEntityEndDate', '14/04/2026');
     await page.getByRole('button', { name: 'Save Item' }).click();
   await confirmWorkitemChanges(page);
 
@@ -159,13 +159,14 @@ test.describe('roadmap', () => {
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await page.getByRole('button', { name: 'Add Milestone' }).click();
     await page.locator('#roadmapEntityTitle').fill('Beta');
-    await page.locator('#roadmapEntityDate').fill('2026-05-01');
+    await page.locator('#roadmapEntityDate').fill('01/05/2026');
     await page.getByRole('button', { name: 'Save Item' }).click();
   await confirmWorkitemChanges(page);
 
     await expect(page.locator('#portfolioRoadmapView')).toContainText('Beta');
 
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
+    await page.locator('#milestoneWorkitemsModal .modal-footer summary').click();
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageSelection')).toHaveValue('0');
     await answerAppMessage(page, { button: 'Confirm', expectText: '1 directly assigned workitems' });

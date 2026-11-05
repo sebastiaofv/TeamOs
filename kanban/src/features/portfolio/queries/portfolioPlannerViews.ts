@@ -78,7 +78,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
         const canEdit = Boolean(board.handle) && !isBoardInHistoricalPreview(state, board.id);
         return getDayPlannerBlocks(data).flatMap((block) => {
             const task = tasks.get(block.taskId);
-            if (!task || !dates.has(block.date)
+            if (!task || workitemType(task) !== 'task' || !dates.has(block.date)
                 || !taskMatchesPortfolioFilters(task, { ...DEFAULT_PORTFOLIO_FILTERS, ...state?.portfolioFilters }, data)) return [];
             return [{
                 ...block,
@@ -89,7 +89,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
                 endMinutes: plannerMinutes(block.end),
                 color: boardColor(board),
                 done: statusCategory(task.status, data, task) === 'completed',
-                archived: Boolean(task.archived),
+                archived: false,
                 canEdit,
                 column: 0,
                 columns: 1
@@ -100,7 +100,7 @@ function buildDayBlocks(state: SelectorState, boards: BoardRecord[], dates: Set<
 
 export function buildPortfolioPlannerViewModel(
     state: SelectorState,
-    { today, trayStatuses, includeParents = false }: { today: string; trayStatuses: readonly TaskStatus[]; includeParents?: boolean }
+    { today, trayStatuses }: { today: string; trayStatuses: readonly TaskStatus[]; includeParents?: boolean }
 ): PlannerViewModel {
     const mode: PlannerMode = state?.portfolioPlannerMode === 'week' ? 'week' : 'day';
     const date = state?.portfolioPlannerDate || today;
@@ -126,7 +126,7 @@ export function buildPortfolioPlannerViewModel(
     const statusSet = new Set(trayStatuses);
     const groups = new Map<string, PlannerTrayGroup>();
     (Array.isArray(state?.portfolioVisibleRows) ? state.portfolioVisibleRows : []).forEach((row) => {
-        if (!includeParents && !['task', 'bug'].includes(workitemType(row.task))) return;
+        if (workitemType(row.task) !== 'task') return;
         const status = row.task.status;
         const board = allBoards.find((entry) => entry.id === row.boardId);
         if (!board) return;

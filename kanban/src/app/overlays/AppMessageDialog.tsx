@@ -1,3 +1,4 @@
+import { DateInput } from '@/shared/ui/DateInput';
 import { AppMessageReviewContent } from './AppMessageReviewContent';
 import { translateCurrent } from '@/shared/i18n';
 import { useRef, useState, type RefObject } from 'react';
@@ -64,7 +65,7 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
     const [selection, setSelection] = useState(message.selection?.required ? -1 : 0);
     const [selections, setSelections] = useState<Record<string, string>>(() => Object.fromEntries((message.selections || []).map((field) => [field.id, field.defaultValue ?? (field.required ? '' : field.options[0]?.value || '')])));
     const missingSelections = (message.selection?.required && selection < 0) || message.selections?.some((field) => field.required && !selections[field.id]);
-    const answer = (button: AppMessageButton) => { if ((button.submitsSelection || button.submitsSelections) && missingSelections) return; if (button.submitsInput && message.input?.required && !inputValue.trim()) return; resolveAppMessage(button.submitsSelections ? selections : button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value); };
+    const answer = (button: AppMessageButton) => { if (button.submitsInput && inputRef.current && !inputRef.current.reportValidity()) return; if ((button.submitsSelection || button.submitsSelections) && missingSelections) return; if (button.submitsInput && message.input?.required && !inputValue.trim()) return; resolveAppMessage(button.submitsSelections ? selections : button.submitsSelection ? message.selection?.options[selection]?.value : button.submitsInput ? inputValue : button.value); };
     // Every message is built with a primary button (see appMessages.ts).
     const primary = message.buttons.find((button) => button.primary)!;
 
@@ -111,20 +112,38 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                 {message.input && (
                     <div className="form-group app-message-field">
                         <label className="sr-only" htmlFor="appMessageInput">{message.title}</label>
-                        <input
-                            type={message.input.type || 'text'}
-                            id="appMessageInput"
-                            aria-labelledby="appMessageText"
-                            required={message.input.required}
-                            ref={inputRef}
-                            value={inputValue}
-                            onChange={(event) => setInputValue(event.target.value)}
-                            onKeyDown={(event) => {
-                                if (event.key !== 'Enter') return;
-                                event.preventDefault();
-                                answer(primary);
-                            }}
-                        />
+                        {message.input.type === 'date' ? (
+                            <DateInput
+                                id="appMessageInput"
+                                aria-labelledby="appMessageText"
+                                required={message.input.required}
+                                readOnly={message.input.readOnly}
+                                ref={inputRef}
+                                value={inputValue}
+                                onChange={(event) => setInputValue(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key !== 'Enter') return;
+                                    event.preventDefault();
+                                    answer(primary);
+                                }}
+                            />
+                        ) : (
+                            <input
+                                type={message.input.type || 'text'}
+                                id="appMessageInput"
+                                aria-labelledby="appMessageText"
+                                required={message.input.required}
+                                readOnly={message.input.readOnly}
+                                ref={inputRef}
+                                value={inputValue}
+                                onChange={(event) => setInputValue(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key !== 'Enter') return;
+                                    event.preventDefault();
+                                    answer(primary);
+                                }}
+                            />
+                        )}
                     </div>
                 )}
             </div>

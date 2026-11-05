@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 import {
+  identifyOpenProjects,
   buildBoardPayload,
   gotoApp,
   seedPortfolioBoards,
@@ -42,7 +43,7 @@ test.describe('project files', () => {
       writes: window.__newProjectWrites || []
     }));
 
-    expect(result.writes.length).toBe(1);
+    expect(result.writes.length).toBe(2);
 
     const saved = JSON.parse(result.writes[0]);
     expect(saved.board.settings.title).toBe('Project Alpha');
@@ -183,6 +184,8 @@ test.describe('project files', () => {
 
     await expect(page.locator('#portfolioView')).not.toHaveClass(/file-drop-active/);
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Dropped Project');
+    await identifyOpenProjects(page);
+    await page.locator('.board-active-sprints input').uncheck();
     await expect(portfolioCard(page, 'Dropped task')).toBeVisible();
   });
 

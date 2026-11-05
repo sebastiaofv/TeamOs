@@ -1,3 +1,4 @@
+import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { workitemLabelFor } from '@/domain/taskIdentity';
 import type { BoardMutationContext } from './mutationContext';
 import { buildComment, getComments, validateCommentInput, type CommentInput } from '@/domain/comments';
@@ -10,6 +11,7 @@ import { translateCurrent } from '@/shared/i18n';
 export function createCommentActions({ getState, getBoardRecord, canUsePortfolioTaskMutations, notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, alert }: BoardMutationContext) {
     const inFlight = new Set<string>();
     async function publishPortfolioComment(boardId: string, taskId: number, input: CommentInput, onApplied: () => void = () => {}): Promise<boolean> {
+        input = { ...input, author: projectActor(boardId)?.name || input.author };
         const context = getState().portfolioDetailContext;
         if (!canUsePortfolioTaskMutations(boardId) || (context?.boardId === boardId && context.taskId === taskId && context.readOnly)) { notifyPortfolioMutationUnavailable(boardId); return false; }
         if (inFlight.has(input.id)) return false;

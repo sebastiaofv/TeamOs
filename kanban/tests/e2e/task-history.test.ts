@@ -18,7 +18,7 @@ test('multi-field saves form one read-only history operation; filters and tabs p
     await page.locator('.history-entry summary').click();
     await expect(page.locator('.history-entry')).toContainText('Original');
     await expect(page.locator('.history-entry')).toContainText('Clarified');
-    await expect(page.locator('.history-author')).toHaveText('Unknown');
+    await expect(page.locator('.history-author')).toHaveText('Ana · local / unverified');
     const before = (await readSavedBoard(page, 'p')).extensions.timeline.events.length;
     await page.getByLabel('Category', { exact: true }).selectOption('relations');
     await expect(page.locator('.history-empty')).toContainText('No events match');

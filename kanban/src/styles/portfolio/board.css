@@ -512,7 +512,7 @@
 /* Workitem views use the existing theme, buttons and modal primitives. */
 .workitem-board-shell { display: flex; flex-direction: column; width: 100%; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg-primary); }
 .workitem-board-toolbar { display: flex; flex-wrap: wrap; align-items: center; flex-shrink: 0; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
-.workitem-board-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.workitem-board-actions { display: flex; flex-wrap: wrap; min-width: 0; align-items: center; gap: 8px; margin-left: auto; }
 .workitem-board-columns { display: flex; flex: 1; min-height: 0; gap: 1px; overflow-x: auto; background: var(--border-light); }
 .workitem-card-context { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 11px; color: var(--text-muted); }
 .workitem-type { display: inline-block; border: 1px solid var(--border); border-radius: 4px; padding: 2px 5px; color: var(--text-secondary); background: var(--bg-secondary); font-size: 11px; }
@@ -560,3 +560,8 @@
 .task-card-urgency { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-left: auto; }
 .task-card-priority, .task-card-due { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .task-card-due.is-overdue { color: var(--priority-high); }
+
+.column-category { display: block; margin-top: 3px; font-size: 0.5em; font-weight: 400; color: var(--text-muted); }
+.board-active-sprints { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+.task-advance { flex: none; align-self: flex-start; font-size: 20px; }
+.task-card-owner select { min-width: 0; max-width: 160px; padding: 3px; font-size: 12px; }

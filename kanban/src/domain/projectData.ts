@@ -28,7 +28,7 @@ export function parseProjectData(value: unknown): ProjectData | undefined {
     if (!isRecord(value) || value.version !== 1 || typeof value.id !== 'string' || !value.id.trim()
         || typeof value.description !== 'string' || (value.status !== null && !PROJECT_STATUSES.some((status) => status === value.status))
         || !Array.isArray(value.members) || !Array.isArray(value.tags)) throw new ProjectDataError('invalid');
-    if (value.acronym !== undefined && (typeof value.acronym !== 'string' || !/^[A-Z]{1,3}$/.test(value.acronym))) throw new ProjectDataError('acronym');
+    if (value.acronym !== undefined && (typeof value.acronym !== 'string' || !/^[A-Z]{1,4}$/.test(value.acronym))) throw new ProjectDataError('acronym');
     if (value.productName !== undefined && typeof value.productName !== 'string') throw new ProjectDataError('invalid');
     const ids = new Set<string>();
     const names = new Set<string>();

@@ -36,8 +36,8 @@ test.describe('timeline', () => {
     await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
     await page.getByRole('button', { name: 'Create Sprint' }).click();
     await page.fill('#roadmapEntityTitle', 'Sprint 12');
-    await page.fill('#roadmapEntityStartDate', '2026-04-01');
-    await page.fill('#roadmapEntityEndDate', '2026-04-14');
+    await page.fill('#roadmapEntityStartDate', '01/04/2026');
+    await page.fill('#roadmapEntityEndDate', '14/04/2026');
     await page.getByRole('button', { name: 'Save Item' }).click();
   await confirmWorkitemChanges(page);
 
@@ -92,7 +92,7 @@ test.describe('timeline', () => {
     await page.getByRole('button', { name: 'Roadmap' }).click();
     await page.getByRole('button', { name: 'Add Milestone' }).click();
     await page.locator('#roadmapEntityTitle').fill('Beta');
-    await page.locator('#roadmapEntityDate').fill('2026-05-01');
+    await page.locator('#roadmapEntityDate').fill('01/05/2026');
     await page.getByRole('button', { name: 'Save Item' }).click();
   await confirmWorkitemChanges(page);
 
@@ -104,6 +104,7 @@ test.describe('timeline', () => {
 
     await page.locator('#milestoneWorkitemsModal .modal-close').click();
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
+    await page.locator('#milestoneWorkitemsModal .modal-footer summary').click();
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageSelection')).toHaveValue('0');
     await answerAppMessage(page, { button: 'Confirm' });
@@ -124,7 +125,7 @@ test.describe('timeline', () => {
       const usage: string[] = [];
       for (let index = 0; index < await rows.count(); index++) {
         await rows.nth(index).click();
-        usage.push((await page.locator('#milestoneWorkitemsModal .roadmap-scope-summary > span').first().innerText()).trim());
+        usage.push(String(await page.locator('#milestoneWorkitemsModal tbody tr[data-task-id]').count()));
         await page.locator('#milestoneWorkitemsModal .modal-close').click();
       }
       return { titles, usage };
@@ -134,9 +135,9 @@ test.describe('timeline', () => {
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await expect(page.locator('#portfolioTimelinePanel')).not.toHaveClass(/collapsed/);
 
-    expect(await replayedStateAt(1)).toEqual({ titles: ['Alpha', 'Beta'], usage: ['1 of 1 associated workitems', '0 of 0 associated workitems'] });
-    expect(await replayedStateAt(2)).toEqual({ titles: ['Alpha', 'Beta Renamed'], usage: ['1 of 1 associated workitems', '0 of 0 associated workitems'] });
-    expect(await replayedStateAt(3)).toEqual({ titles: ['Beta Renamed'], usage: ['0 of 0 associated workitems'] });
+    expect(await replayedStateAt(1)).toEqual({ titles: ['Alpha', 'Beta'], usage: ['1', '0'] });
+    expect(await replayedStateAt(2)).toEqual({ titles: ['Alpha', 'Beta Renamed'], usage: ['1', '0'] });
+    expect(await replayedStateAt(3)).toEqual({ titles: ['Beta Renamed'], usage: ['0'] });
   });
 
   test('task edits create timeline events in extensions.timeline', async ({ page }) => {

@@ -80,7 +80,6 @@ test('existing control records require Edit for main fields but save sidebar cha
     await expect(dialog(page).locator('.workitem-main input, .workitem-main textarea, .workitem-main select')).toHaveCount(0);
     await expect(dialog(page).getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
     await expect(dialog(page).getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
-    await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('in-mitigation');
     await expect(dialog(page).getByLabel('Status', { exact: true })).toBeEnabled();
     await dialog(page).getByLabel('Responsible', { exact: true }).selectOption('Bruno Costa');
@@ -141,7 +140,7 @@ for (const language of ['en', 'pt']) for (const [kind, title, id] of [
     if (kind === 'Risks') {
         const labels = await sidebar.locator('.workitem-property-group').first().locator('.form-group > label').allTextContents();
         expect(labels).toEqual(language === 'pt' ? ['Estado', 'Probabilidade', 'Impacto', 'Nível de risco', 'Prazo', 'Data de materialização'] : ['Status', 'Probability', 'Impact', 'Risk level', 'Due date', 'Materialized date']);
-        expect(await sidebar.locator('input[type=date]').evaluateAll((fields) => fields.map((field) => field.id))).toEqual(['control-dueDate', 'control-materializedDate']);
+        expect(await sidebar.locator(`input[placeholder="${language === 'pt' ? 'dd/mm/aaaa' : 'dd/mm/yyyy'}"]`).evaluateAll((fields) => fields.map((field) => field.id))).toEqual(['control-dueDate', 'control-materializedDate']);
     }
     await sidebar.locator('#control-owner').selectOption('Bruno Costa');
     await expect(sidebar.locator('.assignee-editor-list')).toContainText('Bruno Costa');
@@ -193,7 +192,7 @@ for (const language of ['en', 'pt']) for (const [kind, title, id] of [
         await expect(dialog(page).getByRole('tabpanel').locator('textarea')).toHaveCount(0);
         await dialog(page).getByRole('tab', { name: language === 'pt' ? 'Detalhes' : 'Details', exact: true }).click();
     }
-    await dialog(page).getByLabel(language === 'pt' ? 'Prazo' : 'Due date', { exact: true }).fill('2026-11-15');
+    await dialog(page).getByLabel(language === 'pt' ? 'Prazo' : 'Due date', { exact: true }).fill('15/11/2026');
     // Clicking Edit commits the sidebar value before opening the main-field draft.
     await dialog(page).getByRole('button', { name: language === 'pt' ? 'Editar' : 'Edit', exact: true }).click();
     await dialog(page).getByLabel(language === 'pt' ? 'Título' : 'Title', { exact: true }).fill(`${title} updated`);
@@ -246,7 +245,6 @@ for (const language of ['en', 'pt']) test(`control history preserves complete op
     await dialog(page).getByLabel('Title', { exact: true }).fill('Supplier confirmed');
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('in-mitigation');
     await dialog(page).getByLabel('Responsible', { exact: true }).selectOption('Bruno Costa');
-    await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
     await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await waitForBoardWrites(page);
@@ -344,7 +342,7 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
     await dialog(page).getByLabel('Impact', { exact: true }).selectOption('high');
     await expect(dialog(page).getByLabel('Risk level', { exact: true })).toContainText('High');
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('materialized');
-    await expect(dialog(page).getByLabel('Materialized date', { exact: true })).toHaveValue('2026-10-31');
+    await expect(dialog(page).getByLabel('Materialized date', { exact: true })).toHaveValue('31/10/2026');
     await dialog(page).getByRole('tab', { name: 'Response', exact: true }).click();
     await dialog(page).getByLabel('Actual impact', { exact: true }).fill('Two days');
     await dialog(page).getByRole('tab', { name: 'Details', exact: true }).click();
@@ -352,7 +350,6 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
     await dialog(page).getByLabel('release · Release approval', { exact: true }).check();
     await expect(dialog(page).getByRole('group', { name: 'Workitems', exact: true })).toHaveCount(0);
     await expect(dialog(page).getByLabel('ATL-TK-1 · Build complete', { exact: true })).toHaveCount(0);
-    await dialog(page).getByLabel('Recorded by (local author)', { exact: true }).fill('Ana Silva');
     await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
     await expect(dialog(page)).toHaveCount(0);
     await waitForBoardWrites(page);
@@ -414,7 +411,7 @@ test('acceptance gates parent, subphase and milestone progress while unrelated p
     await page.getByRole('tab', { name: 'Deliverables', exact: true }).click();
     await page.getByRole('button', { name: 'Release package', exact: true }).click();
     await dialog(page).getByLabel('Status', { exact: true }).selectOption('accepted');
-    await expect(dialog(page).getByLabel('Accepted date', { exact: true })).toHaveValue('2026-10-31');
+    await expect(dialog(page).getByLabel('Accepted date', { exact: true })).toHaveValue('31/10/2026');
     await dialog(page).getByRole('button', { name: 'Close', exact: true }).last().click();
     await expect(dialog(page)).toHaveCount(0);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
@@ -427,8 +424,8 @@ test('records can be created and associated during phase creation, without losin
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     await page.getByRole('button', { name: 'Add Phase', exact: true }).click();
     await page.locator('#roadmapEntityTitle').fill('New phase');
-    await page.locator('#roadmapEntityStartDate').fill('2026-11-01');
-    await page.locator('#roadmapEntityEndDate').fill('2026-11-30');
+    await page.locator('#roadmapEntityStartDate').fill('01/11/2026');
+    await page.locator('#roadmapEntityEndDate').fill('30/11/2026');
     await page.locator('#roadmapEntityObjective').fill('Retained objective');
     await page.locator('#roadmapEntityModal').getByRole('button', { name: 'New record · Decision', exact: true }).click();
     await dialog(page).getByLabel('Title', { exact: true }).fill('Nested decision');

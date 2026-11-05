@@ -72,8 +72,17 @@
 .transfer-blocked-icon { display: inline-block; vertical-align: middle; margin-right: 6px; }
 .transfer-workitem + .transfer-workitem { margin-top: 20px; }
 .transfer-workitem h4 { margin: 0; padding: 10px 8px; background: var(--bg-secondary); border-left: 2px solid var(--accent); color: var(--text-primary); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
-.app-message-fields { width: 100%; }
+#appMessageModal .modal-content:has(.app-message-fields) { max-width: 860px; }
+.app-message-fields { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 16px; text-align: left; }
+.app-message-fields th, .app-message-fields td { padding: 12px 0; vertical-align: middle; border-bottom: 1px solid var(--border-light); }
+.app-message-fields th { width: 30%; padding-right: 20px; }
+.app-message-fields label { margin: 0; font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; overflow-wrap: anywhere; }
+.app-message-fields select { min-width: 0; font-variant-numeric: tabular-nums; }
 @media (max-width: 600px) {
+    .app-message-fields, .app-message-fields tbody, .app-message-fields tr, .app-message-fields th, .app-message-fields td { display: block; width: 100%; }
+    .app-message-fields th { padding: 12px 0 6px; border-bottom: 0; }
+    .app-message-fields td { padding: 0 0 12px; }
+    .app-message-fields select { padding-inline: 6px; font-size: 12px; }
     .has-transfer-review .modal-body { padding: 16px; }
     .transfer-route { gap: 10px; padding: 12px; }
     .transfer-route-project strong { font-size: 12px; }

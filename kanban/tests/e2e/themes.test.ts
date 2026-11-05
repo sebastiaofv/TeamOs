@@ -188,12 +188,14 @@ for (const style of ['classic', 'modern']) {
             await expect(page.locator('html')).toHaveAttribute('data-theme', mode);
             const radius = style === 'modern' ? '5px' : '0px';
             await expect(page.locator('#themeToggleBtn')).toHaveCSS('border-radius', radius);
-            for (const view of ['board', 'table', 'dashboard', 'roadmap', 'control', 'calendar', 'planner']) {
+            for (const view of ['board', 'table', 'dashboard', 'roadmap', 'control', 'planner']) {
                 const button = page.locator(`[data-view-mode="${view}"]`);
                 await button.click();
                 await expect(button).toHaveAttribute('aria-pressed', 'true');
                 await capture(view);
             }
+            await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+            await capture('calendar');
             await page.locator('#docsToggleBtn').click();
             await expect(page.locator('#docsView')).toBeVisible();
             await capture('docs');

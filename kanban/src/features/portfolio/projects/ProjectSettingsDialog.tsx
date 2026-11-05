@@ -1,3 +1,4 @@
+import { SaveButton } from '@/features/portfolio/projects/ProjectSaveStatus';
 import { useRef, useState, type KeyboardEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { DialogPropsByName } from '@/features/portfolio/types';
@@ -103,7 +104,7 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
                         </div>
                         <div className="form-group">
                             <label htmlFor="projectAcronym" className={vm.onCreate ? 'required' : undefined}>{t('project.acronym')}</label>
-                            <input id="projectAcronym" value={project.acronym || ''} maxLength={3} pattern="[A-Z]{1,3}" required={Boolean(vm.onCreate || vm.data.extensions.project?.acronym)} aria-describedby="projectAcronymHelp" onChange={(event) => { const acronym = event.target.value.toUpperCase(); setProject({ ...project, acronym: acronym || undefined }); }} />
+                            <input id="projectAcronym" value={project.acronym || ''} maxLength={4} pattern="[A-Z]{1,4}" required={Boolean(vm.onCreate || vm.data.extensions.project?.acronym)} aria-describedby="projectAcronymHelp" onChange={(event) => { const acronym = event.target.value.toUpperCase(); setProject({ ...project, acronym: acronym || undefined }); }} />
                             <p id="projectAcronymHelp">{t('project.acronymHelp')}</p>
                         </div>
                         <div className="form-group">
@@ -178,7 +179,7 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
         <div className="modal-footer workflow-modal-footer">
             <span>{t(vm.readOnly ? 'workflow.readOnlyNote' : 'workflow.draftNote')}</span>
             <div><Dialog.Close className="btn" disabled={saving}>{t(vm.readOnly ? 'common.close' : 'common.cancel')}</Dialog.Close>
-                {!vm.readOnly && <button className="btn btn-primary" type="button" disabled={saving} onClick={() => void submit()}>{t('common.save')}</button>}</div>
+                {!vm.readOnly && <SaveButton boardId={vm.boardId} busy={saving} className="btn btn-primary" type="button" disabled={saving} onClick={() => void submit()}>{t('common.save')}</SaveButton>}</div>
         </div>
     </div>;
 }

@@ -193,7 +193,7 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         expect(data().board.tasks[1].status).toBe('done');
         expect(data().extensions.sprintResults!.closures[0]).toEqual(closure);
         expect(consultSprintParticipation(data(), 's1').members).toEqual(closure.tasks);
-        expect(taskInTechnicalBoard(data(), data().board.tasks[2])).toBe(false);
+        expect(taskInTechnicalBoard(data(), data().board.tasks[2])).toBe(true); // #54's all-Sprints Board can display it; the active-only filter is separate.
         const restored = serializeBoardDataFromObject(JSON.parse(JSON.stringify(data())));
         validateBoardData(restored);
         expect(restored.extensions.sprintResults!.closures[0]).toEqual(closure);

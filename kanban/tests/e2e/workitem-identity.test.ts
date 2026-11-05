@@ -12,17 +12,17 @@ test('legacy configuration preserves existing IDs and new workitems share perman
         await page.locator('#commandPaletteInput').fill(`+ New ${type} type:${type}`);
         await page.locator('.palette-item').first().click();
         if (index === 0) await answerAppMessage(page, { expectText: 'unique acronym', input: 'chk' });
-        await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks.length).toBe(index + 2);
+        await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks.length).toBe(index + (type === 'bug' ? 3 : 2));
     }
     const saved = await readSavedBoard(page, 'p');
-    expect(saved.board.tasks.map((task: { id: number; displayId?: string }) => task.displayId || String(task.id))).toEqual(['1201', 'CHK-EP-1202', 'CHK-US-1203', 'CHK-TK-1204', 'CHK-BG-1205']);
+    expect(saved.board.tasks.map((task: { id: number; displayId?: string }) => task.displayId || String(task.id))).toEqual(['1201', 'CHK-EP-1202', 'CHK-US-1203', 'CHK-TK-1204', 'CHK-BG-1205', 'CHK-TK-1206']);
     await expect(portfolioCard(page, 'New task')).toContainText('CHK-TK-1204');
     await portfolioCard(page, 'New task').dblclick();
     await expect(page.locator('#taskDetailModal')).toContainText('CHK-TK-1204');
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Settings for Checkout', exact: true }).click();
     await expect(page.getByLabel('Project Acronym', { exact: true })).toHaveValue('CHK');
-    await expect(page.getByLabel('Project Acronym', { exact: true })).toHaveAttribute('maxlength', '3');
+    await expect(page.getByLabel('Project Acronym', { exact: true })).toHaveAttribute('maxlength', '4');
     await page.getByLabel('Project Acronym', { exact: true }).fill('pay');
     await page.locator('#projectName').fill('Payments');
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
@@ -39,7 +39,7 @@ test('legacy configuration preserves existing IDs and new workitems share perman
     await expect(portfolioCard(page, 'New task')).toContainText('CHK-TK-1204');
     await page.keyboard.press('ControlOrMeta+k'); await page.locator('#commandPaletteInput').fill('+ Another task');
     await page.locator('.palette-item').first().click();
-    await expect.poll(async () => (await readSavedBoard(page, 'reopen')).board.tasks.at(-1).displayId).toBe('PAY-TK-1206');
+    await expect.poll(async () => (await readSavedBoard(page, 'reopen')).board.tasks.at(-1).displayId).toBe('PAY-TK-1207');
 });
 
 test('legacy settings reject an acronym already assigned to another open project', async ({ page }) => {

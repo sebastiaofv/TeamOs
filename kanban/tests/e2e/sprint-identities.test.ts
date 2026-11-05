@@ -23,8 +23,8 @@ test('sprint creation order and numbering survive name/date edits and reimport',
   await page.locator('[data-view-mode="roadmap"]').click();
   await page.getByRole('button', { name: 'Edit Design', exact: true }).click();
   await page.locator('#roadmapEntityTitle').fill('New design name');
-  await page.locator('#roadmapEntityStartDate').fill('2025-01-01');
-  await page.locator('#roadmapEntityEndDate').fill('2025-01-14');
+  await page.locator('#roadmapEntityStartDate').fill('01/01/2025');
+  await page.locator('#roadmapEntityEndDate').fill('14/01/2025');
   await page.getByRole('button', { name: 'Save Item', exact: true }).click();
   await confirmWorkitemChanges(page);
   await waitForBoardWrites(page);
@@ -55,8 +55,8 @@ test('planning creation follows legacy numbering; a second project starts at one
     await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Execution');
-    await page.locator('#roadmapEntityStartDate').fill('2025-01-01');
-    await page.locator('#roadmapEntityEndDate').fill('2025-01-14');
+    await page.locator('#roadmapEntityStartDate').fill('01/01/2025');
+    await page.locator('#roadmapEntityEndDate').fill('14/01/2025');
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
   await confirmWorkitemChanges(page);
     await expect.poll(async () => (await readSavedBoard(page, id)).extensions.sprintCatalog?.lastNumber).toBe(expectedNumber);

@@ -6,7 +6,7 @@ describe('getActivePortfolioFilterNames', () => {
     expect(getActivePortfolioFilterNames(DEFAULT_PORTFOLIO_FILTERS)).toEqual([]);
     expect(getActivePortfolioFilterNames({
       ...DEFAULT_PORTFOLIO_FILTERS, effort: 'L', archive: 'all', priority: 'high'
-    })).toEqual(['archive', 'priority', 'effort']);
+    })).toEqual(['priority', 'effort']);
   });
 
   it('ignores the search text, which lives outside the panel', () => {

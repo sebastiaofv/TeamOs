@@ -1,3 +1,6 @@
+import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
+import { PortfolioToolbarFilters } from '@/features/portfolio/shell/PortfolioFilters';
+import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -92,6 +95,9 @@ function DroppableColumnBody({ column, children }: { column: BoardColumn; childr
 function PortfolioBoardView({ state }: { state: BoardViewState }) {
     const actions = usePortfolioActions();
     const { t } = useI18n();
+    const today = useLocalToday();
+    const activeSprintsOnly = useAppStore((state) => state.portfolioBoardActiveSprintsOnly);
+    const setActiveSprintsOnly = (value: boolean) => useAppStore.setState({ portfolioBoardActiveSprintsOnly: value });
     const [mode, setMode] = useState<'technical' | 'functional'>('technical');
     const [activeCardId, setActiveCardId] = useState<UniqueIdentifier | null>(null);
     const sensors = useSensors(
@@ -105,7 +111,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
-    const { columns, buckets } = buildPortfolioBoardView(state, mode);
+    const { columns, buckets } = buildPortfolioBoardView(state, mode, { activeSprintsOnly, today });
     const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
@@ -140,6 +146,8 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                     {(['technical', 'functional'] as const).map((value) => <button className={`btn${mode === value ? ' active' : ''}`} type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{t(`workitems.${value}`)}</button>)}
                     <div className="workitem-board-actions">
                         {canAddTasks && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}>{t('table.create')}</button>}
+                        <PortfolioToolbarFilters />
+                        <label className="board-active-sprints"><input type="checkbox" checked={activeSprintsOnly && !state.portfolioFilters.sprintId} onChange={(event) => { setActiveSprintsOnly(event.target.checked); if (event.target.checked) setPortfolioFilter('sprintId', ''); }} />{t('board.activeSprintsOnly')}</label>
                         <BoardColumnMenu mode={mode} />
                     </div>
                 </div>
@@ -149,7 +157,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                         const items = buckets[column.status] || [];
                         const title = columnTitle(column, t);
                         return <section className="portfolio-column" data-status={column.status} key={column.status}>
-                            <div className="portfolio-column-header"><h2 className="column-title" id={`portfolio-${column.status}-heading`}>{title}</h2><span className="column-count">{items.length}</span></div>
+                            <div className="portfolio-column-header"><h2 className="column-title" id={`portfolio-${column.status}-heading`}>{title}<small className="column-category">{t(`workflow.${column.category}`)}</small></h2><span className="column-count">{items.length}</span></div>
                             <DroppableColumnBody column={{ ...column, title }}>
                                 {items.length ? items.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />) : <p className="empty-state">{t('common.noTasks')}</p>}
                             </DroppableColumnBody>

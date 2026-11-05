@@ -201,3 +201,15 @@ export function applyWorkflow(data: BoardData, workflow: Workflow, relocations: 
         if (hidden) data.extensions.boardView[key] = hidden.filter((id) => ids.has(id));
     }
 }
+
+/** Prefer the first configured forward transition; loops can return to an earlier active state. */
+export function nextWorkflowState(data: LooseBoardData, task: { type?: unknown; status: string }) {
+    const workflow = getWorkflow(data, task);
+    const current = workflow.states.findIndex((state) => state.id === task.status);
+    if (['completed', 'cancelled'].includes(workflow.states[current]?.category)) return undefined;
+    const targets = (workflow.transitions[task.status] || []).flatMap((id) => {
+        const state = workflow.states.find((entry) => entry.id === id);
+        return state && !['cancelled', 'backlog'].includes(state.category) ? [state] : [];
+    });
+    return targets.find((state) => workflow.states.indexOf(state) > current) || targets[0];
+}

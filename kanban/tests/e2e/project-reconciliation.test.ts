@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-import { buildBoardPayload, gotoApp, renameTaskViaEditor, portfolioCard, openTaskEditor } from '../support/portfolio';
+import { buildBoardPayload, gotoApp, renameTaskViaEditor, portfolioCard, openTaskEditor, identifyOpenProjects } from '../support/portfolio';
 
 declare global {
     interface Window {
@@ -43,6 +43,9 @@ function sharedDisk() {
 async function load(page: Page) {
     await gotoApp(page);
     await page.locator('#importProjectsBtn').click();
+    await expect(page.locator('#projectIdentityModal')).toBeVisible();
+    await identifyOpenProjects(page);
+    await page.getByRole('checkbox', { name: 'Active Sprints only', exact: true }).uncheck();
     await expect(portfolioCard(page, 'First workitem')).toBeVisible();
 }
 async function resolve(page: Page, side = 'Keep all mine') {
@@ -103,6 +106,9 @@ test('same-field conflict exposes all values, defers without writing and survive
         second.once('dialog', (dialog) => { expect(dialog.type()).toBe('beforeunload'); void dialog.accept(); });
         await second.reload();
         await second.locator('#importProjectsBtn').click();
+        await expect(second.locator('#projectIdentityModal')).toBeVisible();
+        await identifyOpenProjects(second);
+        await second.getByRole('checkbox', { name: 'Active Sprints only', exact: true }).uncheck();
         await expect(second.getByRole('button', { name: 'Recover changes', exact: true })).toBeVisible();
         await second.getByRole('button', { name: 'Recover changes', exact: true }).click();
         await expect(portfolioCard(second, 'Local title')).toBeVisible(); await expect(portfolioCard(second, 'More local work')).toBeVisible();

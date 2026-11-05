@@ -15,13 +15,13 @@ test('workflow settings remain draft-based and renamed states keep their own col
     await dialog.locator('[data-state-choice="to-do"]').click();
     await dialog.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
-    await expect(page.locator('#portfolio-to-do-heading')).toHaveText('To Do');
+    await expect(page.locator('#portfolio-to-do-heading')).toContainText('To Do');
     await page.getByRole('button', { name: /^Settings for / }).click();
     await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await dialog.locator('[data-state-choice="to-do"]').click();
     await dialog.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
     await dialog.getByRole('button', { name: 'Save', exact: true }).click();
-    await expect(page.locator('#portfolio-to-do-heading')).toHaveText('Ready');
+    await expect(page.locator('#portfolio-to-do-heading')).toContainText('Ready');
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.workflow.states[1].name).toBe('Ready');
 });
 

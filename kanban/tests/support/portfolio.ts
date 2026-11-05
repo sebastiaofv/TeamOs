@@ -145,6 +145,14 @@ function buildBoardPayload({ title, tasks = [], extensions = {}, members, tags, 
     }
     payload.extensions.project.acronym ||= acronym;
   }
+  if (members === undefined) {
+    if (!payload.extensions.project) {
+      payload.extensions.project = getProjectData(payload);
+      payload.board.tasks = payload.board.tasks.map((task) => ({ ...task, assigneeIds: task.assignees.map((name) => payload.extensions.project.members.find((member: { name: string }) => member.name === name)!.id), responsibleId: payload.extensions.project.members.find((member: { name: string }) => member.name === task.responsible)?.id || '' }));
+    }
+    if (!payload.extensions.project.members.length)
+    payload.extensions.project.members.push({ id: 'test-user', name: 'Test user' });
+  }
   return payload;
 }
 
@@ -162,10 +170,25 @@ async function gotoApp(page: Page) {
 // `board.id` is a test label. The app assigns its own random ids, so the label
 // only keys the fake disk (`window.__portfolioDiskByBoardId[label]`) and write
 // records; the UI is addressed by board title.
+async function identifyOpenProjects(page: Page) {
+  while (await page.locator('#projectIdentityModal').count()) {
+    const identity = page.locator('#projectIdentityModal');
+    const select = identity.locator('select');
+    const member = await select.locator('option').evaluateAll((options) => options.map((option) => option.getAttribute('value')).find((value) => value && value !== '@new') || '');
+    if (member) await select.selectOption(member);
+    else if (await select.locator('option[value="@new"]').count()) {
+      await select.selectOption('@new');
+      await identity.locator('input').fill('Test user');
+    }
+    await identity.locator('.modal-footer button').click();
+    await page.waitForTimeout(25);
+  }
+}
+
 async function seedPortfolioBoards(
   page: Page,
   boards: SeedBoard[],
-  { selectedBoardId = '', sortKey = '' }: { selectedBoardId?: string; sortKey?: string } = {}
+  { selectedBoardId = '', sortKey = '', identify = true, boardScope = 'all' }: { selectedBoardId?: string; sortKey?: string; identify?: boolean; boardScope?: 'all' | 'default' } = {}
 ) {
   const usedAcronyms = configuredSeedAcronyms.get(page) || new Set<string>();
   configuredSeedAcronyms.set(page, usedAcronyms);
@@ -296,6 +319,12 @@ async function seedPortfolioBoards(
       await expect(chips).toContainText(board.title);
     }
   }
+
+  if (identify) await identifyOpenProjects(page);
+
+  if (identify && boardScope === 'all' && await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
+
+  if (!identify) return;
 
   const selectedBoard = seededBoards.find((board) => board.label === selectedBoardId);
   if (selectedBoard) {
@@ -444,14 +473,15 @@ async function answerAppMessage(
   if (expectText !== undefined) {
     await expect(dialog.locator('#appMessageText')).toContainText(expectText);
   }
-  if (input !== undefined) {
+  if (input !== undefined && await dialog.locator('#appMessageInput').getAttribute('readonly') === null) {
     await dialog.locator('#appMessageInput').fill(input);
   }
   const target = button
     ? dialog.getByRole('button', { name: button, exact: true })
     : dialog.locator('#appMessageConfirmBtn');
+  const content = await dialog.locator('.modal-content').elementHandle();
   await target.click();
-  await expect(dialog).toHaveCount(0);
+  await content?.waitForElementState('hidden');
 }
 
 // Legacy happy-path planning tests explicitly accept the additional US-12 impact review.
@@ -497,6 +527,11 @@ async function dragWithMouse(
 // Fakes the save picker for New Project. The project name prompt still has to
 // be answered with answerAppMessage.
 async function mockNewProjectFlow(page: Page, { fileName = 'new-project.json' }: { fileName?: string } = {}) {
+  await page.addLocatorHandler(page.locator('#projectIdentityModal'), async () => {
+    if (await page.locator('#appMessageModal').count()) return;
+    await identifyOpenProjects(page);
+    if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
+  }, { noWaitAfter: true });
   await page.evaluate(({ fileName }) => {
     window.__newProjectWrites = [];
     const disk = {
@@ -534,6 +569,11 @@ async function mockNewProjectFlow(page: Page, { fileName = 'new-project.json' }:
 
 // The picker handles are read-only: they can be read but not written.
 async function mockImportProjectsPicker(page: Page, payloads: { fileName: string; payload: unknown }[]) {
+  await page.addLocatorHandler(page.locator('#projectIdentityModal'), async () => {
+    if (await page.locator('#appMessageModal').count()) return;
+    await identifyOpenProjects(page);
+    if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
+  }, { noWaitAfter: true });
   await page.evaluate((payloads) => {
     (window as any).showOpenFilePicker = async () => payloads.map((entry) => ({
       name: entry.fileName,
@@ -629,6 +669,7 @@ export {
   selectPortfolioBoard,
   readSavedBoard,
   waitForBoardWrites,
+  identifyOpenProjects,
   portfolioCard,
   openFiltersPanel,
   setBoardSearch,

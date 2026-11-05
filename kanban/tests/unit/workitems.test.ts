@@ -36,8 +36,8 @@ describe('US-12 workitem domain', () => {
         const data = project(); data.board.tasks[2].parentId = 1; expect(() => assertWorkitems(data)).not.toThrow();
         data.board.tasks[1].parentId = null; data.board.tasks[2].parentId = null; expect(() => assertWorkitems(data)).not.toThrow();
     });
-    it('rejects parented Bugs and Epic execution fields', () => {
-        const data = project(); data.board.tasks[3].parentId = 1; expect(() => assertWorkitems(data)).toThrow('parent');
+    it('allows Bugs under Epics and rejects Epic execution fields', () => {
+        const data = project(); data.board.tasks[3].parentId = 1; expect(() => assertWorkitems(data)).not.toThrow();
         delete data.board.tasks[3].parentId; data.board.tasks[0].effort = 'M'; expect(() => assertWorkitems(data)).toThrow('epic');
     });
     it('keeps direct-child progress separate from nested execution and manual Effort', () => {
@@ -67,7 +67,7 @@ describe('US-12 workitem domain', () => {
         before.board.tasks.push(item(5, 'task', { parentId: 2, sprintId: 'a' }));
         const next = structuredClone(before); next.board.tasks[1].sprintId = 'b'; syncWorkitemPlanning(next, before);
         expect(next.board.tasks.find((task) => task.id === 3)?.sprintId).toBe('a'); expect(next.board.tasks.find((task) => task.id === 5)?.sprintId).toBe('b');
-        expect(sprintMembers(next, 'a').map((task) => task.id)).toContain(5); expect(taskInTechnicalBoard(next, next.board.tasks[2])).toBe(false);
+        expect(sprintMembers(next, 'a').map((task) => task.id)).toContain(5); expect(taskInTechnicalBoard(next, next.board.tasks[2])).toBe(true);
     });
     it('reopening historical work joins the current Sprint without rewriting prior completion', () => {
         const before = project(); before.board.tasks[2].status = 'done'; before.board.tasks[2].sprintId = 'a';
@@ -169,7 +169,7 @@ describe('US-12 mutation boundaries' , () => {
         expect(data().extensions.timeline!.events.some((event) => event.entityId === '3' && event.changes?.priority && event.changes?.effort && event.changes?.dueDate)).toBe(true);
         expect(await actions.setPortfolioTaskProperties('p', 3, { priority: 'high' })).toBe(false);
         expect(await actions.setPortfolioTaskProperties('p', 3, { blocked: true, blockerReason: '' })).toBe(false);
-        expect(await actions.setPortfolioTaskProperties('p', 3, { parentId: 4 })).toBe(false);
+        expect(await actions.setPortfolioTaskProperties('p', 3, { parentId: 4 })).toBe(true);
         expect(await actions.setPortfolioTaskProperties('p', 3, { sprintId: 'a' })).toBe(false);
         expect(await actions.setPortfolioTaskProperties('p', 3, { blocked: true, blockerReason: 'Waiting on review' })).toBe(true);
         expect(await actions.setPortfolioTaskProperties('p', 3, { blocked: false })).toBe(true);

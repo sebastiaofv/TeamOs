@@ -2,7 +2,7 @@ import { TaskTransferMenu } from './TaskTransferMenu';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { workitemType, workitemProgress } from '@/domain/workitems';
-import { useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
+import { useState, useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import type { useDraggable } from '@dnd-kit/core';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -10,7 +10,7 @@ import type { AppState } from '@/features/portfolio/state/store';
 import { createPortfolioProjectColor } from '@/domain/board';
 import { formatDueDateForUi, normalizeDueDate } from '@/domain/calendar';
 import { parseRoadmapIsoDate } from '@/domain/roadmap';
-import { statusCategory } from '@/domain/workflow';
+import { nextWorkflowState, statusCategory } from '@/domain/workflow';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { normalizePriority } from '@/domain/task';
 import { escapeRegExp } from '@/domain/util';
@@ -62,7 +62,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     overlay?: boolean;
 }) {
     const actions = usePortfolioActions();
-    const { t, language } = useI18n();
+    const { t } = useI18n();
     const today = useLocalToday();
     const task = item.task;
     const canMutate = Boolean(item.canMutate) && !item.historical;
@@ -83,20 +83,22 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
         && canMutate;
     const bulkSelected = selectedBulkTaskIds(state, item.boardId).has(Number(task.id));
     const readOnlyTitle = item.historical ? t('task.readOnlyHistorical') : t('task.readOnlyNoHandle');
-    const archiveButtonTitle = task.archived ? t('common.restore') : t('common.archive');
     const boardData = item.boardData || state.portfolioBoards.find((b) => b.id === item.boardId)?.data;
     const type = workitemType(task);
-    const progress = boardData && type === 'story' ? workitemProgress(boardData, task.id) : null;
+    const progress = boardData && ['story', 'bug'].includes(type) ? workitemProgress(boardData, task.id) : null;
     const terminal = ['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task));
-    const highPriority = priority === 'high' && !terminal && !task.archived;
+    const highPriority = priority === 'high' && !terminal;
     const dueDate = normalizeDueDate(task.dueDate);
     const due = parseRoadmapIsoDate(dueDate);
     const daysUntilDue = due ? (due.getTime() - parseRoadmapIsoDate(today)!.getTime()) / 86_400_000 : null;
-    const showDue = daysUntilDue !== null && daysUntilDue <= 3 && !terminal && !task.archived;
+    const showDue = daysUntilDue !== null && daysUntilDue <= 3 && !terminal;
     const dueLabel = daysUntilDue !== null && daysUntilDue < 0 ? t('task.overdue')
         : daysUntilDue === 0 ? t('common.today')
         : daysUntilDue === 1 ? t('card.tomorrow')
-        : due ? new Intl.DateTimeFormat(language === 'pt' ? 'pt-PT' : 'en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(due) : '';
+        : due ? formatDueDateForUi(dueDate) : '';
+    const [busy, setBusy] = useState(false);
+    const nextState = boardData && nextWorkflowState(boardData, task);
+    const members = boardData?.extensions.project?.members || [];
     const initials = task.responsible?.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toLocaleUpperCase();
     const cardRef = useRef<HTMLElement | null>(null);
     const setCardRef = useCallback((node: HTMLElement | null) => {
@@ -122,7 +124,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     }
 
     function handleCardClick(event: MouseEvent<HTMLElement>) {
-        if ((event.target as Element).closest('button, input, label, summary, details')) return;
+        if ((event.target as Element).closest('button, input, select, label, summary, details')) return;
         if (Date.now() < state.suppressPortfolioCardClickUntil) return;
         event.currentTarget.focus({ preventScroll: true });
         openDetails();
@@ -178,6 +180,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                         <HighlightedTitle text={task.title || ''} searchTerm={searchTerm} />
                     </span>
                 </div>
+                {nextState && <button className="task-action-btn task-advance" type="button" disabled={!canMutate || busy} aria-label={t('board.advanceTo', { state: nextState.name })} title={t('board.advanceTo', { state: nextState.name })} onClick={async () => { setBusy(true); try { await actions.movePortfolioTaskToStatus(item.boardId, taskId, nextState.id); } finally { setBusy(false); } }}>{busy ? <span className="save-spinner" aria-hidden="true" /> : '→'}</button>}
             </div>
             <div className="workitem-card-context">
                 <span className="task-card-id">{workitemLabel(task)}</span>
@@ -187,11 +190,6 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                     <TaskTransferMenu boardId={item.boardId} taskId={taskId} historical={item.historical} />
                     <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? t('task.editAction') : readOnlyTitle} aria-label={canMutate ? t('task.editAction') : readOnlyTitle} data-action="edit-task" onClick={() => actions.editPortfolioTask(item.boardId, taskId)}>
                         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m10 2 4 4-8 8H2v-4Zm-2 2 4 4" /></svg>
-                    </button>
-                    <button className="task-action-btn" type="button" disabled={!canMutate} title={canMutate ? archiveButtonTitle : readOnlyTitle} aria-label={canMutate ? archiveButtonTitle : readOnlyTitle} data-action="archive-task" onClick={() => actions.togglePortfolioArchiveTask(item.boardId, taskId)}>
-                        <svg viewBox="0 0 16 16" aria-hidden="true">{task.archived
-                            ? <path d="M3 6h6a4 4 0 0 1 0 8M6 3 3 6l3 3" />
-                            : <><path d="M2.5 6v7.5h11V6M1.5 2.5h13V6h-13Z" /><path d="M6 9h4" /></>}</svg>
                     </button>
                     <button className="task-action-btn task-action-danger" type="button" disabled={!canMutate} title={canMutate ? t('task.deleteAction') : readOnlyTitle} aria-label={canMutate ? t('task.deleteAction') : readOnlyTitle} data-action="delete-task" onClick={() => actions.deletePortfolioTask(item.boardId, taskId)}>
                         <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5h12M6 2.5h4M4 4.5l.5 9h7l.5-9M6.5 7v4M9.5 7v4" /></svg>
@@ -213,10 +211,12 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="8" cy="8" r="5.5" /><path d="m4 4 8 8" /></svg>
                 {t('task.blocked')}
             </div>}
-            {(task.responsible || highPriority || showDue) && <div className="task-card-footer">
-                {task.responsible && <span className="task-card-owner" title={`${t('task.responsible')}: ${task.responsible}`}>
+            {<div className="task-card-footer">
+                {<span className="task-card-owner" title={`${t('task.responsible')}: ${task.responsible}`}>
                     <span className="task-card-avatar" aria-hidden="true">{initials}</span>
-                    <span className="task-card-owner-name">{task.responsible}</span>
+                    <select onMouseDown={(event) => event.stopPropagation()} className="task-card-owner-name" aria-label={t('task.responsible')} value={task.responsible || ''} disabled={!canMutate || busy} onChange={async (event) => { setBusy(true); try { await actions.setPortfolioTaskResponsible(item.boardId, taskId, event.target.value); } finally { setBusy(false); } }}>
+                        <option value="">{t('board.notAssigned')}</option>{members.map((member) => <option key={member.id} value={member.name}>{member.name}</option>)}
+                    </select>
                 </span>}
                 {(highPriority || showDue) && <div className="task-card-urgency">
                     {highPriority && <span className="task-card-priority"><span className="priority-dot priority-high" aria-hidden="true" />{t('toolbar.high')}</span>}

@@ -406,3 +406,8 @@ textarea::placeholder {
         animation-iteration-count: 1 !important;
     }
 }
+
+.save-spinner { display: inline-block; width: 12px; height: 12px; flex: none; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: save-spin .7s linear infinite; vertical-align: middle; margin-inline-end: 5px; }
+.save-indicator { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; }
+@keyframes save-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .save-spinner { animation-duration: 2s; } }

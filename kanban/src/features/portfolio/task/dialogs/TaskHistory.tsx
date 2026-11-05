@@ -1,3 +1,4 @@
+import { formatDate, formatTimestamp } from '@/domain/dates';
 import { useState } from 'react';
 import { HISTORY_CATEGORIES, type HistoryCategory, type TaskHistoryEntry, type TaskHistoryProjection } from '@/domain/taskHistory';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
@@ -32,6 +33,8 @@ function operation(entry: TaskHistoryEntry, t: ReturnType<typeof useI18n>['t']):
 function readable(value: unknown, field: string, t: ReturnType<typeof useI18n>['t']): string {
     if (value === undefined) return t('history.unavailable');
     if (value === null || value === '' || (Array.isArray(value) && !value.length)) return t('common.none');
+    if (typeof value === 'string' && (field.endsWith('Date') || field === 'date')) return formatDate(value);
+    if (typeof value === 'string' && ['createdAt', 'updatedAt'].includes(field)) return formatTimestamp(value);
     if (typeof value === 'boolean') return t(value ? 'common.yes' : 'common.no');
     if (typeof value === 'string' || typeof value === 'number') return String(value);
     if (Array.isArray(value)) return value.map((item) => readable(item, field, t)).join('\n');
@@ -40,7 +43,7 @@ function readable(value: unknown, field: string, t: ReturnType<typeof useI18n>['
         if (typeof item.historical === 'boolean' && typeof item.id === 'string') return `${item.label || item.id} [${item.id}]${item.label && !item.historical ? ` · ${t('history.currentName')}` : ''}`;
         if (field === 'attachments') return item.unavailable ? t('history.detailsUnavailable') : `${item.name || item.id} · ${item.mime || item.kind || ''} · ${typeof item.sizeBytes === 'number' ? formatFileSize(item.sizeBytes) : t('history.unavailable')}`;
         if (field === 'checklist') return `${item.done ? '☑' : '☐'} ${item.text || ''}`;
-        if (field === 'planner') return `${item.date || ''} ${item.start || ''}–${item.end || ''} [${item.id || ''}]`;
+        if (field === 'planner') return `${formatDate(String(item.date || ''))} ${item.start || ''}–${item.end || ''} [${item.id || ''}]`;
         if (field === 'relations') return `${t(item.direction === 'blocks' ? 'history.blocks' : item.direction === 'blockedBy' ? 'history.blockedBy' : 'history.related')} ${typeof item.displayId === 'string' ? item.displayId : `#${item.id}`}${item.title ? ` · ${item.title}` : ''}`;
         // Unknown future content stays legible without exposing binary payloads.
         return Object.entries(item).filter(([key]) => !['dataUrl', 'base64', 'body', 'images'].includes(key)).map(([key, child]) => `${key}: ${readable(child, field, t)}`).join('\n');
@@ -57,9 +60,9 @@ type HistoryPresentation = {
 };
 
 export function TaskHistory({ history, categories = HISTORY_CATEGORIES, fieldLabels = FIELDS, formatValue, emptyMessage = 'history.empty' }: HistoryPresentation) {
-    const { t, language } = useI18n();
+    const { t } = useI18n();
     const [category, setCategory] = useState<HistoryCategory>('all');
-    const date = (value: string) => new Date(value).toLocaleString(language === 'pt' ? 'pt-PT' : 'en');
+    const date = (value: string) => formatTimestamp(value);
     const allEntries = history?.entries || [];
     const entries = allEntries.filter((entry) => category === 'all' || entry.categories.includes(category));
     const valueText = (value: unknown, field: string) => formatValue?.(value, field) ?? readable(value, field, t);

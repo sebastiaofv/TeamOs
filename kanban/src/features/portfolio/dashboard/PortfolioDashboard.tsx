@@ -1,3 +1,5 @@
+import { formatDate } from '@/domain/dates';
+import { DateInput } from '@/shared/ui/DateInput';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardData, RoadmapItem, Task } from '@/domain/types';
@@ -55,7 +57,7 @@ function SprintAnalytics({ data, phaseId, asOf, inspect }: { data: BoardData; ph
             <p className="dashboard-note">{t('dashboard.sprintNote')}</p>
             {!sprints.length ? <p>{t('dashboard.noSprints')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>{t('roadmap.sprint')}</th><th>{t('dashboard.dates')}</th><th>{t('task.status')}</th><th>{t('dashboard.participation')}</th><th>{t('dashboard.completed')}</th><th>{t('dashboard.open')}</th></tr></thead>
                 <tbody>{visible.map((sprint) => <tr key={sprint.item.id} data-dashboard-sprint={sprint.item.id}>
-                    <th>{t('table.sprintIdentity', { number: sprint.number || t('dashboard.na'), name: sprint.item.title })}</th><td>{sprint.item.startDate || t('dashboard.na')} → {sprint.item.endDate || t('dashboard.na')}</td><td>{t(`table.sprintStatus.${sprint.status}`)}</td>
+                    <th>{t('table.sprintIdentity', { number: sprint.number || t('dashboard.na'), name: sprint.item.title })}</th><td>{formatDate(sprint.item.startDate || '') || t('dashboard.na')} → {formatDate(sprint.item.endDate || '') || t('dashboard.na')}</td><td>{t(`table.sprintStatus.${sprint.status}`)}</td>
                     <td><button type="button" className="dashboard-link" onClick={() => inspect(sprint.item.title, sprint.tasks, sprint.data)}>{sprint.tasks.length}</button></td>
                     <td><button type="button" className="dashboard-link" onClick={() => inspect(`${sprint.item.title} · ${t('dashboard.completed')}`, sprint.metrics.completed, sprint.data)}>{sprint.metrics.completed.length}</button></td>
                     <td><button type="button" className="dashboard-link" onClick={() => inspect(`${sprint.item.title} · ${t('dashboard.open')}`, sprint.metrics.open, sprint.data)}>{sprint.metrics.open.length}</button></td>
@@ -86,7 +88,7 @@ function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string })
         {drill && <><p>{t('dashboard.sourceCount', { count: drill.tasks.length })}</p>
             {!drill.tasks.length ? <p>{t('dashboard.noSources')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th><th>{t('dashboard.dates')}</th></tr></thead>
                 <tbody>{drill.tasks.map((task) => <tr key={task.id}><td>{workitemLabel(task)}</td><td><button type="button" className="dashboard-link" onClick={() => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: drill.data, readOnly: true })}>{task.title}</button></td>
-                    <td>{getWorkflow(drill.data, task).states.find((state) => state.id === task.status)?.name || task.status}</td><td>{task.responsible || t('dashboard.na')}</td><td>{task.dueDate || t('dashboard.na')}</td>
+                    <td>{getWorkflow(drill.data, task).states.find((state) => state.id === task.status)?.name || task.status}</td><td>{task.responsible || t('dashboard.na')}</td><td>{formatDate(task.dueDate || '') || t('dashboard.na')}</td>
                 </tr>)}</tbody></table></div>}
         </>}
     </section>;
@@ -143,8 +145,8 @@ function Dashboard({ boardId }: { boardId: string }) {
                 {DASHBOARD_SECTIONS.map((key) => <label key={key}><input type="checkbox" checked={visible.includes(key)} onChange={(event) => { setVisible((current) => event.target.checked ? [...current, key] : current.filter((value) => value !== key)); setDrill(null); }} />{t(`dashboard.section.${key}`)}</label>)}
                 <div><button className="btn" type="button" onClick={() => setVisible([...DASHBOARD_SECTIONS])}>{t('dashboard.selectAll')}</button><button className="btn" type="button" onClick={() => { setVisible([]); setDrill(null); }}>{t('dashboard.clearAll')}</button></div>
             </fieldset></details>
-            <label>{t('dashboard.startDate')}<input aria-label={t('dashboard.startDate')} type="date" value={from} max={end} onChange={(event) => { setFrom(event.target.value); setDrill(null); }} /></label>
-            <label>{t('dashboard.endDate')}<input aria-label={t('dashboard.endDate')} type="date" value={end} min={from} max={referenceDate} onChange={(event) => { setTo(event.target.value); setDrill(null); }} /></label>
+            <label>{t('dashboard.startDate')}<DateInput aria-label={t('dashboard.startDate')}  value={from} max={end} onChange={(event) => { setFrom(event.target.value); setDrill(null); }} /></label>
+            <label>{t('dashboard.endDate')}<DateInput aria-label={t('dashboard.endDate')}  value={end} min={from} max={referenceDate} onChange={(event) => { setTo(event.target.value); setDrill(null); }} /></label>
             <label>{t('dashboard.scope')}<select aria-label={t('dashboard.scope')} value={activePhase} onChange={(event) => { setPhaseId(event.target.value); setDrill(null); }}><option value="">{t('dashboard.allPhases')}</option>{(displayData || data).extensions.roadmap?.phases.map((phase) => <option value={phase.id} key={phase.id}>{phase.title}</option>)}</select></label>
         </div>
         <div className="dashboard-tabs" role="group" aria-label={t('dashboard.title')}>

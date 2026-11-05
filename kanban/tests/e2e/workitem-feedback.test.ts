@@ -30,14 +30,14 @@ test('Board creation uses one toolbar button and terminal exception columns defa
     await expect(page.locator('#workitemType')).toHaveValue('story');
 });
 
-test('Epic and Story editors hide checklists, all editors leave Pull Requests in its tab', async ({ page }) => {
+test('only Task editors show checklists, all editors leave Pull Requests in its tab', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Table', exact: true }).click();
     await page.locator('[data-table-view="epics"]').click();
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     for (const type of ['epic', 'story', 'task', 'bug']) {
         await page.locator('#workitemType').selectOption(type);
-        await expect(page.locator('#taskTodoListLabel')).toHaveCount(['task', 'bug'].includes(type) ? 1 : 0);
+        await expect(page.locator('#taskTodoListLabel')).toHaveCount(type === 'task' ? 1 : 0);
         await expect(page.locator('#taskModal .pull-request-links')).toHaveCount(0);
     }
 });
@@ -89,7 +89,7 @@ for (const width of [1440, 390]) test(`sidebar edits stay usable and types have 
     await page.getByRole('combobox', { name: 'Responsible', exact: true }).selectOption('Rui');
     await expect(page.locator('#taskAssigneeItems')).toContainText('Rui');
     await page.getByRole('combobox', { name: 'Effort', exact: true }).selectOption('XL');
-    await page.locator('#taskDetailModal').getByLabel('Due', { exact: true }).fill('2026-11-10');
+    await page.locator('#taskDetailModal').getByLabel('Due', { exact: true }).fill('10/11/2026');
     await page.locator('#detailBlockedInput').check();
     await page.locator('#detailBlockerInput').fill('Awaiting review');
     await page.locator('#detailBlockerInput').press('Tab');

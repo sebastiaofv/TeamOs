@@ -1,3 +1,4 @@
+import { formatDate } from '@/domain/dates';
 import { closeSprint, startSprint } from '@/domain/sprintResults';
 import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 import type { SprintStatus } from '@/domain/types';
@@ -59,7 +60,7 @@ type RoadmapEntityDraft = {
 export function createRoadmapActions({ getState, commitState, getBoardRecord, canUsePortfolioTaskMutations,
     notifyPortfolioMutationUnavailable, runPortfolioBoardMutation, runPortfolioTaskMutation, alert, confirm, choose, prompt, closeDialogFn, openDialogFn }: BoardMutationContext,
 { getSelectedPortfolioBulkTaskIds, clearPortfolioBulkSelection }: Pick<BoardInteractions, 'getSelectedPortfolioBulkTaskIds' | 'clearPortfolioBulkSelection'>) {
-    const impactText = (tasks: Task[]) => tasks.length ? `\n\n${tasks.map((task) => `${workitemLabel(task)} · ${task.title}${task.archived ? ` · ${translateCurrent('table.archived')}` : ''}`).join('\n')}` : '';
+    const impactText = (tasks: Task[]) => tasks.length ? `\n\n${tasks.map((task) => `${workitemLabel(task)} · ${task.title}`).join('\n')}` : '';
     const getRoadmapLabel = (kind: RoadmapKind, tr: typeof translateCurrent = translateCurrent): string => kind === 'milestones'
         ? tr('roadmap.milestone')
         : kind === 'phases'
@@ -202,7 +203,12 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 }
             });
             return true;
-        });
+        }, { confirmSprintAllocation: false, onMutated: () => {
+            // The Sprint already exists locally; do not leave its creation form
+            // open during file saves or allow a retry to create it a second time.
+            closeRoadmapEntity();
+            if (!unplannedTaskIds) clearPortfolioBulkSelection(boardId);
+        } });
     }
 
     function assignSelectionToExistingSprint(boardId: string, sprintId: unknown): Promise<boolean> | false {
@@ -267,10 +273,10 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const recalculated = duration === null ? '' : addBusinessDays(newStart, duration);
         if (recalculated && recalculated === plannedEnd) return plannedEnd;
         const choice = await choose(recalculated
-            ? translateCurrent('sprint.endDateAfterStart', { start: newStart, days: duration ?? 0, end: recalculated, planned: plannedEnd })
-            : translateCurrent('sprint.endDateAfterStartNoDuration', { start: newStart, planned: plannedEnd }), [
-            ...(recalculated ? [{ value: 'recalculate', label: translateCurrent('sprint.useRecalculatedEnd', { end: recalculated }), primary: true }] : []),
-            { value: 'keep', label: translateCurrent('sprint.keepPlannedEnd', { end: plannedEnd }) },
+            ? translateCurrent('sprint.endDateAfterStart', { start: formatDate(newStart), days: duration ?? 0, end: formatDate(recalculated), planned: formatDate(plannedEnd) })
+            : translateCurrent('sprint.endDateAfterStartNoDuration', { start: formatDate(newStart), planned: formatDate(plannedEnd) }), [
+            ...(recalculated ? [{ value: 'recalculate', label: translateCurrent('sprint.useRecalculatedEnd', { end: formatDate(recalculated) }), primary: true }] : []),
+            { value: 'keep', label: translateCurrent('sprint.keepPlannedEnd', { end: formatDate(plannedEnd) }) },
             { value: 'custom', label: translateCurrent('sprint.enterEndDate') }
         ]);
         if (choice === null) return null;
@@ -278,7 +284,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (choice === 'keep') return plannedEnd;
         let value = recalculated || plannedEnd;
         for (;;) {
-            const entered = await prompt(translateCurrent('sprint.enterEndDateQuestion', { start: newStart }), value, { inputType: 'date', required: true, title: translateCurrent('roadmapDialog.endDate') });
+            const entered = await prompt(translateCurrent('sprint.enterEndDateQuestion', { start: formatDate(newStart) }), value, { inputType: 'date', required: true, title: translateCurrent('roadmapDialog.endDate') });
             if (entered === null) return null;
             const endDate = normalizeRoadmapDate(entered);
             if (endDate && endDate >= newStart) return endDate;
@@ -394,10 +400,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             }
         }
         if (context.mode === 'create-sprint-from-selection') {
-            const changed = await createSprintFromSelection(context.boardId, draft);
-            if (!changed) return;
-            closeRoadmapEntity();
-            if (!context.unplannedTaskIds) clearPortfolioBulkSelection(context.boardId);
+            await createSprintFromSelection(context.boardId, draft);
             return;
         }
 
@@ -433,7 +436,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             if (context.kind === 'sprints') Object.assign(nextItem, { status: draft.status, goal: draft.goal, capacity: draft.capacity, review: draft.review, retrospective: draft.retrospective });
             if (context.kind !== 'sprints') nextItem.color = isMilestoneColor(input.color) ? input.color
                 : previousItem ? milestoneColor(previousItem, index) : nextMilestoneColor(items);
-            if (['phases', 'sprints'].includes(context.kind) && draft.parentId) nextItem.parentId = draft.parentId;
+            if (context.kind === 'phases' && draft.parentId) nextItem.parentId = draft.parentId;
             const objective = String(input.objective ?? previousItem?.objective ?? '');
             if (context.kind !== 'sprints' && (objective || previousItem?.objective !== undefined)) nextItem.objective = objective;
             const relationKey = context.kind === 'phases' ? 'phaseIds' : 'milestoneIds';

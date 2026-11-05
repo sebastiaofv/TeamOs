@@ -1,0 +1,23 @@
+# Issue 54 — agreed changes
+
+Scope: [4 November agreement](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6638157240), as amended by the [follow-up](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6642266434). Also includes the [5 November validation feedback](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6666254917) and [phase-date dialog clarification](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6667833556). Story automation is deliberately unchanged.
+
+1. Import a writable project. Choose an existing member, or create one. Publish a comment, upload an attachment, and change a workitem: the selected member is the recorded author. Reopen a project to choose the identity for that session.
+2. Board starts with **Active Sprints only** checked. Uncheck it to include every Sprint and unsprinted work; choose a particular Sprint in Filters. Filters, the checkbox and Board columns share a toolbar. Check the state category below each heading, assignment dropdowns (including **Not assigned**), and the top-right arrow. Arrows follow allowed forward transitions and preserve completion acceptance.
+3. Create a Bug. Severity is absent. The Bug appears on the functional board; its automatically created child Task appears on the technical board, with its own ID. Change the Bug's Sprint: unfinished child Tasks follow it. Functional completion still requires explicit acceptance after child Tasks finish.
+4. Allocate a Task with a phase (including inherited phase) to a Sprint whose dates extend outside the phase. Review the wider warning: each phase appears once, with a dropdown alongside it showing its current start/end dates and the dates extended to cover the Sprint. Dates use **dd/mm/yyyy**; extending a phase never shortens its existing range. Check both choices, cancellation, bulk allocation, independent choices for multiple phases and history replay. On narrow screens, phase names appear above their dropdowns without horizontal overflow. Sprints have independent dates and no phase selector.
+5. Expand a parent phase and a leaf phase in Roadmap. Only the leaf has a workitem table. That area contains the existing table columns except User Story, without the old controls or perspective buttons.
+6. Day Planner offers Day, Week and Calendar. Calendar keeps month/year consultation and heatmap switching, and shows only Task due dates. The parent-inclusion checkbox is absent; scheduling remains in Day/Week.
+7. Create a project with a four-letter acronym; existing shorter acronyms and workitem IDs remain valid. Enter dates as **dd/mm/yyyy** and verify invalid dates cannot be saved. Slow a file write and observe save spinners on buttons and autosave status. Find Delete in modal ⋯ menus. Confirm archive commands, shortcuts and filters are absent; legacy archived items remain visible.
+
+Compatibility: file dates remain ISO, existing IDs/history and retired archive metadata remain readable, legacy Bug state IDs are mapped to the equivalent functional category when necessary, and legacy Sprint-phase links are discarded during normalization.
+
+After syncing main (US-22/28/32): verify the configurable workflow type assignments still govern both Boards and auto-created Bug child Tasks. Sprint start/finish actions, frozen closure results and Story Points coexist with the active-Sprint checkbox. Sprint duration and the custom end-date prompt use dd/mm/yyyy; invalid dates must keep the prompt open. Planned Sprint deletion lives in the modal ⋯ menu and is absent for Active/Done Sprints.
+
+## Follow-up verification
+
+- Check that Board category labels are approximately half the size of state names in both themes.
+- Create and edit a Bug: no to-do list is offered. Existing checklist data remains readable in the file; Tasks retain their checklist editor.
+- Create a Sprint from a Story with child Tasks and inherited phase dates. There is no extra approval just to allocate the items. Keep or update the phase dates: the creation dialog closes immediately after applying that decision, including while the file is saving. Cancel leaves the form open without creating anything. A failed save retries the same Sprint from the project chip.
+- Type `25112026` into a date field: it becomes `25/11/2026`. Check Sprint start/end, task due dates and the custom end-date prompt. Edit a day/month in place, delete across separators, paste a date and try an impossible date. Portuguese placeholders use `dd/mm/aaaa`; file values remain ISO.
+- Choose the session member at project entry. Comments show a fixed name, and upload/acceptance/record-author fields keep that identity. Responsible and participant fields still allow all project members.

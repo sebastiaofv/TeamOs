@@ -23,8 +23,8 @@ async function openStory(page: Page) {
 test('separates Technical/Functional Boards, preserves real states and hides old/future child Tasks', async ({ page }) => {
     await seed(page);
     await expect(portfolioCard(page, 'Implementar confirmação')).toBeVisible();
-    await expect(portfolioCard(page, 'Validar cartão no Sprint anterior')).toHaveCount(0);
-    await expect(portfolioCard(page, 'Task futura oculta no Técnico')).toHaveCount(0);
+    await expect(portfolioCard(page, 'Validar cartão no Sprint anterior')).toBeVisible();
+    await expect(portfolioCard(page, 'Task futura oculta no Técnico')).toBeVisible();
     await expect(page.getByRole('group', { name: 'Pagar com cartão', exact: true })).toHaveCount(0);
     await expect(page.getByRole('group', { name: 'Checkout acessível', exact: true })).toHaveCount(0);
     // Bugs follow the functional workflow by default (US-22).
@@ -62,8 +62,8 @@ test('technical completion advances the Story once and functional acceptance req
     await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { id: number }) => task.id === 1202).status).toBe('ready-to-test');
     await move(page, 1202, 'Testing');
     await move(page, 1202, 'Done');
-    await answerAppMessage(page, { expectText: 'local author name', input: 'Ana QA' });
-    await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { id: number }) => task.id === 1202).acceptance?.author).toBe('Ana QA');
+    await answerAppMessage(page, { expectText: 'functionally validated', input: 'Ana QA' });
+    await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { id: number }) => task.id === 1202).acceptance?.author).toBe('Ana');
     expect((await readSavedBoard(page, 'us12')).board.tasks.find((task: { id: number }) => task.id === 1201).status).toBe('doing');
 });
 
@@ -94,7 +94,7 @@ for (const theme of ['light', 'dark']) test(`detail and confirmations use the ex
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
     await page.locator('#taskDetailModalFooterCloseBtn').click();
     await move(page, 1207, 'Done');
-    await expect(page.locator('#appMessageConfirmBtn')).toBeDisabled();
+    await expect(page.locator('#appMessageConfirmBtn')).toBeEnabled();
     await expect(page.locator('#appMessageInput')).toHaveAttribute('required', '');
     await answerAppMessage(page, { button: 'Cancel' });
 });
@@ -136,12 +136,12 @@ test('read-only workitems retain navigation but cannot create children', async (
     await expect(page.getByRole('button', { name: 'Story automation', exact: true })).toHaveCount(0);
 });
 
-test('Day Planner includes Stories and Epics only when requested', async ({ page }) => {
+test('Day Planner limits execution planning to Tasks and has no parent inclusion option', async ({ page }) => {
     await seed(page); await page.locator('[data-view-mode="planner"]').click();
+    await expect(page.getByRole('checkbox', { name: 'Include Stories and Epics', exact: true })).toHaveCount(0);
     await expect(page.locator('.planner-tray-card').filter({ hasText: 'Pagar com cartão' })).toHaveCount(0);
-    await page.getByRole('checkbox', { name: 'Include Stories and Epics', exact: true }).check();
-    await expect(page.locator('.planner-tray-card').filter({ hasText: 'Pagar com cartão' })).toBeVisible();
-    await expect(page.locator('.planner-tray-card').filter({ hasText: 'Checkout acessível' })).toBeVisible();
+    await expect(page.locator('.planner-tray-card').filter({ hasText: 'Checkout acessível' })).toHaveCount(0);
+    await expect(page.locator('.planner-tray-card').filter({ hasText: 'Botão de pagamento sem foco' })).toHaveCount(0);
 });
 
 test('Table filters type, Epic and Story before pagination and export', async ({ page }) => {

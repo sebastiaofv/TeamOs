@@ -94,12 +94,12 @@ test('creation shows details only and saved workitems accept attachments directl
   await page.locator('#taskName').fill('New workitem');
   await page.locator('#taskModalSaveBtn').click();
   await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
-  await page.getByLabel('Uploaded by', { exact: true }).fill('Ana');
+  await expect(page.getByLabel('Uploaded by', { exact: true })).toHaveValue('Test user');
   await page.setInputFiles('#taskAttachmentsInput', { name: 'new.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
   await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
-  await expect(page.locator('#detailAttachments')).toContainText('Ana');
+  await expect(page.locator('#detailAttachments')).toContainText('Test user');
   await waitForBoardWrites(page);
-  expect((await readSavedBoard(page, 'p1')).board.tasks[0].attachments[0].uploadedBy).toBe('Ana');
+  expect((await readSavedBoard(page, 'p1')).board.tasks[0].attachments[0].uploadedBy).toBe('Test user');
   await page.getByRole('button', { name: 'Remove attachment new.txt' }).click();
   await answerAppMessage(page, { button: 'Cancel' });
   await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);

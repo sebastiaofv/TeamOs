@@ -98,12 +98,12 @@ describe('formatRoadmapDateRange', () => {
 
   it('prefers dueDate when present', () => {
     expect(formatRoadmapDateRange({ dueDate: '2024-01-01', startDate: '2024-01-01', endDate: '2024-02-01' }))
-      .toBe('Due 2024-01-01');
+      .toBe('Due 01/01/2024');
   });
 
   it('falls back to a start/end range when dueDate is absent', () => {
     expect(formatRoadmapDateRange({ startDate: '2024-01-01', endDate: '2024-02-01' }))
-      .toBe('2024-01-01 to 2024-02-01');
+      .toBe('01/01/2024 to 01/02/2024');
   });
 
   it('returns an empty string when neither dueDate nor a full range is present', () => {
