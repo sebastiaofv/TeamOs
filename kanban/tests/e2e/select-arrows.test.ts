@@ -43,7 +43,7 @@ for (const width of [1280, 390]) {
                 tasks: [{ id: 1, title: 'Arrow task', status: 'backlog' }]
             }], { selectedBoardId: 'arrows' });
 
-            await expectContainedArrows(page.locator('#portfolioBoard .section-controls'));
+            await expectContainedArrows(page.locator('#portfolioQueryToolbar'));
             await page.locator('#portfolioSortSelect').selectOption('effort');
             await expect(page.locator('#portfolioSortSelect')).toHaveValue('effort');
             await page.locator('#portfolioSortSelect').selectOption('priority');

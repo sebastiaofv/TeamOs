@@ -16,6 +16,8 @@ import { AppMessageDialog } from '@/app/overlays/AppMessageDialog';
 import { UndoToast } from '@/features/portfolio/shell/UndoToast';
 import { CommandPalette } from '@/features/portfolio/palette/CommandPalette';
 import { PortfolioBulkActions, PortfolioChips, PortfolioToolbar } from '@/features/portfolio/shell/PortfolioControls';
+import { PortfolioQueryToolbar } from '@/features/portfolio/shell/PortfolioQueryToolbar';
+import { PortfolioEmptyState } from '@/features/portfolio/shell/PortfolioEmptyState';
 import { PortfolioBoard } from '@/features/portfolio/board/PortfolioBoard';
 import { PortfolioTimeline } from '@/features/portfolio/timeline/PortfolioTimeline';
 import { PortfolioRoadmap } from '@/features/portfolio/roadmap/PortfolioRoadmap';
@@ -83,13 +85,13 @@ function AppContent() {
                 workspace keeps its selection, view, filters and drafts. */}
             <main className={`view${fileDropActive ? ' file-drop-active' : ''}`} id="portfolioView" aria-labelledby="appTitle" hidden={docsOpen}>
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
-                    <PortfolioToolbar />
-                    <PortfolioChips />
+                    {hasBoards && <><PortfolioToolbar /><PortfolioChips /><PortfolioQueryToolbar /></>}
                     <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive || controlActive ? ' table-active' : ''}${dashboardActive ? ' dashboard-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />
                         <ProjectFileNotices />
                         <PendingProjectTransfers />
+                        {!hasBoards ? <PortfolioEmptyState /> : <>
                         {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
                         <PortfolioBoard hidden={roadmapActive || plannerActive || tableActive || dashboardActive || controlActive} />
@@ -98,6 +100,7 @@ function AppContent() {
                         <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
                         <PortfolioPlanner hidden={!plannerActive} />
+                        </>}
                     </div>
                 </div>
                 <div className="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">{t('app.dropProjectFiles')}</div>

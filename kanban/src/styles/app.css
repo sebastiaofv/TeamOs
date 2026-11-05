@@ -17,6 +17,7 @@
 @import './portfolio/undo-toast.css';
 @import './portfolio/task-detail.css';
 @import './overlays/project-settings.css';
+@import './overlays/project-identity.css';
 @import './overlays/project-reconciliation.css';
 @import './portfolio/control.css';
 @import './app/docs.css';

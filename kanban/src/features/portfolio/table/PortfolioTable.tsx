@@ -1,5 +1,4 @@
 import { formatDate } from '@/domain/dates';
-import { PortfolioSectionControls } from '@/features/portfolio/shell/PortfolioSectionControls';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { SprintAction } from '@/features/portfolio/roadmap/SprintAction';
 import { SprintPoints } from '@/features/portfolio/roadmap/SprintPoints';
@@ -71,7 +70,6 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
         {view !== 'sprints' ? <WorkitemTable key={view} hidden={hidden} boardId={boardId} project={project} boardData={boardData}
             sourceRows={view === 'unplanned' ? unplannedTableRows(sourceRows) : sourceRows.filter((row) => view === 'epics' ? workitemType(row.task) === 'epic' : view === 'stories' ? workitemType(row.task) === 'story' : view === 'hierarchy' ? true : view === 'independent' ? isPlanningUnit(boardData, row.task) && workitemType(row.task) !== 'story' : ['task', 'bug'].includes(workitemType(row.task)))} canCreate={canCreate} createType={view === 'epics' ? 'epic' : view === 'stories' ? 'story' : 'task'} planning={view === 'unplanned'} nested={view === 'hierarchy'} />
             : <>
-                <PortfolioSectionControls active={!hidden} />
                 <p className="table-sprint-note">{t('table.sprintDatesNote')}</p>
                 {groups.length === 0 && <p className="table-empty" role="status">{t('table.noSprints')}</p>}
                 {groups.map((group) => <SprintTableSection key={group.sprint.id} group={group} hidden={hidden} boardId={boardId} project={project} canEdit={canCreate} sprintPointsData={boardData} />)}
@@ -194,7 +192,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
             {!bare && <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
                 <summary className="btn" hidden={!compact}>{t('roadmap.tableOptions')}</summary>
             <div className="table-heading">
-                <PortfolioSectionControls active={!hidden && !scope && !compact}>
                 <div className="table-tools">
                     <details id={scopedId('tableColumns')} className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
                         <summary className="btn" ref={columnDisclosure.summaryRef}><WorkspaceIcon name="columns" />{t('table.columns')}</summary>
@@ -227,7 +224,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                     </details>
             {canCreate && sourceRows.length > 0 && <button className="btn btn-primary" type="button" onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: createType })}><WorkspaceIcon name="plus" />{t('table.create')}</button>}
                 </div>
-                </PortfolioSectionControls>
             </div>
             </details>}
             {!bare && <div className="table-summary">

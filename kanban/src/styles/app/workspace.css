@@ -1,5 +1,14 @@
 /* Shared structure; appearance continues to use the selected theme's tokens. */
 .workspace-icon { flex: none; vertical-align: middle; }
+.portfolio-empty-state { display: grid; place-items: center; flex: 1; min-height: 0; padding: 40px 24px; overflow: auto; background: var(--bg-primary); text-align: center; }
+.portfolio-empty-content { width: 100%; max-width: 440px; }
+.portfolio-empty-icon { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin-bottom: 22px; border-radius: 16px; background: color-mix(in srgb, var(--accent) 8%, var(--bg-primary)); color: var(--accent); }
+.portfolio-empty-icon .workspace-icon { width: 32px; height: 32px; stroke-width: 1.1; }
+.portfolio-empty-content h2 { margin: 0 0 12px; font-size: 22px; font-weight: 600; letter-spacing: -.4px; color: var(--text-primary); }
+.portfolio-empty-content p { margin: 0 auto; max-width: 370px; font-size: 14px; line-height: 1.7; color: var(--text-secondary); }
+.portfolio-empty-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-top: 26px; }
+.portfolio-empty-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; }
+:root[data-theme-style="modern"] .portfolio-empty-actions .btn:not(.btn-primary) { border-color: var(--border); background: var(--bg-card); }
 .header-actions { flex-wrap: wrap; max-width: 100%; }
 .header-project-context { display: flex; align-items: center; gap: 16px; min-width: 0; margin-left: 18px; font-size: 16px; font-weight: 600; line-height: 1.4; }
 .header-project-context > :first-child { color: var(--text-muted); font-weight: 400; }
@@ -11,9 +20,7 @@
 .portfolio-view-toggle .btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 12px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--text-secondary); }
 .portfolio-view-toggle .btn.active { color: var(--accent); border-bottom-color: var(--accent); background: transparent; }
 .portfolio-view-toggle .btn:hover { background: var(--bg-secondary); }
-.section-controls { width: 100%; min-width: 0; }
-.section-controls-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
-.section-controls-row > .btn, .section-controls-row .table-tools .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; }
+.table-tools .btn, .workitem-board-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; }
 .section-search { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 160px; max-width: 520px; min-height: 34px; padding: 0 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); }
 .section-search:focus-within { border-color: var(--accent); outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 .section-search input { width: 100%; min-width: 0; padding: 7px 0; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 12px; outline: none; }
@@ -23,15 +30,16 @@
 .section-sort { gap: 6px; min-height: 34px; padding-left: 10px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); }
 .section-sort label { text-transform: none; letter-spacing: normal; font-size: 12px; white-space: nowrap; }
 .section-sort select { min-height: 32px; max-width: 160px; border: 0; background-color: transparent; color: var(--text-primary); }
-.section-controls .portfolio-filters-btn { min-height: 34px; }
+.portfolio-query-toolbar .portfolio-filters-btn { min-height: 34px; }
 .portfolio-filters-panel { position: fixed; overflow: auto; }
-.section-controls .portfolio-active-filters { padding: 10px 0 0; border: 0; background: transparent; }
+.portfolio-query-toolbar .portfolio-active-filters { padding: 10px 0 0; border: 0; background: transparent; }
+.portfolio-query-toolbar { flex-shrink: 0; min-width: 0; padding: 12px 16px; border-bottom: 1px solid var(--border-light); background: var(--bg-card); }
+.portfolio-query-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; min-width: 0; max-width: 760px; margin-left: auto; }
+.portfolio-query-toolbar .portfolio-active-filters { justify-content: flex-end; }
 .workitem-board-toolbar { flex-wrap: wrap; gap: 8px; }
-.workitem-board-toolbar > .section-controls { flex-basis: 100%; }
-.workitem-board-toolbar .board-column-menu { margin-left: auto; }
-.portfolio-planner-view > .section-controls { flex-shrink: 0; padding: 12px 16px; border-bottom: 1px solid var(--border-light); background: var(--bg-card); }
-.roadmap-view-controls > .section-controls { flex: 1; }
-.roadmap-view-controls .section-controls-row { align-items: center; }
+.workitem-board-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+#portfolioBoard .workitem-board-toolbar > .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight: 600; }
+#portfolioBoard .workitem-board-toolbar > .btn[aria-pressed="true"]:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .portfolio-roadmap-view { container: roadmapViewport / size; }
 /* Expanded history and small windows can leave too little room for sticky
    controls plus the timeline axis. Let both scroll so rows stay reachable. */
@@ -39,7 +47,6 @@
     .roadmap-view-controls, .roadmap-axis-shell { position: relative; top: auto; }
 }
 .table-tools { align-items: center; }
-.table-heading > .section-controls .table-tools { display: contents; }
 .table-heading .table-export { margin-left: auto; }
 .table-pagination label { margin-right: auto; }
 .table-status-badge[data-state-color] { background: var(--state-color); color: var(--state-foreground); border-color: var(--state-color); }
@@ -61,9 +68,9 @@
 :root[data-theme-style="modern"] .roadmap-scope-table .table-panel { padding: 0; border: 0; border-radius: 0; box-shadow: none; }
 :root[data-theme-style="modern"] .section-search, :root[data-theme-style="modern"] .section-sort { border-color: var(--control-border); border-radius: var(--radius-control); }
 :root[data-theme-style="modern"] .section-search input { border: 0; border-radius: 0; }
-:root[data-theme-style="modern"] .section-controls .portfolio-filters-btn, :root[data-theme-style="modern"] .section-controls .table-columns > summary, :root[data-theme-style="modern"] .section-controls .table-hierarchy-options > summary { border-color: var(--border); background: var(--bg-card); }
-:root[data-theme-style="modern"] .section-controls .btn:hover { background: var(--bg-secondary); }
-:root[data-theme-style="modern"] .section-controls .btn.btn-primary:hover { background: var(--accent-hover); }
+:root[data-theme-style="modern"] .portfolio-query-toolbar .portfolio-filters-btn, :root[data-theme-style="modern"] .table-tools .table-columns > summary, :root[data-theme-style="modern"] .table-tools .table-hierarchy-options > summary { border-color: var(--border); background: var(--bg-card); }
+:root[data-theme-style="modern"] .portfolio-query-toolbar .btn:hover { background: var(--bg-secondary); }
+:root[data-theme-style="modern"] .portfolio-query-toolbar .btn.btn-primary:hover { background: var(--accent-hover); }
 :root[data-theme-style="modern"] .workitems-table th, :root[data-theme-style="modern"] .workitems-table td { padding: 13px 14px; }
 :root[data-theme-style="modern"] .workitems-table th { font-size: 12px; background: color-mix(in srgb, var(--bg-secondary) 65%, var(--bg-card)); }
 :root[data-theme-style="modern"] .workitems-table tbody tr:hover, :root[data-theme-style="modern"] .workitems-table tbody tr:focus-within { background: color-mix(in srgb, var(--accent) 4%, var(--bg-card)); }
@@ -83,7 +90,7 @@
     .table-view-options { flex-wrap: nowrap; overflow-x: auto; }
     .table-view-options .btn { flex: none; }
     .portfolio-view-toggle .btn, :root[data-theme-style="modern"] .portfolio-view-toggle .btn { padding: 10px 8px; gap: 6px; font-size: 12px; }
-    .section-controls-row { gap: 8px; }
+    .portfolio-query-controls { gap: 8px; }
     .section-search { flex-basis: 100%; max-width: none; }
     .section-sort > .workspace-icon { display: none; }
     .table-heading .table-export { margin-left: 0; flex-wrap: wrap; }

@@ -24,10 +24,15 @@ test.describe('app shell', () => {
     await expect(page.getByRole('button', { name: 'Open documentation' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Help', exact: true })).toHaveCount(0);
     await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
-    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+    await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
+    await expect(page.locator('#portfolioToolbar, #portfolioBoardsChips')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Technical Board', exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toHaveCount(0);
     await expect(page.getByText('All columns are hidden. Use Board columns to show them again.', { exact: true })).toHaveCount(0);
+    await mockImportProjectsPicker(page, [{ fileName: 'welcome.board.json', payload: buildBoardPayload({ title: 'Welcome project', tasks: [] }) }]);
+    await page.getByRole('button', { name: 'Import a project', exact: true }).click();
+    await expect(page.locator('#portfolioBoardsChips')).toContainText('Welcome project');
+    await expect(page.locator('#portfolioEmptyState')).toHaveCount(0);
   });
 
   test('board controls appear on project load and disappear when the last project is removed', async ({ page }) => {
@@ -36,7 +41,7 @@ test.describe('app shell', () => {
     await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toBeVisible();
     await expect(page.locator('.portfolio-column')).toHaveCount(4);
     await page.getByRole('button', { name: 'Remove project', exact: true }).click();
-    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+    await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
     await expect(page.locator('.workitem-board-shell')).toHaveCount(0);
   });
 
@@ -82,7 +87,9 @@ test.describe('app shell', () => {
     await expect(toggle).toHaveText('PT');
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
     await expect(page.locator('#docsToggleBtn')).toHaveAttribute('aria-label', 'Abrir documentação');
-    await expect(page.locator('#openShortcutsBtn')).toHaveText('Atalhos');
+    await expect(page.locator('#openShortcutsBtn')).toHaveAttribute('aria-label', 'Atalhos');
+    await expect(page.locator('#portfolioEmptyState h2')).toHaveText('Nenhum projeto carregado');
+    await expect(page.locator('#portfolioEmptyState')).toContainText('Importe um projeto');
     expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanLanguage'))).toBe('pt');
 
     await page.reload();
@@ -144,7 +151,7 @@ test.describe('app shell', () => {
     await expect(page.locator('#portfolioViewModeToggle')).toBeHidden();
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+    await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
     await expect(portfolioProjectChipButtons(page)).toHaveCount(0);
     await expect(page.locator('#portfolioCalendarView')).toBeHidden();
   });

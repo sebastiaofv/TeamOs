@@ -53,10 +53,10 @@ test.describe('project files', () => {
   test('new project settings cancel without opening a file or writing a project', async ({ page }) => {
     await mockNewProjectFlow(page, { fileName: 'canceled.json' });
 
-    await page.locator('#newProjectBtn').click();
+    await page.getByRole('button', { name: 'Create a project', exact: true }).click();
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Cancel', exact: true }).click();
 
-    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+    await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
 
     await expect(portfolioProjectChipButtons(page)).toHaveCount(0);
     const result = await page.evaluate(() => ({

@@ -113,7 +113,7 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                     title={languageLabel}
                     onClick={toggleLanguage}
                 >{languageCode}</button>
-                <button className="btn" id="openShortcutsBtn" type="button" onClick={() => openDialog('shortcuts')}>{t('header.shortcuts')}</button>
+                <button className="btn icon-btn" id="openShortcutsBtn" type="button" aria-label={t('header.shortcuts')} title={t('header.shortcuts')} onClick={() => openDialog('shortcuts')}><WorkspaceIcon name="keyboard" /></button>
                 <DocsToggleButton />
                 <button className="btn" id="importProjectsBtn" type="button" onClick={() => { closeDocs(); void importPortfolioProjects(); }}>{t('header.importProjects')}</button>
                 <button className="btn btn-primary" id="newProjectBtn" type="button" onClick={() => { closeDocs(); void createNewProject(); }}>{t('header.newProject')}</button>

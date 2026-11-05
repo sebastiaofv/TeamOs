@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { setPortfolioFilter, setPortfolioSort } from '@/features/portfolio/commands/portfolioControls';
@@ -11,12 +10,13 @@ import { useI18n } from '@/shared/i18n';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { PortfolioActiveFilters, PortfolioToolbarFilters } from './PortfolioFilters';
 
-/** Mounted only in the active section so shortcuts always reach visible controls. */
-export function PortfolioSectionControls({ children, active = true }: { children?: ReactNode; active?: boolean }) {
-    return active ? <SectionControls>{children}</SectionControls> : children;
+/** Shared query controls live below project selection, outside every view. */
+export function PortfolioQueryToolbar() {
+    const view = useAppStore((state) => state.selectedPortfolioViewMode);
+    return view === 'dashboard' || view === 'control' ? null : <QueryToolbarContent />;
 }
 
-function SectionControls({ children }: { children?: ReactNode }) {
+function QueryToolbarContent() {
     const { t } = useI18n();
     const state = useAppStore(useShallow((s) => ({
         filters: s.portfolioFilters, sort: s.portfolioSortKey, view: s.selectedPortfolioViewMode,
@@ -30,11 +30,11 @@ function SectionControls({ children }: { children?: ReactNode }) {
     const sortValue = table ? tableSortValue : portfolioSortSelectValueFromKey(state.sort);
     const sortRef = useFocusTarget<HTMLSelectElement>('portfolioSort');
     const search = state.filters.search;
-    return <div className="section-controls">
-        <div className="section-controls-row">
+    return <section className="portfolio-query-toolbar" id="portfolioQueryToolbar" aria-label={t('toolbar.filters')}>
+        <div className="portfolio-query-controls">
             <div className="section-search">
                 <WorkspaceIcon name="search" />
-                <input id="sectionSearchInput" type="search" aria-label={t('toolbar.searchWorkitems')} placeholder={t('toolbar.searchWorkitems')}
+                <input id="portfolioSearchInput" type="search" aria-label={t('toolbar.searchWorkitems')} placeholder={t('toolbar.searchWorkitems')}
                     value={search} onChange={(event) => table ? setTableFilter('search', event.target.value) : setPortfolioFilter('search', event.target.value)} />
                 {search && <button className="section-search-clear" id="portfolioSearchClearBtn" type="button"
                     aria-label={table ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
@@ -58,9 +58,8 @@ function SectionControls({ children }: { children?: ReactNode }) {
                     <option value="score">{t('toolbar.score')}</option>
                 </select>
             </div>
-            {children}
         </div>
         <PortfolioActiveFilters />
         {!table && <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{t('toolbar.resultsCount', { count: state.count })}</span>}
-    </div>;
+    </section>;
 }

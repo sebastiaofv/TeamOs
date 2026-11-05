@@ -180,7 +180,7 @@ test('import rejects structurally PNG-looking but undecodable image content rath
     await mockImportProjectsPicker(page, [{ fileName: 'invalid-image.board.json', payload: fixture }]);
     await page.locator('#importProjectsBtn').click();
     await expect(page.locator('#appMessageModal')).toContainText('Invalid comment: format');
-    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+    await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
 });
 
 test('external removal retains an orphaned draft for recovery instead of deleting it', async ({ page }) => {

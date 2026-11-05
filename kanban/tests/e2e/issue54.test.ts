@@ -43,7 +43,7 @@ test('defaults to active Sprints and offers all, specific Sprint, direct assignm
     await expect(portfolioCard(page, 'Current Task')).toBeVisible();
     await expect(portfolioCard(page, 'Future Task')).toHaveCount(0);
     await expect(portfolioCard(page, 'Unplanned Task')).toHaveCount(0);
-    await expect(page.locator('.workitem-board-toolbar #portfolioFiltersBtn')).toBeVisible();
+    await expect(page.locator('#portfolioQueryToolbar #portfolioFiltersBtn')).toBeVisible();
     await expect(page.locator('#portfolio-to-do-heading .column-category')).toHaveText('To do');
     const card = portfolioCard(page, 'Current Task');
     await expect(card.getByRole('combobox', { name: 'Responsible' })).toHaveValue('');

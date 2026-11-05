@@ -64,7 +64,7 @@ async function setTableSearch(page: Page, text: string) {
 }
 
 async function expectTableSearch(page: Page, text: string) {
-  await expect(page.locator('#sectionSearchInput')).toHaveValue(text);
+  await expect(page.locator('#portfolioSearchInput')).toHaveValue(text);
 }
 
 async function expectTableFilter(page: Page, id: string, value: string | string[]) {
@@ -191,19 +191,19 @@ test.describe('workitems table', () => {
     await gotoApp(page);
   });
 
-  test('keeps contextual search, Filters and sort together above the Table', async ({ page }) => {
+  test('keeps search, Filters and sort in the shared toolbar below project selection', async ({ page }) => {
     await seedPortfolioBoards(page, [{
       id: 'toolbar', title: 'Original toolbar', hasHandle: true,
       tasks: [{ id: 1, title: 'Zeta controls', effort: 'L', priority: 'high' }, { id: 2, title: 'Alpha controls', effort: 'S', priority: 'medium' }]
     }], { selectedBoardId: 'toolbar' });
     await openTable(page);
-    await expect(page.locator('#portfolioTable #portfolioFiltersBtn')).toBeVisible();
-    await expect(page.locator('#sectionSearchInput')).toHaveValue('');
-    await expect(page.locator('#portfolioTable #portfolioSortSelect')).toBeVisible();
+    await expect(page.locator('#portfolioQueryToolbar #portfolioFiltersBtn')).toBeVisible();
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('');
+    await expect(page.locator('#portfolioQueryToolbar #portfolioSortSelect')).toBeVisible();
     await expect(page.locator('#tableSearch')).toHaveCount(0);
     await expect(page.locator('#portfolioTable #tableFilters')).toHaveCount(0);
     await page.locator('#portfolioFiltersBtn').click();
-    await expect(page.locator('#portfolioTable #portfolioFiltersPanel')).toBeVisible();
+    await expect(page.locator('#portfolioQueryToolbar #portfolioFiltersPanel')).toBeVisible();
     const fields = page.locator('#portfolioFiltersPanel .portfolio-filters-field');
     await expect(fields).toContainText(['Blocked', 'Responsible', 'Participant', 'Priority', 'Effort']);
     await page.locator('#portfolioEffortFilter').selectOption('S');
@@ -269,7 +269,7 @@ test.describe('workitems table', () => {
     await expectRowIds(page, [1]);
     await setTableSearch(page, 'workitem');
     await page.locator('[data-view-mode="board"]').click();
-    await expect(page.locator('#sectionSearchInput')).toHaveValue('workitem');
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('workitem');
     await openTable(page);
     await expectTableSearch(page, 'workitem');
     await page.locator('#portfolioSearchBtn').click();
@@ -289,7 +289,7 @@ test.describe('workitems table', () => {
     }], { selectedBoardId: 'compact' });
     await openTable(page, false);
     await expect(page.locator('#portfolioBlockedFilter')).toBeHidden();
-    await expect(page.locator('#portfolioTable #portfolioFiltersBtn')).toBeVisible();
+    await expect(page.locator('#portfolioQueryToolbar #portfolioFiltersBtn')).toBeVisible();
     await expect(tableRow(page, 1)).toBeInViewport();
     await page.locator('#portfolioFiltersBtn').click();
     await expect(page.locator('#portfolioBlockedFilter')).toBeVisible();
