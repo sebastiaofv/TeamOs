@@ -103,3 +103,26 @@
     :root[data-theme-style="modern"] .portfolio-table { padding: 10px; gap: 12px; }
     :root[data-theme-style="modern"] .table-panel { padding: 12px; gap: 12px; }
 }
+
+/* Short windows need to scroll the toolbar and board together. */
+@media (max-height: 600px), (pointer: coarse) {
+    .portfolio-board-wrap:has(.workitem-board-shell) { overflow-y: auto; }
+    .workitem-board-shell { flex: 1 0 auto; min-height: 480px; }
+    .workitem-board-columns { min-height: 260px; }
+}
+
+/* Touch uses the same controls with larger hit areas, including on tablets. */
+@media (pointer: coarse) {
+    .header-actions .btn, .header-actions .icon-btn,
+    .table-tools .btn, .table-view-options .btn,
+    .workitem-board-toolbar .btn, .portfolio-query-fields .btn,
+    .planner-nav .btn, .planner-mode-toggle .btn, .planner-chip,
+    .roadmap-action-btn, .roadmap-section-btn, .roadmap-disclosure-btn { min-height: 44px; }
+    .header-actions .icon-btn, .roadmap-action-btn { min-width: 44px; }
+    .portfolio-task-card .task-actions { opacity: 1; }
+    .portfolio-task-card .task-action-btn { width: 44px; height: 44px; flex: none; }
+    .board-active-sprints { min-height: 44px; }
+    .section-search input, .section-sort select,
+    .modal-content input:not([type="checkbox"]):not([type="radio"]),
+    .modal-content select, .modal-content textarea { font-size: 16px; }
+}

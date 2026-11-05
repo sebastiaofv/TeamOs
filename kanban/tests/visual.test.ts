@@ -754,7 +754,7 @@ test.describe('2.5 roadmap and 2.6 calendar views', () => {
     await page.getByRole('button', { name: 'Day Planner', exact: true }).click();
     await page.getByRole('button', { name: 'Calendar', exact: true }).click();
     await page.getByRole('button', { name: 'Heat Map' }).click();
-    await page.getByRole('button', { name: 'Open March 2026' }).click();
+    await page.getByRole('button', { name: /^March \d+ items?$/ }).click();
     await page.mouse.move(1, 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await expect(page).toHaveScreenshot('portfolio-calendar-month-heatmap-light.png', { fullPage: true });
@@ -930,7 +930,7 @@ test.describe('US-13 hierarchy review', () => {
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page.locator('#portfolioTable')).toHaveScreenshot(`us13-all-hierarchy-${theme}-${width}.png`);
       await page.locator('[data-view-mode="roadmap"]').click();
-      await page.getByRole('button', { name: 'Show tasks for Exterior', exact: true }).click();
+      await page.getByRole('button', { name: 'Show tasks for Exterior', exact: false }).click();
       const scope = page.locator('[data-roadmap-task-list="phase:exterior"]');
       await scope.getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();
       await scope.getByRole('button', { name: 'Expand Preparar lançamento', exact: true }).click();

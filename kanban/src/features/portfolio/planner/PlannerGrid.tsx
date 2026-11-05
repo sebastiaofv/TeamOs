@@ -68,7 +68,7 @@ export function PlannerGrid({ model, nowMinutes, preview = null, renderBlock }: 
     const week = model.mode === 'week';
     const style = { '--planner-slot': `${PLANNER_SLOT_PX}px`, '--planner-days': model.days.length } as CSSProperties;
     return (
-        <div className="planner-grid-panel">
+        <div className={`planner-grid-panel${week ? ' planner-week' : ''}`} style={style}>
             {week && (
                 <div className="planner-day-headers" style={style}>
                     <span />

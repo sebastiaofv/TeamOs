@@ -405,8 +405,8 @@ test('acceptance gates parent, subphase and milestone progress while unrelated p
     await seed(page);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     for (const id of ['launch', 'build', 'review']) await expect(page.locator(`[data-roadmap-kind="phase"][data-roadmap-id="${id}"] .roadmap-row-timeline-bar`)).toHaveAttribute('data-progress', '99');
-    await expect(page.locator('[data-roadmap-id="release"].milestone-annotation')).toHaveAttribute('aria-label', /99%/);
-    await expect(page.locator('[data-roadmap-id="independent"].milestone-annotation')).toHaveAttribute('aria-label', /100%/);
+    await expect(page.locator('[data-roadmap-id="release"].milestone-annotation')).toHaveAccessibleName(/99%/);
+    await expect(page.locator('[data-roadmap-id="independent"].milestone-annotation')).toHaveAccessibleName(/100%/);
     await page.getByRole('button', { name: 'Project Control', exact: true }).click();
     await page.getByRole('tab', { name: 'Deliverables', exact: true }).click();
     await page.getByRole('button', { name: 'Release package', exact: true }).click();
@@ -416,7 +416,7 @@ test('acceptance gates parent, subphase and milestone progress while unrelated p
     await expect(dialog(page)).toHaveCount(0);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     for (const id of ['launch', 'build', 'review']) await expect(page.locator(`[data-roadmap-kind="phase"][data-roadmap-id="${id}"] .roadmap-row-timeline-bar`)).toHaveAttribute('data-progress', '100');
-    await expect(page.locator('[data-roadmap-id="release"].milestone-annotation')).toHaveAttribute('aria-label', /100%/);
+    await expect(page.locator('[data-roadmap-id="release"].milestone-annotation')).toHaveAccessibleName(/100%/);
 });
 
 test('records can be created and associated during phase creation, without losing the phase draft', async ({ page }) => {

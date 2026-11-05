@@ -149,7 +149,7 @@
     color: var(--text-primary);
     cursor: grab;
     user-select: none;
-    touch-action: none;
+    touch-action: pan-y;
 }
 
 .planner-tray-card:hover {
@@ -447,3 +447,7 @@
         width: 72px;
     }
 }
+
+/* Keep days readable; their shared parent scrolls headers and slots together. */
+.planner-week { overflow-x: auto; }
+.planner-week > .planner-day-headers, .planner-week > .planner-grid-scroll { min-width: calc(56px + var(--planner-days, 7) * 96px); }

@@ -208,7 +208,7 @@ test(`Sprint table and Roadmap retain recorded work and read-only details after 
     await expect(page.locator('#taskModal')).toBeHidden();
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
-    await page.getByRole('button', { name: 'Show tasks for Previous Sprint', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for Previous Sprint', exact: false }).click();
     const scope = page.locator('[data-roadmap-task-list="sprint:past"]');
     await scope.getByRole('button', { name: 'Expand Recorded story', exact: true }).click();
     await expect(scope.locator('tr[data-task-id="1204"]')).toContainText('Recorded child');

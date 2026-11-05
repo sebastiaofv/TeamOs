@@ -20,6 +20,8 @@
 }
 
 .portfolio-chip {
+    min-width: 0;
+    max-width: 100%;
     border: 1px solid var(--border);
     background: var(--chip-bg, var(--bg-card));
     border-color: var(--chip-border, var(--border));
@@ -381,3 +383,5 @@
     .product-projects .chip-link[data-action="select-board"] { min-width: 0; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) { .product-chevron { transition: none; } }
+
+.portfolio-chip > .chip-link[data-action="select-board"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

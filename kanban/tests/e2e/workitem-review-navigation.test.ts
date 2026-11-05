@@ -85,7 +85,7 @@ for (const screen of ['roadmap', 'table']) test(`new child details unwind Task â
         await page.locator('#workitemsTable tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     } else {
         await page.locator('[data-view-mode="roadmap"]').click();
-        await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
+        await page.getByRole('button', { name: 'Show tasks for Delivery', exact: false }).click();
         await page.locator('[data-roadmap-task-list="phase:p"] tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     }
     await page.getByRole('button', { name: 'Create User Story', exact: true }).click();
@@ -144,7 +144,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.locator('[data-table-view="hierarchy"]').click();
     const headings = await page.locator('#workitemsTable thead th').allTextContents();
     await page.locator('[data-view-mode="roadmap"]').click();
-    await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for Delivery', exact: false }).click();
     const phase = page.locator('[data-roadmap-task-list="phase:p"]');
     await expect(phase.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
     await phase.getByRole('button', { name: 'Expand Epic', exact: true }).click();
@@ -162,7 +162,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.keyboard.press('Escape');
     await expect(milestone).toBeVisible();
     await milestone.locator('.modal-close').click();
-    await page.getByRole('button', { name: 'Show tasks for Sprint', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for Sprint', exact: false }).click();
     const sprint = page.locator('[data-roadmap-task-list="sprint:s"]');
     await expect(sprint.locator('.workitem-tree')).toHaveCount(0);
     await expect(sprint.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));

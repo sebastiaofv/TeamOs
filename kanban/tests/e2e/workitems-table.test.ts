@@ -235,9 +235,12 @@ test.describe('workitems table', () => {
         await disclosure.locator('summary').click();
         const panel = disclosure.locator('[data-table-panel]');
         await expect(panel).toBeVisible();
+        await expect.poll(async () => {
+          const bounds = (await panel.boundingBox())!;
+          const heading = (await disclosure.locator('..').locator('..').boundingBox())!;
+          return Math.abs(bounds.x + bounds.width - heading.x - heading.width);
+        }).toBeLessThan(2);
         const bounds = await panel.boundingBox();
-        const heading = await disclosure.locator('..').locator('..').boundingBox();
-        expect(Math.abs(bounds!.x + bounds!.width - heading!.x - heading!.width)).toBeLessThan(2);
         expect(bounds!.x).toBeGreaterThanOrEqual(0);
         expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
         await page.keyboard.press('Escape');

@@ -29,11 +29,11 @@ test('compact phase/sprint rows share tables and execution progress; Today spans
         return { height: row.getBoundingClientRect().height, centerDifference: Math.abs(name.y + name.height / 2 - dates.y - dates.height / 2), overlap: labels.right - track.left };
     });
     expect(geometry.height).toBeLessThanOrEqual(40); expect(geometry.centerDifference).toBeLessThan(2); expect(geometry.overlap).toBeLessThanOrEqual(1);
-    await page.getByRole('button', { name: 'Show tasks for API', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for API', exact: false }).click();
     await expect(area(page, 'phase:api').locator('table.workitems-table')).toHaveCount(1);
     expect(await ids(area(page, 'phase:api'))).toEqual([501, 502]);
     await expect(area(page, 'phase:api').locator('.portfolio-task-card, .roadmap-row-timeline-bar')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Show tasks for October execution', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for October execution', exact: false }).click();
     await page.locator('#portfolioRoadmapView').evaluate((element) => { element.scrollTop = 0; element.scrollLeft = 0; });
     expect(await ids(area(page, 'sprint:october'))).toEqual([501, 502, 506, 507]);
     const line = await page.locator('.roadmap-today-marker').boundingBox();
@@ -114,7 +114,7 @@ test('leaf arrows expose workitems and parent work/table expansion remains indep
     await leaf.focus(); await page.keyboard.press('Enter');
     await expect(leaf).toHaveAttribute('aria-expanded', 'true');
     await expect(area(page, 'phase:api')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Show tasks for Engineering', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Show tasks for Engineering', exact: false })).toHaveCount(0);
     await expect(area(page, 'phase:api')).toBeVisible();
     const parent = page.getByRole('button', { name: 'Expand/collapse subphases of Engineering', exact: true });
     await parent.click(); await expect(area(page, 'phase:api')).toHaveCount(0);
@@ -153,7 +153,7 @@ test('milestone colours are suggested, editable and persisted; history collapses
 
 test('leaf workitem tables omit perspective controls and the User Story column', async ({ page }) => {
     await seed(page);
-    await page.getByRole('button', { name: 'Show tasks for API', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for API', exact: false }).click();
     const work = area(page, 'phase:api');
     expect(await ids(work)).toEqual([501, 502]);
     await expect(work.locator('.table-heading, .roadmap-perspectives, .table-summary')).toHaveCount(0);
@@ -165,7 +165,7 @@ test('phase detail navigation preserves zoom, width, selection and scroll', asyn
     await seed(page);
     await page.getByLabel('Timeline zoom', { exact: true }).selectOption('1.5');
     await page.getByLabel('Identification column width', { exact: true }).fill('500');
-    await page.getByRole('button', { name: 'Show tasks for API', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for API', exact: false }).click();
     const work = area(page, 'phase:api');
     expect(await ids(work)).toEqual([501, 502]);
     await work.getByRole('checkbox', { name: 'Select API contracts', exact: true }).check();
@@ -246,8 +246,8 @@ test('parent-only phase moves save and structural confirmations identify archive
 
 test('clarified Roadmap stays readable in the existing light and dark themes', async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 1440, height: 1000 }); await seed(page);
-    await page.getByRole('button', { name: 'Show tasks for API', exact: true }).click();
-    await page.getByRole('button', { name: 'Show tasks for October execution', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for API', exact: false }).click();
+    await page.getByRole('button', { name: 'Show tasks for October execution', exact: false }).click();
     await page.locator('#portfolioRoadmapView').evaluate((element) => { element.scrollTop = 0; element.scrollLeft = 0; });
     await page.mouse.move(10, 10); await page.screenshot({ path: testInfo.outputPath('roadmap-light.png'), fullPage: true });
     await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();

@@ -135,7 +135,7 @@ function ChipList({ state }: { state: ChipState }) {
                 style={{ '--chip-bg': color.bg, '--chip-border': color.border, '--chip-text': color.text } as CSSProperties}
                 key={board.id}
             >
-                <button className="chip-link" type="button" data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={(event) => { selectPortfolioBoard(board.id); const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; }}>
+                <button className="chip-link" type="button" title={board.title || board.fileName} data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={(event) => { selectPortfolioBoard(board.id); const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; }}>
                     {board.title || board.fileName}
                     {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
                     {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}>{saveUi.status === 'saving' && <span className="save-spinner" aria-hidden="true" />} {saveUi.text}</span>}

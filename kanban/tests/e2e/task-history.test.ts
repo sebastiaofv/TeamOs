@@ -89,7 +89,7 @@ test('historical history uses the canonical position even with equal or inverted
     await page.locator('#portfolioTimelinePanel .timeline-toggle-btn').click();
     await setTimelineSlider(page, 1);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
-    await page.getByRole('button', { name: 'Show tasks for Build at date', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for Build at date', exact: false }).click();
     await page.locator('[data-roadmap-task-list="phase:build"]').getByRole('button', { name: 'Release ready', exact: true }).click();
     await page.getByRole('tab', { name: 'History', exact: true }).click();
     await expect(page.locator('.history-entry')).toHaveCount(1);

@@ -67,7 +67,7 @@ test('responsible and participant filters combine across all views, including em
     if (view === 'board') await expect(page.locator('#portfolioBoard .task-title')).toHaveText(['Matching item']);
     if (view === 'table') await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching item');
     if (view === 'roadmap') {
-      await page.getByRole('button', { name: 'Show tasks for Build', exact: true }).click();
+      await page.getByRole('button', { name: 'Show tasks for Build', exact: false }).click();
       await expect(page.locator('#portfolioRoadmapView .workitems-table tbody [data-column="title"]')).toHaveText(['Matching item']);
     }
     if (view === 'calendar') {

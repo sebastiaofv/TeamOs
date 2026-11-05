@@ -43,7 +43,7 @@ test.describe('calendar', () => {
     ], extensions: { roadmap: { version: 1, phases: [], sprints: [], milestones: [{ id: 'm', title: 'Release', dueDate: '2026-04-03' }] } } }]);
     await page.getByRole('button', { name: 'Day Planner', exact: true }).click();
     await page.getByRole('button', { name: 'Calendar', exact: true }).click();
-    await page.getByRole('button', { name: 'Open April 2026' }).click();
+    await page.getByRole('button', { name: /^April \d+ items?$/ }).click();
     await expect(page.locator('#portfolioCalendarView')).toContainText('Execution deadline');
     await expect(page.locator('#portfolioCalendarView')).not.toContainText('Story deadline');
     await expect(page.locator('#portfolioCalendarView')).not.toContainText('Bug deadline');
@@ -83,7 +83,7 @@ test.describe('calendar', () => {
     await expect(page.getByRole('button', { name: 'Heat Map' })).toBeVisible();
     await page.getByRole('button', { name: 'Heat Map' }).click();
     await expect(aggregateCalendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
-    await page.getByRole('button', { name: 'Open April 2026' }).click();
+    await page.getByRole('button', { name: /^April \d+ items?$/ }).click();
     await expect(aggregateCalendarShell).toHaveAttribute('data-calendar-display-mode', 'heatmap');
 
     await expect(page.locator('#portfolioCalendarView')).toContainText('Alpha Due');
@@ -150,7 +150,7 @@ test.describe('calendar', () => {
     await page.getByRole('button', { name: 'Calendar', exact: true }).click();
     const calendarShell = page.locator('.portfolio-calendar-shell');
 
-    await page.getByRole('button', { name: 'Open February 2026' }).click();
+    await page.getByRole('button', { name: /^February \d+ items?$/ }).click();
     await expect(calendarShell).toHaveAttribute('data-calendar-view', 'month');
     await expect(calendarShell.locator('.portfolio-calendar-week-row')).toHaveCount(4);
     await expect(calendarShell.locator('.portfolio-calendar-day-cell')).toHaveCount(28);
@@ -158,7 +158,7 @@ test.describe('calendar', () => {
     await expect(calendarShell.locator('.portfolio-calendar-day-cell').last()).toHaveAttribute('data-calendar-day', '2026-02-28');
 
     await page.getByRole('button', { name: 'Back to year' }).click();
-    await page.getByRole('button', { name: 'Open April 2026' }).click();
+    await page.getByRole('button', { name: /^April \d+ items?$/ }).click();
     await expect(calendarShell).toHaveAttribute('data-calendar-view', 'month');
     await expect(calendarShell.locator('.portfolio-calendar-week-row')).toHaveCount(5);
     await expect(calendarShell.locator('.portfolio-calendar-day-cell')).toHaveCount(35);
@@ -176,7 +176,7 @@ test.describe('calendar', () => {
 
     await page.getByRole('button', { name: 'Day Planner', exact: true }).click();
     await page.getByRole('button', { name: 'Calendar', exact: true }).click();
-    await page.getByRole('button', { name: 'Open April 2026' }).click();
+    await page.getByRole('button', { name: /^April \d+ items?$/ }).click();
 
     const metrics = await page.evaluate(() => {
       const controls = document.querySelector('.portfolio-calendar-controls')?.getBoundingClientRect();
