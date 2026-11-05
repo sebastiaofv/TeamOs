@@ -57,10 +57,12 @@
 /* Labels and icons identify actions; quiet hover/focus states replace the
    repeated outlines. Form fields keep a stronger boundary for visibility. */
 :root[data-theme-style="modern"] .btn { border-color: transparent; background: transparent; }
-:root[data-theme-style="modern"] .btn:hover { border-color: transparent; background: var(--bg-secondary); }
+:root[data-theme-style="modern"] .btn:not(:disabled):hover { border-color: transparent; background: var(--bg-secondary); }
 :root[data-theme-style="modern"] .btn:is(.active, [aria-pressed="true"]) { color: var(--accent); background: var(--bg-secondary); }
 :root[data-theme-style="modern"] .btn.btn-primary { color: var(--accent-contrast); background: var(--accent); border-color: var(--accent); }
-:root[data-theme-style="modern"] .btn.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+:root[data-theme-style="modern"] .btn.btn-primary:not(:disabled):hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+:root[data-theme-style="modern"] .btn.btn-danger { background: var(--priority-high); border-color: var(--priority-high); color: var(--bg-card); }
+:root[data-theme-style="modern"] .btn.btn-danger:not(:disabled):hover { background: var(--priority-high); border-color: var(--priority-high); filter: brightness(0.92); }
 :root[data-theme-style="modern"] :is(select, textarea, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"])) { border-color: var(--control-border); }
 
 :root[data-theme-style="modern"] :is(.modal-content, .palette, .board-column-panel, .table-column-panel, .table-hierarchy-filter-panel, .portfolio-filters-panel) {

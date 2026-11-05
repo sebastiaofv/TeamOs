@@ -5,7 +5,7 @@
 .dashboard-heading p, .dashboard-note { color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
 .dashboard-note { margin: 8px 0; }
 .dashboard-controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
-.dashboard-controls label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; min-width: 0; max-width: 100%; }
+.dashboard-controls label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.5; min-width: 0; max-width: 100%; }
 .dashboard-controls select, .dashboard-controls input { max-width: 380px; width: 100%; min-height: 34px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); padding: 6px 10px; }
 .dashboard-tabs { display: flex; gap: 6px; margin: 16px 0; }
 .dashboard-tabs .btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }

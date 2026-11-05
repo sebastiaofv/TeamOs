@@ -2,7 +2,10 @@
 .control-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0; }
 .control-tabs .active { color: var(--accent); border-color: var(--accent); background: var(--bg-secondary); }
 .control-filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
-.control-filters label, .control-related > label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+.control-filters label, .control-related > label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.5; }
+.control-filters { row-gap: 16px; }
+#control-table-panel > .field-hint { margin: 12px 0 8px; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+#control-table-panel > p[aria-live] { margin-bottom: 12px; color: var(--text-secondary); font-size: 12px; }
 .control-filters input, .control-filters select { min-width: 120px; max-width: 250px; }
 .control-filters .control-check { flex-direction: row; align-items: center; min-height: 32px; }
 .control-check input { min-width: 0; }

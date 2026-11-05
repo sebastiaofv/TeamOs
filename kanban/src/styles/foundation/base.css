@@ -190,12 +190,17 @@ textarea::placeholder {
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.btn:hover {
+.btn:not(:disabled):hover {
     background: var(--bg-secondary);
     border-color: var(--text-secondary);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .icon-btn {
@@ -254,7 +259,7 @@ textarea::placeholder {
     border-color: var(--accent);
 }
 
-.btn-primary:hover {
+.btn-primary:not(:disabled):hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
 }

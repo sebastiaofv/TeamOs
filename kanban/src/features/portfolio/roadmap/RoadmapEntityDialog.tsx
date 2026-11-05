@@ -167,7 +167,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                         <div className="form-group"><label htmlFor="sprintReview">{t('sprint.review')}</label><textarea id="sprintReview" {...bind('review')} /></div>
                         <div className="form-group"><label htmlFor="sprintRetrospective">{t('sprint.retrospective')}</label><textarea id="sprintRetrospective" {...bind('retrospective')} /></div>
                     </>}
-                    {vm.kind !== 'sprints' && <label className="form-group">{t('control.objective')}<textarea aria-label={t('control.objective')} id="roadmapEntityObjective" value={draft.objective || ''} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} rows={3} /></label>}
+                    {vm.kind !== 'sprints' && <div className="form-group"><label htmlFor="roadmapEntityObjective">{t('control.objective')}</label><textarea id="roadmapEntityObjective" value={draft.objective || ''} onChange={(event) => setDraft({ ...draft, objective: event.target.value })} rows={3} /></div>}
                     <div className={`roadmap-entity-date-row single${hideSingleDate ? ' hidden' : ''}`} id="roadmapEntitySingleDateRow">
                         <div className="form-group">
                             <label className="required" id="roadmapEntityDateLabel" htmlFor="roadmapEntityDate">{vm.dateLabel}</label>

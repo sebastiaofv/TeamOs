@@ -27,7 +27,7 @@
     border-color: var(--priority-high);
 }
 
-.btn-danger:hover {
+.btn-danger:not(:disabled):hover {
     background: var(--priority-high);
     border-color: var(--priority-high);
     filter: brightness(0.92);

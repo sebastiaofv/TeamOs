@@ -2,10 +2,10 @@
 .roadmap-workspace { min-width: 0; }
 .roadmap-view-controls { position: sticky; top: 0; z-index: 9; }
 .roadmap-view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg-card); font-size: 12px; }
-.roadmap-view-controls > label, .roadmap-archive-control { display: inline-flex; align-items: center; gap: 6px; }
+.roadmap-view-controls > label, .roadmap-archive-control { display: inline-flex; align-items: center; gap: 8px; }
 .roadmap-view-controls input[type="range"] { width: 90px; accent-color: var(--accent); }
 .roadmap-view-controls select, .roadmap-modal-filters select { color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border); border-radius: 0; min-height: 30px; padding: 5px 8px; font: inherit; font-size: 13px; }
-.roadmap-completion-controls { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+.roadmap-completion-controls { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 .roadmap-completion-controls .btn { font-size: 11px; padding: 4px 7px; }
 .roadmap-completion-controls [aria-pressed="true"], .roadmap-perspectives [aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--bg-secondary); }
 .portfolio-roadmap-timeline { --roadmap-label-width: 440px; --roadmap-temporal-min: 640px; width: 100%; min-width: calc(var(--roadmap-label-width) + var(--roadmap-temporal-min) + 16px); position: relative; border: 1px solid var(--border); background: var(--bg-primary); }

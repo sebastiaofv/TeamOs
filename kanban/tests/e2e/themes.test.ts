@@ -202,6 +202,9 @@ for (const style of ['classic', 'modern']) {
             await page.locator('#docsToggleBtn').click();
             await page.locator('[data-view-mode="board"]').click();
             await openTaskEditor(page, 'Visible workitem');
+            const effortBounds = await page.locator('#taskEffort').boundingBox();
+            const pointsLabelBounds = await page.locator('label[for="taskStoryPoints"]').boundingBox();
+            expect(pointsLabelBounds!.y - effortBounds!.y - effortBounds!.height).toBeGreaterThanOrEqual(16);
             await expect(page.locator('#taskName')).toHaveCSS('border-radius', radius);
             await expect(page.locator('#taskModal .modal-content')).toHaveCSS('border-radius', style === 'modern' ? '9px' : '0px');
             await capture('editor');

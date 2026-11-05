@@ -80,7 +80,7 @@
 .workitems-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1000px; }
 .workitems-table th, .workitems-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-light); text-align: left; vertical-align: middle; }
 .workitems-table th { position: sticky; top: 0; z-index: 1; background: var(--bg-secondary); white-space: nowrap; }
-.workitems-table th button { background: transparent; border: 0; color: var(--text-primary); cursor: pointer; font-weight: 600; }
+.workitems-table th button { display: inline-flex; align-items: center; gap: 6px; line-height: 1.5; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; font-weight: 600; }
 .workitems-table [data-column] { min-width: 132px; max-width: 280px; overflow-wrap: anywhere; }
 .workitems-table [data-column="id"] { min-width: 80px; }
 .workitems-table [data-column="title"] { min-width: 240px; max-width: 360px; }
