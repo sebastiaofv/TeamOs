@@ -1,4 +1,5 @@
 import { SprintAction } from './SprintAction';
+import { SprintPoints } from './SprintPoints';
 import { getSprintStatus } from '@/domain/roadmap';
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -11,7 +12,7 @@ import { formatRoadmapDateRange, getRoadmapAxisTicks, getRoadmapYearTicks, getRo
 import { allWorkflowStates } from '@/domain/workflow';
 import { formatDueDateForUi } from '@/domain/calendar';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
-import { WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
+import { formatClosureDate, WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
 import { useI18n } from '@/shared/i18n';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { layoutMilestones, MILESTONE_LANE_HEIGHT, MILESTONE_LABEL_WIDTH } from '@/domain/milestonePresentation';
@@ -67,11 +68,12 @@ function CompletionControl({ view }: { view: PortfolioRoadmapViewModel }) {
     const choices = [
         { key: 'all', label: t('common.all'), ids: [] as string[] },
         { key: 'open', label: t('roadmap.notCompleted'), ids: allWorkflowStates(view.boardData).filter((column) => !['completed', 'cancelled'].includes(column.category)).map((column) => column.id) || [] },
+        { key: 'testing', label: t('workflow.testing'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'testing').map((column) => column.id) || [] },
         { key: 'completed', label: t('roadmap.completed'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'completed').map((column) => column.id) || [] },
         { key: 'cancelled', label: t('roadmap.cancelled'), ids: allWorkflowStates(view.boardData).filter((column) => column.category === 'cancelled').map((column) => column.id) || [] }
     ];
     return <div className="roadmap-completion-controls" role="group" aria-label={t('roadmap.completionFilter')}>
-        {choices.filter((choice) => choice.key !== 'cancelled' || choice.ids.length).map((choice) => <button className="btn" type="button" key={choice.key}
+        {choices.filter((choice) => !['cancelled', 'testing'].includes(choice.key) || choice.ids.length).map((choice) => <button className="btn" type="button" key={choice.key}
             aria-pressed={selected.length === choice.ids.length && selected.every((id) => choice.ids.includes(id))} onClick={() => setPortfolioFilter('statuses', choice.ids)}>{choice.label}</button>)}
     </div>;
 }
@@ -86,10 +88,12 @@ function ScopeSummary({ scope }: { scope: RoadmapWorkScope }) {
 function ScopeTable({ scope, view, scopeId }: { scope: RoadmapWorkScope; view: PortfolioRoadmapViewModel; scopeId: string }) {
     const { t } = useI18n();
     if (!view.boardData) return null;
+    const closure = /^sprints?:/.test(scope.key) && scope.item ? view.boardData.extensions.sprintResults?.closures.find((entry) => entry.sprintId === scope.item!.id) : undefined;
     return <div className="roadmap-scope-table">
         <ScopeSummary scope={scope} />
         <WorkitemTable nested hidden={false} boardId={view.boardId} project={`${view.boardTitle}${scope.item ? ` · ${scope.item.title}` : ''}`} boardData={scope.boardData}
             sourceRows={scope.rows} canCreate={false} scope={domId(scopeId)} emptyLabel={t('roadmap.noTasksAssigned')} />
+        {closure && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(closure.closedAt) })}</p>}
     </div>;
 }
 
@@ -131,8 +135,8 @@ function PlanningRow({ row, view, canEdit, perspective, setPerspective }: { row:
                 <h4 className="roadmap-row-title" title={`${item.title} · ${t(row.hasChildren ? 'roadmap.parentPhase' : 'roadmap.leafPhase')}`} id={`${rowId}-title`}>{item.title}</h4>
                 <span className="roadmap-row-meta">{formatRoadmapDateRange(item, language)}</span>
                 <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggle}>▤ {row.visibleCount}/{row.progress.associated}</button>
-                <div className="roadmap-row-actions">{row.kind === 'sprints' && <><span className={`table-status-badge sprint-status-${getSprintStatus(item)}`}>{t(`table.sprintStatus.${getSprintStatus(item)}`)}</span><SprintAction sprint={item} boardId={view.boardId} disabled={!canEdit} /></>}<button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${item.title}`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id)}>✎</button>
-                    <button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.delete')} ${item.title}`} onClick={() => actions.deleteRoadmapEntity(row.kind, item.id)}>×</button>
+                <div className="roadmap-row-actions">{row.kind === 'sprints' && <>{view.boardData && <SprintPoints data={view.boardData} sprintId={item.id} />}<span className={`table-status-badge sprint-status-${getSprintStatus(item)}`}>{t(`table.sprintStatus.${getSprintStatus(item)}`)}</span><SprintAction sprint={item} boardId={view.boardId} disabled={!canEdit} /></>}<button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${item.title}`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id)}>✎</button>
+                    {(row.kind !== 'sprints' || getSprintStatus(item) === 'planned') && <button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.delete')} ${item.title}`} onClick={() => actions.deleteRoadmapEntity(row.kind, item.id, { boardId: view.boardId })}>×</button>}
                 </div>
             </div>
             <div className="roadmap-row-track">

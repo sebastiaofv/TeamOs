@@ -1,5 +1,5 @@
 import { translateCurrent } from '@/shared/i18n';
-import { taskInTechnicalBoard, workitemType } from '@/domain/workitems';
+import { taskInFunctionalBoard, taskInTechnicalBoard, workitemType } from '@/domain/workitems';
 import type { BoardColumn } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getWorkflow, allWorkflowStates, statusCategory } from '@/domain/workflow';
@@ -28,7 +28,7 @@ export function buildPortfolioBoardView(state: SelectorState, mode?: 'technical'
     (state?.portfolioVisibleRows || []).forEach((row) => {
         if (workitemType(row.task) === 'epic') return;
         const data = row.boardData || boards.find((board) => board.id === row.boardId)?.data;
-        if (mode && (!data || (mode === 'functional' ? workitemType(row.task) !== 'story' : !taskInTechnicalBoard(data, row.task)))) return;
+        if (mode && (!data || (mode === 'functional' ? !taskInFunctionalBoard(data, row.task) : !taskInTechnicalBoard(data, row.task)))) return;
         if (!visibility.has(row.boardId) || visibility.get(row.boardId)?.has(row.task.status)) return;
         const category = statusCategory(row.task.status, data, row.task);
         const key = mode && !state?.selectedPortfolioBoardId ? ({ 'in-progress': 'doing', completed: 'done' } as Record<string, string>)[category] || category : row.task.status;

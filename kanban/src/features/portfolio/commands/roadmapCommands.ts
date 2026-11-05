@@ -1,10 +1,10 @@
-import { closeSprint } from '@/domain/sprintResults';
+import { closeSprint, startSprint } from '@/domain/sprintResults';
 import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 import type { SprintStatus } from '@/domain/types';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
 import { controlRecords, saveControlRecord } from '@/domain/projectControl';
 import { workitemLabel } from '@/domain/taskIdentity';
-import { eligibleSprint, isPlanningUnit, WorkitemError } from '@/domain/workitems';
+import { eligibleSprint, hasPendingWork, isPlanningUnit, WorkitemError } from '@/domain/workitems';
 // Roadmap editing, sprint assignment, and row expansion.
 
 import type { RoadmapItem, RoadmapKind, Task } from '@/domain/types';
@@ -12,7 +12,6 @@ import type { RoadmapEntityMode, SelectOption } from '@/features/portfolio/types
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardInteractions } from './boardCommands';
 import { touchTask } from '@/domain/task';
-import { statusCategory } from '@/domain/workflow';
 import {
     createEmptyRoadmapExtension,
     formatRoadmapDateRange,
@@ -152,7 +151,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const unplannedTaskIds = getState().roadmapEntityContext?.unplannedTaskIds;
         const selectedTaskIds = unplannedTaskIds || getSelectedPortfolioBulkTaskIds(boardId);
         if (selectedTaskIds.length === 0) return false;
-        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardRecord.data, task)) && !task.sprintId))) {
+        if (unplannedTaskIds && selectedTaskIds.some((id) => !boardRecord.data.board.tasks.some((task) => task.id === id && hasPendingWork(boardRecord.data, task) && !task.sprintId))) {
             alert(translateCurrent('table.selectionChanged'));
             return false;
         }
@@ -222,7 +221,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 alert(translateCurrent('roadmapDialog.sprintUnavailable'));
                 return false;
             }
-            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task)) && !task.sprintId))) {
+            if (unplannedTaskIds && selectedTaskIds.some((id) => !boardData.board.tasks.some((task) => task.id === id && hasPendingWork(boardData, task) && !task.sprintId))) {
                 alert(translateCurrent('table.selectionChanged'));
                 return false;
             }
@@ -322,6 +321,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const index = roadmap.sprints.findIndex((item) => item.id === sprintId);
             if (index < 0) return false;
             if (status === 'done') closeSprint(data, sprintId, next);
+            if (status === 'active') startSprint(data, sprintId);
             roadmap.sprints[index] = next;
             appendTimelineEvent(data, { kind: 'roadmap.updated', entityType: 'board', entityId: 'board', summary: `${next.title}: ${status}`, snapshot: createBoardStateSnapshot(data), meta: { roadmapKind: 'sprints', roadmapItemId: sprintId, action: status } });
             return true;
@@ -448,6 +448,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 updatePhase(boardData, nextItem, relocation);
             } else if (index >= 0) {
                 if (context.kind === 'sprints' && nextItem.status === 'done' && getSprintStatus(previousItem!) !== 'done') closeSprint(boardData, nextId, nextItem);
+                if (context.kind === 'sprints' && nextItem.status === 'active' && getSprintStatus(previousItem!) !== 'active') startSprint(boardData, nextId);
                 items[index] = nextItem;
             } else {
                 if (context.kind === 'sprints') registerSprintCreation(boardData, nextId, nowIso());
@@ -482,8 +483,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (changed) closeRoadmapEntity();
     }
 
-    async function deleteRoadmapEntity(kind: RoadmapKind, itemId: string, options: { onApplied?: () => void } = {}) {
-        const boardId = getState().selectedPortfolioBoardId;
+    async function deleteRoadmapEntity(kind: RoadmapKind, itemId: string, options: { onApplied?: () => void; boardId?: string } = {}) {
+        const boardId = options.boardId || getState().selectedPortfolioBoardId;
         const boardRecord = boardId ? getBoardRecord(boardId) : null;
         const config = getRoadmapEntityConfig(kind);
         if (!boardRecord || !config) return;
@@ -496,6 +497,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         const item = roadmap[config.itemsKey].find((entry) => entry.id === itemId);
         if (!item) return;
         if (kind === 'phases' && roadmap.phases.some((phase) => phase.parentId === itemId)) { await alert(translateCurrent('roadmap.hasChildren')); return; }
+        // Only Planned Sprints can be deleted; their workitems return to planning with unchanged statuses.
+        if (kind === 'sprints' && getSprintStatus(item) !== 'planned') { await alert(translateCurrent('sprint.deletePlannedOnly')); return; }
         const label = getRoadmapLabel(kind);
         const affected = boardRecord.data.board.tasks.filter((task) => task[config.taskField] === itemId);
         let relocation: string | undefined;
@@ -507,7 +510,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             if (choice === null) return;
             relocation = choice;
         } else {
-            const confirmed = await confirm(translateCurrent(kind === 'sprints' ? 'roadmap.deleteQuestion' : 'roadmap.deletePlanningQuestion', { title: item.title }) + impactText(affected), {
+            const confirmed = await confirm(translateCurrent(kind === 'sprints' ? (affected.length ? 'sprint.deleteQuestion' : 'roadmap.deleteQuestion') : 'roadmap.deletePlanningQuestion', { title: item.title, count: affected.length }) + impactText(affected), {
                 title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
                 confirmLabel: translateCurrent('common.delete'), danger: true
             });
@@ -522,6 +525,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const actual = boardData.board.tasks.filter((task) => task[config.taskField] === itemId).map((task) => task.id).sort((a, b) => a - b);
             if (JSON.stringify(actual) !== JSON.stringify(affected.map((task) => task.id).sort((a, b) => a - b))) throw new Error(translateCurrent('roadmap.impactChanged'));
             const removed = items[index];
+            if (kind === 'sprints' && getSprintStatus(removed) !== 'planned') throw new Error(translateCurrent('roadmap.impactChanged'));
             if (kind !== 'sprints') deletePlanningGroup(boardData, kind, itemId, relocation);
             else items.splice(index, 1);
             const tasks = Array.isArray(boardData.board?.tasks) ? boardData.board.tasks : [];

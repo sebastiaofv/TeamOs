@@ -1,5 +1,5 @@
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
-import type { BoardData, WorkflowCategory, WorkflowState } from '@/domain/types';
+import type { BoardData, WorkflowCategory, WorkflowState, WorkitemType } from '@/domain/types';
 import { WORKFLOW_CATEGORIES, unreachableWorkflowStateIds, workflowKind } from '@/domain/workflow';
 import type { ProjectWorkflowEditor } from '@/features/portfolio/projects/useProjectSettingsEditor';
 import { useI18n } from '@/shared/i18n';
@@ -19,9 +19,13 @@ function StateDot({ state }: { state: WorkflowState }) {
     return <span className="workflow-state-dot" style={{ backgroundColor: state.color }} aria-hidden="true" />;
 }
 
-type Section = 'states' | 'references';
+type Section = 'states' | 'references' | 'types';
+const SECTIONS: Section[] = ['states', 'references', 'types'];
+const TYPES: WorkitemType[] = ['epic', 'story', 'task', 'bug'];
 
-export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardData; readOnly: boolean; busy: boolean; editor: ProjectWorkflowEditor }) {
+export type WorkflowTypesDraft = { functional: WorkitemType[]; original: WorkitemType[]; set: (functional: WorkitemType[]) => void };
+
+export function WorkflowEditor({ data, readOnly, busy, editor, types }: { data: BoardData; readOnly: boolean; busy: boolean; editor: ProjectWorkflowEditor; types: WorkflowTypesDraft }) {
     const { t } = useI18n();
     const { draft, removed, relocations, section, selectSection: setSection, update, relocate, clearError, selectedId, setSelectedId } = editor;
     const nextFocus = useRef(false);
@@ -30,7 +34,8 @@ export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardDa
     const index = draft.states.findIndex((item) => item.id === selected.id);
     const targets = draft.transitions[selected.id] || [];
     const terminal = ['completed', 'cancelled'].includes(selected.category);
-    const tasks = data.board.tasks.filter((task) => workflowKind(task) === editor.kind);
+    const tasks = data.board.tasks.filter((task) => workflowKind(task, data) === editor.kind);
+    const ownTypes = TYPES.filter((type) => types.functional.includes(type) === (editor.kind === 'functional'));
     const usedCount = tasks.filter((task) => task.status === selected.id).length;
     const protectedState = selected.id === 'backlog' || (['to-do', 'completed'].includes(selected.category) && draft.states.filter((item) => item.category === selected.category).length === 1);
     const unreachable = unreachableWorkflowStateIds(draft);
@@ -58,16 +63,17 @@ export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardDa
     function navigateTabs(event: KeyboardEvent<HTMLButtonElement>) {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();
-        const next: Section = event.key === 'Home' ? 'states' : event.key === 'End' ? 'references' : section === 'states' ? 'references' : 'states';
+        const position = SECTIONS.indexOf(section);
+        const next: Section = event.key === 'Home' ? SECTIONS[0] : event.key === 'End' ? SECTIONS[SECTIONS.length - 1] : SECTIONS[(position + (event.key === 'ArrowRight' ? 1 : -1) + SECTIONS.length) % SECTIONS.length];
         setSection(next);
         event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-section="${next}"]`)?.focus();
     }
 
     return <>
         <div className="workflow-tabs" role="tablist" aria-label={t('workflow.sections')}>
-            {(['states', 'references'] as const).map((value) => <button key={value} type="button" role="tab" id={`${formId}-tab-${value}`} data-section={value} aria-controls={`${formId}-panel-${value}`} aria-selected={section === value} tabIndex={section === value ? 0 : -1} onClick={() => setSection(value)} onKeyDown={navigateTabs}>
-                {t(value === 'states' ? 'workflow.statesAndTransitions' : 'workflow.generalSettings')}
-                <span className="workflow-count" aria-hidden="true">{value === 'states' ? draft.states.length : removed.length || ''}</span>
+            {SECTIONS.map((value) => <button key={value} type="button" role="tab" id={`${formId}-tab-${value}`} data-section={value} aria-controls={`${formId}-panel-${value}`} aria-selected={section === value} tabIndex={section === value ? 0 : -1} onClick={() => setSection(value)} onKeyDown={navigateTabs}>
+                {t(value === 'states' ? 'workflow.statesAndTransitions' : value === 'references' ? 'workflow.generalSettings' : 'workflow.workitemTypes')}
+                <span className="workflow-count" aria-hidden="true">{value === 'states' ? draft.states.length : value === 'references' ? removed.length || '' : ownTypes.length}</span>
             </button>)}
         </div>
         <div className="modal-body workflow-editor">
@@ -113,6 +119,23 @@ export function WorkflowEditor({ data, readOnly, busy, editor }: { data: BoardDa
                     <div className="workflow-state-bottom"><p>{t('workflow.stateUsage', { count: usedCount })}</p><button type="button" className="workflow-remove-state" disabled={readOnly || busy || protectedState} title={protectedState ? t('workflow.requiredState') : undefined} onClick={removeState}>{t('common.remove')}</button></div>
                     <details className="workflow-state-identity"><summary>{t('workflow.stableId')}</summary><code>{selected.id}</code></details>
                 </section>
+            </div> : section === 'types' ? <div role="tabpanel" id={`${formId}-panel-types`} aria-labelledby={`${formId}-tab-types`} className="workflow-general workflow-types">
+                <header><h3>{t('workflow.workitemTypes')}</h3><p>{t('workflow.workitemTypesHint')}</p></header>
+                <fieldset disabled={readOnly || busy} className="workflow-transitions workflow-type-fields" aria-label={t('workflow.workitemTypes')}>
+                    {TYPES.map((type) => {
+                        const checked = ownTypes.includes(type);
+                        const count = data.board.tasks.filter((task) => (task.type || 'task') === type).length;
+                        return <label key={type} className={checked ? 'is-allowed' : ''}>
+                            <input type="checkbox" data-workflow-type={type} checked={checked} aria-label={t(`workitems.type.${type}`)} onChange={(event) => {
+                                const toFunctional = editor.kind === 'functional' ? event.target.checked : !event.target.checked;
+                                types.set(toFunctional ? [...types.functional, type] : types.functional.filter((value) => value !== type));
+                                clearError();
+                            }} />
+                            <span><strong>{t(`workitems.type.${type}`)}</strong><span>{t('workflow.typeUsage', { count })}</span></span>
+                        </label>;
+                    })}
+                </fieldset>
+                {TYPES.some((type) => types.functional.includes(type) !== types.original.includes(type)) && <p className="workflow-status-note" role="status">{t('workflow.typesMoveNote')}</p>}
             </div> : <div role="tabpanel" id={`${formId}-panel-references`} aria-labelledby={`${formId}-tab-references`} className="workflow-general">
                 <header><h3>{t('workflow.generalSettings')}</h3><p>{t('workflow.referencesHint')}</p></header>
                 <fieldset disabled={readOnly || busy} className="workflow-reference-fields">

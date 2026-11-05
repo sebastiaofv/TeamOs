@@ -4,7 +4,7 @@ import type { BoardViewPreferences } from './boardView';
 
 export type TaskStatus = string;
 export type WorkflowKind = 'technical' | 'functional';
-export type WorkflowCategory = 'backlog' | 'to-do' | 'in-progress' | 'completed' | 'cancelled';
+export type WorkflowCategory = 'backlog' | 'to-do' | 'in-progress' | 'testing' | 'completed' | 'cancelled';
 export type WorkflowState = { id: string; name: string; color: string; category: WorkflowCategory };
 export type Workflow = {
     version: 2;
@@ -31,6 +31,8 @@ export type Attachment = {
 };
 
 export type WorkitemType = 'epic' | 'story' | 'task' | 'bug';
+/** Workitem types that follow the functional workflow; every other type follows the technical one. */
+export type WorkflowTypes = { version: 1; functional: WorkitemType[] };
 export type PlanningMode = 'inherit' | 'none' | 'explicit';
 export type WorkitemAutomation = { version: 1; start?: { from: string[]; to: string }; finish?: { from: string[]; to: string } };
 export type WorkitemFields = {
@@ -97,7 +99,7 @@ export type RoadmapDateKey = 'dueDate' | 'startDate' | 'endDate';
 export type SprintStatus = 'planned' | 'active' | 'done';
 export type SprintFields = { status?: SprintStatus; goal?: string; capacity?: number | null; review?: string; retrospective?: string };
 export type SprintCredit = { taskKey: string; taskId: number; sprintId: string; storyPoints: number; at: string };
-export type SprintClosure = { sprint: RoadmapItem; sprintId: string; closedAt: string; tasks: Task[]; workflow: Workflow; functionalWorkflow: Workflow; plannedPoints: number; completedIds: number[]; carryOverIds: number[]; velocity: number };
+export type SprintClosure = { sprint: RoadmapItem; sprintId: string; closedAt: string; tasks: Task[]; workflow: Workflow; functionalWorkflow: Workflow; workflowTypes?: WorkflowTypes; plannedPoints: number; completedIds: number[]; carryOverIds: number[]; velocity: number };
 export type SprintResults = { version: 1; credits: SprintCredit[]; closures: SprintClosure[] };
 export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string; objective?: string } & SprintFields & Partial<Record<RoadmapDateKey, string>>;
 export type RoadmapExtension = {
@@ -182,6 +184,7 @@ export type BoardExtensions = {
     boardView?: BoardViewPreferences;
     workflow?: Workflow;
     functionalWorkflow?: Workflow;
+    workflowTypes?: WorkflowTypes;
     roadmap?: RoadmapExtension;
     timeline?: TimelineExtension;
     dayPlanner?: DayPlannerExtension;

@@ -228,3 +228,7 @@
 #roadmapEntityModal .sprint-editor-modal .modal-header,
 #roadmapEntityModal .sprint-editor-modal .modal-footer { flex-shrink: 0; }
 #roadmapEntityModal .sprint-editor-modal .modal-body { min-height: 0; overflow-y: auto; }
+
+#roadmapEntityModal .roadmap-entity-delete {
+    margin-inline-end: auto;
+}

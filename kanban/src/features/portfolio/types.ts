@@ -52,6 +52,8 @@ export type PortfolioRow = {
     columnTitle?: string;
     canMutate: boolean;
     historical?: boolean;
+    /** A frozen Sprint row whose workitem still exists: its details open with current data. */
+    liveDetails?: boolean;
     boardData?: BoardData | null;
     task: Task;
 };

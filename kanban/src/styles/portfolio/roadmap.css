@@ -116,3 +116,27 @@
 .roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-labels { flex-wrap: wrap; }
 .roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-actions { flex: 1 0 100%; justify-content: flex-end; align-items: center; }
 .roadmap-row-actions .sprint-lifecycle-action { padding: 3px 8px; font-size: 11px; min-height: 22px; }
+
+.sprint-points {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.sprint-points-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.sprint-points-alert {
+    color: var(--priority-high);
+    font-weight: 700;
+}

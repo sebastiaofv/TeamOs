@@ -7,14 +7,14 @@ import { normalizeColumns } from './board';
 import { normalizeDayPlannerExtension } from './dayPlanner';
 import { normalizeRoadmapExtension } from './roadmap';
 import { normalizeTask } from './task';
-import { migrateBoardData } from './boardMigrations';
+import { migrateBoardData, migrateWorkflowTypes } from './boardMigrations';
 import { normalizeTimelineExtension } from './timelineSchema';
 import { normalizeTimestamp, nowIso } from './util';
 import { parseTaskRelations } from '@/domain/taskRelations';
 import { normalizeSprintCatalog } from '@/domain/sprintCatalog';
 import { migrateProjectData, parseProjectData, syncProjectAssignments } from '@/domain/projectData';
 import { validatePullRequestTimeline } from './pullRequests';
-import { getWorkflow, parseWorkflow } from './workflow';
+import { getWorkflow, parseWorkflow, parseWorkflowTypes } from './workflow';
 import { parseBoardView } from './boardView';
 import { ensurePermanentTaskIdentities, reserveTaskIdentities } from './taskIdentity';
 import { parsePermanentRelations } from './permanentRelations';
@@ -58,6 +58,7 @@ export function normalizeBoardExtensionsValue(
     }
     if (nextExtensions.workflow) nextExtensions.workflow = parseWorkflow(nextExtensions.workflow);
     if (nextExtensions.functionalWorkflow !== undefined) nextExtensions.functionalWorkflow = parseWorkflow(nextExtensions.functionalWorkflow);
+    if (nextExtensions.workflowTypes !== undefined) nextExtensions.workflowTypes = parseWorkflowTypes(nextExtensions.workflowTypes);
     if (nextExtensions.boardView !== undefined) nextExtensions.boardView = parseBoardView(nextExtensions.boardView, nextExtensions.workflow ? new Set(nextExtensions.workflow.states.map((state) => state.id)) : undefined, nextExtensions.functionalWorkflow ? new Set(nextExtensions.functionalWorkflow.states.map((state) => state.id)) : undefined);
 
     const relations = parseTaskRelations(nextExtensions.taskRelations, options.taskIds);
@@ -103,7 +104,7 @@ export function normalizeBoardExtensionsValue(
 }
 
 export function createBoardStateSnapshot(boardData: unknown): BoardData {
-    const input = migrateProjectData(migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData));
+    const input = migrateWorkflowTypes(migrateProjectData(migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData)));
     const meta = (input.meta && typeof input.meta === 'object' ? input.meta : {}) as LooseMeta;
     const board = (input.board && typeof input.board === 'object' ? input.board : {}) as LooseBoard;
     const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };
@@ -148,7 +149,7 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
 
 export function serializeBoardDataFromObject(boardData: unknown): BoardData {
     const now = nowIso();
-    const input = migrateProjectData(migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData));
+    const input = migrateWorkflowTypes(migrateProjectData(migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData)));
     const reservedInput = { ...input, extensions: { ...input.extensions } };
     reserveTaskIdentities(reservedInput);
     const meta = (input.meta && typeof input.meta === 'object' ? input.meta : {}) as LooseMeta;

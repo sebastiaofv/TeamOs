@@ -1,5 +1,5 @@
 import { getWorkflow } from '@/domain/workflow';
-import { isPlanningUnit, eligibleSprint, consultSprintParticipation, type SprintParticipation } from '@/domain/workitems';
+import { isPlanningUnit, eligibleSprint, consultSprintParticipation, hasPendingWork, type SprintParticipation } from '@/domain/workitems';
 import type { BoardData, RoadmapItem, SprintIdentity } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { getSprintCatalog } from '@/domain/sprintCatalog';
@@ -20,6 +20,7 @@ export type SprintTableRoster = {
     source: 'current' | 'closure';
     participation?: SprintParticipation;
     identity?: SprintIdentity;
+    closedAt?: string;
 };
 export type SprintTableGroup = SprintTableRoster & {
     status: SprintCalendarStatus;
@@ -32,7 +33,7 @@ export type SprintTableGroup = SprintTableRoster & {
 };
 
 export function unplannedTableRows(rows: PortfolioRow[]): PortfolioRow[] {
-    return rows.filter(({ task, boardData }) => !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task)) && (!boardData || isPlanningUnit(boardData, task)) && (!task.sprintId || Boolean(boardData && !eligibleSprint(boardData, task.sprintId))));
+    return rows.filter(({ task, boardData }) => (boardData ? isPlanningUnit(boardData, task) && hasPendingWork(boardData, task) : !['completed', 'cancelled'].includes(statusCategory(task.status, boardData, task))) && (!task.sprintId || Boolean(boardData && !eligibleSprint(boardData, task.sprintId))));
 }
 
 /** Use recorded participation for both planning rows and their participating children. */
@@ -44,9 +45,10 @@ export function currentSprintRosters(boardData: BoardData, rows: PortfolioRow[])
         const snapshot = participation.boardData;
         const rosterRows = participation.members.map((task): PortfolioRow => {
             const current = rows.find((row) => row.taskId === task.id);
-            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || rows[0]?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, columnTitle: getWorkflow(snapshot, task).states.find((state) => state.id === task.status)?.name, boardData: snapshot, task };
+            return { boardIndex: current?.boardIndex || 0, boardId: current?.boardId || rows[0]?.boardId || '', taskId: task.id, taskIndex: current?.taskIndex ?? -1, boardTitle: boardData.board.settings.title, boardFileName: current?.boardFileName || '', canMutate: Boolean(current?.canMutate) && participation.isCurrent(task.id) && !current?.historical, historical: !participation.isCurrent(task.id) || !current || current.historical, liveDetails: Boolean(current && !current.historical), columnTitle: getWorkflow(snapshot, task).states.find((state) => state.id === task.status)?.name, boardData: snapshot, task };
         });
-        return { sprint, boardData: snapshot, participation, source: boardData.extensions.sprintResults?.closures.some((closure) => closure.sprintId === sprint.id) ? 'closure' : 'current', rows: rosterRows, identity: identities.get(sprint.id) };
+        const closure = boardData.extensions.sprintResults?.closures.find((entry) => entry.sprintId === sprint.id);
+        return { sprint, boardData: snapshot, participation, source: closure ? 'closure' : 'current', rows: rosterRows, identity: identities.get(sprint.id), ...(closure ? { closedAt: closure.closedAt } : {}) };
     });
 }
 

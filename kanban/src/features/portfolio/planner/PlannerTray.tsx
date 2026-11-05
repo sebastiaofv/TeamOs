@@ -5,12 +5,13 @@ import type { TaskStatus } from '@/domain/types';
 import type { PlannerTrayGroup, PlannerTrayItem } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
 
-export const PLANNER_TRAY_STATUSES: readonly TaskStatus[] = ['backlog', 'to-do', 'doing', 'done'];
+export const PLANNER_TRAY_STATUSES: readonly TaskStatus[] = ['backlog', 'to-do', 'doing', 'testing', 'done'];
 
 const STATUS_LABEL_KEYS = {
     backlog: 'board.backlog',
     'to-do': 'board.toDo',
     doing: 'board.doing',
+    testing: 'workflow.testing',
     done: 'board.done'
 } as const;
 

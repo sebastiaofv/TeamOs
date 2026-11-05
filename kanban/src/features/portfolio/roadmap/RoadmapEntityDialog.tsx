@@ -61,7 +61,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     titleRef: RefObject<HTMLInputElement | null>;
     sprintRef: RefObject<HTMLSelectElement | null>;
 }) {
-    const { saveRoadmapEntity } = usePortfolioActions();
+    const { saveRoadmapEntity, deleteRoadmapEntity, closeRoadmapEntity } = usePortfolioActions();
     const { t, language } = useI18n();
     const today = useLocalToday();
     const assignmentBoard = useAppStore((state) => {
@@ -193,6 +193,8 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                 </form>
             </div>
             <div className="modal-footer">
+                {isSprintEditor && vm.itemId && vm.initial.status === 'planned' && !vm.readOnly && <button type="button" className="btn btn-danger roadmap-entity-delete" id="roadmapEntityModalDeleteBtn"
+                    onClick={() => void deleteRoadmapEntity('sprints', vm.itemId, { boardId: vm.boardId, onApplied: closeRoadmapEntity })}>{t('sprint.delete')}</button>}
                 <Dialog.Close className="btn" id="roadmapEntityModalCancelBtn">{t('roadmapDialog.cancel')}</Dialog.Close>
                 <button
                     className="btn btn-primary"

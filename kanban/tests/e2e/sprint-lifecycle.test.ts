@@ -73,11 +73,17 @@ for (const finish of ['button', 'editor'] as const) {
     expect(saved.board.tasks.slice(0, 4)).toMatchObject([
       { status: 'backlog', sprintId: '' }, { status: 'done', sprintId: 's1' }, { status: 'doing', sprintId: '' }, { status: 'backlog', sprintId: '' }
     ]);
+    // Planned SP / capacity and completed SP / planned SP, frozen at closure.
+    await expect(sprint.locator('[data-sprint-points="capacity"]')).toHaveText('11/21');
+    await expect(sprint.locator('[data-sprint-points="completed"]')).toHaveText('0/11');
+    await expect(sprint.locator('[data-sprint-points="completed"] .sprint-points-alert')).toHaveText('0');
     await sprint.locator(':scope > summary .table-sprint-name').click();
-    await expect(sprint.getByRole('button', { name: 'Story awaiting validation', exact: true })).toBeVisible();
+    await expect(sprint.locator('[data-sprint-closure-note]')).toHaveText('The data in this table reflects the state of the workitems when the Sprint was closed: 04/11/2026.');
+    await expect(sprint.locator('tr[data-task-id="1"] [data-column="status"]')).toContainText('Ready to test');
+    // The frozen row opens the Story with its current data.
     await sprint.getByRole('button', { name: 'Story awaiting validation', exact: true }).click();
-    await expect(page.locator('#detailStoryPoints')).toHaveText('8');
-    await expect(page.locator('#detailStatus')).toContainText('Ready to test');
+    await expect(page.locator('#detailStoryPointsInput')).toHaveValue('8');
+    await expect(page.locator('#detailStatusInput')).toHaveValue('backlog');
     await page.keyboard.press('Escape');
     await page.locator('[data-table-view="unplanned"]').click();
     await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(3);

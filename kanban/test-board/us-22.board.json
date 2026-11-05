@@ -431,13 +431,13 @@
           "id": "ready-to-test",
           "name": "Ready to test",
           "color": "#a78bfa",
-          "category": "in-progress"
+          "category": "testing"
         },
         {
           "id": "testing",
           "name": "Testing",
           "color": "#38bdf8",
-          "category": "in-progress"
+          "category": "testing"
         },
         {
           "id": "re-analysis",
@@ -470,7 +470,8 @@
         "to-do": "to-do",
         "in-progress": "doing",
         "completed": "done",
-        "cancelled": "cancelled"
+        "cancelled": "cancelled",
+        "testing": "ready-to-test"
       },
       "transitions": {
         "backlog": [
@@ -491,6 +492,7 @@
         ],
         "ready-to-test": [
           "testing",
+          "doing",
           "cancelled",
           "duplication"
         ],

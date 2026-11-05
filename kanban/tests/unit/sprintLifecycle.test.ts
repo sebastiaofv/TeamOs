@@ -7,7 +7,8 @@ import { normalizeTask } from '@/domain/task';
 import type { Task, WorkitemType } from '@/domain/types';
 import { createAppStore } from '@/features/portfolio/state/store';
 import { createPortfolioMutationActions } from '@/features/portfolio/commands/portfolioCommands';
-import { closeSprint, developmentCompleted, parseSprintResults, recordSprintCredits } from '@/domain/sprintResults';
+import { closeSprint, developmentCompleted, parseSprintResults, recordSprintCredits, sprintPointSummary } from '@/domain/sprintResults';
+import { buildPortfolioRoadmapView } from '@/features/portfolio/queries/portfolioRoadmapViews';
 import { consultSprintParticipation, eligibleSprint, syncWorkitemPlanning, taskInTechnicalBoard } from '@/domain/workitems';
 import { createBoardStateSnapshot, serializeBoardDataFromObject } from '@/domain/serialize';
 import { reconstructBoardStateFromTimeline } from '@/domain/timeline';
@@ -150,7 +151,7 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
     });
 
     it('awards Story points on all Tasks Done without accepting the Story, plus standalone Task, Bug and childless Story points exactly once', async () => {
-        const { actions, data } = setup();
+        const { actions, data, store } = setup();
         await actions.movePortfolioTaskToStatus('p', 3, 'done');
         await actions.movePortfolioTaskToStatus('p', 4, 'done');
         await actions.movePortfolioTaskToStatus('p', 5, 'done');
@@ -160,8 +161,10 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         expect(data().extensions.sprintResults!.credits.map((credit) => [credit.taskId, credit.storyPoints])).toEqual([[1, 8], [4, 3], [5, 5], [6, 2]]);
         await actions.changeSprintStatus('p', 's1', 'done');
         const closure = data().extensions.sprintResults!.closures[0];
-        expect(closure).toMatchObject({ sprint: { status: 'done', capacity: 21, goal: 'Deliver' }, plannedPoints: 18, velocity: 18, completedIds: [1, 4, 5, 6], carryOverIds: [1] });
-        expect(data().board.tasks[0]).toMatchObject({ status: 'backlog', sprintId: '' });
+        expect(closure).toMatchObject({ sprint: { status: 'done', capacity: 21, goal: 'Deliver' }, plannedPoints: 18, velocity: 18, completedIds: [1, 4, 5, 6], carryOverIds: [] });
+        // All its Tasks are Done: the Story keeps awaiting validation and does not return to Unplanned.
+        expect(data().board.tasks[0]).toMatchObject({ status: 'ready-to-test', sprintId: '' });
+        expect(unplannedTableRows(buildPortfolioRowsFromBoardData(store.getState(), store.getState().portfolioBoards[0], data(), { canMutate: true })).map((row) => row.taskId)).not.toContain(1);
         expect(data().board.tasks[1]).toMatchObject({ status: 'done', sprintId: 's1' });
         await actions.setPortfolioTaskProperties('p', 1, { sprintId: 's2' });
         await actions.movePortfolioTaskToStatus('p', 1, 'done');
@@ -302,5 +305,95 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         expect(() => validateBoardData(input)).toThrow(/sprintResults/);
         expect(() => serializeBoardDataFromObject(input)).toThrow(/sprintResults/);
         expect(() => parseSprintResults(sprintResults)).toThrow(/sprintResults/);
+    });
+});
+
+describe('Unplanned Stories follow pending Tasks, not their own status (US-22)', () => {
+    const unplannedIds = (store: ReturnType<typeof setup>['store']) => unplannedTableRows(buildPortfolioRowsFromBoardData(store.getState(), store.getState().portfolioBoards[0], store.getState().portfolioBoards[0].data, { canMutate: true })).map((row) => row.taskId);
+    function unplannedStory() {
+        const result = setup();
+        // Story 1 leaves the Sprint; its Task 3 is still in progress.
+        result.data().board.tasks.forEach((task) => { task.sprintId = ''; });
+        return result;
+    }
+
+    it('lists a Story outside Sprints only while one of its Tasks has work left, without changing its status', async () => {
+        const { actions, data, store } = unplannedStory();
+        expect(unplannedIds(store)).toContain(1);
+        await actions.movePortfolioTaskToStatus('p', 3, 'done');
+        expect(unplannedIds(store)).not.toContain(1);
+        expect(data().board.tasks[0].status).toBe('ready-to-test');
+        // Reopening a Task brings the Story back.
+        data().board.tasks[2].status = 'doing';
+        expect(unplannedIds(store)).toContain(1);
+        data().board.tasks[2].status = 'cancelled';
+        expect(unplannedIds(store)).not.toContain(1);
+        // A new Task with work to do brings it back too; Done, Cancelled and Duplication do not.
+        for (const [status, listed] of [['done', false], ['duplication', false], ['to-do', true]] as const) {
+            data().board.tasks.push(item(20, 'task', { parentId: 1, status, sprintId: '' }));
+            expect(unplannedIds(store).includes(1)).toBe(listed);
+            data().board.tasks.pop();
+        }
+        expect(data().board.tasks[0].status).toBe('ready-to-test');
+    });
+
+    it('keeps a Story with pending Tasks out of Unplanned while it belongs to an eligible Sprint', () => {
+        const { store } = setup();
+        expect(unplannedIds(store)).not.toContain(1);
+    });
+
+    it('lists a Story without Tasks and other planning units by their own status', () => {
+        const { data, store } = unplannedStory();
+        expect(unplannedIds(store)).toEqual(expect.arrayContaining([4, 5, 6]));
+        data().board.tasks[5].status = 'done';
+        expect(unplannedIds(store)).not.toContain(6);
+    });
+});
+
+describe('Sprint feedback: counts, deletion, Story Point indicators and start (US-22)', () => {
+    it('counts only workitems without children in each Roadmap Sprint', () => {
+        const { store } = setup();
+        const row = buildPortfolioRoadmapView(store.getState())!.sprintRows.find((entry) => entry.item!.id === 's1')!;
+        // Story 1 has Tasks 2 and 3 in the Sprint, so it is not counted: 2, 3, 4, 5 and 6.
+        expect(row.progress.associated).toBe(5);
+        expect(row.visibleCount).toBe(5);
+    });
+
+    it('deletes only Planned Sprints, returning their workitems to planning with unchanged statuses', async () => {
+        const { actions, data, alert, confirm } = setup();
+        data().board.tasks.push(item(7, 'task', { sprintId: 's2', status: 'to-do', storyPoints: 1 }));
+        await actions.deleteRoadmapEntity('sprints', 's1');
+        expect(alert).toHaveBeenCalledTimes(1);
+        expect(data().extensions.roadmap!.sprints.map((sprint) => sprint.id)).toEqual(['s1', 's2']);
+        await actions.deleteRoadmapEntity('sprints', 's2');
+        expect(confirm).toHaveBeenCalled();
+        expect(data().extensions.roadmap!.sprints.map((sprint) => sprint.id)).toEqual(['s1']);
+        expect(data().board.tasks.find((task) => task.id === 7)).toMatchObject({ sprintId: '', status: 'to-do' });
+    });
+
+    it('reports planned Story Points against capacity and, once Done, the frozen completed points', async () => {
+        const { actions, data } = setup();
+        expect(sprintPointSummary(data(), 's1')).toEqual({ planned: 18, capacity: 21, completed: null });
+        expect(sprintPointSummary(data(), 's2')).toEqual({ planned: 0, capacity: null, completed: null });
+        await actions.movePortfolioTaskToStatus('p', 4, 'done');
+        await actions.changeSprintStatus('p', 's1', 'done');
+        const frozen = sprintPointSummary(data(), 's1');
+        expect(frozen).toEqual({ planned: 18, capacity: 21, completed: 3 });
+        data().board.tasks.find((task) => task.id === 5)!.storyPoints = 13;
+        expect(sprintPointSummary(data(), 's1')).toEqual(frozen);
+    });
+
+    it('moves Backlog workitems and their children to the first To do state when the Sprint starts', async () => {
+        const { actions, data } = setup('keep');
+        data().board.tasks.push(
+            item(7, 'task', { sprintId: 's2', status: 'backlog' }),
+            item(8, 'story', { sprintId: 's2', status: 'backlog' }),
+            item(9, 'task', { parentId: 8, sprintId: 's2', status: 'backlog' }),
+            item(10, 'bug', { sprintId: 's2', status: 'doing' }),
+            item(11, 'bug', { sprintId: 's2', status: 'backlog' })
+        );
+        await actions.changeSprintStatus('p', 's2', 'active');
+        const status = (id: number) => data().board.tasks.find((task) => task.id === id)!.status;
+        expect([7, 8, 9, 10, 11].map(status)).toEqual(['to-do', 'to-do', 'to-do', 'doing', 'to-do']);
     });
 });

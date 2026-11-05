@@ -27,7 +27,8 @@ test('both boards share a single row of workflow columns including backlog and d
         geometry.push(columns);
         if (mode === 'Technical Board') {
             await expect(page.locator('#portfolio-backlog-column')).toContainText('Implementation');
-            await expect(portfolioCard(page, 'Defect')).toBeVisible();
+            // Bugs follow the functional workflow by default (US-22).
+            await expect(portfolioCard(page, 'Defect')).toHaveCount(0);
             await expect(portfolioCard(page, 'Independent execution')).toBeVisible();
             await expect(portfolioCard(page, 'Customer need')).toHaveCount(0);
             await expect(page.locator('.portfolio-task-card[data-task-id="1"]')).toHaveCount(0);
@@ -35,7 +36,7 @@ test('both boards share a single row of workflow columns including backlog and d
             await expect(page.locator('#portfolio-backlog-column')).toContainText('Customer need');
             await expect(page.locator('.portfolio-task-card[data-task-id="1"]')).toHaveCount(0);
             await expect(portfolioCard(page, 'Implementation')).toHaveCount(0);
-            await expect(portfolioCard(page, 'Defect')).toHaveCount(0);
+            await expect(portfolioCard(page, 'Defect')).toBeVisible();
         }
         await page.screenshot({ animations: 'disabled', path: testInfo.outputPath(`${mode}-light.png`) });
         await page.locator('#themeToggleBtn').click();

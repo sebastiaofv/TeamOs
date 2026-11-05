@@ -27,8 +27,10 @@ test('separates Technical/Functional Boards, preserves real states and hides old
     await expect(portfolioCard(page, 'Task futura oculta no Técnico')).toHaveCount(0);
     await expect(page.getByRole('group', { name: 'Pagar com cartão', exact: true })).toHaveCount(0);
     await expect(page.getByRole('group', { name: 'Checkout acessível', exact: true })).toHaveCount(0);
-    await expect(portfolioCard(page, 'Botão de pagamento sem foco')).toHaveAttribute('data-status', 'testing');
+    // Bugs follow the functional workflow by default (US-22).
+    await expect(portfolioCard(page, 'Botão de pagamento sem foco')).toHaveCount(0);
     await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await expect(portfolioCard(page, 'Botão de pagamento sem foco')).toHaveAttribute('data-status', 'testing');
     await expect(portfolioCard(page, 'Pagar com cartão')).toBeVisible();
     await expect(portfolioCard(page, 'Story do Sprint futuro')).toBeVisible();
     await expect(portfolioCard(page, 'Implementar confirmação')).toHaveCount(0);
@@ -195,8 +197,13 @@ test(`Sprint table and Roadmap retain recorded work and read-only details after 
     await sprint.locator(':scope > summary .table-sprint-name').click();
     const table = sprint.locator('table');
     await table.getByRole('button', { name: 'Expand Recorded story', exact: true }).click();
+    // The row keeps the recorded data, but a workitem that still exists opens with its current data (US-22).
     await table.getByRole('button', { name: 'Recorded child', exact: true }).click();
-    await expect(page.locator('#detailTitle')).toHaveText('Recorded child');
+    await expect(page.locator('#detailTitle')).toHaveText('Live child');
+    await page.keyboard.press('Escape');
+    // The deleted parent only has its recorded data, so it opens read-only.
+    await table.getByRole('button', { name: 'Recorded story', exact: true }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Recorded story');
     await page.keyboard.press('e');
     await expect(page.locator('#taskModal')).toBeHidden();
     await page.keyboard.press('Escape');
@@ -206,7 +213,10 @@ test(`Sprint table and Roadmap retain recorded work and read-only details after 
     await scope.getByRole('button', { name: 'Expand Recorded story', exact: true }).click();
     await expect(scope.locator('tr[data-task-id="1204"]')).toContainText('Recorded child');
     await scope.locator('tr[data-task-id="1204"]').getByRole('button', { name: 'Recorded child', exact: true }).click();
-    await expect(page.locator('#detailTitle')).toHaveText('Recorded child');
+    await expect(page.locator('#detailTitle')).toHaveText('Live child');
+    await page.keyboard.press('Escape');
+    await scope.getByRole('button', { name: 'Recorded story', exact: true }).click();
+    await expect(page.locator('#detailTitle')).toHaveText('Recorded story');
     await page.keyboard.press('e');
     await expect(page.locator('#taskModal')).toBeHidden();
     expect((await readSavedBoard(page, 'history')).board.tasks[0].title).toBe('Live child');
