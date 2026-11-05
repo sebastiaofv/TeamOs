@@ -254,6 +254,8 @@
     overflow-y: auto;
 }
 
+.planner-grid-scroll:focus-visible { outline-offset: -2px; }
+
 .planner-grid {
     position: relative;
 }

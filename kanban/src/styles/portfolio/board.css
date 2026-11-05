@@ -564,3 +564,5 @@
 .board-active-sprints { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
 .task-advance { flex: none; align-self: flex-start; font-size: 20px; }
 .task-card-owner select { min-width: 0; max-width: 160px; padding: 3px; font-size: 12px; }
+
+@media (prefers-reduced-motion: reduce) { .task-card, .task-actions { transition: none; } }

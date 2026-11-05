@@ -109,7 +109,7 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                     className="btn language-toggle-btn"
                     id="languageToggleBtn"
                     type="button"
-                    aria-label={languageLabel}
+                    aria-label={`${languageCode}: ${languageLabel}`}
                     title={languageLabel}
                     onClick={toggleLanguage}
                 >{languageCode}</button>

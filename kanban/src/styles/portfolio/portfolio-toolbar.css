@@ -49,12 +49,13 @@
     text-decoration: underline;
 }
 
+/* Project colors already supply a readable foreground for their chip surface. */
 .chip-link-danger {
-    color: var(--priority-high);
+    color: inherit;
 }
 
 .chip-link-danger:hover {
-    color: var(--priority-high);
+    color: inherit;
 }
 
 .chip-readonly-label {

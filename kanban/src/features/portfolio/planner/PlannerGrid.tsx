@@ -79,7 +79,7 @@ export function PlannerGrid({ model, nowMinutes, preview = null, renderBlock }: 
                     ))}
                 </div>
             )}
-            <div className="planner-grid-scroll" ref={scrollRef}>
+            <div className="planner-grid-scroll" ref={scrollRef} tabIndex={0} role="region" aria-label={t('planner.schedule')}>
                 <div className="planner-grid" style={{ ...style, height: `${PLANNER_GRID_HEIGHT_PX}px` }}>
                     <div className="planner-hours" aria-hidden="true">
                         {HOURS.map((minutes) => (

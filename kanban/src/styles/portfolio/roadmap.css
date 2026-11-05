@@ -56,8 +56,8 @@
 .roadmap-row-meta { font-size: 11px; color: var(--text-secondary); white-space: nowrap; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
 .roadmap-row-actions { display: inline-flex; gap: 3px; flex: 0 0 auto; }
 .roadmap-action-btn, .roadmap-section-btn, .roadmap-disclosure-btn { border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font: inherit; cursor: pointer; }
-.roadmap-action-btn { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 20px; width: 20px; height: 22px; font-size: 12px; }
-.roadmap-tree-toggle { flex-basis: 18px; width: 18px; border-color: transparent; font-size: 10px; }
+.roadmap-action-btn { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 24px; width: 24px; height: 24px; font-size: 12px; }
+.roadmap-tree-toggle { flex-basis: 24px; width: 24px; border-color: transparent; font-size: 10px; }
 .roadmap-section-btn { padding: 4px 10px; font-size: 12px; }
 .roadmap-disclosure-btn { padding: 3px 5px; font-size: 11px; white-space: nowrap; color: var(--text-secondary); }
 .roadmap-action-btn:hover, .roadmap-section-btn:hover, .roadmap-disclosure-btn:hover { background: var(--bg-secondary); border-color: var(--accent); }
