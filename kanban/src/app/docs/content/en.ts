@@ -829,7 +829,7 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'Personal preferences, remembered in this browser.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Theme', 'The moon/sun button switches between light and dark.'],
+                        ['Theme', 'The palette button chooses Classic (the original design) or Modern (neutral surfaces, a restrained plum accent and Inter typography). The moon/sun button independently switches either theme between light and dark. Both choices are remembered in this browser, including across tabs, without changing your projects or open drafts.'],
                         ['Language', 'The EN/PT button switches between English and Portuguese, including this documentation.'],
                         ['App settings', 'The gear shows or hides the timeline bar.'],
                         ['Shortcuts', 'Enable or disable single-key shortcuts.']
