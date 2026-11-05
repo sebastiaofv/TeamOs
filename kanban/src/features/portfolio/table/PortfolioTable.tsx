@@ -26,6 +26,7 @@ import { PRIORITY_LABELS, COLUMN_LABELS } from './tableLabels';
 import { useTableDisclosure } from './useTableDisclosure';
 import { formatTableTimestamp } from './tablePresentation';
 import { buildSprintTableGroups, currentSprintRosters, unplannedTableRows, type SprintTableGroup, type TableView } from './tableViews';
+import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { buildAssignableSprintOptions } from '@/features/portfolio/queries/sprintPlanning';
 import { getWorkflow } from '@/domain/workflow';
@@ -115,6 +116,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const today = useLocalToday();
     const hasAssignableSprints = planning && buildAssignableSprintOptions(boardData, today, language).length > 0;
     const actions = usePortfolioActions();
+    const sortRef = useFocusTarget<HTMLButtonElement>('portfolioTableSort', !hidden && !compact);
     const columnDisclosure = useTableDisclosure(hidden);
     const hierarchyDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
@@ -122,6 +124,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const [selectedColumns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
     const columns = selectedColumns.filter((column) => column !== 'archived' && (!bare || column !== 'story'));
     const sort = useAppStore((state) => state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT);
+    const focusSortColumn = columns.find((column) => column === sort.column) ?? columns[0];
     const [page, setPage] = useState(0);
     const [pageScope, setPageScope] = useState({ filters, sort });
     const [pageSize, setPageSize] = useState(50);
@@ -264,7 +267,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                             <th scope="col"><input type="checkbox" aria-label={t('table.selectPage')} checked={allPageSelected}
                                 onChange={(event) => toggleSelection(pageRows.map(({ row }) => row.taskId), event.target.checked)} /></th>
                             {columns.map((column) => <th scope="col" data-column={column} key={column} aria-sort={sort.column === column ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                                <button type="button" onClick={() => { setTableSort(column, sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc'); setPage(0); }}>
+                                <button ref={column === focusSortColumn ? sortRef : undefined} type="button" onClick={() => { setTableSort(column, sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc'); setPage(0); }}>
                                     {t(COLUMN_LABELS[column])}<span aria-hidden="true">{sort.column === column ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>
                                 </button>
                             </th>)}

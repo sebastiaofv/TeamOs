@@ -98,7 +98,7 @@ export function selectAdjacentPortfolioCard(step: number): void {
 }
 
 export function focusPortfolioSortControl(): void {
-    focusTarget('portfolioSort');
+    focusTarget(getState().selectedPortfolioViewMode === 'table' ? 'portfolioTableSort' : 'portfolioSort');
 }
 
 export function cyclePortfolioProjectChip(step: number): void {

@@ -64,7 +64,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
             await expect(page.locator(`${section} #portfolioSearchInput`)).toBeVisible();
             await expect(page.locator(`${section} #portfolioFiltersBtn`)).toBeVisible();
             await expect(page.locator('#portfolioQueryToolbar')).toHaveCount(0);
-            await expect(page.locator('#portfolioSortSelect')).toHaveCount(1);
+            await expect(page.locator('#portfolioSortSelect')).toHaveCount(view === 'board' ? 1 : 0);
             for (const control of await page.locator(`${section} #portfolioSearchInput, ${section} #portfolioFiltersBtn, ${section} #portfolioSortSelect, ${section} .table-tools > button`).all()) {
                 const bounds = await control.boundingBox();
                 expect(bounds!.x).toBeGreaterThanOrEqual(0);
@@ -75,10 +75,12 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
                 const tools = await page.locator(`${section} .table-tools`).boundingBox();
                 expect(queries!.x + queries!.width).toBeLessThanOrEqual(tools!.x);
             }
+            if (view === 'board') await expect(page.locator('.workitem-board-actions').getByRole('button', { name: 'Create workitem', exact: true })).toHaveClass(/btn-primary/);
             if (view === 'board') await page.screenshot({ path: testInfo.outputPath('board.png'), animations: 'disabled' });
             await page.locator('#portfolioSearchBtn').focus();
             await page.keyboard.press('s');
-            await expect(page.locator(`${section} #portfolioSortSelect`)).toBeFocused();
+            if (view === 'board') await expect(page.locator(`${section} #portfolioSortSelect`)).toBeFocused();
+            else await expect(page.locator('#workitemsTable th[aria-sort="ascending"] button')).toBeFocused();
         }
         for (const view of ['dashboard', 'control', 'roadmap', 'planner']) {
             await page.locator(`[data-view-mode="${view}"]`).click();

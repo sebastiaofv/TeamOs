@@ -191,7 +191,7 @@ test.describe('workitems table', () => {
     await gotoApp(page);
   });
 
-  test('keeps search, Filters and sort on the left of the existing table heading', async ({ page }) => {
+  test('keeps search and Filters in the heading and sorting in column headers', async ({ page }) => {
     await seedPortfolioBoards(page, [{
       id: 'toolbar', title: 'Original toolbar', hasHandle: true,
       tasks: [{ id: 1, title: 'Zeta controls', effort: 'L', priority: 'high' }, { id: 2, title: 'Alpha controls', effort: 'S', priority: 'medium' }]
@@ -199,7 +199,7 @@ test.describe('workitems table', () => {
     await openTable(page);
     await expect(page.locator('#portfolioTable .table-heading #portfolioFiltersBtn')).toBeVisible();
     await expect(page.locator('#portfolioSearchInput')).toHaveValue('');
-    await expect(page.locator('#portfolioTable .table-heading #portfolioSortSelect')).toBeVisible();
+    await expect(page.locator('#portfolioTable .section-sort, #portfolioSortSelect')).toHaveCount(0);
     await expect(page.locator('#tableSearch')).toHaveCount(0);
     await expect(page.locator('#portfolioTable #tableFilters')).toHaveCount(0);
     await page.locator('#portfolioFiltersBtn').click();
@@ -211,21 +211,40 @@ test.describe('workitems table', () => {
     await page.locator('#resetPortfolioFiltersBtn').click();
     await page.locator('#portfolioFiltersPanel').getByRole('button', { name: 'Done', exact: true }).click();
     await page.keyboard.press('s');
-    await expect(page.locator('#portfolioSortSelect')).toBeFocused();
-    await page.locator('#portfolioSortSelect').selectOption('name');
+    await expect(tableHeader(page, 'ID').getByRole('button')).toBeFocused();
+    await tableHeader(page, 'Title').getByRole('button').click();
     await expectRowIds(page, [2, 1]);
     await expect(tableHeader(page, 'Title')).toHaveAttribute('aria-sort', 'ascending');
-    await page.locator('#portfolioSortSelect').selectOption('priority');
+    await tableHeader(page, 'Priority').getByRole('button').click();
     await expectRowIds(page, [1, 2]);
-    await page.locator('#portfolioSortSelect').selectOption('effort');
-    await expectRowIds(page, [2, 1]);
-    await page.locator('#portfolioSortSelect').selectOption('score');
-    await expectRowIds(page, [1, 2]);
-    await page.locator('#portfolioSortSelect').selectOption('name');
+    await tableHeader(page, 'Title').getByRole('button').click();
     await page.locator('#portfolioSearchBtn').focus();
     await page.keyboard.press('r');
     await expectRowIds(page, [1, 2]);
-    await expect(page.locator('#portfolioSortSelect')).toHaveValue('custom');
+    await expect(tableHeader(page, 'ID')).toHaveAttribute('aria-sort', 'ascending');
+  });
+
+  test('aligns Columns and Hierarchy filter popups to the right of the heading', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'panels', title: 'Panels', hasHandle: true,
+      tasks: [{ id: 1, title: 'Workitem' }] }], { selectedBoardId: 'panels' });
+    await openTable(page);
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const selector of ['.table-columns', '.table-hierarchy-options']) {
+        const disclosure = page.locator(`#portfolioTable ${selector}`);
+        await disclosure.locator('summary').click();
+        const panel = disclosure.locator('[data-table-panel]');
+        await expect(panel).toBeVisible();
+        const bounds = await panel.boundingBox();
+        const heading = await disclosure.locator('..').locator('..').boundingBox();
+        expect(Math.abs(bounds!.x + bounds!.width - heading!.x - heading!.width)).toBeLessThan(2);
+        expect(bounds!.x).toBeGreaterThanOrEqual(0);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+        await page.keyboard.press('Escape');
+        await expect(panel).toBeHidden();
+        await expect(disclosure.locator('summary')).toBeFocused();
+      }
+    }
   });
 
   test('keeps the separator arrow inside the select box for Semicolon at desktop and mobile widths', async ({ page }) => {
@@ -428,6 +447,7 @@ test.describe('workitems table', () => {
 
     await openColumnOptions(page);
     await page.locator('#tableColumn-dueDate').check();
+    await page.keyboard.press('Escape');
     await tableHeader(page, 'Due').getByRole('button').click();
     await expect(tableHeader(page, 'Due')).toHaveAttribute('aria-sort', 'ascending');
     const ascendingIds = await tableRows(page).evaluateAll((rows) => (
@@ -676,6 +696,7 @@ test.describe('workitems table', () => {
       await page.locator('#tableColumn-dueDate').check();
       await moveColumnBefore(page, 'Due', 'Title');
       await expectColumnOrder(page, ['ID', 'Due', 'Title']);
+      await page.keyboard.press('Escape');
       await page.locator('#tableCsvSeparator').selectOption(separator);
 
       const csv = parseCsv(await exportCsv(page), separator);
