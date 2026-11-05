@@ -6,6 +6,7 @@ import { createNewProject, importPortfolioProjects } from '@/features/portfolio/
 import { useAppStore } from '@/features/portfolio/state/store';
 import { closeDocs, DOCS_TOGGLE_ID, toggleDocs } from '@/app/docs/docsMode';
 import { useI18n } from '@/shared/i18n';
+import { ThemePicker } from '@/app/ThemePicker';
 
 // One button, two states: a book opens the documentation; an application icon
 // returns to the workspace. The label always names the available action.
@@ -57,6 +58,7 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                 />
             </h1>
             <div className="header-actions">
+                <ThemePicker />
                 <button
                     className="btn icon-btn theme-toggle-btn"
                     id="themeToggleBtn"

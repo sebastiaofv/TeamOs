@@ -832,7 +832,7 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Preferências pessoais, memorizadas neste navegador.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Tema', 'O botão lua/sol alterna entre claro e escuro.'],
+                        ['Tema', 'O botão da paleta permite escolher Clássico (o design original) ou Moderno (superfícies neutras, um destaque ameixa discreto e tipografia Inter). O botão lua/sol alterna, de forma independente, entre claro e escuro em qualquer tema. Ambas as escolhas ficam guardadas neste navegador, incluindo entre separadores, sem alterar projetos ou rascunhos abertos.'],
                         ['Idioma', 'O botão EN/PT alterna entre inglês e português, incluindo esta documentação.'],
                         ['Definições da aplicação', 'A roda dentada mostra ou oculta a barra do histórico.'],
                         ['Atalhos', 'Ativa ou desativa os atalhos de uma só tecla.']
