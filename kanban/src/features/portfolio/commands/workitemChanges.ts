@@ -157,12 +157,15 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     }
     const dateConflicts = sprintPhaseDateConflicts(draft.data, current.data);
     if (dateConflicts.length) {
-        const answer = await confirm(translateCurrent('planning.phaseDatesConflict') + '\n\n' + dateConflicts.map((entry) => `${entry.title}: ${formatDate(entry.startDate)} – ${formatDate(entry.endDate)}`).join('\n'), {
+        const answer = await confirm(translateCurrent('planning.phaseDatesConflict'), {
             title: translateCurrent('planning.phaseDatesTitle'), confirmLabel: translateCurrent('messages.confirm'),
-            selections: dateConflicts.map((entry) => ({ id: entry.phaseId, label: entry.title, options: [
-                { value: 'keep', label: translateCurrent('planning.keepDates') },
-                { value: 'update', label: translateCurrent('planning.updateDates') }
-            ] }))
+            selections: dateConflicts.map((entry) => {
+                const phase = draft.data.extensions.roadmap!.phases.find((phase) => phase.id === entry.phaseId)!;
+                return { id: entry.phaseId, label: entry.title, options: [
+                    { value: 'keep', label: translateCurrent('planning.currentDates', { start: formatDate(phase.startDate!), end: formatDate(phase.endDate!) }) },
+                    { value: 'update', label: translateCurrent('planning.sprintDates', { start: formatDate(entry.startDate), end: formatDate(entry.endDate) }) }
+                ] };
+            })
         });
         if (!answer) return false;
         let changed = false;
