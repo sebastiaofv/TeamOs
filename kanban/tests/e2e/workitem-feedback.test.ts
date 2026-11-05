@@ -30,14 +30,14 @@ test('Board creation uses one toolbar button and terminal exception columns defa
     await expect(page.locator('#workitemType')).toHaveValue('story');
 });
 
-test('Epic and Story editors hide checklists, all editors leave Pull Requests in its tab', async ({ page }) => {
+test('only Task editors show checklists, all editors leave Pull Requests in its tab', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Table', exact: true }).click();
     await page.locator('[data-table-view="epics"]').click();
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     for (const type of ['epic', 'story', 'task', 'bug']) {
         await page.locator('#workitemType').selectOption(type);
-        await expect(page.locator('#taskTodoListLabel')).toHaveCount(['task', 'bug'].includes(type) ? 1 : 0);
+        await expect(page.locator('#taskTodoListLabel')).toHaveCount(type === 'task' ? 1 : 0);
         await expect(page.locator('#taskModal .pull-request-links')).toHaveCount(0);
     }
 });

@@ -31,7 +31,7 @@ export type BoardMutationOptions = {
     onBoardChanged?: (boardId: string) => void;
 };
 
-type MutationOptions = { allowHistorical?: boolean; onMutated?: () => void; onCommitted?: () => void };
+type MutationOptions = { allowHistorical?: boolean; confirmSprintAllocation?: boolean; onMutated?: () => void; onCommitted?: () => void };
 
 // `alert` and `confirm` return promises (see appMessages.ts); await `confirm`.
 export function createBoardMutationContext({
@@ -74,7 +74,7 @@ export function createBoardMutationContext({
     async function runMutation(
         boardId: string,
         mutator: BoardMutator,
-        { allowHistorical = false, onMutated = () => {}, onCommitted = () => {} }: MutationOptions = {},
+        { allowHistorical = false, confirmSprintAllocation = true, onMutated = () => {}, onCommitted = () => {} }: MutationOptions = {},
         taskId?: number
     ): Promise<boolean> {
         const current = getBoardRecord(boardId);
@@ -103,7 +103,7 @@ export function createBoardMutationContext({
         };
         try {
             return await applyWorkitemChange(current, mutator, {
-                taskId, isCurrent: () => getBoardRecord(boardId)?.data === current.data, alert, confirm, prompt, publish
+                taskId, confirmSprintAllocation, isCurrent: () => getBoardRecord(boardId)?.data === current.data, alert, confirm, prompt, publish
             });
         } catch (error) {
             alert(error instanceof ControlError ? translateCurrent(`control.${error.code}`) : error instanceof WorkitemError ? translateCurrent(`workitems.error.${error.code}`) : error instanceof ProjectDataError ? translateCurrent(`project.error.${error.code}`)

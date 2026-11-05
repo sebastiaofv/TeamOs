@@ -169,7 +169,7 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
     const { toggleTaskDetailChecklistItem } = usePortfolioActions();
     return (
         <dl className="detail-list workitem-supporting-content">
-            <div className="detail-item workitem-section" hidden={!vm.checklist.length || !['task', 'bug'].includes(workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}))}>
+            {workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}) === 'task' && <div className="detail-item workitem-section" hidden={!vm.checklist.length}>
                 <dt className="detail-label">{t('task.todoList')} <span className="detail-tab-count">{vm.checklist.filter((item) => item.done).length}/{vm.checklist.length}</span></dt>
                 <dd><ul className="detail-checklist" id="detailChecklist">
                     {vm.checklist.length === 0
@@ -189,7 +189,7 @@ function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
                             </li>
                         ))}
                 </ul></dd>
-            </div>
+            </div>}
         </dl>
     );
 }

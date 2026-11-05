@@ -562,19 +562,17 @@ test.describe('task editor', () => {
 
     await expect(page.locator('#taskAttachmentUploader')).toHaveValue('Test user');
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
-    await page.locator('#commentIdentity').selectOption('@new');
-    const identity = page.locator('#projectIdentityModal');
-    await identity.locator('select').selectOption('@new');
-    await identity.locator('input').fill('Bruno');
-    await identity.locator('.modal-footer button').click();
+    await expect(page.locator('.comment-posting-as select')).toHaveCount(0);
+    await expect(page.locator('.comment-posting-as')).toContainText('Test user');
     await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
-    await expect(page.locator('#taskAttachmentUploader')).toHaveValue('Bruno');
+    await expect(page.locator('#taskAttachmentUploader')).toHaveValue('Test user');
+    await expect(page.locator('#taskAttachmentUploader')).toHaveAttribute('readonly', '');
     await page.setInputFiles('#taskAttachmentsInput', { name: 'second.txt', mimeType: 'text/plain', buffer: Buffer.from('second file') });
     await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(2);
     await page.locator('#taskDetailModalCloseBtn').click();
     await waitForBoardWrites(page);
     const updated = await readSavedBoard(page, 'p1');
-    expect(updated.board.tasks[0].attachments.map((item: { uploadedBy?: string }) => item.uploadedBy)).toEqual(['Test user', 'Bruno']);
+    expect(updated.board.tasks[0].attachments.map((item: { uploadedBy?: string }) => item.uploadedBy)).toEqual(['Test user', 'Test user']);
     expect(updated.board.tasks[0].attachments[0].createdAt).toBe(saved.uploadedAt);
     const firstUploadIndex = updated.extensions.timeline.events.findIndex((event: { changes?: { attachments?: { after: unknown[] } } }) => event.changes?.attachments?.after.length === 1);
     expect(firstUploadIndex).toBeGreaterThan(0);
@@ -585,7 +583,7 @@ test.describe('task editor', () => {
     await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     await expect(page.locator('#detailAttachments tbody tr')).toHaveCount(1);
     await expect(page.locator('#detailAttachments')).toContainText('Test user');
-    await expect(page.locator('#detailAttachments')).not.toContainText('Bruno');
+    await expect(page.locator('#detailAttachments')).not.toContainText('second.txt');
     await expect(page.locator('#taskDetailEditBtn')).toHaveCount(0);
     await expect(page.locator('#taskAttachmentsAddBtn')).toHaveCount(0);
     await expect(page.locator('#detailAttachments button')).toHaveCount(0);

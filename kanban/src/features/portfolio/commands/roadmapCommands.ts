@@ -203,7 +203,12 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 }
             });
             return true;
-        });
+        }, { confirmSprintAllocation: false, onMutated: () => {
+            // The Sprint already exists locally; do not leave its creation form
+            // open during file saves or allow a retry to create it a second time.
+            closeRoadmapEntity();
+            if (!unplannedTaskIds) clearPortfolioBulkSelection(boardId);
+        } });
     }
 
     function assignSelectionToExistingSprint(boardId: string, sprintId: unknown): Promise<boolean> | false {
@@ -395,10 +400,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             }
         }
         if (context.mode === 'create-sprint-from-selection') {
-            const changed = await createSprintFromSelection(context.boardId, draft);
-            if (!changed) return;
-            closeRoadmapEntity();
-            if (!context.unplannedTaskIds) clearPortfolioBulkSelection(context.boardId);
+            await createSprintFromSelection(context.boardId, draft);
             return;
         }
 

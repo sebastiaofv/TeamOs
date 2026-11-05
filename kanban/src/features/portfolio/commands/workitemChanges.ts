@@ -24,13 +24,14 @@ import { translateCurrent } from '@/shared/i18n';
 type Interaction = Required<Pick<BoardMutationOptions, 'alert' | 'confirm' | 'prompt'>> & {
     isCurrent: () => boolean;
     taskId?: number;
+    confirmSprintAllocation?: boolean;
     publish: (draft: BoardRecord) => Promise<boolean>;
 };
 
 /** Owns the full change sequence and its history before handing off to the publisher.
  * Without user interaction, publication remains synchronous up to the disk write.
  */
-export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMutator, { taskId, isCurrent, alert, confirm, prompt, publish }: Interaction): Promise<boolean> {
+export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMutator, { taskId, confirmSprintAllocation = true, isCurrent, alert, confirm, prompt, publish }: Interaction): Promise<boolean> {
     const draft = { ...current, data: cloneSerializable(current.data) };
     ensureBoardTimelineBaseline(draft.data);
     const firstEvent = draft.data.extensions.timeline?.events.length || 0;
@@ -109,7 +110,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
         }
         if (changedStatus && category !== 'completed') delete task.acceptance;
         if (before && changedStatus && (category === 'cancelled' || ['completed', 'cancelled'].includes(statusCategory(before.status, current.data, before)))) previews.push(`${workitemLabel(task)} ${task.title}\n${stateName(current.data, before.status, before)} → ${stateName(draft.data, task.status, task)}`);
-        if (before && ((before.parentId ?? null) !== (task.parentId ?? null) || before.sprintId !== task.sprintId)) {
+        if (before && ((before.parentId ?? null) !== (task.parentId ?? null) || (confirmSprintAllocation && before.sprintId !== task.sprintId))) {
             const name = (id: number | null | undefined, data: BoardData) => { const item = data.board.tasks.find((entry) => entry.id === id); return item ? `${workitemLabel(item)} ${item.title}` : '—'; };
             previews.push(`${workitemLabel(task)} ${task.title}\n${translateCurrent('workitems.parent')}: ${name(before.parentId, current.data)} → ${name(task.parentId, draft.data)}\nSprint: ${sprintName(current.data, before.sprintId)} → ${sprintName(draft.data, task.sprintId)}`);
         }

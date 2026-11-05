@@ -1,31 +1,18 @@
 import { showTimeline } from '../support/portfolio';
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, installControlledPortfolioWriter, mutateExternalBoardFile, triggerExternalFileCheck, setTimelineSlider, mockImportProjectsPicker } from '../support/portfolio';
-
-async function changeAuthor(page: Page, name: string) {
-    const identity = page.locator('#commentIdentity');
-    const known = await identity.locator('option').evaluateAll((options, name) => options.find((option) => option.textContent === name)?.getAttribute('value'), name);
-    if (known) await identity.selectOption(known);
-    else {
-        await identity.selectOption('@new');
-        const modal = page.locator('#projectIdentityModal');
-        await modal.locator('select').selectOption('@new');
-        await modal.locator('input').fill(name);
-        await modal.locator('.modal-footer button').click();
-    }
-}
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
 
 test('a long unbroken author name wraps without widening the mobile conversation', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await gotoApp(page);
-    await seedPortfolioBoards(page, [{ id: 'p', title: 'Mobile comments', hasHandle: true, tasks: [{ id: 1, title: 'Conversation' }] }], { selectedBoardId: 'p' });
+    const author = 'A'.repeat(150);
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Mobile comments', hasHandle: true, members: [author], tasks: [{ id: 1, title: 'Conversation' }] }], { selectedBoardId: 'p' });
     await portfolioCard(page, 'Conversation').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
-    const author = 'A'.repeat(150);
-    await changeAuthor(page, author);
+
     await page.locator('#commentText').fill('A comment with a long local author name.');
     await page.getByRole('button', { name: 'Post comment', exact: true }).click();
     const publication = page.locator('.comment-publication');
@@ -40,11 +27,11 @@ test('drafts survive closing, publication requires an author, and text stays saf
     const destinations: string[] = [];
     page.on('request', (request) => { if (request.url().includes('example.test')) destinations.push(request.url()); });
     await gotoApp(page);
-    await seedPortfolioBoards(page, [{ id: 'p', title: 'Comments', hasHandle: true, tasks: [{ id: 1, title: 'Workitem', description: 'Original description', status: 'done' }] }], { selectedBoardId: 'p' });
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Comments', hasHandle: true, members: ['Explicit Bruno'], tasks: [{ id: 1, title: 'Workitem', description: 'Original description', status: 'done' }] }], { selectedBoardId: 'p' });
     await portfolioCard(page, 'Workitem').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
     await page.locator('#commentText').fill('<img src=https://example.test/x onerror=alert(1)>\n@Ana https://example.test/review javascript:alert(1)');
-    await changeAuthor(page, 'Explicit Bruno');
+
     await page.keyboard.press('Escape');
     await portfolioCard(page, 'Workitem').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
@@ -65,10 +52,10 @@ test('drafts survive closing, publication requires an author, and text stays saf
 
 test('pasted screenshots and selected images validate actual content and published images are immutable', async ({ page }) => {
     await gotoApp(page);
-    await seedPortfolioBoards(page, [{ id: 'p', title: 'Images', hasHandle: true, tasks: [{ id: 1, title: 'Screenshots', status: 'to-do' }] }], { selectedBoardId: 'p' });
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Images', hasHandle: true, members: ['Image author'], tasks: [{ id: 1, title: 'Screenshots', status: 'to-do' }] }], { selectedBoardId: 'p' });
     await portfolioCard(page, 'Screenshots').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
-    await changeAuthor(page, 'Image author');
+
     await page.locator('#commentText').evaluate((element, encoded) => {
         const data = new DataTransfer();
         data.items.add(new File([Uint8Array.from(atob(encoded), (character) => character.charCodeAt(0))], 'paste.png', { type: 'image/png' }));
@@ -113,7 +100,7 @@ test('a failed save keeps the applied publication and retry saves that same reco
     await installControlledPortfolioWriter(page, { boardId: 'p', failWrites: 1 });
     await portfolioCard(page, 'Retry workitem').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
-    await changeAuthor(page, 'Author'); await page.locator('#commentText').fill('Applied only once');
+    await page.locator('#commentText').fill('Applied only once');
     await page.getByRole('button', { name: 'Post comment', exact: true }).click();
     await expect(page.locator('.comment-publication')).toHaveCount(1);
     const id = await page.locator('.comment-publication').getAttribute('data-comment-id');
@@ -170,7 +157,7 @@ test('independent external edits preserve unsaved publications and the unsent co
     await installControlledPortfolioWriter(page, { boardId: 'p', failWrites: 1 });
     await portfolioCard(page, 'Conflict item').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
-    await changeAuthor(page, 'Author'); await page.locator('#commentText').fill('Locally published, not saved');
+    await page.locator('#commentText').fill('Locally published, not saved');
     await page.getByRole('button', { name: 'Post comment', exact: true }).click();
     await expect(page.locator('.comment-publication')).toHaveCount(1);
     await page.locator('#commentText').fill('Unsent draft also survives');
@@ -202,7 +189,7 @@ test('external removal retains an orphaned draft for recovery instead of deletin
     const disk = await readSavedBoard(page, 'p');
     await portfolioCard(page, 'Draft item').click();
     await page.getByRole('tab', { name: 'Comments', exact: true }).click();
-    await changeAuthor(page, 'Draft author'); await page.locator('#commentText').fill('Recover this unsent text');
+    await page.locator('#commentText').fill('Recover this unsent text');
     disk.board.tasks = [];
     await mutateExternalBoardFile(page, { boardId: 'p', payload: disk }); await triggerExternalFileCheck(page);
     await expect(page.locator('#taskDetailModal')).toHaveCount(0);

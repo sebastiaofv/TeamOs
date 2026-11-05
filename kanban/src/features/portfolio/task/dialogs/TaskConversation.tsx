@@ -1,5 +1,5 @@
 import { formatTimestamp } from '@/domain/dates';
-import { projectActor, selectProjectMember, useProjectIdentityRevision } from '@/features/portfolio/projects/projectIdentity';
+import { projectActor, useProjectIdentityRevision } from '@/features/portfolio/projects/projectIdentity';
 import { controlRecords } from '@/domain/projectControl';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -117,7 +117,7 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
             <div className="comment-composer-heading">
                 <h3>{t('comments.addComment')}</h3>
                 <div className="comment-posting-as">
-                    <span>{t('comments.postingAs')} {actor ? <select id="commentIdentity" aria-label={t('identity.member')} value={actor.id} onChange={(event) => selectProjectMember(context.boardId, event.target.value)}>{board?.data.extensions.project?.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}<option value="@new">{t('identity.create')}</option></select> : <strong>{draft.author || t('comments.author')}</strong>}</span><span aria-hidden="true">·</span>
+                    <span>{t('comments.postingAs')} <strong>{draft.author || t('comments.author')}</strong></span><span aria-hidden="true">·</span>
                     {!actor && <button type="button" className="comment-change-author" aria-expanded={editingAuthor} aria-controls="commentAuthorEditor" onClick={() => {
                         setEditingAuthor(true);
                         requestAnimationFrame(() => authorInput.current?.focus());

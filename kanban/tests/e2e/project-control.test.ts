@@ -140,7 +140,7 @@ for (const language of ['en', 'pt']) for (const [kind, title, id] of [
     if (kind === 'Risks') {
         const labels = await sidebar.locator('.workitem-property-group').first().locator('.form-group > label').allTextContents();
         expect(labels).toEqual(language === 'pt' ? ['Estado', 'Probabilidade', 'Impacto', 'Nível de risco', 'Prazo', 'Data de materialização'] : ['Status', 'Probability', 'Impact', 'Risk level', 'Due date', 'Materialized date']);
-        expect(await sidebar.locator('input[placeholder="dd/mm/yyyy"]').evaluateAll((fields) => fields.map((field) => field.id))).toEqual(['control-dueDate', 'control-materializedDate']);
+        expect(await sidebar.locator(`input[placeholder="${language === 'pt' ? 'dd/mm/aaaa' : 'dd/mm/yyyy'}"]`).evaluateAll((fields) => fields.map((field) => field.id))).toEqual(['control-dueDate', 'control-materializedDate']);
     }
     await sidebar.locator('#control-owner').selectOption('Bruno Costa');
     await expect(sidebar.locator('.assignee-editor-list')).toContainText('Bruno Costa');

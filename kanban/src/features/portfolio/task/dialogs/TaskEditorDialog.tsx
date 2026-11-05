@@ -137,7 +137,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                         <textarea id="taskDescription" {...bind('description')} />
                     </div>
                     {(form.type === 'epic' ? ['objective', 'scope', 'businessValue'] as const : form.type === 'story' ? ['acceptanceCriteria'] as const : form.type === 'bug' ? ['stepsToReproduce', 'expectedResult', 'actualResult', 'environment'] as const : []).map((field) => <div className="form-group" key={field}><label htmlFor={`workitem-${field}`}>{t(`workitems.${field}`)}</label><textarea id={`workitem-${field}`} value={form[field] || ''} onChange={(event) => update(field, event.target.value)} /></div>)}
-                    {['task', 'bug'].includes(form.type || 'task') && <div className="form-group">
+                    {(form.type || 'task') === 'task' && <div className="form-group">
                         <label id="taskTodoListLabel">{t('task.todoList')}</label>
                         <ChecklistEditor value={form.checklist} onChange={(next) => update('checklist', next)} />
                     </div>}

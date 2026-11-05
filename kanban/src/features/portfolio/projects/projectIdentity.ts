@@ -5,6 +5,7 @@ const selected = new Map<string, string>();
 const listeners = new Set<() => void>();
 let revision = 0;
 export function selectProjectMember(boardId: string, memberId: string) {
+    if (projectActor(boardId)) return;
     selected.set(boardId, memberId);
     revision++;
     listeners.forEach((listener) => listener());

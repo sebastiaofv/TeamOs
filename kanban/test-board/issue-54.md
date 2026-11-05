@@ -1,6 +1,6 @@
 # Issue 54 — agreed changes
 
-Scope: [4 November agreement](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6638157240), as amended by the [follow-up](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6642266434). Story automation is deliberately unchanged.
+Scope: [4 November agreement](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6638157240), as amended by the [follow-up](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6642266434). Also includes the [5 November validation feedback](https://github.com/sebastiaofv/TeamOs/issues/54#issuecomment-6666254917). Story automation is deliberately unchanged.
 
 1. Import a writable project. Choose an existing member, or create one. Publish a comment, upload an attachment, and change a workitem: the selected member is the recorded author. Reopen a project to choose the identity for that session.
 2. Board starts with **Active Sprints only** checked. Uncheck it to include every Sprint and unsprinted work; choose a particular Sprint in Filters. Filters, the checkbox and Board columns share a toolbar. Check the state category below each heading, assignment dropdowns (including **Not assigned**), and the top-right arrow. Arrows follow allowed forward transitions and preserve completion acceptance.
@@ -13,3 +13,11 @@ Scope: [4 November agreement](https://github.com/sebastiaofv/TeamOs/issues/54#is
 Compatibility: file dates remain ISO, existing IDs/history and retired archive metadata remain readable, legacy Bug state IDs are mapped to the equivalent functional category when necessary, and legacy Sprint-phase links are discarded during normalization.
 
 After syncing main (US-22/28/32): verify the configurable workflow type assignments still govern both Boards and auto-created Bug child Tasks. Sprint start/finish actions, frozen closure results and Story Points coexist with the active-Sprint checkbox. Sprint duration and the custom end-date prompt use dd/mm/yyyy; invalid dates must keep the prompt open. Planned Sprint deletion lives in the modal ⋯ menu and is absent for Active/Done Sprints.
+
+## Follow-up verification
+
+- Check that Board category labels are approximately half the size of state names in both themes.
+- Create and edit a Bug: no to-do list is offered. Existing checklist data remains readable in the file; Tasks retain their checklist editor.
+- Create a Sprint from a Story with child Tasks and inherited phase dates. There is no extra approval just to allocate the items. Keep or update the phase dates: the creation dialog closes immediately after applying that decision, including while the file is saving. Cancel leaves the form open without creating anything. A failed save retries the same Sprint from the project chip.
+- Type `25112026` into a date field: it becomes `25/11/2026`. Check Sprint start/end, task due dates and the custom end-date prompt. Edit a day/month in place, delete across separators, paste a date and try an impossible date. Portuguese placeholders use `dd/mm/aaaa`; file values remain ISO.
+- Choose the session member at project entry. Comments show a fixed name, and upload/acceptance/record-author fields keep that identity. Responsible and participant fields still allow all project members.
