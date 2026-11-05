@@ -98,9 +98,9 @@ function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPo
             <SprintAction sprint={group.sprint} boardId={boardId} disabled={!canEdit} />
             <span className="table-sprint-dates">{group.sprint.startDate || t('table.notDefined')} → {group.sprint.endDate || t('table.notDefined')}</span>
         </summary>
+        {expanded && group.closedAt && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(group.closedAt) })}</p>}
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
             sourceRows={group.rows} canCreate={false} scope={`sprint-${group.sprint.id}`} nested />}
-        {expanded && group.closedAt && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(group.closedAt) })}</p>}
     </details>;
 }
 
