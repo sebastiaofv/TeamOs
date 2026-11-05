@@ -55,6 +55,14 @@ function getFilters(state: Pick<AppState, 'portfolioFilters'>): PortfolioFilters
 
 function getChipSaveUiState(saveState: ProjectSaveState | undefined, t: Translate): ChipSaveUi {
     if (!saveState) return { status: 'idle', text: '', title: '', canRetry: false };
+    if (saveState.watchStatus === 'conflict') {
+        return {
+            status: 'conflict',
+            text: t('toolbar.conflict'),
+            title: saveState.watchMessage || t('toolbar.externalChanges'),
+            canRetry: false
+        };
+    }
     if (saveState.status === 'error') {
         return {
             status: 'error',
@@ -65,14 +73,6 @@ function getChipSaveUiState(saveState: ProjectSaveState | undefined, t: Translat
     }
     if (saveState.status === 'saving') {
         return { status: 'saving', text: t('toolbar.saving'), title: t('toolbar.savingChanges'), canRetry: false };
-    }
-    if (saveState.watchStatus === 'conflict') {
-        return {
-            status: 'conflict',
-            text: t('toolbar.conflict'),
-            title: saveState.watchMessage || t('toolbar.externalChanges'),
-            canRetry: false
-        };
     }
     if (saveState.revision > saveState.savedRevision) {
         return { status: 'dirty', text: t('toolbar.unsaved'), title: t('toolbar.unsavedChanges'), canRetry: false };

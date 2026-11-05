@@ -84,6 +84,7 @@ export type BoardSettings = {
     archiveFilter?: string;
 };
 export type BoardMeta = {
+    revision?: number;
     schemaVersion: number;
     appId: string;
     createdAt: string;

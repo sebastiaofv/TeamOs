@@ -1,3 +1,4 @@
+import { ProjectFileNotices, ProjectReconciliationDialog } from '@/features/portfolio/projects/ProjectReconciliation';
 import { PortfolioControl } from '@/features/portfolio/control/PortfolioControl';
 import { ProjectControlDialog } from '@/features/portfolio/control/ControlRecordDialog';
 import { PendingProjectTransfers } from '@/features/portfolio/projects/PendingProjectTransfers';
@@ -88,6 +89,7 @@ function AppContent() {
                     <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive || controlActive ? ' table-active' : ''}${dashboardActive ? ' dashboard-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />
+                        <ProjectFileNotices />
                         <PendingProjectTransfers />
                         {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
@@ -116,6 +118,7 @@ function AppContent() {
                 <TaskEditorDialog />
                 <ProjectSettingsDialog />
                 <AppMessageDialog />
+                <ProjectReconciliationDialog />
                 <UndoToast />
             </ErrorBoundary>
         </>

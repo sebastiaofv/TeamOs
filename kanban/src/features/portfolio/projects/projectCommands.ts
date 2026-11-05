@@ -13,13 +13,11 @@ import { checkProjectFilesNow } from '@/infrastructure/persistence/projectFileWa
 import { createPortfolioRecord } from '@/infrastructure/persistence/portfolioRecord';
 import { assertUniqueProjectAcronym, ProjectDataError } from '@/domain/projectData';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { getPortfolioBoardRecord } from '@/features/portfolio/state/store';
 import { openDialog, closeDialog, closePortfolioContextsForProject } from '@/app/overlays/dialogs';
-import { showAlert, showChoice, type Choice } from '@/app/overlays/appMessages';
+import { showAlert, type Choice } from '@/app/overlays/appMessages';
 import { Logger } from '@/infrastructure/logging/logger';
 import { appendPortfolioRecords as appendPortfolioRecordsToStore } from '@/features/portfolio/commands/portfolioControls';
 import { translateCurrent } from '@/shared/i18n';
-import { downloadCommentRecovery } from '@/infrastructure/browser/commentRecovery';
 
 type PickerWindow = Pick<Window, 'showSaveFilePicker' | 'showOpenFilePicker'>;
 
@@ -47,7 +45,6 @@ export function createPortfolioFileActions({
     appendPortfolioRecords = appendPortfolioRecordsToStore,
     alert = showAlert,
     openDialogFn = openDialog,
-    choose = showChoice,
     logger = Logger,
     checkFiles = checkProjectFilesNow,
     closeContexts = closePortfolioContextsForProject,
@@ -56,32 +53,7 @@ export function createPortfolioFileActions({
     const getBrowserWindow = () => windowRef || getWindow();
 
     function checkPortfolioFiles() {
-        return checkFiles({
-            onReload: closeContexts,
-            beforeDiscardLocalComments: async (_boardId, comments) => {
-                const choice = await choose(translateCurrent('comments.conflictWarning', { count: comments.length }), [
-                    { value: 'recover', label: translateCurrent('comments.downloadRecovery'), primary: true },
-                    { value: 'discard', label: translateCurrent('comments.confirmExternalVersion') },
-                    { value: 'cancel', label: translateCurrent('common.cancel') }
-                ], { title: translateCurrent('comments.title') });
-                if (choice === 'recover') downloadCommentRecovery({ publishedComments: comments });
-                return choice === 'discard';
-            },
-            chooseConflict: (boardId) => {
-                const title = getPortfolioBoardRecord(boardId)?.title;
-                return choose(
-                    translateCurrent('projects.fileChangedMessage', {
-                        project: title ? `"${title}"` : translateCurrent('projects.projectFile'),
-                        errors: ''
-                    }),
-                    [
-                        { value: 'reload', label: translateCurrent('projects.reloadFromDisk') },
-                        { value: 'local', label: translateCurrent('projects.keepLocalEdits'), primary: true }
-                    ],
-                    { title: translateCurrent('projects.fileChangedTitle') }
-                );
-            }
-        });
+        return checkFiles({ onReload: closeContexts });
     }
 
     async function createNewProject(productName = '') {
