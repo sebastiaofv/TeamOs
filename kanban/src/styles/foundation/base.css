@@ -171,8 +171,8 @@ textarea::placeholder {
 
 .app-logo {
     display: block;
-    width: 130px;
-    height: 32px;
+    width: 100px;
+    height: 25px;
     object-fit: contain;
 }
 

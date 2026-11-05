@@ -52,8 +52,8 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                     className="app-logo"
                     src={theme === 'dark' ? teamosLogoDark : teamosLogo}
                     alt="Teamos"
-                    width="130"
-                    height="32"
+                    width="100"
+                    height="25"
                 />
             </h1>
             <div className="header-actions">
