@@ -5,19 +5,14 @@ import { createEmptyProjectData } from '../../src/domain/board';
 import { createPortfolioFileActions } from '../../src/features/portfolio/projects/projectCommands';
 
 describe('portfolio file actions', () => {
-    it.each(['local', 'reload', null])('hands the conflict choice %s to persistence', async (choice) => {
-        const choose = vi.fn(async () => choice);
-        const actions = createPortfolioFileActions({
-            choose,
-            checkFiles: ({ chooseConflict }: any) => chooseConflict('p1')
-        });
-
-        expect(await actions.checkPortfolioFiles()).toBe(choice);
-        expect(choose).toHaveBeenCalledWith(
-            expect.stringContaining('unsaved edits'),
-            [expect.objectContaining({ value: 'reload' }), expect.objectContaining({ value: 'local' })],
-            expect.objectContaining({ title: 'File changed on disk' })
-        );
+    it('checks files without opening a modal conflict choice', async () => {
+        const choose = vi.fn();
+        const checkFiles = vi.fn(async () => true);
+        const closeContexts = vi.fn();
+        const actions = createPortfolioFileActions({ choose, checkFiles, closeContexts });
+        expect(await actions.checkPortfolioFiles()).toBe(true);
+        expect(checkFiles).toHaveBeenCalledWith({ onReload: closeContexts });
+        expect(choose).not.toHaveBeenCalled();
     });
 
     it('creates a project file and sends its record to the portfolio session', async () => {

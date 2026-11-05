@@ -81,6 +81,8 @@ export type CalendarDisplayMode = 'calendar' | 'heatmap';
 export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'error';
 export type WatchStatus = 'idle' | 'external' | 'conflict' | 'watch-error';
 export type ProjectSaveState = {
+    reconciliation?: import('@/domain/projectMerge').ProjectMerge;
+    recoveryError?: string;
     status: SaveStatus;
     lastErrorMessage: string;
     lastSavedAt: string;
@@ -174,6 +176,7 @@ export type RoadmapEntityViewModel = {
 export type CommandPaletteProps = { contextTask: { boardId: string; taskId: number } | null; initialQuery?: string };
 
 export type DialogPropsByName = {
+    projectReconciliation: { boardId: string };
     projectControl: { boardId: string; recordId?: string; kind: import('@/domain/projectControl').ControlKind };
     appSettings: null;
     projectSettings: { boardId: string; data: BoardData; readOnly: boolean; onCreate?: (data: BoardData) => Promise<boolean> };

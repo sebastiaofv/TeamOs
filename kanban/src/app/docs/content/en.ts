@@ -773,13 +773,10 @@ export const DOCS_EN: DocSection[] = [
                 title: 'External changes and conflicts',
                 summary: 'Open files are watched; changes made elsewhere are reloaded or reported.',
                 blocks: [
-                    { kind: 'p', text: 'TeamOS checks open files every few seconds. If a file changed on disk and you have no unsaved edits, it **reloads automatically** and the chip shows External update.' },
-                    { kind: 'p', text: 'If you also have unsaved edits, the app asks you to choose:' },
-                    { kind: 'terms', items: [
-                        ['Keep local edits', 'Save your version over the file.'],
-                        ['Reload from disk', 'Discard your local edits and use the file\'s version.']
-                    ] },
-                    { kind: 'callout', tone: 'rule', title: 'App rule', text: 'If choosing the external version would discard published comments, the app warns you and offers a recovery copy first.' }
+                    { kind: 'p', text: 'TeamOS checks the file before every save and again afterwards, and watches for changes between saves. Independent changes are integrated automatically; a notice offers details.' },
+                    { kind: 'p', text: 'If changes conflict, autosave pauses for that project while you can continue editing. Choose **Resolve** to compare the base, your value and the external value for each field. Choose individually, or use **Keep all mine** / **Keep all external**, then **Apply decisions and save**. Independent changes are preserved. If related changes would break project integrity, the affected entities are reviewed together.' },
+                    { kind: 'p', text: 'Choose **Later** or press Escape to defer without writing. Unsaved changes have a local recovery copy: after reloading, reopen the same project file and choose **Recover changes**. Closing with unsaved changes triggers a browser warning. An older or equal file revision with different content always requires review.' },
+                    { kind: 'callout', tone: 'rule', title: 'Shared files', text: 'Tabs in the same browser coordinate saves. Network or synced folders still have a small race between checking and writing; verification detects competing changes, but TeamOS cannot lock files on another computer or control sync-client conflicts.' }
                 ],
                 related: ['files-saving', 'files-history']
             },

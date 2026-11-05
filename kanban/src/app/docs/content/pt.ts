@@ -773,13 +773,10 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Alterações externas e conflitos',
                 summary: 'Os ficheiros abertos são vigiados; as alterações feitas noutro lado são recarregadas ou assinaladas.',
                 blocks: [
-                    { kind: 'p', text: 'O TeamOS verifica os ficheiros abertos a cada poucos segundos. Se um ficheiro mudou no disco e não tem alterações por guardar, é **recarregado automaticamente** e o chip mostra Atualização externa.' },
-                    { kind: 'p', text: 'Se também tiver alterações por guardar, a aplicação pede-lhe que escolha:' },
-                    { kind: 'terms', items: [
-                        ['Manter alterações locais', 'Guardar a sua versão por cima do ficheiro.'],
-                        ['Recarregar do disco', 'Descartar as alterações locais e usar a versão do ficheiro.']
-                    ] },
-                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Se escolher a versão externa implicar descartar comentários publicados, a aplicação avisa e oferece primeiro uma cópia de recuperação.' }
+                    { kind: 'p', text: 'O TeamOS verifica o ficheiro antes de cada gravação e novamente depois, e vigia alterações entre gravações. As alterações independentes são integradas automaticamente; um aviso permite consultar os detalhes.' },
+                    { kind: 'p', text: 'Se existirem conflitos, a gravação automática desse projeto fica pausada e pode continuar a editar. Escolha **Resolver** para comparar a base, o seu valor e o valor externo de cada campo. Escolha individualmente ou use **Manter todos os meus** / **Manter todos os externos**, seguido de **Aplicar decisões e guardar**. As alterações independentes são preservadas. Se alterações relacionadas violarem a integridade do projeto, os elementos afetados são revistos em conjunto.' },
+                    { kind: 'p', text: 'Escolha **Adiar** ou prima Escape para adiar sem gravar. As alterações por guardar têm uma cópia de recuperação local: depois de recarregar a página, volte a abrir o ficheiro do projeto e escolha **Recuperar alterações**. Fechar com alterações por guardar apresenta um aviso do browser. Uma revisão anterior ou igual com conteúdo diferente exige sempre revisão.' },
+                    { kind: 'callout', tone: 'rule', title: 'Ficheiros partilhados', text: 'Os separadores do mesmo browser coordenam as gravações. Em pastas de rede ou sincronizadas continua a existir um pequeno intervalo entre verificar e gravar; a verificação deteta alterações concorrentes, mas o TeamOS não bloqueia ficheiros noutro computador nem controla conflitos do cliente de sincronização.' }
                 ],
                 related: ['files-saving', 'files-history']
             },

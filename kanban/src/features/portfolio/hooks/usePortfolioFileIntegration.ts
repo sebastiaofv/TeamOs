@@ -1,3 +1,5 @@
+import { projectHasUnsavedChanges, subscribeProjectFileUpdates } from '@/infrastructure/persistence/projectFiles';
+import { useAppStore } from '@/features/portfolio/state/store';
 import { useEffect, useState } from 'react';
 import { isFileDrag } from '@/infrastructure/browser/fileDrop';
 import { PROJECT_FILE_WATCH_INTERVAL_MS } from '@/domain/constants';
@@ -40,6 +42,14 @@ export function usePortfolioFileIntegration(): boolean {
             if (!document.hidden) void checkPortfolioFiles();
         };
 
+        const unsubscribe = subscribeProjectFileUpdates(handleFocus);
+        const beforeUnload = (event: BeforeUnloadEvent) => {
+            if (useAppStore.getState().portfolioBoards.some((board) => projectHasUnsavedChanges(board.id) || useAppStore.getState().projectSaveStateById.get(board.id)?.watchStatus === 'conflict')) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', beforeUnload);
         window.addEventListener('dragenter', handleDragEnter);
         window.addEventListener('dragover', handleDragOver);
         window.addEventListener('dragleave', handleDragLeave);
@@ -53,6 +63,8 @@ export function usePortfolioFileIntegration(): boolean {
         void checkPortfolioFiles();
 
         return () => {
+            unsubscribe();
+            window.removeEventListener('beforeunload', beforeUnload);
             window.removeEventListener('dragenter', handleDragEnter);
             window.removeEventListener('dragover', handleDragOver);
             window.removeEventListener('dragleave', handleDragLeave);

@@ -1,3 +1,4 @@
+import type { LooseBoardData } from '@/domain/types';
 import type { BoardRecord } from '@/features/portfolio/types';
 import type { BoardFileHandle } from '@/infrastructure/browser/types';
 import { nextPortfolioProjectId } from '@/domain/board';
@@ -11,6 +12,8 @@ export function createPortfolioRecord({ handle = null, sourceKey = '', fileName 
     data: unknown;
 }): BoardRecord {
     const payload = serializeBoardDataFromObject(data);
+    const importedAt = (data as LooseBoardData)?.meta?.updatedAt;
+    if (typeof importedAt === 'string') payload.meta.updatedAt = importedAt;
     const colorSeed = useAppStore.getState().nextPortfolioProjectColorSeed;
     useAppStore.setState({ nextPortfolioProjectColorSeed: colorSeed + 1 });
     return {
