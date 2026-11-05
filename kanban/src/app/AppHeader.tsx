@@ -1,3 +1,5 @@
+import teamosLogo from '@/assets/teamos-logo.svg';
+import teamosLogoDark from '@/assets/teamos-logo-dark.svg';
 import type { Theme } from '@/shared/types/ui';
 import { openDialog } from '@/app/overlays/dialogs';
 import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
@@ -45,7 +47,15 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
     const languageLabel = language === 'en' ? t('language.switchToPt') : t('language.switchToEn');
     return (
         <header className="header">
-            <h1 className="app-title" id="appTitle">TeamOS → Kanban</h1>
+            <h1 className="app-title" id="appTitle">
+                <img
+                    className="app-logo"
+                    src={theme === 'dark' ? teamosLogoDark : teamosLogo}
+                    alt="Teamos"
+                    width="130"
+                    height="32"
+                />
+            </h1>
             <div className="header-actions">
                 <button
                     className="btn icon-btn theme-toggle-btn"

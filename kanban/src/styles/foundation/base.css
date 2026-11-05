@@ -159,20 +159,21 @@ textarea::placeholder {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px 24px;
 }
 
 .app-title {
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    line-height: 1;
 }
 
-.header h1 {
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+.app-logo {
+    display: block;
+    width: 130px;
+    height: 32px;
+    object-fit: contain;
 }
 
 .header-actions {
