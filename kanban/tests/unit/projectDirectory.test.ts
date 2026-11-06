@@ -223,6 +223,23 @@ describe('project directory persistence', () => {
         expect(history.writes).toBe(writes); expect(history.fullReads).toBe(reads);
     });
 
+    it('preserves encoded legacy project identities and their attachment references', async () => {
+        const data = createEmptyProjectData('Legacy namespace', 'LGC');
+        const id = 'legacy-project_2026-11-06T09%3A00%3A00Z_Project%20Name';
+        data.extensions.project!.id = id;
+        ensureBoardTimelineBaseline(data);
+        appendTimelineEvent(data, { id: 'legacy-attachment', kind: 'task.created', entityType: 'task', entityId: '1', summary: 'Legacy attachment', snapshot: { attachments: [{ id: 'old-file', name: 'report.txt', mime: 'text/plain', kind: 'file', dataUrl: 'data:text/plain;base64,aGVsbG8=', sizeBytes: 5, createdAt: data.meta.createdAt }] } });
+        const parent = new MemoryDirectory('migration');
+        await createProjectDirectory(parent, 'legacy', data);
+        const handle = await openProjectDirectory(await parent.getDirectoryHandle('legacy'));
+        activateDirectoryProject(handle);
+        expect((await BoardRepository.createRecordFromHandle(handle)).data.extensions.project?.id).toBe(id);
+        const history = await loadDirectoryHistory(handle);
+        const source = history?.events.at(-1)?.snapshot?.attachments?.[0]?.dataUrl;
+        expect(source).toContain(encodeURIComponent(id));
+        expect(await (await resolveAttachmentBlob(source!)).text()).toBe('hello');
+    });
+
     it('does not accept project.json as a loose legacy import', async () => {
         const file = new MemoryFile('project.json', JSON.stringify(createEmptyProjectData('Loose')));
         await expect(BoardRepository.createRecordFromFile({ file: await file.getFile() })).rejects.toThrow('Open the project folder');

@@ -119,14 +119,28 @@ export function createPortfolioFileActions({
         }
     }
 
-    async function openPortfolioFolder() {
+    async function importPortfolioProjects() {
         try {
             const browserWindow = getBrowserWindow();
-            if (!browserWindow?.showDirectoryPicker) throw new Error(translateCurrent('projects.filePickerUnavailable'));
+            if (!browserWindow?.showDirectoryPicker) return importLegacyProjectFiles();
             const directory = await browserWindow.showDirectoryPicker({ mode: 'readwrite' });
             const found = await findProjectDirectories(directory);
             const imported = await BoardRepository.importFromHandles(found.handles);
-            const errors = [...found.errors, ...imported.errors];
+            const legacy = await BoardRepository.importFromHandles(found.legacyHandles);
+            const errors = [...found.errors, ...imported.errors, ...legacy.errors];
+            const knownIds = new Set([...useAppStore.getState().portfolioBoards, ...imported.loaded].map((record) => record.data.extensions.project?.id));
+            for (const source of legacy.loaded) {
+                if (knownIds.has(source.data.extensions.project?.id)) continue;
+                try {
+                    source.data.extensions.projectStorage = { version: 1, legacyFileName: source.fileName };
+                    const handle = await createFolder(directory, source.data);
+                    if (handle) {
+                        const record = await BoardRepository.createRecordFromHandle(handle);
+                        imported.loaded.push(record);
+                        knownIds.add(record.data.extensions.project?.id);
+                    }
+                } catch (error) { errors.push(`${source.fileName}: ${formatErrorMessage(error)}`); }
+            }
             for (const record of imported.loaded) {
                 try { await appendPortfolioRecords([record]); }
                 catch (error) { errors.push(`${record.fileName}: ${formatErrorMessage(error)}`); }
@@ -137,29 +151,7 @@ export function createPortfolioFileActions({
         }
     }
 
-    async function migratePortfolioProjects() {
-        try {
-            const browserWindow = getBrowserWindow();
-            if (!browserWindow?.showOpenFilePicker || !browserWindow.showDirectoryPicker) throw new Error(translateCurrent('projects.filePickerUnavailable'));
-            const handles = await browserWindow.showOpenFilePicker({ multiple: true, types: [{ description: translateCurrent('projects.projectJson'), accept: { 'application/json': [BOARD_FILE_EXTENSION] } }] });
-            const parent = await browserWindow.showDirectoryPicker({ mode: 'readwrite' });
-            const imported = await BoardRepository.importFromHandles(handles);
-            if (imported.errors.length) await alert(imported.errors.join('\n'));
-            if (!imported.loaded.length) return;
-            const errors: string[] = [];
-            for (const source of imported.loaded) {
-                try {
-                    const handle = await createFolder(parent, source.data);
-                    if (handle) await appendPortfolioRecords([await BoardRepository.createRecordFromHandle(handle)]);
-                } catch (error) { errors.push(`${source.fileName}: ${formatErrorMessage(error)}`); }
-            }
-            if (errors.length) await alert(errors.join('\n'));
-        } catch (error) {
-            if (!isAbortError(error)) await alert(translateCurrent('projects.importFailed', { error: formatErrorMessage(error) }));
-        }
-    }
-
-    async function importPortfolioProjects() {
+    async function importLegacyProjectFiles() {
         try {
             const browserWindow = getBrowserWindow();
             if (!browserWindow?.showOpenFilePicker) {
@@ -204,8 +196,6 @@ export function createPortfolioFileActions({
     }
 
     return {
-        openPortfolioFolder,
-        migratePortfolioProjects,
         checkPortfolioFiles,
         createNewProject,
         importPortfolioProjects,
@@ -222,6 +212,3 @@ export const importPortfolioProjects: PortfolioFileActions['importPortfolioProje
 export const openPortfolioFromFiles: PortfolioFileActions['openPortfolioFromFiles'] = (...args) => activeActions.openPortfolioFromFiles(...args);
 
 export const checkPortfolioFiles: PortfolioFileActions['checkPortfolioFiles'] = (...args) => activeActions.checkPortfolioFiles(...args);
-
-export const openPortfolioFolder: PortfolioFileActions['openPortfolioFolder'] = (...args) => activeActions.openPortfolioFolder(...args);
-export const migratePortfolioProjects: PortfolioFileActions['migratePortfolioProjects'] = (...args) => activeActions.migratePortfolioProjects(...args);

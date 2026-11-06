@@ -60,7 +60,7 @@ export const DOCS_PT: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Abrir projetos existentes' },
                     { kind: 'steps', items: [
-                        'Clique em **Abrir pasta** e selecione a pasta de um projeto ou uma pasta principal com projetos nas subpastas diretas. Os projetos abertos são mantidos, sem duplicados. **Importar projetos** (ou [[I]]) continua a abrir ficheiros antigos `.board.json`.',
+                        'Clique em **Importar projetos** (ou prima [[I]]) e selecione a pasta de um projeto ou uma pasta principal com projetos nas subpastas diretas. Os projetos abertos são mantidos, sem duplicados. Os ficheiros antigos `.board.json` encontrados na pasta selecionada são convertidos em subpastas, preservando os originais.',
                         'Em alternativa, arraste os ficheiros de projeto para a janela.',
                         'Quando o navegador pedir, autorize alterações ao ficheiro para que o projeto possa ser guardado.'
                     ] },
@@ -744,9 +744,8 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Como os projetos são carregados e porque é que alguns abrem só para leitura.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Abrir pasta** abre um projeto ou projetos nas subpastas diretas, com leitura e escrita. A estrutura obrigatória e os dados atuais são validados antes da importação; erros num projeto não impedem os restantes.',
-                        '**Migrar projetos** converte ficheiros antigos `.board.json` em pastas, preservando IDs, histórico e imagens e mantendo os originais intactos. Feche o original antes de abrir a cópia migrada.',
-                        '**Importar projetos** abre ficheiros antigos com permissão para guardar.',
+                        '**Importar projetos** abre o seletor de pastas para um projeto ou projetos nas subpastas diretas, com leitura e escrita. A estrutura obrigatória e os dados atuais são validados antes da importação; erros num projeto não impedem os restantes.',
+                        '**Importar projetos** também converte ficheiros antigos `.board.json` encontrados diretamente na pasta selecionada, preservando IDs, histórico e imagens e mantendo os originais intactos. Feche o original antes de abrir a cópia migrada.',
                         '**Arrastar ficheiros** para a janela carrega-os em **modo de leitura**, porque não é fornecida permissão de escrita.',
                         'Os ficheiros têm de ser ficheiros de projeto TeamOS válidos (`.board.json`); os inválidos são reportados e não são importados.',
                         'As versões antigas dos ficheiros são migradas na importação sem alterar IDs.'

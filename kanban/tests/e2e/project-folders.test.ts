@@ -14,12 +14,13 @@ for (const standalone of [false, true]) {
         else await gotoApp(page);
         if (standalone) await page.evaluate(() => { localStorage.setItem('teamos-language', 'en'); });
         await mockFolderPicker(page, tree);
-        await page.locator('#openProjectFolderBtn').click();
+        await expect(page.locator('#openProjectFolderBtn, #migrateProjectsBtn')).toHaveCount(0);
+        await page.locator('#importProjectsBtn').click();
         await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
         await identifyOpenProjects(page);
         expect(await page.evaluate(() => Object.entries(window.__folderDisk.reads).filter(([path]) => path.endsWith('history.json') || path.includes('/attachments/')))).toEqual([]);
         // Opening the same parent appends no duplicate records.
-        await page.locator('#openProjectFolderBtn').click();
+        await page.locator('#importProjectsBtn').click();
         await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
         await selectPortfolioBoard(page, 'US-25 Alpha — attachments and comments');
         if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
@@ -33,7 +34,7 @@ for (const standalone of [false, true]) {
         expect(JSON.stringify(saved)).not.toContain('data:');
         expect(await page.evaluate(() => window.__folderDisk.writes['beta/project.json'] || 0)).toBe(0);
         await page.locator('.portfolio-chip').filter({ hasText: 'US-25 Alpha' }).getByRole('button', { name: 'Remove project' }).click();
-        await page.locator('#openProjectFolderBtn').click();
+        await page.locator('#importProjectsBtn').click();
         await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
         await identifyOpenProjects(page);
         await selectPortfolioBoard(page, 'US-25 Alpha — attachments and comments');
@@ -86,7 +87,7 @@ test('creates the destination structure and asks for another name on collision',
 test('reports incomplete projects, keeps valid siblings, and defers corrupt history and missing binary errors', async ({ page }) => {
     await gotoApp(page);
     await mockFolderPicker(page, fixtureTree('test-board/us-25/invalid-projects'));
-    await page.locator('#openProjectFolderBtn').click();
+    await page.locator('#importProjectsBtn').click();
     await expect(page.locator('#appMessageModal')).toContainText('missing-history');
     await expect(page.locator('#appMessageModal')).toContainText('wrong-attachments-type');
     await page.locator('#appMessageModal').getByRole('button', { name: 'OK', exact: true }).click();
@@ -110,16 +111,16 @@ test('reports incomplete projects, keeps valid siblings, and defers corrupt hist
     await expect(page.locator('#detailAttachments [role="alert"]').first()).toContainText('attachments/');
 });
 
-test('migrates a legacy board through the picker without writing the original', async ({ page }) => {
-    await gotoApp(page); await mockFolderPicker(page);
+test('Import Projects converts legacy boards in the selected folder without changing originals', async ({ page }) => {
+    await gotoApp(page);
+    const legacyTree = fixtureTree('test-board/us-25/migration');
+    await mockFolderPicker(page, legacyTree);
     const legacy = readFileSync('test-board/us-25/migration/legacy.board.json', 'utf8');
-    await page.evaluate((legacy) => {
-        window.showOpenFilePicker = async () => [{ name: 'legacy.board.json', async getFile() { return new File([legacy], 'legacy.board.json'); }, async createWritable() { window.__folderDisk.writes['original'] = 1; throw new Error('Original must stay intact.'); } }];
-    }, legacy);
-    await page.locator('#migrateProjectsBtn').click();
+    await page.locator('#importProjectsBtn').click();
     await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
     await identifyOpenProjects(page);
-    expect(await page.evaluate(() => window.__folderDisk.writes['original'] || 0)).toBe(0);
+    expect(await page.evaluate(() => new TextDecoder().decode(new Uint8Array(window.__folderDisk.files['legacy.board.json'])))).toBe(legacy);
+    expect(await page.evaluate(() => window.__folderDisk.writes['legacy.board.json'] || 0)).toBe(0);
     const path = await page.evaluate(() => Object.keys(window.__folderDisk.files).find((entry) => entry.endsWith('/project.json'))!);
     const current = await readFolderJson(page, path);
     const original = JSON.parse(legacy);
@@ -128,6 +129,11 @@ test('migrates a legacy board through the picker without writing the original', 
     expect(current.board.tasks.map((task: { id: number; permanentId: string }) => [task.id, task.permanentId])).toEqual(original.board.tasks.map((task: { id: number; permanentId: string }) => [task.id, task.permanentId]));
     expect(JSON.stringify(current)).not.toContain('data:');
     expect((await readFolderJson(page, path.replace('project.json', 'history.json'))).timeline.events.map((event: { id: string }) => event.id)).toEqual(original.extensions.timeline.events.map((event: { id: string }) => event.id));
+    const legacyReads = await page.evaluate(() => window.__folderDisk.reads['legacy.board.json']);
+    await page.locator('#importProjectsBtn').click();
+    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expect(page.locator('#appMessageModal')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__folderDisk.reads['legacy.board.json'])).toBe(legacyReads);
 });
 
 test('writes valid append-only history using real browser file streams with Unicode events', async ({ page }) => {
@@ -177,4 +183,18 @@ test('standalone: creates a project subfolder and closes the creation dialog', a
     expect(await page.evaluate(() => window.__folderDisk.directories)).toContain('standalone-project/attachments');
     expect((await readFolderJson(page, 'standalone-project/project.json')).board.settings.title).toBe('Standalone project');
     expect((await readFolderJson(page, 'standalone-project/history.json')).version).toBe(1);
+});
+
+
+test('the import shortcut and palette use the same folder picker', async ({ page }) => {
+    await gotoApp(page);
+    await mockFolderPicker(page, tree);
+    await page.keyboard.press('i');
+    await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
+    await identifyOpenProjects(page);
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.locator('#commandPaletteInput').fill('Import projects');
+    await page.locator('.palette-item').first().click();
+    await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
+    await expect(page.locator('#appMessageModal')).toHaveCount(0);
 });

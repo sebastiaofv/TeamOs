@@ -157,6 +157,8 @@ function buildBoardPayload({ title, tasks = [], extensions = {}, members, tags, 
 }
 
 async function gotoApp(page: Page) {
+  // Legacy file fixtures use the compatibility picker; folder suites install a directory picker.
+  await page.addInitScript(() => { window.showDirectoryPicker = undefined; });
   await page.goto('/');
   await expect(page.locator('#portfolioView')).toBeVisible();
   await expect(page.locator('#boardView')).toHaveCount(0);
@@ -223,6 +225,7 @@ async function seedPortfolioBoards(
   const readOnlyBoards = seededBoards.filter((board) => !board.hasHandle);
 
   await page.evaluate((writableBoards) => {
+    window.showDirectoryPicker = undefined;
     window.__portfolioTestWrites = [];
     window.__portfolioDiskByBoardId = window.__portfolioDiskByBoardId || {};
     window.__portfolioFileOpensByBoardId = window.__portfolioFileOpensByBoardId || {};
@@ -576,6 +579,7 @@ async function mockImportProjectsPicker(page: Page, payloads: { fileName: string
     if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
   }, { noWaitAfter: true });
   await page.evaluate((payloads) => {
+    window.showDirectoryPicker = undefined;
     (window as any).showOpenFilePicker = async () => payloads.map((entry) => ({
       name: entry.fileName,
       async getFile() {

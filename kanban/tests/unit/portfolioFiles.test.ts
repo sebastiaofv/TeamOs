@@ -1,3 +1,5 @@
+import { MemoryDirectory } from '../support/projectDirectory';
+import { createProjectDirectory } from '../../src/infrastructure/persistence/projectDirectory';
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
 import { describe, expect, it, vi } from 'vitest';
 import type { DialogPropsByName } from '../../src/features/portfolio/types';
@@ -58,6 +60,38 @@ describe('portfolio file actions', () => {
         expect(showOpenFilePicker).toHaveBeenCalledWith(expect.objectContaining({ multiple: true }));
         expect(appendPortfolioRecords.mock.calls[0][0].map((board: { title: string }) => board.title)).toEqual(['First', 'Second']);
         expect(alert).toHaveBeenCalledWith(expect.stringContaining('broken.board.json'), expect.objectContaining({ title: 'Import incomplete' }));
+    });
+
+    it('uses the folder picker for Import Projects when both pickers are available', async () => {
+        const directory = new MemoryDirectory('portfolio');
+        await createProjectDirectory(directory, 'first', createEmptyProjectData('First', 'ONE'));
+        await createProjectDirectory(directory, 'second', createEmptyProjectData('Second', 'TWO'));
+        const showDirectoryPicker = vi.fn(async () => directory);
+        const showOpenFilePicker = vi.fn(async () => []);
+        const appendPortfolioRecords = vi.fn();
+        const actions = createPortfolioFileActions({ appendPortfolioRecords, windowRef: { showDirectoryPicker, showOpenFilePicker } });
+        await actions.importPortfolioProjects();
+        expect(showDirectoryPicker).toHaveBeenCalledWith({ mode: 'readwrite' });
+        expect(showOpenFilePicker).not.toHaveBeenCalled();
+        expect(appendPortfolioRecords.mock.calls.map((call) => call[0][0].title)).toEqual(['First', 'Second']);
+    });
+
+    it('converts legacy files through the folder import once and skips backup reads later', async () => {
+        const directory = new MemoryDirectory('legacy-import');
+        const original = await directory.getFileHandle('legacy.board.json', { create: true });
+        original.setText(JSON.stringify(createEmptyProjectData('Legacy folder', 'LGC')));
+        const content = original.text();
+        const appendPortfolioRecords = vi.fn();
+        const prompt = vi.fn(async () => null);
+        const actions = createPortfolioFileActions({ appendPortfolioRecords, prompt, windowRef: { showDirectoryPicker: async () => directory } });
+        await actions.importPortfolioProjects();
+        expect(appendPortfolioRecords.mock.calls[0][0][0].title).toBe('Legacy folder');
+        expect(original.text()).toBe(content); expect(original.writes).toBe(0);
+        const reads = original.fullReads;
+        await actions.importPortfolioProjects();
+        expect(original.fullReads).toBe(reads);
+        expect(directory.children.size).toBe(2);
+        expect(prompt).not.toHaveBeenCalled();
     });
 
     it('imports only board files dropped into the portfolio', async () => {

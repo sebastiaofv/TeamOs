@@ -60,7 +60,7 @@ export const DOCS_EN: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Open existing projects' },
                     { kind: 'steps', items: [
-                        'Click **Open folder** and choose a project folder or a parent with projects in direct subfolders. Existing projects stay open and duplicates are skipped. **Import Projects** (or [[I]]) still opens legacy `.board.json` files.',
+                        'Click **Import Projects** (or press [[I]]) and choose a project folder or a parent with projects in direct subfolders. Existing projects stay open and duplicates are skipped. Legacy `.board.json` files in the selected folder are converted into project subfolders, preserving the originals.',
                         'Alternatively, drag project files onto the window.',
                         'When the browser asks, allow edits to the file so the project can save.'
                     ] },
@@ -744,9 +744,8 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'How projects are loaded, and why some open read-only.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Open folder** opens a project folder or its direct project subfolders with read/write permission. Required files and current data are validated before import; invalid projects report errors while valid siblings continue.',
-                        '**Migrate projects** converts legacy `.board.json` files into project folders, preserving IDs, history and images and keeping originals intact. Close the original before opening its migrated copy.',
-                        '**Import Projects** opens legacy files with permission to save.',
+                        '**Import Projects** opens the folder picker for a project folder or its direct project subfolders with read/write permission. Required files and current data are validated before import; invalid projects report errors while valid siblings continue.',
+                        '**Import Projects** also converts legacy `.board.json` files found directly in the selected folder, preserving IDs, history and images and keeping originals intact. Close the original before opening its migrated copy.',
                         '**Dragging files** onto the window loads them **read-only**, because no file handle is provided.',
                         'Files must be valid TeamOS project files (`.board.json`); invalid files are reported and not imported.',
                         'Older file versions are migrated on import without changing IDs.'

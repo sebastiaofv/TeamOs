@@ -70,11 +70,11 @@ The four [US-13 boards and walkthrough](test-board/us-13.md) exercise different 
 
 ## Project folders (US-25)
 
-**New Project** creates a project subfolder inside the parent folder you select. **Open folder** opens either one project or every direct child containing `project.json`, retaining the current session and skipping duplicates. Each project requires `project.json`, `history.json`, and an `attachments/` directory; invalid projects report their own errors without stopping valid siblings.
+**New Project** creates a project subfolder inside the parent folder you select. **Import Projects** opens the folder picker for either one project or every direct child containing `project.json`, retaining the current session and skipping duplicates. Each project requires `project.json`, `history.json`, and an `attachments/` directory; invalid projects report their own errors without stopping valid siblings.
 
 `project.json` holds current state and attachment references. `history.json` stores the timeline, Project Control history and transferred history separately. Opening a folder reads only current state; the timeline and History/Comments tabs load history on demand. Attachments are read when displayed, opened or downloaded. Changes with events append only their new events to a JSON transaction journal, without reading or serializing older history; other saves leave history untouched. Binary filenames are SHA-256 hashes and historical/undo references keep their files available.
 
-**Migrate projects** converts legacy JSON files into new project folders while leaving originals intact. **Import Projects** and dropped files retain the legacy format. Close an already-open legacy version before opening its migrated copy: they preserve the same project identity.
+**Import Projects** also converts legacy `.board.json` files found directly in the selected parent folder into project subfolders, leaving originals intact. Importing the same folder again skips projects already present. Dropped legacy files remain read-only. Close an already-open legacy version before opening its migrated copy: they preserve the same project identity.
 
 The existing save queue, project locks, exact disk baselines, reconciliation and IndexedDB recovery apply to folder projects. A history transaction stages new events with the expected current-state hash before writing `project.json`, then appends a commit marker. Only the small journal tail is read during saves; full history is parsed on consultation. Failed saves retain committed history, and a missing final marker can be recovered from current-state metadata. Chrome/Edge desktop support folder access, including the standalone HTML. See [the fixture folders and walkthrough](test-board/us-25/README.md).
 

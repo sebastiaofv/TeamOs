@@ -17,6 +17,7 @@ type DirectoryProject = {
     history: BoardFileHandle;
     attachments: ProjectDirectoryHandle;
     projectId: string;
+    legacyFileName?: string;
     projectHash?: string;
     baselineEventId: string;
     historyTransactionId?: string;
@@ -57,28 +58,33 @@ export async function openProjectDirectory(directory: ProjectDirectoryHandle): P
         if (!isRecord(data) || !isRecord(data.extensions) || data.extensions.timeline !== undefined) throw new Error('project.json must contain current state without a timeline.');
         validateBoardData(data);
         const storageMetadata = data.extensions.projectStorage;
-        if (!isRecord(storageMetadata) || storageMetadata.version !== 1 || typeof storageMetadata.baselineEventId !== 'string' || (storageMetadata.historyTransactionId !== undefined && (typeof storageMetadata.historyTransactionId !== 'string' || !storageMetadata.historyTransactionId))) throw new Error('project.json has invalid projectStorage metadata.');
+        if (!isRecord(storageMetadata) || storageMetadata.version !== 1 || typeof storageMetadata.baselineEventId !== 'string' || (storageMetadata.historyTransactionId !== undefined && (typeof storageMetadata.historyTransactionId !== 'string' || !storageMetadata.historyTransactionId)) || (storageMetadata.legacyFileName !== undefined && (typeof storageMetadata.legacyFileName !== 'string' || !storageMetadata.legacyFileName))) throw new Error('project.json has invalid projectStorage metadata.');
         for (const record of controlRecords(data as BoardData)) if (record.history.length) throw new Error('Project Control history belongs in history.json.');
         for (const operation of (data as BoardData).extensions.projectTransfers?.operations || []) if (operation.history.length || operation.originalEvents.length) throw new Error('Transfer history belongs in history.json.');
         const projectId = (data as BoardData).extensions.project?.id;
-        if (!projectId || !/^[A-Za-z0-9_-]+$/.test(projectId)) throw new Error('project.json has no valid project identity.');
+        if (!projectId) throw new Error('project.json has no valid project identity.');
         validateStoredReferences(data, projectId);
         const metadata = isRecord(data.extensions.projectStorage) ? data.extensions.projectStorage : {};
-        projects.set(handle, { directory, history, attachments, projectId, projectHash: hashTextContent(projectText), baselineEventId: typeof metadata.baselineEventId === 'string' ? metadata.baselineEventId : '', historyTransactionId: typeof metadata.historyTransactionId === 'string' ? metadata.historyTransactionId : undefined, commitKnown: false, loaded: false, sessionArchiveIds: new Set(), sessionEventIds: new Set() });
+        projects.set(handle, { directory, history, attachments, projectId, ...(typeof metadata.legacyFileName === 'string' ? { legacyFileName: metadata.legacyFileName } : {}), projectHash: hashTextContent(projectText), baselineEventId: typeof metadata.baselineEventId === 'string' ? metadata.baselineEventId : '', historyTransactionId: typeof metadata.historyTransactionId === 'string' ? metadata.historyTransactionId : undefined, commitKnown: false, loaded: false, sessionArchiveIds: new Set(), sessionEventIds: new Set() });
         return handle;
     } catch (error) {
         throw new Error(`${directory.name}: invalid project structure (project.json file, history.json file, attachments/ directory): ${formatErrorMessage(error)}`);
     }
 }
 
-export async function findProjectDirectories(root: ProjectDirectoryHandle): Promise<{ handles: BoardFileHandle[]; errors: string[] }> {
+export async function findProjectDirectories(root: ProjectDirectoryHandle): Promise<{ handles: BoardFileHandle[]; legacyHandles: BoardFileHandle[]; errors: string[] }> {
     if (root.requestPermission && await root.requestPermission({ mode: 'readwrite' }) !== 'granted') throw new Error(`${root.name}: read/write permission denied.`);
-    const handles: BoardFileHandle[] = []; const errors: string[] = [];
+    const handles: BoardFileHandle[] = []; const legacyHandles: BoardFileHandle[] = []; const errors: string[] = [];
     const entries = new Map<string, 'file' | 'directory'>();
     for await (const [name, entry] of root.entries()) entries.set(name, entry.kind);
     const candidates: ProjectDirectoryHandle[] = [];
     if (entries.has('project.json')) candidates.push(root);
     else for (const [name, kind] of entries) {
+        if (kind === 'file' && /\.board\.json$/i.test(name)) {
+            try { legacyHandles.push(await root.getFileHandle(name)); }
+            catch (error) { errors.push(`${root.name}/${name}: ${formatErrorMessage(error)}`); }
+            continue;
+        }
         if (kind !== 'directory') continue;
         try {
             const directory = await root.getDirectoryHandle(name);
@@ -91,8 +97,9 @@ export async function findProjectDirectories(root: ProjectDirectoryHandle): Prom
         try { handles.push(await openProjectDirectory(directory)); }
         catch (error) { errors.push(formatErrorMessage(error)); }
     }
-    if (!candidates.length) errors.push(`${root.name}: no project.json found in this folder or its direct subfolders.`);
-    return { handles, errors };
+    const convertedFiles = new Set(handles.map((handle) => getDirectoryProject(handle)?.legacyFileName).filter(Boolean));
+    if (!candidates.length && !legacyHandles.length) errors.push(`${root.name}: no project.json found in this folder or its direct subfolders.`);
+    return { handles, legacyHandles: legacyHandles.filter((handle) => !convertedFiles.has(handle.name)), errors };
 }
 
 function parseArchives(value: unknown): Archives {
@@ -246,7 +253,7 @@ async function externalize(value: unknown, storage: DirectoryProject, seen = new
                     const stream = await (await storage.attachments.getFileHandle(digest, { create: true })).createWritable();
                     await stream.write(bytes); await stream.close();
                 }
-                return `teamos-attachment:${storage.projectId}/${digest}`;
+                return `teamos-attachment:${encodeURIComponent(storage.projectId)}/${digest}`;
             })();
             seen.set(child, next);
         }
@@ -272,7 +279,7 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
     const transactionId = changed ? crypto.randomUUID() : storage.historyTransactionId;
     const baselineEventId = storage.baselineEventId || local?.baselineEventId || '';
     delete data.extensions.timeline;
-    data.extensions.projectStorage = { version: 1, baselineEventId, ...(transactionId ? { historyTransactionId: transactionId } : {}) };
+    data.extensions.projectStorage = { version: 1, baselineEventId, ...(storage.legacyFileName ? { legacyFileName: storage.legacyFileName } : {}), ...(transactionId ? { historyTransactionId: transactionId } : {}) };
     const text = json(data);
     const checkProject = async () => {
         if (expectedProjectHash && hashTextContent(await (await handle.getFile()).text()) !== expectedProjectHash) throw new Error(`${storage.directory.name}/project.json changed during save. Retry to reconcile changes.`);
@@ -313,6 +320,8 @@ async function createProjectDirectoryUnlocked(parent: ProjectDirectoryHandle, na
     const data = serializeBoardDataFromObject(input);
     const projectId = data.extensions.project!.id;
     const storage: DirectoryProject = { directory, history, attachments, projectId, baselineEventId: '', commitKnown: true, loaded: true, timeline: emptyTimeline(), sessionArchiveIds: new Set(), sessionEventIds: new Set() };
+    const inputStorage = data.extensions.projectStorage;
+    if (isRecord(inputStorage) && typeof inputStorage.legacyFileName === 'string') storage.legacyFileName = inputStorage.legacyFileName;
     projects.set(handle, storage);
     if (!attachmentDirectories.has(projectId)) attachmentDirectories.set(projectId, attachments);
     const separated = await externalize(data, storage) as BoardData;
@@ -322,7 +331,7 @@ async function createProjectDirectoryUnlocked(parent: ProjectDirectoryHandle, na
     for (const event of timeline.events) storage.sessionEventIds.add(event.id);
     for (const [key, archive] of Object.entries(archives)) for (const entry of [...archive.history, ...(archive.originalEvents || [])]) storage.sessionArchiveIds.add(`${key}:${entry.id}`);
     delete separated.extensions.timeline;
-    separated.extensions.projectStorage = { version: 1, baselineEventId: timeline.baselineEventId };
+    separated.extensions.projectStorage = { version: 1, baselineEventId: timeline.baselineEventId, ...(storage.legacyFileName ? { legacyFileName: storage.legacyFileName } : {}) };
     const header = json({ version: 1, timeline, archives });
     const historyStream = await history.createWritable();
     await historyStream.write(`${header.slice(0, -2)},\n  "transactions": [\n]}\n`); await historyStream.close();
