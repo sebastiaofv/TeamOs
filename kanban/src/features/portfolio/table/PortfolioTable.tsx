@@ -117,12 +117,12 @@ function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPo
         </summary>
         {expanded && group.closedAt && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(group.closedAt) })}</p>}
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
-            sourceRows={group.rows} canCreate={canEdit && !group.closedAt && group.status !== 'done'} createSprintId={group.sprint.id} scope={`sprint-${group.sprint.id}`} nested />}
+            sourceRows={group.rows} canCreate={canEdit && !group.closedAt && group.status !== 'done'} createSprintId={group.sprint.id} scope={`sprint-${group.sprint.id}`} selectable={false} nested />}
     </details>;
 }
 
-export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', createSprintId, planning = false, scope = '', compact = false, emptyLabel, nested = false, bare = false }: {
-    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; createSprintId?: string; planning?: boolean; scope?: string; compact?: boolean; emptyLabel?: string; nested?: boolean; bare?: boolean;
+export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', createSprintId, planning = false, scope = '', compact = false, emptyLabel, nested = false, bare = false, selectable = true }: {
+    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; createSprintId?: string; planning?: boolean; scope?: string; compact?: boolean; emptyLabel?: string; nested?: boolean; bare?: boolean; selectable?: boolean;
 }) {
     const { t, language } = useI18n();
     const today = useLocalToday();
@@ -130,6 +130,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const actions = usePortfolioActions();
     const sortRef = useFocusTarget<HTMLButtonElement>('portfolioTableSort', !hidden && !compact);
     const columnDisclosure = useTableDisclosure(hidden);
+    const sprintDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
     const [hierarchy, setHierarchy] = useState({ type: '', epic: '', story: '' });
     const [selectedColumns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
@@ -158,7 +159,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const pageCount = Math.max(1, Math.ceil(rowGroups.length / pageSize));
     const currentPage = pageScope.filters === filters && pageScope.sort === sort ? Math.min(page, pageCount - 1) : 0;
     const pageRows = visibleTableRows(rowGroups.slice(currentPage * pageSize, (currentPage + 1) * pageSize), expandedRows);
-    const selectedCount = sourceRows.filter((row) => selected.has(row.taskId)).length;
+    const selectedCount = selectable ? sourceRows.filter((row) => selected.has(row.taskId)).length : 0;
     const allPageSelected = pageRows.length > 0 && pageRows.every(({ row }) => selected.has(row.taskId));
     function clearFilters() {
         clearTableFilters();
@@ -226,16 +227,9 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                         <p role="status" aria-live="polite" id={scopedId('tableCounts')}>{t('table.visibleCount', { visible: rows.length, total: sourceRows.length })}</p>
                         {selectedCount > 0 && <span role="status">{t('table.selected', { count: selectedCount })}</span>}
                         {selectedCount > 0 && <button className="btn-text" onClick={() => setSelected(new Set())}>{t('table.clearSelection')}</button>}
-                        {planning && canCreate && <button className="btn btn-primary" id="tableCreateSprint" disabled={selectedCount === 0}
-                            onClick={() => actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'create-sprint-from-selection',
-                                unplannedTaskIds: sourceRows.filter(row => selected.has(row.taskId)).map(row => row.taskId) })}>{t('toolbar.createSprint')}</button>}
-                        {planning && canCreate && <button className="btn" id="tableAddToSprint" disabled={selectedCount === 0 || !hasAssignableSprints}
-                            title={!hasAssignableSprints ? t('roadmapDialog.noEligibleSprints') : undefined}
-                            onClick={() => actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'assign-sprint-from-selection',
-                                unplannedTaskIds: sourceRows.filter(row => selected.has(row.taskId)).map(row => row.taskId) })}>{t('table.addToSprint')}</button>}
                     </div>
                     <div className="table-tools">
-                        <PortfolioQueryControls active={!hidden} scope={scope} additionalFields={hierarchyFields} />
+                        <PortfolioQueryControls active={!hidden} scope={scope} additionalFields={hierarchyFields} iconOnlyFilters />
                         <details id={scopedId('tableColumns')} className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
                             <summary className="btn icon-btn" ref={columnDisclosure.summaryRef} aria-label={t('table.columns')} title={t('table.columns')}><WorkspaceIcon name="columns" /></summary>
                             <div className="table-column-panel" data-table-panel>
@@ -258,7 +252,22 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                             </div>
                         </details>
                         <button className="btn icon-btn" id={scopedId('tableExportCsv')} type="button" aria-label={t('table.export')} title={t('table.export')} disabled={rows.length === 0} onClick={() => void exportCsv()}><WorkspaceIcon name="export" /></button>
-                        {canCreate && <><span className="toolbar-divider" aria-hidden="true" /><button className="btn btn-primary icon-btn" id={scopedId('tableCreateTask')} type="button" aria-label={t('table.create')} title={t('table.create')} onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: createType, preferredSprintId: createSprintId })}><WorkspaceIcon name="plus" /></button></>}
+                        {canCreate && <div className="table-management-actions">
+                            <span className="toolbar-divider" aria-hidden="true" />
+                            {planning && <details id={scopedId('tableSprintActions')} className="table-sprint-actions" ref={sprintDisclosure.detailsRef} onKeyDown={sprintDisclosure.onKeyDown} onToggle={sprintDisclosure.onToggle}>
+                                <summary className="btn" role="button" ref={sprintDisclosure.summaryRef}><WorkspaceIcon name="runner" />{t('table.sprintActions')}<WorkspaceIcon name="chevronDown" /></summary>
+                                <div className="table-sprint-actions-panel" data-table-panel>
+                                    <button className="btn" id={scopedId('tableCreateSprint')} type="button" disabled={selectedCount === 0}
+                                        onClick={() => { sprintDisclosure.close(); actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'create-sprint-from-selection',
+                                            unplannedTaskIds: sourceRows.filter(row => selected.has(row.taskId)).map(row => row.taskId) }); }}>{t('toolbar.createSprint')}</button>
+                                    <button className="btn" id={scopedId('tableAddToSprint')} type="button" disabled={selectedCount === 0 || !hasAssignableSprints}
+                                        title={!hasAssignableSprints ? t('roadmapDialog.noEligibleSprints') : undefined}
+                                        onClick={() => { sprintDisclosure.close(); actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'assign-sprint-from-selection',
+                                            unplannedTaskIds: sourceRows.filter(row => selected.has(row.taskId)).map(row => row.taskId) }); }}>{t('table.addToSprint')}</button>
+                                </div>
+                            </details>}
+                            <button className="btn btn-primary icon-btn" id={scopedId('tableCreateTask')} type="button" aria-label={t('table.create')} title={t('table.create')} onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: createType, preferredSprintId: createSprintId })}><WorkspaceIcon name="plus" /></button>
+                        </div>}
                     </div>
                 </div>
             </details>}
@@ -270,20 +279,20 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                     <table id={scopedId('workitemsTable')} className="workitems-table">
                         <caption className="sr-only">{t('table.title', { project })}</caption>
                         <thead><tr>
-                            <th scope="col"><input type="checkbox" aria-label={t('table.selectPage')} checked={allPageSelected}
-                                onChange={(event) => toggleSelection(pageRows.map(({ row }) => row.taskId), event.target.checked)} /></th>
+                            {selectable && <th scope="col"><input type="checkbox" aria-label={t('table.selectPage')} checked={allPageSelected}
+                                onChange={(event) => toggleSelection(pageRows.map(({ row }) => row.taskId), event.target.checked)} /></th>}
                             {columns.map((column) => <th scope="col" data-column={column} key={column} aria-sort={sort.column === column ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                                 <button ref={column === focusSortColumn ? sortRef : undefined} type="button" onClick={() => { setTableSort(column, sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc'); setPage(0); }}>
                                     {t(COLUMN_LABELS[column])}<span aria-hidden="true">{sort.column === column ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>
                                 </button>
                             </th>)}
                         </tr></thead>
-                        <tbody>{bare && !rows.length && <tr><td colSpan={columns.length + 1}>{emptyLabel || t('table.noResults')}</td></tr>}{pageRows.map(({ row, depth, hasChildren }) => {
+                        <tbody>{bare && !rows.length && <tr><td colSpan={columns.length + (selectable ? 1 : 0)}>{emptyLabel || t('table.noResults')}</td></tr>}{pageRows.map(({ row, depth, hasChildren }) => {
                             const workflowState = getWorkflow(row.boardData || boardData, row.task).states.find((state) => state.id === row.task.status);
                             return <tr key={`${boardId}:${row.taskId}`} data-board-id={boardId} data-task-id={row.taskId} data-depth={nested ? depth : undefined}
                             onClick={(event) => { if (!(event.target as HTMLElement).closest('button,input,a,label')) openDetails(row, event); }}>
-                            <td><input type="checkbox" aria-label={t('task.select', { title: row.task.title })} checked={selected.has(row.taskId)}
-                                onChange={(event) => toggleSelection([row.taskId], event.target.checked)} /></td>
+                            {selectable && <td><input type="checkbox" aria-label={t('task.select', { title: row.task.title })} checked={selected.has(row.taskId)}
+                                onChange={(event) => toggleSelection([row.taskId], event.target.checked)} /></td>}
                             {columns.map((column) => <td key={column} data-column={column}>
                                 {column === 'id' || column === 'title'
                                     ? <div className={nested && column === 'title' ? `table-tree-cell table-tree-depth-${depth}` : undefined} style={nested && column === 'title' ? { paddingInlineStart: depth * 24 } : undefined}>

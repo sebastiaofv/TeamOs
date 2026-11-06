@@ -585,7 +585,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Criar um sprint' },
                     { kind: 'list', items: [
                         'No Roadmap, com **+ Sprint**.',
-                        'A partir de uma seleção: selecione linhas em **Tabela → Backlog** e escolha **Criar sprint** ou **Adicionar ao sprint existente**.'
+                        'A partir de uma seleção: selecione linhas em **Tabela → Backlog** e abra **Ações de sprint** para escolher **Criar sprint** ou **Adicionar ao sprint**.'
                     ] },
                     { kind: 'p', text: 'Cada sprint recebe o número seguinte do projeto e aparece como `Sprint 3 - Título`. Os números nunca são reutilizados.' },
                     { kind: 'h', text: 'Alocação e participação' },
@@ -677,9 +677,10 @@ export const DOCS_PT: DocSection[] = [
                         ['Sprints', 'Uma tabela expansível por sprint, do mais recente para o mais antigo, com datas, estado e completude. As Stories expandem-se nas Tasks participantes.']
                     ] },
                     { kind: 'list', items: [
-                        'Cada tabela, incluindo um Sprint expandido, tem uma única toolbar: contagens e seleção à esquerda; pesquisa, Filtros, Colunas, Exportar CSV e + Criar workitem à direita. Pesquise por ID, título e descrição; ordene por qualquer coluna.',
+                        'Cada tabela tem uma única toolbar: contagens, número de selecionados e Limpar seleção à esquerda; pesquisa e ícones de Filtros, Colunas e Exportar CSV à direita, seguidos de um separador e + Criar workitem. No Backlog, **Ações de sprint** fica após o separador, imediatamente antes de +, e agrupa Criar sprint e Adicionar ao sprint. Mantêm-se as validações de seleção e de sprints elegíveis. Pesquise por ID, título e descrição; ordene por qualquer coluna.',
                         'Use **Filtros** para os filtros comuns e para tipo de workitem, Epic e User Story. Escolha, reordene e reponha colunas no ícone **Colunas**.',
                         'O ícone **Exportar CSV** abre um modal: escolha vírgula ou ponto e vírgula e confirme para descarregar todas as linhas filtradas, mesmo as recolhidas.',
+                        'As tabelas dos Sprints não têm checkboxes de seleção de linhas nem o menu Ações de sprint; mantêm pesquisa, filtros, colunas, exportação, hierarquia e + Criar workitem quando elegível.',
                         'As datas e horas são apresentadas em UTC.'
                     ] }
                 ],
@@ -859,7 +860,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: '4. Planear a execução' },
                     { kind: 'p', text: 'A partir da US-2, crie as Tasks `SHP-TK-4` Integrar o gateway de pagamento (Rui, esforço M) e `SHP-TK-5` Ecrã de seleção do cartão (Marta, esforço S). Associe a TK-5 como **bloqueada pela** TK-4, porque o ecrã precisa da API.' },
                     { kind: 'h', text: '5. Planear o sprint' },
-                    { kind: 'p', text: 'Em **Tabela → Backlog**, selecione a US-2 e a US-3 e escolha **Criar sprint**: **Sprint 1 - Pagamento com cartão**, duas semanas. As Tasks acompanham as suas Stories.' },
+                    { kind: 'p', text: 'Em **Tabela → Backlog**, selecione a US-2 e a US-3 e escolha **Ações de sprint → Criar sprint**: **Sprint 1 - Pagamento com cartão**, duas semanas. As Tasks acompanham as suas Stories.' },
                     { kind: 'h', text: '6. Executar' },
                     { kind: 'p', text: 'Quando o sprint começa, o Board Técnico mostra a TK-4 e a TK-5. O Rui arrasta a TK-4 para Em curso; a TK-5 fica bloqueada por dependência. O Rui reserva duas horas no Planeador. Quando a TK-4 fica concluída, a TK-5 é desbloqueada e a Marta começa-a.' },
                     { kind: 'h', text: '7. Aceitar' },

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { defaultWorkflow } from '@/domain/workflow';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, answerAppMessage, selectTableView } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, answerAppMessage, selectTableView, openTableSprintActions } from '../support/portfolio';
 
 test.use({ timezoneId: 'Europe/Lisbon' });
 
@@ -88,6 +88,7 @@ for (const finish of ['button', 'editor'] as const) {
     await selectTableView(page, 'unplanned');
     await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(3);
     await page.locator('#workitemsTable [data-task-id="1"] input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableAddToSprint').click();
     await expect(page.locator('#roadmapEntityExistingSprint option[value="s1"]')).toHaveCount(0);
     await page.locator('#roadmapEntityExistingSprint').selectOption('s2');
@@ -138,6 +139,7 @@ test('Table selection creates a Planned Sprint with goals/capacity even when all
   await page.locator('[data-view-mode="table"]').click();
   await selectTableView(page, 'unplanned');
   await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
+  await openTableSprintActions(page);
   await page.locator('#tableCreateSprint').click();
   await page.locator('#roadmapEntityTitle').fill('Old dates');
   await page.locator('#roadmapEntityStartDate').fill('01/01/2000');

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, toggleLanguage, selectTableView } from '../support/portfolio';
 
 test.describe.configure({ mode: 'parallel' });
 for (const style of ['classic', 'modern']) for (const width of [1280, 390]) test(`Table toolbar and view menu in ${style} at ${width}px`, async ({ page }, testInfo) => {
@@ -20,6 +20,9 @@ for (const style of ['classic', 'modern']) for (const width of [1280, 390]) test
     await expect(page.locator('.table-summary, .table-hierarchy-options, #tableCsvSeparator')).toHaveCount(0);
     const heading = page.locator('#portfolioTable .table-heading');
     for (const id of ['portfolioSearchInput', 'portfolioFiltersBtn', 'tableColumns', 'tableExportCsv', 'tableCreateTask']) await expect(heading.locator(`#${id}`)).toBeVisible();
+    await expect(page.locator('#portfolioFiltersBtn')).toHaveText('');
+    await expect(page.locator('#portfolioFiltersBtn')).toHaveAccessibleName('Filters');
+    await expect(page.locator('#portfolioFiltersBtn')).toHaveAttribute('title', 'Filters');
     await expect(page.locator('#tableColumns > summary')).toHaveText('');
     await expect(page.locator('#tableColumns > summary')).toHaveAccessibleName('Columns');
     await expect(page.locator('#tableExportCsv')).toHaveText('');
@@ -66,6 +69,9 @@ test('each expanded Sprint has scoped search, filters, counts, columns and expor
         const sprint = page.locator(`[data-table-sprint="${id}"]`);
         await sprint.locator(':scope > summary .table-sprint-name').click();
         await expect(sprint.locator('.table-heading')).toHaveCount(1);
+        await expect(sprint.locator('table input[type=checkbox], .table-sprint-actions, [id^=tableCreateSprint], [id^=tableAddToSprint]')).toHaveCount(0);
+        await expect(sprint.locator('thead th:not([data-column])')).toHaveCount(0);
+        await expect(sprint.locator(`[id=portfolioFiltersBtn-sprint-${id}]`)).toHaveText('');
         await expect(sprint.locator(`[id="tableCounts-sprint-${id}"]`)).toContainText('1 of 1');
         await sprint.locator(`[id="portfolioFiltersBtn-sprint-${id}"]`).click();
         await expect(sprint.locator(`[id="tableTypeFilter-sprint-${id}"]`)).toBeVisible();
@@ -79,3 +85,62 @@ test('each expanded Sprint has scoped search, filters, counts, columns and expor
     await page.keyboard.press('Escape');
     expect(await page.locator('#portfolioTable [id]').evaluateAll(nodes => nodes.map(node => node.id).filter((id, index, ids) => ids.indexOf(id) !== index))).toEqual([]);
 });
+
+for (const style of ['classic', 'modern']) for (const language of ['en', 'pt']) for (const width of [1280, 390, 320]) {
+    test(`Sprint Actions preserves planning, order and keyboard focus in ${style}/${language} at ${width}px`, async ({ page }, testInfo) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.addInitScript(style => localStorage.setItem('teamOsKanbanThemeStyle', style), style);
+        await gotoApp(page);
+        await seedPortfolioBoards(page, [{ id: 'planning', title: 'Sprint actions', hasHandle: true, tasks: [
+            { id: 1, title: 'Plan this work', status: 'to-do' }
+        ], extensions: { roadmap: { version: 5, phases: [], milestones: [], sprints: [
+            { id: 'next', title: 'Next', status: 'planned', startDate: '2026-11-09', endDate: '2026-11-20' }
+        ] } } }], { selectedBoardId: 'planning' });
+        if (language === 'pt') await toggleLanguage(page);
+        await page.locator('[data-view-mode="table"]').click();
+        await selectTableView(page, 'unplanned');
+        const trigger = page.locator('#tableSprintActions > summary');
+        await expect(trigger).toHaveAccessibleName(language === 'pt' ? 'Ações de sprint' : 'Sprint Actions');
+        await expect(trigger.locator('svg')).toHaveCount(2);
+        await expect(page.locator('.table-counts button')).toHaveCount(0);
+        await expect(page.locator('.table-management-actions > *')).toHaveCount(3);
+        await expect(page.locator('.table-management-actions > :first-child')).toHaveClass('toolbar-divider');
+        await expect(page.locator('.table-management-actions > :last-child')).toHaveAttribute('id', 'tableCreateTask');
+        const order = await page.locator('.table-tools input[type=search], .table-tools [data-portfolio-filter-trigger], .table-tools > details, .table-tools > button, .table-management-actions > *').evaluateAll(nodes => nodes.map(node => node.id || node.className));
+        expect(order).toEqual(['portfolioSearchInput', 'portfolioFiltersBtn', 'tableColumns', 'tableExportCsv', 'toolbar-divider', 'tableSprintActions', 'tableCreateTask']);
+        await trigger.focus();
+        await page.keyboard.press('Enter');
+        await expect(page.locator('#tableCreateSprint')).toBeVisible();
+        await expect(page.locator('#tableCreateSprint')).toBeDisabled();
+        await expect(page.locator('#tableAddToSprint')).toBeDisabled();
+        await page.keyboard.press('Escape');
+        await expect(page.locator('#tableSprintActions')).not.toHaveAttribute('open', '');
+        await expect(trigger).toBeFocused();
+        await page.locator('#workitemsTable tbody input[type=checkbox]').check();
+        await expect(page.locator('.table-counts')).toContainText(language === 'pt' ? '1 selecionados' : '1 selected');
+        await trigger.click();
+        await expect(page.locator('#tableCreateSprint')).toBeEnabled();
+        await expect(page.locator('#tableAddToSprint')).toBeEnabled();
+        const panel = page.locator('.table-sprint-actions-panel');
+        const rect = await panel.boundingBox();
+        expect(rect).not.toBeNull();
+        expect(rect!.x).toBeGreaterThanOrEqual(0);
+        expect(rect!.x + rect!.width).toBeLessThanOrEqual(width);
+        expect(rect!.y + rect!.height).toBeLessThanOrEqual(900);
+        await expect(page.locator('.table-tools')).toBeInViewport();
+        expect(await page.locator('.table-tools').evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+        await page.screenshot({ path: testInfo.outputPath('sprint-actions.png'), fullPage: true });
+        await page.locator('#tableAddToSprint').click();
+        await expect(page.locator('#tableSprintActions')).not.toHaveAttribute('open', '');
+        await expect(page.locator('#roadmapEntityExistingSprint')).toBeFocused();
+        await page.keyboard.press('Escape');
+        await expect(trigger).toBeFocused();
+        await trigger.click();
+        await page.locator('#portfolioSearchInput').click();
+        await expect(page.locator('#tableSprintActions')).not.toHaveAttribute('open', '');
+        await page.locator('.table-counts button').click();
+        await trigger.click();
+        await expect(page.locator('#tableAddToSprint')).toBeDisabled();
+        expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
+    });
+}

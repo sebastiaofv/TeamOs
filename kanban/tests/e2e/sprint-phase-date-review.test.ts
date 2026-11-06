@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, toggleLanguage, selectTableView } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, toggleLanguage, selectTableView, openTableSprintActions } from '../support/portfolio';
 
 for (const language of ['en', 'pt'] as const) test(`Sprint date review shows independent dated choices beside each phase (${language})`, async ({ page }) => {
     await gotoApp(page);
@@ -16,6 +16,7 @@ for (const language of ['en', 'pt'] as const) test(`Sprint date review shows ind
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'unplanned');
     for (const checkbox of await page.locator('#workitemsTable tbody input[type="checkbox"]').all()) await checkbox.check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Delivery Sprint');
     await page.locator('#roadmapEntityStartDate').fill('05/11/2026');

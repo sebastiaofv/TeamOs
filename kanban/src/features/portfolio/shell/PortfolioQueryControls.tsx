@@ -8,12 +8,12 @@ import { PortfolioActiveFilters, PortfolioToolbarFilters, type AdditionalPortfol
 import type { WorkflowKind } from '@/domain/types';
 
 /** Reused fields inside the active view's existing toolbar. */
-type QueryProps = { boardMode?: WorkflowKind; scope?: string; additionalFields?: AdditionalPortfolioFilter[] };
+type QueryProps = { boardMode?: WorkflowKind; scope?: string; additionalFields?: AdditionalPortfolioFilter[]; iconOnlyFilters?: boolean };
 export function PortfolioQueryControls({ active = true, ...props }: QueryProps & { active?: boolean }) {
     return active ? <QueryControlsContent {...props} /> : null;
 }
 
-function QueryControlsContent({ boardMode, scope = '', additionalFields = [] }: QueryProps) {
+function QueryControlsContent({ boardMode, scope = '', additionalFields = [], iconOnlyFilters = false }: QueryProps) {
     const scopedId = (id: string) => scope ? `${id}-${scope}` : id;
     const { t } = useI18n();
     const state = useAppStore(useShallow((s) => ({
@@ -33,7 +33,7 @@ function QueryControlsContent({ boardMode, scope = '', additionalFields = [] }: 
                     title={table ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
                     onClick={() => table ? setTableFilter('search', '') : setPortfolioFilter('search', '')}>×</button>}
             </div>
-            <PortfolioToolbarFilters boardMode={boardMode} scope={scope} additionalFields={additionalFields} />
+            <PortfolioToolbarFilters boardMode={boardMode} scope={scope} additionalFields={additionalFields} iconOnly={iconOnlyFilters} />
         </div>
         <PortfolioActiveFilters scope={scope} additionalFields={additionalFields} />
         {!table && <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{t('toolbar.resultsCount', { count: state.count })}</span>}

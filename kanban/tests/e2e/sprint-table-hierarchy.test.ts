@@ -25,7 +25,7 @@ async function seed(page: Page, writable = true, many = false) {
 const sprint = (page: Page, id = 's1') => page.locator(`[data-table-sprint="${id}"]`);
 const ids = (page: Page, id = 's1') => sprint(page, id).locator('tbody tr').evaluateAll((rows) => rows.map((row) => Number(row.getAttribute('data-task-id'))));
 
-test('expands Story children within each Sprint table and preserves detail navigation, selection and keyboard collapse', async ({ page }) => {
+test('expands Story children within each Sprint table and preserves detail navigation and keyboard collapse without selection', async ({ page }) => {
     await seed(page);
     await expect(sprint(page).locator('table')).toHaveCount(0);
     await sprint(page).locator(':scope > summary .table-sprint-name').click();
@@ -37,8 +37,8 @@ test('expands Story children within each Sprint table and preserves detail navig
     await expect.poll(() => ids(page)).toEqual([1, 2, 3, 7, 4, 5]);
     await expect(table.locator('tr[data-task-id="2"]')).toHaveAttribute('data-depth', '1');
     await expect(table.locator('tr[data-task-id="2"] td')).toHaveCount(await table.locator('th').count());
-    await table.getByRole('checkbox', { name: 'Select Child Alpha', exact: true }).check();
-    await expect(sprint(page).locator('.table-counts')).toContainText('1 selected');
+    await expect(table.getByRole('checkbox')).toHaveCount(0);
+    await expect(sprint(page).locator('.table-counts')).not.toContainText('selected');
     await table.getByRole('button', { name: 'Child Alpha', exact: true }).click();
     await expect(page.locator('#detailTitle')).toHaveText('Child Alpha');
     await page.keyboard.press('Escape');
@@ -97,8 +97,8 @@ test('paginates whole Story groups so expanding a row never separates children o
     await expect(section.locator('tbody tr')).toHaveCount(25);
     await section.getByRole('button', { name: 'Expand Story Zeta', exact: true }).click();
     await expect(section.locator('tbody tr')).toHaveCount(28);
-    await section.getByRole('checkbox', { name: 'Select this page', exact: true }).check();
-    await expect(section.locator('.table-counts')).toContainText('28 selected');
+    await expect(section.locator('table input[type=checkbox]')).toHaveCount(0);
+    await expect(section.locator('.table-counts')).toContainText('31 of 31 workitems');
     await section.locator('#tableNextPage-sprint-s1').click();
     await expect(section.locator('tbody tr')).toHaveCount(3);
     await expect(section.locator('tr[data-task-id="2"]')).toHaveCount(0);

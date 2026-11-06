@@ -11,6 +11,7 @@ const paths = {
     export: 'M8 1v9M4 6l4 4 4-4M2 10v5h12v-5',
     chevronDown: 'M4 6l4 4 4-4',
     columns: 'M2 2h12v12H2zM6 2v12M10 2v12',
+    runner: 'M11.5 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0M2 7l3-2 3 1 2 3 3 1M8 6l-2 4 3 2-1 3M6 10l-2 3H1',
     plus: 'M8 2v12M2 8h12',
     sort: 'M4 2v12M1 5l3-3 3 3M12 14V2M9 11l3 3 3-3'
 };

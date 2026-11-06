@@ -84,11 +84,11 @@ function usePortfolioFilterFields() {
     return { fields, active: fields.filter((entry) => entry.changed), t };
 }
 
-export function PortfolioToolbarFilters({ boardMode, scope = '', additionalFields = [] }: { boardMode?: WorkflowKind; scope?: string; additionalFields?: AdditionalPortfolioFilter[] }) {
+export function PortfolioToolbarFilters({ boardMode, scope = '', additionalFields = [], iconOnly = false }: { boardMode?: WorkflowKind; scope?: string; additionalFields?: AdditionalPortfolioFilter[]; iconOnly?: boolean }) {
     const { fields, t } = usePortfolioFilterFields();
     const combined = [...fields.map(field => ({ ...field, id: scope ? `${field.id}-${scope}` : field.id })), ...additionalFields];
     const clear = () => { clearPortfolioFilters(); additionalFields.forEach(field => field.reset()); };
-    return <FilterMenu scope={scope} fields={combined} activeCount={combined.filter(field => field.changed).length} onClear={clear} panelClassName="portfolio-filter-options" dismissOnBlur title={boardMode ? t('toolbar.filtersView') : undefined}>
+    return <FilterMenu iconOnly={iconOnly} scope={scope} fields={combined} activeCount={combined.filter(field => field.changed).length} onClear={clear} panelClassName="portfolio-filter-options" dismissOnBlur title={boardMode ? t('toolbar.filtersView') : undefined}>
         {boardMode && <><PortfolioSortControl /><BoardColumnOptions mode={boardMode} /></>}
     </FilterMenu>;
 }

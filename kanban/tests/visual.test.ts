@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { mockImportProjectsPicker, showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch, openProjectSettingsFromPicker, openProjectPicker, selectTableView } from './support/portfolio';
+import { mockImportProjectsPicker, showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch, openProjectSettingsFromPicker, openProjectPicker, selectTableView, openTableSprintActions } from './support/portfolio';
 
 test.describe('US-4 persisted Board column chooser', () => {
   for (const theme of ['light', 'dark']) {
@@ -80,6 +80,10 @@ test.describe('US-01 workitems table', () => {
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`table-review-planning-${theme}.png`);
+      await openTableSprintActions(page);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`table-sprint-actions-${theme}.png`);
       await page.locator('#tableAddToSprint').click();
       await expect(page).toHaveScreenshot(`table-review-assign-${theme}.png`);
       await page.locator('#roadmapEntityModalCancelBtn').click();
@@ -405,6 +409,7 @@ test.describe('2.1a modals and toast', () => {
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'unplanned');
     for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input[type="checkbox"]`).check();
+    await openTableSprintActions(page);
     await page.locator('#tableAddToSprint').click();
     await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
     await expect(page).toHaveScreenshot('roadmap-add-to-sprint-light.png', { fullPage: true });

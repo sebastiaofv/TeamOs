@@ -1,4 +1,4 @@
-import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openProjectPicker, selectTableView } from '../support/portfolio';
+import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openProjectPicker, selectTableView, openTableSprintActions } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 
@@ -53,6 +53,7 @@ test('planning creation follows legacy numbering; a second project starts at one
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Execution');
     await page.locator('#roadmapEntityStartDate').fill('01/01/2025');

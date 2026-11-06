@@ -1,4 +1,4 @@
-import { confirmWorkitemChanges, toggleLanguage, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, selectTableView } from '../support/portfolio';
+import { confirmWorkitemChanges, toggleLanguage, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, selectTableView, openTableSprintActions } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 
@@ -21,12 +21,14 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await page.locator('[data-view-mode="table"]').click();
   await selectTableView(page, 'unplanned');
   const add = page.locator('#tableAddToSprint');
+  await openTableSprintActions(page);
   await expect(add).toHaveAccessibleName('Add to sprint');
   await expect(add).toBeDisabled();
   await expect(page.locator('#tableCreateSprint + #tableAddToSprint')).toBeVisible();
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(3);
   for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input`).check();
   const original = await readSavedBoard(page, 'p');
+  await openTableSprintActions(page);
   await add.click();
   const select = page.locator('#roadmapEntityExistingSprint');
   await expect(select).toBeFocused();
@@ -36,10 +38,11 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeDisabled();
   await select.selectOption('planned');
   await page.keyboard.press('Escape');
-  await expect(add).toBeFocused();
+  await expect(page.locator('#tableSprintActions > summary')).toBeFocused();
   expect(await readSavedBoard(page, 'p')).toEqual(original);
   expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
   for (const id of [1, 2]) await expect(page.locator(`#workitemsTable [data-task-id="${id}"] input`)).toBeChecked();
+  await openTableSprintActions(page);
   await add.click();
   await select.selectOption('active');
   await page.locator('#roadmapEntityModalSaveBtn').click();
@@ -59,6 +62,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await expect(page.locator('#tableCounts')).toHaveText('1 of 1 workitems');
   await expect(add).toBeDisabled();
   await page.locator('#workitemsTable [data-task-id="3"] input').check();
+  await openTableSprintActions(page);
   await add.click();
   await select.selectOption('planned');
   await page.locator('#roadmapEntityModalSaveBtn').click();
@@ -87,6 +91,7 @@ for (const scenario of ['no sprints', 'all Done', 'read-only'] as const) {
     if (scenario === 'read-only') {
       await expect(add).toHaveCount(0);
     } else {
+      await openTableSprintActions(page);
       await expect(add).toHaveAccessibleName('Adicionar ao sprint');
       await expect(add).toBeDisabled();
       await expect(add).toHaveAttribute('title', 'Não existem sprints planeados ou ativos disponíveis. Crie um sprint para planear estes workitems.');
@@ -111,6 +116,7 @@ for (const view of ['Table']) {
       await page.locator('[data-view-mode="table"]').click();
       await selectTableView(page, 'unplanned');
       await page.locator('#workitemsTable input[aria-label="Select Unplanned item"]').check();
+      await openTableSprintActions(page);
       await page.locator('#tableAddToSprint').click();
     } else {
       await portfolioCard(page, 'Unplanned item').locator('input[type="checkbox"]').check();

@@ -1,4 +1,4 @@
-import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, selectTableView, confirmCsvExport } from '../support/portfolio';
+import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, selectTableView, confirmCsvExport, openTableSprintActions } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 
@@ -12,6 +12,7 @@ test('planning view selects eligible workitems and reuses sprint creation withou
   await page.getByRole('button', { name: 'Backlog', exact: true }).click();
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
   await page.getByRole('checkbox', { name: 'Select this page', exact: true }).check();
+  await openTableSprintActions(page);
   await page.getByRole('button', { name: 'Create Sprint', exact: true }).click();
   await page.locator('#roadmapEntityTitle').fill('Sprint from table');
   await page.locator('#roadmapEntityStartDate').fill('01/11/2026');
@@ -123,10 +124,12 @@ test('planning cancellation preserves items and table selection stays independen
   await page.locator('[data-view-mode="table"]').click();
   await page.getByRole('button', { name: 'Backlog', exact: true }).click();
   await page.locator('#workitemsTable [data-task-id="1"] input[type="checkbox"]').check();
+  await openTableSprintActions(page);
   await page.locator('#tableCreateSprint').click();
   await page.locator('#roadmapEntityModalCancelBtn').click();
   expect((await readSavedBoard(page, 'p')).extensions.roadmap).toBeUndefined();
   await expect(page.locator('#workitemsTable [data-task-id="1"] input[type="checkbox"]')).toBeChecked();
+  await openTableSprintActions(page);
   await page.locator('#tableCreateSprint').click();
   await page.locator('#roadmapEntityTitle').fill('Only table selection');
   await page.locator('#roadmapEntityStartDate').fill('01/11/2026');

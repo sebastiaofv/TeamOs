@@ -585,7 +585,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Creating a sprint' },
                     { kind: 'list', items: [
                         'In the Roadmap with **+ Sprint**.',
-                        'From a selection: select rows in **Table → Backlog**, then **Create Sprint** or **Add to Existing Sprint**.'
+                        'From a selection: select rows in **Table → Backlog**, then open **Sprint Actions** and choose **Create Sprint** or **Add to sprint**.'
                     ] },
                     { kind: 'p', text: 'Each sprint receives the next number in the project and is shown as `Sprint 3 - Title`. Numbers are never reused.' },
                     { kind: 'h', text: 'Allocation and participation' },
@@ -677,9 +677,10 @@ export const DOCS_EN: DocSection[] = [
                         ['Sprints', 'One collapsible table per sprint, newest first, with dates, status and completeness. Stories expand into their participating Tasks.']
                     ] },
                     { kind: 'list', items: [
-                        'Each table, including an expanded Sprint, has one toolbar: workitem and selection counts on the left; search, Filters, Columns, Export CSV and + Create workitem on the right. Search by ID, title and description; sort by any column.',
+                        'Each table has one toolbar: workitem counts, selection count and Clear selection on the left; search, Filters, Columns and Export CSV icons on the right, followed by a divider and + Create workitem. In Backlog, **Sprint Actions** sits after the divider, immediately before +, and groups Create Sprint and Add to sprint. Existing selection and eligible-sprint checks still apply. Search by ID, title and description; sort by any column.',
                         'Use **Filters** for shared filters and workitem type, Epic and User Story. Choose, reorder and reset columns with the **Columns** icon.',
                         'The **Export CSV** icon opens a modal: choose comma or semicolon and confirm to download all filtered rows, even collapsed ones.',
+                        'Sprint tables have no row-selection checkboxes or Sprint Actions menu; their search, filters, columns, export, hierarchy and eligible + Create workitem remain available.',
                         'Timestamps are shown in UTC.'
                     ] }
                 ],
@@ -859,7 +860,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: '4. Plan the execution' },
                     { kind: 'p', text: 'From US-2, create Tasks `SHP-TK-4` Integrate payment gateway (Rui, effort M) and `SHP-TK-5` Card selection screen (Marta, effort S). Link TK-5 as **blocked by** TK-4 because the screen needs the API.' },
                     { kind: 'h', text: '5. Plan the sprint' },
-                    { kind: 'p', text: 'In **Table → Backlog**, select US-2 and US-3 and choose **Create Sprint**: **Sprint 1 - Card checkout**, two weeks. The Tasks follow their Stories.' },
+                    { kind: 'p', text: 'In **Table → Backlog**, select US-2 and US-3 and choose **Sprint Actions → Create Sprint**: **Sprint 1 - Card checkout**, two weeks. The Tasks follow their Stories.' },
                     { kind: 'h', text: '6. Execute' },
                     { kind: 'p', text: 'When the sprint starts, the Technical Board shows TK-4 and TK-5. Rui drags TK-4 to In progress; TK-5 is marked blocked by dependency. Rui plans two hours in the Day Planner. When TK-4 is Done, TK-5 is unblocked and Marta starts it.' },
                     { kind: 'h', text: '7. Accept' },

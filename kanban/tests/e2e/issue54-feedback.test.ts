@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, confirmWorkitemChanges, answerAppMessage, installControlledPortfolioWriter, openProjectPicker, selectTableView } from '../support/portfolio';
+import { openTableSprintActions, gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, confirmWorkitemChanges, answerAppMessage, installControlledPortfolioWriter, openProjectPicker, selectTableView } from '../support/portfolio';
 
 test.beforeEach(async ({ page }) => { await gotoApp(page); });
 
@@ -57,6 +57,7 @@ for (const phaseChoice of ['keep', 'update'] as const) test(`creating a Sprint c
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Delivery Sprint');
     await page.locator('#roadmapEntityStartDate').pressSequentially('05112026');
@@ -83,6 +84,7 @@ test('creating a Sprint from a Story and its Tasks requires no extra allocation 
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable tr[data-task-id="1"] input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('New Sprint');
     await page.locator('#roadmapEntityStartDate').pressSequentially('05112026');
@@ -102,6 +104,7 @@ test('retrying a failed Sprint save keeps the same Sprint and never reopens its 
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Single Sprint');
     await page.locator('#roadmapEntityStartDate').fill('05/11/2026');

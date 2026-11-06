@@ -737,3 +737,8 @@ export async function confirmCsvExport(page: Page, separator = ',') {
   await page.locator('#appMessageSelection').selectOption(separator === ';' ? '1' : '0');
   await page.locator('#appMessageConfirmBtn').click();
 }
+
+export async function openTableSprintActions(page: Page) {
+  const menu = page.locator('#tableSprintActions');
+  if (!await menu.evaluate((node) => (node as HTMLDetailsElement).open)) await menu.locator('summary').click();
+}

@@ -27,8 +27,9 @@ function FilterIcon() {
 }
 
 // Board and Table use the same toolbar button, dropdown, field layout and focus behavior.
-export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false, title, children, scope = '' }: {
+export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false, title, children, scope = '', iconOnly = false }: {
     scope?: string;
+    iconOnly?: boolean;
     title?: string;
     children?: ReactNode;
     fields: FilterMenuField[];
@@ -119,8 +120,9 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
         } : undefined}>
             <button
                 ref={buttonRef}
-                className={`btn portfolio-filters-btn${open ? ' open' : ''}${activeCount ? ' has-active' : ''}`}
+                className={`btn${iconOnly ? ' icon-btn' : ''} portfolio-filters-btn${open ? ' open' : ''}${activeCount ? ' has-active' : ''}`}
                 id={scopedId('portfolioFiltersBtn')}
+                title={iconOnly ? title || t('toolbar.filtersButton') : undefined}
                 data-portfolio-filter-trigger
                 type="button"
                 aria-expanded={open}
@@ -129,7 +131,7 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                 onClick={() => setOpen((value) => !value)}
             >
                 <FilterIcon />
-                <span>{title || t('toolbar.filtersButton')}</span>
+                {!iconOnly && <span>{title || t('toolbar.filtersButton')}</span>}
                 {activeCount > 0 && <span className="portfolio-filters-badge" aria-hidden="true">{activeCount}</span>}
             </button>
             {open && (

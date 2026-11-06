@@ -1,4 +1,4 @@
-import { confirmWorkitemChanges, gotoApp, showTimeline, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, openTaskEditor, renameTaskViaEditor, setTimelineSlider, answerAppMessage, selectTableView } from '../support/portfolio';
+import { openTableSprintActions, confirmWorkitemChanges, gotoApp, showTimeline, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, openTaskEditor, renameTaskViaEditor, setTimelineSlider, answerAppMessage, selectTableView } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 test.describe('timeline', () => {
@@ -22,6 +22,7 @@ test.describe('timeline', () => {
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'unplanned');
     for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input[type="checkbox"]`).check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.fill('#roadmapEntityTitle', 'Sprint 12');
     await page.fill('#roadmapEntityStartDate', '01/04/2026');
