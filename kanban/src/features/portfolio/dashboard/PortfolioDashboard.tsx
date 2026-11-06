@@ -94,7 +94,7 @@ function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string })
     </section>;
 }
 
-function Dashboard({ boardId }: { boardId: string }) {
+function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const state = useAppStore(useShallow((value) => ({ portfolioBoards: value.portfolioBoards, selectedPortfolioBoardId: value.selectedPortfolioBoardId, portfolioTimelineSelection: value.portfolioTimelineSelection })));
     const timeline = useMemo(() => getSelectedPortfolioTimelineView(state), [state]);
     const board = timeline?.boardRecord;
@@ -119,13 +119,14 @@ function Dashboard({ boardId }: { boardId: string }) {
     const referenceDate = timeline?.isPreview ? timeline.selectedEvent!.at.slice(0, 10) : today;
     const end = to || referenceDate;
     const invalidPeriod = from > end;
-    const snapshot = useMemo(() => data && !invalidPeriod ? dashboardSnapshot(data, end, referenceDate) : null, [data, end, referenceDate, invalidPeriod]);
+    const snapshot = useMemo(() => !hidden && data && !invalidPeriod ? dashboardSnapshot(data, end, referenceDate) : null, [hidden, data, end, referenceDate, invalidPeriod]);
     const displayData = snapshot?.data;
     const activePhase = displayData?.extensions.roadmap?.phases.some((phase) => phase.id === phaseId) ? phaseId : '';
-    const observations = useMemo(() => data && !invalidPeriod ? dashboardHistory(data, activePhase, from, end) : [], [data, activePhase, from, end, invalidPeriod]);
+    const observations = useMemo(() => !hidden && data && !invalidPeriod ? dashboardHistory(data, activePhase, from, end) : [], [hidden, data, activePhase, from, end, invalidPeriod]);
     // Changing source state invalidates a drilldown so old rows cannot masquerade as current data.
     const source = useRef(displayData);
     useEffect(() => { if (source.current !== displayData) { source.current = displayData; setDrill(null); } }, [displayData]);
+    if (hidden) return null;
     if (historyUnavailable) return <section className="dashboard-panel"><p>{t('dashboard.noHistoryBaseline')}</p><button type="button" className="btn" onClick={() => actions.movePortfolioTimelineToLatest(boardId)}>{t('dashboard.current')}</button></section>;
     if (!board || !data || !timeline) return null;
     const inspect: Inspect = (name, members, context = displayData || data) => setDrill({ name, tasks: members, data: context });
@@ -167,5 +168,5 @@ function Dashboard({ boardId }: { boardId: string }) {
 
 export function PortfolioDashboard({ hidden }: { hidden: boolean }) {
     const boardId = useAppStore((state) => state.selectedPortfolioBoardId);
-    return <section id="portfolioDashboard" className={`portfolio-dashboard${hidden ? ' hidden' : ''}`} aria-label="Dashboard">{boardId && <Dashboard key={boardId} boardId={boardId} />}</section>;
+    return <section id="portfolioDashboard" className={`portfolio-dashboard${hidden ? ' hidden' : ''}`} aria-label="Dashboard">{boardId && <Dashboard key={boardId} boardId={boardId} hidden={hidden} />}</section>;
 }

@@ -12,7 +12,7 @@ export const DOCS_PT: DocSection[] = [
                 title: 'O que é o TeamOS',
                 summary: 'O TeamOS organiza o trabalho em projetos independentes, planeia-o num roadmap e em sprints e executa-o em boards Kanban — tudo a partir de ficheiros de projeto locais.',
                 blocks: [
-                    { kind: 'p', text: 'O TeamOS é um espaço de planeamento e execução para equipas que trabalham de forma Agile. Cada **projeto** é um único ficheiro `.board.json` no seu computador. Pode abrir vários projetos ao mesmo tempo, agrupar projetos relacionados num **produto** e trabalhar em todos a partir do mesmo ecrã.' },
+                    { kind: 'p', text: 'O TeamOS é um espaço de planeamento e execução para equipas que trabalham de forma Agile. Cada **projeto** tem a sua própria pasta no computador, com `project.json`, `history.json` e `attachments/`. Os ficheiros antigos `.board.json` continuam suportados. Pode abrir vários projetos ao mesmo tempo, agrupar projetos relacionados num **produto** e trabalhar em todos a partir do mesmo ecrã.' },
                     { kind: 'p', text: 'Tudo o que acompanha é um **workitem**: um Epic, uma User Story, uma Task ou um Bug. Os workitems avançam por workflows configuráveis, são planeados em fases, marcos e sprints e guardam um histórico local completo das alterações.' },
                     { kind: 'h', text: 'O que pode fazer' },
                     { kind: 'list', items: [
@@ -49,18 +49,18 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'start-first-project',
                 title: 'Criar ou abrir um projeto',
-                summary: 'Comece com um novo ficheiro de projeto ou importe ficheiros existentes. Um projeto aberto com permissão de escrita é guardado automaticamente.',
+                summary: 'Crie uma pasta de projeto, abra um ou vários projetos pela pasta principal ou importe ficheiros antigos. Autorize leitura e escrita para guardar automaticamente.',
                 blocks: [
                     { kind: 'h', text: 'Criar um novo projeto' },
                     { kind: 'steps', items: [
                         'Clique em **+ Novo projeto** na barra superior (ou prima [[N]]).',
                         'Preencha as definições: o **Nome do projeto** e uma **Sigla do projeto** com 1 a 4 letras são obrigatórios. A sigla é o prefixo dos IDs dos novos workitems, por exemplo `CHK-US-2`.',
                         'Opcionalmente, acrescente descrição, produto, membros e etiquetas. Pode alterar tudo isto mais tarde.',
-                        'Escolha onde guardar o ficheiro `.board.json`. O projeto é adicionado ao portefólio e selecionado.'
+                        'Selecione a pasta principal e autorize leitura e escrita. O TeamOS cria uma subpasta com `project.json`, `history.json` e `attachments/` e seleciona o projeto. Se o nome já existir, indique outro.'
                     ] },
                     { kind: 'h', text: 'Abrir projetos existentes' },
                     { kind: 'steps', items: [
-                        'Clique em **Importar projetos** (ou prima [[I]]) e selecione um ou mais ficheiros `.board.json`.',
+                        'Clique em **Importar projetos** (ou prima [[I]]) e selecione a pasta de um projeto ou uma pasta principal com projetos nas subpastas diretas. Os projetos abertos são mantidos, sem duplicados. Os ficheiros antigos `.board.json` encontrados na pasta selecionada são convertidos em subpastas, preservando os originais.',
                         'Em alternativa, arraste os ficheiros de projeto para a janela.',
                         'Quando o navegador pedir, autorize alterações ao ficheiro para que o projeto possa ser guardado.'
                     ] },
@@ -442,7 +442,7 @@ export const DOCS_PT: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Anexos' },
                     { kind: 'list', items: [
-                        'Até 10 ficheiros por workitem, 10 MB cada, incorporados no ficheiro do projeto. Ficheiros grandes tornam a gravação mais lenta; a aplicação avisa.',
+                        'Até 10 ficheiros por workitem, 10 MB cada. Nos projetos em pastas, os binários ficam em `attachments/` e são lidos para miniaturas, abertura ou transferência. Os ficheiros antigos continuam a incorporá-los.',
                         'O separador Anexos lista a data de carregamento, o nome do ficheiro e quem o carregou, com **Abrir** para formatos comuns (imagens, PDF, texto, áudio, vídeo) e **Transferir** para todos.'
                     ] },
                     { kind: 'h', text: 'Pull requests' },
@@ -744,7 +744,8 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Como os projetos são carregados e porque é que alguns abrem só para leitura.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Importar projetos** abre ficheiros através do seletor do navegador, com permissão para guardar.',
+                        '**Importar projetos** abre o seletor de pastas para um projeto ou projetos nas subpastas diretas, com leitura e escrita. A estrutura obrigatória e os dados atuais são validados antes da importação; erros num projeto não impedem os restantes.',
+                        '**Importar projetos** também converte ficheiros antigos `.board.json` encontrados diretamente na pasta selecionada, preservando IDs, histórico e imagens e mantendo os originais intactos. Feche o original antes de abrir a cópia migrada.',
                         '**Arrastar ficheiros** para a janela carrega-os em **modo de leitura**, porque não é fornecida permissão de escrita.',
                         'Os ficheiros têm de ser ficheiros de projeto TeamOS válidos (`.board.json`); os inválidos são reportados e não são importados.',
                         'As versões antigas dos ficheiros são migradas na importação sem alterar IDs.'
@@ -758,13 +759,14 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Gravação automática',
                 summary: 'Cada alteração é escrita no ficheiro do projeto; o chip mostra o estado de gravação.',
                 blocks: [
+                    { kind: 'p', text: 'Os projetos em pastas abrem apenas `project.json`. O histórico é lido de `history.json` quando consultado; gravações com novos eventos preservam os anteriores mesmo antes da consulta. Outras gravações não alteram o histórico. Os anexos são ficheiros separados, conservados quando necessários ao histórico ou a Desfazer.' },
                     { kind: 'p', text: 'Não há botão Guardar para o projeto: cada alteração é guardada no ficheiro assim que a faz. O chip do projeto mostra **A guardar**, **Por guardar**, **Falha ao guardar**, **Conflito** ou **Atualização externa** quando relevante.' },
                     { kind: 'list', items: [
                         'Se uma gravação falhar, a alteração continua aplicada na aplicação; use **Tentar guardar novamente** no chip.',
                         'Ações como mover a partir da paleta mostram **Desfazer** durante alguns segundos.',
                         'Os editores e janelas (editor de workitem, Definições do projeto) só se aplicam quando os guarda.'
                     ] },
-                    { kind: 'callout', tone: 'tip', text: 'Mantenha os ficheiros de projeto numa pasta sincronizada ou com cópia de segurança. O ficheiro é o seu projeto.' }
+                    { kind: 'callout', tone: 'tip', text: 'Mantenha os ficheiros de projeto numa pasta sincronizada ou com cópia de segurança. Faça cópia de segurança da pasta completa, incluindo histórico e anexos.' }
                 ],
                 related: ['files-external', 'files-history']
             },
@@ -790,7 +792,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Histórico do projeto' },
                     { kind: 'steps', items: [
                         'Ative **Mostrar barra do histórico** nas Definições da aplicação (roda dentada na barra superior).',
-                        'Selecione um projeto e arraste o cursor do histórico para um evento passado. Todo o projeto é mostrado como estava, só de leitura.',
+                        'Selecione um projeto, clique em **Carregar histórico / timeline** quando apresentado e arraste o cursor para um evento passado. Todo o projeto é mostrado como estava, só de leitura.',
                         'Clique em **Restaurar este estado** para o tornar atual, ou em **Mais recente** para voltar sem restaurar.'
                     ] },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'O restauro também fica registado no histórico, por isso o estado anterior continua disponível. Identidades, números de workitems e números de sprints nunca são reutilizados. Os comentários publicados são mantidos.' },

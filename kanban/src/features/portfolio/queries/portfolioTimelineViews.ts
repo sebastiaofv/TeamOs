@@ -73,7 +73,7 @@ export function getSelectedPortfolioTimelineView(state: SelectorState): Portfoli
         selectedIndex,
         selectedEvent: timeline.events[selectedIndex] || null,
         isPreview: selectedIndex < timeline.events.length - 1,
-        projectedBoard: reconstructBoardStateFromTimeline(boardRecord.data, selectedIndex)
+        projectedBoard: selectedIndex === timeline.events.length - 1 ? boardRecord.data : reconstructBoardStateFromTimeline(boardRecord.data, selectedIndex)
     };
 }
 

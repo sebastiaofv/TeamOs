@@ -1,0 +1,486 @@
+{
+  "meta": {
+    "schemaVersion": 6,
+    "appId": "teamos-kanban",
+    "createdAt": "2026-11-03T09:00:00.000Z",
+    "updatedAt": "2026-11-06T09:28:24.351Z"
+  },
+  "board": {
+    "columns": [
+      {
+        "status": "backlog",
+        "title": "Backlog"
+      },
+      {
+        "status": "to-do",
+        "title": "To Do"
+      },
+      {
+        "status": "doing",
+        "title": "In Progress"
+      },
+      {
+        "status": "done",
+        "title": "Done"
+      }
+    ],
+    "tasks": [
+      {
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "none",
+        "milestoneMode": "none",
+        "pullRequests": [],
+        "permanentId": "workitem:legacy-project_2026-11-03T09%253A00%253A00.000Z_US-23%2520%25C2%25B7%2520Visualiza%25C3%25A7%25C3%25A3o%2520de%2520anexos:1:2026-11-03T09%3A00%3A00.000Z",
+        "id": 1,
+        "title": "Consultar imagens, PDFs e documentos",
+        "description": "Validar Open/Abrir, Download/Transferir e alinhamento dos anexos.",
+        "assignees": [],
+        "responsible": "",
+        "assigneeIds": [],
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [
+          {
+            "id": "att-1",
+            "name": "exemplo.png",
+            "mime": "image/png",
+            "sizeBytes": 1521,
+            "kind": "image",
+            "dataUrl": "teamos-attachment:us25-missing-binary/6716c52f3044918654fad75a857ecf81affb895dd23efcf26e8143b361cfe6a2",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-2",
+            "name": "exemplo.jpg",
+            "mime": "image/jpeg",
+            "sizeBytes": 1620,
+            "kind": "image",
+            "dataUrl": "teamos-attachment:us25-missing-binary/7da9a216bcb5adfb219aa932d1af618ef22814ba1232565d6a092810290e4b37",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-3",
+            "name": "exemplo.pdf",
+            "mime": "application/pdf",
+            "sizeBytes": 602,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/2b45943458b1ce1552e6ac4c528b74c477857b6072876b0f2ff81a60bbb17a94",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-4",
+            "name": "tipo-generico.PDF",
+            "mime": "application/octet-stream",
+            "sizeBytes": 602,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/2b45943458b1ce1552e6ac4c528b74c477857b6072876b0f2ff81a60bbb17a94",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-5",
+            "name": "exemplo.docx",
+            "mime": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "sizeBytes": 1062,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/b76694a6dedd4751be031aa2945806a65c3cb9c46a1fce7ab156f84ed8c70df0",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-6",
+            "name": "exemplo.xlsx",
+            "mime": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "sizeBytes": 1933,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/ee2f4b5950b133d6ce50ba4d7f09d99712a8210e6a50619a38de437f3943a6eb",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          },
+          {
+            "id": "att-7",
+            "name": "exemplo.zip",
+            "mime": "application/zip",
+            "sizeBytes": 132,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/6463fc65c6995f7f5ef5dbb27a522d55fa21b189b8c579df95da5f426e0cef94",
+            "createdAt": "2026-11-03T09:00:00.000Z"
+          }
+        ],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog"
+      },
+      {
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "none",
+        "milestoneMode": "none",
+        "pullRequests": [],
+        "permanentId": "workitem:legacy-project_2026-11-03T09%253A00%253A00.000Z_US-23%2520%25C2%25B7%2520Visualiza%25C3%25A7%25C3%25A3o%2520de%2520anexos:2:2026-11-03T09%3A00%3A00.000Z",
+        "id": 2,
+        "title": "Sem anexos",
+        "description": "Validar Open/Abrir, Download/Transferir e alinhamento dos anexos.",
+        "assignees": [],
+        "responsible": "",
+        "assigneeIds": [],
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog"
+      },
+      {
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "none",
+        "milestoneMode": "none",
+        "pullRequests": [],
+        "permanentId": "workitem:legacy-project_2026-11-03T09%253A00%253A00.000Z_US-23%2520%25C2%25B7%2520Visualiza%25C3%25A7%25C3%25A3o%2520de%2520anexos:3:2026-11-03T09%3A00%3A00.000Z",
+        "id": 3,
+        "title": "Documentos de texto",
+        "description": "Validar Open/Abrir, Download/Transferir e alinhamento dos anexos.",
+        "assignees": [],
+        "responsible": "",
+        "assigneeIds": [],
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [
+          {
+            "id": "att_notas_txt",
+            "name": "notas.txt",
+            "mime": "text/plain",
+            "sizeBytes": 39,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/da1d2d3a81de73f4dcbfc19bca24c8900e18f1d1e0b8ad04d1b471db861dc7f3",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_dados_csv",
+            "name": "dados.csv",
+            "mime": "text/csv",
+            "sizeBytes": 21,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/74a21ce3bc4acbbe13439558cd23131c375875bd453ea07362f990961aff7e07",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_dados_json",
+            "name": "dados.json",
+            "mime": "application/json",
+            "sizeBytes": 31,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/db145231ac66758145439662cc35c3896353a02cb2b4ab72028a1a25f152664e",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_dados_xml",
+            "name": "dados.xml",
+            "mime": "application/xml",
+            "sizeBytes": 46,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/38b33f4e7fab1a3a32b5537fbbc3fffbab6fdcef69e24fab834bb1e0bc13a74e",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          }
+        ],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog"
+      },
+      {
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "none",
+        "milestoneMode": "none",
+        "pullRequests": [],
+        "permanentId": "workitem:legacy-project_2026-11-03T09%253A00%253A00.000Z_US-23%2520%25C2%25B7%2520Visualiza%25C3%25A7%25C3%25A3o%2520de%2520anexos:4:2026-11-03T09%3A00%3A00.000Z",
+        "id": 4,
+        "title": "Áudio e vídeo",
+        "description": "Validar Open/Abrir, Download/Transferir e alinhamento dos anexos.",
+        "assignees": [],
+        "responsible": "",
+        "assigneeIds": [],
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [
+          {
+            "id": "att_silencio_mp3",
+            "name": "silencio.mp3",
+            "mime": "audio/mpeg",
+            "sizeBytes": 4170,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/54a1cbf7f98d7b263dae389576f50dc8507e3b3b40aec9c5793dc4480b14d913",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_silencio_wav",
+            "name": "silencio.wav",
+            "mime": "audio/wav",
+            "sizeBytes": 4044,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/f9cb049e2c6f64284db73c45b84f359205f22110c784c33e99642faa86c7722b",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_silencio_ogg",
+            "name": "silencio.ogg",
+            "mime": "audio/ogg",
+            "sizeBytes": 128,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/1a91c24172bbfcb7acb6fb5a9cd7f204a3aba6728929ecc91c62b66fbfae78d1",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_video_webm",
+            "name": "video.webm",
+            "mime": "video/webm",
+            "sizeBytes": 625,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/1b37ddd7a1b7cdf9f9c4bdd94ed77471c27cda77944c58c04de084f956f96380",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_video_mp4",
+            "name": "video.mp4",
+            "mime": "video/mp4",
+            "sizeBytes": 1360,
+            "kind": "file",
+            "dataUrl": "teamos-attachment:us25-missing-binary/47c2ec0e14c8286e00d986852763457caa4b435d4fc79efa4cabe0032586987b",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          }
+        ],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog"
+      },
+      {
+        "type": "task",
+        "parentId": null,
+        "phaseMode": "none",
+        "milestoneMode": "none",
+        "pullRequests": [],
+        "permanentId": "workitem:legacy-project_2026-11-03T09%253A00%253A00.000Z_US-23%2520%25C2%25B7%2520Visualiza%25C3%25A7%25C3%25A3o%2520de%2520anexos:5:2026-11-03T09%3A00%3A00.000Z",
+        "id": 5,
+        "title": "Outras imagens",
+        "description": "Validar Open/Abrir, Download/Transferir e alinhamento dos anexos.",
+        "assignees": [],
+        "responsible": "",
+        "assigneeIds": [],
+        "responsibleId": "",
+        "tags": [],
+        "blocked": false,
+        "blockerReason": "",
+        "checklist": [],
+        "attachments": [
+          {
+            "id": "att_imagem_gif",
+            "name": "imagem.gif",
+            "mime": "image/gif",
+            "sizeBytes": 42,
+            "kind": "image",
+            "dataUrl": "teamos-attachment:us25-missing-binary/ef1955ae757c8b966c83248350331bd3a30f658ced11f387f8ebf05ab3368629",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_imagem_webp",
+            "name": "imagem.webp",
+            "mime": "image/webp",
+            "sizeBytes": 526,
+            "kind": "image",
+            "dataUrl": "teamos-attachment:us25-missing-binary/9ae039530747af734c67a692b0250d102d469f2b1bd492ae1d69e20062e2fab1",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_imagem_bmp",
+            "name": "imagem.bmp",
+            "mime": "image/bmp",
+            "sizeBytes": 58,
+            "kind": "image",
+            "dataUrl": "teamos-attachment:us25-missing-binary/eb075ee35bd14a74c90addc70f620751ec096ef9c11277e4f7973bbe0813a399",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          },
+          {
+            "id": "att_imagem_jpeg",
+            "name": "imagem.jpeg",
+            "mime": "image/jpeg",
+            "sizeBytes": 1620,
+            "kind": "image",
+            "dataUrl": "teamos-attachment:us25-missing-binary/7da9a216bcb5adfb219aa932d1af618ef22814ba1232565d6a092810290e4b37",
+            "createdAt": "2026-11-04T00:00:00.000Z"
+          }
+        ],
+        "archived": false,
+        "createdAt": "2026-11-03T09:00:00.000Z",
+        "updatedAt": "2026-11-03T09:00:00.000Z",
+        "dueDate": "",
+        "priority": null,
+        "effort": null,
+        "phaseId": "",
+        "milestoneId": "",
+        "sprintId": "",
+        "status": "backlog"
+      }
+    ],
+    "settings": {
+      "title": "US-25 missing-binary"
+    }
+  },
+  "extensions": {
+    "workflow": {
+      "version": 2,
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "To Do",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "In Progress",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Done",
+          "color": "#34d399",
+          "category": "completed"
+        }
+      ],
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "done"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "doing",
+          "done"
+        ],
+        "to-do": [
+          "backlog",
+          "doing",
+          "done"
+        ],
+        "doing": [
+          "backlog",
+          "to-do",
+          "done"
+        ],
+        "done": [
+          "backlog",
+          "to-do",
+          "doing"
+        ]
+      }
+    },
+    "project": {
+      "version": 1,
+      "id": "us25-missing-binary",
+      "description": "",
+      "status": null,
+      "members": [
+        {
+          "id": "tester",
+          "name": "Tester"
+        }
+      ],
+      "tags": [],
+      "acronym": "BINA"
+    },
+    "workflowTypes": {
+      "version": 1,
+      "functional": [
+        "epic",
+        "story",
+        "bug"
+      ]
+    },
+    "taskIdentity": {
+      "version": 1,
+      "highWaterMark": 5
+    },
+    "conversations": {
+      "version": 1,
+      "entries": [
+        {
+          "id": "us25-comment",
+          "taskId": 1,
+          "workitemKey": "baseline:baseline_he3a58c1:1",
+          "workitemCreatedAt": "2026-11-03T09:00:00.000Z",
+          "eventId": "comment-event-us25-comment",
+          "at": "2026-11-06T09:27:51.784Z",
+          "author": {
+            "name": "Tester",
+            "kind": "local"
+          },
+          "text": "This image lives in attachments/ and must survive reopening and migration.",
+          "images": [
+            {
+              "id": "att-1",
+              "name": "exemplo.png",
+              "mime": "image/png",
+              "sizeBytes": 1521,
+              "kind": "image",
+              "dataUrl": "teamos-attachment:us25-missing-binary/6716c52f3044918654fad75a857ecf81affb895dd23efcf26e8143b361cfe6a2",
+              "createdAt": "2026-11-03T09:00:00.000Z"
+            }
+          ]
+        }
+      ]
+    },
+    "projectStorage": {
+      "version": 1,
+      "baselineEventId": "baseline_he3a58c1"
+    }
+  }
+}
