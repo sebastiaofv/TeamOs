@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, showTimeline } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, showTimeline, toggleTheme, toggleLanguage } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
@@ -44,7 +44,7 @@ for (const language of ['en', 'pt']) for (const [kind, tab, title] of [
 ]) test(`${tab} Type appears only in the sidebar form and stays immutable after creation (${language})`, async ({ page }) => {
     await seed(page);
     await page.getByRole('tab', { name: tab, exact: true }).click();
-    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    if (language === 'pt') await toggleLanguage(page);
     const typeLabel = language === 'pt' ? 'Tipo' : 'Type';
     await page.getByRole('button', { name: title, exact: true }).click();
     await expect(dialog(page).getByLabel(typeLabel, { exact: true })).toHaveCount(0);
@@ -129,7 +129,7 @@ for (const language of ['en', 'pt']) for (const [kind, title, id] of [
 ]) test(`${kind} sidebar shares Work Item controls and saves people/tags directly (${language})`, async ({ page }) => {
     await seed(page);
     await page.getByRole('tab', { name: kind, exact: true }).click();
-    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    if (language === 'pt') await toggleLanguage(page);
     await page.getByRole('button', { name: title, exact: true }).click();
     const sidebar = dialog(page).locator('.workitem-sidebar');
     await expect(sidebar.getByLabel(language === 'pt' ? 'Tipo' : 'Type', { exact: true })).toHaveCount(0);
@@ -182,7 +182,7 @@ for (const language of ['en', 'pt']) for (const [kind, title, id] of [
 ]) test(`${kind} detail and edit actions match Work Items (${language})`, async ({ page }) => {
     await seed(page);
     await page.getByRole('tab', { name: kind, exact: true }).click();
-    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    if (language === 'pt') await toggleLanguage(page);
     await page.getByRole('button', { name: title, exact: true }).click();
     const main = dialog(page).locator('.workitem-main');
     await expect(main).toContainText(title);
@@ -249,7 +249,7 @@ for (const language of ['en', 'pt']) test(`control history preserves complete op
     await expect(dialog(page)).toHaveCount(0);
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'control');
-    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    if (language === 'pt') await toggleLanguage(page);
     await page.getByRole('button', { name: 'Supplier confirmed', exact: true }).click();
     await dialog(page).getByRole('tab', { name: language === 'pt' ? 'Histórico' : 'History', exact: true }).click();
     const history = dialog(page).getByRole('tabpanel');
@@ -467,7 +467,7 @@ test('table search, filters, sorting, overdue and empty states work in both lang
     await expect(page.getByRole('columnheader', { name: /Title/ })).toHaveAttribute('aria-sort', 'ascending');
     await page.getByLabel('Search by ID or title', { exact: true }).fill('missing');
     await expect(page.getByRole('status')).toContainText('No records match');
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await expect(page.getByRole('heading', { name: 'Controlo do projeto', exact: true })).toBeVisible();
     await expect(page.getByRole('status')).toContainText('Nenhum registo encontrado');
 });
@@ -510,7 +510,7 @@ for (const width of [1280, 390]) for (const dark of [false, true]) {
     test(`Project Control keyboard and dialog layout at ${width}px (${dark ? 'dark' : 'light'})`, async ({ page }) => {
         await page.setViewportSize({ width, height: 800 });
         await seed(page);
-        if (dark) await page.locator('#themeToggleBtn').click();
+        if (dark) await toggleTheme(page);
         const risks = page.getByRole('tab', { name: 'Risks', exact: true });
         await risks.focus(); await risks.press('ArrowRight');
         await expect(page.getByRole('tab', { name: 'Decisions', exact: true })).toBeFocused();

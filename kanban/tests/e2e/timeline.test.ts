@@ -1,18 +1,5 @@
-import { confirmWorkitemChanges } from '../support/portfolio';
+import { confirmWorkitemChanges, gotoApp, showTimeline, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, openTaskEditor, renameTaskViaEditor, setTimelineSlider, answerAppMessage } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
-
-import {
-  gotoApp,
-  showTimeline,
-  seedPortfolioBoards,
-  readSavedBoard,
-  waitForBoardWrites,
-  portfolioCard,
-  openTaskEditor,
-  renameTaskViaEditor,
-  setTimelineSlider,
-  answerAppMessage
-} from '../support/portfolio';
 
 test.describe('timeline', () => {
   test.beforeEach(async ({ page }) => {
@@ -32,9 +19,10 @@ test.describe('timeline', () => {
       ]
     }], { selectedBoardId: 'alpha' });
 
-    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
-    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
-    await page.getByRole('button', { name: 'Create Sprint' }).click();
+    await page.locator('[data-view-mode="table"]').click();
+    await page.locator('[data-table-view="unplanned"]').click();
+    for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input[type="checkbox"]`).check();
+    await page.locator('#tableCreateSprint').click();
     await page.fill('#roadmapEntityTitle', 'Sprint 12');
     await page.fill('#roadmapEntityStartDate', '01/04/2026');
     await page.fill('#roadmapEntityEndDate', '14/04/2026');
@@ -44,6 +32,7 @@ test.describe('timeline', () => {
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
     // A later edit makes the bulk sprint event (index 1) historical, so the
     // preview below is reconstructed from the timeline rather than live state.
+    await page.locator('[data-view-mode="board"]').click();
     await renameTaskViaEditor(page, 'Task A', 'Task A later');
     await waitForBoardWrites(page, 2);
 

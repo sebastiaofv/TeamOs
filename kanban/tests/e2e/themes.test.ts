@@ -1,31 +1,29 @@
 import { test, expect, type Page } from '@playwright/test';
-import {
-    gotoApp, seedPortfolioBoards, readSavedBoard, openTaskEditor,
-    renameTaskViaEditor, showTimeline, setTimelineSlider, portfolioCard
-} from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, openTaskEditor, renameTaskViaEditor, showTimeline, setTimelineSlider, portfolioCard, toggleTheme, toggleLanguage } from '../support/portfolio';
 
 async function chooseTheme(page: Page, name: 'Classic' | 'Modern') {
-    await page.locator('#themePickerBtn').click();
+    await page.locator('#appSettingsBtn').click();
     await page.getByRole('radio', { name, exact: true }).check();
     await page.keyboard.press('Escape');
-    await expect(page.locator('#themePicker')).toBeHidden();
+    await expect(page.locator('#appSettingsModal')).toBeHidden();
 }
 
 test('keyboard selection, independent mode and persistence work without a project', async ({ page }) => {
     await gotoApp(page);
     const root = page.locator('html');
     await expect(root).toHaveAttribute('data-theme-style', 'classic');
-    await page.locator('#themePickerBtn').focus();
+    await page.locator('#appSettingsBtn').focus();
     await page.keyboard.press('Enter');
+    await page.getByRole('radio', { name: 'Classic', exact: true }).focus();
     await expect(page.getByRole('radio', { name: 'Classic', exact: true })).toBeFocused();
     await page.keyboard.press('ArrowRight');
     await expect(page.getByRole('radio', { name: 'Modern', exact: true })).toBeChecked();
     await expect(root).toHaveAttribute('data-theme-style', 'modern');
     await expect(root).toHaveAttribute('data-theme', 'light');
     await page.keyboard.press('Escape');
-    await expect(page.locator('#themePickerBtn')).toBeFocused();
-    await expect(page.locator('#themePickerBtn')).toHaveAttribute('aria-expanded', 'false');
-    await page.locator('#themeToggleBtn').click();
+    await expect(page.locator('#appSettingsBtn')).toBeFocused();
+    await expect(page.locator('#appSettingsBtn')).toHaveAttribute('aria-expanded', 'false');
+    await toggleTheme(page);
     await expect(root).toHaveAttribute('data-theme', 'dark');
     await expect(root).toHaveAttribute('data-theme-style', 'modern');
     await page.reload();
@@ -60,14 +58,14 @@ for (const [savedMode, savedStyle, mode, style] of [
 test('the picker works in Portuguese and documentation and closes on outside click', async ({ page }) => {
     await gotoApp(page);
     await page.locator('#docsToggleBtn').click();
-    await page.locator('#languageToggleBtn').click();
-    await page.getByRole('button', { name: 'Escolher tema', exact: true }).click();
+    await toggleLanguage(page);
+    await page.getByRole('button', { name: 'Definições da aplicação', exact: true }).click();
     await page.getByRole('radio', { name: 'Moderno', exact: true }).check();
     await expect(page.locator('#docsView')).toBeVisible();
     await page.locator('.app-logo').click();
-    await expect(page.locator('#themePicker')).toBeHidden();
-    await expect(page.locator('#themePickerBtn')).toHaveAttribute('aria-expanded', 'false');
-    await page.locator('#themeToggleBtn').click();
+    await expect(page.locator('#appSettingsModal')).toBeHidden();
+    await expect(page.locator('#appSettingsBtn')).toHaveAttribute('aria-expanded', 'false');
+    await toggleTheme(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme-style', 'modern');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
@@ -78,7 +76,7 @@ test('appearance remains selectable when browser storage is blocked', async ({ p
     });
     await gotoApp(page);
     await chooseTheme(page, 'Modern');
-    await page.locator('#themeToggleBtn').click();
+    await toggleTheme(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme-style', 'modern');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await chooseTheme(page, 'Classic');
@@ -97,7 +95,7 @@ test('switching from another tab preserves an unsaved editor and never writes pr
     const otherTab = await context.newPage();
     await gotoApp(otherTab);
     await chooseTheme(otherTab, 'Modern');
-    await otherTab.locator('#themeToggleBtn').click();
+    await toggleTheme(otherTab);
     await expect(page.locator('html')).toHaveAttribute('data-theme-style', 'modern');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expect(page.locator('#taskName')).toHaveValue('Unsaved draft');
@@ -116,7 +114,7 @@ test('theme changes keep the selected view, URL filters and project file intact'
     const original = await readSavedBoard(page, 'p1');
     const writes = await page.evaluate(() => window.__portfolioTestWrites.length);
     await chooseTheme(page, 'Modern');
-    await page.locator('#themeToggleBtn').click();
+    await toggleTheme(page);
     await expect(page.getByRole('button', { name: 'Table', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.portfolio-chip.active')).toContainText('Theme project');
     await expect(page).toHaveURL(url);
@@ -141,7 +139,7 @@ test('the selector also works for read-only projects and historical previews', a
     const saved = await readSavedBoard(page, 'p1');
     const writes = await page.evaluate(() => window.__portfolioTestWrites.length);
     await chooseTheme(page, 'Classic');
-    await page.locator('#themeToggleBtn').click();
+    await toggleTheme(page);
     await expect(portfolioCard(page, 'Original task')).toBeVisible();
     expect(await readSavedBoard(page, 'p1')).toEqual(saved);
     expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(writes);
@@ -151,9 +149,9 @@ for (const width of [390, 1280]) {
     test(`theme picker stays within a ${width}px viewport`, async ({ page }) => {
         await page.setViewportSize({ width, height: 780 });
         await gotoApp(page);
-        await page.locator('#themePickerBtn').click();
+        await page.locator('#appSettingsBtn').click();
         await page.getByRole('radio', { name: 'Modern', exact: true }).check();
-        const panel = page.locator('#themePicker');
+        const panel = page.locator('#appSettingsModal');
         const bounds = await panel.boundingBox();
         expect(bounds!.x).toBeGreaterThanOrEqual(0);
         expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
@@ -187,7 +185,7 @@ for (const style of ['classic', 'modern']) {
             await expect(page.locator('html')).toHaveAttribute('data-theme-style', style);
             await expect(page.locator('html')).toHaveAttribute('data-theme', mode);
             const radius = style === 'modern' ? '5px' : '0px';
-            await expect(page.locator('#themeToggleBtn')).toHaveCSS('border-radius', radius);
+            await expect(page.locator('#appSettingsBtn')).toHaveCSS('border-radius', radius);
             for (const view of ['board', 'table', 'dashboard', 'roadmap', 'control', 'planner']) {
                 const button = page.locator(`[data-view-mode="${view}"]`);
                 await button.click();

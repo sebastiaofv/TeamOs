@@ -1,6 +1,6 @@
-import { confirmWorkitemChanges } from '../support/portfolio';
+import { confirmWorkitemChanges, toggleLanguage, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard } from '../support/portfolio';
+
 
 test.use({ timezoneId: 'UTC' });
 
@@ -17,7 +17,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
     { id: 'active', title: 'Current', startDate: '2026-10-19', endDate: '2026-10-19' },
     { id: 'planned', title: 'Next', startDate: '2026-10-20', endDate: '2026-11-01' }
   ] } } }], { selectedBoardId: 'p' });
-  await portfolioCard(page, 'Board selection').locator('input[type="checkbox"]').check();
+  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);
   await page.locator('[data-view-mode="table"]').click();
   await page.locator('[data-table-view="unplanned"]').click();
   const add = page.locator('#tableAddToSprint');
@@ -67,14 +67,14 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   expect((await readSavedBoard(page, 'p')).board.tasks[2].sprintId).toBe('planned');
   await expect(page.locator('#workitemsTable')).toHaveCount(0);
   await page.locator('[data-view-mode="board"]').click();
-  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toBeChecked();
+  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);
 });
 
 for (const scenario of ['no sprints', 'all Done', 'read-only'] as const) {
   test(`planning handles ${scenario} without offering an invalid assignment`, async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-10-19T12:00:00Z'));
     await gotoApp(page);
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Planeamento', hasHandle: scenario !== 'read-only', tasks: [
       { id: 1, title: 'Por planear', status: 'backlog' }
     ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: scenario === 'no sprints' ? [] : [
@@ -96,7 +96,7 @@ for (const scenario of ['no sprints', 'all Done', 'read-only'] as const) {
   });
 }
 
-for (const view of ['Table', 'Board']) {
+for (const view of ['Table']) {
   test(`an open ${view} sprint picker retains manual status across midnight`, async ({ page }) => {
     await page.clock.install({ time: new Date('2026-10-19T23:59:58Z') });
     await page.clock.pauseAt(new Date('2026-10-19T23:59:59Z'));

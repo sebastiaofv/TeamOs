@@ -1,3 +1,6 @@
+import type { WorkflowKind } from '@/domain/types';
+import { BoardColumnOptions } from '@/features/portfolio/board/BoardColumnOptions';
+import { PortfolioSortControl } from '@/features/portfolio/board/BoardSortControl';
 import { useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { EFFORT_BUCKETS } from '@/domain/constants';
@@ -78,9 +81,11 @@ function usePortfolioFilterFields() {
     return { fields, active: fields.filter((entry) => entry.changed), t };
 }
 
-export function PortfolioToolbarFilters() {
-    const { fields, active } = usePortfolioFilterFields();
-    return <FilterMenu fields={fields} activeCount={active.length} onClear={clearPortfolioFilters} panelClassName="portfolio-filter-options" dismissOnBlur />;
+export function PortfolioToolbarFilters({ boardMode }: { boardMode?: WorkflowKind }) {
+    const { fields, active, t } = usePortfolioFilterFields();
+    return <FilterMenu fields={fields} activeCount={active.length} onClear={clearPortfolioFilters} panelClassName="portfolio-filter-options" dismissOnBlur title={boardMode ? t('toolbar.filtersView') : undefined}>
+        {boardMode && <><PortfolioSortControl /><BoardColumnOptions mode={boardMode} /></>}
+    </FilterMenu>;
 }
 
 export function PortfolioActiveFilters() {

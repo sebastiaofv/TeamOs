@@ -1,7 +1,7 @@
-import { showTimeline } from '../support/portfolio';
+import { showTimeline, toggleLanguage, gotoApp, seedPortfolioBoards, portfolioCard, openTaskEditor, readSavedBoard, setTimelineSlider } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { gotoApp, seedPortfolioBoards, portfolioCard, openTaskEditor, readSavedBoard, setTimelineSlider } from '../support/portfolio';
+
 
 test('multi-field saves form one read-only history operation; filters and tabs preserve the project', async ({ page }) => {
     await gotoApp(page);
@@ -55,7 +55,7 @@ for (const language of ['en', 'pt'] as const) {
         fixture.board.tasks[0].assignees = ['Ana', 'Bruno'];
         await gotoApp(page);
         await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
-        if (language === 'pt') await page.locator('#languageToggleBtn').click();
+        if (language === 'pt') await toggleLanguage(page);
         await portfolioCard(page, 'Release ready').click();
         await page.getByRole('tab', { name: language === 'pt' ? 'Histórico' : 'History', exact: true }).click();
         const titles = language === 'pt'

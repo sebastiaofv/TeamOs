@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, selectPortfolioBoard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, selectPortfolioBoard, toggleLanguage } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-24.board.json', 'utf8'));
 
@@ -21,7 +21,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         expect(Math.abs(emptyBounds!.y + emptyBounds!.height / 2 - mainBounds!.y - mainBounds!.height / 2)).toBeLessThan(2);
         await expect(page.locator('#openShortcutsBtn svg')).toHaveCount(1);
         await page.screenshot({ path: testInfo.outputPath('empty.png'), animations: 'disabled' });
-        if (width === 390) await page.locator('#languageToggleBtn').click();
+        if (width === 390) await toggleLanguage(page);
         await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true,
             tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p', identify: false });
         const identity = page.locator('#projectIdentityModal');
@@ -36,11 +36,11 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await page.screenshot({ path: testInfo.outputPath('identity-new-member.png'), animations: 'disabled' });
         await identity.getByRole('combobox').selectOption({ index: 1 });
         await identity.getByRole('button', { name: width === 390 ? 'Confirmar' : 'Confirm', exact: true }).click();
-        if (width === 390) await page.locator('#languageToggleBtn').click();
+        if (width === 390) await toggleLanguage(page);
         await selectPortfolioBoard(page, fixture.board.settings.title);
         await page.getByRole('checkbox', { name: 'Active Sprints only' }).uncheck();
-        const technical = page.getByRole('button', { name: 'Technical Board', exact: true });
-        const functional = page.getByRole('button', { name: 'Functional Board', exact: true });
+        const technical = page.getByRole('button', { name: 'Technical', exact: true });
+        const functional = page.getByRole('button', { name: 'Functional', exact: true });
         const selectedColor = await technical.evaluate((element) => getComputedStyle(element).backgroundColor);
         const unselectedColor = await functional.evaluate((element) => getComputedStyle(element).backgroundColor);
         expect(selectedColor).not.toBe(unselectedColor);
@@ -52,7 +52,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         const before = await readSavedBoard(page, 'p');
         await expect(page.locator('.header #portfolioSearchBtn')).toBeVisible();
         await expect(page.locator('.header #portfolioSearchBtn input, .header .palette-search-text')).toHaveCount(0);
-        await expect(page.locator('.header-project-context')).toContainText(fixture.board.settings.title);
+        await expect(page.locator('#projectPickerBtn')).toContainText(fixture.board.settings.title);
         await expect(page.locator('#portfolioToolbar input, #portfolioToolbar select, #portfolioToolbar #portfolioFiltersBtn')).toHaveCount(0);
         await expect(page.locator('#portfolioBoardsChips')).toHaveAttribute('aria-label', 'Project selection');
         await page.locator('#portfolioSearchBtn').click();
@@ -64,7 +64,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
             await expect(page.locator(`${section} #portfolioSearchInput`)).toBeVisible();
             await expect(page.locator(`${section} #portfolioFiltersBtn`)).toBeVisible();
             await expect(page.locator('#portfolioQueryToolbar')).toHaveCount(0);
-            await expect(page.locator('#portfolioSortSelect')).toHaveCount(view === 'board' ? 1 : 0);
+            await expect(page.locator('#portfolioSortSelect')).toHaveCount(0);
             for (const control of await page.locator(`${section} #portfolioSearchInput, ${section} #portfolioFiltersBtn, ${section} #portfolioSortSelect, ${section} .table-tools > button`).all()) {
                 const bounds = await control.boundingBox();
                 expect(bounds!.x).toBeGreaterThanOrEqual(0);
@@ -79,7 +79,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
             if (view === 'board') await page.screenshot({ path: testInfo.outputPath('board.png'), animations: 'disabled' });
             await page.locator('#portfolioSearchBtn').focus();
             await page.keyboard.press('s');
-            if (view === 'board') await expect(page.locator(`${section} #portfolioSortSelect`)).toBeFocused();
+            if (view === 'board') { await expect(page.locator('#portfolioSortSelect')).toBeFocused(); await page.keyboard.press('Escape'); }
             else await expect(page.locator('#workitemsTable th[aria-sort="ascending"] button')).toBeFocused();
         }
         for (const view of ['dashboard', 'control', 'roadmap', 'planner']) {

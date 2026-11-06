@@ -1,9 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import {
-  gotoApp,
-  seedPortfolioBoards
-} from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards } from '../support/portfolio';
 
 test.describe('calendar', () => {
   test.beforeEach(async ({ page }) => {

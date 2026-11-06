@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, toggleTheme } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
 for (const theme of ['light', 'dark']) {
@@ -11,14 +11,14 @@ for (const theme of ['light', 'dark']) {
                 await page.clock.setFixedTime('2026-10-28T12:00:00Z');
                 await gotoApp(page);
                 await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
-                if (theme === 'dark') await page.locator('#themeToggleBtn').click();
+                if (theme === 'dark') await toggleTheme(page);
                 const task = fixture.board.tasks.find((entry: { id: number }) => entry.id === id);
                 if (type === 'epic') {
                     await page.locator('[data-view-mode="table"]').click();
                     await page.locator('[data-table-view="epics"]').click();
                     await page.locator('#workitemsTable tbody').getByRole('button', { name: task.title, exact: true }).click();
                 } else {
-                    if (type === 'story') await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+                    if (type === 'story') await page.getByRole('button', { name: 'Functional', exact: true }).click();
                     await page.locator(`.portfolio-task-card[data-task-id="${id}"] .task-title`).click();
                 }
                 const dialog = page.locator('#taskDetailModal .modal-content');

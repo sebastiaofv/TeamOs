@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, confirmWorkitemChanges, answerAppMessage, installControlledPortfolioWriter } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, confirmWorkitemChanges, answerAppMessage, installControlledPortfolioWriter, openProjectPicker } from '../support/portfolio';
 
 test.beforeEach(async ({ page }) => { await gotoApp(page); });
 
@@ -40,7 +40,7 @@ test('the selected member is fixed for comments while work assignment remains ed
 
 test('Bug details and editing omit to-do lists and preserve existing checklist data', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Bugs', hasHandle: true, tasks: [{ id: 1, title: 'Bug', type: 'bug', status: 'to-do', checklist: [{ text: 'Legacy checklist', done: false }] }] }], { selectedBoardId: 'p' });
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await portfolioCard(page, 'Bug').click();
     await expect(page.locator('#taskDetailModal').getByText('Legacy checklist', { exact: true })).toHaveCount(0);
     await page.screenshot({ path: '/tmp/teamos54-bug-details.png' });
@@ -69,7 +69,7 @@ for (const phaseChoice of ['keep', 'update'] as const) test(`creating a Sprint c
     await page.locator('#appMessageSelection-0').selectOption(phaseChoice);
     await installControlledPortfolioWriter(page, { boardId: 'p', holdWrites: true });
     await answerAppMessage(page, { button: 'Confirm' });
-    await expect(page.locator('.chip-save-state.saving')).toBeVisible();
+    await expect(page.locator('.header-project-picker > .chip-save-state.saving')).toBeVisible();
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
     await page.evaluate(() => window.__releaseNextPortfolioWrite!());
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap?.sprints.length ?? 0).toBe(1);
@@ -108,9 +108,9 @@ test('retrying a failed Sprint save keeps the same Sprint and never reopens its 
     await page.locator('#roadmapEntityEndDate').fill('20/11/2026');
     await installControlledPortfolioWriter(page, { boardId: 'p', failWrites: 1 });
     await page.locator('#roadmapEntityModalSaveBtn').click();
-    await expect(page.locator('.chip-save-state.error')).toBeVisible();
+    await expect(page.locator('.header-project-picker > .chip-save-state.error')).toBeVisible();
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
-    await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    await openProjectPicker(page); await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap?.sprints.length ?? 0).toBe(1);
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
 });

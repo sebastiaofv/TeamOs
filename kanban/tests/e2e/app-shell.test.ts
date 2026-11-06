@@ -1,15 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import {
-  buildBoardPayload,
-  gotoApp,
-  seedPortfolioBoards,
-  portfolioCard,
-  focusIsInside,
-  closeDialogBy,
-  portfolioProjectChipButtons,
-  mockImportProjectsPicker
-} from '../support/portfolio';
+import { buildBoardPayload, gotoApp, seedPortfolioBoards, portfolioCard, focusIsInside, closeDialogBy, portfolioProjectChipButtons, mockImportProjectsPicker, toggleTheme, toggleLanguage } from '../support/portfolio';
 
 test.describe('app shell', () => {
   test.beforeEach(async ({ page }) => {
@@ -26,8 +17,8 @@ test.describe('app shell', () => {
     await expect(page.locator('#portfolioBoardWrap')).toBeVisible();
     await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
     await expect(page.locator('#portfolioToolbar, #portfolioBoardsChips')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Technical Board', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Technical', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Functional', exact: true })).toHaveCount(0);
     await expect(page.getByText('All columns are hidden. Use Board columns to show them again.', { exact: true })).toHaveCount(0);
     await mockImportProjectsPicker(page, [{ fileName: 'welcome.board.json', payload: buildBoardPayload({ title: 'Welcome project', tasks: [] }) }]);
     await page.locator('#portfolioEmptyState').getByRole('button', { name: 'Import Projects', exact: true }).click();
@@ -37,71 +28,28 @@ test.describe('app shell', () => {
 
   test('board controls appear on project load and disappear when the last project is removed', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'empty', title: 'Empty project', hasHandle: true, tasks: [] }], { selectedBoardId: 'empty' });
-    await expect(page.getByRole('button', { name: 'Technical Board', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Technical', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Functional', exact: true })).toBeVisible();
     await expect(page.locator('.portfolio-column')).toHaveCount(4);
+    await page.locator('#projectPickerBtn').click();
     await page.getByRole('button', { name: 'Remove project', exact: true }).click();
     await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
     await expect(page.locator('.workitem-board-shell')).toHaveCount(0);
   });
 
-  test('top bar theme toggle switches and persists dark mode', async ({ page }) => {
-    const root = page.locator('html');
-    const toggle = page.locator('#themeToggleBtn');
-
-    await expect(root).toHaveAttribute('data-theme', 'light');
-    await expect(toggle).toBeVisible();
-    await expect(toggle).toHaveAttribute('aria-label', 'Switch to dark mode');
-    await expect(toggle.locator('.theme-toggle-icon-light')).toBeVisible();
-    await expect(toggle.locator('.theme-toggle-icon-dark')).toBeHidden();
-
-    await toggle.click();
-
-    await expect(root).toHaveAttribute('data-theme', 'dark');
-    await expect(toggle).toHaveAttribute('aria-label', 'Switch to light mode');
-    await expect(toggle.locator('.theme-toggle-icon-light')).toBeHidden();
-    await expect(toggle.locator('.theme-toggle-icon-dark')).toBeVisible();
-    expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanTheme'))).toBe('dark');
-
-    await page.reload();
-
+  test('settings switch and persist mode and language', async ({ page }) => {
+    await toggleTheme(page);
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-    await expect(page.locator('#themeToggleBtn')).toHaveAttribute('aria-label', 'Switch to light mode');
-
-    await page.locator('#themeToggleBtn').click();
-
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    await expect(page.locator('#themeToggleBtn')).toHaveAttribute('aria-label', 'Switch to dark mode');
-    expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanTheme'))).toBe('light');
-  });
-
-  test('language toggle switches and persists Portuguese', async ({ page }) => {
-    const toggle = page.locator('#languageToggleBtn');
-
-    await expect(toggle).toHaveText('EN');
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    await expect(page.locator('#docsToggleBtn')).toHaveAttribute('aria-label', 'Open documentation');
-
-    await toggle.click();
-
-    await expect(toggle).toHaveText('PT');
+    await toggleLanguage(page);
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
     await expect(page.locator('#docsToggleBtn')).toHaveAttribute('aria-label', 'Abrir documentação');
-    await expect(page.locator('#openShortcutsBtn')).toHaveAttribute('aria-label', 'Atalhos');
-    await expect(page.locator('#portfolioEmptyState h2')).toHaveText('Nenhum projeto carregado');
-    await expect(page.locator('#portfolioEmptyState')).toContainText('Importe um projeto');
-    expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanLanguage'))).toBe('pt');
-
     await page.reload();
-
-    await expect(page.locator('#languageToggleBtn')).toHaveText('PT');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-PT');
-    await expect(page.locator('#docsToggleBtn')).toHaveAttribute('aria-label', 'Abrir documentação');
-
-    await page.locator('#languageToggleBtn').click();
-    await expect(page.locator('#languageToggleBtn')).toHaveText('EN');
+    await toggleTheme(page);
+    await toggleLanguage(page);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
-    expect(await page.evaluate(() => localStorage.getItem('teamOsKanbanLanguage'))).toBe('en');
   });
 
   test('app shell does not create a page scrollbar on load', async ({ page }) => {

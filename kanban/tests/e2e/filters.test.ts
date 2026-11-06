@@ -1,13 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import {
-  gotoApp,
-  seedPortfolioBoards,
-  openFiltersPanel,
-  setBoardSearch,
-  portfolioCard,
-  portfolioTitlesInColumn
-} from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, openFiltersPanel, setBoardSearch, portfolioCard, portfolioTitlesInColumn, openProjectPicker } from '../support/portfolio';
 
 test.describe('filters and sort', () => {
   test.beforeEach(async ({ page }) => {
@@ -44,7 +37,7 @@ test.describe('filters and sort', () => {
     expect(params.get('pph')).toBe('build');
     expect(params.get('pm')).toBe('launch');
     expect(params.get('psp')).toBe('s1');
-    const fields = page.locator('#portfolioFiltersPanel select');
+    const fields = page.locator('#portfolioFiltersPanel select:not(#portfolioSortSelect)');
     const readFields = () => fields.evaluateAll((nodes) => nodes.map((node) => {
       const select = node as HTMLSelectElement;
       return {
@@ -160,6 +153,7 @@ test.describe('filters and sort', () => {
     await page.locator('#portfolioPriorityFilter').selectOption('high');
     await page.locator('#portfolioEffortFilter').selectOption('L');
     await setBoardSearch(page, 'beta');
+    await openFiltersPanel(page);
     await page.locator('#portfolioSortSelect').selectOption('score');
 
     await expect(page.locator('.portfolio-task-card')).toHaveCount(1);
@@ -182,7 +176,7 @@ test.describe('filters and sort', () => {
     await setBoardSearch(page, 'task');
     await openFiltersPanel(page);
     await page.locator('#portfolioPriorityFilter').selectOption('high');
-    await page.locator('#portfolioBoardsChips .portfolio-chip').filter({ hasText: 'Bravo Project' }).getByRole('button', { name: 'Bravo Project', exact: true }).click();
+    await openProjectPicker(page); await page.locator('#portfolioBoardsChips .portfolio-chip').filter({ hasText: 'Bravo Project' }).getByRole('button', { name: 'Bravo Project', exact: true }).click();
 
     await expect(page.locator('#portfolioSearchInput')).toHaveValue('task');
     await openFiltersPanel(page);
@@ -208,12 +202,12 @@ test.describe('filters and sort', () => {
     ]);
 
     await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(2);
-    await expect(page.locator('#portfolioBoard .task-card-project')).toHaveText(['Alpha Project', 'Bravo Project']);
+    await expect(page.locator('#portfolioBoard .task-card-project')).toHaveCount(0);
 
     await setBoardSearch(page, 'Bravo');
     await expect(page.locator('#portfolioBoard .portfolio-task-card')).toHaveCount(1);
-    await expect(portfolioCard(page, 'Bravo review')).toContainText('Bravo Project');
-    await expect(portfolioCard(page, 'Bravo review').locator('[data-action="edit-task"]')).toBeDisabled();
+    await expect(portfolioCard(page, 'Bravo review')).toContainText('Bravo review');
+    await expect(portfolioCard(page, 'Bravo review').locator('select')).toBeDisabled();
   });
 
   test('panel Reset clears the panel filters but keeps the search text and sort', async ({ page }) => {
@@ -230,6 +224,7 @@ test.describe('filters and sort', () => {
     ]);
 
     await setBoardSearch(page, 'a');
+    await openFiltersPanel(page);
     await page.locator('#portfolioSortSelect').selectOption('score');
     await openFiltersPanel(page);
     await page.locator('#portfolioBlockedFilter').selectOption('blocked');
@@ -274,7 +269,7 @@ test.describe('filters and sort', () => {
     await page.locator('#portfolioPriorityFilter').selectOption('high');
     await page.locator('#portfolioBlockedFilter').selectOption('blocked');
     await expect(button.locator('.portfolio-filters-badge')).toHaveText('2');
-    await expect(button).toHaveAttribute('aria-label', 'Filters, 2 active');
+    await expect(button).toHaveAttribute('aria-label', 'Filters & View');
     await expect(page.locator('#portfolioFiltersPanel')).toContainText('2 filters on');
     await expect(page.locator('#portfolioPriorityFilter')).toHaveClass(/changed/);
 
@@ -314,6 +309,7 @@ test.describe('filters and sort', () => {
     await setBoardSearch(page, 'one');
     await openFiltersPanel(page);
     await page.locator('#portfolioPriorityFilter').selectOption('high');
+    await openFiltersPanel(page);
     await page.locator('#portfolioSortSelect').selectOption('score');
     await page.locator('body').click();
 
@@ -352,6 +348,7 @@ test.describe('filters and sort', () => {
     ];
 
     await seedPortfolioBoards(page, sortProject);
+    await openFiltersPanel(page);
     await page.locator('#portfolioSortSelect').selectOption('score');
     await expect.poll(async () => (await portfolioTitlesInColumn(page, 'backlog')).slice(0, 3)).toEqual([
       'Low XL',

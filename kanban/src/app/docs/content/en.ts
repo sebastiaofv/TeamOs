@@ -33,15 +33,15 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'The top bar holds global actions; navigation and project selection lead to each view, with controls inside its existing toolbar.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Top bar', 'The search icon (opens the [command palette](prod-palette)), theme, app settings, language, keyboard shortcuts, this documentation, Import Projects and New Project. It is always available, including while you read the documentation.'],
+                        ['Top bar', 'The project selector beside the logo, search (opens the [command palette](prod-palette)), keyboard shortcuts, documentation, app settings, Import Projects and New Project. It is always available, including while you read the documentation.'],
                         ['Documentation button', 'The book icon opens this documentation in place of the workspace. While reading, it shows an application icon: click it to return exactly where you were.'],
                         ['Navigation', 'The view buttons sit on the left below the top bar. Search, filters and sort appear on the right of the Board toolbar beside Active Sprints only, and on the left of the Table heading. Table columns and workitem creation align to the right. Dashboard, Roadmap and Planner do not show these query controls.'],
-                        ['Project chips', 'Switch between **All projects** and a single project. Each chip shows the save state and has a gear for [Project settings](projects-settings). Projects sharing a product are grouped.'],
+                        ['Project selector', 'Beside the logo, open the selected name to choose **All** or a project. Expand a product to see its projects. Project settings, removal and save retry remain in this menu; the selected project’s save state also appears beside its name.'],
                         ['View', 'The main area: Board, Dashboard, Table, Roadmap, Project Control, Calendar or Day Planner.'],
                         ['Timeline bar', 'Optional. Enable it in App settings to scrub through a project\'s [history](files-history).']
                     ] },
                     { kind: 'h', text: 'Views and project selection' },
-                    { kind: 'p', text: 'Board, Calendar and Day Planner work across all loaded projects. Dashboard, Table, Roadmap and Project Control describe one project, so their buttons appear once you select a project chip. See [Choosing a view](views-choose).' },
+                    { kind: 'p', text: 'Board, Calendar and Day Planner work across all loaded projects. Dashboard, Table, Roadmap and Project Control describe one project, so their buttons appear once you select a project beside the logo. See [Choosing a view](views-choose).' },
                     { kind: 'callout', tone: 'tip', text: 'Press [[?]] at any time to see every keyboard shortcut, and [[H]] to open or close this documentation.' }
                 ],
                 related: ['views-choose', 'prod-shortcuts']
@@ -241,9 +241,9 @@ export const DOCS_EN: DocSection[] = [
                 blocks: [
                     { kind: 'p', text: 'A **project** is an independent collection of workitems with its own workflows and settings, stored in its own file. A **product** is just a name shared by several projects: it has no workitems or workflows of its own and no further levels of grouping.' },
                     { kind: 'steps', items: [
-                        'Open [Project settings](projects-settings) with the gear on the project chip.',
+                        'Open [Project settings](projects-settings) from the project selector beside the logo.',
                         'In **General**, enter the same **Product** name in each related project. Case and outer spaces are ignored.',
-                        'Save. The project chips are now grouped under an expandable product header.'
+                        'Save. The projects are now grouped under an expandable product in the selector.'
                     ] },
                     { kind: 'p', text: 'Projects in the same product can exchange workitems through [copy and move](projects-transfers). Projects without a product stay independent.' },
                     { kind: 'callout', tone: 'method', title: 'Agile practice', text: 'Use one project per team or per independently delivered component, and a product to view them together. Avoid one huge project for everything.' }
@@ -255,7 +255,7 @@ export const DOCS_EN: DocSection[] = [
                 title: 'Project settings',
                 summary: 'Name, acronym, description, status, product, members, tags and the two workflows.',
                 blocks: [
-                    { kind: 'p', text: 'Open Project settings with the gear beside the project chip. The dialog has three tabs: **General**, **Technical workflow** and **Functional workflow**. Changes in all tabs are kept as one draft and apply only when you click **Save**; Cancel, Escape or closing the dialog discards them.' },
+                    { kind: 'p', text: 'Open Project settings from the project selector beside the logo. The dialog has three tabs: **General**, **Technical workflow** and **Functional workflow**. Changes in all tabs are kept as one draft and apply only when you click **Save**; Cancel, Escape or closing the dialog discards them.' },
                     { kind: 'terms', items: [
                         ['Project name', 'Required. Renaming the project or the file does not change its identity.'],
                         ['Project Acronym', '1 to 4 letters, unique among the open projects. It prefixes the IDs of new workitems (EP, US, TK, BG). Existing IDs never change.'],
@@ -387,7 +387,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Participants / Responsible', 'Project members; see [People](projects-people).'],
                         ['Tags', 'From the project catalogue.'],
                         ['Priority / Effort', 'High–Low and XS–XL; together they give the score.'],
-                        ['Due date', 'Overdue items are highlighted on cards and in the Calendar.'],
+                        ['Due date', 'Due dates remain available in workitem details and the Calendar.'],
                         ['Todo list', 'A reorderable checklist for small steps.'],
                         ['Blocked', 'A manual block that requires a reason.'],
                         ['Phase / Milestone / Sprint', 'Planning associations; see [Planning](plan-inheritance).']
@@ -424,7 +424,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Manual block', 'Tick **Blocked** in the editor and describe what is blocking. Clear it when resolved.'],
                         ['Dependency block', 'Derived automatically from unfinished direct blockers (Blocks / Blocked by). It clears when the blockers are completed or the link is removed.']
                     ] },
-                    { kind: 'p', text: 'Both appear on cards and in details and are included by the **Blocked** filter. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
+                    { kind: 'p', text: 'Both appear in details and are included by the **Blocked** filter. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Dependencies are informative: they do not prevent status changes, and a dependency never overwrites a manual block.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -514,14 +514,14 @@ export const DOCS_EN: DocSection[] = [
                         ['Technical Board', 'Tasks. Active Sprints only is selected by default; clear it to include unsprinted Tasks and other Sprints.'],
                         ['Functional Board', 'User Stories and Bugs.']
                     ] },
-                    { kind: 'p', text: 'Columns show the To do, In progress and Completed states. Backlog items are worked in the Table or details and **sent to the Board** when ready. Use **Board columns** to hide states you do not need; hiding a column never moves or deletes workitems. With **All projects** selected, the board groups cards by category across projects.' },
+                    { kind: 'p', text: 'Columns show the To do, In progress and Completed states. Backlog items are worked in the Table or details and **sent to the Board** when ready. Open **Filters & View → Board columns** to hide states you do not need; hiding a column never moves or deletes workitems. With **All projects** selected, the board groups cards by category across projects.' },
                     { kind: 'h', text: 'Moving cards' },
                     { kind: 'list', items: [
                         'Drag a card with the mouse, or press and hold on touch screens.',
                         'With the keyboard, select a card with [[J]] / [[K]] and press [[1]]–[[4]] to move it.',
                         'Open the [command palette](prod-palette) on a card and choose **Move to…**.'
                     ] },
-                    { kind: 'p', text: 'Cards show the ID, title, people, tags, priority, effort, due date, blocking, checklist progress and, for Stories, execution progress. Click a card for details; change its responsible person directly or use the top-right arrow to advance along an allowed transition. The ⋯ menu offers copy and move; Delete is in the details ⋯ menu.' },
+                    { kind: 'p', text: 'Cards show a title of up to two lines, then the ID, workitem type and responsible person. Change the responsible person directly using the dropdown, or click the card to open details. Editing, deletion, copy, move, dates, blocking and progress remain available in details. Empty columns use half the width of occupied columns.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A move not allowed by the workflow is refused. Moving a Story or Bug to Completed asks for [functional acceptance](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -585,7 +585,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Creating a sprint' },
                     { kind: 'list', items: [
                         'In the Roadmap with **+ Sprint**.',
-                        'From a selection: select cards on the Board or rows in **Table → Unplanned workitems**, then **Create Sprint** or **Add to Existing Sprint**.'
+                        'From a selection: select rows in **Table → Unplanned workitems**, then **Create Sprint** or **Add to Existing Sprint**.'
                     ] },
                     { kind: 'p', text: 'Each sprint receives the next number in the project and is shown as `Sprint 3 - Title`. Numbers are never reused.' },
                     { kind: 'h', text: 'Allocation and participation' },
@@ -724,7 +724,7 @@ export const DOCS_EN: DocSection[] = [
                 blocks: [
                     { kind: 'list', items: [
                         '**Search**: use the search field in the Board toolbar or Table heading, or open the [command palette](prod-palette) with the top-bar magnifying glass or [[Ctrl/⌘]] + [[K]] and choose **Filter board by “…”**. The section shows the current query; click × to clear it.',
-                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Open Filters in the Board toolbar or Table heading. Active filters appear there as removable chips.',
+                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Open **Filters & View** in the Board toolbar or **Filters** in the Table heading. Active filters appear there as removable chips.',
                         '**Sort**: by priority, effort, score or name, ascending or descending.',
                         '**Reset**: press [[R]] to reset filters and sort.'
                     ] },
@@ -829,9 +829,9 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'Personal preferences, remembered in this browser.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Theme', 'The palette button chooses Classic (the original design) or Modern (neutral surfaces, a restrained plum accent and Inter typography). The moon/sun button independently switches either theme between light and dark. Both choices are remembered in this browser, including across tabs, without changing your projects or open drafts.'],
-                        ['Language', 'The EN/PT button switches between English and Portuguese, including this documentation.'],
-                        ['App settings', 'The gear shows or hides the timeline bar.'],
+                        ['Theme', 'Open App settings to choose Classic (the original design) or Modern (petroleum blue, soft surfaces and Inter typography). The Light/Dark choices switch either theme independently. Both choices are remembered in this browser, including across tabs, without changing your projects or open drafts.'],
+                        ['Language', 'App settings offers English and Português, including this documentation.'],
+                        ['App settings', 'The gear opens a floating panel with appearance, theme, language and timeline visibility.'],
                         ['Shortcuts', 'Enable or disable single-key shortcuts.']
                     ] },
                     { kind: 'p', text: 'These preferences are stored in this browser only; they are not written to project files.' }

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, toggleLanguage } from '../support/portfolio';
 
 async function seed(page: Page, writable = true, many = false) {
     await page.clock.setFixedTime('2026-10-29T12:00:00Z');
@@ -108,7 +108,7 @@ test('paginates whole Story groups so expanding a row never separates children o
 test('supports read-only Sprint drilldown in Portuguese on a narrow screen', async ({ page }) => {
     await seed(page, false);
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await sprint(page).locator(':scope > summary .table-sprint-name').click();
     await sprint(page).getByRole('button', { name: 'Expandir Story Zeta', exact: true }).click();
     await sprint(page).getByRole('button', { name: 'Child Alpha', exact: true }).click();

@@ -1,14 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import {
-  gotoApp,
-  seedPortfolioBoards,
-  readSavedBoard,
-  waitForBoardWrites,
-  portfolioCard,
-  focusIsInside,
-  closeDialogBy
-} from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, focusIsInside, closeDialogBy } from '../support/portfolio';
 
 test.describe('task detail', () => {
   test.beforeEach(async ({ page }) => {
@@ -129,7 +121,7 @@ test.describe('task detail', () => {
 
     const card = portfolioCard(page, 'Forget me');
     await card.hover();
-    await card.locator('.task-advance').click();
+    await page.keyboard.press('3');
     await waitForBoardWrites(page);
 
     await expect(page.locator('#taskDetailModal')).toBeHidden();

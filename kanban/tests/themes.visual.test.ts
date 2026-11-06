@@ -29,7 +29,7 @@ for (const style of ['classic', 'modern']) {
                     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
                     await expect(page).toHaveScreenshot(`${style}-${mode}-table.png`);
                 } else {
-                    await page.locator('#themePickerBtn').click();
+                    await page.locator('#appSettingsBtn').click();
                     await expect(page).toHaveScreenshot(`${style}-${mode}-picker-mobile.png`);
                 }
             });

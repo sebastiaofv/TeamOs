@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, portfolioCard, answerAppMessage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, portfolioCard, answerAppMessage, toggleTheme, openFiltersPanel } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
@@ -10,18 +10,18 @@ async function seed(page: Page, writable = true) {
         tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'feedback' });
 }
 async function story(page: Page) {
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await portfolioCard(page, 'Pagar com cartão').click();
 }
 
 test('Board creation uses one toolbar button and terminal exception columns default to hidden in both modes', async ({ page }) => {
     await seed(page);
-    for (const mode of ['Technical Board', 'Functional Board']) {
+    for (const mode of ['Technical', 'Functional']) {
         await page.getByRole('button', { name: mode, exact: true }).click();
         await expect(page.locator('.add-task-card')).toHaveCount(0);
         await expect(page.locator('.portfolio-column[data-status="cancelled"]')).toHaveCount(0);
         await expect(page.locator('.portfolio-column[data-status="duplication"]')).toHaveCount(0);
-        await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+        await openFiltersPanel(page);
         await page.getByRole('checkbox', { name: 'Cancelled', exact: true }).check();
         await expect(page.locator('.portfolio-column[data-status="cancelled"]')).toBeVisible();
         await page.keyboard.press('Escape');
@@ -103,7 +103,7 @@ for (const width of [1440, 390]) test(`sidebar edits stay usable and types have 
     if (width === 390) await page.locator('.workitem-sidebar').scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath(`sidebar-light-${width}.png`) });
     await page.keyboard.press('Escape');
-    await page.locator('#themeToggleBtn').click();
+    await toggleTheme(page);
     await story(page);
     if (width === 390) await page.locator('.workitem-sidebar').scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath(`sidebar-dark-${width}.png`) });
@@ -119,6 +119,6 @@ for (const width of [1440, 390]) test(`sidebar edits stay usable and types have 
         }
         expect(Object.keys(colors).sort()).toEqual(['bug', 'epic', 'story', 'task']);
         expect(new Set(Object.values(colors)).size).toBe(4);
-        if (!theme) await page.locator('#themeToggleBtn').click();
+        if (!theme) await toggleTheme(page);
     }
 });

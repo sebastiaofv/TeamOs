@@ -1,26 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import {
-  identifyOpenProjects,
-  buildBoardPayload,
-  gotoApp,
-  seedPortfolioBoards,
-  selectPortfolioBoard,
-  readSavedBoard,
-  waitForBoardWrites,
-  portfolioCard,
-  portfolioProjectChipButtons,
-  openTaskEditor,
-  renameTaskViaEditor,
-  mockNewProjectFlow,
-  mockImportProjectsPicker,
-  mutateExternalBoardFile,
-  triggerExternalFileCheck,
-  installControlledPortfolioWriter,
-  appMessage,
-  answerAppMessage,
-  dragWithMouse
-} from '../support/portfolio';
+import { identifyOpenProjects, buildBoardPayload, gotoApp, seedPortfolioBoards, selectPortfolioBoard, readSavedBoard, waitForBoardWrites, portfolioCard, portfolioProjectChipButtons, openTaskEditor, renameTaskViaEditor, mockNewProjectFlow, mockImportProjectsPicker, mutateExternalBoardFile, triggerExternalFileCheck, installControlledPortfolioWriter, appMessage, answerAppMessage, dragWithMouse, openProjectPicker } from '../support/portfolio';
 
 test.describe('project files', () => {
   test.beforeEach(async ({ page }) => {
@@ -88,7 +68,7 @@ test.describe('project files', () => {
     await expect(portfolioCard(page, 'Task 1')).toBeVisible();
     await expect(portfolioCard(page, 'Task 2')).toBeVisible();
 
-    await page.locator('.portfolio-chip').filter({ hasText: 'Project Two' }).getByRole('button', { name: 'Remove project' }).click();
+    await openProjectPicker(page); await page.locator('.portfolio-chip').filter({ hasText: 'Project Two' }).getByRole('button', { name: 'Remove project' }).click();
 
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Project One');
     await expect(page.locator('#portfolioBoardsChips')).not.toContainText('Project Two');
@@ -97,30 +77,6 @@ test.describe('project files', () => {
     await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
   });
 
-  test('imported project chips always receive distinct colors', async ({ page }) => {
-    await mockImportProjectsPicker(page, Array.from({ length: 9 }, (_, index) => ({
-      fileName: `project-${index + 1}.board.json`,
-      payload: buildBoardPayload({
-        title: `Project ${index + 1}`,
-        tasks: [{ id: index + 1, title: `Task ${index + 1}`, status: 'backlog' }]
-      })
-    })));
-
-    await page.locator('#importProjectsBtn').click();
-
-    const projectChipStyles = await page.locator('.portfolio-chip').evaluateAll((nodes) => (
-      nodes
-        .map((node) => {
-          const button = node.querySelector('[data-action="select-board"]');
-          const boardId = button?.getAttribute('data-board-id') || '';
-          return boardId ? (node.getAttribute('style') || '').trim() : null;
-        })
-        .filter(Boolean)
-    ));
-
-    expect(projectChipStyles).toHaveLength(9);
-    expect(new Set(projectChipStyles).size).toBe(projectChipStyles.length);
-  });
 
   test('import projects partially succeeds and reports invalid files', async ({ page }) => {
     await mockImportProjectsPicker(page, [
@@ -243,6 +199,7 @@ test.describe('project files', () => {
     // Card drags apply the change and render immediately, then save in the
     // background, so a second change can be made while the first write is held.
     // (The task editor instead stays open until its save completes.)
+    await openProjectPicker(page);
     const activeChip = page.locator('.portfolio-chip.active');
     const cardIn = (status: string) => page.locator(`#portfolio-${status}-column .portfolio-task-card`).filter({ hasText: 'Queued task' });
 
@@ -301,6 +258,7 @@ test.describe('project files', () => {
 
     await renameTaskViaEditor(page, 'Retry task', 'Retry task edited');
 
+    await openProjectPicker(page);
     const activeChip = page.locator('.portfolio-chip.active');
     await expect(activeChip).toContainText('Save failed');
     await expect(activeChip.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
@@ -369,6 +327,7 @@ test.describe('project files', () => {
 
     await installControlledPortfolioWriter(page, { boardId: 'c1', holdWrites: false, failWrites: 1 });
     await renameTaskViaEditor(page, 'Start title', 'Local unsaved edit');
+    await openProjectPicker(page);
     const activeChip = page.locator('.portfolio-chip.active');
     await expect(activeChip).toContainText('Save failed');
 
@@ -406,6 +365,7 @@ test.describe('project files', () => {
 
     await installControlledPortfolioWriter(page, { boardId: 'c2', holdWrites: false, failWrites: 1 });
     await renameTaskViaEditor(page, 'Original title', 'Local edited title');
+    await openProjectPicker(page);
     const activeChip = page.locator('.portfolio-chip.active');
     await expect(activeChip).toContainText('Save failed');
 

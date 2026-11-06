@@ -330,14 +330,17 @@ async function seedPortfolioBoards(
   if (selectedBoard) {
     await selectPortfolioBoard(page, selectedBoard.title);
   } else {
+    await page.locator('#projectPickerBtn').click();
     await page.locator('#portfolioBoardsChips [data-action="select-board"][data-board-id=""]').click();
   }
 
+  if (sortKey) await openFiltersPanel(page);
   if (sortKey === 'task') {
     await page.locator('#portfolioSortSelect').selectOption('name');
   } else if (sortKey) {
     await page.locator('#portfolioSortSelect').selectOption(sortKey);
   }
+  if (sortKey) await page.keyboard.press('Escape');
 }
 
 function escapeForRegExp(text: string) {
@@ -351,6 +354,8 @@ function portfolioBoardChip(page: Page, title: string) {
 }
 
 async function selectPortfolioBoard(page: Page, title: string) {
+  if (await page.locator('#taskDetailModal').count()) await page.locator('#taskDetailModalCloseBtn').click();
+  await page.locator('#projectPickerBtn').click();
   const chip = portfolioBoardChip(page, title);
   const group = chip.locator('xpath=ancestor::details[contains(@class, "product-project-menu")]');
   if (await group.count() && !await group.evaluate((node) => (node as HTMLDetailsElement).open)) await group.locator('summary').click();
@@ -358,6 +363,7 @@ async function selectPortfolioBoard(page: Page, title: string) {
     await chip.locator('[data-action="select-board"]').click();
   }
   await expect(chip).toHaveClass(/\bactive\b/);
+  if (await page.locator('#projectPickerBtn').getAttribute('aria-expanded') === 'true') await page.keyboard.press('Escape');
 }
 
 // Parsed contents of a seeded board's file on the fake disk: the last write, or
@@ -432,7 +438,8 @@ function portfolioProjectChipButtons(page: Page) {
 }
 
 async function openTaskEditor(page: Page, cardTitle: string) {
-  await portfolioCard(page, cardTitle).locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, cardTitle).click();
+  await page.locator('#taskDetailEditBtn').click();
   await expect(page.locator('#taskModal')).toBeVisible();
 }
 
@@ -519,9 +526,9 @@ async function dragWithMouse(
   await page.mouse.move(endX, endY, { steps: 10 });
   if (!release) return;
   await page.mouse.up();
-  // For 50 ms after a drop dnd-kit swallows clicks, so the drop is not also a
-  // click. Wait on a page timer: it fires after dnd-kit's, so the next click lands.
-  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 60)));
+  // The app suppresses card clicks for 120 ms after a drop. Let that guard
+  // expire before the next interaction opens the card's details.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 150)));
 }
 
 // Fakes the save picker for New Project. The project name prompt still has to
@@ -691,3 +698,31 @@ export {
   portfolioTitlesInColumn,
   installControlledPortfolioWriter
 };
+
+// Preferences and project actions live in their header menus.
+export async function toggleTheme(page: Page) {
+  const dark = await page.locator('html').getAttribute('data-theme') === 'dark';
+  await page.locator('#appSettingsBtn').click();
+  await page.locator('input[name="color-mode"]').nth(dark ? 0 : 1).check();
+  await page.keyboard.press('Escape');
+}
+
+export async function toggleLanguage(page: Page) {
+  const portuguese = await page.locator('html').getAttribute('lang') === 'pt-PT';
+  await page.locator('#appSettingsBtn').click();
+  await page.locator('input[name="language"]').nth(portuguese ? 0 : 1).check();
+  await page.keyboard.press('Escape');
+}
+
+export async function openProjectPicker(page: Page) {
+  if (!await page.locator('#portfolioBoardsChips').isVisible()) await page.locator('#projectPickerBtn').click();
+  await expect(page.locator('#portfolioBoardsChips')).toBeVisible();
+}
+
+export async function openProjectSettingsFromPicker(page: Page, title?: string) {
+  await openProjectPicker(page);
+  const target = page.getByRole('button', { name: title ? `Settings for ${title}` : /^Settings for /, exact: Boolean(title), includeHidden: true }).first();
+  const product = target.locator('xpath=ancestor::details');
+  if (await product.count() && !await product.evaluate((node) => (node as HTMLDetailsElement).open)) await product.locator('summary').click();
+  await target.click();
+}

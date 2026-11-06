@@ -68,7 +68,7 @@ export function TaskDetailDialog() {
                                 <div className="workitem-eyebrow">{vm && <><WorkitemTypeBadge type={workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {})} /><span>{workitemLabelFor(vm.sourceBoardData, vm.taskId)}</span><span className="workitem-project">{vm.sourceBoardData.board.settings.title}</span></>}</div>
                                 <Dialog.Title className="workitem-title" id="detailTitle">{vm?.fields.title}</Dialog.Title>
                             </div>
-                            <div className="workitem-header-actions">{vm && <SaveIndicator boardId={vm.boardId} />}{vm && <TaskTransferMenu boardId={vm.boardId} taskId={vm.taskId} allowDelete historical={vm.readOnly} />}{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}
+                            <div className="workitem-header-actions">{vm && <SaveIndicator boardId={vm.boardId} />}{vm && <TaskTransferMenu boardId={vm.boardId} taskId={vm.taskId} allowDelete={!vm.readOnly} historical={vm.history?.historicalIndex !== undefined} />}{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}
                                 <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
                             </div>
                         </div>

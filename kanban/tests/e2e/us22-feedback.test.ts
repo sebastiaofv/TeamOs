@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, portfolioCard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, portfolioCard, openProjectSettingsFromPicker } from '../support/portfolio';
 
 test.use({ timezoneId: 'Europe/Lisbon' });
 
@@ -10,7 +10,7 @@ test('each workflow selects its workitem types; moving Bugs back to the technica
     { id: 2, title: 'Implementation', type: 'task', status: 'doing' }
   ] }], { selectedBoardId: 'p' });
   await expect(portfolioCard(page, 'Defect')).toHaveCount(0);
-  await page.getByRole('button', { name: 'Settings for Types', exact: true }).click();
+  await openProjectSettingsFromPicker(page, 'Types');
   const modal = page.locator('#projectSettingsModal');
   await modal.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
   await modal.getByRole('tab', { name: /^Workitem types/ }).click();

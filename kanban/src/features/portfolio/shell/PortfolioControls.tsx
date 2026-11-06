@@ -1,4 +1,5 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useAnchoredPanel } from '@/shared/hooks/useAnchoredPanel';
+import { useRef, useState, type ReactNode } from 'react';
 import { createNewProject } from '@/features/portfolio/projects/projectCommands';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardRecord, ProjectSaveState } from '@/features/portfolio/types';
@@ -13,14 +14,14 @@ import {
     setPortfolioViewMode
 } from '@/features/portfolio/commands/portfolioControls';
 import { getRoadmapExtension } from '@/domain/roadmap';
-import { normalizePortfolioViewMode, createPortfolioProjectColor } from '@/domain/board';
+import { normalizePortfolioViewMode } from '@/domain/board';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 
 type ToolbarState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'selectedPortfolioViewMode'>;
-type ChipState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'productProjectSelectionByKey' | 'projectSaveStateById'>;
+type ChipState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'projectSaveStateById'>;
 type BulkState = Pick<AppState,
     | 'portfolioBoards'
     | 'selectedPortfolioBoardId'
@@ -78,10 +79,6 @@ function getChipSaveUiState(saveState: ProjectSaveState | undefined, t: Translat
     return { status: 'idle', text: '', title: '', canRetry: false };
 }
 
-function getBoardColor(board: BoardRecord | null | undefined) {
-    return board?.projectColor || createPortfolioProjectColor(board?.colorSeed || 0);
-}
-
 function getBulkViewModel(state: BulkState) {
     const boardId = state.selectedPortfolioBoardId || '';
     const board = state.portfolioBoards.find((record) => record.id === boardId) || null;
@@ -127,22 +124,20 @@ function ChipList({ state }: { state: ChipState }) {
     }
 
     const renderBoard = (board: BoardRecord, grouped = false) => {
-        const color = getBoardColor(board);
         const saveUi = getChipSaveUiState(state.projectSaveStateById.get(board.id), t);
         return (
             <span
                 className={`portfolio-chip${state.selectedPortfolioBoardId === board.id ? ' active' : ''}`}
-                style={{ '--chip-bg': color.bg, '--chip-border': color.border, '--chip-text': color.text } as CSSProperties}
                 key={board.id}
             >
-                <button className="chip-link" type="button" title={board.title || board.fileName} data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={(event) => { selectPortfolioBoard(board.id); const menu = event.currentTarget.closest('details'); if (menu) menu.open = false; }}>
+                <button className="chip-link" type="button" title={board.title || board.fileName} data-action="select-board" data-board-id={board.id} aria-pressed={state.selectedPortfolioBoardId === board.id} onClick={(event) => { selectPortfolioBoard(board.id); const panel = event.currentTarget.closest<HTMLElement>('[popover]'); panel?.hidePopover(); }}>
                     {board.title || board.fileName}
                     {!board.handle && <span className="chip-readonly-label"> ({t('toolbar.readOnly')})</span>}
                     {saveUi.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title}>{saveUi.status === 'saving' && <span className="save-spinner" aria-hidden="true" />} {saveUi.text}</span>}
                 </button>
                 <button className="chip-link chip-settings" type="button" data-action="project-settings" data-board-id={board.id}
                     aria-label={t('project.settingsFor', { name: board.title || board.fileName })} title={t('project.settings')}
-                    aria-haspopup="dialog" onClick={() => openProjectSettings(board.id)}>
+                    aria-haspopup="dialog" onClick={() => { document.getElementById('projectPickerBtn')?.focus(); openProjectSettings(board.id); }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h6m0 0h10M4 12h12m0 0h4M4 18h4m0 0h12M10 3v6m6 0v6M8 15v6" />
                     </svg>
@@ -168,7 +163,7 @@ function ChipList({ state }: { state: ChipState }) {
                 <button className="chip-link" type="button" data-action="select-board" data-board-id="" aria-pressed={!state.selectedPortfolioBoardId} onClick={() => selectPortfolioBoard('')}>{t('common.all')}</button>
             </span>
             {groups.map((group) => group.product ? <ProductProjectMenu key={group.key} product={group.product}
-                selected={group.boards.find((board) => board.id === state.productProjectSelectionByKey[group.key])!} active={group.boards.some((board) => board.id === state.selectedPortfolioBoardId)}>
+                active={group.boards.some((board) => board.id === state.selectedPortfolioBoardId)}>
                 {group.boards.map((board) => renderBoard(board, true))}
                 <button type="button" className="product-create btn" onClick={() => { void createNewProject(group.product); }}>{t('header.newProject')}</button>
             </ProductProjectMenu> : group.boards.map((board) => renderBoard(board)))}
@@ -176,26 +171,11 @@ function ChipList({ state }: { state: ChipState }) {
     );
 }
 
-function ProductProjectMenu({ product, selected, active, children }: { product: string; selected: BoardRecord; active: boolean; children: ReactNode }) {
-    const menu = useRef<HTMLDetailsElement>(null);
-    const { t } = useI18n();
-    useEffect(() => {
-        const close = (event: PointerEvent) => { if (menu.current?.open && !menu.current.contains(event.target as Node)) menu.current.open = false; };
-        document.addEventListener('pointerdown', close);
-        return () => document.removeEventListener('pointerdown', close);
-    }, []);
-    return <div className={`product-group${active ? ' active' : ''}`}>
-        <button type="button" className="product-link" aria-pressed={active} onClick={() => { selectPortfolioBoard(selected.id); if (menu.current) menu.current.open = false; }}>{product}</button>
-        <span aria-hidden="true">|</span>
-        <details ref={menu} className="product-project-menu" onKeyDown={(event) => {
-            if (event.key === 'Escape' && menu.current?.open) { event.preventDefault(); event.stopPropagation(); menu.current.open = false; menu.current.querySelector('summary')?.focus(); }
-        }}>
-            <summary aria-label={`${product}: ${t('transfer.chooseProject')} (${selected.title || selected.fileName})`}><span className="product-selected">{selected.title || selected.fileName}</span>
-            <svg className="product-chevron" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m3 6 5 5 5-5" /></svg>
-            </summary>
-            <div className="product-projects">{children}</div>
-        </details>
-    </div>;
+function ProductProjectMenu({ product, active, children }: { product: string; active: boolean; children: ReactNode }) {
+    return <details className={`product-project-menu${active ? ' active' : ''}`}>
+        <summary><span>{product}</span><span aria-hidden="true">›</span></summary>
+        <div className="product-projects">{children}</div>
+    </details>;
 }
 
 export function PortfolioToolbar() {
@@ -211,19 +191,35 @@ export function PortfolioToolbar() {
     </section>;
 }
 
-export function PortfolioChips() {
+export function PortfolioProjectPicker() {
     const state = useAppStore(useShallow((state) => ({
         portfolioBoards: state.portfolioBoards,
         selectedPortfolioBoardId: state.selectedPortfolioBoardId,
         projectSaveStateById: state.projectSaveStateById,
-        productProjectSelectionByKey: state.productProjectSelectionByKey,
     })));
     const { t } = useI18n();
-    return (
-        <nav className="portfolio-chips" id="portfolioBoardsChips" aria-label={t('toolbar.projectSelection')}>
+    const [open, setOpen] = useState(false);
+    const panel = useRef<HTMLDivElement>(null);
+    const place = useAnchoredPanel(open, 'projectPickerBtn', panel);
+    const selected = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
+    const label = selected?.title || selected?.fileName || t('common.all');
+    const saveUi = selected && getChipSaveUiState(state.projectSaveStateById.get(selected.id), t);
+    if (!state.portfolioBoards.length) return null;
+    return <div className="header-project-picker">
+        <span className="toolbar-divider" aria-hidden="true" />
+        <button id="projectPickerBtn" className="project-picker-trigger" type="button" popoverTarget="portfolioBoardsChips"
+            aria-label={`${t('toolbar.projectSelection')}: ${label}`} title={label} aria-haspopup="dialog" aria-expanded={open}>
+            <span>{label}</span><span aria-hidden="true">⌄</span>
+        </button>
+        {saveUi?.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title} role="status">{saveUi.status === 'saving' && <span className="save-spinner" aria-hidden="true" />}{saveUi.text}</span>}
+        <div ref={panel} className="project-picker-panel" id="portfolioBoardsChips" popover="auto" role="dialog" aria-label={t('toolbar.projectSelection')}
+            onBeforeToggle={(event) => { if (event.newState === 'open') place(); }}
+            onToggle={(event) => setOpen(event.newState === 'open')}
+            onClick={(event) => { if ((event.target as Element).closest('button')) panel.current?.hidePopover(); }}
+            onKeyDown={(event) => event.stopPropagation()}>
             <ChipList state={state} />
-        </nav>
-    );
+        </div>
+    </div>;
 }
 
 export function PortfolioBulkActions() {

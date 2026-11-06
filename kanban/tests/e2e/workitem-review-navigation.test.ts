@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, openProjectPicker } from '../support/portfolio';
 
 async function seed(page: Page) {
     await page.clock.setFixedTime('2026-10-31T12:00:00Z');
@@ -17,11 +17,11 @@ async function seed(page: Page) {
 test('Epics stay out of both Boards in project and aggregate views', async ({ page }) => {
     await seed(page);
     for (const aggregate of [false, true]) {
-        if (aggregate) await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click();
-        for (const board of ['Technical Board', 'Functional Board']) {
+        if (aggregate) { await openProjectPicker(page); await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click(); }
+        for (const board of ['Technical', 'Functional']) {
             await page.getByRole('button', { name: board, exact: true }).click();
             await expect(page.locator('.portfolio-task-card[data-task-id="1"]')).toHaveCount(0);
-            await expect(page.locator(`.portfolio-task-card[data-task-id="${board === 'Functional Board' ? 2 : 5}"]`)).toBeVisible();
+            await expect(page.locator(`.portfolio-task-card[data-task-id="${board === 'Functional' ? 2 : 5}"]`)).toBeVisible();
         }
     }
 });

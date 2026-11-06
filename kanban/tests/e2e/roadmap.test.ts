@@ -1,142 +1,10 @@
-import { showTimeline } from '../support/portfolio';
-import { confirmWorkitemChanges } from '../support/portfolio';
-import { test, expect, type Page } from '@playwright/test';
+import { showTimeline, confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, focusIsInside, closeDialogBy, openTaskEditor, answerAppMessage } from '../support/portfolio';
 
-import {
-  gotoApp,
-  seedPortfolioBoards,
-  selectPortfolioBoard,
-  readSavedBoard,
-  waitForBoardWrites,
-  portfolioCard,
-  focusIsInside,
-  closeDialogBy,
-  openTaskEditor,
-  answerAppMessage
-} from '../support/portfolio';
+import { test, expect, type Page } from '@playwright/test';
 
 test.describe('roadmap', () => {
   test.beforeEach(async ({ page }) => {
     await gotoApp(page);
-  });
-
-  test('checked board tasks can be grouped into a new sprint', async ({ page }) => {
-    await gotoApp(page);
-    await seedPortfolioBoards(page, [{
-      id: 'alpha',
-      hasHandle: true,
-      title: 'Alpha',
-      tasks: [
-        { id: 1, title: 'Task A', status: 'backlog' },
-        { id: 2, title: 'Task B', status: 'to-do' }
-      ]
-    }], { selectedBoardId: 'alpha' });
-
-    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
-    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
-    await expect(page.getByRole('button', { name: 'Add to Existing Sprint' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Create Sprint' }).click();
-    await page.fill('#roadmapEntityTitle', 'Sprint 12');
-    await page.fill('#roadmapEntityStartDate', '01/04/2026');
-    await page.fill('#roadmapEntityEndDate', '14/04/2026');
-    await page.getByRole('button', { name: 'Save Item' }).click();
-  await confirmWorkitemChanges(page);
-
-    await waitForBoardWrites(page);
-    const board = await readSavedBoard(page, 'alpha');
-    expect(board.extensions.roadmap.sprints).toHaveLength(1);
-    expect(board.board.tasks.every((task: any) => task.sprintId === board.extensions.roadmap.sprints[0].id)).toBeTruthy();
-  });
-
-  test('checked board tasks can be added to an existing sprint from the bulk action bar', async ({ page }) => {
-    await page.clock.setFixedTime(new Date('2026-04-07T12:00:00Z'));
-    await gotoApp(page);
-    await seedPortfolioBoards(page, [{
-      id: 'alpha',
-      hasHandle: true,
-      title: 'Alpha',
-      tasks: [
-        { id: 1, title: 'Task A', status: 'backlog' },
-        { id: 2, title: 'Task B', status: 'to-do' }
-      ],
-      extensions: {
-        roadmap: {
-          version: 1,
-          milestones: [],
-          phases: [],
-          sprints: [{ id: 's1', title: 'Sprint 12', startDate: '2026-04-01', endDate: '2026-04-14' }]
-        }
-      }
-    }], { selectedBoardId: 'alpha' });
-
-    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
-    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
-
-    await expect(page.getByRole('button', { name: 'Add to Existing Sprint' })).toBeVisible();
-    await page.getByRole('button', { name: 'Add to Existing Sprint' }).click();
-    await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
-    await page.selectOption('#roadmapEntityExistingSprint', 's1');
-    await page.getByRole('button', { name: 'Add to Sprint' }).click();
-    await confirmWorkitemChanges(page);
-
-    await waitForBoardWrites(page);
-    const board = await readSavedBoard(page, 'alpha');
-    expect(board.extensions.roadmap.sprints).toHaveLength(1);
-    expect(board.board.tasks.every((task: any) => task.sprintId === 's1')).toBeTruthy();
-
-    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
-    await expect(portfolioCard(page, 'Task A').locator('input[type="checkbox"]')).not.toBeChecked();
-    await expect(portfolioCard(page, 'Task B').locator('input[type="checkbox"]')).not.toBeChecked();
-  });
-
-  test('bulk sprint creation clears selection and board changes clear stale bulk selection', async ({ page }) => {
-    await gotoApp(page);
-    await seedPortfolioBoards(page, [
-      {
-        id: 'alpha',
-        hasHandle: true,
-        title: 'Alpha',
-        tasks: [
-          { id: 1, title: 'Task A', status: 'backlog' },
-          { id: 2, title: 'Task B', status: 'to-do' }
-        ]
-      },
-      {
-        id: 'beta',
-        hasHandle: true,
-        title: 'Beta',
-        tasks: [{ id: 3, title: 'Task C', status: 'backlog' }]
-      }
-    ], { selectedBoardId: 'alpha' });
-
-    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
-    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
-    await expect(page.locator('#portfolioBulkActions')).toBeVisible();
-    await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('1 task selected');
-
-    await page.getByRole('button', { name: 'Create Sprint' }).click();
-    await page.fill('#roadmapEntityTitle', 'Sprint 12');
-    await page.fill('#roadmapEntityStartDate', '01/04/2026');
-    await page.fill('#roadmapEntityEndDate', '14/04/2026');
-    await page.getByRole('button', { name: 'Save Item' }).click();
-  await confirmWorkitemChanges(page);
-
-    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
-    await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('0 tasks selected');
-    await expect(portfolioCard(page, 'Task A').locator('input[type="checkbox"]')).not.toBeChecked();
-
-    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
-    await expect(page.locator('#portfolioBulkActions')).toBeVisible();
-    await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('1 task selected');
-
-    await selectPortfolioBoard(page, 'Beta');
-    await expect(portfolioCard(page, 'Task C')).toBeVisible();
-
-    await selectPortfolioBoard(page, 'Alpha');
-    await expect(portfolioCard(page, 'Task A')).toBeVisible();
-    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
-    await expect(page.locator('#portfolioBulkActionsSummary')).toContainText('0 tasks selected');
-    await expect(portfolioCard(page, 'Task B').locator('input[type="checkbox"]')).not.toBeChecked();
   });
 
   test('roadmap rows can create and delete milestones while clearing task refs', async ({ page }) => {
@@ -813,28 +681,6 @@ test.describe('roadmap', () => {
     await openAddMilestone(page);
 
     await expect(page.locator('#roadmapEntityTitle')).toBeFocused();
-  });
-
-  test('roadmap entity modal focuses the sprint select when adding to an existing sprint', async ({ page }) => {
-    await seedPortfolioBoards(page, [
-      {
-        id: 'alpha',
-        title: 'Alpha',
-        hasHandle: true,
-        tasks: [
-          { id: 1, title: 'Task A', status: 'backlog' },
-          { id: 2, title: 'Task B', status: 'to-do' }
-        ],
-        extensions: ROADMAP_EXTENSION
-      }
-    ], { selectedBoardId: 'alpha' });
-    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
-    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
-
-    await page.getByRole('button', { name: 'Add to Existing Sprint' }).click();
-
-    await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
-    await expect(page.locator('#roadmapEntityExistingSprint')).toBeFocused();
   });
 
   for (const method of ['Escape', 'close button', 'cancel button', 'overlay click']) {

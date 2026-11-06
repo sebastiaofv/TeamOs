@@ -2,7 +2,7 @@
 // filter tags. Filters apply as soon as they change; the panel closes on an
 // outside click, Escape, or Done, returning focus to the button.
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { OPEN_FILTERS_EVENT } from '@/features/portfolio/palette/openCommandPalette';
 
@@ -27,7 +27,9 @@ function FilterIcon() {
 }
 
 // Board and Table use the same toolbar button, dropdown, field layout and focus behavior.
-export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false }: {
+export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false, title, children }: {
+    title?: string;
+    children?: ReactNode;
     fields: FilterMenuField[];
     activeCount: number;
     onClear: () => void;
@@ -40,6 +42,13 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
     const buttonRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const titleId = useId();
+    const focusSort = useRef(false);
+    useEffect(() => {
+        if (open && focusSort.current) {
+            panelRef.current?.querySelector<HTMLSelectElement>('#portfolioSortSelect')?.focus();
+            focusSort.current = false;
+        }
+    }, [open]);
 
     const close = (returnFocus: boolean) => {
         setOpen(false);
@@ -74,10 +83,14 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
 
     // The command palette's "Open filters" command.
     useEffect(() => {
-        const onRequest = () => setOpen(true);
+        const onRequest = (event: Event) => {
+            focusSort.current = event instanceof CustomEvent && Boolean(event.detail?.focusSort);
+            setOpen(true);
+            if (open && focusSort.current) panelRef.current?.querySelector<HTMLSelectElement>('#portfolioSortSelect')?.focus();
+        };
         window.addEventListener(OPEN_FILTERS_EVENT, onRequest);
         return () => window.removeEventListener(OPEN_FILTERS_EVENT, onRequest);
-    }, []);
+    }, [open]);
 
     useEffect(() => {
         if (!open) return undefined;
@@ -108,22 +121,23 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                 type="button"
                 aria-expanded={open}
                 aria-controls="portfolioFiltersPanel"
-                aria-label={activeCount ? t('toolbar.filtersActiveLabel', { count: activeCount }) : t('toolbar.filtersButton')}
+                aria-label={title || (activeCount ? t('toolbar.filtersActiveLabel', { count: activeCount }) : t('toolbar.filtersButton'))}
                 onClick={() => setOpen((value) => !value)}
             >
                 <FilterIcon />
-                <span>{t('toolbar.filtersButton')}</span>
+                <span>{title || t('toolbar.filtersButton')}</span>
                 {activeCount > 0 && <span className="portfolio-filters-badge" aria-hidden="true">{activeCount}</span>}
             </button>
             {open && (
                 <div ref={panelRef} className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id="portfolioFiltersPanel" role="dialog" aria-labelledby={titleId}>
                     <div className="portfolio-filters-panel-head">
-                        <h2 id={titleId}>{t('toolbar.filtersButton')}</h2>
+                        <h2 id={titleId}>{title || t('toolbar.filtersButton')}</h2>
                         <button className="btn-text" id="resetPortfolioFiltersBtn" type="button" disabled={!activeCount} onClick={onClear}>
                             {t('toolbar.resetShort')}
                         </button>
                     </div>
                     <div className="portfolio-filters-panel-body">
+                        {children}
                         {fields.map((field) => (
                                 <div className="portfolio-filters-field" key={field.id}>
                                     <label htmlFor={field.id}>{field.label}</label>

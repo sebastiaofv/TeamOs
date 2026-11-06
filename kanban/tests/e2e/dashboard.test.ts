@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, mutateExternalBoardFile, triggerExternalFileCheck } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, mutateExternalBoardFile, triggerExternalFileCheck, toggleTheme, openProjectPicker } from '../support/portfolio';
 import { LANGUAGE_STORAGE_KEY } from '../../src/domain/constants';
 
 async function seed(page: Page, writable = true) {
@@ -66,7 +66,7 @@ test('selected-project metrics count archived leaves and open their exact source
     await expect(sources(page).locator('tbody tr')).toHaveCount(6);
     expect(await readSavedBoard(page, 'p')).toEqual(before);
     await expect(page).toHaveURL(/pv=dashboard/);
-    await page.locator('#portfolioBoardsChips [data-board-id=""]').click();
+    await openProjectPicker(page); await page.locator('#portfolioBoardsChips [data-board-id=""]').click();
     await expect(page.locator('[data-view-mode="dashboard"]')).toBeHidden();
     await expect(page.locator('#portfolioDashboard')).toBeHidden();
 });
@@ -165,7 +165,7 @@ test('Portuguese dark mobile dashboard stays within viewport and remains keyboar
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript((key) => localStorage.setItem(key, 'pt'), LANGUAGE_STORAGE_KEY);
     await seed(page, false);
-    await page.locator('#themeToggleBtn').click();
+    await toggleTheme(page);
     await expect(page.getByRole('button', { name: 'Visão global', exact: true })).toBeVisible();
     const progress = kpi(page, 'progress');
     await progress.focus();

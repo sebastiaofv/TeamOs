@@ -33,15 +33,15 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'A barra superior reúne as ações globais; a navegação e a seleção de projeto dão acesso a cada vista, com os controlos na sua barra existente.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Barra superior', 'Lupa de pesquisa (abre a [paleta de comandos](prod-palette)), tema, definições da aplicação, idioma, atalhos de teclado, esta documentação, Importar projetos e Novo projeto. Está sempre disponível, mesmo enquanto lê a documentação.'],
+                        ['Barra superior', 'Seletor de projeto junto ao logo, pesquisa (abre a [paleta de comandos](prod-palette)), atalhos de teclado, documentação, definições da aplicação, Importar projetos e Novo projeto. Está sempre disponível, mesmo enquanto lê a documentação.'],
                         ['Botão de documentação', 'O ícone de livro abre esta documentação no lugar do espaço de trabalho. Durante a leitura mostra um ícone de aplicação: clique para voltar exatamente onde estava.'],
                         ['Navegação', 'Os botões de vista ficam à esquerda, por baixo da barra superior. Pesquisa, filtros e ordenação ficam à direita na barra do Board, junto de Apenas sprints ativos, e à esquerda no cabeçalho da Tabela. Colunas e criação de workitems na Tabela alinham à direita. Dashboard, Roadmap e Planeador não apresentam estes controlos de pesquisa.'],
-                        ['Chips de projeto', 'Alternam entre **Todos os projetos** e um único projeto. Cada chip mostra o estado de gravação e tem uma roda dentada para as [Definições do projeto](projects-settings). Os projetos do mesmo produto aparecem agrupados.'],
+                        ['Seletor de projeto', 'Junto ao logo, abra o nome selecionado para escolher **Todos** ou um projeto. Expanda um produto para ver os seus projetos. O menu mantém definições, remoção e repetição de gravação; o estado de gravação do projeto selecionado também aparece junto ao nome.'],
                         ['Vista', 'A área principal: Quadro, Dashboard, Tabela, Roadmap, Controlo do projeto, Calendário ou Planeador.'],
                         ['Barra do histórico', 'Opcional. Ative-a nas Definições da aplicação para percorrer o [histórico](files-history) de um projeto.']
                     ] },
                     { kind: 'h', text: 'Vistas e seleção de projeto' },
-                    { kind: 'p', text: 'O Quadro, o Calendário e o Planeador funcionam com todos os projetos carregados. O Dashboard, a Tabela, o Roadmap e o Controlo do projeto descrevem um único projeto, por isso os respetivos botões aparecem quando seleciona o chip de um projeto. Consulte [Escolher uma vista](views-choose).' },
+                    { kind: 'p', text: 'O Quadro, o Calendário e o Planeador funcionam com todos os projetos carregados. O Dashboard, a Tabela, o Roadmap e o Controlo do projeto descrevem um único projeto, por isso os respetivos botões aparecem quando seleciona um projeto junto ao logo. Consulte [Escolher uma vista](views-choose).' },
                     { kind: 'callout', tone: 'tip', text: 'Prima [[?]] a qualquer momento para ver todos os atalhos de teclado e [[H]] para abrir ou fechar esta documentação.' }
                 ],
                 related: ['views-choose', 'prod-shortcuts']
@@ -241,9 +241,9 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'p', text: 'Um **projeto** é um conjunto independente de workitems com os seus próprios workflows e definições, guardado no seu próprio ficheiro. Um **produto** é apenas um nome partilhado por vários projetos: não tem workitems nem workflows próprios, nem outros níveis de agrupamento.' },
                     { kind: 'steps', items: [
-                        'Abra as [Definições do projeto](projects-settings) com a roda dentada do chip do projeto.',
+                        'Abra as [Definições do projeto](projects-settings) no seletor de projeto junto ao logo.',
                         'Em **Geral**, introduza o mesmo nome de **Produto** em cada projeto relacionado. Maiúsculas e espaços exteriores são ignorados.',
-                        'Guarde. Os chips de projeto passam a aparecer agrupados num cabeçalho de produto expansível.'
+                        'Guarde. Os projetos passam a aparecer agrupados num produto expansível no seletor.'
                     ] },
                     { kind: 'p', text: 'Projetos do mesmo produto podem trocar workitems através de [cópia e movimento](projects-transfers). Projetos sem produto ficam independentes.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Use um projeto por equipa ou por componente entregue de forma independente e um produto para os ver em conjunto. Evite um único projeto enorme para tudo.' }
@@ -255,7 +255,7 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Definições do projeto',
                 summary: 'Nome, sigla, descrição, estado, produto, membros, etiquetas e os dois workflows.',
                 blocks: [
-                    { kind: 'p', text: 'Abra as Definições do projeto com a roda dentada junto ao chip do projeto. A janela tem três separadores: **Geral**, **Workflow técnico** e **Workflow funcional**. As alterações de todos os separadores formam um único rascunho e só são aplicadas quando clica em **Guardar**; Cancelar, Escape ou fechar a janela descarta-as.' },
+                    { kind: 'p', text: 'Abra as Definições do projeto no seletor de projeto junto ao logo. A janela tem três separadores: **Geral**, **Workflow técnico** e **Workflow funcional**. As alterações de todos os separadores formam um único rascunho e só são aplicadas quando clica em **Guardar**; Cancelar, Escape ou fechar a janela descarta-as.' },
                     { kind: 'terms', items: [
                         ['Nome do projeto', 'Obrigatório. Mudar o nome do projeto ou do ficheiro não altera a sua identidade.'],
                         ['Sigla do projeto', '1 a 4 letras, única entre os projetos abertos. É o prefixo dos IDs dos novos workitems (EP, US, TK, BG). Os IDs existentes nunca mudam.'],
@@ -387,7 +387,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Participantes / Responsável', 'Membros do projeto; consulte [Pessoas](projects-people).'],
                         ['Etiquetas', 'Do catálogo do projeto.'],
                         ['Prioridade / Esforço', 'Alta–Baixa e XS–XL; juntos dão a pontuação.'],
-                        ['Prazo', 'Os itens em atraso são destacados nos cartões e no Calendário.'],
+                        ['Prazo', 'Os prazos continuam disponíveis nos detalhes dos workitems e no Calendário.'],
                         ['Lista de tarefas', 'Uma checklist reordenável para pequenos passos.'],
                         ['Bloqueada', 'Um bloqueio manual que exige um motivo.'],
                         ['Fase / Marco / Sprint', 'Associações de planeamento; consulte [Planeamento](plan-inheritance).']
@@ -424,7 +424,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Bloqueio manual', 'Marque **Bloqueada** no editor e descreva o que está a bloquear. Retire-o quando estiver resolvido.'],
                         ['Bloqueio por dependência', 'Derivado automaticamente de bloqueadores diretos por concluir (Bloqueia / É bloqueado por), incluindo arquivados. Desaparece quando os bloqueadores são concluídos ou a ligação é removida.']
                     ] },
-                    { kind: 'p', text: 'Ambos aparecem nos cartões e nos detalhes e são incluídos pelo filtro **Bloqueadas**. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
+                    { kind: 'p', text: 'Ambos aparecem nos detalhes e são incluídos pelo filtro **Bloqueadas**. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'As dependências são informativas: não impedem mudanças de estado e nunca substituem um bloqueio manual.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -514,14 +514,14 @@ export const DOCS_PT: DocSection[] = [
                         ['Board Técnico', 'Tasks. Apenas Sprints ativos está selecionado por defeito; desmarque para incluir Tasks sem Sprint e outros Sprints.'],
                         ['Board Funcional', 'User Stories.']
                     ] },
-                    { kind: 'p', text: 'As colunas mostram os estados Por iniciar, Em curso e Concluído. Os itens em Backlog são trabalhados na Tabela ou nos detalhes e **enviados para o Board** quando estiverem prontos. Use **Colunas do Board** para ocultar estados de que não precisa; ocultar uma coluna nunca move nem apaga workitems. Com **Todos os projetos** selecionado, o quadro agrupa os cartões por categoria entre projetos.' },
+                    { kind: 'p', text: 'As colunas mostram os estados Por iniciar, Em curso e Concluído. Os itens em Backlog são trabalhados na Tabela ou nos detalhes e **enviados para o Board** quando estiverem prontos. Abra **Filtros e vista → Colunas do Board** para ocultar estados de que não precisa; ocultar uma coluna nunca move nem apaga workitems. Com **Todos os projetos** selecionado, o quadro agrupa os cartões por categoria entre projetos.' },
                     { kind: 'h', text: 'Mover cartões' },
                     { kind: 'list', items: [
                         'Arraste um cartão com o rato, ou mantenha premido em ecrãs táteis.',
                         'Com o teclado, selecione um cartão com [[J]] / [[K]] e prima [[1]]–[[4]] para o mover.',
                         'Abra a [paleta de comandos](prod-palette) sobre um cartão e escolha **Mover para…**.'
                     ] },
-                    { kind: 'p', text: 'Os cartões mostram ID, título, pessoas, etiquetas, prioridade, esforço, prazo, bloqueio, progresso da lista de tarefas e, nas Stories, o progresso de execução. Clique num cartão para ver os detalhes; altere o responsável no cartão ou avance com a seta superior direita. O menu ⋯ permite copiar ou mover; Eliminar está no menu ⋯ dos detalhes.' },
+                    { kind: 'p', text: 'Os cartões mostram o título em até duas linhas e, abaixo, ID, tipo e responsável. Altere o responsável no dropdown ou clique no cartão para abrir os detalhes. Edição, eliminação, cópia, transferência, datas, bloqueio e progresso continuam nos detalhes. As colunas vazias ocupam metade da largura das colunas com cartões.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Um movimento não permitido pelo workflow é recusado. Mover uma Story ou um Bug para Concluído pede a [aceitação funcional](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -585,7 +585,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Criar um sprint' },
                     { kind: 'list', items: [
                         'No Roadmap, com **+ Sprint**.',
-                        'A partir de uma seleção: selecione cartões no Quadro ou linhas em **Tabela → Workitems por planear** e escolha **Criar sprint** ou **Adicionar ao sprint existente**.'
+                        'A partir de uma seleção: selecione linhas em **Tabela → Workitems por planear** e escolha **Criar sprint** ou **Adicionar ao sprint existente**.'
                     ] },
                     { kind: 'p', text: 'Cada sprint recebe o número seguinte do projeto e aparece como `Sprint 3 - Título`. Os números nunca são reutilizados.' },
                     { kind: 'h', text: 'Alocação e participação' },
@@ -724,7 +724,7 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'list', items: [
                         '**Pesquisa**: use o campo na barra do Board ou no cabeçalho da Tabela, ou abra a [paleta de comandos](prod-palette) pela lupa na barra superior ou com [[Ctrl/⌘]] + [[K]] e escolha **Filtrar quadro por “…”**. A secção mostra a pesquisa atual; clique em × para a limpar.',
-                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Abra Filtros na barra do Board ou no cabeçalho da Tabela. Os filtros ativos aparecem aí como chips removíveis.',
+                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Abra **Filtros e vista** na barra do Board ou **Filtros** no cabeçalho da Tabela. Os filtros ativos aparecem aí como chips removíveis.',
                         '**Ordenação**: por prioridade, esforço, pontuação ou nome, ascendente ou descendente.',
                         '**Repor**: prima [[R]] para repor filtros e ordenação.'
                     ] },
@@ -829,9 +829,9 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Preferências pessoais, memorizadas neste navegador.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Tema', 'O botão da paleta permite escolher Clássico (o design original) ou Moderno (superfícies neutras, um destaque ameixa discreto e tipografia Inter). O botão lua/sol alterna, de forma independente, entre claro e escuro em qualquer tema. Ambas as escolhas ficam guardadas neste navegador, incluindo entre separadores, sem alterar projetos ou rascunhos abertos.'],
-                        ['Idioma', 'O botão EN/PT alterna entre inglês e português, incluindo esta documentação.'],
-                        ['Definições da aplicação', 'A roda dentada mostra ou oculta a barra do histórico.'],
+                        ['Tema', 'As Definições permitem escolher Clássico (o design original) ou Moderno (azul petróleo, superfícies suaves e tipografia Inter). As opções Claro/Escuro alternam o modo de forma independente em qualquer tema. Ambas as escolhas ficam guardadas neste navegador, incluindo entre separadores, sem alterar projetos ou rascunhos abertos.'],
+                        ['Idioma', 'Nas Definições, escolha English ou Português, incluindo esta documentação.'],
+                        ['Definições da aplicação', 'A roda dentada abre um painel flutuante com aparência, tema, idioma e visibilidade da barra do histórico.'],
                         ['Atalhos', 'Ativa ou desativa os atalhos de uma só tecla.']
                     ] },
                     { kind: 'p', text: 'Estas preferências ficam guardadas apenas neste navegador; não são escritas nos ficheiros de projeto.' }

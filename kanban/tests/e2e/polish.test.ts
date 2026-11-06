@@ -14,12 +14,14 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await seedPortfolioBoards(page, [{ id: 'polish', title, hasHandle: true, tasks: [{ id: 1, title: 'Workitem', status: 'to-do' }],
             extensions: { roadmap: { version: 1, milestones: [{ id: 'm', title: 'Entrega', dueDate: '2026-11-20' }], phases: [{ id: 'p', title: 'Fase', startDate: '2026-11-01', endDate: '2026-11-30' }], sprints: [] } }
         }], { selectedBoardId: 'polish' });
+        await page.locator('#projectPickerBtn').click();
         const chip = page.locator('.portfolio-chip').filter({ has: page.getByRole('button', { name: title, exact: true }) });
         const bounds = (await chip.boundingBox())!;
         expect(bounds.x).toBeGreaterThanOrEqual(0);
         expect(bounds.x + bounds.width).toBeLessThanOrEqual(320);
         await expect(chip.locator('[data-action="select-board"]')).toHaveAttribute('title', title);
         await expect(chip.locator('[data-action="remove-board"]')).toBeInViewport();
+        await page.keyboard.press('Escape');
         await page.locator('[data-view-mode="table"]').click();
         await page.locator('#tableColumns > summary').click();
         const gap = await page.locator('.table-column-option label').first().evaluate((el) => getComputedStyle(el).gap);

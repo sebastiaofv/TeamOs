@@ -1,6 +1,6 @@
-import { confirmWorkitemChanges } from '../support/portfolio';
+import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openFiltersPanel, portfolioCard } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openFiltersPanel, portfolioCard } from '../support/portfolio';
+
 
 test('planning view selects eligible workitems and reuses sprint creation without changing their status', async ({ page }) => {
   await gotoApp(page);
@@ -118,7 +118,7 @@ test('planning cancellation preserves items and table selection stays independen
   await gotoApp(page);
   const tasks = [{ id: 1, title: 'Table selection', status: 'doing' }, { id: 2, title: 'Board selection', status: 'to-do' }];
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Selection', hasHandle: true, tasks }], { selectedBoardId: 'p' });
-  await portfolioCard(page, 'Board selection').locator('input[type="checkbox"]').check();
+  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);
   await page.locator('[data-view-mode="table"]').click();
   await page.getByRole('button', { name: 'Unplanned workitems', exact: true }).click();
   await page.locator('#workitemsTable [data-task-id="1"] input[type="checkbox"]').check();
@@ -137,7 +137,7 @@ test('planning cancellation preserves items and table selection stays independen
   expect(saved.board.tasks[0].sprintId).toBe('only-table-selection');
   expect(saved.board.tasks[1].sprintId || '').toBe('');
   await page.locator('[data-view-mode="board"]').click();
-  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toBeChecked();
+  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'readonly', title: 'Read only', hasHandle: false, tasks }], { selectedBoardId: 'readonly' });
   await page.locator('[data-view-mode="table"]').click();

@@ -33,14 +33,15 @@ test.describe('touch adaptation', () => {
             }, { style, mode });
             await gotoApp(page);
             await seedPortfolioBoards(page, [{ id: 'touch', title: 'Touch', hasHandle: true, tasks: [{ id: 1, title: 'Touch workitem', status: 'to-do' }] }], { selectedBoardId: 'touch' });
-            for (const selector of ['#themePickerBtn', '#openShortcutsBtn', '.workitem-board-actions > .btn', '#portfolioFiltersBtn']) {
+            for (const selector of ['#appSettingsBtn', '#openShortcutsBtn', '.workitem-board-actions > .btn', '#portfolioFiltersBtn']) {
                 const bounds = await page.locator(selector).boundingBox();
                 expect(bounds!.height).toBeGreaterThanOrEqual(44);
             }
             const card = portfolioCard(page, 'Touch workitem');
             await card.scrollIntoViewIfNeeded();
-            await expect(card.getByRole('button', { name: 'Edit', exact: true })).toBeInViewport();
-            await expect(card.locator('.task-actions')).toHaveCSS('opacity', '1');
+            await card.tap();
+            await expect(page.locator('#taskDetailModal')).toBeVisible();
+            await page.keyboard.press('Escape');
             await page.locator('[data-view-mode="table"]').tap();
             for (const selector of ['.table-columns', '.table-hierarchy-options']) {
                 const disclosure = page.locator(`#portfolioTable ${selector}`);
@@ -76,8 +77,9 @@ test.describe('touch adaptation', () => {
         await expect(card).toHaveAttribute('data-status', 'backlog');
         await expect.poll(async () => (await readSavedBoard(page, 'board-touch')).board.tasks[0].status).toBe('backlog');
         const columns = page.locator('.workitem-board-columns');
+        await page.setViewportSize({ width: 600, height: 1100 });
         const bounds = (await columns.boundingBox())!;
-        await touchGesture(page, { x: 700, y: bounds.y + 20 }, { x: 150, y: bounds.y + 20 });
+        await touchGesture(page, { x: 550, y: bounds.y + 20 }, { x: 150, y: bounds.y + 20 });
         await expect.poll(() => columns.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
     });
 
@@ -117,7 +119,7 @@ test('short landscape windows can scroll past the toolbar to complete Board card
     const card = portfolioCard(page, 'Reachable');
     await card.scrollIntoViewIfNeeded();
     await expect(card).toBeInViewport();
-    await card.getByRole('button', { name: 'Edit', exact: true }).click();
+    await card.click(); await page.locator('#taskDetailEditBtn').click();
     await expect(page.locator('#taskModal')).toBeVisible();
 });
 

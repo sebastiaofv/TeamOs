@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, appMessage, waitForBoardWrites, openFiltersPanel } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, appMessage, waitForBoardWrites, openFiltersPanel, openProjectSettingsFromPicker } from '../support/portfolio';
 
 test('responsibility and participation stay coherent through editing, confirmation, saving and history', async ({ page }) => {
   await gotoApp(page);
@@ -7,18 +7,18 @@ test('responsibility and participation stay coherent through editing, confirmati
     { id: 1, title: 'Plan', status: 'doing', assignees: ['Ana', 'Rui'] },
     { id: 2, title: 'Other', status: 'doing', assignees: ['Ana'] }
   ] }], { selectedBoardId: 'p' });
-  await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, 'Plan').click(); await page.locator('#taskDetailEditBtn').click();
   await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
   await waitForBoardWrites(page, 1);
   expect((await readSavedBoard(page, 'p')).board.tasks[0]).toMatchObject({ assignees: ['Ana', 'Rui'], responsible: 'Ana', status: 'doing' });
 
-  await page.getByRole('button', { name: 'Settings for Assignments', exact: true }).click();
+  await openProjectSettingsFromPicker(page, 'Assignments');
   await page.getByLabel('Member 1 name', { exact: true }).fill('Ana Silva');
   await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.locator('#projectSettingsModal')).toBeHidden();
-  await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, 'Plan').click(); await page.locator('#taskDetailEditBtn').click();
   await expect(page.locator('#taskResponsible')).toHaveValue('Ana Silva');
   await page.getByRole('button', { name: 'Remove participant', exact: true }).first().click();
   await expect(appMessage(page)).toContainText('without a responsible person');
@@ -45,7 +45,7 @@ test('responsible and participant filters combine across all views, including em
     { id: 2, title: 'Ana only', assignees: ['Ana'], dueDate: '2026-01-05' },
     { id: 3, title: 'Empty item', dueDate: '2026-01-05' }
   ], extensions: { roadmap: { version: 1, phases: [{ id: 'build', title: 'Build', startDate: '2026-01-01', endDate: '2026-01-30' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'p' });
-  await portfolioCard(page, 'Matching item').locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, 'Matching item').click(); await page.locator('#taskDetailEditBtn').click();
   await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
@@ -143,11 +143,11 @@ test('palette can select and clear responsibility and confirms removing that par
 test('keyboard saving commits a project member correction without requiring a blur', async ({ page }) => {
   await gotoApp(page);
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Keyboard', hasHandle: true, tasks: [{ id: 1, title: 'Plan', assignees: ['Ana'] }] }]);
-  await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, 'Plan').click(); await page.locator('#taskDetailEditBtn').click();
   await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
-  await page.getByRole('button', { name: 'Settings for Keyboard', exact: true }).click();
+  await openProjectSettingsFromPicker(page, 'Keyboard');
   await page.getByLabel('Member 1 name', { exact: true }).fill('Ana Silva');
   await page.keyboard.press('Control+Enter');
   await expect(page.locator('#projectSettingsModal')).toBeHidden();

@@ -1,6 +1,6 @@
-import { confirmWorkitemChanges } from '../support/portfolio';
+import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openProjectPicker } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites } from '../support/portfolio';
+
 
 test('sprint creation order and numbering survive name/date edits and reimport', async ({ page }) => {
   await gotoApp(page);
@@ -49,7 +49,7 @@ test('planning creation follows legacy numbering; a second project starts at one
     { id: 'b', title: 'Project B', hasHandle: true, tasks: [{ id: 1, title: 'Plan B', status: 'to-do' }] }
   ], { selectedBoardId: 'a' });
   for (const [project, id, expectedNumber] of [['Project A', 'a', 2], ['Project B', 'b', 1]] as const) {
-    await page.locator('#portfolioBoardsChips [data-action="select-board"]').filter({ hasText: project }).click();
+    await openProjectPicker(page); await page.locator('#portfolioBoardsChips [data-action="select-board"]').filter({ hasText: project }).click();
     await page.locator('[data-view-mode="table"]').click();
     await page.locator('[data-table-view="unplanned"]').click();
     await page.locator('#workitemsTable tbody input[type="checkbox"]').check();

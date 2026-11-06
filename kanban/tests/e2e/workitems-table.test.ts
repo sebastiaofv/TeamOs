@@ -1,23 +1,5 @@
-import { showTimeline } from '../support/portfolio';
+import { type SeedTask, showTimeline, toggleLanguage, openProjectPicker, appMessage, buildBoardPayload, focusIsInside, gotoApp, installControlledPortfolioWriter, mockNewProjectFlow, mutateExternalBoardFile, readSavedBoard, seedPortfolioBoards, setBoardSearch, selectPortfolioBoard, setTimelineSlider, triggerExternalFileCheck, waitForBoardWrites } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
-
-import {
-  appMessage,
-  buildBoardPayload,
-  focusIsInside,
-  gotoApp,
-  installControlledPortfolioWriter,
-  mockNewProjectFlow,
-  mutateExternalBoardFile,
-  readSavedBoard,
-  seedPortfolioBoards,
-  setBoardSearch,
-  selectPortfolioBoard,
-  setTimelineSlider,
-  triggerExternalFileCheck,
-  waitForBoardWrites,
-  type SeedTask
-} from '../support/portfolio';
 
 const DEFAULT_COLUMNS = ['ID', 'Title', 'Status', 'Participants', 'Priority', 'Phase', 'Updated'];
 
@@ -788,7 +770,7 @@ test.describe('workitems table', () => {
   });
 
   test('Portuguese empty, no-match and missing-value states are distinct and translated', async ({ page }) => {
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await seedPortfolioBoards(page, [
       { id: 'empty', title: 'Vazio', hasHandle: false, tasks: [] },
       { id: 'legacy', title: 'Legado', hasHandle: false, tasks: [{ id: 1, title: 'Sem atributos' }] }
@@ -845,7 +827,7 @@ test.describe('workitems table', () => {
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
     await expect(appMessage(page)).toBeHidden();
 
-    await chip.getByRole('button', { name: 'Retry', exact: true }).click();
+    await openProjectPicker(page); await chip.getByRole('button', { name: 'Retry', exact: true }).click();
     await waitForBoardWrites(page);
     await expect(chip.locator('.chip-save-state')).toHaveCount(0);
     expect((await readSavedBoard(page, 'retry')).board.tasks[0].title).toBe('Unsaved edit');

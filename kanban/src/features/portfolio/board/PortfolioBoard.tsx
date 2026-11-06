@@ -27,7 +27,6 @@ import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
-import { BoardColumnMenu } from '@/features/portfolio/board/BoardColumnMenu';
 import { useI18n, translateCurrent } from '@/shared/i18n';
 import { buildPortfolioBoardView } from '@/features/portfolio/queries/portfolioBoardView';
 
@@ -146,10 +145,10 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                 <div className="workitem-board-toolbar" role="group" aria-label={t('workitems.type')}>
                     {(['technical', 'functional'] as const).map((value) => <button className={`btn${mode === value ? ' active' : ''}`} type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{t(`workitems.${value}`)}</button>)}
                     <div className="workitem-board-actions">
-                        {canAddTasks && <button className="btn btn-primary" type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}><WorkspaceIcon name="plus" />{t('table.create')}</button>}
-                        <PortfolioQueryControls />
+                        <PortfolioQueryControls boardMode={mode} />
                         <label className="board-active-sprints"><input type="checkbox" checked={activeSprintsOnly && !state.portfolioFilters.sprintId} onChange={(event) => { setActiveSprintsOnly(event.target.checked); if (event.target.checked) setPortfolioFilter('sprintId', ''); }} />{t('board.activeSprintsOnly')}</label>
-                        <BoardColumnMenu mode={mode} />
+                        <span className="toolbar-divider" aria-hidden="true" />
+                        {canAddTasks && <button className="btn btn-primary board-create-btn" aria-label={t('table.create')} title={t('table.create')} type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}><WorkspaceIcon name="plus" /></button>}
                     </div>
                 </div>
                 <div className="workitem-board-columns">
@@ -157,7 +156,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                     {columns.map((column) => {
                         const items = buckets[column.status] || [];
                         const title = columnTitle(column, t);
-                        return <section className="portfolio-column" data-status={column.status} key={column.status}>
+                        return <section className={`portfolio-column${items.length ? '' : ' is-empty'}`} data-status={column.status} key={column.status}>
                             <div className="portfolio-column-header"><h2 className="column-title" id={`portfolio-${column.status}-heading`}>{title}<small className="column-category">{t(`workflow.${column.category}`)}</small></h2><span className="column-count">{items.length}</span></div>
                             <DroppableColumnBody column={{ ...column, title }}>
                                 {items.length ? items.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />) : <p className="empty-state">{t('common.noTasks')}</p>}

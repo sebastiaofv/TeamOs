@@ -1,7 +1,7 @@
-import { showTimeline } from '../support/portfolio';
+import { showTimeline, toggleTheme, gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
+
 
 async function seed(page: Page, writable = true) {
     const fixture = JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
@@ -95,7 +95,7 @@ test('fractional milestone progress stays inside the small coloured diamond in b
     ], extensions: { roadmap: { version: 3, milestones: [{ id: 'm', title: 'One third', dueDate: '2026-10-20', color: '#b45309' }], phases: [], sprints: [] } } }], { selectedBoardId: 'fraction' });
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     for (const theme of ['light', 'dark']) {
-        if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+        if (theme === 'dark') await toggleTheme(page);
         const diamond = page.locator('.milestone-annotation .milestone-diamond');
         await expect(diamond).toHaveText('33.3%');
         const geometry = await diamond.evaluate((element) => {
@@ -250,7 +250,7 @@ test('clarified Roadmap stays readable in the existing light and dark themes', a
     await page.getByRole('button', { name: 'Show tasks for October execution', exact: false }).click();
     await page.locator('#portfolioRoadmapView').evaluate((element) => { element.scrollTop = 0; element.scrollLeft = 0; });
     await page.mouse.move(10, 10); await page.screenshot({ path: testInfo.outputPath('roadmap-light.png'), fullPage: true });
-    await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+    await toggleTheme(page);
     const background = await page.locator('#roadmap-row-phase-delivery .roadmap-row-timeline-bar').evaluate((element) => getComputedStyle(element).backgroundImage);
     expect(background).toBe('none');
     await page.locator('.milestone-annotation[data-roadmap-id="release"]').click();
@@ -308,7 +308,7 @@ test('milestone names and dates hug either side of their diamond, with small mat
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.getByLabel('Timeline zoom', { exact: true }).selectOption('1');
     for (const theme of ['light', 'dark']) {
-        if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
+        if (theme === 'dark') await toggleTheme(page);
         await page.mouse.move(1, 1);
         await page.screenshot({ path: testInfo.outputPath(`milestone-labels-${theme}.png`), fullPage: true });
     }

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, portfolioCard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, portfolioCard, toggleTheme } from '../support/portfolio';
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
     await page.clock.setFixedTime('2026-10-28T12:00:00.000Z');
@@ -20,7 +20,7 @@ async function openStory(page: Page) {
     await page.locator('#workitemsTable tr[data-task-id="1202"]').getByRole('button', { name: 'Pagar com cartão', exact: true }).click();
 }
 
-test('separates Technical/Functional Boards, preserves real states and hides old/future child Tasks', async ({ page }) => {
+test('separates Technical/Functionals, preserves real states and hides old/future child Tasks', async ({ page }) => {
     await seed(page);
     await expect(portfolioCard(page, 'Implementar confirmação')).toBeVisible();
     await expect(portfolioCard(page, 'Validar cartão no Sprint anterior')).toBeVisible();
@@ -29,7 +29,7 @@ test('separates Technical/Functional Boards, preserves real states and hides old
     await expect(page.getByRole('group', { name: 'Checkout acessível', exact: true })).toHaveCount(0);
     // Bugs follow the functional workflow by default (US-22).
     await expect(portfolioCard(page, 'Botão de pagamento sem foco')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await expect(portfolioCard(page, 'Botão de pagamento sem foco')).toHaveAttribute('data-status', 'testing');
     await expect(portfolioCard(page, 'Pagar com cartão')).toBeVisible();
     await expect(portfolioCard(page, 'Story do Sprint futuro')).toBeVisible();
@@ -50,7 +50,7 @@ test('creates a child with inherited planning and an immutable type, preserving 
     await expect(page.locator('#detailTitle')).toHaveText('Pagar com cartão');
     await page.locator('#taskDetailModalFooterCloseBtn').click();
     await page.locator('[data-view-mode="board"]').click();
-    await portfolioCard(page, 'Nova Task do Sprint').getByRole('button', { name: 'Edit', exact: true }).click();
+    await portfolioCard(page, 'Nova Task do Sprint').click(); await page.locator('#taskDetailEditBtn').click();
     await expect(page.locator('#workitemType')).toBeDisabled();
     await expect(page.locator('#workitemType')).toHaveValue('task');
 });
@@ -88,7 +88,7 @@ test('quick creation selects Bug and preserves its optional reproduction fields'
 
 for (const theme of ['light', 'dark']) test(`detail and confirmations use the existing ${theme} theme`, async ({ page }) => {
     await seed(page);
-    if (theme === 'dark') await page.locator('#themeToggleBtn').click();
+    if (theme === 'dark') await toggleTheme(page);
     await openStory(page);
     await expect(page.getByRole('button', { name: 'Create Task', exact: true })).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
@@ -101,7 +101,7 @@ for (const theme of ['light', 'dark']) test(`detail and confirmations use the ex
 
 test('parent changes preview their impact and Cancel preserves the existing hierarchy', async ({ page }) => {
     await seed(page);
-    await portfolioCard(page, 'Implementar confirmação').getByRole('button', { name: 'Edit', exact: true }).click();
+    await portfolioCard(page, 'Implementar confirmação').click(); await page.locator('#taskDetailEditBtn').click();
     await page.locator('#workitemParent').selectOption('1201');
     await page.locator('#taskModalSaveBtn').click();
     await answerAppMessage(page, { button: 'Cancel', expectText: '#1202 Pagar com cartão → #1201 Checkout acessível' });
