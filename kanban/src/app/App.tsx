@@ -15,7 +15,8 @@ import { ConversationDraftRecovery } from '@/features/portfolio/task/Conversatio
 import { AppMessageDialog } from '@/app/overlays/AppMessageDialog';
 import { UndoToast } from '@/features/portfolio/shell/UndoToast';
 import { CommandPalette } from '@/features/portfolio/palette/CommandPalette';
-import { PortfolioBulkActions, PortfolioChips, PortfolioToolbar } from '@/features/portfolio/shell/PortfolioControls';
+import { PortfolioBulkActions, PortfolioToolbar } from '@/features/portfolio/shell/PortfolioControls';
+import { PortfolioEmptyState } from '@/features/portfolio/shell/PortfolioEmptyState';
 import { PortfolioBoard } from '@/features/portfolio/board/PortfolioBoard';
 import { PortfolioTimeline } from '@/features/portfolio/timeline/PortfolioTimeline';
 import { PortfolioRoadmap } from '@/features/portfolio/roadmap/PortfolioRoadmap';
@@ -60,7 +61,7 @@ function AppContent() {
     const actions = usePortfolioActions();
     usePortfolioRuntime();
     useInitializeLanguage();
-    const { theme, toggleTheme } = useTheme();
+    const { theme } = useTheme();
     const { showTimeline, setShowTimeline } = useAppSettings();
     const { t } = useI18n();
     const fileDropActive = usePortfolioFileIntegration();
@@ -78,18 +79,18 @@ function AppContent() {
     return (
         <>
             <a className="skip-link" href={docsOpen ? '#docsTopicTitle' : '#portfolioMain'}>{t('common.skipToContent')}</a>
-            <AppHeader theme={theme} onToggleTheme={toggleTheme} />
+            <AppHeader theme={theme} />
             {/* Hidden, not unmounted, while the documentation is open: the
                 workspace keeps its selection, view, filters and drafts. */}
             <main className={`view${fileDropActive ? ' file-drop-active' : ''}`} id="portfolioView" aria-labelledby="appTitle" hidden={docsOpen}>
                 <div className="view-main" id="portfolioMain" tabIndex={-1}>
-                    <PortfolioToolbar />
-                    <PortfolioChips />
+                    {hasBoards && <PortfolioToolbar />}
                     <div className={`portfolio-board-wrap${hasBoards ? '' : ' is-empty'}${tableActive || controlActive ? ' table-active' : ''}${dashboardActive ? ' dashboard-active' : ''}`} id="portfolioBoardWrap">
                         <PortfolioReadOnlyNotice />
                         <ConversationDraftRecovery />
                         <ProjectFileNotices />
                         <PendingProjectTransfers />
+                        {!hasBoards ? <PortfolioEmptyState /> : <>
                         {showTimeline && <PortfolioTimeline />}
                         <PortfolioBulkActions />
                         <PortfolioBoard hidden={roadmapActive || plannerActive || tableActive || dashboardActive || controlActive} />
@@ -98,6 +99,7 @@ function AppContent() {
                         <PortfolioTable hidden={!tableActive} />
                         <PortfolioRoadmap hidden={!roadmapActive} />
                         <PortfolioPlanner hidden={!plannerActive} />
+                        </>}
                     </div>
                 </div>
                 <div className="file-drop-overlay" id="portfolioDropOverlay" aria-hidden="true">{t('app.dropProjectFiles')}</div>

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { defaultWorkflow } from '@/domain/workflow';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, answerAppMessage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, answerAppMessage, selectTableView, openTableSprintActions } from '../support/portfolio';
 
 test.use({ timezoneId: 'Europe/Lisbon' });
 
@@ -40,7 +40,7 @@ for (const finish of ['button', 'editor'] as const) {
     await expect(roadmapSprint.getByRole('button', { name: 'Finish Sprint', exact: true })).toBeVisible();
     await page.screenshot({ path: '/tmp/us22-roadmap.png', fullPage: true });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="sprints"]').click();
+    await selectTableView(page, 'sprints');
     const sprint = page.locator('[data-table-sprint="s1"]');
     await sprint.getByRole('button', { name: 'Edit Delivery', exact: true }).click();
     await expect(page.locator('#sprintStatus')).toHaveValue('active');
@@ -85,9 +85,10 @@ for (const finish of ['button', 'editor'] as const) {
     await expect(page.locator('#detailStoryPointsInput')).toHaveValue('8');
     await expect(page.locator('#detailStatusInput')).toHaveValue('backlog');
     await page.keyboard.press('Escape');
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(3);
     await page.locator('#workitemsTable [data-task-id="1"] input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableAddToSprint').click();
     await expect(page.locator('#roadmapEntityExistingSprint option[value="s1"]')).toHaveCount(0);
     await page.locator('#roadmapEntityExistingSprint').selectOption('s2');
@@ -100,7 +101,7 @@ for (const finish of ['button', 'editor'] as const) {
     await page.reload();
     await seedPortfolioBoards(page, [{ id: 'reopened', title: 'Reopened', hasHandle: true, tasks: reassigned.board.tasks, extensions: reassigned.extensions }], { selectedBoardId: 'reopened' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="sprints"]').click();
+    await selectTableView(page, 'sprints');
     await page.getByRole('button', { name: 'Edit Delivery', exact: true }).click();
     await expect(page.locator('#sprintReview')).toHaveValue('Demo complete');
     await page.locator('#sprintReview').fill('Updated review after closure');
@@ -136,8 +137,9 @@ test('Table selection creates a Planned Sprint with goals/capacity even when all
   await gotoApp(page);
   await seedPortfolioBoards(page, [{ id: 'p', title: 'New Sprint', hasHandle: true, tasks: [{ id: 1, title: 'Plan this', status: 'backlog' }] }], { selectedBoardId: 'p' });
   await page.locator('[data-view-mode="table"]').click();
-  await page.locator('[data-table-view="unplanned"]').click();
+  await selectTableView(page, 'unplanned');
   await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
+  await openTableSprintActions(page);
   await page.locator('#tableCreateSprint').click();
   await page.locator('#roadmapEntityTitle').fill('Old dates');
   await page.locator('#roadmapEntityStartDate').fill('01/01/2000');
@@ -148,7 +150,7 @@ test('Table selection creates a Planned Sprint with goals/capacity even when all
   await confirmWorkitemChanges(page);
   await expect(page.locator('#roadmapEntityModal')).toBeHidden();
   expect((await readSavedBoard(page, 'p')).extensions.roadmap.sprints[0]).toMatchObject({ status: 'planned', goal: 'Manually start later', capacity: 34 });
-  await page.locator('[data-table-view="sprints"]').click();
+  await selectTableView(page, 'sprints');
   await expect(page.locator('.sprint-status-planned')).toHaveText('Planned');
   await expect(page.getByRole('button', { name: 'Start Sprint', exact: true })).toBeVisible();
 });

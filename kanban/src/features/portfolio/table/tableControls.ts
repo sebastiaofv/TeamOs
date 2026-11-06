@@ -2,7 +2,7 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { clearPortfolioFilters, setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import type { TableFilters, TableSort } from './tableModel';
 
-// Compatibility entry points; every view uses the shared toolbar filters.
+// Compatibility entry points; section controls share the same filter state.
 export function setTableFilter<K extends keyof TableFilters>(key: K, value: TableFilters[K]): void {
     setPortfolioFilter(key, value);
 }

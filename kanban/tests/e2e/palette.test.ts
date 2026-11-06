@@ -1,13 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import {
-  answerAppMessage,
-  gotoApp,
-  portfolioCard,
-  readSavedBoard,
-  seedPortfolioBoards,
-  setBoardSearch,
-  waitForBoardWrites
-} from '../support/portfolio';
+import { answerAppMessage, gotoApp, portfolioCard, readSavedBoard, seedPortfolioBoards, setBoardSearch, waitForBoardWrites } from '../support/portfolio';
 
 function localIsoDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -60,7 +52,7 @@ test.describe('command palette', () => {
   test('filters the board by text and clears it from the toolbar', async ({ page }) => {
     await setBoardSearch(page, 'login');
     await expect(page.locator('.portfolio-task-card')).toHaveCount(1);
-    await expect(page.locator('#portfolioSearchBtn')).toContainText('login');
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('login');
     expect(new URL(page.url()).searchParams.get('pq')).toBe('login');
 
     await page.locator('#portfolioSearchClearBtn').click();
@@ -218,7 +210,7 @@ test.describe('command palette', () => {
   });
 
   test('is listed in the keyboard shortcuts dialog', async ({ page }) => {
-    await page.locator('body').click();
+    await page.locator('.app-logo').click();
     await page.keyboard.press('?');
     await expect(page.locator('#shortcutsModal')).toContainText('Open the command palette');
     await expect(page.locator('#shortcutsModal')).toContainText('Search tasks and commands');

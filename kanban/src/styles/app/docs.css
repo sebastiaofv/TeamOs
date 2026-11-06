@@ -572,3 +572,5 @@
         white-space: normal;
     }
 }
+
+@media (prefers-reduced-motion: reduce) { .docs-contents-chevron { transition: none; } }

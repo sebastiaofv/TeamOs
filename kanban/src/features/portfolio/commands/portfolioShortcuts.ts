@@ -18,7 +18,7 @@ import {
     showPortfolioPlannerToday
 } from './portfolioControls';
 import { focusTarget } from '@/shared/ui/focusTargets';
-import { openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
+import { OPEN_FILTERS_EVENT, openCommandPalette } from '@/features/portfolio/palette/openCommandPalette';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { clearTableFilters, setTableSort } from '@/features/portfolio/table/tableControls';
 
@@ -98,7 +98,8 @@ export function selectAdjacentPortfolioCard(step: number): void {
 }
 
 export function focusPortfolioSortControl(): void {
-    focusTarget('portfolioSort');
+    if (getState().selectedPortfolioViewMode === 'table') focusTarget('portfolioTableSort');
+    else window.dispatchEvent(new CustomEvent(OPEN_FILTERS_EVENT, { detail: { focusSort: true } }));
 }
 
 export function cyclePortfolioProjectChip(step: number): void {

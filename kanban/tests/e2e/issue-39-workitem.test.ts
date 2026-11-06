@@ -119,7 +119,7 @@ for (const entryPoint of ['details', 'card']) {
       await card.click();
       await page.locator('#taskDetailEditBtn').click();
     } else {
-      await card.locator('[data-action="edit-task"]').click();
+      await card.click(); await page.locator('#taskDetailEditBtn').click();
     }
     await expect(page.locator('#taskModal')).toBeVisible();
     await expect(page.locator('#taskModal #taskAttachmentsEditor')).toHaveCount(0);

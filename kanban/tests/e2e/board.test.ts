@@ -1,13 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import {
-  gotoApp,
-  seedPortfolioBoards,
-  waitForBoardWrites,
-  portfolioCard,
-  answerAppMessage,
-  dragWithMouse
-} from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, waitForBoardWrites, portfolioCard, answerAppMessage, dragWithMouse, toggleLanguage } from '../support/portfolio';
 
 test.describe('board', () => {
   test.beforeEach(async ({ page }) => {
@@ -19,7 +12,7 @@ test.describe('board', () => {
       { id: 'p1', title: 'Project One', hasHandle: true, tasks: [] }
     ], { selectedBoardId: 'p1' });
 
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
 
     await expect(page.locator('#portfolio-backlog-heading')).toContainText('Backlog');
     await expect(page.locator('.portfolio-column[data-status="to-do"] .column-title')).toContainText('A fazer');
@@ -69,7 +62,7 @@ test.describe('board', () => {
     await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(0);
     await expect(page.locator('.portfolio-chip.active')).toContainText('Read Only (Read-only)');
-    await expect(portfolioCard(page, 'RO Task').locator('button[title="Read-only (no file handle)"]')).toHaveCount(2);
+    await expect(portfolioCard(page, 'RO Task').locator('select')).toBeDisabled();
   });
 
   test('task card delete removes the task and persists the board', async ({ page }) => {
@@ -85,7 +78,9 @@ test.describe('board', () => {
     const card = portfolioCard(page, 'Delete me');
     await card.hover();
 
-    await card.getByRole('button', { name: 'Delete' }).click();
+    await card.click();
+    await page.locator('#taskDetailModal').getByLabel('Task actions', { exact: true }).click();
+    await page.locator('#taskDetailModal').getByRole('button', { name: 'Delete' }).click();
     await answerAppMessage(page, { button: 'Delete', expectText: 'Delete "Delete me" permanently?' });
 
     await expect(portfolioCard(page, 'Delete me')).toHaveCount(0);
@@ -109,7 +104,9 @@ test.describe('board', () => {
 
     const card = portfolioCard(page, 'Keep me');
     await card.hover();
-    await card.getByRole('button', { name: 'Delete' }).click();
+    await card.click();
+    await page.locator('#taskDetailModal').getByLabel('Task actions', { exact: true }).click();
+    await page.locator('#taskDetailModal').getByRole('button', { name: 'Delete' }).click();
     await answerAppMessage(page, { button: 'Cancel' });
 
     await expect(portfolioCard(page, 'Keep me')).toBeVisible();

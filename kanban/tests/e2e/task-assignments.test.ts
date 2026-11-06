@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, appMessage, waitForBoardWrites, openFiltersPanel } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, appMessage, waitForBoardWrites, openFiltersPanel, openProjectSettingsFromPicker, selectTableView } from '../support/portfolio';
 
 test('responsibility and participation stay coherent through editing, confirmation, saving and history', async ({ page }) => {
   await gotoApp(page);
@@ -7,18 +7,18 @@ test('responsibility and participation stay coherent through editing, confirmati
     { id: 1, title: 'Plan', status: 'doing', assignees: ['Ana', 'Rui'] },
     { id: 2, title: 'Other', status: 'doing', assignees: ['Ana'] }
   ] }], { selectedBoardId: 'p' });
-  await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, 'Plan').click(); await page.locator('#taskDetailEditBtn').click();
   await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
   await waitForBoardWrites(page, 1);
   expect((await readSavedBoard(page, 'p')).board.tasks[0]).toMatchObject({ assignees: ['Ana', 'Rui'], responsible: 'Ana', status: 'doing' });
 
-  await page.getByRole('button', { name: 'Settings for Assignments', exact: true }).click();
+  await openProjectSettingsFromPicker(page, 'Assignments');
   await page.getByLabel('Member 1 name', { exact: true }).fill('Ana Silva');
   await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.locator('#projectSettingsModal')).toBeHidden();
-  await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, 'Plan').click(); await page.locator('#taskDetailEditBtn').click();
   await expect(page.locator('#taskResponsible')).toHaveValue('Ana Silva');
   await page.getByRole('button', { name: 'Remove participant', exact: true }).first().click();
   await expect(appMessage(page)).toContainText('without a responsible person');
@@ -45,7 +45,7 @@ test('responsible and participant filters combine across all views, including em
     { id: 2, title: 'Ana only', assignees: ['Ana'], dueDate: '2026-01-05' },
     { id: 3, title: 'Empty item', dueDate: '2026-01-05' }
   ], extensions: { roadmap: { version: 1, phases: [{ id: 'build', title: 'Build', startDate: '2026-01-01', endDate: '2026-01-30' }], milestones: [], sprints: [] } } }], { selectedBoardId: 'p' });
-  await portfolioCard(page, 'Matching item').locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, 'Matching item').click(); await page.locator('#taskDetailEditBtn').click();
   await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
@@ -56,14 +56,18 @@ test('responsible and participant filters combine across all views, including em
   expect(new URL(page.url()).searchParams.get('pr')).toBe('Ana');
   for (const view of ['board', 'table', 'roadmap', 'planner']) {
     await page.locator(`[data-view-mode="${view}"]`).click();
-    await openFiltersPanel(page);
-    await expect(page.locator('#portfolioResponsibleFilter')).toHaveValue('Ana');
-    await expect(page.getByLabel('Participant', { exact: true })).toHaveValue('Rui');
-    await page.keyboard.press('Escape');
+    if (view === 'board' || view === 'table') {
+      await openFiltersPanel(page);
+      await expect(page.locator('#portfolioResponsibleFilter')).toHaveValue('Ana');
+      await expect(page.getByLabel('Participant', { exact: true })).toHaveValue('Rui');
+      await page.keyboard.press('Escape');
+    } else {
+      await expect(page.locator('#portfolioFiltersBtn')).toHaveCount(0);
+    }
     if (view === 'board') await expect(page.locator('#portfolioBoard .task-title')).toHaveText(['Matching item']);
     if (view === 'table') await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching item');
     if (view === 'roadmap') {
-      await page.getByRole('button', { name: 'Show tasks for Build', exact: true }).click();
+      await page.getByRole('button', { name: 'Show tasks for Build', exact: false }).click();
       await expect(page.locator('#portfolioRoadmapView .workitems-table tbody [data-column="title"]')).toHaveText(['Matching item']);
     }
     if (view === 'calendar') {
@@ -98,10 +102,10 @@ test('responsible and participant filters combine in planning and sprint tables 
   await page.locator('#portfolioResponsibleFilter').selectOption('Ana');
   await page.getByLabel('Participant', { exact: true }).selectOption('Rui');
   await page.keyboard.press('Escape');
-  await page.locator('[data-table-view="unplanned"]').click();
+  await selectTableView(page, 'unplanned');
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
   await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching unplanned');
-  await page.locator('[data-table-view="sprints"]').click();
+  await selectTableView(page, 'sprints');
   const sprint = page.locator('[data-table-sprint="s1"]');
   await expect(sprint.locator(':scope > summary')).toContainText('50% complete (1/2)');
   await sprint.locator(':scope > summary .table-sprint-name').click();
@@ -139,11 +143,11 @@ test('palette can select and clear responsibility and confirms removing that par
 test('keyboard saving commits a project member correction without requiring a blur', async ({ page }) => {
   await gotoApp(page);
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Keyboard', hasHandle: true, tasks: [{ id: 1, title: 'Plan', assignees: ['Ana'] }] }]);
-  await portfolioCard(page, 'Plan').locator('[data-action="edit-task"]').click();
+  await portfolioCard(page, 'Plan').click(); await page.locator('#taskDetailEditBtn').click();
   await page.locator('#taskResponsible').selectOption('Ana');
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
-  await page.getByRole('button', { name: 'Settings for Keyboard', exact: true }).click();
+  await openProjectSettingsFromPicker(page, 'Keyboard');
   await page.getByLabel('Member 1 name', { exact: true }).fill('Ana Silva');
   await page.keyboard.press('Control+Enter');
   await expect(page.locator('#projectSettingsModal')).toBeHidden();

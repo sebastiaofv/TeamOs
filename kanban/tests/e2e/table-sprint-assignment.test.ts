@@ -1,6 +1,6 @@
-import { confirmWorkitemChanges } from '../support/portfolio';
+import { confirmWorkitemChanges, toggleLanguage, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, selectTableView, openTableSprintActions } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard } from '../support/portfolio';
+
 
 test.use({ timezoneId: 'UTC' });
 
@@ -17,16 +17,18 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
     { id: 'active', title: 'Current', startDate: '2026-10-19', endDate: '2026-10-19' },
     { id: 'planned', title: 'Next', startDate: '2026-10-20', endDate: '2026-11-01' }
   ] } } }], { selectedBoardId: 'p' });
-  await portfolioCard(page, 'Board selection').locator('input[type="checkbox"]').check();
+  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);
   await page.locator('[data-view-mode="table"]').click();
-  await page.locator('[data-table-view="unplanned"]').click();
+  await selectTableView(page, 'unplanned');
   const add = page.locator('#tableAddToSprint');
+  await openTableSprintActions(page);
   await expect(add).toHaveAccessibleName('Add to sprint');
   await expect(add).toBeDisabled();
   await expect(page.locator('#tableCreateSprint + #tableAddToSprint')).toBeVisible();
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(3);
   for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input`).check();
   const original = await readSavedBoard(page, 'p');
+  await openTableSprintActions(page);
   await add.click();
   const select = page.locator('#roadmapEntityExistingSprint');
   await expect(select).toBeFocused();
@@ -36,10 +38,11 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeDisabled();
   await select.selectOption('planned');
   await page.keyboard.press('Escape');
-  await expect(add).toBeFocused();
+  await expect(page.locator('#tableSprintActions > summary')).toBeFocused();
   expect(await readSavedBoard(page, 'p')).toEqual(original);
   expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
   for (const id of [1, 2]) await expect(page.locator(`#workitemsTable [data-task-id="${id}"] input`)).toBeChecked();
+  await openTableSprintActions(page);
   await add.click();
   await select.selectOption('active');
   await page.locator('#roadmapEntityModalSaveBtn').click();
@@ -59,6 +62,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await expect(page.locator('#tableCounts')).toHaveText('1 of 1 workitems');
   await expect(add).toBeDisabled();
   await page.locator('#workitemsTable [data-task-id="3"] input').check();
+  await openTableSprintActions(page);
   await add.click();
   await select.selectOption('planned');
   await page.locator('#roadmapEntityModalSaveBtn').click();
@@ -67,26 +71,27 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   expect((await readSavedBoard(page, 'p')).board.tasks[2].sprintId).toBe('planned');
   await expect(page.locator('#workitemsTable')).toHaveCount(0);
   await page.locator('[data-view-mode="board"]').click();
-  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toBeChecked();
+  await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);
 });
 
 for (const scenario of ['no sprints', 'all Done', 'read-only'] as const) {
   test(`planning handles ${scenario} without offering an invalid assignment`, async ({ page }) => {
     await page.clock.setFixedTime(new Date('2026-10-19T12:00:00Z'));
     await gotoApp(page);
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Planeamento', hasHandle: scenario !== 'read-only', tasks: [
       { id: 1, title: 'Por planear', status: 'backlog' }
     ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: scenario === 'no sprints' ? [] : [
       { id: 'done', title: 'Terminado', startDate: '2026-10-01', endDate: '2026-10-18' }
     ] } } }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable input[aria-label="Selecionar Por planear"]').check();
     const add = page.locator('#tableAddToSprint');
     if (scenario === 'read-only') {
       await expect(add).toHaveCount(0);
     } else {
+      await openTableSprintActions(page);
       await expect(add).toHaveAccessibleName('Adicionar ao sprint');
       await expect(add).toBeDisabled();
       await expect(add).toHaveAttribute('title', 'Não existem sprints planeados ou ativos disponíveis. Crie um sprint para planear estes workitems.');
@@ -96,7 +101,7 @@ for (const scenario of ['no sprints', 'all Done', 'read-only'] as const) {
   });
 }
 
-for (const view of ['Table', 'Board']) {
+for (const view of ['Table']) {
   test(`an open ${view} sprint picker retains manual status across midnight`, async ({ page }) => {
     await page.clock.install({ time: new Date('2026-10-19T23:59:58Z') });
     await page.clock.pauseAt(new Date('2026-10-19T23:59:59Z'));
@@ -109,8 +114,9 @@ for (const view of ['Table', 'Board']) {
     ] } } }], { selectedBoardId: 'p' });
     if (view === 'Table') {
       await page.locator('[data-view-mode="table"]').click();
-      await page.locator('[data-table-view="unplanned"]').click();
+      await selectTableView(page, 'unplanned');
       await page.locator('#workitemsTable input[aria-label="Select Unplanned item"]').check();
+      await openTableSprintActions(page);
       await page.locator('#tableAddToSprint').click();
     } else {
       await portfolioCard(page, 'Unplanned item').locator('input[type="checkbox"]').check();

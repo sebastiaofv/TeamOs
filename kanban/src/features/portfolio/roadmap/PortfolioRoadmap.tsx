@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { DeleteMenu } from '@/shared/ui/DeleteMenu';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { SprintAction } from './SprintAction';
@@ -105,7 +106,7 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
                     : <button className="roadmap-action-btn roadmap-tree-toggle" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={t('roadmap.toggleWorkitems', { title: item.title })} onClick={toggle}>{row.expanded ? '▾' : '▸'}</button>}
                 <h4 className="roadmap-row-title" title={`${item.title} · ${t(row.hasChildren ? 'roadmap.parentPhase' : 'roadmap.leafPhase')}`} id={`${rowId}-title`}>{item.title}</h4>
                 <span className="roadmap-row-meta">{formatRoadmapDateRange(item, language)}</span>
-                {!row.hasChildren && <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggle}>▤ {row.visibleCount}/{row.progress.associated}</button>}
+                {!row.hasChildren && <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={`${t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })}: ${row.visibleCount}/${row.progress.associated}`} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggle}><WorkspaceIcon name="table" /> {row.visibleCount}/{row.progress.associated}</button>}
                 <div className="roadmap-row-actions">{row.kind === 'sprints' && <>{view.boardData && <SprintPoints data={view.boardData} sprintId={item.id} />}<span className={`table-status-badge sprint-status-${getSprintStatus(item)}`}>{t(`table.sprintStatus.${getSprintStatus(item)}`)}</span><SprintAction sprint={item} boardId={view.boardId} disabled={!canEdit} /></>}<button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${item.title}`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id)}>✎</button>
                     {(row.kind !== 'sprints' || getSprintStatus(item) === 'planned') && <button className="roadmap-action-btn" type="button" disabled={!canEdit} aria-label={`${t('common.delete')} ${item.title}`} onClick={() => actions.deleteRoadmapEntity(row.kind, item.id, { boardId: view.boardId })}>×</button>}
                 </div>
@@ -151,7 +152,7 @@ function MilestoneDialog({ marker, view, canEdit, close }: { marker?: RoadmapMil
 }
 
 function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
-    const { t, language } = useI18n(); const percent = useProgressText(); const actions = usePortfolioActions();
+    const { t, language } = useI18n(); const actions = usePortfolioActions();
     const canEdit = useAppStore((state) => Boolean(state.portfolioBoards.find((board) => board.id === view.boardId)?.handle)) && !view.historical;
     const milestoneId = useAppStore((state) => state.portfolioRoadmapMilestoneByBoardId[view.boardId] || '');
     const setMilestoneId = (id: string) => selectRoadmapMilestone(view.boardId, id);
@@ -195,7 +196,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
                     {milestones.length > 0 && <div className="milestone-annotations" role="region" aria-label={t('roadmap.milestones')} tabIndex={0} style={{ height: annotationHeight }}><div className="milestone-annotation-canvas" style={{ height: annotationLanes * MILESTONE_LANE_HEIGHT }}>
                         {milestones.map((milestone) => <MilestoneGuide marker={milestone} markers={milestones} key={`guide-${milestone.key}`} local top={milestone.lane * MILESTONE_LANE_HEIGHT + MILESTONE_LANE_HEIGHT / 2} />)}
                         {milestones.map((milestone) => <button className={`milestone-annotation${milestone.labelAtEnd ? ' milestone-at-end' : ''}`} type="button" key={milestone.key} data-roadmap-kind="milestone" data-roadmap-id={milestone.item!.id}
-                            style={{ left: `${milestone.position}%`, top: milestone.lane * MILESTONE_LANE_HEIGHT, '--milestone-label-width': `${MILESTONE_LABEL_WIDTH}px` } as CSSProperties} aria-label={t('roadmap.openMilestone', { title: milestone.item!.title, date: formatDueDateForUi(milestone.item!.dueDate), percent: percent(milestone) })} onClick={() => setMilestoneId(milestone.item!.id)}>
+                            style={{ left: `${milestone.position}%`, top: milestone.lane * MILESTONE_LANE_HEIGHT, '--milestone-label-width': `${MILESTONE_LABEL_WIDTH}px` } as CSSProperties} onClick={() => setMilestoneId(milestone.item!.id)}>
                             <MilestoneDiamond marker={milestone} /><span className="milestone-annotation-label" title={`${milestone.item!.title} · ${formatDueDateForUi(milestone.item!.dueDate)}`}><strong>{milestone.item!.title}</strong><span>{formatDueDateForUi(milestone.item!.dueDate)}</span></span>
                         </button>)}
                     </div></div>}

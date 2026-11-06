@@ -27,8 +27,9 @@ export function usePlannerBlockGesture(onCommit: (draft: PlannerGestureDraft) =>
     useEffect(() => () => cleanupRef.current?.(), []);
 
     function begin(event: ReactPointerEvent<HTMLElement>, block: PlannerBlockView, mode: PlannerGestureMode) {
-        if (event.button !== 0 || !block.canEdit) return;
+        if (event.button !== 0 || !event.isPrimary || !block.canEdit || cleanupRef.current) return;
         event.stopPropagation();
+        const pointerId = event.pointerId;
         const startX = event.clientX;
         const startY = event.clientY;
         let dragging = false;
@@ -39,17 +40,23 @@ export function usePlannerBlockGesture(onCommit: (draft: PlannerGestureDraft) =>
             return { boardId: block.boardId, blockId: block.id, ...applyPlannerGesture(block, mode, deltaMinutes, targetDate) };
         };
         const onMove = (moveEvent: PointerEvent) => {
+            if (moveEvent.pointerId !== pointerId) return;
             if (!dragging && Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) < DRAG_THRESHOLD_PX) return;
             dragging = true;
             moveEvent.preventDefault();
             setDraft(compute(moveEvent));
         };
         const onUp = (upEvent: PointerEvent) => {
+            if (upEvent.pointerId !== pointerId) return;
             cleanup();
             setDraft(null);
             if (dragging) onCommit(compute(upEvent));
         };
-        const onCancel = () => {
+        const onCancel = (cancelEvent: PointerEvent) => {
+            if (cancelEvent.pointerId !== pointerId) return;
+            cancel();
+        };
+        const cancel = () => {
             cleanup();
             setDraft(null);
         };
@@ -57,13 +64,16 @@ export function usePlannerBlockGesture(onCommit: (draft: PlannerGestureDraft) =>
             window.removeEventListener('pointermove', onMove);
             window.removeEventListener('pointerup', onUp);
             window.removeEventListener('pointercancel', onCancel);
+            window.removeEventListener('lostpointercapture', onCancel);
+            window.removeEventListener('blur', cancel);
             cleanupRef.current = null;
         };
-        cleanupRef.current?.();
         cleanupRef.current = cleanup;
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
         window.addEventListener('pointercancel', onCancel);
+        window.addEventListener('lostpointercapture', onCancel);
+        window.addEventListener('blur', cancel);
     }
 
     return { draft, begin };

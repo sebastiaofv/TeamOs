@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, openProjectPicker, selectTableView, openFiltersPanel } from '../support/portfolio';
 
 async function seed(page: Page) {
     await page.clock.setFixedTime('2026-10-31T12:00:00Z');
@@ -17,11 +17,11 @@ async function seed(page: Page) {
 test('Epics stay out of both Boards in project and aggregate views', async ({ page }) => {
     await seed(page);
     for (const aggregate of [false, true]) {
-        if (aggregate) await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click();
-        for (const board of ['Technical Board', 'Functional Board']) {
+        if (aggregate) { await openProjectPicker(page); await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click(); }
+        for (const board of ['Technical', 'Functional']) {
             await page.getByRole('button', { name: board, exact: true }).click();
             await expect(page.locator('.portfolio-task-card[data-task-id="1"]')).toHaveCount(0);
-            await expect(page.locator(`.portfolio-task-card[data-task-id="${board === 'Functional Board' ? 2 : 5}"]`)).toBeVisible();
+            await expect(page.locator(`.portfolio-task-card[data-task-id="${board === 'Functional' ? 2 : 5}"]`)).toBeVisible();
         }
     }
 });
@@ -30,7 +30,7 @@ test('existing child links unwind Task â†’ Story â†’ Epic', async ({ page }) => 
     await page.setViewportSize({ width: 1280, height: 600 });
     await seed(page);
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="epics"]').click();
+    await selectTableView(page, 'epics');
     await page.locator('#workitemsTable tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     await page.locator('.workitem-hierarchy').getByRole('button', { name: 'Story', exact: true }).click();
     await page.locator('#taskDetailModal .modal-body').evaluate((body) => { body.scrollTop = body.scrollHeight; });
@@ -81,11 +81,11 @@ for (const screen of ['roadmap', 'table']) test(`new child details unwind Task â
     await seed(page);
     if (screen === 'table') {
         await page.locator('[data-view-mode="table"]').click();
-        await page.locator('[data-table-view="epics"]').click();
+        await selectTableView(page, 'epics');
         await page.locator('#workitemsTable tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     } else {
         await page.locator('[data-view-mode="roadmap"]').click();
-        await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
+        await page.getByRole('button', { name: 'Show tasks for Delivery', exact: false }).click();
         await page.locator('[data-roadmap-task-list="phase:p"] tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     }
     await page.getByRole('button', { name: 'Create User Story', exact: true }).click();
@@ -119,8 +119,8 @@ for (const screen of ['roadmap', 'table']) test(`new child details unwind Task â
 test('ALL before Epic shows both hierarchy levels and independent workitems with keyboard disclosure', async ({ page }) => {
     await seed(page);
     await page.locator('[data-view-mode="table"]').click();
-    await expect(page.locator('.table-view-options button').first()).toHaveText('ALL');
-    await page.locator('[data-table-view="hierarchy"]').click();
+    await expect(page.locator('#tableViewBtn')).toContainText('All');
+    await selectTableView(page, 'hierarchy');
     const table = page.locator('#workitemsTable');
     await expect(table.locator('tbody tr')).toHaveCount(3);
     await table.getByRole('button', { name: 'Expand Epic', exact: true }).focus();
@@ -132,7 +132,7 @@ test('ALL before Epic shows both hierarchy levels and independent workitems with
     await expect(table.locator('[data-task-id="4"]')).toHaveAttribute('data-depth', '1');
     await table.getByRole('button', { name: 'Collapse Epic', exact: true }).click();
     await expect(table.locator('tbody tr')).toHaveCount(3);
-    await page.locator('.table-hierarchy-options summary').click();
+    await openFiltersPanel(page);
     await page.locator('#tableTypeFilter').selectOption('task');
     await expect(table.locator('tbody tr')).toHaveCount(3);
     await expect(table.locator('.table-tree-toggle')).toHaveCount(0);
@@ -141,10 +141,10 @@ test('ALL before Epic shows both hierarchy levels and independent workitems with
 test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Table', async ({ page }) => {
     await seed(page);
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="hierarchy"]').click();
+    await selectTableView(page, 'hierarchy');
     const headings = await page.locator('#workitemsTable thead th').allTextContents();
     await page.locator('[data-view-mode="roadmap"]').click();
-    await page.getByRole('button', { name: 'Show tasks for Delivery', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for Delivery', exact: false }).click();
     const phase = page.locator('[data-roadmap-task-list="phase:p"]');
     await expect(phase.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
     await phase.getByRole('button', { name: 'Expand Epic', exact: true }).click();
@@ -162,7 +162,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.keyboard.press('Escape');
     await expect(milestone).toBeVisible();
     await milestone.locator('.modal-close').click();
-    await page.getByRole('button', { name: 'Show tasks for Sprint', exact: true }).click();
+    await page.getByRole('button', { name: 'Show tasks for Sprint', exact: false }).click();
     const sprint = page.locator('[data-roadmap-task-list="sprint:s"]');
     await expect(sprint.locator('.workitem-tree')).toHaveCount(0);
     await expect(sprint.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
@@ -171,10 +171,11 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await expect(sprint.locator('tbody tr')).toHaveCount(3);
     await expect(sprint.locator('[data-task-id="3"]')).toHaveAttribute('data-depth', '1');
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="sprints"]').click();
+    await selectTableView(page, 'sprints');
     const mainSprint = page.locator('[data-table-sprint="s"]');
     await mainSprint.locator(':scope > summary .table-sprint-name').click();
     await mainSprint.getByRole('button', { name: 'Expand Story', exact: true }).click();
-    await expect(mainSprint.locator('thead th')).toHaveText(headings);
+    await expect(mainSprint.locator('thead th')).toHaveText(headings.filter(Boolean));
+    await expect(mainSprint.locator('table input[type=checkbox]')).toHaveCount(0);
     await expect(mainSprint.locator('tbody tr')).toHaveCount(3);
 });

@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, answerAppMessage, readSavedBoard, portfolioCard, waitForBoardWrites } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, answerAppMessage, readSavedBoard, portfolioCard, waitForBoardWrites, openProjectSettingsFromPicker } from '../support/portfolio';
 
 test('legacy configuration preserves existing IDs and new workitems share permanent typed IDs', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', acronym: null, title: 'Checkout', hasHandle: true, tasks: [{ id: 1201, title: 'Legacy task' }] }], { selectedBoardId: 'p' });
-    await portfolioCard(page, 'Legacy task').getByRole('button', { name: 'Edit', exact: true }).click();
+    await portfolioCard(page, 'Legacy task').click(); await page.locator('#taskDetailEditBtn').click();
     await expect(page.locator('#workitemType')).toBeDisabled();
     await page.keyboard.press('Escape');
     for (const [index, type] of ['epic', 'story', 'task', 'bug'].entries()) {
@@ -20,7 +20,7 @@ test('legacy configuration preserves existing IDs and new workitems share perman
     await portfolioCard(page, 'New task').dblclick();
     await expect(page.locator('#taskDetailModal')).toContainText('CHK-TK-1204');
     await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'Settings for Checkout', exact: true }).click();
+    await openProjectSettingsFromPicker(page, 'Checkout');
     await expect(page.getByLabel('Project Acronym', { exact: true })).toHaveValue('CHK');
     await expect(page.getByLabel('Project Acronym', { exact: true })).toHaveAttribute('maxlength', '4');
     await page.getByLabel('Project Acronym', { exact: true }).fill('pay');
@@ -46,7 +46,7 @@ test('legacy settings reject an acronym already assigned to another open project
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'a', acronym: null, title: 'Alpha', hasHandle: true }, { id: 'b', acronym: null, title: 'Beta', hasHandle: true }]);
     for (const title of ['Alpha', 'Beta']) {
-        await page.getByRole('button', { name: `Settings for ${title}`, exact: true }).click();
+        await openProjectSettingsFromPicker(page, title);
         await page.getByLabel('Project Acronym', { exact: true }).fill('ABC');
         await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
         if (title === 'Beta') {

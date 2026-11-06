@@ -1,7 +1,7 @@
-import { showTimeline } from '../support/portfolio';
+import { showTimeline, toggleLanguage, gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, openTaskEditor, setTimelineSlider, installControlledPortfolioWriter, openProjectPicker } from '../support/portfolio';
 import { test, expect, type Locator } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, openTaskEditor, setTimelineSlider, installControlledPortfolioWriter } from '../support/portfolio';
+
 
 const first = 'https://github.com/example/project/pull/1?view=full#review';
 const second = 'https://code.example.test:8443/team/repo/pull/2';
@@ -129,7 +129,7 @@ test('save failure and retry persist the already-applied link/event without dupl
     await portfolioCard(page, 'Retry link').click();
     await page.getByRole('tab', { name: 'Pull Requests', exact: true }).click(); await add(page.locator('#taskDetailModal .pull-request-links'), internal);
     await expect(page.locator('.pull-request-list li')).toHaveCount(1); await expect(page.locator('.pull-request-form')).toHaveCount(0);
-    await page.keyboard.press('Escape'); await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    await page.keyboard.press('Escape'); await openProjectPicker(page); await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[0].pullRequests).toEqual([internal]);
     expect((await readSavedBoard(page, 'p')).extensions.timeline.events).toHaveLength(2);
 });
@@ -187,7 +187,7 @@ test('Pull Requests lives in its own accessible tab and retains an unconfirmed U
     await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[0].pullRequests).toEqual([first, internal]);
     await expect(links).toHaveAttribute('aria-selected', 'true');
     await page.keyboard.press('Escape');
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await portfolioCard(page, 'Selected item').click();
     await page.getByRole('tab', { name: 'Pull Requests', exact: true }).click();
     await expect(page.getByRole('tabpanel', { name: 'Pull Requests', exact: true })).toBeVisible();

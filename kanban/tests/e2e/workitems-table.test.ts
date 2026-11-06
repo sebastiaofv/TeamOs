@@ -1,23 +1,5 @@
-import { showTimeline } from '../support/portfolio';
+import { type SeedTask, showTimeline, toggleLanguage, openProjectPicker, appMessage, buildBoardPayload, focusIsInside, gotoApp, installControlledPortfolioWriter, mockNewProjectFlow, mutateExternalBoardFile, readSavedBoard, seedPortfolioBoards, setBoardSearch, selectPortfolioBoard, setTimelineSlider, triggerExternalFileCheck, waitForBoardWrites } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
-
-import {
-  appMessage,
-  buildBoardPayload,
-  focusIsInside,
-  gotoApp,
-  installControlledPortfolioWriter,
-  mockNewProjectFlow,
-  mutateExternalBoardFile,
-  readSavedBoard,
-  seedPortfolioBoards,
-  setBoardSearch,
-  selectPortfolioBoard,
-  setTimelineSlider,
-  triggerExternalFileCheck,
-  waitForBoardWrites,
-  type SeedTask
-} from '../support/portfolio';
 
 const DEFAULT_COLUMNS = ['ID', 'Title', 'Status', 'Participants', 'Priority', 'Phase', 'Updated'];
 
@@ -64,7 +46,7 @@ async function setTableSearch(page: Page, text: string) {
 }
 
 async function expectTableSearch(page: Page, text: string) {
-  await expect(page.locator('#portfolioSearchBtn .palette-search-text')).toHaveText(text || 'Search tasks...');
+  await expect(page.locator('#portfolioSearchInput')).toHaveValue(text);
 }
 
 async function expectTableFilter(page: Page, id: string, value: string | string[]) {
@@ -130,9 +112,11 @@ async function moveColumnBefore(page: Page, label: string, before: string) {
   throw new Error(`Could not move ${label} before ${before}`);
 }
 
-async function exportCsv(page: Page) {
+async function exportCsv(page: Page, separator = ',') {
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#tableExportCsv').click();
+  await page.locator('#appMessageSelection').selectOption(separator === ';' ? '1' : '0');
+  await page.locator('#appMessageConfirmBtn').click();
   const download = await downloadPromise;
   expect(await download.failure()).toBeNull();
   expect(download.suggestedFilename()).toMatch(/\.csv$/i);
@@ -191,19 +175,19 @@ test.describe('workitems table', () => {
     await gotoApp(page);
   });
 
-  test('uses the original search and Filters controls in the top toolbar', async ({ page }) => {
+  test('keeps search and Filters in the heading and sorting in column headers', async ({ page }) => {
     await seedPortfolioBoards(page, [{
       id: 'toolbar', title: 'Original toolbar', hasHandle: true,
       tasks: [{ id: 1, title: 'Zeta controls', effort: 'L', priority: 'high' }, { id: 2, title: 'Alpha controls', effort: 'S', priority: 'medium' }]
     }], { selectedBoardId: 'toolbar' });
     await openTable(page);
-    await expect(page.locator('#portfolioToolbar #portfolioFiltersBtn')).toBeVisible();
-    await expect(page.locator('#portfolioSearchBtn .palette-search-text')).toHaveText('Search tasks...');
-    await expect(page.locator('#portfolioToolbar #portfolioSortSelect')).toBeVisible();
+    await expect(page.locator('#portfolioTable .table-heading #portfolioFiltersBtn')).toBeVisible();
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('');
+    await expect(page.locator('#portfolioTable .section-sort, #portfolioSortSelect')).toHaveCount(0);
     await expect(page.locator('#tableSearch')).toHaveCount(0);
     await expect(page.locator('#portfolioTable #tableFilters')).toHaveCount(0);
     await page.locator('#portfolioFiltersBtn').click();
-    await expect(page.locator('#portfolioToolbar #portfolioFiltersPanel')).toBeVisible();
+    await expect(page.locator('#portfolioTable .table-heading #portfolioFiltersPanel')).toBeVisible();
     const fields = page.locator('#portfolioFiltersPanel .portfolio-filters-field');
     await expect(fields).toContainText(['Blocked', 'Responsible', 'Participant', 'Priority', 'Effort']);
     await page.locator('#portfolioEffortFilter').selectOption('S');
@@ -211,41 +195,54 @@ test.describe('workitems table', () => {
     await page.locator('#resetPortfolioFiltersBtn').click();
     await page.locator('#portfolioFiltersPanel').getByRole('button', { name: 'Done', exact: true }).click();
     await page.keyboard.press('s');
-    await expect(page.locator('#portfolioSortSelect')).toBeFocused();
-    await page.locator('#portfolioSortSelect').selectOption('name');
+    await expect(tableHeader(page, 'ID').getByRole('button')).toBeFocused();
+    await tableHeader(page, 'Title').getByRole('button').click();
     await expectRowIds(page, [2, 1]);
     await expect(tableHeader(page, 'Title')).toHaveAttribute('aria-sort', 'ascending');
-    await page.locator('#portfolioSortSelect').selectOption('priority');
+    await tableHeader(page, 'Priority').getByRole('button').click();
     await expectRowIds(page, [1, 2]);
-    await page.locator('#portfolioSortSelect').selectOption('effort');
-    await expectRowIds(page, [2, 1]);
-    await page.locator('#portfolioSortSelect').selectOption('score');
-    await expectRowIds(page, [1, 2]);
-    await page.locator('#portfolioSortSelect').selectOption('name');
+    await tableHeader(page, 'Title').getByRole('button').click();
     await page.locator('#portfolioSearchBtn').focus();
     await page.keyboard.press('r');
     await expectRowIds(page, [1, 2]);
-    await expect(page.locator('#portfolioSortSelect')).toHaveValue('custom');
+    await expect(tableHeader(page, 'ID')).toHaveAttribute('aria-sort', 'ascending');
   });
 
-  test('keeps the separator arrow inside the select box for Semicolon at desktop and mobile widths', async ({ page }) => {
+  test('aligns the Columns popup to the right of the heading', async ({ page }) => {
+    await seedPortfolioBoards(page, [{ id: 'panels', title: 'Panels', hasHandle: true,
+      tasks: [{ id: 1, title: 'Workitem' }] }], { selectedBoardId: 'panels' });
+    await openTable(page);
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const selector of ['.table-columns']) {
+        const disclosure = page.locator(`#portfolioTable ${selector}`);
+        await disclosure.locator('summary').click();
+        const panel = disclosure.locator('[data-table-panel]');
+        await expect(panel).toBeVisible();
+        await expect.poll(async () => {
+          const bounds = (await panel.boundingBox())!;
+          const heading = (await disclosure.locator('..').locator('..').boundingBox())!;
+          return Math.abs(bounds.x + bounds.width - heading.x - heading.width);
+        }).toBeLessThan(2);
+        const bounds = await panel.boundingBox();
+        expect(bounds!.x).toBeGreaterThanOrEqual(0);
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+        await page.keyboard.press('Escape');
+        await expect(panel).toBeHidden();
+        await expect(disclosure.locator('summary')).toBeFocused();
+      }
+    }
+  });
+
+  test('CSV separator selection opens in a modal and can be cancelled', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'separator', title: 'CSV separator', hasHandle: true, tasks: [{ id: 1, title: 'CSV item' }] }], { selectedBoardId: 'separator' });
     await openTable(page);
-    await page.locator('#tableCsvSeparator').selectOption(';');
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 844 });
-      const bounds = await page.locator('.table-csv-select').evaluate((node) => {
-        const select = node.querySelector('select')!;
-        const arrow = node.querySelector('svg')!.getBoundingClientRect();
-        const box = select.getBoundingClientRect();
-        return { arrow: { left: arrow.left, right: arrow.right, top: arrow.top, bottom: arrow.bottom }, box: { left: box.left, right: box.right, top: box.top, bottom: box.bottom }, appearance: getComputedStyle(select).appearance };
-      });
-      expect(bounds.appearance).toBe('none');
-      expect(bounds.arrow.left).toBeGreaterThan(bounds.box.left);
-      expect(bounds.arrow.right).toBeLessThan(bounds.box.right);
-      expect(bounds.arrow.top).toBeGreaterThan(bounds.box.top);
-      expect(bounds.arrow.bottom).toBeLessThan(bounds.box.bottom);
-    }
+    await expect(page.locator('#tableCsvSeparator')).toHaveCount(0);
+    await page.locator('#tableExportCsv').click();
+    await expect(page.locator('#appMessageSelection option')).toHaveText(['Choose', 'Comma', 'Semicolon']);
+    await page.locator('#appMessageSelection').selectOption('1');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tableExportCsv')).toBeFocused();
   });
 
   test('keeps the main search visible when switching to Table', async ({ page }) => {
@@ -269,7 +266,7 @@ test.describe('workitems table', () => {
     await expectRowIds(page, [1]);
     await setTableSearch(page, 'workitem');
     await page.locator('[data-view-mode="board"]').click();
-    await expect(page.locator('#portfolioSearchBtn')).toContainText('workitem');
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('workitem');
     await openTable(page);
     await expectTableSearch(page, 'workitem');
     await page.locator('#portfolioSearchBtn').click();
@@ -289,7 +286,7 @@ test.describe('workitems table', () => {
     }], { selectedBoardId: 'compact' });
     await openTable(page, false);
     await expect(page.locator('#portfolioBlockedFilter')).toBeHidden();
-    await expect(page.locator('#portfolioToolbar #portfolioFiltersBtn')).toBeVisible();
+    await expect(page.locator('#portfolioTable .table-heading #portfolioFiltersBtn')).toBeVisible();
     await expect(tableRow(page, 1)).toBeInViewport();
     await page.locator('#portfolioFiltersBtn').click();
     await expect(page.locator('#portfolioBlockedFilter')).toBeVisible();
@@ -428,6 +425,7 @@ test.describe('workitems table', () => {
 
     await openColumnOptions(page);
     await page.locator('#tableColumn-dueDate').check();
+    await page.keyboard.press('Escape');
     await tableHeader(page, 'Due').getByRole('button').click();
     await expect(tableHeader(page, 'Due')).toHaveAttribute('aria-sort', 'ascending');
     const ascendingIds = await tableRows(page).evaluateAll((rows) => (
@@ -667,7 +665,7 @@ test.describe('workitems table', () => {
       await tableHeader(page, 'ID').getByRole('button').click();
       await expect(tableHeader(page, 'ID')).toHaveAttribute('aria-sort', 'descending');
       await tableRow(page, 100).getByRole('checkbox', { name: 'Select Export 100', exact: true }).check();
-      await expect(page.locator('#portfolioTable .table-summary > span[role="status"]')).toHaveText('1 selected');
+      await expect(page.locator('#portfolioTable .table-counts > span[role="status"]')).toHaveText('1 selected');
 
       await openColumnOptions(page);
       for (const column of ['type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']) {
@@ -676,9 +674,10 @@ test.describe('workitems table', () => {
       await page.locator('#tableColumn-dueDate').check();
       await moveColumnBefore(page, 'Due', 'Title');
       await expectColumnOrder(page, ['ID', 'Due', 'Title']);
-      await page.locator('#tableCsvSeparator').selectOption(separator);
+      await page.keyboard.press('Escape');
 
-      const csv = parseCsv(await exportCsv(page), separator);
+
+      const csv = parseCsv(await exportCsv(page, separator), separator);
       expect(csv[0]).toEqual(['ID', 'Due', 'Title']);
       expect(csv).toHaveLength(102);
       expect(csv.slice(1).map((row) => Number(row[0]))).toEqual(
@@ -752,7 +751,7 @@ test.describe('workitems table', () => {
     await expect(page.locator('#portfolioTable')).toContainText('Page 1 of 400');
     await page.locator('#portfolioTable').getByRole('checkbox', { name: 'Select this page', exact: true }).check();
     await expect(tableRows(page).getByRole('checkbox', { checked: true })).toHaveCount(25);
-    await expect(page.locator('#portfolioTable .table-summary > span[role="status"]')).toHaveText('25 selected');
+    await expect(page.locator('#portfolioTable .table-counts > span[role="status"]')).toHaveText('25 selected');
     await page.locator('#tableNextPage').click();
     await expect(tableRows(page).getByRole('checkbox', { checked: true })).toHaveCount(0);
 
@@ -764,7 +763,7 @@ test.describe('workitems table', () => {
   });
 
   test('Portuguese empty, no-match and missing-value states are distinct and translated', async ({ page }) => {
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await seedPortfolioBoards(page, [
       { id: 'empty', title: 'Vazio', hasHandle: false, tasks: [] },
       { id: 'legacy', title: 'Legado', hasHandle: false, tasks: [{ id: 1, title: 'Sem atributos' }] }
@@ -821,7 +820,7 @@ test.describe('workitems table', () => {
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
     await expect(appMessage(page)).toBeHidden();
 
-    await chip.getByRole('button', { name: 'Retry', exact: true }).click();
+    await openProjectPicker(page); await chip.getByRole('button', { name: 'Retry', exact: true }).click();
     await waitForBoardWrites(page);
     await expect(chip.locator('.chip-save-state')).toHaveCount(0);
     expect((await readSavedBoard(page, 'retry')).board.tasks[0].title).toBe('Unsaved edit');

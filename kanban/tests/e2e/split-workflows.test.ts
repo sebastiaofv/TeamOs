@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { defaultWorkflow } from '../../src/domain/workflow';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openProjectSettingsFromPicker, selectTableView } from '../support/portfolio';
 
 test('settings keep independent workflow drafts and apply labels and colours to the respective boards and items', async ({ page }) => {
     await gotoApp(page);
@@ -11,7 +11,7 @@ test('settings keep independent workflow drafts and apply labels and colours to 
         { id: 3, title: 'Product epic', type: 'epic', status: 'doing' },
         { id: 4, title: 'Technical bug', type: 'bug', status: 'doing' }
     ] }], { selectedBoardId: 'p' });
-    await page.getByRole('button', { name: 'Settings for Two processes', exact: true }).click();
+    await openProjectSettingsFromPicker(page, 'Two processes');
     const modal = page.locator('#projectSettingsModal');
     const tabs = modal.getByRole('tablist', { name: 'Project settings', exact: true });
     await expect(tabs.getByRole('tab')).toHaveText(['General', 'Technical workflow', 'Functional workflow']);
@@ -43,7 +43,7 @@ test('settings keep independent workflow drafts and apply labels and colours to 
     await expect(page.locator('.portfolio-column[data-status="doing"]')).toContainText('Implementation task');
     await expect(page.locator('.portfolio-column[data-status="doing"]')).toContainText('Technical bug');
     await expect(page.locator('.portfolio-column[data-status="doing"]')).not.toContainText('Product story');
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await expect(page.locator('.portfolio-column[data-status="doing"] h2')).toContainText('Functional analysis');
     await expect(page.locator('.portfolio-column[data-status="doing"]')).toContainText('Product story');
     await expect(page.locator('.portfolio-column[data-status="doing"]')).not.toContainText('Product epic');
@@ -55,12 +55,12 @@ test('settings keep independent workflow drafts and apply labels and colours to 
         await expect(badge).toHaveAttribute('data-state-color', '#112233');
     }
     for (const id of [2, 3]) {
-        await page.locator(`[data-table-view="${id === 2 ? 'stories' : id === 3 ? 'epics' : 'all'}"]`).click();
+        await selectTableView(page, id === 2 ? 'stories' : id === 3 ? 'epics' : 'all');
         const badge = page.locator(`#workitemsTable [data-task-id="${id}"] [data-column="status"] .table-status-badge`);
         await expect(badge).toHaveText('Functional analysis');
         await expect(badge).toHaveAttribute('data-state-color', '#aa22bb');
     }
-    await page.getByRole('button', { name: 'Settings for Two processes', exact: true }).click();
+    await openProjectSettingsFromPicker(page, 'Two processes');
     await tabs.getByRole('tab', { name: 'Functional workflow', exact: true }).click();
     await modal.locator('[data-state-choice="doing"]').click();
     await expect(modal.getByRole('textbox', { name: 'Title 3', exact: true })).toHaveValue('Functional analysis');
@@ -71,7 +71,7 @@ for (const width of [390, 1280]) {
         await page.setViewportSize({ width, height: 720 });
         await gotoApp(page);
         await seedPortfolioBoards(page, [{ id: 'p', title: 'Read only workflows', extensions: { workflow: defaultWorkflow(), functionalWorkflow: defaultWorkflow() } }]);
-        await page.getByRole('button', { name: 'Settings for Read only workflows', exact: true }).click();
+        await openProjectSettingsFromPicker(page, 'Read only workflows');
         const modal = page.locator('#projectSettingsModal');
         await modal.getByRole('tab', { name: 'Functional workflow', exact: true }).click();
         await expect(modal.getByRole('textbox', { name: 'Title 1', exact: true })).toBeDisabled();

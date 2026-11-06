@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, toggleLanguage, selectTableView, openTableSprintActions } from '../support/portfolio';
 
 for (const language of ['en', 'pt'] as const) test(`Sprint date review shows independent dated choices beside each phase (${language})`, async ({ page }) => {
     await gotoApp(page);
@@ -12,10 +12,11 @@ for (const language of ['en', 'pt'] as const) test(`Sprint date review shows ind
         { id: 'delivery', title: 'Delivery with a longer phase name', startDate: '2026-11-10', endDate: '2026-11-20' },
         { id: 'support', title: 'Support', startDate: '2026-11-10', endDate: '2026-11-30' }
     ] } } }], { selectedBoardId: 'p' });
-    if (language === 'pt') await page.locator('#languageToggleBtn').click();
+    if (language === 'pt') await toggleLanguage(page);
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     for (const checkbox of await page.locator('#workitemsTable tbody input[type="checkbox"]').all()) await checkbox.check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Delivery Sprint');
     await page.locator('#roadmapEntityStartDate').fill('05/11/2026');

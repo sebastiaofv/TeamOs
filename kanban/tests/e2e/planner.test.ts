@@ -1,14 +1,6 @@
-import { showTimeline } from '../support/portfolio';
+import { showTimeline, toggleLanguage, dragWithMouse, gotoApp, readSavedBoard, seedPortfolioBoards, selectPortfolioBoard, setTimelineSlider, waitForBoardWrites } from '../support/portfolio';
 import { test, expect, type Page } from '@playwright/test';
-import {
-  dragWithMouse,
-  gotoApp,
-  readSavedBoard,
-  seedPortfolioBoards,
-  selectPortfolioBoard,
-  setTimelineSlider,
-  waitForBoardWrites
-} from '../support/portfolio';
+
 
 // The browser and the test runner share the machine's time zone.
 function localIsoDate(date = new Date()) {
@@ -149,10 +141,10 @@ test.describe('day planner', () => {
     await expect(panel).toContainText('Baseline snapshot created');
 
     // The fixed wording follows the selected language; the task name does not.
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await expect(panel).toContainText('"Write spec" movida para');
     await expect(panel).toContainText('Cópia de base criada');
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await expect(panel).toContainText('Moved "Write spec"');
 
     // Event 0 is the baseline, before the move.

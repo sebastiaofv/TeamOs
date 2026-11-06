@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { mockImportProjectsPicker, showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch } from './support/portfolio';
+import { mockImportProjectsPicker, showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch, openProjectSettingsFromPicker, openProjectPicker, selectTableView, openTableSprintActions } from './support/portfolio';
 
 test.describe('US-4 persisted Board column chooser', () => {
   for (const theme of ['light', 'dark']) {
@@ -9,7 +9,7 @@ test.describe('US-4 persisted Board column chooser', () => {
       await seedPortfolioBoards(page, [{ id: 'columns', title: 'Column preferences', hasHandle: true, tasks: [
         { id: 1, title: 'Original card layout', status: 'doing', assignees: ['Ana'], responsible: 'Ana', tags: ['ui'] }
       ] }], { selectedBoardId: 'columns' });
-      await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+      await openFiltersPanel(page);
       await page.getByRole('checkbox', { name: 'done', exact: true }).uncheck();
       await page.mouse.move(1, 1);
       await expect(page).toHaveScreenshot(`board-column-visibility-${theme}.png`, { fullPage: true });
@@ -27,7 +27,7 @@ test.describe('US-4 workflow configuration layout', () => {
         const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
         await seedPortfolioBoards(page, [{ id: 'workflow', title: fixture.board.settings.title, hasHandle: true,
           tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'workflow' });
-        await page.getByRole('button', { name: /^Settings for / }).click();
+        await openProjectSettingsFromPicker(page);
         await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
         const dialog = page.locator('.workflow-dialog');
         expect((await dialog.boundingBox())!.width).toBeLessThanOrEqual(width);
@@ -75,15 +75,19 @@ test.describe('US-01 workitems table', () => {
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`table-review-all-${theme}.png`);
-      await page.locator('[data-table-view="unplanned"]').click();
+      await selectTableView(page, 'unplanned');
       await page.locator('#workitemsTable [data-task-id="1"] input').check();
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`table-review-planning-${theme}.png`);
+      await openTableSprintActions(page);
+      await page.mouse.move(1, 1);
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page).toHaveScreenshot(`table-sprint-actions-${theme}.png`);
       await page.locator('#tableAddToSprint').click();
       await expect(page).toHaveScreenshot(`table-review-assign-${theme}.png`);
       await page.locator('#roadmapEntityModalCancelBtn').click();
-      await page.locator('[data-table-view="sprints"]').click();
+      await selectTableView(page, 'sprints');
       await page.locator('[data-table-sprint="active"] > summary .table-sprint-name').click();
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -104,7 +108,7 @@ test.describe('US-01 workitems table', () => {
         extensions: ROADMAP
       }], { selectedBoardId: 'table' });
       await page.locator('[data-view-mode="table"]').click();
-      await page.locator('#tableCsvSeparator').selectOption(';');
+
       await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(3);
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -125,7 +129,7 @@ test.describe('US-01 workitems table', () => {
       tasks: [{ id: 1, title: 'Prepare delivery', status: 'doing', assignees: ['Ana'], priority: 'high' }]
     }], { selectedBoardId: 'compact-table' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('#tableCsvSeparator').selectOption(';');
+
     await expect(page.locator('#portfolioSearchBtn')).toBeVisible();
     await page.mouse.move(1, 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -402,9 +406,11 @@ test.describe('2.1a modals and toast', () => {
         extensions: ROADMAP
       }
     ], { selectedBoardId: 'v1' });
-    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
-    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
-    await page.getByRole('button', { name: 'Add to Existing Sprint' }).click();
+    await page.locator('[data-view-mode="table"]').click();
+    await selectTableView(page, 'unplanned');
+    for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input[type="checkbox"]`).check();
+    await openTableSprintActions(page);
+    await page.locator('#tableAddToSprint').click();
     await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
     await expect(page).toHaveScreenshot('roadmap-add-to-sprint-light.png', { fullPage: true });
   });
@@ -428,7 +434,7 @@ test.describe('2.1b task editor', () => {
     await seedPortfolioBoards(page, [
       { id: 'v1', title: 'Launch', hasHandle: true, tasks: [FULL_TASK], extensions: ROADMAP }
     ], { selectedBoardId: 'v1' });
-    await portfolioCard(page, 'Prepare launch checklist').locator('[data-action="edit-task"]').click();
+    await portfolioCard(page, 'Prepare launch checklist').click(); await page.locator('#taskDetailEditBtn').click();
     await expect(page.locator('#modalTitle')).toHaveText('Edit Task');
     await expect(page.locator('#taskAssigneeItems .assignee-editor-row')).toHaveCount(2);
     await expect(page.locator('#taskChecklistItems .checklist-editor-row')).toHaveCount(3);
@@ -508,11 +514,12 @@ test.describe('2.2 toolbar and chips', () => {
         { id: 'v2', title: 'Beta Project', hasHandle: false, tasks: [{ id: 2, title: 'Beta task', status: 'doing' }] }
       ]);
       await expect(page.locator('#portfolioBoardsChips .portfolio-chip')).toHaveCount(3);
+      await openProjectPicker(page);
       await captureControls(page, `toolbar-chips-all-${theme}.png`);
     });
   }
 
-  test('selected toolbar with active filters and bulk actions (light)', async ({ page }) => {
+  test('selected toolbar with active filters (light)', async ({ page }) => {
     await gotoVisualApp(page, 'light');
     await seedPortfolioBoards(page, [{
       id: 'v1',
@@ -530,8 +537,8 @@ test.describe('2.2 toolbar and chips', () => {
     await page.locator('#portfolioPriorityFilter').selectOption('high');
     await page.locator('#portfolioEffortFilter').selectOption('L');
     await page.locator('#portfolioSortSelect').selectOption('score');
-    await page.locator('#portfolio-backlog-column input[data-action="toggle-bulk-task-selection"]').check();
-    await expect(page.locator('#portfolioBulkActions')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#portfolioBulkActions')).toBeHidden();
     await captureControls(page, 'toolbar-selected-bulk-light.png');
   });
 
@@ -568,6 +575,7 @@ test.describe('2.2 toolbar and chips', () => {
       };
     });
     await dragWithMouse(page, portfolioCard(page, 'Move me'), page.locator('#portfolio-doing-column'));
+    await openProjectPicker(page);
     const chip = page.locator('#portfolioBoardsChips .portfolio-chip.active');
     await expect(chip).toContainText('Save failed');
     await expect(chip.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
@@ -754,7 +762,7 @@ test.describe('2.5 roadmap and 2.6 calendar views', () => {
     await page.getByRole('button', { name: 'Day Planner', exact: true }).click();
     await page.getByRole('button', { name: 'Calendar', exact: true }).click();
     await page.getByRole('button', { name: 'Heat Map' }).click();
-    await page.getByRole('button', { name: 'Open March 2026' }).click();
+    await page.getByRole('button', { name: /^March \d+ items?$/ }).click();
     await page.mouse.move(1, 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
     await expect(page).toHaveScreenshot('portfolio-calendar-month-heatmap-light.png', { fullPage: true });
@@ -808,7 +816,7 @@ test.describe('US-12 workitem detail and functional acceptance', () => {
     const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
     await seedPortfolioBoards(page, [{ id: 'us12', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us12' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="stories"]').click();
+    await selectTableView(page, 'stories');
     await page.locator('#workitemsTable tr[data-task-id="1202"]').getByRole('button', { name: 'Pagar com cartão', exact: true }).click();
     await expect(page.locator('#taskDetailModal')).toHaveScreenshot(`us12-story-${theme}.png`, { animations: 'disabled' });
     await page.locator('#taskDetailModalFooterCloseBtn').click();
@@ -895,7 +903,12 @@ test.describe('US-13 product navigation and transfer review', () => {
       await page.setViewportSize({ width, height: 900 });
       await mockImportProjectsPicker(page, ['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent'].map((name) => ({ fileName: `${name}.board.json`, payload: JSON.parse(readFileSync(`test-board/${name}.board.json`, 'utf8')) })));
       await page.locator('#importProjectsBtn').click();
+      await openProjectPicker(page);
+      for (const product of await page.locator('#portfolioBoardsChips details').all()) {
+        if (!await product.evaluate(node => (node as HTMLDetailsElement).open)) await product.locator('summary').click();
+      }
       await expect(page.locator('#portfolioBoardsChips')).toHaveScreenshot(`us13-projects-${theme}-${width}.png`);
+      await page.keyboard.press('Escape');
       const card = portfolioCard(page, 'Reparar portão'); await card.click();
       const dialog = page.locator('#taskDetailModal');
       await dialog.getByLabel('Task actions', { exact: true }).click();
@@ -923,14 +936,14 @@ test.describe('US-13 hierarchy review', () => {
       const fixture = JSON.parse(readFileSync('test-board/us-13-hierarchy.board.json', 'utf8'));
       await seedPortfolioBoards(page, [{ id: 'hierarchy', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'hierarchy' });
       await page.locator('[data-view-mode="table"]').click();
-      await page.locator('[data-table-view="hierarchy"]').click();
+      await selectTableView(page, 'hierarchy');
       await page.locator('#workitemsTable').getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();
       await page.locator('#workitemsTable').getByRole('button', { name: 'Expand Preparar lançamento', exact: true }).click();
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page.locator('#portfolioTable')).toHaveScreenshot(`us13-all-hierarchy-${theme}-${width}.png`);
       await page.locator('[data-view-mode="roadmap"]').click();
-      await page.getByRole('button', { name: 'Show tasks for Exterior', exact: true }).click();
+      await page.getByRole('button', { name: 'Show tasks for Exterior', exact: false }).click();
       const scope = page.locator('[data-roadmap-task-list="phase:exterior"]');
       await scope.getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();
       await scope.getByRole('button', { name: 'Expand Preparar lançamento', exact: true }).click();
@@ -955,7 +968,7 @@ test.describe('US-13 grouped mappings and rejected transfers', () => {
         ] },
         { id: 'target', title: 'Maintenance', hasHandle: true, extensions: { project: { version: 1, id: 'maintenance', productName: 'House', description: '', status: null, members: [], tags: ['maintenance'] } } }
       ], { selectedBoardId: 'source' });
-      await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+      await page.getByRole('button', { name: 'Functional', exact: true }).click();
       await portfolioCard(page, 'Parent story').click();
       const detail = page.locator('#taskDetailModal');
       await detail.getByLabel('Task actions', { exact: true }).click();
