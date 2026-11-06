@@ -127,7 +127,7 @@ test('historical period uses saved observations and historical drilldowns instea
     await expect(page.getByRole('alert')).toContainText('The end date');
     await page.getByLabel('Snapshot', { exact: true }).selectOption('0');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
-    await expect(page.locator('.dashboard-heading')).toContainText('Historical snapshot');
+    await expect(page.locator('.dashboard-context')).toContainText('Historical snapshot');
     await kpi(page, 'progress').click();
     const row = sources(page).locator('tr', { hasText: 'Validated implementation' });
     await expect(row).toContainText('In progress');

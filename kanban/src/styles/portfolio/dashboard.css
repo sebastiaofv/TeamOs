@@ -1,10 +1,11 @@
 .portfolio-board-wrap.dashboard-active { overflow-y: auto; }
 .portfolio-dashboard { padding: 16px; min-width: 0; color: var(--text-primary); }
-.dashboard-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
-.dashboard-heading h2 { font-size: 20px; margin-bottom: 6px; }
-.dashboard-heading p, .dashboard-note { color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.dashboard-note { color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
 .dashboard-note { margin: 8px 0; }
 .dashboard-controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
+.dashboard-filters { align-items: end; }
+.dashboard-filters > label { flex: 1 1 150px; }
+.dashboard-filters > .dashboard-snapshot, .dashboard-filters > .dashboard-visible-sections { flex: 1 1 220px; }
 .dashboard-controls label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.5; min-width: 0; max-width: 100%; }
 .dashboard-controls select, .dashboard-controls input { max-width: 380px; width: 100%; min-height: 34px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); padding: 6px 10px; }
 .dashboard-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
@@ -118,3 +119,5 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
     .dashboard-visible-sections { flex-basis: 100%; }
     .dashboard-visible-sections fieldset { min-width: 0; }
 }
+
+@media (max-width: 600px) { .dashboard-filters > label, .dashboard-filters > .dashboard-visible-sections { flex-basis: 100%; } }

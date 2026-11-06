@@ -134,13 +134,11 @@ function Dashboard({ boardId }: { boardId: string }) {
         navigateToRoadmapItem(boardId, kind, item.id, displayData || data);
     };
     return <>
-        <header className="dashboard-heading"><div><h2>{t('dashboard.title')} · {board.title || board.fileName}</h2><p role="status">{timeline.isPreview ? t('dashboard.historical', { at: timeline.selectedEvent!.at }) : end < today ? t('dashboard.asOf', { date: end }) : t('dashboard.current')}</p></div>
-            <div className="dashboard-controls"><label>{t('dashboard.snapshot')}<select aria-label={t('dashboard.snapshot')} value={timeline.isPreview ? String(timeline.selectedIndex) : 'current'} onChange={(event) => { setTo(''); setFrom(''); setDrill(null); if (event.target.value === 'current') actions.movePortfolioTimelineToLatest(boardId); else actions.setPortfolioTimelineSelection(boardId, Number(event.target.value)); }}>
+        <p className="sr-only dashboard-context" role="status">{timeline.isPreview ? t('dashboard.historical', { at: timeline.selectedEvent!.at }) : end < today ? t('dashboard.asOf', { date: end }) : t('dashboard.current')}</p>
+        <div className="dashboard-controls dashboard-filters">
+            <label className="dashboard-snapshot">{t('dashboard.snapshot')}<select aria-label={t('dashboard.snapshot')} value={timeline.isPreview ? String(timeline.selectedIndex) : 'current'} onChange={(event) => { setTo(''); setFrom(''); setDrill(null); if (event.target.value === 'current') actions.movePortfolioTimelineToLatest(boardId); else actions.setPortfolioTimelineSelection(boardId, Number(event.target.value)); }}>
                 <option value="current">{t('dashboard.current')}</option>{timeline.timeline?.events[0]?.snapshot?.board && timeline.timeline.events.slice(0, -1).map((event, index) => <option value={index} key={event.id}>{event.at} · {event.summary}</option>)}
             </select></label>
-            </div>
-        </header>
-        <div className="dashboard-controls dashboard-filters">
             <details className="dashboard-visible-sections"><summary>{t('dashboard.visibleSections')} ({visible.length} / {DASHBOARD_SECTIONS.length})</summary><fieldset><legend className="sr-only">{t('dashboard.visibleSections')}</legend>
                 {DASHBOARD_SECTIONS.map((key) => <label key={key}><input type="checkbox" checked={visible.includes(key)} onChange={(event) => { setVisible((current) => event.target.checked ? [...current, key] : current.filter((value) => value !== key)); setDrill(null); }} />{t(`dashboard.section.${key}`)}</label>)}
                 <div><button className="btn" type="button" onClick={() => setVisible([...DASHBOARD_SECTIONS])}>{t('dashboard.selectAll')}</button><button className="btn" type="button" onClick={() => { setVisible([]); setDrill(null); }}>{t('dashboard.clearAll')}</button></div>

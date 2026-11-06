@@ -468,7 +468,7 @@ test('table search, filters, sorting, overdue and empty states work in both lang
     await page.getByLabel('Search by ID or title', { exact: true }).fill('missing');
     await expect(page.getByRole('status')).toContainText('No records match');
     await toggleLanguage(page);
-    await expect(page.getByRole('heading', { name: 'Controlo do projeto', exact: true })).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Controlo do projeto', exact: true })).toBeVisible();
     await expect(page.getByRole('status')).toContainText('Nenhum registo encontrado');
 });
 
