@@ -86,7 +86,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         ));
     }
 
-    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string; preferredType?: WorkitemType } = {}) {
+    function openPortfolioCreateTaskModal(boardId: string, preferredStatus: unknown, options: { preferredDueDate?: string; preferredType?: WorkitemType; preferredSprintId?: string } = {}) {
         const boardRecord = getBoardRecord(boardId);
         if (!boardRecord) return;
         if (!canUsePortfolioTaskMutations(boardId)) {
@@ -99,7 +99,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const preferred = String(preferredStatus || '').trim();
         const status = workflow.states.some((state) => state.id === preferred) ? preferred : 'backlog';
         commitState({
-            portfolioCreateContext: { boardId, status, ...(returnToDetail ? { returnToDetail } : {}) },
+            portfolioCreateContext: { boardId, status, ...(options.preferredSprintId ? { sprintId: options.preferredSprintId } : {}), ...(returnToDetail ? { returnToDetail } : {}) },
             portfolioEditContext: null
         });
         const model = buildTaskEditorViewModel(
@@ -260,7 +260,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
 
         if (state.portfolioCreateContext?.boardId) {
-            const { boardId, relatedTo, returnToDetail } = state.portfolioCreateContext;
+            const { boardId, relatedTo, returnToDetail, sprintId } = state.portfolioCreateContext;
             const boardRecord = getBoardRecord(boardId);
             if (!boardRecord) return;
             if (!canUsePortfolioTaskMutations(boardId)) {
@@ -274,10 +274,15 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             await runPortfolioBoardMutation(boardId, (data) => {
                 const nextId = nextTaskIdForBoard({ data });
                 createdId = nextId;
-                data.board.tasks.push(normalizeTask({
+                const task = normalizeTask({
                     id: nextId, ...commonFields, archived: false,
                     createdAt: now, updatedAt: now, status
-                }, { roadmap: data.extensions.roadmap, includeStatusChangedAt: false }));
+                }, { roadmap: data.extensions.roadmap, includeStatusChangedAt: false });
+                if (sprintId && isPlanningUnit(data, task)) {
+                    if (!eligibleSprint(data, sprintId)) throw new WorkitemError('sprint');
+                    task.sprintId = sprintId;
+                }
+                data.board.tasks.push(task);
                 setTaskAttachments(data, nextId, draft.attachments);
                 if (relatedTo) {
                     const beforeRelations = cloneSerializable(getRelations(data));

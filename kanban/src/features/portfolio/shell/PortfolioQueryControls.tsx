@@ -4,15 +4,17 @@ import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioContr
 import { setTableFilter } from '@/features/portfolio/table/tableControls';
 import { useI18n } from '@/shared/i18n';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
-import { PortfolioActiveFilters, PortfolioToolbarFilters } from './PortfolioFilters';
+import { PortfolioActiveFilters, PortfolioToolbarFilters, type AdditionalPortfolioFilter } from './PortfolioFilters';
 import type { WorkflowKind } from '@/domain/types';
 
 /** Reused fields inside the active view's existing toolbar. */
-export function PortfolioQueryControls({ active = true, boardMode }: { active?: boolean; boardMode?: WorkflowKind }) {
-    return active ? <QueryControlsContent boardMode={boardMode} /> : null;
+type QueryProps = { boardMode?: WorkflowKind; scope?: string; additionalFields?: AdditionalPortfolioFilter[] };
+export function PortfolioQueryControls({ active = true, ...props }: QueryProps & { active?: boolean }) {
+    return active ? <QueryControlsContent {...props} /> : null;
 }
 
-function QueryControlsContent({ boardMode }: { boardMode?: WorkflowKind }) {
+function QueryControlsContent({ boardMode, scope = '', additionalFields = [] }: QueryProps) {
+    const scopedId = (id: string) => scope ? `${id}-${scope}` : id;
     const { t } = useI18n();
     const state = useAppStore(useShallow((s) => ({
         filters: s.portfolioFilters, view: s.selectedPortfolioViewMode,
@@ -24,16 +26,16 @@ function QueryControlsContent({ boardMode }: { boardMode?: WorkflowKind }) {
         <div className="portfolio-query-controls">
             <div className="section-search">
                 <WorkspaceIcon name="search" />
-                <input id="portfolioSearchInput" type="search" aria-label={t('toolbar.searchWorkitems')} placeholder={t(table ? 'toolbar.searchWorkitems' : 'toolbar.projectSearch')}
+                <input id={scopedId('portfolioSearchInput')} type="search" aria-label={t('toolbar.searchWorkitems')} placeholder={t(table ? 'toolbar.searchWorkitems' : 'toolbar.projectSearch')}
                     value={search} onChange={(event) => table ? setTableFilter('search', event.target.value) : setPortfolioFilter('search', event.target.value)} />
-                {search && <button className="section-search-clear" id="portfolioSearchClearBtn" type="button"
+                {search && <button className="section-search-clear" id={scopedId('portfolioSearchClearBtn')} type="button"
                     aria-label={table ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
                     title={table ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
                     onClick={() => table ? setTableFilter('search', '') : setPortfolioFilter('search', '')}>×</button>}
             </div>
-            <PortfolioToolbarFilters boardMode={boardMode} />
+            <PortfolioToolbarFilters boardMode={boardMode} scope={scope} additionalFields={additionalFields} />
         </div>
-        <PortfolioActiveFilters />
+        <PortfolioActiveFilters scope={scope} additionalFields={additionalFields} />
         {!table && <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{t('toolbar.resultsCount', { count: state.count })}</span>}
     </div>;
 }

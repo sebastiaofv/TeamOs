@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, portfolioCard, openProjectSettingsFromPicker } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, portfolioCard, openProjectSettingsFromPicker, selectTableView } from '../support/portfolio';
 
 test.use({ timezoneId: 'Europe/Lisbon' });
 
@@ -61,6 +61,6 @@ test('a Planned Sprint is deleted from its editor; workitems return to planning 
   expect(saved.extensions.roadmap.sprints.map((sprint: { id: string }) => sprint.id)).toEqual(['s2']);
   expect(saved.board.tasks.map((task: { status: string; sprintId: string }) => [task.status, task.sprintId])).toEqual([['to-do', ''], ['backlog', '']]);
   await page.locator('[data-view-mode="table"]').click();
-  await page.locator('[data-table-view="unplanned"]').click();
+  await selectTableView(page, 'unplanned');
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
 });

@@ -1,4 +1,4 @@
-import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openProjectPicker } from '../support/portfolio';
+import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openProjectPicker, selectTableView } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 
@@ -17,7 +17,7 @@ test('sprint creation order and numbering survive name/date edits and reimport',
     ] }
   } }], { selectedBoardId: 'p' });
   await page.locator('[data-view-mode="table"]').click();
-  await page.locator('[data-table-view="sprints"]').click();
+  await selectTableView(page, 'sprints');
   const names = page.locator('#portfolioTable .table-sprint-name');
   await expect(names).toHaveText(['Sprint 3 - Implementation', 'Sprint 2 - Design', 'Sprint 1 - Discovery']);
   await page.locator('[data-view-mode="roadmap"]').click();
@@ -35,7 +35,7 @@ test('sprint creation order and numbering survive name/date edits and reimport',
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'reopened', title: saved.board.settings.title, hasHandle: true, tasks: saved.board.tasks, extensions: saved.extensions }], { selectedBoardId: 'reopened' });
   await page.locator('[data-view-mode="table"]').click();
-  await page.locator('[data-table-view="sprints"]').click();
+  await selectTableView(page, 'sprints');
   await expect(names).toHaveText(['Sprint 3 - Implementation', 'Sprint 2 - New design name', 'Sprint 1 - Discovery']);
 });
 
@@ -51,7 +51,7 @@ test('planning creation follows legacy numbering; a second project starts at one
   for (const [project, id, expectedNumber] of [['Project A', 'a', 2], ['Project B', 'b', 1]] as const) {
     await openProjectPicker(page); await page.locator('#portfolioBoardsChips [data-action="select-board"]').filter({ hasText: project }).click();
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Execution');
@@ -60,7 +60,7 @@ test('planning creation follows legacy numbering; a second project starts at one
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
   await confirmWorkitemChanges(page);
     await expect.poll(async () => (await readSavedBoard(page, id)).extensions.sprintCatalog?.lastNumber).toBe(expectedNumber);
-    await page.locator('[data-table-view="sprints"]').click();
+    await selectTableView(page, 'sprints');
     await expect(page.locator('.table-sprint-name').first()).toHaveText(`Sprint ${expectedNumber} - Execution`);
     const entries = (await readSavedBoard(page, id)).extensions.sprintCatalog.entries;
     expect(entries.at(-1)).toMatchObject({ number: expectedNumber, createdAt: '2026-10-18T12:00:00.000Z' });

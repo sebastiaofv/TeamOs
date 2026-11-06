@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, openProjectPicker } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, openProjectPicker, selectTableView, openFiltersPanel } from '../support/portfolio';
 
 async function seed(page: Page) {
     await page.clock.setFixedTime('2026-10-31T12:00:00Z');
@@ -30,7 +30,7 @@ test('existing child links unwind Task â†’ Story â†’ Epic', async ({ page }) => 
     await page.setViewportSize({ width: 1280, height: 600 });
     await seed(page);
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="epics"]').click();
+    await selectTableView(page, 'epics');
     await page.locator('#workitemsTable tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     await page.locator('.workitem-hierarchy').getByRole('button', { name: 'Story', exact: true }).click();
     await page.locator('#taskDetailModal .modal-body').evaluate((body) => { body.scrollTop = body.scrollHeight; });
@@ -81,7 +81,7 @@ for (const screen of ['roadmap', 'table']) test(`new child details unwind Task â
     await seed(page);
     if (screen === 'table') {
         await page.locator('[data-view-mode="table"]').click();
-        await page.locator('[data-table-view="epics"]').click();
+        await selectTableView(page, 'epics');
         await page.locator('#workitemsTable tbody').getByRole('button', { name: 'Epic', exact: true }).click();
     } else {
         await page.locator('[data-view-mode="roadmap"]').click();
@@ -119,8 +119,8 @@ for (const screen of ['roadmap', 'table']) test(`new child details unwind Task â
 test('ALL before Epic shows both hierarchy levels and independent workitems with keyboard disclosure', async ({ page }) => {
     await seed(page);
     await page.locator('[data-view-mode="table"]').click();
-    await expect(page.locator('.table-view-options button').first()).toHaveText('ALL');
-    await page.locator('[data-table-view="hierarchy"]').click();
+    await expect(page.locator('#tableViewBtn')).toContainText('All');
+    await selectTableView(page, 'hierarchy');
     const table = page.locator('#workitemsTable');
     await expect(table.locator('tbody tr')).toHaveCount(3);
     await table.getByRole('button', { name: 'Expand Epic', exact: true }).focus();
@@ -132,7 +132,7 @@ test('ALL before Epic shows both hierarchy levels and independent workitems with
     await expect(table.locator('[data-task-id="4"]')).toHaveAttribute('data-depth', '1');
     await table.getByRole('button', { name: 'Collapse Epic', exact: true }).click();
     await expect(table.locator('tbody tr')).toHaveCount(3);
-    await page.locator('.table-hierarchy-options summary').click();
+    await openFiltersPanel(page);
     await page.locator('#tableTypeFilter').selectOption('task');
     await expect(table.locator('tbody tr')).toHaveCount(3);
     await expect(table.locator('.table-tree-toggle')).toHaveCount(0);
@@ -141,7 +141,7 @@ test('ALL before Epic shows both hierarchy levels and independent workitems with
 test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Table', async ({ page }) => {
     await seed(page);
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="hierarchy"]').click();
+    await selectTableView(page, 'hierarchy');
     const headings = await page.locator('#workitemsTable thead th').allTextContents();
     await page.locator('[data-view-mode="roadmap"]').click();
     await page.getByRole('button', { name: 'Show tasks for Delivery', exact: false }).click();
@@ -171,7 +171,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await expect(sprint.locator('tbody tr')).toHaveCount(3);
     await expect(sprint.locator('[data-task-id="3"]')).toHaveAttribute('data-depth', '1');
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="sprints"]').click();
+    await selectTableView(page, 'sprints');
     const mainSprint = page.locator('[data-table-sprint="s"]');
     await mainSprint.locator(':scope > summary .table-sprint-name').click();
     await mainSprint.getByRole('button', { name: 'Expand Story', exact: true }).click();

@@ -71,9 +71,12 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
                 expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
             }
             if (width === 1280 && view === 'table') {
-                const queries = await page.locator(`${section} .portfolio-query-fields`).boundingBox();
-                const tools = await page.locator(`${section} .table-tools`).boundingBox();
-                expect(queries!.x + queries!.width).toBeLessThanOrEqual(tools!.x);
+                const search = await page.locator(`${section} .section-search`).boundingBox();
+                const filters = await page.locator(`${section} #portfolioFiltersBtn`).boundingBox();
+                const columns = await page.locator(`${section} #tableColumns`).boundingBox();
+                expect(search!.x + search!.width).toBeLessThanOrEqual(filters!.x);
+                expect(filters!.x + filters!.width).toBeLessThanOrEqual(columns!.x);
+                expect(Math.abs(search!.y - columns!.y)).toBeLessThan(2);
             }
             if (view === 'board') await expect(page.locator('.workitem-board-actions').getByRole('button', { name: 'Create workitem', exact: true })).toHaveClass(/btn-primary/);
             if (view === 'board') await page.screenshot({ path: testInfo.outputPath('board.png'), animations: 'disabled' });

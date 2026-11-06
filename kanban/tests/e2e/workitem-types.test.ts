@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, portfolioCard, toggleTheme } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, portfolioCard, toggleTheme, selectTableView, openFiltersPanel } from '../support/portfolio';
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
     await page.clock.setFixedTime('2026-10-28T12:00:00.000Z');
@@ -16,7 +16,7 @@ async function move(page: Page, id: number, state: string) {
 }
 async function openStory(page: Page) {
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="stories"]').click();
+    await selectTableView(page, 'stories');
     await page.locator('#workitemsTable tr[data-task-id="1202"]').getByRole('button', { name: 'Pagar com cartão', exact: true }).click();
 }
 
@@ -116,7 +116,7 @@ test('parent changes preview their impact and Cancel preserves the existing hier
 
 test('Epics hide execution-only fields and preserve their business fields', async ({ page }) => {
     await seed(page);
-    await page.locator('[data-view-mode="table"]').click(); await page.locator('[data-table-view="epics"]').click();
+    await page.locator('[data-view-mode="table"]').click(); await selectTableView(page, 'epics');
     await page.locator('#workitemsTable tr[data-task-id="1201"]').getByRole('button', { name: 'Checkout acessível', exact: true }).click();
     await expect(page.locator('#task-tab-pullRequests')).toHaveCount(0); await expect(page.locator('#detailEffort')).toHaveCount(0);
     await expect(page.locator('.workitem-hierarchy')).toContainText('Permitir compras sem barreiras');
@@ -146,10 +146,11 @@ test('Day Planner limits execution planning to Tasks and has no parent inclusion
 
 test('Table filters type, Epic and Story before pagination and export', async ({ page }) => {
     await seed(page); await page.locator('[data-view-mode="table"]').click();
+    await selectTableView(page, 'all');
     await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(8);
     await expect(page.locator('#workitemsTable tr[data-task-id="1206"] [data-column="story"] button')).toHaveCount(0);
     await expect(page.locator('#workitemsTable tr[data-task-id="1206"] [data-column="epic"] button')).toHaveText('#1201 Checkout acessível');
-    await page.locator('.table-hierarchy-options summary').click();
+    await openFiltersPanel(page);
     await page.locator('#tableHierarchy-epic').selectOption('1201');
     await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(5);
     await page.locator('#tableHierarchy-story').selectOption('1202');
@@ -161,7 +162,7 @@ test('Table filters type, Epic and Story before pagination and export', async ({
 });
 
 test('Sprint expansion shows only participating child Tasks beneath their Story', async ({ page }) => {
-    await seed(page); await page.locator('[data-view-mode="table"]').click(); await page.locator('[data-table-view="sprints"]').click();
+    await seed(page); await page.locator('[data-view-mode="table"]').click(); await selectTableView(page, 'sprints');
     const sprint = page.locator('[data-table-sprint="current"]');
     await sprint.locator(':scope > summary .table-sprint-name').click();
     const table = sprint.locator('table');
@@ -192,7 +193,7 @@ test(`Sprint table and Roadmap retain recorded work and read-only details after 
         tasks: [{ ...child, title: 'Live child', parentId: null, sprintId: 'current', status: 'doing' }], extensions
     }], { selectedBoardId: 'history' });
     await page.getByRole('button', { name: 'Table', exact: true }).click();
-    await page.locator('[data-table-view="sprints"]').click();
+    await selectTableView(page, 'sprints');
     const sprint = page.locator('[data-table-sprint="past"]');
     await sprint.locator(':scope > summary .table-sprint-name').click();
     const table = sprint.locator('table');

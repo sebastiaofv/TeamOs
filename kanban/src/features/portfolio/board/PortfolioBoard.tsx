@@ -1,3 +1,4 @@
+import { useBoardColumnLayout } from './useBoardColumnLayout';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { PortfolioQueryControls } from '@/features/portfolio/shell/PortfolioQueryControls';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
@@ -112,6 +113,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
     const { columns, buckets } = buildPortfolioBoardView(state, mode, { activeSprintsOnly, today });
+    const layout = useBoardColumnLayout(columns.length);
     const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
@@ -151,7 +153,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                         {canAddTasks && <button className="btn btn-primary board-create-btn" aria-label={t('table.create')} title={t('table.create')} type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}><WorkspaceIcon name="plus" /></button>}
                     </div>
                 </div>
-                <div className="workitem-board-columns">
+                <div ref={layout.ref} className={`workitem-board-columns${layout.compact ? ' is-compact' : ''}`}>
                     {!columns.length && <p className="board-columns-empty" role="status">{t('board.allColumnsHidden')}</p>}
                     {columns.map((column) => {
                         const items = buckets[column.status] || [];

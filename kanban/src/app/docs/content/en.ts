@@ -128,7 +128,7 @@ export const DOCS_EN: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Refining the backlog' },
                     { kind: 'steps', items: [
-                        'Open the **Table** for the project and use **Unplanned workitems** to see what is not yet in a sprint.',
+                        'Open the **Table** for the project and use **Backlog** to see what is not yet in a sprint.',
                         'Sort by priority or score, and filter by tag or participant.',
                         'Make sure the top Stories have clear Acceptance Criteria and Tasks sized small enough to finish within a sprint.'
                     ] },
@@ -521,7 +521,7 @@ export const DOCS_EN: DocSection[] = [
                         'With the keyboard, select a card with [[J]] / [[K]] and press [[1]]–[[4]] to move it.',
                         'Open the [command palette](prod-palette) on a card and choose **Move to…**.'
                     ] },
-                    { kind: 'p', text: 'Cards show a title of up to two lines, then the ID, workitem type and responsible person. Change the responsible person directly using the dropdown, or click the card to open details. Editing, deletion, copy, move, dates, blocking and progress remain available in details. Empty columns use half the width of occupied columns.' },
+                    { kind: 'p', text: 'Cards show a title of up to two lines, then the ID, workitem type and responsible person. Change the responsible person directly using the dropdown, or click the card to open details. Editing, deletion, copy, move, dates, blocking and progress remain available in details. Columns fill the available width and stay equal when space permits. With many states or a narrow window, empty columns shrink to half the width of occupied columns; horizontal scrolling remains available when needed.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A move not allowed by the workflow is refused. Moving a Story or Bug to Completed asks for [functional acceptance](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -585,7 +585,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Creating a sprint' },
                     { kind: 'list', items: [
                         'In the Roadmap with **+ Sprint**.',
-                        'From a selection: select rows in **Table → Unplanned workitems**, then **Create Sprint** or **Add to Existing Sprint**.'
+                        'From a selection: select rows in **Table → Backlog**, then **Create Sprint** or **Add to Existing Sprint**.'
                     ] },
                     { kind: 'p', text: 'Each sprint receives the next number in the project and is shown as `Sprint 3 - Title`. Numbers are never reused.' },
                     { kind: 'h', text: 'Allocation and participation' },
@@ -671,15 +671,15 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'A configurable list of workitems with hierarchy, sprint perspectives and CSV export.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['ALL', 'Collapsible Epic → Story → Task rows, direct Epic Tasks, and independent Tasks and Bugs. Matching descendants stay visible when filters hide their ancestors.'],
-                        ['Type perspectives', 'Epics, User Stories, Tasks, Bugs or All Tasks & Bugs.'],
-                        ['Unplanned workitems', 'Not completed and without a sprint. Select rows to create a sprint or add them to one.'],
+                        ['All (default)', 'Collapsible Epic → Story → Task rows, direct Epic Tasks, and independent Tasks and Bugs. Matching descendants stay visible when filters hide their ancestors.'],
+                        ['View dropdown', 'Switch between All, Epic, User Stories, Independent Workitems and All Tasks & Bugs. The button shows the selected view.'],
+                        ['Backlog', 'Not completed and without a sprint. Select rows to create a sprint or add them to one.'],
                         ['Sprints', 'One collapsible table per sprint, newest first, with dates, status and completeness. Stories expand into their participating Tasks.']
                     ] },
                     { kind: 'list', items: [
-                        'Search by ID, title and description; filter columns; sort by any column.',
-                        'Choose, reorder and reset columns with **Columns**.',
-                        '**Export CSV** includes all filtered rows, even collapsed ones, with a comma or semicolon separator.',
+                        'Each table, including an expanded Sprint, has one toolbar: workitem and selection counts on the left; search, Filters, Columns, Export CSV and + Create workitem on the right. Search by ID, title and description; sort by any column.',
+                        'Use **Filters** for shared filters and workitem type, Epic and User Story. Choose, reorder and reset columns with the **Columns** icon.',
+                        'The **Export CSV** icon opens a modal: choose comma or semicolon and confirm to download all filtered rows, even collapsed ones.',
                         'Timestamps are shown in UTC.'
                     ] }
                 ],
@@ -859,7 +859,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: '4. Plan the execution' },
                     { kind: 'p', text: 'From US-2, create Tasks `SHP-TK-4` Integrate payment gateway (Rui, effort M) and `SHP-TK-5` Card selection screen (Marta, effort S). Link TK-5 as **blocked by** TK-4 because the screen needs the API.' },
                     { kind: 'h', text: '5. Plan the sprint' },
-                    { kind: 'p', text: 'In **Table → Unplanned workitems**, select US-2 and US-3 and choose **Create Sprint**: **Sprint 1 - Card checkout**, two weeks. The Tasks follow their Stories.' },
+                    { kind: 'p', text: 'In **Table → Backlog**, select US-2 and US-3 and choose **Create Sprint**: **Sprint 1 - Card checkout**, two weeks. The Tasks follow their Stories.' },
                     { kind: 'h', text: '6. Execute' },
                     { kind: 'p', text: 'When the sprint starts, the Technical Board shows TK-4 and TK-5. Rui drags TK-4 to In progress; TK-5 is marked blocked by dependency. Rui plans two hours in the Day Planner. When TK-4 is Done, TK-5 is unblocked and Marta starts it.' },
                     { kind: 'h', text: '7. Accept' },

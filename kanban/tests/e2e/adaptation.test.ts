@@ -43,7 +43,7 @@ test.describe('touch adaptation', () => {
             await expect(page.locator('#taskDetailModal')).toBeVisible();
             await page.keyboard.press('Escape');
             await page.locator('[data-view-mode="table"]').tap();
-            for (const selector of ['.table-columns', '.table-hierarchy-options']) {
+            for (const selector of ['.table-columns']) {
                 const disclosure = page.locator(`#portfolioTable ${selector}`);
                 await disclosure.locator('summary').tap();
                 const panel = await disclosure.locator('[data-table-panel]').boundingBox();
@@ -162,7 +162,7 @@ test('Table menus open above their trigger in landscape and stay within the view
     await seedPortfolioBoards(page, [{ id: 'menus', title: 'Menus', hasHandle: true,
         tasks: [{ id: 1, title: 'Visible workitem', status: 'to-do' }] }], { selectedBoardId: 'menus' });
     await page.locator('[data-view-mode="table"]').click();
-    for (const selector of ['.table-columns', '.table-hierarchy-options']) {
+    for (const selector of ['.table-columns']) {
         const menu = page.locator(`#portfolioTable ${selector}`);
         await menu.locator('summary').click();
         const panel = menu.locator('[data-table-panel]');

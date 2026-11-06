@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { mockImportProjectsPicker, showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch, openProjectSettingsFromPicker, openProjectPicker } from './support/portfolio';
+import { mockImportProjectsPicker, showTimeline, seedPortfolioBoards, portfolioCard, FIXED_TIMESTAMP, buildBoardPayload, answerAppMessage, dragWithMouse, openFiltersPanel, setBoardSearch, openProjectSettingsFromPicker, openProjectPicker, selectTableView } from './support/portfolio';
 
 test.describe('US-4 persisted Board column chooser', () => {
   for (const theme of ['light', 'dark']) {
@@ -75,7 +75,7 @@ test.describe('US-01 workitems table', () => {
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page).toHaveScreenshot(`table-review-all-${theme}.png`);
-      await page.locator('[data-table-view="unplanned"]').click();
+      await selectTableView(page, 'unplanned');
       await page.locator('#workitemsTable [data-task-id="1"] input').check();
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -83,7 +83,7 @@ test.describe('US-01 workitems table', () => {
       await page.locator('#tableAddToSprint').click();
       await expect(page).toHaveScreenshot(`table-review-assign-${theme}.png`);
       await page.locator('#roadmapEntityModalCancelBtn').click();
-      await page.locator('[data-table-view="sprints"]').click();
+      await selectTableView(page, 'sprints');
       await page.locator('[data-table-sprint="active"] > summary .table-sprint-name').click();
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -104,7 +104,7 @@ test.describe('US-01 workitems table', () => {
         extensions: ROADMAP
       }], { selectedBoardId: 'table' });
       await page.locator('[data-view-mode="table"]').click();
-      await page.locator('#tableCsvSeparator').selectOption(';');
+
       await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(3);
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -125,7 +125,7 @@ test.describe('US-01 workitems table', () => {
       tasks: [{ id: 1, title: 'Prepare delivery', status: 'doing', assignees: ['Ana'], priority: 'high' }]
     }], { selectedBoardId: 'compact-table' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('#tableCsvSeparator').selectOption(';');
+
     await expect(page.locator('#portfolioSearchBtn')).toBeVisible();
     await page.mouse.move(1, 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -403,7 +403,7 @@ test.describe('2.1a modals and toast', () => {
       }
     ], { selectedBoardId: 'v1' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input[type="checkbox"]`).check();
     await page.locator('#tableAddToSprint').click();
     await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Add to Existing Sprint');
@@ -811,7 +811,7 @@ test.describe('US-12 workitem detail and functional acceptance', () => {
     const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
     await seedPortfolioBoards(page, [{ id: 'us12', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us12' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="stories"]').click();
+    await selectTableView(page, 'stories');
     await page.locator('#workitemsTable tr[data-task-id="1202"]').getByRole('button', { name: 'Pagar com cartão', exact: true }).click();
     await expect(page.locator('#taskDetailModal')).toHaveScreenshot(`us12-story-${theme}.png`, { animations: 'disabled' });
     await page.locator('#taskDetailModalFooterCloseBtn').click();
@@ -931,7 +931,7 @@ test.describe('US-13 hierarchy review', () => {
       const fixture = JSON.parse(readFileSync('test-board/us-13-hierarchy.board.json', 'utf8'));
       await seedPortfolioBoards(page, [{ id: 'hierarchy', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'hierarchy' });
       await page.locator('[data-view-mode="table"]').click();
-      await page.locator('[data-table-view="hierarchy"]').click();
+      await selectTableView(page, 'hierarchy');
       await page.locator('#workitemsTable').getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();
       await page.locator('#workitemsTable').getByRole('button', { name: 'Expand Preparar lançamento', exact: true }).click();
       await page.mouse.move(1, 1);

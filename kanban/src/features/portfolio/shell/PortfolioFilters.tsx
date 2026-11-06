@@ -16,6 +16,8 @@ import { PRIORITY_LABELS } from '@/features/portfolio/table/tableLabels';
 import { allWorkflowStates } from '@/domain/workflow';
 import { NO_PERSON_FILTER, personFilterName, personNameFilter } from '@/domain/peopleFilters';
 
+export type AdditionalPortfolioFilter = FilterMenuField & { key: string; reset: () => void };
+
 function usePortfolioFilterFields() {
     const { t } = useI18n();
     const state = useAppStore(useShallow((s) => ({
@@ -51,13 +53,14 @@ function usePortfolioFilterFields() {
 
     function field<K extends PanelPortfolioFilterName>(
         key: K, label: string, id: string, options: { value: string; label: string }[], multiple = false, hint?: string
-    ): FilterMenuField & { key: K } {
+    ): AdditionalPortfolioFilter & { key: K } {
         const selected = filters[key];
         // An assignment edit can remove the last occurrence of a filtered name.
         // Keep that explicit filter visible rather than displaying "All".
         if ((key === 'assignee' || key === 'responsible') && typeof selected === 'string' && selected
             && !options.some((option) => option.value === selected)) options = [...options, { value: selected, label: personFilterName(selected) }];
         return {
+            reset: () => setPortfolioFilter(key, DEFAULT_PORTFOLIO_FILTERS[key]),
             key, id, label: label.replace(/:$/, ''), options, value: filters[key], multiple, hint,
             changed: key === 'statuses' ? filters.statuses.length > 0 : filters[key] !== DEFAULT_PORTFOLIO_FILTERS[key],
             onChange: (value) => { if (key === 'sprintId') useAppStore.setState({ portfolioBoardActiveSprintsOnly: false }); setPortfolioFilter(key, value); }
@@ -81,26 +84,30 @@ function usePortfolioFilterFields() {
     return { fields, active: fields.filter((entry) => entry.changed), t };
 }
 
-export function PortfolioToolbarFilters({ boardMode }: { boardMode?: WorkflowKind }) {
-    const { fields, active, t } = usePortfolioFilterFields();
-    return <FilterMenu fields={fields} activeCount={active.length} onClear={clearPortfolioFilters} panelClassName="portfolio-filter-options" dismissOnBlur title={boardMode ? t('toolbar.filtersView') : undefined}>
+export function PortfolioToolbarFilters({ boardMode, scope = '', additionalFields = [] }: { boardMode?: WorkflowKind; scope?: string; additionalFields?: AdditionalPortfolioFilter[] }) {
+    const { fields, t } = usePortfolioFilterFields();
+    const combined = [...fields.map(field => ({ ...field, id: scope ? `${field.id}-${scope}` : field.id })), ...additionalFields];
+    const clear = () => { clearPortfolioFilters(); additionalFields.forEach(field => field.reset()); };
+    return <FilterMenu scope={scope} fields={combined} activeCount={combined.filter(field => field.changed).length} onClear={clear} panelClassName="portfolio-filter-options" dismissOnBlur title={boardMode ? t('toolbar.filtersView') : undefined}>
         {boardMode && <><PortfolioSortControl /><BoardColumnOptions mode={boardMode} /></>}
     </FilterMenu>;
 }
 
-export function PortfolioActiveFilters() {
-    const { active, t } = usePortfolioFilterFields();
+export function PortfolioActiveFilters({ scope = '', additionalFields = [] }: { scope?: string; additionalFields?: AdditionalPortfolioFilter[] }) {
+    const { active: base, t } = usePortfolioFilterFields();
+    const active = [...base, ...additionalFields.filter(field => field.changed)];
+    const clear = () => { clearPortfolioFilters(); additionalFields.forEach(field => field.reset()); };
     if (!active.length) return null;
-    return <div className="portfolio-active-filters" id="portfolioActiveFilters" role="group" aria-label={t('toolbar.activeFilters')}>
+    return <div className="portfolio-active-filters" id={scope ? `portfolioActiveFilters-${scope}` : 'portfolioActiveFilters'} role="group" aria-label={t('toolbar.activeFilters')}>
         {active.map((field) => {
             const values = Array.isArray(field.value) ? field.value : [field.value];
             const label = field.options.filter((option) => values.includes(option.value)).map((option) => option.label).join(', ') || values.join(', ');
             return <span className="portfolio-active-filter" key={field.id} data-filter={field.key}>
                 <span className="portfolio-active-filter-name">{field.label}</span><span>{label}</span>
                 <button type="button" aria-label={t('toolbar.removeFilter', { label: field.label, value: label })}
-                    onClick={() => setPortfolioFilter(field.key, DEFAULT_PORTFOLIO_FILTERS[field.key])}>×</button>
+                    onClick={field.reset}>×</button>
             </span>;
         })}
-        <button className="btn-text" id="portfolioClearFilters" type="button" onClick={clearPortfolioFilters}>{t('toolbar.clearAllFilters')}</button>
+        <button className="btn-text" id={scope ? `portfolioClearFilters-${scope}` : 'portfolioClearFilters'} type="button" onClick={clear}>{t('toolbar.clearAllFilters')}</button>
     </div>;
 }

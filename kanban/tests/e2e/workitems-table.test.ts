@@ -112,9 +112,11 @@ async function moveColumnBefore(page: Page, label: string, before: string) {
   throw new Error(`Could not move ${label} before ${before}`);
 }
 
-async function exportCsv(page: Page) {
+async function exportCsv(page: Page, separator = ',') {
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#tableExportCsv').click();
+  await page.locator('#appMessageSelection').selectOption(separator === ';' ? '1' : '0');
+  await page.locator('#appMessageConfirmBtn').click();
   const download = await downloadPromise;
   expect(await download.failure()).toBeNull();
   expect(download.suggestedFilename()).toMatch(/\.csv$/i);
@@ -206,13 +208,13 @@ test.describe('workitems table', () => {
     await expect(tableHeader(page, 'ID')).toHaveAttribute('aria-sort', 'ascending');
   });
 
-  test('aligns Columns and Hierarchy filter popups to the right of the heading', async ({ page }) => {
+  test('aligns the Columns popup to the right of the heading', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'panels', title: 'Panels', hasHandle: true,
       tasks: [{ id: 1, title: 'Workitem' }] }], { selectedBoardId: 'panels' });
     await openTable(page);
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 900 });
-      for (const selector of ['.table-columns', '.table-hierarchy-options']) {
+      for (const selector of ['.table-columns']) {
         const disclosure = page.locator(`#portfolioTable ${selector}`);
         await disclosure.locator('summary').click();
         const panel = disclosure.locator('[data-table-panel]');
@@ -232,24 +234,15 @@ test.describe('workitems table', () => {
     }
   });
 
-  test('keeps the separator arrow inside the select box for Semicolon at desktop and mobile widths', async ({ page }) => {
+  test('CSV separator selection opens in a modal and can be cancelled', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'separator', title: 'CSV separator', hasHandle: true, tasks: [{ id: 1, title: 'CSV item' }] }], { selectedBoardId: 'separator' });
     await openTable(page);
-    await page.locator('#tableCsvSeparator').selectOption(';');
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 844 });
-      const bounds = await page.locator('.table-csv-select').evaluate((node) => {
-        const select = node.querySelector('select')!;
-        const arrow = node.querySelector('svg')!.getBoundingClientRect();
-        const box = select.getBoundingClientRect();
-        return { arrow: { left: arrow.left, right: arrow.right, top: arrow.top, bottom: arrow.bottom }, box: { left: box.left, right: box.right, top: box.top, bottom: box.bottom }, appearance: getComputedStyle(select).appearance };
-      });
-      expect(bounds.appearance).toBe('none');
-      expect(bounds.arrow.left).toBeGreaterThan(bounds.box.left);
-      expect(bounds.arrow.right).toBeLessThan(bounds.box.right);
-      expect(bounds.arrow.top).toBeGreaterThan(bounds.box.top);
-      expect(bounds.arrow.bottom).toBeLessThan(bounds.box.bottom);
-    }
+    await expect(page.locator('#tableCsvSeparator')).toHaveCount(0);
+    await page.locator('#tableExportCsv').click();
+    await expect(page.locator('#appMessageSelection option')).toHaveText(['Choose', 'Comma', 'Semicolon']);
+    await page.locator('#appMessageSelection').selectOption('1');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#tableExportCsv')).toBeFocused();
   });
 
   test('keeps the main search visible when switching to Table', async ({ page }) => {
@@ -672,7 +665,7 @@ test.describe('workitems table', () => {
       await tableHeader(page, 'ID').getByRole('button').click();
       await expect(tableHeader(page, 'ID')).toHaveAttribute('aria-sort', 'descending');
       await tableRow(page, 100).getByRole('checkbox', { name: 'Select Export 100', exact: true }).check();
-      await expect(page.locator('#portfolioTable .table-summary > span[role="status"]')).toHaveText('1 selected');
+      await expect(page.locator('#portfolioTable .table-counts > span[role="status"]')).toHaveText('1 selected');
 
       await openColumnOptions(page);
       for (const column of ['type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']) {
@@ -682,9 +675,9 @@ test.describe('workitems table', () => {
       await moveColumnBefore(page, 'Due', 'Title');
       await expectColumnOrder(page, ['ID', 'Due', 'Title']);
       await page.keyboard.press('Escape');
-      await page.locator('#tableCsvSeparator').selectOption(separator);
 
-      const csv = parseCsv(await exportCsv(page), separator);
+
+      const csv = parseCsv(await exportCsv(page, separator), separator);
       expect(csv[0]).toEqual(['ID', 'Due', 'Title']);
       expect(csv).toHaveLength(102);
       expect(csv.slice(1).map((row) => Number(row[0]))).toEqual(
@@ -758,7 +751,7 @@ test.describe('workitems table', () => {
     await expect(page.locator('#portfolioTable')).toContainText('Page 1 of 400');
     await page.locator('#portfolioTable').getByRole('checkbox', { name: 'Select this page', exact: true }).check();
     await expect(tableRows(page).getByRole('checkbox', { checked: true })).toHaveCount(25);
-    await expect(page.locator('#portfolioTable .table-summary > span[role="status"]')).toHaveText('25 selected');
+    await expect(page.locator('#portfolioTable .table-counts > span[role="status"]')).toHaveText('25 selected');
     await page.locator('#tableNextPage').click();
     await expect(tableRows(page).getByRole('checkbox', { checked: true })).toHaveCount(0);
 

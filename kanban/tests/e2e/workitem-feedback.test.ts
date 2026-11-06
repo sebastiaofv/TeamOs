@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, portfolioCard, answerAppMessage, toggleTheme, openFiltersPanel } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, portfolioCard, answerAppMessage, toggleTheme, openFiltersPanel, selectTableView } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
@@ -33,7 +33,7 @@ test('Board creation uses one toolbar button and terminal exception columns defa
 test('only Task editors show checklists, all editors leave Pull Requests in its tab', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Table', exact: true }).click();
-    await page.locator('[data-table-view="epics"]').click();
+    await selectTableView(page, 'epics');
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     for (const type of ['epic', 'story', 'task', 'bug']) {
         await page.locator('#workitemType').selectOption(type);
@@ -114,7 +114,7 @@ for (const width of [1440, 390]) test(`sidebar edits stay usable and types have 
     for (let theme = 0; theme < 2; theme++) {
         const colors: Record<string, string> = {};
         for (const perspective of ['epics', 'stories', 'all']) {
-            await page.locator(`[data-table-view="${perspective}"]`).click();
+            await selectTableView(page, perspective);
             Object.assign(colors, await page.locator('#workitemsTable [data-workitem-type]').evaluateAll((badges) => Object.fromEntries(badges.map((badge) => [badge.getAttribute('data-workitem-type'), getComputedStyle(badge).color]))));
         }
         expect(Object.keys(colors).sort()).toEqual(['bug', 'epic', 'story', 'task']);

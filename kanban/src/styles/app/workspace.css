@@ -167,8 +167,6 @@
 .board-column-options label { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
 .workitem-board-actions .portfolio-query-fields { flex-basis: 420px; }
 .board-create-btn { width: 34px; padding: 0; flex: none; }
-.workitem-board-columns > .portfolio-column { flex: 1 0 300px; min-width: 300px; max-width: 360px; }
-.workitem-board-columns > .portfolio-column.is-empty { flex: .5 0 150px; min-width: 150px; max-width: 180px; }
 .portfolio-column .empty-state { padding: 28px 8px; font-size: 12px; }
 .portfolio-column-header { padding: 12px; gap: 8px; min-height: 60px; }
 .portfolio-column-header .column-title { min-width: 0; overflow-wrap: anywhere; }
@@ -198,4 +196,34 @@
     .header-project-picker > .chip-save-state { display: none; }
     .workitem-board-actions .portfolio-query-fields { flex-basis: 100%; }
     .portfolio-column-body { padding: 8px; }
+}
+
+/* Equal columns fill the available width. Compact empty states only under pressure. */
+.workitem-board-columns { --board-column-min-width: 280px; --board-column-viewport-share: 1; }
+.workitem-board-columns > .portfolio-column { min-width: min(calc(100vw * var(--board-column-viewport-share)), var(--board-column-min-width)); }
+.workitem-board-columns.is-compact > .portfolio-column.is-empty { flex-grow: .5; min-width: min(calc(50vw * var(--board-column-viewport-share)), calc(var(--board-column-min-width) / 2)); }
+@media (max-width: 760px) {
+    .workitem-board-columns { --board-column-min-width: 340px; --board-column-viewport-share: .86; }
+}
+
+/* Table uses one contextual toolbar, including each expanded Sprint table. */
+.table-counts { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; color: var(--text-secondary); font-size: 12px; }
+.table-counts p { margin: 0; }
+.table-heading { align-items: flex-start; }
+.table-heading > .table-counts { min-height: 34px; }
+.table-heading > .table-tools { display: grid; grid-template-columns: minmax(120px, 280px) repeat(5, auto); flex: 1 1 560px; justify-content: flex-end; align-items: center; }
+.table-heading .table-tools .portfolio-query-fields, .table-heading .table-tools .portfolio-query-controls { display: contents; }
+.table-heading .table-tools .section-search { min-width: 0; max-width: none; }
+.table-heading .table-tools .portfolio-active-filters { grid-column: 1 / -1; grid-row: 2; padding: 0; }
+.table-heading .table-tools > .icon-btn, .table-heading .table-columns > .icon-btn { width: 34px; min-width: 34px; padding: 0; }
+.table-view-menu > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; list-style: none; cursor: pointer; }
+.table-view-menu > summary::-webkit-details-marker { display: none; }
+.table-view-panel { position: fixed; z-index: 40; display: grid; gap: 3px; padding: 6px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); max-height: var(--table-panel-height, 60dvh); overflow: auto; }
+.table-view-panel .btn { text-align: left; }
+:root[data-theme-style="modern"] .table-view-panel { border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
+@media (max-width: 760px) {
+    .table-heading > .table-tools { flex-basis: 100%; grid-template-columns: minmax(0, 1fr) repeat(4, auto); }
+    .table-heading .table-tools .section-search { grid-column: 1 / -1; }
+    .table-heading .table-tools .portfolio-filters { justify-self: start; }
+    .table-heading .table-tools .portfolio-active-filters { grid-row: 3; }
 }

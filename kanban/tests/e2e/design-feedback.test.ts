@@ -36,7 +36,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await expect(card).toHaveCSS('border-top-left-radius', style === 'modern' ? '7px' : '0px');
         const filled = (await page.locator('.portfolio-column[data-status="to-do"]').boundingBox())!;
         const empty = (await page.locator('.portfolio-column[data-status="doing"]').boundingBox())!;
-        expect(filled.width / empty.width).toBeCloseTo(2, 1);
+        expect(filled.width / empty.width).toBeCloseTo(width < 760 ? 2 : 1, 1);
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
         await card.scrollIntoViewIfNeeded();
         await page.screenshot({ path: testInfo.outputPath('workspace.png') });
@@ -118,16 +118,34 @@ test('picker groups products and retains selection, settings and removal', async
     await expect(page.getByRole('button', { name: 'Table', exact: true })).toHaveCount(0);
 });
 
-test('empty columns expand after a drop and shrink when their last card leaves', async ({ page }) => {
+test('columns share the full Board width and stay equal after moving their last card', async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'dnd', title: 'Drag', hasHandle: true, tasks: [{ id: 1, title: 'Move this', status: 'backlog' }] }], { selectedBoardId: 'dnd' });
+    const columnBounds = () => page.locator('.portfolio-column').evaluateAll(nodes => nodes.map(node => {
+        const { x, width } = node.getBoundingClientRect();
+        return { x, width };
+    }));
+    const before = await columnBounds();
+    const board = (await page.locator('.workitem-board-columns').boundingBox())!;
+    for (const column of before) expect(column.width).toBeCloseTo(before[0].width, 1);
+    expect(before[0].x).toBeCloseTo(board.x, 1);
+    expect(before.at(-1)!.x + before.at(-1)!.width).toBeCloseTo(board.x + board.width, 1);
     const card = portfolioCard(page, 'Move this');
     const destination = page.locator('#portfolio-doing-column');
     await dragWithMouse(page, card, destination);
     await expect(destination.locator('.portfolio-task-card')).toHaveCount(1);
-    await expect(page.locator('.portfolio-column[data-status="doing"]')).not.toHaveClass(/is-empty/);
-    await expect(page.locator('.portfolio-column[data-status="backlog"]')).toHaveClass(/is-empty/);
+    expect(await columnBounds()).toEqual(before);
+    await page.setViewportSize({ width: 900, height: 900 });
+    await expect(page.locator('.workitem-board-columns')).toHaveClass(/is-compact/);
+    const compressed = await columnBounds();
+    expect(compressed[2].width / compressed[0].width).toBeCloseTo(2, 1);
+    expect(compressed.at(-1)!.x + compressed.at(-1)!.width).toBeCloseTo(900, 1);
+    await page.setViewportSize({ width: 390, height: 900 });
+    expect(await page.locator('.workitem-board-columns').evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await expect(page.locator('.workitem-board-columns')).not.toHaveClass(/is-compact/);
+    expect(await columnBounds()).toEqual(before);
     await expect(page.locator('#taskDetailModal')).toHaveCount(0);
     await expect.poll(async () => (await readSavedBoard(page, 'dnd')).board.tasks[0].status).toBe('doing');
 });

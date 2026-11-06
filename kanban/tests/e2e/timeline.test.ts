@@ -1,4 +1,4 @@
-import { confirmWorkitemChanges, gotoApp, showTimeline, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, openTaskEditor, renameTaskViaEditor, setTimelineSlider, answerAppMessage } from '../support/portfolio';
+import { confirmWorkitemChanges, gotoApp, showTimeline, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, openTaskEditor, renameTaskViaEditor, setTimelineSlider, answerAppMessage, selectTableView } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 test.describe('timeline', () => {
@@ -20,7 +20,7 @@ test.describe('timeline', () => {
     }], { selectedBoardId: 'alpha' });
 
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input[type="checkbox"]`).check();
     await page.locator('#tableCreateSprint').click();
     await page.fill('#roadmapEntityTitle', 'Sprint 12');

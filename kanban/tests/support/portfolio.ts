@@ -726,3 +726,14 @@ export async function openProjectSettingsFromPicker(page: Page, title?: string) 
   if (await product.count() && !await product.evaluate((node) => (node as HTMLDetailsElement).open)) await product.locator('summary').click();
   await target.click();
 }
+
+export async function selectTableView(page: Page, view: string) {
+  const option = page.locator(`[data-table-view="${view}"]`);
+  if (!await option.isVisible()) await page.locator('#tableViewBtn').click();
+  await option.click();
+}
+
+export async function confirmCsvExport(page: Page, separator = ',') {
+  await page.locator('#appMessageSelection').selectOption(separator === ';' ? '1' : '0');
+  await page.locator('#appMessageConfirmBtn').click();
+}

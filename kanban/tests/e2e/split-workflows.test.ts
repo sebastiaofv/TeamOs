@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { defaultWorkflow } from '../../src/domain/workflow';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openProjectSettingsFromPicker } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openProjectSettingsFromPicker, selectTableView } from '../support/portfolio';
 
 test('settings keep independent workflow drafts and apply labels and colours to the respective boards and items', async ({ page }) => {
     await gotoApp(page);
@@ -55,7 +55,7 @@ test('settings keep independent workflow drafts and apply labels and colours to 
         await expect(badge).toHaveAttribute('data-state-color', '#112233');
     }
     for (const id of [2, 3]) {
-        await page.locator(`[data-table-view="${id === 2 ? 'stories' : id === 3 ? 'epics' : 'all'}"]`).click();
+        await selectTableView(page, id === 2 ? 'stories' : id === 3 ? 'epics' : 'all');
         const badge = page.locator(`#workitemsTable [data-task-id="${id}"] [data-column="status"] .table-status-badge`);
         await expect(badge).toHaveText('Functional analysis');
         await expect(badge).toHaveAttribute('data-state-color', '#aa22bb');

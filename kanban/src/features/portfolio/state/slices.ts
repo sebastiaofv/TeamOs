@@ -25,7 +25,7 @@ import type { TableSort } from '@/features/portfolio/table/tableModel';
 import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 
 export type EditContext = { boardId: string; taskId: number; returnToDetail?: DetailContext };
-export type CreateContext = { boardId: string; status: TaskStatus; returnToDetail?: DetailContext; relatedTo?: { taskId: number; kind: TaskRelationKind } };
+export type CreateContext = { boardId: string; status: TaskStatus; sprintId?: string; returnToDetail?: DetailContext; relatedTo?: { taskId: number; kind: TaskRelationKind } };
 export type DetailContext = { boardId: string; taskId: number; readOnly: boolean; historyEventIndex?: number; returnToDetail?: DetailContext };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode; unplannedTaskIds?: number[] };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };

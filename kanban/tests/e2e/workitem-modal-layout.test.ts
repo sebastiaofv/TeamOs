@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, toggleTheme } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, toggleTheme, selectTableView } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
 for (const theme of ['light', 'dark']) {
@@ -15,7 +15,7 @@ for (const theme of ['light', 'dark']) {
                 const task = fixture.board.tasks.find((entry: { id: number }) => entry.id === id);
                 if (type === 'epic') {
                     await page.locator('[data-view-mode="table"]').click();
-                    await page.locator('[data-table-view="epics"]').click();
+                    await selectTableView(page, 'epics');
                     await page.locator('#workitemsTable tbody').getByRole('button', { name: task.title, exact: true }).click();
                 } else {
                     if (type === 'story') await page.getByRole('button', { name: 'Functional', exact: true }).click();

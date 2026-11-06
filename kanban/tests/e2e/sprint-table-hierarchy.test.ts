@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, toggleLanguage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, toggleLanguage, selectTableView, confirmCsvExport } from '../support/portfolio';
 
 async function seed(page: Page, writable = true, many = false) {
     await page.clock.setFixedTime('2026-10-29T12:00:00Z');
@@ -19,7 +19,7 @@ async function seed(page: Page, writable = true, many = false) {
         { id: 's2', title: 'Other sprint', startDate: '2026-11-02', endDate: '2026-11-15' }
     ] } } }], { selectedBoardId: 'sprints' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="sprints"]').click();
+    await selectTableView(page, 'sprints');
 }
 
 const sprint = (page: Page, id = 's1') => page.locator(`[data-table-sprint="${id}"]`);
@@ -38,7 +38,7 @@ test('expands Story children within each Sprint table and preserves detail navig
     await expect(table.locator('tr[data-task-id="2"]')).toHaveAttribute('data-depth', '1');
     await expect(table.locator('tr[data-task-id="2"] td')).toHaveCount(await table.locator('th').count());
     await table.getByRole('checkbox', { name: 'Select Child Alpha', exact: true }).check();
-    await expect(sprint(page).locator('.table-summary')).toContainText('1 selected');
+    await expect(sprint(page).locator('.table-counts')).toContainText('1 selected');
     await table.getByRole('button', { name: 'Child Alpha', exact: true }).click();
     await expect(page.locator('#detailTitle')).toHaveText('Child Alpha');
     await page.keyboard.press('Escape');
@@ -61,6 +61,7 @@ test('filters and exports participating children even while collapsed and sorts 
     await section.locator(':scope > summary .table-sprint-name').click();
     const downloadPromise = page.waitForEvent('download');
     await section.getByRole('button', { name: 'Export CSV', exact: true }).click();
+    await confirmCsvExport(page);
     const download = await downloadPromise;
     const stream = await download.createReadStream();
     if (!stream) throw new Error('Missing CSV stream');
@@ -74,15 +75,15 @@ test('filters and exports participating children even while collapsed and sorts 
     await section.locator('th[data-column="title"] button').click();
     await section.getByRole('button', { name: 'Expand Story Zeta', exact: true }).click();
     await expect.poll(() => ids(page)).toEqual([5, 4, 1, 7, 3, 2]);
-    await section.locator('.table-hierarchy-options summary').click();
+    await section.locator('#portfolioFiltersBtn-sprint-s1').click();
     await section.locator('#tableTypeFilter-sprint-s1').selectOption('task');
     await expect.poll(() => ids(page)).toEqual([7, 3, 2, 4]);
     await expect(section.locator('.table-tree-toggle')).toHaveCount(0);
     await section.locator('#tableTypeFilter-sprint-s1').selectOption('');
     await page.keyboard.press('Escape');
-    await page.locator('#portfolioFiltersBtn').click();
+    await section.locator('#portfolioFiltersBtn-sprint-s1').click();
     await expect(page.locator('#portfolioArchiveFilter')).toHaveCount(0);
-    await page.locator('#portfolioFiltersPanel').getByRole('button', { name: 'Done', exact: true }).click();
+    await section.locator('#portfolioFiltersPanel-sprint-s1').getByRole('button', { name: 'Done', exact: true }).click();
     await expect.poll(() => ids(page)).toEqual([5, 4, 1, 7, 3, 2]);
     await expect(section.locator(':scope > summary')).toContainText('33.3% complete (1/3)');
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
@@ -97,7 +98,7 @@ test('paginates whole Story groups so expanding a row never separates children o
     await section.getByRole('button', { name: 'Expand Story Zeta', exact: true }).click();
     await expect(section.locator('tbody tr')).toHaveCount(28);
     await section.getByRole('checkbox', { name: 'Select this page', exact: true }).check();
-    await expect(section.locator('.table-summary')).toContainText('28 selected');
+    await expect(section.locator('.table-counts')).toContainText('28 selected');
     await section.locator('#tableNextPage-sprint-s1').click();
     await expect(section.locator('tbody tr')).toHaveCount(3);
     await expect(section.locator('tr[data-task-id="2"]')).toHaveCount(0);

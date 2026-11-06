@@ -1,4 +1,4 @@
-import { confirmWorkitemChanges, toggleLanguage, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard } from '../support/portfolio';
+import { confirmWorkitemChanges, toggleLanguage, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, selectTableView } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 
@@ -19,7 +19,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   ] } } }], { selectedBoardId: 'p' });
   await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);
   await page.locator('[data-view-mode="table"]').click();
-  await page.locator('[data-table-view="unplanned"]').click();
+  await selectTableView(page, 'unplanned');
   const add = page.locator('#tableAddToSprint');
   await expect(add).toHaveAccessibleName('Add to sprint');
   await expect(add).toBeDisabled();
@@ -81,7 +81,7 @@ for (const scenario of ['no sprints', 'all Done', 'read-only'] as const) {
       { id: 'done', title: 'Terminado', startDate: '2026-10-01', endDate: '2026-10-18' }
     ] } } }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable input[aria-label="Selecionar Por planear"]').check();
     const add = page.locator('#tableAddToSprint');
     if (scenario === 'read-only') {
@@ -109,7 +109,7 @@ for (const view of ['Table']) {
     ] } } }], { selectedBoardId: 'p' });
     if (view === 'Table') {
       await page.locator('[data-view-mode="table"]').click();
-      await page.locator('[data-table-view="unplanned"]').click();
+      await selectTableView(page, 'unplanned');
       await page.locator('#workitemsTable input[aria-label="Select Unplanned item"]').check();
       await page.locator('#tableAddToSprint').click();
     } else {

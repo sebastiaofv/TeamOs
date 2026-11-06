@@ -27,7 +27,8 @@ function FilterIcon() {
 }
 
 // Board and Table use the same toolbar button, dropdown, field layout and focus behavior.
-export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false, title, children }: {
+export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false, title, children, scope = '' }: {
+    scope?: string;
     title?: string;
     children?: ReactNode;
     fields: FilterMenuField[];
@@ -42,6 +43,7 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
     const buttonRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const titleId = useId();
+    const scopedId = (id: string) => scope ? `${id}-${scope}` : id;
     const focusSort = useRef(false);
     useEffect(() => {
         if (open && focusSort.current) {
@@ -84,6 +86,7 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
     // The command palette's "Open filters" command.
     useEffect(() => {
         const onRequest = (event: Event) => {
+            if (Array.from(document.querySelectorAll<HTMLElement>('[data-portfolio-filter-trigger]')).find(button => button.getClientRects().length > 0) !== buttonRef.current) return;
             focusSort.current = event instanceof CustomEvent && Boolean(event.detail?.focusSort);
             setOpen(true);
             if (open && focusSort.current) panelRef.current?.querySelector<HTMLSelectElement>('#portfolioSortSelect')?.focus();
@@ -117,10 +120,11 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
             <button
                 ref={buttonRef}
                 className={`btn portfolio-filters-btn${open ? ' open' : ''}${activeCount ? ' has-active' : ''}`}
-                id="portfolioFiltersBtn"
+                id={scopedId('portfolioFiltersBtn')}
+                data-portfolio-filter-trigger
                 type="button"
                 aria-expanded={open}
-                aria-controls="portfolioFiltersPanel"
+                aria-controls={scopedId('portfolioFiltersPanel')}
                 aria-label={title || (activeCount ? t('toolbar.filtersActiveLabel', { count: activeCount }) : t('toolbar.filtersButton'))}
                 onClick={() => setOpen((value) => !value)}
             >
@@ -129,10 +133,10 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                 {activeCount > 0 && <span className="portfolio-filters-badge" aria-hidden="true">{activeCount}</span>}
             </button>
             {open && (
-                <div ref={panelRef} className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id="portfolioFiltersPanel" role="dialog" aria-labelledby={titleId}>
+                <div ref={panelRef} className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id={scopedId('portfolioFiltersPanel')} role="dialog" aria-labelledby={titleId}>
                     <div className="portfolio-filters-panel-head">
                         <h2 id={titleId}>{title || t('toolbar.filtersButton')}</h2>
-                        <button className="btn-text" id="resetPortfolioFiltersBtn" type="button" disabled={!activeCount} onClick={onClear}>
+                        <button className="btn-text" id={scopedId('resetPortfolioFiltersBtn')} type="button" disabled={!activeCount} onClick={onClear}>
                             {t('toolbar.resetShort')}
                         </button>
                     </div>

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, appMessage, waitForBoardWrites, openFiltersPanel, openProjectSettingsFromPicker } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, appMessage, waitForBoardWrites, openFiltersPanel, openProjectSettingsFromPicker, selectTableView } from '../support/portfolio';
 
 test('responsibility and participation stay coherent through editing, confirmation, saving and history', async ({ page }) => {
   await gotoApp(page);
@@ -102,10 +102,10 @@ test('responsible and participant filters combine in planning and sprint tables 
   await page.locator('#portfolioResponsibleFilter').selectOption('Ana');
   await page.getByLabel('Participant', { exact: true }).selectOption('Rui');
   await page.keyboard.press('Escape');
-  await page.locator('[data-table-view="unplanned"]').click();
+  await selectTableView(page, 'unplanned');
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
   await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching unplanned');
-  await page.locator('[data-table-view="sprints"]').click();
+  await selectTableView(page, 'sprints');
   const sprint = page.locator('[data-table-sprint="s1"]');
   await expect(sprint.locator(':scope > summary')).toContainText('50% complete (1/2)');
   await sprint.locator(':scope > summary .table-sprint-name').click();

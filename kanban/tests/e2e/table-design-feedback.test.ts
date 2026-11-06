@@ -1,0 +1,81 @@
+import { test, expect } from '@playwright/test';
+import { gotoApp, seedPortfolioBoards, readSavedBoard } from '../support/portfolio';
+
+test.describe.configure({ mode: 'parallel' });
+for (const style of ['classic', 'modern']) for (const width of [1280, 390]) test(`Table toolbar and view menu in ${style} at ${width}px`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript(style => localStorage.setItem('teamOsKanbanThemeStyle', style), style);
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'table', title: 'Table design', hasHandle: true, tasks: [
+        { id: 1, title: 'Delivery', type: 'epic' },
+        { id: 2, title: 'Customer value', type: 'story', parentId: 1 },
+        { id: 3, title: 'Build it', parentId: 2 },
+        { id: 4, title: 'Independent task', status: 'to-do' }
+    ] }], { selectedBoardId: 'table' });
+    const initial = await readSavedBoard(page, 'table');
+    await page.locator('[data-view-mode="table"]').click();
+    await expect(page.locator('#tableViewBtn')).toHaveText('All⌄');
+    await expect(page.locator('.table-view-options > *')).toHaveCount(3);
+    await expect(page.locator('[data-table-view="unplanned"]')).toHaveText('Backlog');
+    await expect(page.locator('.table-summary, .table-hierarchy-options, #tableCsvSeparator')).toHaveCount(0);
+    const heading = page.locator('#portfolioTable .table-heading');
+    for (const id of ['portfolioSearchInput', 'portfolioFiltersBtn', 'tableColumns', 'tableExportCsv', 'tableCreateTask']) await expect(heading.locator(`#${id}`)).toBeVisible();
+    await expect(page.locator('#tableColumns > summary')).toHaveText('');
+    await expect(page.locator('#tableColumns > summary')).toHaveAccessibleName('Columns');
+    await expect(page.locator('#tableExportCsv')).toHaveText('');
+    await expect(page.locator('#tableCreateTask')).toHaveText('');
+    await page.locator('#tableViewBtn').click();
+    await expect(page.locator('.table-view-panel [data-table-view]')).toHaveText(['All', 'Epic', 'User Stories', 'Independent Workitems', 'All Tasks & Bugs']);
+    await page.locator('[data-table-view="all"]').click();
+    await expect(page.locator('#tableViewBtn')).toContainText('All Tasks & Bugs');
+    await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
+    await page.locator('#portfolioFiltersBtn').click();
+    for (const id of ['tableTypeFilter', 'tableHierarchy-epic', 'tableHierarchy-story']) await expect(page.locator(`#portfolioFiltersPanel #${id}`)).toBeVisible();
+    await page.locator('#tableTypeFilter').selectOption('task');
+    await page.locator('#tableHierarchy-epic').selectOption('1');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
+    await page.getByRole('checkbox', { name: 'Select Build it', exact: true }).check();
+    await expect(heading).toContainText('1 selected');
+    await page.screenshot({ path: testInfo.outputPath('table-toolbar.png') });
+    await page.locator('#tableExportCsv').click();
+    await expect(page.getByRole('alertdialog', { name: 'Export CSV' })).toBeVisible();
+    await page.locator('#appMessageSelection').selectOption('1');
+    const download = page.waitForEvent('download');
+    await page.locator('#appMessageConfirmBtn').click();
+    expect((await download).suggestedFilename()).toContain('workitems.csv');
+    await expect(page.locator('#tableExportCsv')).toBeFocused();
+    await page.locator('#tableCreateTask').click();
+    await expect(page.locator('#taskModal')).toBeVisible();
+    await page.keyboard.press('Escape');
+    expect(await readSavedBoard(page, 'table')).toEqual(initial);
+});
+
+test('each expanded Sprint has scoped search, filters, counts, columns and export in one toolbar', async ({ page }) => {
+    await page.clock.setFixedTime('2026-11-06T12:00:00Z');
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'sprints', title: 'Sprints', hasHandle: true, tasks: [
+        { id: 1, title: 'First sprint work', sprintId: 'a' }, { id: 2, title: 'Second sprint work', sprintId: 'b' }
+    ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [
+        { id: 'a', title: 'Alpha', startDate: '2026-11-01', endDate: '2026-11-10' },
+        { id: 'b', title: 'Beta', startDate: '2026-11-11', endDate: '2026-11-20' }
+    ] } } }], { selectedBoardId: 'sprints' });
+    await page.locator('[data-view-mode="table"]').click();
+    await page.locator('[data-table-view="sprints"]').click();
+    for (const id of ['a', 'b']) {
+        const sprint = page.locator(`[data-table-sprint="${id}"]`);
+        await sprint.locator(':scope > summary .table-sprint-name').click();
+        await expect(sprint.locator('.table-heading')).toHaveCount(1);
+        await expect(sprint.locator(`[id="tableCounts-sprint-${id}"]`)).toContainText('1 of 1');
+        await sprint.locator(`[id="portfolioFiltersBtn-sprint-${id}"]`).click();
+        await expect(sprint.locator(`[id="tableTypeFilter-sprint-${id}"]`)).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(sprint.locator(`[id="tableExportCsv-sprint-${id}"]`)).toBeVisible();
+    }
+    await page.locator('#tableCreateTask-sprint-a').click();
+    await page.locator('#taskName').fill('New Sprint Task');
+    await page.locator('#taskModalSaveBtn').click();
+    await expect.poll(async () => (await readSavedBoard(page, 'sprints')).board.tasks.find((task: { title: string }) => task.title === 'New Sprint Task')?.sprintId).toBe('a');
+    await page.keyboard.press('Escape');
+    expect(await page.locator('#portfolioTable [id]').evaluateAll(nodes => nodes.map(node => node.id).filter((id, index, ids) => ids.indexOf(id) !== index))).toEqual([]);
+});

@@ -37,7 +37,7 @@ test.describe('filters and sort', () => {
     expect(params.get('pph')).toBe('build');
     expect(params.get('pm')).toBe('launch');
     expect(params.get('psp')).toBe('s1');
-    const fields = page.locator('#portfolioFiltersPanel select:not(#portfolioSortSelect)');
+    const fields = page.locator('#portfolioFiltersPanel select[id^=portfolio]:not(#portfolioSortSelect)');
     const readFields = () => fields.evaluateAll((nodes) => nodes.map((node) => {
       const select = node as HTMLSelectElement;
       return {

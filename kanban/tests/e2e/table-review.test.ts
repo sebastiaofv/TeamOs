@@ -1,4 +1,4 @@
-import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, openFiltersPanel, portfolioCard } from '../support/portfolio';
+import { confirmWorkitemChanges, gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, selectTableView, confirmCsvExport } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 
 
@@ -9,7 +9,7 @@ test('planning view selects eligible workitems and reuses sprint creation withou
     { id: 3, title: 'Completed', status: 'done' }, { id: 4, title: 'Already planned', status: 'to-do', sprintId: 's1' }
   ], extensions: { roadmap: { version: 1, phases: [], milestones: [], sprints: [{ id: 's1', title: 'Existing', startDate: '2026-10-01', endDate: '2099-10-14' }] } } }], { selectedBoardId: 'p' });
   await page.locator('[data-view-mode="table"]').click();
-  await page.getByRole('button', { name: 'Unplanned workitems', exact: true }).click();
+  await page.getByRole('button', { name: 'Backlog', exact: true }).click();
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
   await page.getByRole('checkbox', { name: 'Select this page', exact: true }).check();
   await page.getByRole('button', { name: 'Create Sprint', exact: true }).click();
@@ -95,6 +95,7 @@ test('sprint sections retain counts while collapsed and show only their own filt
   await expect(active.locator('tbody tr')).toHaveCount(1);
   const downloadPromise = page.waitForEvent('download');
   await past.getByRole('button', { name: 'Export CSV', exact: true }).click();
+  await confirmCsvExport(page);
   const stream = await (await downloadPromise).createReadStream();
   let csv = '';
   for await (const chunk of stream!) csv += chunk.toString();
@@ -104,8 +105,8 @@ test('sprint sections retain counts while collapsed and show only their own filt
   await expect(page.locator('#detailTitle')).toHaveText('Past incomplete');
   await page.keyboard.press('Escape');
   await expect(past).toHaveAttribute('open', '');
-  await openFiltersPanel(page);
-  await page.locator('#portfolioStatusesFilter').selectOption(['doing']);
+  await past.locator('#portfolioFiltersBtn-sprint-past').click();
+  await page.locator('#portfolioStatusesFilter-sprint-past').selectOption(['doing']);
   await page.keyboard.press('Escape');
   await expect(past.locator('tbody tr')).toHaveCount(1);
   await expect(past.locator(':scope > summary')).toContainText('66.7% complete (2/3)');
@@ -120,7 +121,7 @@ test('planning cancellation preserves items and table selection stays independen
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Selection', hasHandle: true, tasks }], { selectedBoardId: 'p' });
   await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);
   await page.locator('[data-view-mode="table"]').click();
-  await page.getByRole('button', { name: 'Unplanned workitems', exact: true }).click();
+  await page.getByRole('button', { name: 'Backlog', exact: true }).click();
   await page.locator('#workitemsTable [data-task-id="1"] input[type="checkbox"]').check();
   await page.locator('#tableCreateSprint').click();
   await page.locator('#roadmapEntityModalCancelBtn').click();
@@ -141,7 +142,7 @@ test('planning cancellation preserves items and table selection stays independen
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'readonly', title: 'Read only', hasHandle: false, tasks }], { selectedBoardId: 'readonly' });
   await page.locator('[data-view-mode="table"]').click();
-  await page.getByRole('button', { name: 'Unplanned workitems', exact: true }).click();
+  await page.getByRole('button', { name: 'Backlog', exact: true }).click();
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
   await expect(page.locator('#tableCreateSprint')).toHaveCount(0);
 });
@@ -159,7 +160,7 @@ test.describe('manual sprint state', () => {
       ] }
     } }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="sprints"]').click();
+    await selectTableView(page, 'sprints');
     const ending = page.locator('[data-table-sprint="ending"] > summary .table-status-badge');
     const starting = page.locator('[data-table-sprint="starting"] > summary .table-status-badge');
     await expect(ending).toHaveText('Active');

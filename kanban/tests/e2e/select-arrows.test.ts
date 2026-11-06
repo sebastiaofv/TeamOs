@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, toggleTheme, openProjectSettingsFromPicker } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, toggleTheme, openProjectSettingsFromPicker, openFiltersPanel } from '../support/portfolio';
 
 async function expectContainedArrows(scope: Locator) {
     const fields = await scope.locator('select:not([multiple]):not([size]):visible').evaluateAll((selects) => selects
@@ -71,7 +71,7 @@ for (const width of [1280, 390]) {
 
             await page.locator('[data-view-mode="table"]').click();
             await expectContainedArrows(page.locator('#portfolioTable'));
-            await page.locator('.table-hierarchy-options > summary').click();
+            await openFiltersPanel(page);
             await expectContainedArrows(page.locator('#portfolioTable'));
             await page.keyboard.press('Escape');
 
