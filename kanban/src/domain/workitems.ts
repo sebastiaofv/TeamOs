@@ -1,3 +1,4 @@
+import { parseHierarchyAutomations } from './hierarchyAutomations';
 import type { BoardData, Task, WorkitemType, WorkitemAutomation } from './types';
 import { createWorkitemDisplayId } from './taskIdentity';
 import { canTransition, getWorkflow, LEGACY_FUNCTIONAL_TYPES, statusCategory, workflowKind } from './workflow';
@@ -97,6 +98,7 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
     if (previous) for (const task of previous.board.tasks) if (!data.board.tasks.some((entry) => entry.id === task.id) && childrenOf(previous, task.id).some((child) => data.board.tasks.some((entry) => entry.id === child.id && entry.parentId === task.id))) throw new WorkitemError('children');
     const participation = data.extensions.sprintParticipation;
     if (participation && (participation.version !== 1 || !Array.isArray(participation.entries) || participation.entries.some((entry) => !entry || typeof entry.sprintId !== 'string' || !entry.sprintId || !entry.task || !Number.isSafeInteger(entry.task.id) || typeof entry.task.title !== 'string' || !WORKITEM_TYPES.includes(workitemType(entry.task)) || typeof entry.task.status !== 'string' || !Number.isFinite(Date.parse(entry.at))) || new Set(participation.entries.map((entry) => `${entry.sprintId}:${entry.task.id}`)).size !== participation.entries.length)) throw new WorkitemError('data');
+    if (data.extensions.hierarchyAutomations !== undefined) parseHierarchyAutomations(data.extensions.hierarchyAutomations);
     validateAutomation(data, data.extensions.workitemAutomation);
 }
 export function assertAcceptance(data: BoardData, task: Task): void {

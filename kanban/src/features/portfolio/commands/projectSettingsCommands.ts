@@ -1,3 +1,4 @@
+import { getHierarchyAutomations, parseHierarchyAutomations, type HierarchyAutomations } from '@/domain/hierarchyAutomations';
 import type { Workflow, WorkflowKind, WorkitemType } from '@/domain/types';
 import { applyWorkflow, applyWorkflowTypes, functionalWorkitemTypes, getWorkflow, workflowKind } from '@/domain/workflow';
 import type { BoardMutationContext } from './mutationContext';
@@ -21,7 +22,7 @@ export function createProjectSettingsActions(context: BoardMutationContext) {
             readOnly: !context.canUsePortfolioTaskMutations(boardId)
         });
     }
-    async function saveProjectSettings(boardId: string, draft: ProjectSettingsDraft, original: unknown, workflowDraft?: WorkflowSettingsChange | WorkflowSettingsChange[], typesDraft?: { original: WorkitemType[]; functional: WorkitemType[] }) {
+    async function saveProjectSettings(boardId: string, draft: ProjectSettingsDraft, original: unknown, workflowDraft?: WorkflowSettingsChange | WorkflowSettingsChange[], typesDraft?: { original: WorkitemType[]; functional: WorkitemType[] }, automationsDraft?: { original: HierarchyAutomations; config: HierarchyAutomations }) {
         if (!canUsePortfolioTaskMutations(boardId)) { notifyPortfolioMutationUnavailable(boardId); return false; }
         const source = getBoardRecord(boardId)?.data;
         if (!source) return false;
@@ -44,9 +45,13 @@ export function createProjectSettingsActions(context: BoardMutationContext) {
             }
             for (const change of changes) if (!areSerializableValuesEqual(change.original, getWorkflow(data, change.kind))) throw new ProjectDataError('stale');
             if (typesDraft && !areSerializableValuesEqual([...typesDraft.original].sort(), functionalWorkitemTypes(data).sort())) throw new ProjectDataError('stale');
+            if (automationsDraft) {
+                if (!areSerializableValuesEqual(automationsDraft.original, getHierarchyAutomations(data))) throw new ProjectDataError('stale');
+                data.extensions.hierarchyAutomations = parseHierarchyAutomations(automationsDraft.config);
+            }
             const projectChanged = !areSerializableValuesEqual(original, draft);
             applyProjectSettings(data, draft);
-            if (projectChanged || !workflowDraft) appendTimelineEvent(data, {
+            if (projectChanged || !workflowDraft || automationsDraft) appendTimelineEvent(data, {
                 kind: 'board.project.updated', entityType: 'board', entityId: data.extensions.project!.id,
                 summary: translateCurrent('project.updated'), snapshot: createBoardStateSnapshot(data)
             });

@@ -4,6 +4,7 @@ As histórias integradas têm os boards e roteiros nesta pasta em `main`; histó
 
 | História | Board | Roteiro |
 | --- | --- | --- |
+| US30 · branch `codex/issue-72-project-automations` · issue #72 | [us-30.board.json](us-30.board.json) | [us-30.md](us-30.md) |
 | US32 · branch `codex/us-32-theme-switcher` · issue #74 | [us-32.board.json](us-32.board.json) | [us-32.md](us-32.md) |
 | US16 · branch `codex/issue-39-attachments-tab` · PR #61 | [us-16.board.json](us-16.board.json) | [us-16.md](us-16.md) |
 | US1 · integrada em `main` · PR #44 | [us-1.board.json](us-1.board.json) | [us-1.md](us-1.md) |
