@@ -1,3 +1,4 @@
+import { parseAttachmentReference } from './attachmentReferences';
 import type { Attachment } from './types';
 import { ATTACHMENT_HARD_MAX_BYTES } from './constants';
 import { hasExactKeys, normalizeTimestamp } from './util';
@@ -71,6 +72,10 @@ export function imageMimeFromBytes(bytes: Uint8Array): string {
 
 export function validateCommentImage(value: unknown): asserts value is Attachment {
     if (!hasExactKeys(value, ['id', 'name', 'mime', 'sizeBytes', 'kind', 'dataUrl', 'createdAt']) || typeof value.id !== 'string' || !value.id || typeof value.name !== 'string' || !value.name.trim() || value.kind !== 'image' || typeof value.dataUrl !== 'string' || !normalizeTimestamp(value.createdAt)) throw new CommentError('format');
+    if (parseAttachmentReference(value.dataUrl)) {
+        if (!['image/png', 'image/jpeg', 'image/webp'].includes(String(value.mime)) || !Number.isSafeInteger(value.sizeBytes) || Number(value.sizeBytes) < 0 || Number(value.sizeBytes) > ATTACHMENT_HARD_MAX_BYTES) throw new CommentError('format');
+        return;
+    }
     const decoded = decodeCommentImage(value.dataUrl);
     if (imageMimeFromBytes(decoded.bytes) !== decoded.mime || value.mime !== decoded.mime || value.sizeBytes !== decoded.bytes.length) throw new CommentError('format');
 }

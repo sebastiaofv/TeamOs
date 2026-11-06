@@ -1,3 +1,5 @@
+import { buildTaskDetailViewModel } from '@/features/portfolio/commands/taskViewModels';
+import { useProjectHistory } from '@/features/portfolio/hooks/useProjectHistory';
 import { SaveIndicator } from '@/features/portfolio/projects/ProjectSaveStatus';
 import { TaskTransferMenu } from '../TaskTransferMenu';
 import { workitemLabelFor } from '@/domain/taskIdentity';
@@ -7,7 +9,7 @@ import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
 import { isPlanningUnit, workitemType } from '@/domain/workitems';
 import * as Dialog from '@radix-ui/react-dialog';
-import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -43,7 +45,18 @@ const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFiel
 export function TaskDetailDialog() {
     const { closeTaskDetail, editPortfolioTask } = usePortfolioActions();
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
-    const vm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
+    const initialVm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
+    const boards = useAppStore((state) => state.portfolioBoards);
+    const unavailable = useAppStore((state) => state.unloadedRelationSources);
+    // Disk saves can replace embedded attachments with references, and lazy
+    // history hydration changes the projection without a user mutation.
+    const vm = useMemo(() => {
+        if (!initialVm || initialVm.history?.historicalIndex !== undefined) return initialVm;
+        const boardRecord = boards.find((board) => board.id === initialVm.boardId);
+        const taskIndex = boardRecord?.data.board.tasks.findIndex((task) => task.id === initialVm.taskId) ?? -1;
+        if (!boardRecord || taskIndex < 0 || boardRecord.data === initialVm.sourceBoardData) return initialVm;
+        return buildTaskDetailViewModel({ boardRecord, boardData: boardRecord.data, taskIndex, task: boardRecord.data.board.tasks[taskIndex] }, initialVm.taskId, initialVm.readOnly, undefined, boards, unavailable.flatMap((entry) => entry.relations));
+    }, [initialVm, boards, unavailable]);
     const returnFocus = useReturnFocus();
     const bodyRef = useRef<HTMLDivElement>(null);
     const { t } = useI18n();
@@ -98,6 +111,7 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
     const visibleTabs = workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}) === 'epic' ? tabs.filter((entry) => entry.id !== 'pullRequests') : tabs;
     const [tab, setTab] = useState<(typeof tabs)[number]['id']>('details');
     const { t } = useI18n();
+    const historyLoad = useProjectHistory(vm.boardId, tab === 'history' || tab === 'comments');
     const relationCount = Object.values(vm.relations).reduce((count, entries) => count + entries.length, 0);
     function navigate(event: KeyboardEvent<HTMLButtonElement>, index: number) {
         const next = event.key === 'Home' ? 0 : event.key === 'End' ? visibleTabs.length - 1
@@ -107,7 +121,7 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
         event.preventDefault(); setTab(visibleTabs[next].id);
         (event.currentTarget.parentElement?.querySelectorAll('button')[next] as HTMLButtonElement)?.focus();
     }
-    return <><div className="detail-tabs" role="tablist" aria-label={t('history.navigation')}>
+    return <>{historyLoad.error && <p role="alert">{historyLoad.error} <button type="button" className="btn" onClick={historyLoad.retry}>{t('common.retry')}</button></p>}<div className="detail-tabs" role="tablist" aria-label={t('history.navigation')}>
         {visibleTabs.map((value, index) => <button key={value.id} id={`task-tab-${value.id}`} role="tab" type="button" aria-selected={tab === value.id} aria-controls={`task-panel-${value.id}`} tabIndex={tab === value.id ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setTab(value.id)}>{t(value.label)}{value.id === 'relations' && relationCount > 0 && <span className="detail-tab-count" aria-hidden="true">{relationCount}</span>}</button>)}
     </div>
         <div role="tabpanel" id="task-panel-details" aria-labelledby="task-tab-details" tabIndex={0} hidden={tab !== 'details'}>
@@ -127,15 +141,15 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
             <TaskRelations key={`${vm.boardId}:${vm.taskId}`} vm={vm} />
         </div>
         <div role="tabpanel" id="task-panel-comments" aria-labelledby="task-tab-comments" tabIndex={0} hidden={tab !== 'comments'}>
-            {vm.conversationContext && <TaskConversation key={`${vm.conversationContext.boardId}:${vm.conversationContext.task.id}:${vm.conversationContext.eventIndex ?? 'current'}`} context={vm.conversationContext} />}
+            {tab === 'comments' && !historyLoad.loading && !historyLoad.error && vm.conversationContext && <TaskConversation key={`${vm.conversationContext.boardId}:${vm.conversationContext.task.id}:${vm.conversationContext.eventIndex ?? 'current'}`} context={vm.conversationContext} />}
         </div>
         <div role="tabpanel" id="task-panel-attachments" aria-labelledby="task-tab-attachments" tabIndex={0} hidden={tab !== 'attachments'}>
-            <TaskAttachments key={`${vm.boardId}:${vm.taskId}:${vm.history?.historicalIndex ?? 'current'}`} vm={vm} />
+            {tab === 'attachments' && <TaskAttachments key={`${vm.boardId}:${vm.taskId}:${vm.history?.historicalIndex ?? 'current'}`} vm={vm} />}
         </div>
         <div role="tabpanel" id="task-panel-pullRequests" aria-labelledby="task-tab-pullRequests" tabIndex={0} hidden={tab !== 'pullRequests'}>
             {vm.pullRequestContext && <TaskPullRequestLinks key={`${vm.boardId}:${vm.taskId}`} {...vm.pullRequestContext} readOnly={vm.readOnly} />}
         </div>
-        <div role="tabpanel" id="task-panel-history" aria-labelledby="task-tab-history" tabIndex={0} hidden={tab !== 'history'}><TaskHistory key={vm.historyKey} history={vm.history} /></div>
+        <div role="tabpanel" id="task-panel-history" aria-labelledby="task-tab-history" tabIndex={0} hidden={tab !== 'history'}>{tab === 'history' && !historyLoad.loading && !historyLoad.error && <TaskHistory key={vm.historyKey} history={vm.history} />}</div>
     </>;
 }
 

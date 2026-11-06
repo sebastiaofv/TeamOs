@@ -12,7 +12,7 @@ export const DOCS_EN: DocSection[] = [
                 title: 'What TeamOS is',
                 summary: 'TeamOS organises work into independent projects, plans it on a roadmap and in sprints, and executes it on Kanban boards — all from local project files.',
                 blocks: [
-                    { kind: 'p', text: 'TeamOS is a planning and execution workspace for teams that work in an Agile way. Each **project** is a single `.board.json` file on your computer. You can open several projects at once, group related projects under a **product**, and work across them from one screen.' },
+                    { kind: 'p', text: 'TeamOS is a planning and execution workspace for teams that work in an Agile way. Each **project** has its own folder on your computer, containing `project.json`, `history.json` and `attachments/`. Legacy `.board.json` files remain supported. You can open several projects at once, group related projects under a **product**, and work across them from one screen.' },
                     { kind: 'p', text: 'Everything you track is a **workitem**: an Epic, a User Story, a Task or a Bug. Workitems move through configurable workflows, are planned against phases, milestones and sprints, and keep a complete local history of what changed.' },
                     { kind: 'h', text: 'What you can do' },
                     { kind: 'list', items: [
@@ -49,18 +49,18 @@ export const DOCS_EN: DocSection[] = [
             {
                 id: 'start-first-project',
                 title: 'Create or open a project',
-                summary: 'Start from a new project file or import existing ones. A project opened with a file handle is writable and saves automatically.',
+                summary: 'Create a project folder, open one or several projects from a parent folder, or import legacy files. Grant read/write access to save automatically.',
                 blocks: [
                     { kind: 'h', text: 'Create a new project' },
                     { kind: 'steps', items: [
                         'Click **+ New Project** in the top bar (or press [[N]]).',
                         'Fill in the project settings: the **Project name** and a **Project Acronym** of 1 to 4 letters are required. The acronym prefixes new workitem IDs, for example `CHK-US-2`.',
                         'Optionally add a description, a product, members and tags. You can change all of this later.',
-                        'Choose where to save the `.board.json` file. The project is added to the portfolio and selected.'
+                        'Select a parent folder and allow read/write access. TeamOS creates a named subfolder with `project.json`, `history.json` and `attachments/`, then selects the project. If the name exists, enter another name.'
                     ] },
                     { kind: 'h', text: 'Open existing projects' },
                     { kind: 'steps', items: [
-                        'Click **Import Projects** (or press [[I]]) and select one or more `.board.json` files.',
+                        'Click **Open folder** and choose a project folder or a parent with projects in direct subfolders. Existing projects stay open and duplicates are skipped. **Import Projects** (or [[I]]) still opens legacy `.board.json` files.',
                         'Alternatively, drag project files onto the window.',
                         'When the browser asks, allow edits to the file so the project can save.'
                     ] },
@@ -442,7 +442,7 @@ export const DOCS_EN: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Attachments' },
                     { kind: 'list', items: [
-                        'Up to 10 files per workitem, 10 MB each, embedded in the project file. Large files slow saves; the app warns you.',
+                        'Up to 10 files per workitem, 10 MB each. Folder projects store files separately in `attachments/` and load them for thumbnails, opening or downloading. Legacy files embed them.',
                         'The Attachments tab lists upload date, file name and uploader, with **Open** for common formats (images, PDF, text, audio, video) and **Download** for all.'
                     ] },
                     { kind: 'h', text: 'Pull requests' },
@@ -744,7 +744,9 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'How projects are loaded, and why some open read-only.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Import Projects** opens files through the browser\'s file picker, with permission to save.',
+                        '**Open folder** opens a project folder or its direct project subfolders with read/write permission. Required files and current data are validated before import; invalid projects report errors while valid siblings continue.',
+                        '**Migrate projects** converts legacy `.board.json` files into project folders, preserving IDs, history and images and keeping originals intact. Close the original before opening its migrated copy.',
+                        '**Import Projects** opens legacy files with permission to save.',
                         '**Dragging files** onto the window loads them **read-only**, because no file handle is provided.',
                         'Files must be valid TeamOS project files (`.board.json`); invalid files are reported and not imported.',
                         'Older file versions are migrated on import without changing IDs.'
@@ -758,13 +760,14 @@ export const DOCS_EN: DocSection[] = [
                 title: 'Automatic saving',
                 summary: 'Every change is written to the project file; the chip shows the save state.',
                 blocks: [
+                    { kind: 'p', text: 'Folder projects open only `project.json`. History is read from `history.json` when consulted; saves with new events preserve older history even before consultation. Other saves leave history unchanged. Attachments are separate files and historical/undo references keep them available.' },
                     { kind: 'p', text: 'There is no Save button for the project: each change is saved to its file as soon as you make it. The project chip shows **Saving**, **Unsaved**, **Save failed**, **Conflict** or **External update** when relevant.' },
                     { kind: 'list', items: [
                         'If a save fails, your change stays applied in the app; use **Retry save** on the chip.',
                         'Moving from the palette shows **Undo** for a few seconds.',
                         'Editors and dialogs (workitem editor, Project settings) apply only when you save them.'
                     ] },
-                    { kind: 'callout', tone: 'tip', text: 'Keep project files in a synced or backed-up folder. The file is your project.' }
+                    { kind: 'callout', tone: 'tip', text: 'Keep project files in a synced or backed-up folder. Back up the complete project folder, including history and attachments.' }
                 ],
                 related: ['files-external', 'files-history']
             },
@@ -790,7 +793,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Project timeline' },
                     { kind: 'steps', items: [
                         'Enable **Show timeline bar** in App settings (gear in the top bar).',
-                        'Select a project and drag the timeline slider to a past event. The whole project is shown as it was, read-only.',
+                        'Select a project, click **Load history / timeline** if shown, and drag the timeline slider to a past event. The whole project is shown as it was, read-only.',
                         'Click **Restore this state** to make it current again, or **Latest** to return without restoring.'
                     ] },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Restoring is itself recorded in the timeline, so the state before it remains available. Identities, workitem numbers and sprint numbers are never reused. Published comments are kept.' },

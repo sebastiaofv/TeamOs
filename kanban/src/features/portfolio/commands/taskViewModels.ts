@@ -204,6 +204,7 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
                 uploadedBy: item.uploadedBy,
                 isImage: item.kind === 'image',
                 dataUrl: item.dataUrl,
+                mime: item.mime,
                 previewMime: getAttachmentPreviewMime(item),
                 subLabel: `${formatFileSize(item.sizeBytes)}${item.mime ? ` • ${item.mime}` : ''}`
             }))

@@ -1,3 +1,5 @@
+import { parseConversations } from '@/domain/comments';
+import { attachDirectoryHistory, getDirectoryProject, writeDirectoryProject, refreshDirectoryHistory } from './projectDirectory';
 // Board file repository: reading, validating, serializing and writing
 // *.board.json files. The only component that turns a FileSystemFileHandle
 // into a validated board, or a board back into bytes on disk.
@@ -27,7 +29,8 @@ function getLooseFileSourceKey(file: BoardFile): string {
     ]);
 }
 
-export async function writeJsonToFileHandle(fileHandle: BoardFileHandle, data: unknown): Promise<void> {
+export async function writeJsonToFileHandle(fileHandle: BoardFileHandle, data: unknown): Promise<{ text: string; data: BoardData } | undefined> {
+    if (getDirectoryProject(fileHandle)) return writeDirectoryProject(fileHandle, data as BoardData);
     const writable = await fileHandle.createWritable();
     await writable.write(JSON.stringify(data, null, 2));
     await writable.close();
@@ -67,19 +70,28 @@ export const BoardRepository = {
     },
     async readHandleSnapshot(handle: BoardFileHandle): Promise<BoardSnapshot> {
         const { file } = await this.readHandleFileMeta(handle);
-        return this.readFileSnapshot(file);
+        const snapshot = await this.readFileSnapshot(file);
+        if (getDirectoryProject(handle)) await refreshDirectoryHistory(handle, snapshot.fileMeta.textHash, snapshot.parsed);
+        if (getDirectoryProject(handle)) attachDirectoryHistory(handle, snapshot.parsed);
+        if (getDirectoryProject(handle)?.loaded) {
+            this.validate(snapshot.parsed);
+            parseConversations(snapshot.parsed.extensions.conversations, snapshot.parsed.extensions.timeline?.events);
+        }
+        return snapshot;
     },
     async createRecordFromFile({ file, handle = null }: { file: BoardFile; handle?: BoardFileHandle | null }): Promise<BoardRecord> {
-        assertRequiredExtension(file?.name || '', BOARD_FILE_EXTENSION, 'Project file');
+        if (file.name === 'project.json' && !getDirectoryProject(handle)) throw new Error('Open the project folder to validate history.json and attachments/.');
+        if (!getDirectoryProject(handle)) assertRequiredExtension(file?.name || '', BOARD_FILE_EXTENSION, 'Project file');
         const text = await file.text();
         const parsed: unknown = JSON.parse(text);
         this.validate(parsed);
         await validateConversationPixels(parsed as BoardData);
+        if (handle) attachDirectoryHistory(handle, parsed as BoardData);
         if (handle) importedProjectSnapshots.set(handle, { parsed: parsed as BoardData, fileMeta: { lastModified: Number(file.lastModified) || 0, size: Number(file.size) || 0, textHash: hashTextContent(text) } });
         return createPortfolioRecord({
             handle,
             ...(!handle ? { sourceKey: getLooseFileSourceKey(file) } : {}),
-            fileName: file.name,
+            fileName: getDirectoryProject(handle)?.directory.name || file.name,
             data: parsed
         });
     },

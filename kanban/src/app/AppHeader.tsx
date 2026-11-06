@@ -2,7 +2,7 @@ import teamosLogo from '@/assets/teamos-logo.svg';
 import teamosLogoDark from '@/assets/teamos-logo-dark.svg';
 import type { Theme } from '@/shared/types/ui';
 import { openDialog } from '@/app/overlays/dialogs';
-import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
+import { createNewProject, importPortfolioProjects, openPortfolioFolder, migratePortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { closeDocs, DOCS_TOGGLE_ID, toggleDocs } from '@/app/docs/docsMode';
 import { useI18n } from '@/shared/i18n';
@@ -107,6 +107,8 @@ export function AppHeader({ theme, onToggleTheme }: { theme: Theme; onToggleThem
                 >{languageCode}</button>
                 <button className="btn" id="openShortcutsBtn" type="button" onClick={() => openDialog('shortcuts')}>{t('header.shortcuts')}</button>
                 <DocsToggleButton />
+                <button className="btn" id="openProjectFolderBtn" type="button" onClick={() => { closeDocs(); void openPortfolioFolder(); }}>{t('projects.openFolder')}</button>
+                <button className="btn" id="migrateProjectsBtn" type="button" onClick={() => { closeDocs(); void migratePortfolioProjects(); }}>{t('projects.migrate')}</button>
                 <button className="btn" id="importProjectsBtn" type="button" onClick={() => { closeDocs(); void importPortfolioProjects(); }}>{t('header.importProjects')}</button>
                 <button className="btn btn-primary" id="newProjectBtn" type="button" onClick={() => { closeDocs(); void createNewProject(); }}>{t('header.newProject')}</button>
             </div>

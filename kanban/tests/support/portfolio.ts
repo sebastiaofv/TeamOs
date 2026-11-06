@@ -533,6 +533,7 @@ async function mockNewProjectFlow(page: Page, { fileName = 'new-project.json' }:
     if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
   }, { noWaitAfter: true });
   await page.evaluate(({ fileName }) => {
+    window.showDirectoryPicker = undefined; // These legacy compatibility scenarios exercise the file fallback.
     window.__newProjectWrites = [];
     const disk = {
       text: '',

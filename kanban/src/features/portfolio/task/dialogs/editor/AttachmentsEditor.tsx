@@ -1,3 +1,4 @@
+import { AttachmentImage, AttachmentDownload } from '../AttachmentMedia';
 import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import type { DraftMessage } from '@/features/portfolio/types';
@@ -107,7 +108,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
                 ) : value.map((item) => (
                     <div className="attachment-editor-item" key={item.id}>
                         {item.kind === 'image'
-                            ? <img className="attachment-editor-thumb" alt="" src={item.dataUrl} />
+                            ? <AttachmentImage className="attachment-editor-thumb" alt="" src={item.dataUrl} mime={item.mime} />
                             : <span className="attachment-editor-icon">{t('common.file')}</span>}
                         <div className="attachment-editor-meta">
                             <div className="attachment-editor-name">{item.name}</div>
@@ -119,7 +120,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
                         <div className="attachment-editor-actions">
                             <div className="attachment-preview-actions">
                                 <AttachmentOpenLink className="attachment-editor-open attachment-open" dataUrl={item.dataUrl} previewMime={getAttachmentPreviewMime(item)} />
-                                <a className="attachment-editor-download attachment-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</a>
+                                <AttachmentDownload className="attachment-editor-download attachment-download" href={item.dataUrl} download={item.name || 'attachment'}>{t('common.download')}</AttachmentDownload>
                             </div>
                             <button
                                 type="button"
