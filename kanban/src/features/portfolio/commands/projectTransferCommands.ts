@@ -1,3 +1,4 @@
+import { resolveHierarchyAutomations } from './hierarchyAutomationChanges';
 import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { childTransferReview, projectTransferFields } from './projectTransferReview';
 import { requestWorkitemAcceptance } from './workitemAcceptance';
@@ -59,7 +60,12 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const currentDestination = getBoardRecord(destinationId)!;
             if (!writable(source!.id) || !writable(destinationId)) throw new TransferError('unavailable');
             const nextSource = removeTransferredSource(currentSource.data, operation, currentDestination.data);
-            if (nextSource !== currentSource.data) publish(source!.id, nextSource);
+            if (nextSource !== currentSource.data) {
+                const review = resolveHierarchyAutomations(nextSource, currentSource.data, confirm);
+                if (review) await review;
+                if (getBoardRecord(source!.id)?.data !== currentSource.data) throw new TransferError('stale');
+                publish(source!.id, nextSource);
+            }
             if (!await enqueueSave(getBoardRecord(source!.id))) return false;
             return await saveCompletedReceipt(destinationId, operation);
         } finally { unlock(); onBoardChanged(destinationId); if (source) onBoardChanged(source.id); }

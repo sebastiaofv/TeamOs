@@ -6,13 +6,14 @@ import { recordSprintCredits } from '@/domain/sprintResults';
 import { removeDeletedControlLinks } from '@/domain/projectControl';
 import { lastCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
 import { requestWorkitemAcceptance } from './workitemAcceptance';
-import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
+import { workitemLabel } from '@/domain/taskIdentity';
 import type { BoardRecord } from '@/features/portfolio/types';
 import type { BoardData, Task } from '@/domain/types';
 import type { BoardMutationOptions, BoardMutator } from './mutationContext';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { cloneSerializable } from '@/domain/serializable';
-import { applyStoryAutomation, assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
+import { resolveHierarchyAutomations } from './hierarchyAutomationChanges';
+import { assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, ensureBoardTimelineBaseline, recordTaskTimelineEvent, createTimelineEventId } from '@/domain/timeline';
 import { annotateTimelineOperation } from '@/domain/taskHistory';
 import { createWorkitemDisplayId, ensurePermanentTaskIdentities, reserveTaskIdentities } from '@/domain/taskIdentity';
@@ -31,7 +32,7 @@ type Interaction = Required<Pick<BoardMutationOptions, 'alert' | 'confirm' | 'pr
 /** Owns the full change sequence and its history before handing off to the publisher.
  * Without user interaction, publication remains synchronous up to the disk write.
  */
-export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMutator, { taskId, confirmSprintAllocation = true, isCurrent, alert, confirm, prompt, publish }: Interaction): Promise<boolean> {
+export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMutator, { taskId, confirmSprintAllocation = true, isCurrent, confirm, prompt, publish }: Interaction): Promise<boolean> {
     const draft = { ...current, data: cloneSerializable(current.data) };
     ensureBoardTimelineBaseline(draft.data);
     const firstEvent = draft.data.extensions.timeline?.events.length || 0;
@@ -91,7 +92,6 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     if (removeDeletedControlLinks(draft.data, current.data, lastCommentAuthor(current.id))) appendTimelineEvent(draft.data, { kind: 'board.control.associations', entityType: 'board', entityId: 'board', summary: 'Project Control associations updated after element deletion', snapshot: createBoardStateSnapshot(draft.data) });
     const stage = cloneSerializable(draft.data);
     syncWorkitemPlanning(draft.data, current.data);
-    const effects = applyStoryAutomation(draft.data, current.data);
     assertWorkitems(draft.data, current.data);
     const previews: string[] = [];
     const beforeTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
@@ -122,23 +122,9 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             if (oldValue !== newValue && before[field] === task[field] && (field === 'phaseId' ? before.phaseMode === task.phaseMode : before.milestoneMode === task.milestoneMode)) previews.push(`${workitemLabel(task)} ${task.title} · ${translateCurrent(field === 'phaseId' ? 'task.phase' : 'task.milestone')}: ${oldValue || '—'} → ${newValue || '—'}`);
         }
     }
-    for (const effect of effects) if (!effect.blocked) previews.push(translateCurrent('workitems.autoEffect', { id: workitemLabelFor(draft.data, effect.storyId), state: stateName(draft.data, draft.data.board.tasks.find((task) => task.id === effect.storyId)?.status || '', draft.data.board.tasks.find((task) => task.id === effect.storyId)) }));
     if (previews.length) {
-        const selections = effects.filter((effect) => !effect.blocked).map((effect) => {
-            const story = draft.data.board.tasks.find((task) => task.id === effect.storyId)!;
-            return { id: String(story.id), label: `${workitemLabel(story)} ${story.title}`, options: [
-                { value: 'advance', label: translateCurrent('workitems.advance', { state: stateName(draft.data, story.status, story) }) },
-                { value: 'keep', label: translateCurrent('workitems.keepState') }
-            ] };
-        });
-        const answer = await confirm(translateCurrent('workitems.impact') + '\n\n' + previews.join('\n\n'), { title: translateCurrent('workitems.confirmChanges'), confirmLabel: translateCurrent('messages.confirm'), ...(selections.length ? { selections } : {}) });
+        const answer = await confirm(translateCurrent('workitems.impact') + '\n\n' + previews.join('\n\n'), { title: translateCurrent('workitems.confirmChanges'), confirmLabel: translateCurrent('messages.confirm') });
         if (!answer) return false;
-        if (typeof answer === 'object') for (const effect of effects) {
-            if ((answer as Record<string, unknown>)[String(effect.storyId)] !== 'keep') continue;
-            const story = draft.data.board.tasks.find((task) => task.id === effect.storyId)!;
-            const original = stageTasks.get(story.id)!;
-            story.status = original.status; story.updatedAt = original.updatedAt;
-        }
     }
     assertWorkitems(draft.data, current.data);
     for (const task of draft.data.board.tasks) {
@@ -150,11 +136,13 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             recordTaskTimelineEvent(draft.data, stageTask, captureTaskTimelineSnapshot(draft.data, task.id));
             const event = draft.data.extensions.timeline?.events.at(-1);
             if (event && (draft.data.extensions.timeline?.events.length || 0) > count) {
-                const automatic = effects.find((effect) => !effect.blocked && effect.storyId === task.id);
-                event.meta = { ...event.meta, ...(automatic ? { automatic: true, causeTaskId: automatic.taskId, cause: `Task ${workitemLabelFor(draft.data, automatic.taskId)}` } : {}), ...(task.acceptance && !before?.acceptance ? { author: task.acceptance.author } : {}) };
+                event.meta = { ...event.meta, ...(task.acceptance && !before?.acceptance ? { author: task.acceptance.author } : {}) };
             }
         }
     }
+    const automationReview = !boardSnapshotRecorded && resolveHierarchyAutomations(draft.data, current.data, confirm);
+    if (automationReview) await automationReview;
+    assertWorkitems(draft.data, current.data);
     const dateConflicts = sprintPhaseDateConflicts(draft.data, current.data);
     if (dateConflicts.length) {
         const answer = await confirm(translateCurrent('planning.phaseDatesConflict'), {
@@ -180,7 +168,6 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
         }
     }
     if (!isCurrent()) throw new WorkitemError('stale');
-    for (const effect of effects) if (effect.blocked) void alert(translateCurrent('workitems.autoBlocked', { id: workitemLabelFor(draft.data, effect.storyId) }));
     syncWorkitemPlanning(draft.data, draft.data);
     if (JSON.stringify(stage.extensions.sprintParticipation) !== JSON.stringify(draft.data.extensions.sprintParticipation)) appendTimelineEvent(draft.data, { kind: 'sprint.participation.updated', entityType: 'board', entityId: 'board', summary: 'Sprint participation recorded', changes: { sprintParticipation: { before: stage.extensions.sprintParticipation ?? null, after: structuredClone(draft.data.extensions.sprintParticipation) } } });
     recordSprintCredits(draft.data, current.data);

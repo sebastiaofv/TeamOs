@@ -1,3 +1,4 @@
+import { defaultHierarchyAutomations } from '../../src/domain/hierarchyAutomations';
 import type { ConfirmOptions } from '../../src/app/overlays/appMessages';
 import { createBoardMutationContext } from '../../src/features/portfolio/commands/mutationContext';
 import { describe, it, expect, vi } from 'vitest';
@@ -20,6 +21,8 @@ function project() {
 }
 function setup() {
     const data = project();
+    data.extensions.hierarchyAutomations = defaultHierarchyAutomations();
+    data.extensions.hierarchyAutomations.rules.startParent = 'off';
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'US-12', handle: {}, data })], selectedPortfolioBoardId: 'p' });
     const confirm = vi.fn<(text: string, options?: ConfirmOptions) => Promise<boolean | Record<string, string>>>(async () => true); const alert = vi.fn(); const prompt = vi.fn(async (): Promise<string | null> => 'Ana'); const save = vi.fn(async () => true);
     const actions = createPortfolioMutationActions({ store, confirm, prompt, alert, enqueueSave: save, markDirty: vi.fn() });
@@ -128,21 +131,21 @@ describe('US-12 transfer boundary for US-13', () => {
 });
 
 describe('US-12 mutation boundaries' , () => {
-    const advancementAnswers: (false | Record<string, string>)[] = [false, { '2': 'keep' }, { '2': 'advance' }];
+    const advancementAnswers: (false | Record<string, string>)[] = [false, { '2:prepareTesting:doing:ready-to-test': 'keep' }, { '2:prepareTesting:doing:ready-to-test': 'advance' }];
     for (const answer of advancementAnswers) it(`reviews Story advancement without publishing unselected effects: ${JSON.stringify(answer)}`, async () => {
         const { actions, data, confirm, save } = setup();
         data().board.tasks[1].status = 'doing'; data().board.tasks[2].status = 'doing';
         data().extensions.workitemAutomation = { version: 1, finish: { from: ['doing'], to: 'ready-to-test' } };
         confirm.mockResolvedValueOnce(answer);
-        expect(await actions.movePortfolioTaskToStatus('p', 3, 'done')).toBe(Boolean(answer));
-        expect(confirm.mock.calls[0][1]).toMatchObject({ selections: [{ id: '2', label: '#2 story 2', options: [
+        expect(await actions.movePortfolioTaskToStatus('p', 3, 'done')).toBe(true);
+        expect(confirm.mock.calls[0][1]).toMatchObject({ selections: [{ id: '2:prepareTesting:doing:ready-to-test', label: '#2 story 2 → Ready to test', options: [
             { value: 'advance', label: 'Advance to Ready to test' }, { value: 'keep', label: 'Keep current state' }
         ] }] });
-        expect(data().board.tasks[2].status).toBe(answer ? 'done' : 'doing');
-        expect(data().board.tasks[1].status).toBe(answer && answer['2'] === 'advance' ? 'ready-to-test' : 'doing');
-        if (!answer) { expect(save).not.toHaveBeenCalled(); expect(data().extensions.timeline).toBeUndefined(); return; }
+        expect(data().board.tasks[2].status).toBe('done');
+        expect(data().board.tasks[1].status).toBe(answer && answer['2:prepareTesting:doing:ready-to-test'] === 'advance' ? 'ready-to-test' : 'doing');
+        expect(save).toHaveBeenCalled();
         const events = data().extensions.timeline!.events;
-        expect(events.some((event) => event.entityId === '2' && event.changes?.status)).toBe(answer['2'] === 'advance');
+        expect(events.some((event) => event.entityId === '2' && event.changes?.status)).toBe(Boolean(answer && answer['2:prepareTesting:doing:ready-to-test'] === 'advance'));
         expect(reconstructBoardStateFromTimeline(data(), events.length - 1).board.tasks.map((task) => task.status)).toEqual(data().board.tasks.map((task) => task.status));
     });
 
@@ -152,13 +155,13 @@ describe('US-12 mutation boundaries' , () => {
         data().board.tasks.push(item(5, 'story', { status: 'doing', sprintId: 'b' }), item(6, 'task', { parentId: 5, sprintId: 'b', status: 'doing' }));
         data().extensions.workitemAutomation = { version: 1, finish: { from: ['doing'], to: 'ready-to-test' } };
         store.setState({ portfolioBulkSelectionByBoardId: { p: [3, 6] } });
-        confirm.mockResolvedValueOnce({ '2': 'keep', '5': 'advance' });
+        confirm.mockResolvedValueOnce({ '2:prepareTesting:doing:ready-to-test': 'keep', '5:prepareTesting:doing:ready-to-test': 'advance' });
         const context = createBoardMutationContext({ store, confirm, enqueueSave: async () => true, markDirty: vi.fn() });
         await context.runPortfolioBoardMutation('p', (draft) => {
             draft.board.tasks.filter((task) => [3, 6].includes(task.id)).forEach((task) => { task.status = 'done'; });
             return true;
         });
-        expect(confirm.mock.calls[0][1]?.selections?.map((field) => field.id)).toEqual(['2', '5']);
+        expect(confirm.mock.calls[0][1]?.selections?.map((field) => field.id)).toEqual(['2:prepareTesting:doing:ready-to-test', '5:prepareTesting:doing:ready-to-test']);
         expect(data().board.tasks.find((task) => task.id === 2)!.status).toBe('doing');
         expect(data().board.tasks.find((task) => task.id === 5)!.status).toBe('ready-to-test');
     });
