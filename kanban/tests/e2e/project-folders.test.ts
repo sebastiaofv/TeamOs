@@ -165,3 +165,16 @@ test('writes valid append-only history using real browser file streams with Unic
     await page.getByRole('tab', { name: 'History', exact: true }).click();
     await expect(page.locator('#task-panel-history')).toContainText('Ação — ficheiro');
 });
+
+test('standalone: creates a project subfolder and closes the creation dialog', async ({ page }) => {
+    await page.goto(pathToFileURL(resolve('dist-standalone/index.html')).href);
+    await mockFolderPicker(page);
+    await page.locator('#newProjectBtn').click();
+    await page.getByLabel('Project name', { exact: true }).fill('Standalone project');
+    await page.locator('#projectAcronym').fill('STN');
+    await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(page.locator('#projectSettingsModal')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__folderDisk.directories)).toContain('standalone-project/attachments');
+    expect((await readFolderJson(page, 'standalone-project/project.json')).board.settings.title).toBe('Standalone project');
+    expect((await readFolderJson(page, 'standalone-project/history.json')).version).toBe(1);
+});
