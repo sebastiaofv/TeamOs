@@ -147,15 +147,18 @@ test('writes valid append-only history using real browser file streams with Unic
     await page.locator('#taskDetailModalCloseBtn').click();
     await renameTaskViaEditor(page, 'Ação — ficheiro', 'Atualização — ação guardada');
     const readNative = () => page.evaluate(async () => {
-        const directory = await (await navigator.storage.getDirectory()).getDirectoryHandle('native-folder');
-        return {
-            project: JSON.parse(await (await (await directory.getFileHandle('project.json')).getFile()).text()),
-            history: JSON.parse(await (await (await directory.getFileHandle('history.json')).getFile()).text())
-        };
+        try {
+            const directory = await (await navigator.storage.getDirectory()).getDirectoryHandle('native-folder');
+            return {
+                project: JSON.parse(await (await (await directory.getFileHandle('project.json')).getFile()).text()),
+                history: JSON.parse(await (await (await directory.getFileHandle('history.json')).getFile()).text())
+            };
+        } catch { return null; } // Atomic replacement can invalidate a concurrent file snapshot.
     });
-    await expect.poll(async () => (await readNative()).project.board.tasks[0].title).toBe('Atualização — ação guardada');
-    await expect.poll(async () => (await readNative()).history.transactions.filter((entry: { kind: string }) => entry.kind === 'commit').length).toBeGreaterThanOrEqual(3);
+    await expect.poll(async () => (await readNative())?.project.board.tasks[0].title).toBe('Atualização — ação guardada');
+    await expect.poll(async () => (await readNative())?.history.transactions.filter((entry: { kind: string }) => entry.kind === 'commit').length || 0).toBeGreaterThanOrEqual(3);
     const saved = await readNative();
+    if (!saved) throw new Error('Native project files are not readable after save.');
     expect(saved.project.extensions.timeline).toBeUndefined();
     expect(saved.history.transactions.filter((entry: { kind: string }) => entry.kind === 'commit').length).toBeGreaterThanOrEqual(3);
     await portfolioCard(page, 'Atualização — ação guardada').click();
