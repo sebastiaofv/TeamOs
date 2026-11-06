@@ -1,3 +1,4 @@
+import { DateInput } from '@/shared/ui/DateInput';
 // The toolbar's Filters button, its dropdown panel, and the row of active
 // filter tags. Filters apply as soon as they change; the panel closes on an
 // outside click, Escape, or Done, returning focus to the button.
@@ -14,6 +15,7 @@ export type FilterMenuField = {
     value: string | string[];
     changed: boolean;
     multiple?: boolean;
+    inputType?: 'date';
     hint?: string;
     onChange: (value: string | string[]) => void;
 };
@@ -147,7 +149,8 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                         {fields.map((field) => (
                                 <div className="portfolio-filters-field" key={field.id}>
                                     <label htmlFor={field.id}>{field.label}</label>
-                                    <select
+                                    {field.inputType === 'date' ? <DateInput id={field.id} value={String(field.value)} className={field.changed ? 'changed' : ''}
+                                        aria-describedby={field.hint ? `${field.id}-hint` : undefined} onChange={event => field.onChange(event.target.value)} /> : <select
                                         id={field.id}
                                         className={field.changed ? 'changed' : ''}
                                         value={field.value}
@@ -159,7 +162,7 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                                             : event.target.value)}
                                     >
                                         {field.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                                    </select>
+                                    </select>}
                                     {field.hint && <span className="portfolio-filter-hint" id={`${field.id}-hint`}>{field.hint}</span>}
                                 </div>
                         ))}

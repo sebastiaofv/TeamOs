@@ -452,24 +452,30 @@ test('table search, filters, sorting, overdue and empty states work in both lang
     await seed(page);
     await page.getByLabel('Search by ID or title', { exact: true }).fill('ATL-RK-1');
     await expect(page.locator('.control-table tbody tr')).toHaveCount(1);
-    await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
-    await page.getByLabel('Risk level', { exact: true }).selectOption('low');
+    await page.locator('.section-search-clear').click();
+    await page.locator('#portfolioFiltersBtn-control-risks').click();
+    await page.getByRole('dialog', { name: 'Filters', exact: true }).getByLabel('Risk level', { exact: true }).selectOption('low');
+    await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: 'Documentation delay', exact: true })).toBeVisible();
-    await page.getByRole('button', { name: 'Clear filters', exact: true }).click();
+    await page.locator('#portfolioClearFilters-control-risks').click();
     await page.getByRole('tab', { name: 'Decisions', exact: true }).click();
-    await page.getByLabel('Decision maker', { exact: true }).selectOption('Rui Costa');
+    await page.locator('#portfolioFiltersBtn-control-decisions').click();
+    await page.getByRole('dialog', { name: 'Filters', exact: true }).getByLabel('Decision maker', { exact: true }).selectOption('Rui Costa');
     await expect(page.locator('.control-table tbody tr')).toHaveCount(2);
+    await page.keyboard.press('Escape');
     await page.getByRole('tab', { name: 'Deliverables', exact: true }).click();
-    await page.getByLabel('Overdue', { exact: true }).check();
-    await page.getByLabel('Pending acceptance', { exact: true }).check();
+    await page.locator('#portfolioFiltersBtn-control-deliverables').click();
+    await page.getByLabel('Overdue', { exact: true }).selectOption('yes');
+    await page.getByLabel('Pending acceptance', { exact: true }).selectOption('yes');
     await expect(page.locator('.control-table tbody tr')).toHaveCount(1);
+    await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Title', exact: true }).click();
     await expect(page.getByRole('columnheader', { name: /Title/ })).toHaveAttribute('aria-sort', 'ascending');
     await page.getByLabel('Search by ID or title', { exact: true }).fill('missing');
-    await expect(page.getByRole('status')).toContainText('No records match');
+    await expect(page.locator('.control-empty')).toContainText('No records match');
     await toggleLanguage(page);
     await expect(page.getByRole('region', { name: 'Controlo do projeto', exact: true })).toBeVisible();
-    await expect(page.getByRole('status')).toContainText('Nenhum registo encontrado');
+    await expect(page.locator('.control-empty')).toContainText('Nenhum registo encontrado');
 });
 
 test('read-only projects permit consultation and navigation while blocking writes', async ({ page }) => {

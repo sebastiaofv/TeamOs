@@ -1,3 +1,4 @@
+import { buildCsv } from '@/infrastructure/browser/csv';
 import { workitemId, workitemLabel } from '@/domain/taskIdentity';
 import { effectivePlanning, workitemType, parentOf, epicOf } from '@/domain/workitems';
 import type { BoardData } from '@/domain/types';
@@ -104,18 +105,6 @@ export type TableCsvOptions = {
     value?: (row: PortfolioRow, column: TableColumnId) => string;
 };
 
-function csvCell(value: string, separator: ',' | ';'): string {
-    // Spreadsheet parsers may ignore leading whitespace and control characters.
-    let start = 0;
-    while (start < value.length) {
-        const code = value.charCodeAt(start);
-        if (code > 32 && !(code >= 127 && code <= 159) && !/\s/u.test(value[start])) break;
-        start += 1;
-    }
-    const safe = start < value.length && '=+-@'.includes(value[start]) ? `'${value}` : value;
-    return safe.includes(separator) || /["\r\n]/u.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-}
-
 /** Pass the entire filtered/sorted result, independent of selection or pagination. */
 export function buildTableCsv(
     rows: PortfolioRow[], columns: readonly TableColumnId[], boardData: BoardData | null,
@@ -124,7 +113,5 @@ export function buildTableCsv(
     const separator = options.separator || ',';
     const header = options.header || ((column: TableColumnId) => column);
     const value = options.value || ((row: PortfolioRow, column: TableColumnId) => tableCellValue(row, column, boardData));
-    return [columns.map((column) => csvCell(header(column), separator)).join(separator),
-        ...rows.map((row) => columns.map((column) => csvCell(value(row, column), separator)).join(separator))]
-        .join('\r\n');
+    return buildCsv([columns.map(header), ...rows.map(row => columns.map(column => value(row, column)))], separator);
 }

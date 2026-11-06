@@ -1,3 +1,4 @@
+import { ActiveFilterTags } from './ActiveFilterTags';
 import type { WorkflowKind } from '@/domain/types';
 import { BoardColumnOptions } from '@/features/portfolio/board/BoardColumnOptions';
 import { PortfolioSortControl } from '@/features/portfolio/board/BoardSortControl';
@@ -94,20 +95,8 @@ export function PortfolioToolbarFilters({ boardMode, scope = '', additionalField
 }
 
 export function PortfolioActiveFilters({ scope = '', additionalFields = [] }: { scope?: string; additionalFields?: AdditionalPortfolioFilter[] }) {
-    const { active: base, t } = usePortfolioFilterFields();
+    const { active: base } = usePortfolioFilterFields();
     const active = [...base, ...additionalFields.filter(field => field.changed)];
     const clear = () => { clearPortfolioFilters(); additionalFields.forEach(field => field.reset()); };
-    if (!active.length) return null;
-    return <div className="portfolio-active-filters" id={scope ? `portfolioActiveFilters-${scope}` : 'portfolioActiveFilters'} role="group" aria-label={t('toolbar.activeFilters')}>
-        {active.map((field) => {
-            const values = Array.isArray(field.value) ? field.value : [field.value];
-            const label = field.options.filter((option) => values.includes(option.value)).map((option) => option.label).join(', ') || values.join(', ');
-            return <span className="portfolio-active-filter" key={field.id} data-filter={field.key}>
-                <span className="portfolio-active-filter-name">{field.label}</span><span>{label}</span>
-                <button type="button" aria-label={t('toolbar.removeFilter', { label: field.label, value: label })}
-                    onClick={field.reset}>×</button>
-            </span>;
-        })}
-        <button className="btn-text" id={scope ? `portfolioClearFilters-${scope}` : 'portfolioClearFilters'} type="button" onClick={clear}>{t('toolbar.clearAllFilters')}</button>
-    </div>;
+    return <ActiveFilterTags fields={active} onClear={clear} scope={scope} />;
 }

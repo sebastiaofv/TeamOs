@@ -1,3 +1,5 @@
+import { TableColumnMenu } from './TableColumnMenu';
+import { TablePagination } from './TablePagination';
 import { showChoice } from '@/app/overlays/appMessages';
 import type { AdditionalPortfolioFilter } from '@/features/portfolio/shell/PortfolioFilters';
 import { PortfolioQueryControls } from '@/features/portfolio/shell/PortfolioQueryControls';
@@ -129,7 +131,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const hasAssignableSprints = planning && buildAssignableSprintOptions(boardData, today, language).length > 0;
     const actions = usePortfolioActions();
     const sortRef = useFocusTarget<HTMLButtonElement>('portfolioTableSort', !hidden && !compact);
-    const columnDisclosure = useTableDisclosure(hidden);
     const sprintDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
     const [hierarchy, setHierarchy] = useState({ type: '', epic: '', story: '' });
@@ -170,14 +171,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
         const normalized = normalizeTableColumns(next);
         setColumns(normalized);
         saveTableColumnPreferences(normalized);
-    }
-    function moveColumn(column: TableColumnId, step: number) {
-        const next = [...columns];
-        const from = next.indexOf(column);
-        const to = from + step;
-        if (from < 0 || to < 0 || to >= next.length) return;
-        [next[from], next[to]] = [next[to], next[from]];
-        changeColumns(next);
     }
     function toggleSelection(ids: number[], checked: boolean) {
         setSelected((previous) => {
@@ -230,27 +223,8 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                     </div>
                     <div className="table-tools">
                         <PortfolioQueryControls active={!hidden} scope={scope} additionalFields={hierarchyFields} iconOnlyFilters />
-                        <details id={scopedId('tableColumns')} className="table-columns" ref={columnDisclosure.detailsRef} onKeyDown={columnDisclosure.onKeyDown} onToggle={columnDisclosure.onToggle}>
-                            <summary className="btn icon-btn" ref={columnDisclosure.summaryRef} aria-label={t('table.columns')} title={t('table.columns')}><WorkspaceIcon name="columns" /></summary>
-                            <div className="table-column-panel" data-table-panel>
-                                <div className="table-column-options">
-                                    {[...columns, ...TABLE_COLUMNS.filter((column) => column !== 'archived' && !columns.includes(column))].map((column) => {
-                                        const required = column === 'id' || column === 'title';
-                                        const index = columns.indexOf(column);
-                                        const label = t(COLUMN_LABELS[column]);
-                                        return <div className="table-column-option" key={column}>
-                                            <label htmlFor={scopedId(`tableColumn-${column}`)}><input id={scopedId(`tableColumn-${column}`)} type="checkbox" checked={index >= 0} disabled={required}
-                                                onChange={(event) => changeColumns(event.target.checked ? [...columns, column] : columns.filter((entry) => entry !== column))} /> {label}
-                                                {required && <span className="table-column-required"> ({t('table.mandatory')})</span>}
-                                            </label>
-                                            <button className="btn" disabled={index <= 0} aria-label={t('table.moveLeft', { column: label })} onClick={() => moveColumn(column, -1)}>←</button>
-                                            <button className="btn" disabled={index < 0 || index === columns.length - 1} aria-label={t('table.moveRight', { column: label })} onClick={() => moveColumn(column, 1)}>→</button>
-                                        </div>;
-                                    })}
-                                </div>
-                                <button className="btn" onClick={() => changeColumns([...DEFAULT_TABLE_COLUMNS])}>{t('table.resetColumns')}</button>
-                            </div>
-                        </details>
+                        <TableColumnMenu columns={columns} available={TABLE_COLUMNS.filter(column => column !== 'archived')} defaults={DEFAULT_TABLE_COLUMNS} required={['id', 'title']}
+                            label={column => t(COLUMN_LABELS[column])} onChange={changeColumns} scope={scope} hidden={hidden} />
                         <button className="btn icon-btn" id={scopedId('tableExportCsv')} type="button" aria-label={t('table.export')} title={t('table.export')} disabled={rows.length === 0} onClick={() => void exportCsv()}><WorkspaceIcon name="export" /></button>
                         {canCreate && <div className="table-management-actions">
                             <span className="toolbar-divider" aria-hidden="true" />
@@ -313,19 +287,8 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                         </tr>; })}</tbody>
                     </table>
                 </div>
-                {(!bare || pageCount > 1) && <nav className="table-pagination" aria-label={t('table.view')}>
-                    <label htmlFor={scopedId('tablePageSize')}>{t('table.pageSize')}
-                        <span className="table-select table-page-size-select">
-                            <select id={scopedId('tablePageSize')} value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(0); }}>
-                                {[25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
-                            </select>
-                            <svg className="table-select-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
-                        </span>
-                    </label>
-                    <button className="btn" id={scopedId('tablePreviousPage')} disabled={currentPage === 0} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage - 1); }}>{t('table.previous')}</button>
-                    <span role="status">{t('table.page', { current: currentPage + 1, total: pageCount })}</span>
-                    <button className="btn" id={scopedId('tableNextPage')} disabled={currentPage >= pageCount - 1} onClick={() => { setPageScope({ filters, sort }); setPage(currentPage + 1); }}>{t('table.next')}</button>
-                </nav>}
+                {(!bare || pageCount > 1) && <TablePagination page={currentPage} pageCount={pageCount} pageSize={pageSize} scope={scope}
+                    onPage={next => { setPageScope({ filters, sort }); setPage(next); }} onPageSize={size => { setPageSize(size); setPage(0); }} />}
             </>}
         </div>
     );

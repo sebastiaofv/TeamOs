@@ -713,6 +713,13 @@ export const DOCS_PT: DocSection[] = [
                         ['Entregável', 'Planeado → Em curso → Entregue → Aceite, com datas prevista, de entrega e de aceitação e um validador.']
                     ] },
                     { kind: 'p', text: 'Os registos têm IDs como `CHK-RK-1`, participantes, etiquetas, comentários e histórico, e podem ser associados a fases, marcos e workitems. Filtre por Todos, Pendentes, Em atraso ou Pendente de aceitação.' },
+                    { kind: 'list', items: [
+                        'Riscos, Decisões e Entregáveis mantêm subseções próprias com o mesmo layout de **Tabela → Todos**. Contagens e seleção ficam à esquerda; pesquisa, ícones de Filtros, Colunas e Exportar CSV, separador e **+ Novo registo** ficam à direita.',
+                        'Abra **Filtros** para estado, responsável, associações a fases/milestones e Pendentes, além dos campos de cada tipo: avaliações/nível de risco, decisor/data, ou validador/data prevista/Em atraso/Pendente de aceitação. Os filtros ativos aparecem em etiquetas removíveis.',
+                        'Selecione linhas ou a página atual, limpe a seleção, ordene por qualquer coluna visível e escolha 25, 50 ou 100 linhas por página. Clique numa linha, ID ou título para abrir o detalhe existente.',
+                        'O ícone **Colunas** permite mostrar, ocultar, reordenar ou repor colunas. ID e título são obrigatórios. As preferências ficam guardadas localmente por subseção, independentes das colunas da tabela de workitems.',
+                        '**Exportar CSV** pede vírgula ou ponto e vírgula e exporta todos os registos filtrados/ordenados pela ordem das colunas visíveis, incluindo outras páginas. Em leitura e no histórico mantém consulta e exportação; **+** fica desativado.'
+                    ] },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Entregáveis pendentes de aceitação mantêm o progresso das respetivas fases e marcos abaixo de 100%.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Reveja os riscos abertos no planeamento do sprint e registe decisões importantes — incluindo acordos da retrospetiva — como Decisões.' }
                 ],

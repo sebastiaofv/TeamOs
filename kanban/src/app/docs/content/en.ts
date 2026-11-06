@@ -713,6 +713,13 @@ export const DOCS_EN: DocSection[] = [
                         ['Deliverable', 'Planned → In progress → Delivered → Accepted, with due, delivered and accepted dates and a validator.']
                     ] },
                     { kind: 'p', text: 'Records have IDs like `CHK-RK-1`, participants, tags, comments and history, and can be associated with phases, milestones and workitems. Filter by All, Pending, Overdue or Pending acceptance.' },
+                    { kind: 'list', items: [
+                        'Risks, Decisions and Deliverables keep separate subsections with the same table layout as **Table → All**. Counts and selection stay on the left; search, Filters, Columns, Export CSV, a divider and **+ New record** sit on the right.',
+                        'Open the **Filters** icon for status, responsible person, phase/milestone associations and Pending, plus the fields for each type: assessments/risk level, decision maker/date, or validator/due date/Overdue/Pending acceptance. Active filters appear as removable tags.',
+                        'Select rows or the current page, clear selection, sort by any visible column and use 25, 50 or 100 rows per page. Click a row, ID or title to open its existing detail dialog.',
+                        'The **Columns** icon shows, hides, reorders or resets columns. ID and title are required. Preferences are saved locally per subsection, independently of workitem-table columns.',
+                        '**Export CSV** asks for comma or semicolon and exports all filtered/sorted records in the visible column order, including other pages. Read-only and historical views retain consultation and export; **+** is disabled.'
+                    ] },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Deliverables awaiting acceptance keep the progress of their phases and milestones below 100%.' },
                     { kind: 'callout', tone: 'method', title: 'Agile practice', text: 'Review open risks in sprint planning, and record important decisions — including retrospective agreements — as Decisions.' }
                 ],

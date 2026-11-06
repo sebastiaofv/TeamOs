@@ -209,7 +209,7 @@
     color: var(--text-muted);
 }
 
-.portfolio-filters-field select {
+.portfolio-filters-field :is(select, input) {
     width: 100%;
     padding: 5px 8px;
     border: 1px solid var(--border);
@@ -218,7 +218,7 @@
     font-size: 12px;
 }
 
-.portfolio-filters-field select.changed {
+.portfolio-filters-field :is(select, input).changed {
     border-color: var(--accent);
     box-shadow: inset 0 0 0 1px var(--accent);
 }
