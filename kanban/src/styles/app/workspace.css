@@ -134,7 +134,7 @@
 .header-project-picker { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .project-picker-trigger { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 28vw; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-weight: 600; padding: 6px 0; cursor: pointer; }
 .project-picker-trigger > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.project-picker-trigger > span:last-child { flex: none; color: var(--text-secondary); }
+.project-picker-trigger > .workspace-icon { color: var(--text-secondary); }
 .project-picker-trigger:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
 .project-picker-panel, .app-settings-panel { position: fixed; inset: auto; margin: 0; width: min(380px, calc(100vw - 24px)); padding: 12px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); overflow: auto; z-index: 300; font-size: 13px; }
 .project-picker-panel .portfolio-chip { display: flex; width: 100%; margin: 0; border: 0; background: transparent; color: var(--text-primary); }

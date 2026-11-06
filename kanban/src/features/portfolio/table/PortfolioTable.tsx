@@ -72,7 +72,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
         <div className="table-view-options" role="group" aria-label={t('table.perspectives')}>
             <details className="table-view-menu" ref={viewMenu.detailsRef} onToggle={viewMenu.onToggle} onKeyDown={viewMenu.onKeyDown}>
                 <summary id="tableViewBtn" className={`btn${view !== 'unplanned' && view !== 'sprints' ? ' active' : ''}`} role="button" ref={viewMenu.summaryRef}>
-                    {t(viewLabels[lastWorkitemView])}<span aria-hidden="true">⌄</span>
+                    {t(viewLabels[lastWorkitemView])}<WorkspaceIcon name="chevronDown" />
                 </summary>
                 <div className="table-view-panel" data-table-panel>
                     {(['hierarchy', 'epics', 'stories', 'independent', 'all'] as const).map(key => <button className={`btn${view === key ? ' active' : ''}`} type="button" key={key}

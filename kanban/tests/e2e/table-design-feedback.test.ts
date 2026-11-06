@@ -14,7 +14,7 @@ for (const style of ['classic', 'modern']) for (const width of [1280, 390]) test
     ] }], { selectedBoardId: 'table' });
     const initial = await readSavedBoard(page, 'table');
     await page.locator('[data-view-mode="table"]').click();
-    await expect(page.locator('#tableViewBtn')).toHaveText('All⌄');
+    await expect(page.locator('#tableViewBtn')).toHaveText('All');
     await expect(page.locator('.table-view-options > *')).toHaveCount(3);
     await expect(page.locator('[data-table-view="unplanned"]')).toHaveText('Backlog');
     await expect(page.locator('.table-summary, .table-hierarchy-options, #tableCsvSeparator')).toHaveCount(0);

@@ -209,7 +209,7 @@ export function PortfolioProjectPicker() {
         <span className="toolbar-divider" aria-hidden="true" />
         <button id="projectPickerBtn" className="project-picker-trigger" type="button" popoverTarget="portfolioBoardsChips"
             aria-label={`${t('toolbar.projectSelection')}: ${label}`} title={label} aria-haspopup="dialog" aria-expanded={open}>
-            <span>{label}</span><span aria-hidden="true">⌄</span>
+            <span>{label}</span><WorkspaceIcon name="chevronDown" />
         </button>
         {saveUi?.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title} role="status">{saveUi.status === 'saving' && <span className="save-spinner" aria-hidden="true" />}{saveUi.text}</span>}
         <div ref={panel} className="project-picker-panel" id="portfolioBoardsChips" popover="auto" role="dialog" aria-label={t('toolbar.projectSelection')}
