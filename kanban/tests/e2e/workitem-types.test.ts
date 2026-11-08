@@ -64,7 +64,8 @@ test('creates a child with inherited planning and an immutable type, preserving 
 test('technical completion advances the Story once and functional acceptance requires local attribution', async ({ page }) => {
     await seed(page, true, true);
     await move(page, 1204, 'Done');
-    await answerAppMessage(page, { expectText: 'In progress → Ready to test' });
+    await expect(page.locator('.workitem-review-transition')).toHaveText('In progress→Ready to test');
+    await answerAppMessage(page, { expectText: 'Cascades follow applied changes' });
     await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { id: number }) => task.id === 1202).status).toBe('ready-to-test');
     await move(page, 1202, 'Testing');
     await move(page, 1202, 'Done');

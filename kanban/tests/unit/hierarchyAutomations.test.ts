@@ -125,7 +125,7 @@ describe('US-30 mutation integration and persistence', () => {
         await actions.movePortfolioTaskToStatus('p', 3, 'doing');
         expect(statuses(data())).toEqual(['doing', 'doing', 'doing']); expect(confirm).toHaveBeenCalledTimes(1);
         expect(confirm.mock.calls[0][1]?.selections).toHaveLength(2);
-        expect(confirm.mock.calls[0][0]).toContain('To Do → In progress'); expect(confirm.mock.calls[0][0]).toContain('Start parent work');
+        expect(confirm.mock.calls[0][1]?.workitems).toMatchObject({ heading: 'Start parent work', countSelection: true, rows: [{ from: 'To Do', to: 'In progress' }, { from: 'To Do', to: 'In progress' }] });
     });
     it.each([false, { '2:startParent:to-do:doing': 'keep', '1:startParent:to-do:doing': 'advance' }])('preserves the child edit and does not cascade rejected states: %j', async (answer) => {
         const { actions, data, confirm, save } = setup(); confirm.mockResolvedValueOnce(answer);
@@ -136,6 +136,17 @@ describe('US-30 mutation integration and persistence', () => {
         expect(projectTaskHistory(data(), data().board.tasks[1]).entries[0].summary).toContain('rejected by user');
         expect(data().extensions.timeline!.events.filter((event) => event.entityId === '1' && event.meta?.automationRule)).toHaveLength(0);
     });
+    it('separates titles containing state names from the actual current and proposed states', async () => {
+        const before = project();
+        before.board.tasks[1].title = 'Testing → Done rollout';
+        const { actions, confirm } = setup(before);
+        await actions.movePortfolioTaskToStatus('p', 3, 'doing');
+        expect(confirm.mock.calls[0][1]?.workitems?.rows[0]).toMatchObject({
+            title: 'Testing → Done rollout', from: 'To Do', to: 'In progress', type: 'story'
+        });
+        expect(confirm.mock.calls[0][1]?.cancelLabel).toBe('Keep all current');
+    });
+
     it('automates a lower level and reviews the Epic using the applied state', async () => {
         const before = project(); before.board.tasks[0].status = 'doing'; before.board.tasks[1].status = 'doing'; before.board.tasks[2].status = 'cancelled';
         before.extensions.hierarchyAutomations!.rules.hierarchyChanges = 'automatic';
@@ -161,6 +172,9 @@ describe('US-30 mutation integration and persistence', () => {
         // The first confirmation belongs to the original cancellation, the second reviews all rule choices.
         const review = confirm.mock.calls.find((call) => call[1]?.selections?.some((field) => field.id.includes(':completeEpic:')));
         expect(review?.[1]?.selections?.map((field) => field.id)).toContain('1:startParent:to-do:doing');
+        const rows = review?.[1]?.workitems?.rows || [];
+        expect(new Set(rows.map((row) => row.id)).size).toBe(rows.length);
+        expect(rows.find((row) => row.id === '#1')).toMatchObject({ from: 'To Do', to: 'Done / In progress', selectionIds: ['1:completeEpic:to-do:done', '1:startParent:to-do:doing'] });
         expect(data().board.tasks[1].status).toBe('doing'); expect(data().board.tasks[0].status).toBe('doing');
     });
 

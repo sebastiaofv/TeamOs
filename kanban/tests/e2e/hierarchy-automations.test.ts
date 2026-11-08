@@ -24,6 +24,8 @@ for (const width of [390, 1280]) for (const theme of ['light', 'dark']) test(`au
     await page.addInitScript((theme) => localStorage.setItem('teamOsKanbanTheme', theme), theme);
     await seed(page); const modal = await settings(page);
     await expect(modal.getByRole('radio', { name: 'On 1', exact: true })).toHaveCount(7);
+    await expect(modal.getByRole('heading', { name: 'Work progress', exact: true })).toBeVisible();
+    await expect(modal.getByRole('heading', { name: 'Exceptions & hierarchy', exact: true })).toBeVisible();
     const group = modal.getByRole('group', { name: 'Start parent work', exact: true });
     await group.getByRole('radio', { name: 'On 1', exact: true }).focus(); await page.keyboard.press('ArrowRight');
     await expect(group.getByRole('radio', { name: 'On 2', exact: true })).toBeChecked();
@@ -39,8 +41,12 @@ test('one review rejects parent cascades while persisting the child status and r
     await seed(page); await startChild(page);
     await expect(page.locator('#appMessageModal')).toContainText('Review hierarchy automations');
     await expect(page.locator('#appMessageModal select')).toHaveCount(2);
-    await expect(page.locator('#appMessageModal')).toContainText('To Do → In progress');
-    await answerAppMessage(page, { button: 'Cancel' });
+    await expect(page.locator('.workitem-review-transition').first()).toHaveText('To Do→In progress');
+    await expect(page.locator('.workitem-review h3')).toHaveText('Start parent work');
+    await expect(page.locator('#appMessageConfirmBtn')).toHaveText('Apply changes (2)');
+    await page.locator('#appMessageModal select').first().selectOption('keep');
+    await expect(page.locator('#appMessageConfirmBtn')).toHaveText('Apply changes (1)');
+    await answerAppMessage(page, { button: 'Keep all current' });
     await expect.poll(async () => (await readSavedBoard(page, 'auto')).board.tasks.find((task: { id: number }) => task.id === 3).status).toBe('doing');
     const saved = await readSavedBoard(page, 'auto');
     expect(saved.board.tasks.find((task: { id: number }) => task.id === 2).status).toBe('to-do');
@@ -71,4 +77,25 @@ test('Off suppresses proposals and read-only projects expose disabled controls',
     await page.getByRole('tab', { name: 'Automations', exact: true }).click();
     await expect(page.getByRole('radio').first()).toBeDisabled();
     await expect(page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+});
+
+for (const width of [390, 1280]) for (const theme of ['light', 'dark']) test(`compact review separates titles and transitions at ${width}px in ${theme}`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.addInitScript((theme) => localStorage.setItem('teamOsKanbanTheme', theme), theme);
+    const tasks = structuredClone(fixture.board.tasks);
+    tasks.find((task: { id: number }) => task.id === 2).title = 'Testing → Done rollout';
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'auto', title: fixture.board.settings.title, hasHandle: true, tasks, extensions: fixture.extensions }], { selectedBoardId: 'auto' });
+    await startChild(page);
+    const modal = page.locator('#appMessageModal');
+    await expect(modal.locator('.workitem-review-title').first()).toHaveText('Testing → Done rollout');
+    await expect(modal.locator('.workitem-review-transition').first()).toHaveText('To Do→In progress');
+    await expect(modal.getByRole('img', { name: 'User Story', exact: true })).toBeVisible();
+    await expect(modal.locator('select')).toHaveCount(2);
+    await expect(modal.locator('select').first().locator('option')).toHaveText(['Apply change', 'Keep current']);
+    await expect(modal.locator('#appMessageConfirmBtn')).toBeInViewport();
+    expect(await modal.locator('.modal-content').evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`review-${theme}-${width}.png`), fullPage: true });
+    await modal.locator('#appMessageConfirmBtn').click();
+    await expect.poll(async () => (await readSavedBoard(page, 'auto')).board.tasks.find((task: { id: number }) => task.id === 1).status).toBe('doing');
 });

@@ -60,9 +60,10 @@ for (const finish of ['button', 'editor'] as const) {
       await expect(page.locator('#roadmapEntityModal')).toBeHidden();
       await sprint.getByRole('button', { name: 'Finish Sprint', exact: true }).click();
     }
-    await expect(page.locator('#appMessageText')).toContainText('end date');
-    await page.locator('#appMessageModal').getByRole('button', { name: 'Keep planned date', exact: true }).click();
-    await confirmWorkitemChanges(page);
+    await expect(page.locator('#appMessageTitle')).toHaveText('Finish Sprint');
+    await expect(page.locator('#appMessageModal .workitem-review-row')).toHaveCount(3);
+    await expect(page.locator('#appMessageModal select')).toHaveCount(0);
+    await answerAppMessage(page, { button: 'Confirm' });
     await expect(sprint.locator('.sprint-status-done')).toHaveText('Done');
     await expect(sprint.getByRole('button', { name: 'Finish Sprint', exact: true })).toHaveCount(0);
     const saved = await readSavedBoard(page, 'p');
@@ -186,4 +187,46 @@ test('Sprint dates follow the duration in business days, and starting late asks 
   await answerAppMessage(page, { input: '25/11/2026', expectText: 'on or after 04/11/2026' });
   await waitForBoardWrites(page);
   expect((await readSavedBoard(page, 'p')).extensions.roadmap.sprints[0]).toMatchObject({ status: 'active', startDate: '2026-11-04', endDate: '2026-11-25' });
+});
+
+for (const finish of ['button', 'editor'] as const) test(`Sprint closure via ${finish} retains implemented Stories, cancels atomically and confirms once`, async ({ page }, testInfo) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'p', title: 'Closure review', hasHandle: true, tasks: [
+        { id: 1, title: 'Story in Testing', type: 'story', status: 'ready-to-test', sprintId: 's1' },
+        { id: 2, title: 'Implementation complete', type: 'task', parentId: 1, status: 'done', sprintId: 's1' },
+        { id: 3, title: 'Unfinished task', type: 'task', status: 'doing', sprintId: 's1' }
+    ], extensions: { functionalWorkflow: defaultWorkflow(), roadmap: { version: 5, phases: [], milestones: [], sprints: [
+        { id: 's1', title: 'Delivery', startDate: '2026-01-01', endDate: '2099-12-31', status: 'active' }
+    ] } } }], { selectedBoardId: 'p' });
+    await page.locator('[data-view-mode="table"]').click();
+    await page.locator('[data-table-view="sprints"]').click();
+    const sprint = page.locator('[data-table-sprint="s1"]');
+    const close = async () => {
+        if (finish === 'button') await sprint.getByRole('button', { name: 'Finish Sprint', exact: true }).click();
+        else {
+            if (!(await page.locator('#roadmapEntityModal').count())) await sprint.getByRole('button', { name: 'Edit Delivery', exact: true }).click();
+            await page.locator('#sprintStatus').selectOption('done');
+            await page.locator('#roadmapEntityModalSaveBtn').click();
+        }
+    };
+    await close();
+    const modal = page.locator('#appMessageModal');
+    await expect(modal.locator('#appMessageTitle')).toHaveText('Finish Sprint');
+    await expect(modal.locator('.workitem-review h3')).toHaveText('Unplanned workitems');
+    await expect(modal.locator('.workitem-review-row')).toHaveCount(1);
+    await expect(modal.locator('.workitem-review-title')).toHaveText('Unfinished task');
+    await expect(modal.getByRole('button')).toHaveText(['Cancel', 'Confirm']);
+    await page.setViewportSize({ width: 390, height: 720 });
+    await expect(modal.getByRole('button', { name: 'Confirm', exact: true })).toBeInViewport();
+    await page.screenshot({ path: testInfo.outputPath(`sprint-close-${finish}.png`), fullPage: true });
+    await answerAppMessage(page, { button: 'Cancel' });
+    expect((await readSavedBoard(page, 'p')).extensions.sprintResults?.closures || []).toHaveLength(0);
+    await expect(sprint.locator('.sprint-status-active')).toHaveText('Active');
+    await close();
+    await answerAppMessage(page, { button: 'Confirm' });
+    await expect(sprint.locator('.sprint-status-done')).toHaveText('Done');
+    await expect(modal).toHaveCount(0);
+    const saved = await readSavedBoard(page, 'p');
+    expect(saved.board.tasks).toMatchObject([{ status: 'ready-to-test', sprintId: 's1' }, { status: 'done', sprintId: 's1' }, { status: 'backlog', sprintId: '' }]);
+    expect(saved.extensions.sprintResults.closures[0].tasks[0]).toMatchObject({ status: 'ready-to-test', sprintId: 's1' });
 });

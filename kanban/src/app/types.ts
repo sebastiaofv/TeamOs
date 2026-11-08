@@ -21,7 +21,15 @@ export type AppMessageReview = {
     mappingLabel: string; mappingNote: string; note: string;
 };
 
+/** Compact workitem rows shared by automation and Sprint reviews. */
+export type WorkitemReview = {
+    heading?: string;
+    countSelection?: boolean;
+    rows: { id: string; type: import('@/domain/types').WorkitemType; title: string; from?: string; to?: string; selectionId?: string; selectionIds?: string[]; rule?: string }[];
+};
+
 export type AppMessage = {
+    workitems?: WorkitemReview;
     review?: AppMessageReview;
     id: number;
     title: string;

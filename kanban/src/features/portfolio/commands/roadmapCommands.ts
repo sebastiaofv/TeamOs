@@ -1,11 +1,11 @@
 import { formatDate } from '@/domain/dates';
-import { closeSprint, startSprint } from '@/domain/sprintResults';
+import { closeSprint, startSprint, sprintUnplannedWorkitems } from '@/domain/sprintResults';
 import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 import type { SprintStatus } from '@/domain/types';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
 import { controlRecords, saveControlRecord } from '@/domain/projectControl';
 import { workitemLabel } from '@/domain/taskIdentity';
-import { eligibleSprint, hasPendingWork, isPlanningUnit, WorkitemError } from '@/domain/workitems';
+import { eligibleSprint, hasPendingWork, isPlanningUnit, workitemType, WorkitemError } from '@/domain/workitems';
 // Roadmap editing, sprint assignment, and row expansion.
 
 import type { RoadmapItem, RoadmapKind, Task } from '@/domain/types';
@@ -294,23 +294,36 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
     }
 
     async function prepareSprintDates(draft: { status: SprintStatus; startDate: string; endDate: string }, previousStatus: SprintStatus): Promise<boolean> {
-        if (draft.status === previousStatus || draft.status === 'planned') return true;
-        const field = draft.status === 'active' ? 'startDate' : 'endDate';
+        if (draft.status === previousStatus || draft.status === 'planned' || draft.status === 'done') return true;
         const today = todayLocalIsoDate();
-        if (draft[field] !== today) {
-            const choice = await choose(translateCurrent(draft.status === 'active' ? 'sprint.updateStart' : 'sprint.updateEnd', { today }), [
+        if (draft.startDate !== today) {
+            const choice = await choose(translateCurrent('sprint.updateStart', { today }), [
                 { value: 'today', label: translateCurrent('sprint.useToday') },
                 { value: 'keep', label: translateCurrent('sprint.keepDate') }
             ]);
             if (choice === null) return false;
-            if (choice === 'today' && field === 'startDate') {
+            if (choice === 'today') {
                 const endDate = await chooseSprintEndDate(draft.startDate, draft.endDate, today);
                 if (endDate === null) return false;
                 draft.endDate = endDate;
+                draft.startDate = today;
             }
-            if (choice === 'today') draft[field] = today;
         }
         if (draft.startDate > draft.endDate) { await alert(translateCurrent('roadmap.dateOrderInvalid')); return false; }
+        return true;
+    }
+
+    async function confirmSprintClosure(boardId: string, sprintId: string, endDate: string): Promise<boolean> {
+        const current = getBoardRecord(boardId)?.data;
+        if (!current) return false;
+        const accepted = await confirm(translateCurrent('sprint.finishHelp', { date: formatDate(endDate) }), {
+            title: translateCurrent('sprint.finish'), confirmLabel: translateCurrent('messages.confirm'),
+            workitems: { heading: translateCurrent('table.unplannedWorkitems'), rows: sprintUnplannedWorkitems(current, sprintId).map((task) => ({
+                id: workitemLabel(task), title: task.title, type: workitemType(task)
+            })) }
+        });
+        if (!accepted) return false;
+        if (getBoardRecord(boardId)?.data !== current) { await alert(translateCurrent('roadmap.impactChanged')); return false; }
         return true;
     }
 
@@ -321,6 +334,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (!sprint || getSprintStatus(sprint) === status) return;
         const next = { ...sprint, status, startDate: sprint.startDate || '', endDate: sprint.endDate || '' };
         if (!(await prepareSprintDates(next, getSprintStatus(sprint)))) return;
+        if (status === 'done' && !(await confirmSprintClosure(boardId, sprintId, next.endDate))) return;
         if (getBoardRecord(boardId)?.data !== current) { await alert(translateCurrent('roadmap.impactChanged')); return; }
         return runPortfolioBoardMutation(boardId, (data) => {
             const roadmap = getRoadmapExtensionObject(data, { create: true });
@@ -331,7 +345,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             roadmap.sprints[index] = next;
             appendTimelineEvent(data, { kind: 'roadmap.updated', entityType: 'board', entityId: 'board', summary: `${next.title}: ${status}`, snapshot: createBoardStateSnapshot(data), meta: { roadmapKind: 'sprints', roadmapItemId: sprintId, action: status } });
             return true;
-        });
+        }, { confirmSprintAllocation: status !== 'done' });
     }
 
     async function saveRoadmapEntity(input: RoadmapEntityInput = {}): Promise<{ focusField: RoadmapFocusField } | undefined> {
@@ -389,6 +403,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 return { focusField: 'endDate' };
             }
         }
+        let closingSprint = false;
         if (context.kind === 'sprints') {
             if (draft.capacity !== null && (!Number.isFinite(draft.capacity) || draft.capacity < 0)) { await alert(translateCurrent('sprint.invalidCapacity')); return; }
             const data = getBoardRecord(context.boardId)?.data;
@@ -396,6 +411,8 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             draft.status = previous ? (input.status === undefined ? getSprintStatus(previous) : draft.status) : 'planned';
             if (previous && draft.status !== getSprintStatus(previous)) {
                 if (!(await prepareSprintDates(draft, getSprintStatus(previous)))) return;
+                closingSprint = draft.status === 'done';
+                if (closingSprint && !(await confirmSprintClosure(context.boardId, draft.itemId, draft.endDate))) return;
                 if (getBoardRecord(context.boardId)?.data !== data) { await alert(translateCurrent('roadmap.impactChanged')); return; }
             }
         }
@@ -482,7 +499,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 }
             });
             return true;
-        });
+        }, { confirmSprintAllocation: !closingSprint });
         if (changed) closeRoadmapEntity();
     }
 

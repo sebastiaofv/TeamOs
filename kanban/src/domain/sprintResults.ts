@@ -62,6 +62,12 @@ export function recordSprintCredits(data: BoardData, previous: BoardData): void 
     if (results.credits.length || results.closures.length) data.extensions.sprintResults = results;
 }
 
+/** Current workitems that lose their Sprint allocation on closure. */
+export function sprintUnplannedWorkitems(data: BoardData, sprintId: string): Task[] {
+    return data.board.tasks.filter((task) => task.sprintId === sprintId && !isTerminal(data, task)
+        && (!isPlanningUnit(data, task) || hasPendingWork(data, task)));
+}
+
 /** Freeze before returning planning units to Backlog. Child Task states are never reset. */
 export function closeSprint(data: BoardData, sprintId: string, finalSprint?: RoadmapItem): void {
     const results = data.extensions.sprintResults ||= { version: 1, credits: [], closures: [] };
@@ -80,8 +86,7 @@ export function closeSprint(data: BoardData, sprintId: string, finalSprint?: Roa
     // Freeze all recorded rows, including children and workitems that left earlier.
     const entries = data.extensions.sprintParticipation?.entries || [];
     data.extensions.sprintParticipation = { version: 1, entries: [...entries.filter((entry) => entry.sprintId !== sprintId), ...tasks.map((task) => ({ sprintId, task: structuredClone(task), at: timestamp }))] };
-    for (const task of data.board.tasks) {
-        if (task.sprintId !== sprintId || isTerminal(data, task)) continue;
+    for (const task of sprintUnplannedWorkitems(data, sprintId)) {
         if (carryOverIds.includes(task.id)) {
             const workflow = getWorkflow(data, task);
             const backlog = workflow.states.find((state) => state.id === workflow.references.backlog) || workflow.states.find((state) => state.category === 'backlog');

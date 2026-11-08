@@ -138,8 +138,8 @@ describe('US-12 mutation boundaries' , () => {
         data().extensions.workitemAutomation = { version: 1, finish: { from: ['doing'], to: 'ready-to-test' } };
         confirm.mockResolvedValueOnce(answer);
         expect(await actions.movePortfolioTaskToStatus('p', 3, 'done')).toBe(true);
-        expect(confirm.mock.calls[0][1]).toMatchObject({ selections: [{ id: '2:prepareTesting:doing:ready-to-test', label: '#2 story 2 → Ready to test', options: [
-            { value: 'advance', label: 'Advance to Ready to test' }, { value: 'keep', label: 'Keep current state' }
+        expect(confirm.mock.calls[0][1]).toMatchObject({ selections: [{ id: '2:prepareTesting:doing:ready-to-test', label: '#2', options: [
+            { value: 'advance', label: 'Apply change' }, { value: 'keep', label: 'Keep current' }
         ] }] });
         expect(data().board.tasks[2].status).toBe('done');
         expect(data().board.tasks[1].status).toBe(answer && answer['2:prepareTesting:doing:ready-to-test'] === 'advance' ? 'ready-to-test' : 'doing');

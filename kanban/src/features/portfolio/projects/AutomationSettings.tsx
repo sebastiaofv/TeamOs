@@ -1,13 +1,17 @@
-import { AUTOMATION_RULES, type AutomationMode, type HierarchyAutomations } from '@/domain/hierarchyAutomations';
+import { type AutomationRule, type AutomationMode, type HierarchyAutomations } from '@/domain/hierarchyAutomations';
 import { useI18n } from '@/shared/i18n';
 
+const GROUPS: { name: 'progress' | 'exceptions'; rules: AutomationRule[] }[] = [
+    { name: 'progress', rules: ['parentToTodo', 'startParent', 'prepareTesting', 'completeEpic'] },
+    { name: 'exceptions', rules: ['cancelParent', 'reopenParent', 'hierarchyChanges'] }
+];
 const MODES: AutomationMode[] = ['off', 'confirm', 'automatic'];
 export function AutomationSettings({ config, onChange, disabled }: { config: HierarchyAutomations; onChange: (config: HierarchyAutomations) => void; disabled: boolean }) {
     const { t } = useI18n();
     return <section className="automation-settings" aria-label={t('automations.title')}>
-        <p>{t('automations.help')}</p>
         <div className="automation-legend">{MODES.map((mode) => <p key={mode}><strong>{t(`automations.mode.${mode}`)}</strong> — {t(`automations.mode.${mode}.help`)}</p>)}</div>
-        {AUTOMATION_RULES.map((rule) => <div className="automation-rule" key={rule}>
+        {GROUPS.map((group) => <section className="automation-group" key={group.name} aria-labelledby={`automation-group-${group.name}`}><h2 id={`automation-group-${group.name}`}>{t(`automations.group.${group.name}`)}</h2>
+        {group.rules.map((rule) => <div className="automation-rule" key={rule}>
             <div><h3 id={`automation-${rule}`}>{t(`automations.${rule}.name`)}</h3><p id={`automation-${rule}-help`}>{t(`automations.${rule}.description`)}</p></div>
             <fieldset className="automation-toggle" disabled={disabled} aria-labelledby={`automation-${rule}`} aria-describedby={`automation-${rule}-help`}>
                 {MODES.map((mode) => <label key={mode} className={config.rules[rule] === mode ? 'is-selected' : ''}>
@@ -16,5 +20,6 @@ export function AutomationSettings({ config, onChange, disabled }: { config: Hie
                 </label>)}
             </fieldset>
         </div>)}
+        </section>)}
     </section>;
 }

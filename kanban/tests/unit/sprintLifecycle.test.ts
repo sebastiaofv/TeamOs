@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 import { fromPartial } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
+import { defaultWorkflow } from '@/domain/workflow';
 import { normalizeTask } from '@/domain/task';
 import type { Task, WorkitemType } from '@/domain/types';
 import { createAppStore } from '@/features/portfolio/state/store';
@@ -24,7 +25,7 @@ function setup(choice: string | null = 'keep') {
     ] };
     data.board.tasks = [item(1, 'story', { storyPoints: 8, acceptanceCriteria: 'Accepted', status: 'ready-to-test' }), item(2, 'task', { parentId: 1, status: 'done' }), item(3, 'task', { parentId: 1 }), item(4, 'task', { storyPoints: 3 }), item(5, 'bug', { storyPoints: 5 }), item(6, 'story', { storyPoints: 2, acceptanceCriteria: 'Accepted' })];
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Sprint lifecycle', handle: {}, data })], selectedPortfolioBoardId: 'p' });
-    const choose = vi.fn(async (): Promise<string | null> => choice); const alert = vi.fn(); const save = vi.fn(async () => true); const confirm = vi.fn(async () => true);
+    const choose = vi.fn(async (): Promise<string | null> => choice); const alert = vi.fn(); const save = vi.fn(async () => true); const confirm = vi.fn(async (_text: string, _options?: import('@/app/overlays/appMessages').ConfirmOptions) => true);
     const prompt = vi.fn(async (): Promise<string | null> => 'Ana');
     const actions = createPortfolioMutationActions({ store, choose: async (_text, choices) => { const answer = await choose(); return choices.find((option) => option.value === answer)?.value ?? null; }, alert, confirm, prompt, enqueueSave: save, markDirty: vi.fn(), closeDialogFn: vi.fn(), openDialogFn: vi.fn() });
     return { store, actions, choose, alert, save, confirm, prompt, data: () => store.getState().portfolioBoards[0].data };
@@ -136,7 +137,7 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         }
     });
 
-    it('updates the chosen start/end date to local today through both the button and editor', async () => {
+    it('updates the start to today and keeps the edited end date when closing without a date prompt', async () => {
         const { actions, data, choose } = setup('today');
         const today = new Date();
         const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -146,7 +147,7 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         expect(data().extensions.roadmap!.sprints[1].startDate).toBe(date);
         actions.openRoadmapEntityModal('sprints', 's2');
         await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 's2', title: 'Next', status: 'done', startDate: date, endDate: '2099-12-31' });
-        expect(data().extensions.roadmap!.sprints[1].endDate).toBe(date);
+        expect(data().extensions.roadmap!.sprints[1].endDate).toBe('2099-12-31');
         expect(data().extensions.sprintResults!.closures[0].sprintId).toBe('s2');
     });
 
@@ -163,10 +164,14 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         const closure = data().extensions.sprintResults!.closures[0];
         expect(closure).toMatchObject({ sprint: { status: 'done', capacity: 21, goal: 'Deliver' }, plannedPoints: 18, velocity: 18, completedIds: [1, 4, 5, 6], carryOverIds: [] });
         // All its Tasks are Done: the Story keeps awaiting validation and does not return to Unplanned.
-        expect(data().board.tasks[0]).toMatchObject({ status: 'ready-to-test', sprintId: '' });
+        expect(data().board.tasks[0]).toMatchObject({ status: 'ready-to-test', sprintId: 's1' });
         expect(unplannedTableRows(buildPortfolioRowsFromBoardData(store.getState(), store.getState().portfolioBoards[0], data(), { canMutate: true })).map((row) => row.taskId)).not.toContain(1);
         expect(data().board.tasks[1]).toMatchObject({ status: 'done', sprintId: 's1' });
+        data().extensions.workflow = defaultWorkflow();
+        data().extensions.workflow!.transitions.done.push('doing');
+        await actions.movePortfolioTaskToStatus('p', 3, 'doing');
         await actions.setPortfolioTaskProperties('p', 1, { sprintId: 's2' });
+        expect(data().board.tasks[2].sprintId).toBe('s2');
         await actions.movePortfolioTaskToStatus('p', 1, 'done');
         expect(data().extensions.sprintResults!.credits).toHaveLength(4);
         expect(data().extensions.sprintResults!.closures[0]).toEqual(closure);
@@ -203,11 +208,30 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         expect(reconstructBoardStateFromTimeline(data(), 0).extensions.sprintResults).toBeUndefined();
     });
 
-    it('cancels closure atomically when the carry-over review is declined', async () => {
+    it.each(['button', 'editor'])('uses one closure confirmation via %s and excludes implemented Stories', async (source) => {
+        const { actions, data, confirm } = setup();
+        data().board.tasks[2].status = 'done';
+        if (source === 'button') await actions.changeSprintStatus('p', 's1', 'done');
+        else {
+            actions.openRoadmapEntityModal('sprints', 's1');
+            await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 's1', title: 'Delivery', startDate: '2026-01-01', endDate: '2099-12-31', status: 'done' });
+        }
+        expect(confirm).toHaveBeenCalledTimes(1);
+        const options = confirm.mock.calls[0][1];
+        expect(options).toMatchObject({ title: 'Finish Sprint' });
+        expect(options!.workitems!.rows.map((row: { id: string }) => row.id)).toEqual(['#4', '#5', '#6']);
+        expect(data().board.tasks[0]).toMatchObject({ status: 'ready-to-test', sprintId: 's1' });
+    });
+
+    it.each(['button', 'editor'])('cancels closure atomically via %s when the review is declined', async (source) => {
         const { actions, data, confirm, save } = setup();
         const before = structuredClone(data());
         confirm.mockResolvedValueOnce(false);
-        await actions.changeSprintStatus('p', 's1', 'done');
+        if (source === 'button') await actions.changeSprintStatus('p', 's1', 'done');
+        else {
+            actions.openRoadmapEntityModal('sprints', 's1');
+            await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 's1', title: 'Delivery', startDate: '2026-01-01', endDate: '2099-12-31', status: 'done' });
+        }
         expect(data()).toEqual(before);
         expect(save).not.toHaveBeenCalled();
     });

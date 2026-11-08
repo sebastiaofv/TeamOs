@@ -1,3 +1,4 @@
+import { WorkitemReviewContent } from './WorkitemReviewContent';
 import { DateInput } from '@/shared/ui/DateInput';
 import { AppMessageReviewContent } from './AppMessageReviewContent';
 import { translateCurrent } from '@/shared/i18n';
@@ -42,7 +43,7 @@ export function AppMessageDialog() {
                         role="alertdialog"
                         aria-labelledby="appMessageTitle"
                         aria-describedby="appMessageText"
-                        className={`modal-content${message?.review ? ' has-transfer-review' : ''}`}
+                        className={`modal-content${message?.review ? ' has-transfer-review' : message?.workitems ? ' has-workitem-review' : ''}`}
                         onInteractOutside={keepOpen}
                         onEscapeKeyDown={stopEscape}
                         {...returnFocus}
@@ -81,7 +82,8 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                     <p className="app-message-text" id="appMessageText">{message.text}</p>
                 </Dialog.Description>}
                 {message.review && <AppMessageReviewContent review={message.review} />}
-                {Boolean(message.selections?.length) && <div className={message.review ? 'transfer-mapping-fields' : undefined}>
+                {message.workitems && <WorkitemReviewContent review={message.workitems} fields={message.selections} selections={selections} onChange={(id, value) => setSelections((current) => ({ ...current, [id]: value }))} selectionRef={selectionRef} />}
+                {!message.workitems && Boolean(message.selections?.length) && <div className={message.review ? 'transfer-mapping-fields' : undefined}>
                     {message.review && <div className="transfer-section-heading">
                         <h3>{message.review.mappingLabel}</h3><p>{message.review.mappingNote}</p>
                     </div>}
@@ -158,7 +160,7 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                         disabled={Boolean((button.submitsInput && message.input?.required && !inputValue.trim()) || ((button.submitsSelection || button.submitsSelections) && missingSelections))}
                         onClick={() => answer(button)}
                     >
-                        {button.label}
+                        {button.primary && message.workitems?.countSelection ? translateCurrent('automations.applyCount', { count: message.workitems.rows.filter((row) => row.selectionId && selections[row.selectionId] === 'advance').length }) : button.label}
                     </button>
                 ))}
             </div>

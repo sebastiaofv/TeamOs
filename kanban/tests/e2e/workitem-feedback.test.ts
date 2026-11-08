@@ -70,10 +70,12 @@ test('detail properties and allowed status transitions save immediately with his
     await page.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('low');
     await expect.poll(async () => (await readSavedBoard(page, 'feedback')).board.tasks.find((task: { id: number }) => task.id === 1204).priority).toBe('low');
     await page.getByRole('combobox', { name: 'Status', exact: true }).selectOption('done');
-    const choice = page.getByRole('combobox', { name: '#1202 Pagar com cartão → Ready to test', exact: true });
+    const choice = page.getByRole('combobox', { name: '#1202: Decision', exact: true });
     await expect(choice).toBeVisible();
     await choice.selectOption('keep');
-    await answerAppMessage(page, { expectText: 'Review' });
+    await expect(page.locator('.workitem-review-title')).toHaveText('Pagar com cartão');
+    await expect(page.locator('.workitem-review-transition')).toHaveText('In progress→Ready to test');
+    await answerAppMessage(page, { expectText: 'Cascades follow applied changes' });
     const saved = await readSavedBoard(page, 'feedback');
     expect(saved.board.tasks.find((task: { id: number }) => task.id === 1202).status).toBe('doing');
     expect(saved.board.tasks.find((task: { id: number }) => task.id === 1204).status).toBe('done');

@@ -2,6 +2,7 @@ import type { BoardData } from '@/domain/types';
 import { applyHierarchyAutomations, automationEffectKey } from '@/domain/hierarchyAutomations';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, recordTaskTimelineEvent } from '@/domain/timeline';
 import { getWorkflow } from '@/domain/workflow';
+import { workitemType } from '@/domain/workitems';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { translateCurrent as t } from '@/shared/i18n';
 import type { ConfirmOptions } from '@/app/overlays/appMessages';
@@ -14,13 +15,25 @@ export function resolveHierarchyAutomations(data: BoardData, previous: BoardData
     const rejectedPreview = preview.some((effect) => effect.mode === 'confirm') ? applyHierarchyAutomations(structuredClone(data), previous, () => false) : [];
     const proposals = [...new Map([...preview, ...rejectedPreview].filter((effect) => effect.mode === 'confirm').map((effect) => [automationEffectKey(effect), effect])).values()];
     const reviewed = new Set(proposals.map(automationEffectKey));
-    const label = (id: number) => { const task = data.board.tasks.find((task) => task.id === id)!; return `${workitemLabel(task)} ${task.title}`; };
     const state = (id: number, status: string) => getWorkflow(data, data.board.tasks.find((task) => task.id === id)).states.find((state) => state.id === status)?.name || status;
-    const review = () => confirm(t('automations.reviewHelp') + '\n\n' + proposals.map((effect) => `${label(effect.parentId)}\n${state(effect.parentId, effect.from)} → ${state(effect.parentId, effect.to)}\n${t(`automations.${effect.rule}.name`)}: ${t(`automations.${effect.rule}.description`)}`).join('\n\n'), {
-        title: t('automations.reviewTitle'), confirmLabel: t('messages.confirm'),
-        selections: proposals.map((effect) => ({ id: automationEffectKey(effect), label: `${label(effect.parentId)} → ${state(effect.parentId, effect.to)}`, options: [
-            { value: 'advance', label: t('workitems.advance', { state: state(effect.parentId, effect.to) }) },
-            { value: 'keep', label: t('workitems.keepState') }
+    const rules = [...new Set(proposals.map((effect) => effect.rule))];
+    const review = () => confirm(t('automations.reviewHelp'), {
+        title: t('automations.reviewTitle'), cancelLabel: t('automations.keepAll'),
+        workitems: {
+            countSelection: true,
+            heading: rules.length === 1 ? t(`automations.${rules[0]}.name`) : undefined,
+            rows: [...new Set(proposals.map((effect) => effect.parentId))].map((parentId) => {
+                const task = data.board.tasks.find((task) => task.id === parentId)!;
+                const alternatives = proposals.filter((effect) => effect.parentId === parentId);
+                return { id: workitemLabel(task), type: workitemType(task), title: task.title,
+                    from: state(task.id, task.status), to: [...new Set(alternatives.map((effect) => state(task.id, effect.to)))].join(' / '),
+                    selectionId: automationEffectKey(alternatives[0]), selectionIds: alternatives.map(automationEffectKey),
+                    rule: rules.length > 1 ? [...new Set(alternatives.map((effect) => t(`automations.${effect.rule}.name`)))].join(' / ') : undefined };
+            })
+        },
+        selections: proposals.map((effect) => ({ id: automationEffectKey(effect), label: workitemLabel(data.board.tasks.find((task) => task.id === effect.parentId)!), options: [
+            { value: 'advance', label: t('automations.applyChange') },
+            { value: 'keep', label: t('automations.keepCurrent') }
         ] }))
     });
     const apply = (decision: unknown) => {
