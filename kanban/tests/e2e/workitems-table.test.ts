@@ -107,7 +107,7 @@ async function moveColumnBefore(page: Page, label: string, before: string) {
       Array.from(node.parentElement!.children).indexOf(node)
     ));
     if (position < target) return;
-    await page.locator('#tableColumns').getByRole('button', { name: `Move ${label} left`, exact: true }).click();
+    await page.locator('#tableColumns').getByRole('button', { name: `Move ${label} up`, exact: true }).click();
   }
   throw new Error(`Could not move ${label} before ${before}`);
 }
@@ -424,7 +424,7 @@ test.describe('workitems table', () => {
     await expectRowIds(page, [4, 2, 10, 3]);
 
     await openColumnOptions(page);
-    await page.locator('#tableColumn-dueDate').check();
+    await page.locator('.table-column-panel [data-column-choice="dueDate"]').getByRole('button', { name: /^Show / }).click();
     await page.keyboard.press('Escape');
     await tableHeader(page, 'Due').getByRole('button').click();
     await expect(tableHeader(page, 'Due')).toHaveAttribute('aria-sort', 'ascending');
@@ -669,9 +669,9 @@ test.describe('workitems table', () => {
 
       await openColumnOptions(page);
       for (const column of ['type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']) {
-        await page.locator(`#tableColumn-${column}`).uncheck();
+        await page.locator(`.table-column-panel [data-column-choice="${column}"]`).getByRole('button', { name: /^Hide / }).click();
       }
-      await page.locator('#tableColumn-dueDate').check();
+      await page.locator('.table-column-panel [data-column-choice="dueDate"]').getByRole('button', { name: /^Show / }).click();
       await moveColumnBefore(page, 'Due', 'Title');
       await expectColumnOrder(page, ['ID', 'Due', 'Title']);
       await page.keyboard.press('Escape');
@@ -698,10 +698,10 @@ test.describe('workitems table', () => {
     const original = await readSavedBoard(page, 'prefs');
     await openTable(page);
     await openColumnOptions(page);
-    await page.locator('#tableColumn-priority').uncheck();
-    await page.locator('#tableColumn-dueDate').check();
+    await page.locator('.table-column-panel [data-column-choice="priority"]').getByRole('button', { name: /^Hide / }).click();
+    await page.locator('.table-column-panel [data-column-choice="dueDate"]').getByRole('button', { name: /^Show / }).click();
     await moveColumnBefore(page, 'Due', 'Phase');
-    await page.locator('#tableColumns').getByRole('button', { name: 'Move Due right', exact: true }).click();
+    await page.locator('#tableColumns').getByRole('button', { name: 'Move Due down', exact: true }).click();
     await moveColumnBefore(page, 'Due', 'Phase');
     await expect(tableHeader(page, 'Priority')).toHaveCount(0);
     await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Participants', 'Due', 'Phase', 'Updated']);
@@ -715,13 +715,12 @@ test.describe('workitems table', () => {
     await expect(tableHeader(page, 'Priority')).toHaveCount(0);
     await expectColumnOrder(page, ['ID', 'Title', 'Status', 'Participants', 'Due', 'Phase', 'Updated']);
     await openColumnOptions(page);
-    await expect(page.locator('#tableColumn-priority')).not.toBeChecked();
-    await expect(page.locator('#tableColumn-dueDate')).toBeChecked();
+    await expect(page.locator('.table-column-panel [data-column-choice=priority]').getByRole('button', { name: 'Show Priority' })).toBeVisible();
+    await expect(page.locator('.table-column-panel [data-column-choice=dueDate]').getByRole('button', { name: 'Hide Due' })).toBeVisible();
     await expect(tableHeader(page, 'ID')).toBeVisible();
     await expect(tableHeader(page, 'Title')).toBeVisible();
     for (const column of ['id', 'title']) {
-      const toggle = page.locator(`#tableColumn-${column}`);
-      if (await toggle.count()) await expect(toggle).toBeDisabled();
+      await expect(page.locator(`#tableColumns [data-column-choice=${column}] .table-column-lock`)).toBeVisible();
     }
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
   });

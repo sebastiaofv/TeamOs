@@ -78,11 +78,7 @@ test('each expanded Sprint has scoped search, filters, counts, columns and expor
         await page.keyboard.press('Escape');
         await expect(sprint.locator(`[id="tableExportCsv-sprint-${id}"]`)).toBeVisible();
     }
-    await page.locator('#tableCreateTask-sprint-a').click();
-    await page.locator('#taskName').fill('New Sprint Task');
-    await page.locator('#taskModalSaveBtn').click();
-    await expect.poll(async () => (await readSavedBoard(page, 'sprints')).board.tasks.find((task: { title: string }) => task.title === 'New Sprint Task')?.sprintId).toBe('a');
-    await page.keyboard.press('Escape');
+    await expect(page.locator('[id^=tableCreateTask-sprint]')).toHaveCount(0);
     expect(await page.locator('#portfolioTable [id]').evaluateAll(nodes => nodes.map(node => node.id).filter((id, index, ids) => ids.indexOf(id) !== index))).toEqual([]);
 });
 

@@ -31,10 +31,10 @@ test.describe('roadmap', () => {
     await page.getByRole('button', { name: 'Save Item' }).click();
   await confirmWorkitemChanges(page);
 
-    await expect(page.locator('#portfolioRoadmapView')).toContainText('Beta');
+    await expect(page.getByRole('button', { name: /^Beta ·/ })).toBeVisible();
 
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
-    await page.locator('#milestoneWorkitemsModal .modal-footer summary').click();
+    await page.locator('#milestoneWorkitemsModal .modal-header summary').click();
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageSelection')).toHaveValue('0');
     await answerAppMessage(page, { button: 'Confirm', expectText: '1 directly assigned workitems' });
@@ -120,7 +120,7 @@ test.describe('roadmap', () => {
     }], { selectedBoardId: 'alpha' });
 
     await page.getByRole('button', { name: 'Roadmap' }).click();
-    await expect(page.locator('.milestone-annotation-label')).toContainText('Alpha Release');
+    await expect(page.locator('.milestone-annotation')).toHaveAccessibleName(/Alpha Release/);
     await expect(page.locator('#portfolioRoadmapView .portfolio-roadmap-timeline')).toHaveCount(1);
     await expect(page.locator('#portfolioRoadmapView .portfolio-roadmap-header')).toHaveCount(0);
     await expect(page.locator('[data-roadmap-axis="shared"]')).toHaveCount(1);
@@ -128,7 +128,7 @@ test.describe('roadmap', () => {
     await expect(page.locator('.milestone-annotation')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"]')).toHaveCount(1);
     await expect(page.locator('.roadmap-row[data-roadmap-kind="sprint"]')).toHaveCount(1);
-    await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"] .roadmap-row-labels > .roadmap-row-actions')).toHaveCount(1);
+    await expect(page.locator('.roadmap-row[data-roadmap-kind="phase"] .roadmap-row-labels > .roadmap-row-actions')).toHaveCount(0);
     const sharedGeometry = await page.evaluate(() => {
       const axis = document.querySelector('.roadmap-axis-shell');
       const row = document.querySelector('.roadmap-row-main');
@@ -182,7 +182,7 @@ test.describe('roadmap', () => {
     await page.getByRole('button', { name: 'Roadmap' }).click();
 
     const titles = await page.evaluate(() => ({
-      milestones: Array.from(document.querySelectorAll('.milestone-annotation-label strong')).map((node) => node.textContent?.trim()),
+      milestones: Array.from(document.querySelectorAll('.milestone-annotation')).map((node) => node.getAttribute('aria-label')?.split(' · ')[0]),
       phases: Array.from(document.querySelectorAll('[data-roadmap-kind="phases"] .roadmap-row-title')).map((node) => node.textContent?.trim()),
       sprints: Array.from(document.querySelectorAll('[data-roadmap-kind="sprints"] .roadmap-row-title')).map((node) => node.textContent?.trim())
     }));

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { selectTableView, toggleLanguage, confirmCsvExport } from '../support/portfolio';
+import { readSavedBoard, selectTableView, toggleLanguage, confirmCsvExport } from '../support/portfolio';
 import { seedControlProject as seed, controlKinds as kinds, controlLabels as labels } from '../support/control';
 
 const table = (page: Page) => page.locator('.control-table');
@@ -28,7 +28,7 @@ for (const kind of kinds) test(`${labels[kind]} paginates, selects by page, filt
     await expect(page.locator('.portfolio-control .table-pagination')).toContainText('Page 1 of 2');
     await expect(page.locator(`#portfolioFiltersBtn-${scope}`)).toHaveAccessibleName('Filters, 1 active');
     await page.locator(`#tableColumns-${scope} summary`).click();
-    await page.locator(`#tableColumn-status-${scope}`).uncheck();
+    await page.locator(`.table-column-panel [data-column-choice="status"]`).getByRole('button', { name: /^Hide / }).click();
     await page.keyboard.press('Escape');
     await expect(table(page).locator('th[data-column=status]')).toHaveCount(0);
     await page.locator(`#tableExportCsv-${scope}`).click();
@@ -60,12 +60,14 @@ for (const kind of kinds) test(`${labels[kind]} paginates, selects by page, filt
 test('column preferences are scoped per control type, persist across reload and leave All columns independent', async ({ page }) => {
     await seed(page);
     await page.locator('#tableColumns-control-risks summary').click();
-    await expect(page.locator('#tableColumn-id-control-risks')).toBeDisabled();
-    await expect(page.locator('#tableColumn-title-control-risks')).toBeDisabled();
-    await page.locator('#tableColumn-owner-control-risks').uncheck();
-    await page.locator('#tableColumn-assignees-control-risks').check();
-    await page.locator('#tableColumns-control-risks').getByRole('button', { name: 'Move Participants left', exact: true }).click();
-    const columns = await page.evaluate(() => localStorage.getItem('teamos-kanban.workitems-table.columns.v1.control-risks'));
+    await expect(page.locator('#tableColumns-control-risks [data-column-choice=id] .table-column-lock')).toBeVisible();
+    await expect(page.locator('#tableColumns-control-risks [data-column-choice=title] .table-column-lock')).toBeVisible();
+    await page.locator('.table-column-panel [data-column-choice="owner"]').getByRole('button', { name: /^Hide / }).click();
+    await page.locator('.table-column-panel [data-column-choice="assignees"]').getByRole('button', { name: /^Show / }).click();
+    await page.locator('#tableColumns-control-risks').getByRole('button', { name: 'Move Participants up', exact: true }).click();
+    const projectId = (await readSavedBoard(page, 'control')).extensions.project.id;
+    const preferenceKey = `teamos-kanban.workitems-table.columns.v1.${projectId}.control-risks`;
+    const columns = await page.evaluate(key => localStorage.getItem(key), preferenceKey);
     await page.keyboard.press('Escape');
     await page.getByRole('tab', { name: 'Decisions', exact: true }).click();
     await expect(table(page).locator('th[data-column=owner]')).toHaveCount(1);
@@ -77,10 +79,10 @@ test('column preferences are scoped per control type, persist across reload and 
     expect(await page.evaluate(() => localStorage.getItem('teamos-kanban.workitems-table.columns.v1'))).toBeNull();
     await page.reload();
     await seed(page);
-    expect(await page.evaluate(() => localStorage.getItem('teamos-kanban.workitems-table.columns.v1.control-risks'))).toBe(columns);
+    expect(await page.evaluate(key => localStorage.getItem(key), preferenceKey)).toBe(columns);
     await expect(table(page).locator('th[data-column=owner]')).toHaveCount(0);
     await page.locator('#tableColumns-control-risks summary').click();
-    await page.getByRole('button', { name: 'Reset columns', exact: true }).click();
+    await page.getByRole('button', { name: 'Reset to default', exact: true }).click();
     await page.keyboard.press('Escape');
     await expect(table(page).locator('th[data-column=owner]')).toHaveCount(1);
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);

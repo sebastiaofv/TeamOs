@@ -1,3 +1,5 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
+import { nextWorkflowState } from '@/domain/workflow';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { workitemType } from '@/domain/workitems';
 import { useState, useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
@@ -58,6 +60,7 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
     const searchTerm = state.portfolioFilters?.search || '';
     const boardData = item.boardData || state.portfolioBoards.find((b) => b.id === item.boardId)?.data;
     const type = workitemType(task);
+    const nextState = boardData ? nextWorkflowState(boardData, task) : undefined;
     const [busy, setBusy] = useState(false);
     const members = boardData?.extensions.project?.members || [];
     const cardRef = useRef<HTMLElement | null>(null);
@@ -121,12 +124,17 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
             {...(drag && canDrag ? drag.attributes : {})}
             {...drag?.listeners}
         >
+            <div className="task-card-top"><span className="task-card-id">{workitemLabel(task)}</span>
+                {canMutate && nextState && !overlay && <button className="btn icon-btn task-card-next" type="button" title={t('table.nextState', { state: nextState.name })} aria-label={t('table.nextState', { state: nextState.name })} disabled={busy}
+                    onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()} onTouchStart={event => event.stopPropagation()}
+                    onClick={async event => { event.stopPropagation(); setBusy(true); try { await actions.movePortfolioTaskToStatus(item.boardId, taskId, nextState.id); } finally { setBusy(false); } }}><WorkspaceIcon name="arrowRight" /></button>}
+            </div>
             <span className="task-title" id={`portfolio-task-title-${item.boardId}-${taskId}`} title={task.title}>
                 <HighlightedTitle text={task.title || ''} searchTerm={searchTerm} />
             </span>
             <div className="workitem-card-context">
                 <span className="task-card-identity" title={`${workitemLabel(task)} · ${t(`workitems.type.${type}`)}`}>
-                    <span className="task-card-id">{workitemLabel(task)}</span><span aria-hidden="true"> · </span><span className="task-card-type">{t(`workitems.type.${type}`)}</span>
+                    <span className="task-card-type">{t(`workitems.type.${type}`)}</span>
                 </span>
                 <span className="task-card-owner" title={`${t('task.responsible')}: ${task.responsible || t('board.notAssigned')}`}>
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M2.5 14v-1a5.5 5.5 0 0 1 11 0v1Z" /></svg>

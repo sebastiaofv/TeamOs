@@ -21,7 +21,7 @@ test('sprint creation order and numbering survive name/date edits and reimport',
   const names = page.locator('#portfolioTable .table-sprint-name');
   await expect(names).toHaveText(['Sprint 3 - Implementation', 'Sprint 2 - Design', 'Sprint 1 - Discovery']);
   await page.locator('[data-view-mode="roadmap"]').click();
-  await page.getByRole('button', { name: 'Edit Design', exact: true }).click();
+  await page.getByRole('button', { name: 'Design', exact: true }).click();
   await page.locator('#roadmapEntityTitle').fill('New design name');
   await page.locator('#roadmapEntityStartDate').fill('01/01/2025');
   await page.locator('#roadmapEntityEndDate').fill('14/01/2025');

@@ -1,4 +1,9 @@
 const paths = {
+    lock: 'M4 7V4a4 4 0 0 1 8 0v3M2 7h12v8H2zM8 10v2',
+    eye: 'M1 8s2-5 7-5 7 5 7 5-2 5-7 5-7-5-7-5M10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
+    arrowRight: 'M2 8h12M9 3l5 5-5 5',
+    play: 'M4 2l10 6-10 6z',
+    finish: 'M3 15V1M3 2h10v8H3M3 6h10M8 2v8',
     search: 'M10.5 10.5 15 15M12 7a5 5 0 1 1-10 0 5 5 0 0 1 10 0',
     keyboard: 'M1 4h14v9H1zM4 7h.01M7 7h.01M10 7h.01M13 7h.01M4 10h.01M6.5 10h4M13 10h.01',
     folder: 'M1 4h5l2 2h7v8H1zM1 4V2h5l2 2h6v2',
@@ -17,5 +22,5 @@ const paths = {
 };
 
 export function WorkspaceIcon({ name }: { name: keyof typeof paths }) {
-    return <svg className="workspace-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} /></svg>;
+    return <svg className="workspace-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} />{name === 'finish' && <path d="M3 2h5v4H3zM8 6h5v4H8z" fill="currentColor" stroke="none" />}</svg>;
 }

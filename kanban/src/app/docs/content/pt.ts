@@ -521,7 +521,7 @@ export const DOCS_PT: DocSection[] = [
                         'Com o teclado, selecione um cartão com [[J]] / [[K]] e prima [[1]]–[[4]] para o mover.',
                         'Abra a [paleta de comandos](prod-palette) sobre um cartão e escolha **Mover para…**.'
                     ] },
-                    { kind: 'p', text: 'Os cartões mostram o título em até duas linhas e, abaixo, ID, tipo e responsável. Altere o responsável no dropdown ou clique no cartão para abrir os detalhes. Edição, eliminação, cópia, transferência, datas, bloqueio e progresso continuam nos detalhes. As colunas preenchem a largura disponível e mantêm-se iguais quando há espaço. Com muitos estados ou uma janela estreita, as colunas vazias passam a metade da largura das ocupadas; o scroll horizontal continua disponível quando necessário.' },
+                    { kind: 'p', text: 'Os cartões mostram o ID no topo esquerdo, um título menor em até duas linhas abaixo e o tipo e responsável no rodapé. A seta no topo direito avança para o próximo estado permitido pelo workflow; continua a ser possível arrastar os cartões. Altere o responsável no dropdown ou clique no cartão para abrir os detalhes. Edição, eliminação, cópia, transferência, datas, bloqueio e progresso continuam nos detalhes. As colunas preenchem a largura disponível e mantêm-se iguais quando há espaço. Com muitos estados ou uma janela estreita, as colunas vazias passam a metade da largura das ocupadas; o scroll horizontal continua disponível quando necessário.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Um movimento não permitido pelo workflow é recusado. Mover uma Story ou um Bug para Concluído pede a [aceitação funcional](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -570,8 +570,9 @@ export const DOCS_PT: DocSection[] = [
                         'Selecione um projeto e abra o **Roadmap**.',
                         'Use **+ Fase**, **+ Marco** e **+ Sprint** para criar itens, com datas e cor.',
                         'Associe workitems a uma fase-folha e a um marco no editor do workitem (ou deixe os filhos [herdar](plan-inheritance)).',
-                        'Expanda uma fase para ver os seus workitems por workitem, por sprint ou por marco, e acompanhar o progresso.'
+                        'Expanda uma fase-folha ou Sprint para ver a tabela de workitems. As fases-pai expandem as suas subfases.'
                     ] },
+                    { kind: 'p', text: 'O Roadmap mantém largura e zoom à esquerda e + Marco / + Fase à direita. Os losangos dos marcos têm tamanho fixo e mostram o progresso; nome e data aparecem ao passar o rato ou focar por teclado. Usam uma linha, acrescentando uma segunda apenas para sobreposições; as restantes têm scroll. Clique no losango para consultar workitems. Clique no nome da fase ou Sprint para editar e passe o rato na barra para ver datas. Os Sprints usam Play para iniciar e uma bandeira axadrezada para finalizar, mantendo as confirmações. Os Sprints concluídos não apresentam este botão.' },
                     { kind: 'p', text: 'O progresso conta os workitems elegíveis concluídos (os cancelados são excluídos). Entregáveis pendentes de aceitação no Controlo do projeto mantêm o progresso de fases e marcos abaixo de 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma fase com subfases não pode ser apagada em cascata: mova ou apague primeiro as subfases. Apagar uma fase ou marco com workitems associados pede que os realoque ou limpe explicitamente.' }
                 ],
@@ -678,9 +679,9 @@ export const DOCS_PT: DocSection[] = [
                     ] },
                     { kind: 'list', items: [
                         'Cada tabela tem uma única toolbar: contagens, número de selecionados e Limpar seleção à esquerda; pesquisa e ícones de Filtros, Colunas e Exportar CSV à direita, seguidos de um separador e + Criar workitem. No Backlog, **Ações de sprint** fica após o separador, imediatamente antes de +, e agrupa Criar sprint e Adicionar ao sprint. Mantêm-se as validações de seleção e de sprints elegíveis. Pesquise por ID, título e descrição; ordene por qualquer coluna.',
-                        'Use **Filtros** para os filtros comuns e para tipo de workitem, Epic e User Story. Escolha, reordene e reponha colunas no ícone **Colunas**.',
+                        'Use **Filtros** para os filtros comuns e para tipo de workitem, Epic e User Story. O ícone **Colunas** abre listas Visíveis e Ocultas lado a lado. Oculte com o olho, adicione com + e reordene as visíveis pelo manípulo de arrasto ou pelas setas para cima/baixo. ID e Título permanecem visíveis com cadeado; Repor colunas restaura as predefinições. As preferências ficam guardadas localmente por projeto e contexto de tabela.',
                         'O ícone **Exportar CSV** abre um modal: escolha vírgula ou ponto e vírgula e confirme para descarregar todas as linhas filtradas, mesmo as recolhidas.',
-                        'As tabelas dos Sprints não têm checkboxes de seleção de linhas nem o menu Ações de sprint; mantêm pesquisa, filtros, colunas, exportação, hierarquia e + Criar workitem quando elegível.',
+                        'As tabelas dos Sprints não têm checkboxes de seleção, menu Ações de sprint ou + Criar workitem; mantêm pesquisa, filtros, colunas, exportação e hierarquia.',
                         'As datas e horas são apresentadas em UTC.'
                     ] }
                 ],
@@ -717,7 +718,7 @@ export const DOCS_PT: DocSection[] = [
                         'Riscos, Decisões e Entregáveis mantêm subseções próprias com o mesmo layout de **Tabela → Todos**. Contagens e seleção ficam à esquerda; pesquisa, ícones de Filtros, Colunas e Exportar CSV, separador e **+ Novo registo** ficam à direita.',
                         'Abra **Filtros** para estado, responsável, associações a fases/milestones e Pendentes, além dos campos de cada tipo: avaliações/nível de risco, decisor/data, ou validador/data prevista/Em atraso/Pendente de aceitação. Os filtros ativos aparecem em etiquetas removíveis.',
                         'Selecione linhas ou a página atual, limpe a seleção, ordene por qualquer coluna visível e escolha 25, 50 ou 100 linhas por página. Clique numa linha, ID ou título para abrir o detalhe existente.',
-                        'O ícone **Colunas** permite mostrar, ocultar, reordenar ou repor colunas. ID e título são obrigatórios. As preferências ficam guardadas localmente por subseção, independentes das colunas da tabela de workitems.',
+                        'O ícone **Colunas** permite mostrar, ocultar, reordenar ou repor colunas. ID e título são obrigatórios. As listas Visíveis e Ocultas têm controlos olho/+, arrasto e setas para cima/baixo. As preferências ficam guardadas localmente por projeto e subseção, independentes das colunas da tabela de workitems. A coluna Estado apresenta apenas o estado do registo.',
                         '**Exportar CSV** pede vírgula ou ponto e vírgula e exporta todos os registos filtrados/ordenados pela ordem das colunas visíveis, incluindo outras páginas. Em leitura e no histórico mantém consulta e exportação; **+** fica desativado.'
                     ] },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Entregáveis pendentes de aceitação mantêm o progresso das respetivas fases e marcos abaixo de 100%.' },

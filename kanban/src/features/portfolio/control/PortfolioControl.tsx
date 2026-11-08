@@ -46,10 +46,11 @@ function ControlRecordTable({ boardId, project, data, kind, readOnly }: { boardI
     const { t, language } = useI18n();
     const today = useLocalToday();
     const scope = `control-${kind}`;
+    const preferenceScope = `${data.extensions.project?.id || boardId}.${scope}`;
     const [search, setSearch] = useState('');
     const [filters, setFilters] = useState<Record<string, string>>({});
     const [sort, setSort] = useState<{ key: ControlColumn; desc: boolean }>({ key: 'id', desc: false });
-    const [columns, setColumns] = useState(() => normalizeControlColumns(kind, readTableColumnPreferences(scope)));
+    const [columns, setColumns] = useState(() => normalizeControlColumns(kind, readTableColumnPreferences(preferenceScope) ?? readTableColumnPreferences(scope)));
     const [selected, setSelected] = useState<Set<string>>(() => new Set());
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(50);
@@ -94,7 +95,7 @@ function ControlRecordTable({ boardId, project, data, kind, readOnly }: { boardI
     const changeColumns = (next: ControlColumn[]) => {
         const normalized = normalizeControlColumns(kind, next);
         setColumns(normalized);
-        saveTableColumnPreferences(normalized, scope);
+        saveTableColumnPreferences(normalized, preferenceScope);
     };
     const cellText = (record: ControlRecord, column: ControlColumn) => {
         const value = controlCellValue(record, column, data);
@@ -158,9 +159,7 @@ function ControlRecordTable({ boardId, project, data, kind, readOnly }: { boardI
                             {column === 'id' || column === 'title' ? <button className="table-item-link" type="button" title={cellText(record, column)} onClick={event => open(record, event)}>{cellText(record, column)}</button>
                                 : ['status', 'probability', 'impact', 'riskLevel'].includes(column) ? <ControlBadge value={controlCellValue(record, column, data)} />
                                 : <span className={`table-cell-text${!controlCellValue(record, column, data) ? ' table-not-defined' : ''}`} title={cellText(record, column)}>{cellText(record, column)}</span>}
-                            {column === 'status' && controlPending(record) && <small className="control-pending">{t('control.pending')}</small>}
                             {column === 'dueDate' && record.dueDate && record.dueDate < today && controlPending(record) && <small className="control-overdue">{t('control.overdue')}</small>}
-                            {column === 'status' && record.status === 'delivered' && <small>{t('control.awaitingAcceptance')}</small>}
                         </td>)}
                     </tr>)}</tbody>
                 </table>

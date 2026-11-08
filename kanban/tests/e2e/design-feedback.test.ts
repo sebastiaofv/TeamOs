@@ -26,7 +26,8 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         expect(picker.x).toBeGreaterThan(logo.x + logo.width);
         expect(Math.abs(logo.y + logo.height / 2 - picker.y - picker.height / 2)).toBeLessThan(2);
         await expect(page.locator('#projectPickerBtn')).toHaveCSS('border-top-width', '0px');
-        await expect(card.locator('button, input, time, .task-card-progress, .task-card-blocker, .task-card-priority')).toHaveCount(0);
+        await expect(card.locator('input, time, .task-card-progress, .task-card-blocker, .task-card-priority')).toHaveCount(0);
+        await expect(card.locator('.task-card-next')).toBeVisible();
         await expect(card.locator('.task-card-id')).toHaveText('FIS-TK-8');
         await expect(card.locator('.task-card-type')).toHaveText('Task');
         await expect(card.getByRole('combobox', { name: 'Responsible' })).toHaveValue('Bruno Silva');

@@ -70,7 +70,7 @@ test.describe('US-01 workitems table', () => {
       ] } } }], { selectedBoardId: 'review' });
       await page.locator('[data-view-mode="table"]').click();
       await page.locator('#tableColumns summary').click();
-      await page.locator('#tableColumn-blocked').check();
+      await page.locator('.table-column-panel [data-column-choice="blocked"]').getByRole('button', { name: /^Show / }).click();
       await page.keyboard.press('Escape');
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -386,7 +386,7 @@ test.describe('2.1a modals and toast', () => {
       { id: 'v1', title: 'Launch', hasHandle: true, tasks: [], extensions: ROADMAP }
     ], { selectedBoardId: 'v1' });
     await page.getByRole('button', { name: 'Roadmap' }).click();
-    await page.getByRole('button', { name: 'Edit Build' }).click();
+    await page.getByRole('button', { name: 'Build', exact: true }).click();
     await expect(page.locator('#roadmapEntityModalTitle')).toHaveText('Edit Phase');
     await expect(page.locator('#roadmapEntityStartDate')).toHaveValue('01/02/2026');
     await expect(page).toHaveScreenshot('roadmap-edit-phase-light.png', { fullPage: true });

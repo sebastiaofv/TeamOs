@@ -373,7 +373,7 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
     saved = await readSavedBoard(page, 'control');
     expect(saved.extensions.projectControl.records.find((item: any) => item.id === 'ATL-RK-9').comments[0].text).toContain('Evidence');
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
-    await page.getByRole('button', { name: 'Edit Build', exact: true }).click();
+    await page.getByRole('button', { name: 'Build', exact: true }).click();
     const roadmap = page.locator('#roadmapEntityModal');
     await expect(roadmap.getByLabel('Objective', { exact: true })).toHaveValue('Complete and validate implementation');
     await expect(roadmap.getByLabel('ATL-RK-9 · Capacity limit', { exact: true })).toBeChecked();

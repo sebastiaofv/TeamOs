@@ -24,8 +24,8 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await page.keyboard.press('Escape');
         await page.locator('[data-view-mode="table"]').click();
         await page.locator('#tableColumns > summary').click();
-        const gap = await page.locator('.table-column-option label').first().evaluate((el) => getComputedStyle(el).gap);
-        expect(gap).toBe('8px');
+        const gap = await page.locator('.table-column-option').first().evaluate((el) => getComputedStyle(el).gap);
+        expect(gap).toBe('4px');
         await page.keyboard.press('Escape');
         await page.locator('[data-view-mode="dashboard"]').click();
         await page.setViewportSize({ width: 768, height: 1024 });
@@ -36,7 +36,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         }
         await page.locator('[data-view-mode="roadmap"]').click();
         await expect(page.locator('#roadmap-row-phase-p .roadmap-disclosure-btn')).toHaveAccessibleName('Show tasks for Fase: 0/0');
-        await expect(page.locator('.milestone-annotation')).toHaveAccessibleName('N/A Entrega 20/11/2026');
+        await expect(page.locator('.milestone-annotation')).toHaveAccessibleName('Entrega · 20/11/2026 · N/A');
         await page.locator('[data-view-mode="planner"]').click();
         await page.getByRole('button', { name: 'Calendar', exact: true }).click();
         const january = page.locator('[data-action="open-calendar-month"][data-month="0"]');

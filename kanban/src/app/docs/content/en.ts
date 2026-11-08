@@ -521,7 +521,7 @@ export const DOCS_EN: DocSection[] = [
                         'With the keyboard, select a card with [[J]] / [[K]] and press [[1]]–[[4]] to move it.',
                         'Open the [command palette](prod-palette) on a card and choose **Move to…**.'
                     ] },
-                    { kind: 'p', text: 'Cards show a title of up to two lines, then the ID, workitem type and responsible person. Change the responsible person directly using the dropdown, or click the card to open details. Editing, deletion, copy, move, dates, blocking and progress remain available in details. Columns fill the available width and stay equal when space permits. With many states or a narrow window, empty columns shrink to half the width of occupied columns; horizontal scrolling remains available when needed.' },
+                    { kind: 'p', text: 'Cards show the ID at the top left, a smaller title of up to two lines below, and the type and responsible person at the bottom. The top-right arrow advances to the next allowed workflow state; dragging remains available. Change the responsible person directly using the dropdown, or click the card to open details. Editing, deletion, copy, move, dates, blocking and progress remain available in details. Columns fill the available width and stay equal when space permits. With many states or a narrow window, empty columns shrink to half the width of occupied columns; horizontal scrolling remains available when needed.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A move not allowed by the workflow is refused. Moving a Story or Bug to Completed asks for [functional acceptance](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -572,6 +572,7 @@ export const DOCS_EN: DocSection[] = [
                         'Assign workitems to a leaf phase and a milestone in the workitem editor (or let children [inherit](plan-inheritance)).',
                         'Expand a leaf phase to see its workitem table and progress. Parent phases only expand their child hierarchy.'
                     ] },
+                    { kind: 'p', text: 'The Roadmap keeps width and zoom controls on the left and + Milestone / + Phase on the right. Milestone diamonds have a fixed size and show progress; names and dates appear on hover or keyboard focus. They use one lane, adding a second only for overlaps; additional lanes scroll. Click a diamond for associated workitems. Click a phase or Sprint name to edit it, and hover its timeline bar for dates. Sprint rows use a Play icon to start and a chequered flag to finish, retaining confirmations. Completed Sprints have no lifecycle button.' },
                     { kind: 'p', text: 'Progress counts completed eligible workitems (cancelled ones are excluded). Deliverables awaiting acceptance in Project Control keep phase and milestone progress below 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A phase with subphases cannot be deleted in cascade: move or delete the subphases first. Deleting a phase or milestone with assigned workitems asks you to reallocate or explicitly clear them.' }
                 ],
@@ -678,9 +679,9 @@ export const DOCS_EN: DocSection[] = [
                     ] },
                     { kind: 'list', items: [
                         'Each table has one toolbar: workitem counts, selection count and Clear selection on the left; search, Filters, Columns and Export CSV icons on the right, followed by a divider and + Create workitem. In Backlog, **Sprint Actions** sits after the divider, immediately before +, and groups Create Sprint and Add to sprint. Existing selection and eligible-sprint checks still apply. Search by ID, title and description; sort by any column.',
-                        'Use **Filters** for shared filters and workitem type, Epic and User Story. Choose, reorder and reset columns with the **Columns** icon.',
+                        'Use **Filters** for shared filters and workitem type, Epic and User Story. The **Columns** icon opens side-by-side Visible and Hidden lists. Hide with the eye, add with +, and reorder visible columns by dragging their handles or using the up/down arrows. ID and Title stay visible and locked; Reset to default restores the initial columns. Preferences are kept locally per project and table context.',
                         'The **Export CSV** icon opens a modal: choose comma or semicolon and confirm to download all filtered rows, even collapsed ones.',
-                        'Sprint tables have no row-selection checkboxes or Sprint Actions menu; their search, filters, columns, export, hierarchy and eligible + Create workitem remain available.',
+                        'Sprint tables have no row-selection checkboxes, Sprint Actions menu or + Create workitem; their search, filters, columns, export and hierarchy remain available.',
                         'Timestamps are shown in UTC.'
                     ] }
                 ],
@@ -717,7 +718,7 @@ export const DOCS_EN: DocSection[] = [
                         'Risks, Decisions and Deliverables keep separate subsections with the same table layout as **Table → All**. Counts and selection stay on the left; search, Filters, Columns, Export CSV, a divider and **+ New record** sit on the right.',
                         'Open the **Filters** icon for status, responsible person, phase/milestone associations and Pending, plus the fields for each type: assessments/risk level, decision maker/date, or validator/due date/Overdue/Pending acceptance. Active filters appear as removable tags.',
                         'Select rows or the current page, clear selection, sort by any visible column and use 25, 50 or 100 rows per page. Click a row, ID or title to open its existing detail dialog.',
-                        'The **Columns** icon shows, hides, reorders or resets columns. ID and title are required. Preferences are saved locally per subsection, independently of workitem-table columns.',
+                        'The **Columns** icon shows, hides, reorders or resets columns. ID and title are required. Visible and Hidden lists support eye/+ controls, drag handles and up/down arrows. Preferences are saved locally per project and subsection, independently of workitem-table columns. Status cells show only the item status.',
                         '**Export CSV** asks for comma or semicolon and exports all filtered/sorted records in the visible column order, including other pages. Read-only and historical views retain consultation and export; **+** is disabled.'
                     ] },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Deliverables awaiting acceptance keep the progress of their phases and milestones below 100%.' },

@@ -84,9 +84,9 @@
 #milestoneWorkitemsModal .milestone-modal-content { width: min(1100px, 96vw); max-width: min(1100px, 96vw); }
 .milestone-modal-heading { display: flex; align-items: center; gap: 18px; min-width: 0; }
 .milestone-modal-heading > div { min-width: 0; overflow-wrap: anywhere; }
-.milestone-modal-heading .milestone-diamond { margin: 8px; width: 38px; height: 38px; flex-basis: 38px; }
-.milestone-modal-heading .milestone-diamond::before { width: 29px; height: 29px; }
-.milestone-modal-heading .milestone-diamond > span { font-size: 10px; }
+.milestone-modal-heading .milestone-diamond { margin: 8px; }
+
+
 .milestone-modal-heading p { color: var(--text-secondary); font-size: 12px; margin-top: 5px; }
 .roadmap-modal-filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; }
 .table-tools-expanded { display: contents; }
@@ -113,8 +113,8 @@
 .milestone-color-picker input:focus-visible + span { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 
 /* Keep Sprint names and dates readable alongside the manual lifecycle controls. */
-.roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-labels { flex-wrap: wrap; }
-.roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-actions { flex: 1 0 100%; justify-content: flex-end; align-items: center; }
+.roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-labels { flex-wrap: nowrap; }
+.roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-actions { flex: none; justify-content: flex-end; align-items: center; }
 .roadmap-row-actions .sprint-lifecycle-action { padding: 3px 8px; font-size: 11px; min-height: 22px; }
 
 .sprint-points {
@@ -140,3 +140,23 @@
     color: var(--priority-high);
     font-weight: 700;
 }
+
+.roadmap-create-btn { display: inline-flex; align-items: center; gap: 6px; }
+.roadmap-view-controls .roadmap-create-btn:first-of-type { margin-left: auto; }
+.roadmap-axis-label { justify-content: flex-start; }
+.roadmap-edit-name { background: transparent; border: 0; padding: 0; color: inherit; font-family: inherit; text-align: left; cursor: pointer; }
+.roadmap-edit-name:hover { color: var(--accent); text-decoration: underline; }
+.roadmap-row-actions .sprint-lifecycle-action.icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: 0; width: 26px; height: 26px; min-height: 26px; }
+.roadmap-row-actions .sprint-points { flex-wrap: nowrap; gap: 3px; }
+.roadmap-row-actions .sprint-points-indicator { padding: 1px 3px; font-size: 10px; }
+.roadmap-row[data-roadmap-kind="sprint"] .roadmap-disclosure-btn { font-size: 10px; padding-inline: 3px; }
+.roadmap-row[data-roadmap-kind="sprint"] .table-status-badge { padding-inline: 4px; font-size: 10px; }
+.milestone-annotation { width: 44px; height: 52px; min-height: 52px; transform: translateX(-50%); justify-content: center; }
+.milestone-diamond { flex-basis: 44px; width: 44px; height: 44px; }
+.milestone-diamond::before { width: 30px; height: 30px; }
+.milestone-diamond > span { font-size: 9px; }
+.milestone-annotations { width: calc(100% + 48px); margin-inline: -24px; scrollbar-width: thin; }
+.milestone-annotation-canvas { width: calc(100% - 48px); margin-inline: 24px; }
+.milestone-tooltip { position: fixed; z-index: 1000; padding: 8px 10px; max-height: 58px; overflow: auto; box-sizing: border-box; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); box-shadow: 0 4px 16px #0003; font-size: 12px; overflow-wrap: anywhere; pointer-events: none; }
+.roadmap-modal-actions { display: inline-flex; gap: 10px; align-items: center; margin-left: auto; }
+#roadmapEntityModal .modal-header > .task-transfer-menu { margin-left: auto; }

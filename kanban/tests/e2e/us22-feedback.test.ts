@@ -46,10 +46,10 @@ test('a Planned Sprint is deleted from its editor; workitems return to planning 
   await expect(planned.locator('[data-sprint-points="completed"]')).toHaveCount(0);
   const running = page.locator('[data-roadmap-kind="sprint"][data-roadmap-id="s2"]');
   await expect(running.getByRole('button', { name: 'Delete Running', exact: true })).toHaveCount(0);
-  await running.getByRole('button', { name: 'Edit Running', exact: true }).click();
+  await running.getByRole('button', { name: 'Running', exact: true }).click();
   await expect(page.locator('#roadmapEntityModal .task-transfer-menu')).toHaveCount(0);
   await page.locator('#roadmapEntityModalCancelBtn').click();
-  await planned.getByRole('button', { name: 'Edit Planned', exact: true }).click();
+  await planned.getByRole('button', { name: 'Planned', exact: true }).click();
   await page.locator('#roadmapEntityModal').getByLabel('Task actions', { exact: true }).click();
   await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
   await expect(page.locator('#appMessageText')).toContainText('available for planning again');

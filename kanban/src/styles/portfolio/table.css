@@ -46,9 +46,9 @@
     top: calc(100% + 6px);
     right: 0;
     z-index: 25;
-    --table-panel-width: 640px;
+    --table-panel-width: 580px;
     width: min(var(--table-panel-width), 100%);
-    max-height: min(520px, var(--table-panel-height, 45dvh));
+    max-height: min(500px, var(--table-panel-height, 70dvh));
     overflow: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--border);
@@ -124,3 +124,25 @@
 .table-scroll { min-height: 120px; }
 .table-hierarchy-filter-panel { position: absolute; top: calc(100% + 6px); right: 0; z-index: 25; --table-panel-width: 420px; width: min(var(--table-panel-width), 100%); max-height: var(--table-panel-height, 45dvh); overflow: auto; padding: 12px; border: 1px solid var(--border); background: var(--bg-card); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14); }
 .table-hierarchy-filter-panel .table-hierarchy-filters { padding: 0; }
+
+/* Visible columns form one ordered list beside the available hidden columns. */
+.table-column-panel { display: flex; flex-direction: column; padding: 12px; }
+.table-column-options { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; min-height: 0; overflow: auto; }
+.table-column-options section { min-width: 0; }
+.table-column-options h3 { position: sticky; top: 0; z-index: 2; padding: 4px 0 8px; font-size: 12px; background: var(--bg-card); }
+.table-column-list { display: flex; flex-direction: column; gap: 4px; }
+.table-column-option { padding: 3px 0; min-height: 30px; font-size: 12px; background: var(--bg-card); }
+.table-column-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.table-column-option .btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; min-width: 24px; height: 26px; padding: 0; flex: none; }
+.table-column-lock { display: inline-flex; justify-content: center; width: 24px; flex: none; color: var(--text-secondary); }
+.column-drag-handle { touch-action: none; cursor: grab; }
+.table-column-option.is-dragging { z-index: 3; outline: 1px solid var(--accent); }
+.table-column-panel > .btn { align-self: flex-start; flex: none; }
+.workitems-table [data-column="id"] { width: 1%; max-width: none; white-space: nowrap; overflow-wrap: normal; }
+.workitems-table [data-column="id"] .table-item-link { display: inline-block; white-space: nowrap; max-height: none; overflow: visible; }
+.table-heading .table-tools > .icon-btn, .table-heading .table-columns > summary.icon-btn { border: 1px solid var(--border); background: var(--bg-card); }
+@media (max-width: 520px) {
+    .table-column-options { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px; }
+    .table-column-option { flex-wrap: wrap; }
+    .table-column-name { flex-basis: 50%; }
+}

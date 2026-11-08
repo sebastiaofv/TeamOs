@@ -94,7 +94,7 @@ test.describe('timeline', () => {
 
     await page.locator('#milestoneWorkitemsModal .modal-close').click();
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
-    await page.locator('#milestoneWorkitemsModal .modal-footer summary').click();
+    await page.locator('#milestoneWorkitemsModal .modal-header summary').click();
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageSelection')).toHaveValue('0');
     await answerAppMessage(page, { button: 'Confirm' });
@@ -111,7 +111,7 @@ test.describe('timeline', () => {
       await setTimelineSlider(page, index);
       await viewMode('roadmap');
       const rows = page.locator('#portfolioRoadmapView .milestone-annotation');
-      const titles = (await rows.locator('.milestone-annotation-label strong').allTextContents()).map((text) => text.trim());
+      const titles = await rows.evaluateAll(nodes => nodes.map(node => node.getAttribute('aria-label')!.split(' · ')[0]));
       const usage: string[] = [];
       for (let index = 0; index < await rows.count(); index++) {
         await rows.nth(index).click();

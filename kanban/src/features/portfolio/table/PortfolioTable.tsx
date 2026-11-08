@@ -84,7 +84,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
             {(['unplanned', 'sprints'] as const).map(key => <button className={`btn${view === key ? ' active' : ''}`} type="button" key={key}
                 data-table-view={key} aria-pressed={view === key} onClick={() => setView(key)}>{t(viewLabels[key])}</button>)}
         </div>
-        {view !== 'sprints' ? <WorkitemTable key={view} hidden={hidden} boardId={boardId} project={project} boardData={boardData}
+        {view !== 'sprints' ? <WorkitemTable key={view} preferenceContext={view} hidden={hidden} boardId={boardId} project={project} boardData={boardData}
             sourceRows={view === 'unplanned' ? unplannedTableRows(sourceRows) : sourceRows.filter((row) => view === 'epics' ? workitemType(row.task) === 'epic' : view === 'stories' ? workitemType(row.task) === 'story' : view === 'hierarchy' ? true : view === 'independent' ? isPlanningUnit(boardData, row.task) && workitemType(row.task) !== 'story' : ['task', 'bug'].includes(workitemType(row.task)))} canCreate={canCreate} createType={view === 'epics' ? 'epic' : view === 'stories' ? 'story' : 'task'} planning={view === 'unplanned'} nested={view === 'hierarchy'} />
             : <>
                 <p className="table-sprint-note">{t('table.sprintDatesNote')}</p>
@@ -119,12 +119,12 @@ function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPo
         </summary>
         {expanded && group.closedAt && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(group.closedAt) })}</p>}
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
-            sourceRows={group.rows} canCreate={canEdit && !group.closedAt && group.status !== 'done'} createSprintId={group.sprint.id} scope={`sprint-${group.sprint.id}`} selectable={false} nested />}
+            sourceRows={group.rows} canCreate={false} createSprintId={group.sprint.id} scope={`sprint-${group.sprint.id}`} selectable={false} nested />}
     </details>;
 }
 
-export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', createSprintId, planning = false, scope = '', compact = false, emptyLabel, nested = false, bare = false, selectable = true }: {
-    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; createSprintId?: string; planning?: boolean; scope?: string; compact?: boolean; emptyLabel?: string; nested?: boolean; bare?: boolean; selectable?: boolean;
+export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', createSprintId, planning = false, scope = '', preferenceContext, compact = false, emptyLabel, nested = false, bare = false, selectable = true }: {
+    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; createSprintId?: string; planning?: boolean; scope?: string; preferenceContext?: string; compact?: boolean; emptyLabel?: string; nested?: boolean; bare?: boolean; selectable?: boolean;
 }) {
     const { t, language } = useI18n();
     const today = useLocalToday();
@@ -134,7 +134,8 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const sprintDisclosure = useTableDisclosure(hidden);
     const filters = useAppStore((state) => state.portfolioFilters);
     const [hierarchy, setHierarchy] = useState({ type: '', epic: '', story: '' });
-    const [selectedColumns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
+    const preferenceScope = `${boardData.extensions.project?.id || boardId}.${preferenceContext || scope || 'all'}`;
+    const [selectedColumns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences(preferenceScope) ?? readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
     const columns = selectedColumns.filter((column) => column !== 'archived' && (!bare || column !== 'story'));
     const sort = useAppStore((state) => state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT);
     const focusSortColumn = columns.find((column) => column === sort.column) ?? columns[0];
@@ -170,7 +171,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     function changeColumns(next: TableColumnId[]) {
         const normalized = normalizeTableColumns(next);
         setColumns(normalized);
-        saveTableColumnPreferences(normalized);
+        saveTableColumnPreferences(normalized, preferenceScope);
     }
     function toggleSelection(ids: number[], checked: boolean) {
         setSelected((previous) => {

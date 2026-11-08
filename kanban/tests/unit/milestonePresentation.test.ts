@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { validateBoardData } from '../../src/domain/board';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 import { normalizeRoadmapExtension } from '../../src/domain/roadmap';
-import { layoutMilestones, MILESTONE_COLORS, milestoneColor, nextMilestoneColor } from '../../src/domain/milestonePresentation';
+import { layoutMilestones, MILESTONE_MARKER_WIDTH, MILESTONE_COLORS, milestoneColor, nextMilestoneColor } from '../../src/domain/milestonePresentation';
 
 describe('milestone colours and compatibility', () => {
     it.each([1, 2, 3])('migrates v%i without changing work, IDs or historical events', (version) => {
@@ -37,12 +37,16 @@ describe('milestone colours and compatibility', () => {
 });
 
 describe('milestone annotation packing', () => {
-    it.each([640, 960, 1280])('keeps same-day and adjacent labels apart at width %i', (width) => {
+    it('uses one lane for separated diamonds and adds lanes only for collisions', () => {
+        expect(layoutMilestones([0, 20, 40, 60, 80, 100], 640).map(item => item.lane)).toEqual([0, 0, 0, 0, 0, 0]);
+        expect(layoutMilestones([50, 50, 50], 640).map(item => item.lane)).toEqual([0, 1, 2]);
+    });
+    it.each([640, 960, 1280])('keeps same-day and adjacent diamonds apart at width %i', (width) => {
         const positions = [0, 1, 20, 21, 50, 51, 76, 77, 100, 100];
         const layout = layoutMilestones(positions, width);
-        const boxes = layout.map((item, index) => ({ ...item, start: positions[index] * width / 100 - (item.labelAtEnd ? 170 : 16), end: positions[index] * width / 100 + (item.labelAtEnd ? 16 : 170) }));
+        const boxes = layout.map((item, index) => ({ ...item, start: positions[index] * width / 100 - MILESTONE_MARKER_WIDTH / 2, end: positions[index] * width / 100 + MILESTONE_MARKER_WIDTH / 2 }));
         boxes.forEach((box, index) => {
-            expect(box.start).toBeGreaterThanOrEqual(-16); expect(box.end).toBeLessThanOrEqual(width + 16);
+            expect(box.start).toBeGreaterThanOrEqual(-MILESTONE_MARKER_WIDTH / 2); expect(box.end).toBeLessThanOrEqual(width + MILESTONE_MARKER_WIDTH / 2);
             boxes.slice(index + 1).filter((other) => other.lane === box.lane).forEach((other) => expect(box.end + 6 <= other.start || other.end + 6 <= box.start).toBe(true));
         });
     });

@@ -41,7 +41,7 @@ test('table dates, status colors, blocked emphasis and minimum widths match the 
   await expect(page.locator('#workitemsTable [data-task-id="1"] [data-column="updatedAt"]')).toHaveText('17/10/2026 10:27:42');
   await page.locator('#tableColumns summary').click();
   for (const column of ['blocked', 'blockerReason', 'dueDate', 'createdAt', 'milestone', 'sprint', 'effort', 'tags']) {
-    await page.locator(`#tableColumn-${column}`).check();
+    await page.locator(`.table-column-panel [data-column-choice="${column}"]`).getByRole('button', { name: /^Show / }).click();
   }
   await page.keyboard.press('Escape');
   const first = page.locator('#workitemsTable [data-task-id="1"]');

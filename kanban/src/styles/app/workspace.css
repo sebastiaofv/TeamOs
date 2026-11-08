@@ -238,3 +238,7 @@
 .table-sprint-actions-panel { position: fixed; z-index: 40; display: grid; gap: 4px; --table-panel-width: 240px; padding: 6px; border: 1px solid var(--border); background: var(--bg-card); max-height: var(--table-panel-height, 60dvh); overflow: auto; }
 .table-sprint-actions-panel .btn { justify-content: flex-start; }
 :root[data-theme-style="modern"] .table-sprint-actions-panel { border-radius: var(--radius-panel); box-shadow: var(--shadow-panel); }
+
+.task-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; font-size: 11px; color: var(--text-secondary); }
+.task-card-top .task-card-next { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; min-height: 26px; padding: 0; flex: none; }
+.portfolio-task-card .task-title { font-size: 13px; }

@@ -166,7 +166,7 @@ test('Sprint dates follow the duration in business days, and starting late asks 
   await page.locator('[data-view-mode="roadmap"]').click();
   const nested = page.locator('[data-roadmap-kind="sprints"] [data-roadmap-kind="sprint"][data-roadmap-id="delivery"]');
   await expect(nested.getByRole('button', { name: 'Start Sprint', exact: true })).toBeVisible();
-  await nested.getByRole('button', { name: 'Edit Nested', exact: true }).click();
+  await nested.getByRole('button', { name: 'Nested', exact: true }).click();
   // #54 detaches Sprints from phases while retaining the Sprint editor and business-day calculation.
   await expect(page.locator('#roadmapPhaseParent')).toHaveCount(0);
   await expect(page.locator('#sprintDuration')).toHaveValue('10');
