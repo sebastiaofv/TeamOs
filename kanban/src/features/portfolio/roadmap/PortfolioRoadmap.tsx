@@ -109,6 +109,7 @@ function MilestoneDiamond({ marker }: { marker: RoadmapMilestoneMarker }) {
             <polygon points={points} className="milestone-base" />
             <rect className="milestone-progress-fill" x="0" y="0" height="30" width={(marker.progress.percent ?? 0) / 100 * 30} clipPath={`url(#${clipId})`} />
             <polygon points={points} className="milestone-outline" />
+            {marker.progress.associated > 0 && marker.progress.percent === 100 && <path className="milestone-complete-check" d="M9 15 L13 19 L21 11" />}
         </svg>
     </span>;
 }
@@ -141,7 +142,7 @@ function MilestoneGuide({ marker, markers, top, local = false }: { marker: Roadm
     const coincident = markers.filter((other) => other.position === marker.position);
     const index = coincident.findIndex((other) => other.key === marker.key);
     // Interleave coloured dashes for milestones on the same day rather than hiding one behind another.
-    return <span className="milestone-date-guide" data-milestone-guide={local ? undefined : marker.item!.id} style={{ left: `${marker.position}%`, top, color: marker.item!.color }}>
+    return <span className="milestone-date-guide" data-milestone-guide={local ? undefined : marker.item!.id} style={{ left: `${marker.position}%`, top, '--milestone-color': marker.item!.color } as CSSProperties}>
         <svg width="1" height="100%" aria-hidden="true"><line x1="0.5" x2="0.5" y1="0" y2="100%" stroke="currentColor" strokeDasharray={`4 ${coincident.length * 8 - 4}`} strokeDashoffset={top + (local ? 44 : 0) - index * 8} /></svg>
     </span>;
 }
@@ -177,12 +178,12 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
     const marker = getRoadmapTodayMarker(view.range);
     const annotationLanes = Math.max(0, ...milestones.map((milestone) => milestone.lane + 1));
     const annotationHeight = Math.min(2, annotationLanes) * MILESTONE_LANE_HEIGHT;
-    const style = { '--roadmap-label-width': `${labelWidth ?? view.labelWidth}px`, '--roadmap-temporal-min': `${640 * zoom}px`, '--roadmap-axis-width': `${axis.width}px` } as CSSProperties;
+    const style = { '--roadmap-preferred-label-width': `${labelWidth ?? view.labelWidth}px`, '--roadmap-zoom': zoom, '--roadmap-axis-width': `${axis.width}px` } as CSSProperties;
     const selected = milestones.find((item) => item.item?.id === milestoneId);
     return <div className="roadmap-workspace" style={{ '--roadmap-controls-height': `${controls.height}px` } as CSSProperties}>
         <div ref={controls.ref} className="roadmap-view-controls">
             <label>{t('roadmap.labelWidth')}<input aria-label={t('roadmap.labelWidth')} type="range" min="280" max="720" step="10" value={labelWidth ?? view.labelWidth} onChange={(event) => setLabelWidth(Number(event.target.value))} /></label>
-            <label>{t('roadmap.zoom')}<select aria-label={t('roadmap.zoom')} value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{[1, 1.25, 1.5, 2].map((value) => <option value={value} key={value}>{value * 100}%</option>)}</select></label>
+            <label>{t('roadmap.zoom')}<select aria-label={t('roadmap.zoom')} value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{[1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3].map((value) => <option value={value} key={value}>{value * 100}%</option>)}</select></label>
             <button className="btn btn-primary roadmap-create-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.milestone') })} onClick={() => actions.openRoadmapEntityModal('milestones')}><WorkspaceIcon name="plus" />{t('roadmap.milestone')}</button>
             <button className="btn btn-primary roadmap-create-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.phase') })} onClick={() => actions.openRoadmapEntityModal('phases')}><WorkspaceIcon name="plus" />{t('roadmap.phase')}</button>
         </div>

@@ -21,8 +21,8 @@ test('long timelines keep year labels separate at every viewport and zoom', asyn
             await page.getByLabel('Timeline zoom', { exact: true }).selectOption(zoom);
             await expect.poll(async () => page.locator('.roadmap-axis-year').evaluateAll((labels) => {
                 const rects = labels.map((label) => label.getBoundingClientRect());
-                return rects.slice(1).every((rect, index) => rect.left >= rects[index].right + 4);
-            })).toBe(true);
+                return rects.slice(1).flatMap((rect, index) => rect.left >= rects[index].right + 4 ? [] : [{ previous: labels[index].textContent, current: labels[index + 1].textContent, gap: rect.left - rects[index].right }]);
+            }), `${width}px at ${Number(zoom) * 100}%`).toEqual([]);
             await expect.poll(async () => page.locator('.roadmap-axis-date-label').evaluateAll((labels) => {
                 const rects = labels.map((label) => label.getBoundingClientRect());
                 return rects.slice(1).every((rect, index) => rect.left >= rects[index].right + 4);

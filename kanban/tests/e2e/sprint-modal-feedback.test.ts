@@ -63,12 +63,18 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
             const base = element.querySelector('.milestone-base'), outline = element.querySelector('.milestone-outline'), fill = element.querySelector('.milestone-progress-fill');
             if (!base || !outline || !fill) return null;
             const backdrop = getComputedStyle(element.closest('.roadmap-axis-shell')!).backgroundColor;
-            return { outlineWidth: parseFloat(getComputedStyle(outline).strokeWidth), outline: ratio(getComputedStyle(outline).stroke, backdrop), progress: ratio(getComputedStyle(base).fill, getComputedStyle(fill).fill) };
+            const guide = document.querySelector(`[data-milestone-guide="${element.closest('[data-roadmap-id]')!.getAttribute('data-roadmap-id')}"]`)!;
+            return { outlineWidth: parseFloat(getComputedStyle(outline).strokeWidth), outline: ratio(getComputedStyle(outline).stroke, backdrop), progress: ratio(getComputedStyle(base).fill, getComputedStyle(fill).fill),
+                guide: ratio(getComputedStyle(guide).color, backdrop), guideOpacity: getComputedStyle(guide).opacity };
         });
         expect(contrast).not.toBeNull();
         expect(contrast!.outlineWidth).toBeGreaterThanOrEqual(2);
         expect(contrast!.outline).toBeGreaterThanOrEqual(3);
         expect(contrast!.progress).toBeGreaterThanOrEqual(2);
+        if (mode === 'dark') {
+            expect(contrast!.guide).toBeGreaterThanOrEqual(3);
+            expect(contrast!.guideOpacity).toBe('1');
+        }
     }
     await expect(page.locator('.milestone-annotations')).toHaveCSS('height', '36px');
     await page.locator('.roadmap-workspace').screenshot({ path: testInfo.outputPath('milestone-contrast.png') });
