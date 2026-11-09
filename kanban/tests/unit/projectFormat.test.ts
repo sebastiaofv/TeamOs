@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { BoardData, LooseBoardData, TimelineEvent } from '../../src/domain/types';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { createBoardStateSnapshot, hashTextContent, serializeBoardDataFromObject } from '../../src/domain/serialize';
-import { appendTimelineEvent, applyTimelineEventToState, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
+import { appendTimelineEvent, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
 import { fromProjectFile, parseProjectText, toProjectCheckpoint, toProjectFile, type ProjectFileV1 } from '../../src/domain/projectFormat';
 import { applyProjectPatch, diffProjectState } from '../../src/domain/projectPatch';
 import { createHistoryWriter, eventFromFile, eventToFile } from '../../src/domain/projectHistoryFormat';
@@ -12,7 +12,8 @@ import { newControlRecord, saveControlRecord, type ControlRecord } from '../../s
 import { closeSprint } from '../../src/domain/sprintResults';
 import { createProjectDirectory, loadDirectoryHistory, openProjectDirectory } from '../../src/infrastructure/persistence/projectDirectory';
 import { BoardRepository, writeJsonToFileHandle } from '../../src/infrastructure/persistence/boardRepository';
-import { getWorkflow } from '../../src/domain/workflow';
+import { getWorkflow, functionalWorkitemTypes } from '../../src/domain/workflow';
+import { WORKITEM_FIELDS, effectivePlanning, workitemFieldNames, workitemType } from '../../src/domain/workitems';
 import { MemoryDirectory, MemoryFile } from '../support/projectDirectory';
 
 const boardFiles = readdirSync('test-board').filter((name) => name.endsWith('.board.json')).map((name) => join('test-board', name));
@@ -22,12 +23,12 @@ const runtime = (path: string) => { const data = serializeBoardDataFromObject(lo
 const roundTrip = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 /** Everything a user can observe, with the documented normalizations applied. */
-function observable(data: BoardData) {
-    const tasks = data.board.tasks.map((task) => ({ id: task.id, permanentId: task.permanentId, displayId: task.displayId, type: task.type ?? 'task', title: task.title, description: task.description, status: task.status, parentId: task.parentId ?? null, assignees: task.assignees, responsible: task.responsible, tags: task.tags, priority: task.priority, dueDate: task.dueDate, blocked: task.blocked, blockerReason: task.blockerReason, archived: task.archived, checklist: task.checklist, attachments: task.attachments, effort: task.effort, storyPoints: task.storyPoints, sprintId: task.sprintId, phaseMode: task.phaseMode ?? (task.phaseId ? 'explicit' : 'none'), milestoneMode: task.milestoneMode ?? (task.milestoneId ? 'explicit' : 'none'), acceptance: task.acceptance, sprintHistory: task.sprintHistory || undefined, createdAt: task.createdAt, updatedAt: task.updatedAt }));
+function observable(data: BoardData, recordHistory = false) {
+    const tasks = data.board.tasks.map((task) => ({ id: task.id, permanentId: task.permanentId, displayId: task.displayId, type: task.type ?? 'task', title: task.title, description: task.description, status: task.status, statusChangedAt: task.statusChangedAt, pullRequests: task.pullRequests || [], ...Object.fromEntries(WORKITEM_FIELDS.filter((field) => workitemFieldNames(workitemType(task)).includes(field)).map((field) => [field, task[field] || ''])), severity: task.severity || '', phaseId: effectivePlanning(data, task, 'phaseId'), milestoneId: effectivePlanning(data, task, 'milestoneId'), parentId: task.parentId ?? null, assignees: task.assignees, responsible: task.responsible, tags: task.tags, priority: task.priority, dueDate: task.dueDate, blocked: task.blocked, blockerReason: task.blockerReason, archived: task.archived, checklist: task.checklist, attachments: task.attachments, effort: task.effort, storyPoints: task.storyPoints, sprintId: task.sprintId, phaseMode: task.phaseMode ?? (task.phaseId ? 'explicit' : 'none'), milestoneMode: task.milestoneMode ?? (task.milestoneId ? 'explicit' : 'none'), acceptance: task.acceptance, sprintHistory: task.sprintHistory || undefined, createdAt: task.createdAt, updatedAt: task.updatedAt }));
     const extensions = data.extensions;
     const onlyFor = (record: ControlRecord, kind: ControlRecord['kind'], value: unknown) => (record.kind === kind ? value : '');
-    const records = extensions.projectControl?.records.map(({ history: _history, comments: _comments, ...record }) => ({ ...record, probability: onlyFor(record as ControlRecord, 'risks', record.probability), impact: onlyFor(record as ControlRecord, 'risks', record.impact), mitigationPlan: onlyFor(record as ControlRecord, 'risks', record.mitigationPlan), contingencyPlan: onlyFor(record as ControlRecord, 'risks', record.contingencyPlan), materializedDate: onlyFor(record as ControlRecord, 'risks', record.materializedDate), actualImpact: onlyFor(record as ControlRecord, 'risks', record.actualImpact), decisionMaker: onlyFor(record as ControlRecord, 'decisions', record.decisionMaker), decisionDate: onlyFor(record as ControlRecord, 'decisions', record.decisionDate), rationale: onlyFor(record as ControlRecord, 'decisions', record.rationale), validator: onlyFor(record as ControlRecord, 'deliverables', record.validator), deliveredDate: onlyFor(record as ControlRecord, 'deliverables', record.deliveredDate), acceptedDate: onlyFor(record as ControlRecord, 'deliverables', record.acceptedDate) }));
-    return { title: data.board.settings.title, tasks, records, roadmap: { milestones: extensions.roadmap?.milestones || [], phases: extensions.roadmap?.phases || [], sprints: extensions.roadmap?.sprints || [] }, sprintResults: extensions.sprintResults, workflow: getWorkflow(data), hidden: extensions.boardView?.hiddenStateIds || [], members: extensions.project?.members.map((member) => member.name).sort() };
+    const records = extensions.projectControl?.records.map(({ history: _history, comments: _comments, ...record }) => ({ ...record, comments: _comments, ...(recordHistory ? { history: _history } : {}), probability: onlyFor(record as ControlRecord, 'risks', record.probability), impact: onlyFor(record as ControlRecord, 'risks', record.impact), mitigationPlan: onlyFor(record as ControlRecord, 'risks', record.mitigationPlan), contingencyPlan: onlyFor(record as ControlRecord, 'risks', record.contingencyPlan), materializedDate: onlyFor(record as ControlRecord, 'risks', record.materializedDate), actualImpact: onlyFor(record as ControlRecord, 'risks', record.actualImpact), decisionMaker: onlyFor(record as ControlRecord, 'decisions', record.decisionMaker), decisionDate: onlyFor(record as ControlRecord, 'decisions', record.decisionDate), rationale: onlyFor(record as ControlRecord, 'decisions', record.rationale), validator: onlyFor(record as ControlRecord, 'deliverables', record.validator), deliveredDate: onlyFor(record as ControlRecord, 'deliverables', record.deliveredDate), acceptedDate: onlyFor(record as ControlRecord, 'deliverables', record.acceptedDate) }));
+    return { title: data.board.settings.title, tasks, records, roadmap: { milestones: extensions.roadmap?.milestones || [], phases: extensions.roadmap?.phases || [], sprints: extensions.roadmap?.sprints || [] }, sprintParticipation: (extensions.sprintParticipation?.entries || []).filter((entry) => !extensions.sprintResults?.closures.some((closure) => closure.sprintId === entry.sprintId)), dayPlanner: extensions.dayPlanner?.blocks || [], functionalWorkflow: getWorkflow(data, 'functional'), functionalTypes: functionalWorkitemTypes(data), sprintResults: extensions.sprintResults, workflow: getWorkflow(data), hidden: extensions.boardView?.hiddenStateIds || [], members: extensions.project?.members.map((member) => member.name).sort() };
 }
 
 describe('project format v1 mapper', () => {
@@ -85,21 +86,16 @@ describe('project format v1 mapper', () => {
     });
 });
 
-const replay = (events: readonly TimelineEvent[]) => {
-    const states: unknown[] = [events[0].snapshot];
-    for (let index = 1; index < events.length; index++) states.push(applyTimelineEventToState(states[index - 1] as never, events[index]));
-    return states;
-};
 describe('history v1', () => {
     const withHistory = fixtures.filter((path) => { const timeline = load(path).extensions?.timeline as { events?: { snapshot?: { board?: unknown } }[] } | undefined; return timeline?.events?.[0]?.snapshot?.board; });
     it.each(withHistory)('%s replays identically at every event', (path) => {
         const data = runtime(path);
         const events = data.extensions.timeline!.events;
-        const writer = createHistoryWriter(undefined);
+        const writer = createHistoryWriter(undefined, undefined, data);
         const converted = roundTrip(events.map((event) => eventToFile(event, writer))).map((event) => eventFromFile(event)) as TimelineEvent[];
-        const before = replay(events), after = replay(converted);
-        before.forEach((state, index) => expect(observable(createBoardStateSnapshot(after[index])), `event ${index}`).toEqual(observable(createBoardStateSnapshot(state))));
-        expect(converted.slice(1).filter((event) => event.snapshot?.board)).toEqual([]);
+        const convertedData = { ...data, extensions: { ...data.extensions, timeline: { ...data.extensions.timeline!, events: converted } } };
+        events.forEach((_, index) => expect(observable(reconstructBoardStateFromTimeline(convertedData, index), true), `event ${index}`).toEqual(observable(reconstructBoardStateFromTimeline(data, index), true)));
+        expect(converted.slice(1).every((event) => !event.snapshot?.board || event.checkpoint)).toBe(true);
     });
 
     it.each(withHistory)('%s: applying a diff reproduces the target', (path) => {

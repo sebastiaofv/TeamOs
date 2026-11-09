@@ -1,3 +1,4 @@
+import { validateHistoryEnvelope as validateEnvelope, rememberHistoryAppend } from './historyEnvelope';
 import type { BoardData, TimelineExtension } from '@/domain/types';
 import type { BoardFileHandle, ProjectDirectoryHandle } from '@/infrastructure/browser/types';
 import { parseAttachmentReference } from '@/domain/attachmentReferences';
@@ -9,6 +10,9 @@ import { controlRecords } from '@/domain/projectControl';
 import { formatErrorMessage, isRecord } from '@/domain/util';
 import { attachmentsFromHashes, attachmentsToHashes, fromProjectFile, isLegacyProjectFile, isProjectFileV1, toProjectFile, type ProjectStorageMetadata } from '@/domain/projectFormat';
 import { archivesFromRecordHistory, archivesToRecordHistory, convertLegacyProject, createHistoryWriter, eventFromFile, eventToFile, isHistoryFileV1, isLegacyHistoryFile, serializeHistoryFile, type Archives } from '@/domain/projectHistoryFormat';
+import { withProjectIdentityLock } from './projectLock';
+import { controlReferencesThrough, retainControlContext } from '@/domain/controlHistory';
+import { ensureBoardTimelineBaseline } from '@/domain/timeline';
 
 type RawEvent = Record<string, unknown> & { id: string };
 type HistoryStage = { kind: 'stage'; id: string; projectHash: string; events: RawEvent[]; archives: Archives };
@@ -46,7 +50,7 @@ export function getDirectoryProject(handle: BoardFileHandle | null | undefined) 
     return handle ? projects.get(handle) : undefined;
 }
 
-/** Structural validation opens handles only; history and binary contents remain unread. */
+/** Validate current state and the small history envelope; events and binaries remain lazy. */
 export async function openProjectDirectory(directory: ProjectDirectoryHandle): Promise<BoardFileHandle> {
     try {
         const required = async <T>(name: string, operation: () => Promise<T>) => {
@@ -58,7 +62,17 @@ export async function openProjectDirectory(directory: ProjectDirectoryHandle): P
         let projectText = await (await handle.getFile()).text();
         let raw: unknown = JSON.parse(projectText);
         if (isLegacyProjectFile(raw)) {
-            projectText = await convertLegacyDirectory(directory, handle, history, projectText, raw);
+            const projectId = (raw as BoardData).extensions?.project?.id;
+            if (!projectId) throw new Error('project.json has no valid project identity.');
+            projectText = await withProjectIdentityLock(projectId, async () => {
+                // Another opener may have converted and saved while this session waited.
+                const latest = await readText(handle);
+                const current: unknown = JSON.parse(latest);
+                if (isProjectFileV1(current)) return latest;
+                if (!isLegacyProjectFile(current)) throw new Error('Unsupported project.json format.');
+                if ((current as BoardData).extensions?.project?.id !== projectId) throw new Error('Project identity changed during conversion. Reopen the folder.');
+                return convertLegacyDirectory(directory, handle, history, latest, current);
+            });
             raw = JSON.parse(projectText);
         }
         if (!isProjectFileV1(raw)) throw new Error('Unsupported project.json format.');
@@ -68,7 +82,20 @@ export async function openProjectDirectory(directory: ProjectDirectoryHandle): P
         if (!metadata || typeof metadata.baselineEventId !== 'string') throw new Error('project.json has invalid storage metadata.');
         const projectId = data.extensions.project?.id;
         if (!projectId) throw new Error('project.json has no valid project identity.');
-        projects.set(handle, { directory, history, attachments, projectId, ...(metadata.legacyFileName ? { legacyFileName: metadata.legacyFileName } : {}), projectHash: hashTextContent(projectText), baselineEventId: metadata.baselineEventId, historyTransactionId: metadata.historyTransactionId, checkpointBytes: metadata.checkpointBytes || 0, patchBytes: metadata.patchBytes || 0, commitKnown: false, loaded: false, sessionArchiveIds: new Set(), sessionEventIds: new Set() });
+        const storage: DirectoryProject = { directory, history, attachments, projectId, ...(metadata.legacyFileName ? { legacyFileName: metadata.legacyFileName } : {}), projectHash: hashTextContent(projectText), baselineEventId: metadata.baselineEventId, historyTransactionId: metadata.historyTransactionId, checkpointBytes: metadata.checkpointBytes || 0, patchBytes: metadata.patchBytes || 0, commitKnown: false, loaded: false, sessionArchiveIds: new Set(), sessionEventIds: new Set() };
+        const repairEmptyBaseline = await validateHistoryEnvelope(history, projectId, metadata.baselineEventId, false, true);
+        if (repairEmptyBaseline) await withProjectIdentityLock(projectId, async () => {
+            // The first v1 writer could create an empty journal header before
+            // seeding its baseline in a transaction. Verify recovery before repair.
+            const original = await readText(history);
+            await readHistory(handle, storage);
+            if (await readText(handle) !== projectText || await readText(history) !== original) throw new Error('Project files changed during history header repair. Reopen the folder.');
+            const corrected = JSON.parse(original) as Record<string, unknown>;
+            corrected.baselineEventId = metadata.baselineEventId;
+            await writeText(history, JSON.stringify(corrected));
+            await validateHistoryEnvelope(history, projectId, metadata.baselineEventId);
+        });
+        projects.set(handle, storage);
         return handle;
     } catch (error) {
         throw new Error(`${directory.name}: invalid project structure (project.json file, history.json file, attachments/ directory): ${formatErrorMessage(error)}`);
@@ -165,17 +192,28 @@ async function backupDirectory(directory: ProjectDirectoryHandle, create: boolea
 }
 const readText = async (handle: BoardFileHandle) => (await handle.getFile()).text();
 
+async function validateHistoryEnvelope(handle: BoardFileHandle, projectId: string, baselineEventId: string, cached = false, legacyEmpty = false): Promise<boolean> {
+    try { return await validateEnvelope(handle, projectId, baselineEventId, cached, legacyEmpty); }
+    catch (error) { throw new Error(`history.json: ${formatErrorMessage(error)}`); }
+}
+
 /** The single conversion of a project folder. project.json is written last, so a
  * legacy project.json always means the conversion can restart from the backup. */
 async function convertLegacyDirectory(directory: ProjectDirectoryHandle, handle: BoardFileHandle, history: BoardFileHandle, projectText: string, rawProject: unknown): Promise<string> {
     validateBoardData(rawProject);
-    let historyText = await readText(history);
+    const originalHistoryText = await readText(history);
+    let historyText = originalHistoryText;
     let rawHistory: unknown;
     try { rawHistory = JSON.parse(historyText); } catch (error) { throw new Error(`history.json: ${formatErrorMessage(error)}`); }
     if (isHistoryFileV1(rawHistory)) {
         // An earlier conversion stopped between the two writes.
         const backup = await backupDirectory(directory, false);
         if (!backup) throw new Error('history.json: already converted but no backup exists; the folder is inconsistent.');
+        const backupProject = await readText(await backup.getFileHandle('project.json'));
+        if (backupProject !== projectText) throw new Error('project.json changed since conversion began; the backup was preserved.');
+        validateBoardData(JSON.parse(backupProject));
+        const projectId = (rawProject as BoardData).extensions.project?.id;
+        if (rawHistory.projectId !== projectId) throw new Error('History belongs to a different project.');
         historyText = await readText(await backup.getFileHandle('history.json'));
         rawHistory = JSON.parse(historyText);
     }
@@ -195,13 +233,26 @@ async function convertLegacyDirectory(directory: ProjectDirectoryHandle, handle:
     const events = merged.events.map((event) => normalizeTimelineEvent(event));
     if (events.some((event) => !event)) throw new Error('history.json: invalid event.');
     const converted = convertLegacyProject({ project: rawProject as BoardData, events: events as TimelineExtension['events'], archives: merged.archives, projectHash: hashTextContent(projectText) });
+    // External editors do not participate in Web Locks. Check both inputs at each
+    // write boundary, including after replacing history but before marking completion.
+    const checkCurrent = async (expectedHistory: string) => {
+        if (await readText(handle) !== projectText || await readText(history) !== expectedHistory) throw new Error('Project files changed during conversion. Reopen the folder; the backup was preserved.');
+    };
+    await checkCurrent(originalHistoryText);
     const backup = (await backupDirectory(directory, true))!;
     for (const [name, text] of [['project.json', projectText], ['history.json', historyText]] as const) {
         const target = await backup.getFileHandle(name, { create: true });
-        await writeText(target, text);
+        const existing = await readText(target);
+        if (existing && existing !== text) throw new Error(`backup/${name}: differs from the conversion source; the backup was preserved.`);
+        if (!existing) {
+            await checkCurrent(originalHistoryText);
+            await writeText(target, text);
+        }
         if (await readText(target) !== text) throw new Error(`backup/${name}: verification failed.`);
     }
+    await checkCurrent(originalHistoryText);
     await writeText(history, converted.historyText);
+    await checkCurrent(converted.historyText);
     await writeText(handle, converted.projectText);
     if (await readText(handle) !== converted.projectText || await readText(history) !== converted.historyText) throw new Error('Project conversion could not be verified.');
     return converted.projectText;
@@ -220,6 +271,7 @@ async function appendHistory(storage: DirectoryProject, entry: Record<string, un
     if (!stream.seek || !stream.truncate) { await stream.close(); throw new Error('This browser cannot append project history.'); }
     await stream.seek(offset); await stream.write(suffix);
     await stream.truncate(offset + new Blob([suffix]).size); await stream.close();
+    await rememberHistoryAppend(storage.history);
 }
 async function finishHistoryCommit(storage: DirectoryProject): Promise<void> {
     if (!storage.historyTransactionId || storage.commitKnown) return;
@@ -242,7 +294,7 @@ export async function loadDirectoryHistory(handle: BoardFileHandle): Promise<Tim
     for (const event of timeline.events) storage.sessionEventIds.add(event.id);
     for (const [key, archive] of Object.entries(storage.archives || {})) for (const entry of archive.history) storage.sessionArchiveIds.add(`${key}:${entry.id}`);
     // The caller marks history loaded only after validating the combined board.
-    return cloneSerializable(timeline);
+    return rememberNormalizedTimeline(cloneSerializable(timeline));
 }
 export function attachDirectoryHistory(handle: BoardFileHandle, data: BoardData): BoardData {
     const storage = projects.get(handle);
@@ -326,12 +378,16 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
     // Persisted event payloads already contain canonical attachment references.
     // Only traverse current state and new events, regardless of history size.
     const { timeline: inputTimeline, ...extensions } = input.extensions;
-    const data = await externalize({ ...input, extensions }, storage) as BoardData;
-    const incomingArchives = detachHistoryArchives(data);
+    const current = { ...input, extensions: { ...extensions,
+        ...(extensions.projectControl ? { projectControl: { ...extensions.projectControl, records: extensions.projectControl.records.map((record) => ({ ...record })) } } : {}),
+        ...(extensions.projectTransfers ? { projectTransfers: { ...extensions.projectTransfers, operations: extensions.projectTransfers.operations.map((operation) => ({ ...operation })) } } : {})
+    } };
+    const incomingArchives = detachHistoryArchives(current);
+    const data = await externalize(current, storage) as BoardData;
     const deltaArchives: Archives = {};
     for (const [key, entry] of Object.entries(incomingArchives)) {
         const history = entry.history.filter((item) => !storage.sessionArchiveIds.has(`${key}:${item.id}`));
-        if (history.length) deltaArchives[key] = { history };
+        if (history.length) deltaArchives[key] = await externalize({ history }, storage) as Archives[string];
     }
     let local: TimelineExtension | undefined;
     if (inputTimeline) {
@@ -357,6 +413,7 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
         if (expectedProjectHash && hashTextContent(await (await handle.getFile()).text()) !== expectedProjectHash) throw new Error(`${storage.directory.name}/project.json changed during save. Retry to reconcile changes.`);
     };
     await checkProject();
+    if (changed || storage.historyTransactionId) await validateHistoryEnvelope(storage.history, storage.projectId, storage.baselineEventId, true);
     await finishHistoryCommit(storage);
     if (changed) await appendHistory(storage, { kind: 'stage', id: transactionId!, projectHash: hashTextContent(text), events: eventsOnDisk, recordHistory: attachmentsToHashes(archivesToRecordHistory(deltaArchives)) });
     await checkProject();
@@ -374,7 +431,7 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
         storage.timeline = mergeDirectoryTimeline(storage.timeline || emptyTimeline(), local, true);
         storage.archives = mergeArchives(storage.archives || {}, incomingArchives);
     }
-    attachHistoryArchives(data, storage.loaded ? storage.archives : incomingArchives);
+    attachHistoryArchives(data, storage.loaded ? storage.archives : incomingArchives, (storage.loaded ? storage.timeline : local)?.events);
     if (storage.loaded && storage.timeline) data.extensions.timeline = rememberNormalizedTimeline({ ...storage.timeline, events: storage.timeline.events.slice() });
     else if (local) data.extensions.timeline = local;
     return { text, data };
@@ -391,6 +448,8 @@ async function createProjectDirectoryUnlocked(parent: ProjectDirectoryHandle, na
     const history = await directory.getFileHandle('history.json', { create: true });
     const attachments = await directory.getDirectoryHandle('attachments', { create: true });
     const data = serializeBoardDataFromObject(input);
+    ensureBoardTimelineBaseline(data);
+    retainControlContext(data, input, input.extensions.timeline?.events);
     const projectId = data.extensions.project!.id;
     const storage: DirectoryProject = { directory, history, attachments, projectId, baselineEventId: '', checkpointBytes: 0, patchBytes: 0, commitKnown: true, loaded: true, timeline: emptyTimeline(), sessionArchiveIds: new Set(), sessionEventIds: new Set() };
     if (data.extensions.projectStorage?.legacyFileName) storage.legacyFileName = data.extensions.projectStorage.legacyFileName;
@@ -403,7 +462,7 @@ async function createProjectDirectoryUnlocked(parent: ProjectDirectoryHandle, na
     for (const event of timeline.events) storage.sessionEventIds.add(event.id);
     for (const [key, archive] of Object.entries(archives)) for (const entry of archive.history) storage.sessionArchiveIds.add(`${key}:${entry.id}`);
     delete separated.extensions.timeline;
-    const writer = createHistoryWriter(undefined);
+    const writer = createHistoryWriter(undefined, undefined, separated);
     const historyEvents = timeline.events.map((event) => eventToFile(event, writer));
     storage.checkpointBytes = writer.checkpointBytes; storage.patchBytes = writer.patchBytes;
     separated.extensions.projectStorage = { version: 1, baselineEventId: timeline.baselineEventId, ...(storage.legacyFileName ? { legacyFileName: storage.legacyFileName } : {}), checkpointBytes: writer.checkpointBytes, patchBytes: writer.patchBytes };
@@ -424,8 +483,11 @@ function mergeArchives(persisted: Archives, incoming: Archives): Archives {
 }
 function detachHistoryArchives(data: BoardData): Archives {
     const archives: Archives = {};
+    for (const [id, history] of Object.entries(data.extensions.controlRecordHistory || {})) archives[`control:${id}`] = { history };
+    delete data.extensions.controlRecordHistory;
     for (const record of controlRecords(data)) {
-        archives[`control:${record.id}`] = { history: record.history };
+        const key = `control:${record.id}`;
+        archives[key] = { history: [...new Map([...(archives[key]?.history || []), ...record.history].map((entry) => [entry.id, entry])).values()] };
         record.history = [];
     }
     for (const operation of data.extensions.projectTransfers?.operations || []) {
@@ -434,9 +496,14 @@ function detachHistoryArchives(data: BoardData): Archives {
     }
     return archives;
 }
-export function attachHistoryArchives(data: BoardData, archives: Archives = {}): void {
+export function attachHistoryArchives(data: BoardData, archives: Archives = {}, events = data.extensions.timeline?.events): void {
+    const histories = { ...data.extensions.controlRecordHistory };
+    for (const [key, archive] of Object.entries(archives)) if (key.startsWith('control:')) histories[key.slice(8)] = archive.history as NonNullable<BoardData['extensions']['controlRecordHistory']>[string];
+    if (Object.keys(histories).length) data.extensions.controlRecordHistory = histories;
+    const visible = events ? controlReferencesThrough(events, events.length - 1) : undefined;
     for (const record of controlRecords(data)) {
-        const history = archives[`control:${record.id}`]?.history;
+        const membership = visible?.get(record.id)?.history || (!events && record.history.length ? new Set(record.history.map((entry) => entry.id)) : undefined);
+        const history = archives[`control:${record.id}`]?.history.filter((entry) => !membership || membership.has(entry.id));
         if (history) record.history = [...new Map([...history, ...record.history].map((entry) => [entry.id, entry])).values()] as typeof record.history;
     }
     for (const operation of data.extensions.projectTransfers?.operations || []) {

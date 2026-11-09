@@ -1,3 +1,4 @@
+import { withProjectIdentityLock } from './projectLock';
 import { getDirectoryProject, loadDirectoryHistory, mergeDirectoryTimeline, attachHistoryArchives } from './projectDirectory';
 import { parseConversations } from '@/domain/comments';
 import { inheritLegacyTaskIdentities } from '@/domain/taskIdentity';
@@ -247,8 +248,7 @@ function publishData(boardId: string, data: BoardData): void {
 
 export async function withProjectLock<T>(board: BoardRecord, operation: () => Promise<T>): Promise<T> {
     const id = board.data.extensions.project?.id || board.id;
-    if (typeof navigator !== 'undefined' && navigator.locks) return navigator.locks.request(`teamos:project:${id}`, operation);
-    return operation();
+    return withProjectIdentityLock(id, operation);
 }
 
 let notifications: BroadcastChannel | undefined;

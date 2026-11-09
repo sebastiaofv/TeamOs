@@ -36,7 +36,7 @@ describe('project directory persistence', () => {
         const handle = await openProjectDirectory(directory);
         const board = await BoardRepository.createRecordFromHandle(handle);
         expect(board.data.extensions.timeline).toBeUndefined();
-        expect(history.reads).toBe(0); expect(binary.reads).toBe(0);
+        expect(history.fullReads).toBe(0); expect(binary.reads).toBe(0);
         const originalPrefix = history.text().slice(0, history.text().lastIndexOf(']'));
         appendTimelineEvent(board.data, { id: 'large-append', kind: 'board.settings.updated', entityType: 'board', entityId: 'board', summary: 'Append without loading history', changes: { title: { before: board.title, after: 'Updated' } } });
         board.data.board.settings.title = 'Updated';
@@ -68,12 +68,10 @@ describe('project directory persistence', () => {
         expect((await BoardRepository.createRecordFromHandle(result.handles[0])).title).toBe(directory.name);
     });
 
-    it('reports malformed project data and defers malformed history errors', async () => {
+    it('rejects malformed project and history envelopes before importing', async () => {
         const { directory, project, history } = await fixture();
         history.setText('invalid JSON');
-        const handle = await openProjectDirectory(directory);
-        expect(history.reads).toBe(0);
-        await expect(loadDirectoryHistory(handle)).rejects.toThrow('Folder project/history.json');
+        await expect(openProjectDirectory(directory)).rejects.toThrow('history.json');
         project.setText('{}');
         await expect(openProjectDirectory(directory)).rejects.toThrow('project.json');
     });
@@ -99,7 +97,7 @@ describe('project directory persistence', () => {
         const writes = history.writes;
         board.data.board.settings.title = 'State only';
         await writeJsonToFileHandle(handle, board.data);
-        expect(history.reads).toBe(0); expect(history.writes).toBe(writes);
+        expect(history.fullReads).toBe(0); expect(history.writes).toBe(writes);
     });
 
     it('extracts binary contents once and keeps historical attachments after removal', async () => {
@@ -177,7 +175,7 @@ describe('project directory persistence', () => {
         const board = await BoardRepository.createRecordFromHandle(handle);
         useAppStore.setState({ portfolioBoards: [board] }); syncProjectSaveStates();
         await refreshProjectFileBaseline(board);
-        expect(history.reads).toBe(0);
+        expect(history.fullReads).toBe(0);
         const updated = cloneSerializable(board.data);
         updated.board.settings.title = 'Queued save';
         appendTimelineEvent(updated, { id: 'queued', kind: 'board.settings.updated', entityType: 'board', entityId: 'board', summary: 'Queued', changes: { title: { before: board.title, after: 'Queued save' } } });
@@ -282,7 +280,7 @@ describe('loaded-history performance', () => {
     it('allows retry after a shared history load fails', async () => {
         const { directory, history } = await fixture();
         const original = history.text();
-        history.setText('invalid JSON');
+        history.setText(original.replace('"events":[', '"events":[invalid'));
         const handle = await openProjectDirectory(directory);
         const record = await BoardRepository.createRecordFromHandle(handle);
         useAppStore.setState({ portfolioBoards: [record] }); syncProjectSaveStates();

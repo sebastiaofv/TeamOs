@@ -61,6 +61,7 @@ export function normalizeBoardExtensionsValue(
     if (nextExtensions.permanentRelations !== undefined) nextExtensions.permanentRelations = parsePermanentRelations(nextExtensions.permanentRelations);
     if (nextExtensions.projectTransfers !== undefined) nextExtensions.projectTransfers = parseProjectTransfers(nextExtensions.projectTransfers);
     delete nextExtensions.conversationRefs;
+    if (!includeTimeline) { delete nextExtensions.controlComments; delete nextExtensions.controlRecordHistory; }
     if (!includeTimeline) delete nextExtensions.conversations;
     else if (nextExtensions.conversations !== undefined || getTimeline()?.events.some((event) => event.kind === 'task.comment.published')) {
         const conversations = parseConversations(nextExtensions.conversations, nextExtensions.projectStorage ? null : getTimeline()?.events);
@@ -183,7 +184,7 @@ export function serializeBoardDataFromObject(boardData: unknown, options: { reus
         const normalizedTasks = Array.isArray(board.tasks)
             ? board.tasks.map(task => normalizeTask(migratedWorkitemStatus(input, task), {
                 fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
-                includeStatusChangedAt: false,
+                includeStatusChangedAt: true,
                 workflow: getWorkflow(input, task),
                 roadmap
             }))

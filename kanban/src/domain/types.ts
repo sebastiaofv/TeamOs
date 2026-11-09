@@ -118,6 +118,8 @@ export type TimelineEventMeta = {
     taskIds?: unknown[];
     fromEventId?: string;
     fromTimestamp?: string;
+    controlRefs?: import('./controlHistory').ControlReferences;
+    controlRefsReset?: import('./controlHistory').ControlReferences;
 };
 // A board snapshot (board.* events) or a task snapshot (task.* events).
 export type TimelineSnapshot = Partial<BoardData> & Partial<Task>;
@@ -130,6 +132,8 @@ export type TimelineEvent = {
     summary: string;
     changes?: TimelineChanges;
     snapshot?: TimelineSnapshot;
+    /** A runtime project checkpoint, independent of the event's own task/changes. */
+    checkpoint?: BoardData;
     /** Board-level change persisted without a full snapshot (history.json v1). */
     patch?: import('./projectPatch').ProjectPatchOp[];
     meta?: TimelineEventMeta;
@@ -176,6 +180,8 @@ export type ProjectData = {
     tags: string[];
 };
 export type BoardExtensions = {
+    controlComments?: { recordId: string; comment: import('./projectControl').ControlComment }[];
+    controlRecordHistory?: Record<string, import('./projectControl').ControlHistory[]>;
     projectControl?: import('./projectControl').ProjectControl;
     [key: string]: unknown;
     conversations?: Conversations;

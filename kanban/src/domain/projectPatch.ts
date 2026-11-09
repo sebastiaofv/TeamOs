@@ -5,28 +5,14 @@ import type { BoardData, BoardExtensions, LooseBoardData, RoadmapExtension, Task
 import { getProjectData } from './projectData';
 import { ROADMAP_VERSION, DAY_PLANNER_VERSION } from './constants';
 import type { ProjectCheckpoint, ProjectFileV1 } from './projectFormat';
-import { controlFromFile, memberIndexFor, projectBlockFromFile, relationsFromFile, resolveInheritedPlanning, workflowBlockFromFile, workitemFromFile } from './projectFormat';
+import { controlFromFile, KNOWN_PROJECT_EXTENSIONS, memberIndexFor, projectBlockFromFile, relationsFromFile, resolveInheritedPlanning, workflowBlockFromFile, workitemFromFile } from './projectFormat';
 import { isRecord } from './util';
 
 type Rec = Record<string, unknown>;
-export type ProjectPatchOp =
-    | { op: 'upsert'; at: string; key: string; value: unknown }
-    | { op: 'remove'; at: string; key: string }
-    | { op: 'order'; at: string; keys: string[] }
-    | { op: 'set'; at: string; value: unknown };
+export type { ProjectPatchOp } from './projectPatchSchema';
+import { projectCollectionIdentity, PROJECT_COLLECTION_PATHS, type ProjectBlockPath, type ProjectCollectionPath, type ProjectPatchOp } from './projectPatchSchema';
 type ReplayState = { board?: { tasks?: Task[]; columns?: unknown[]; settings?: Rec }; extensions?: BoardExtensions } & Rec;
 
-const COLLECTIONS: { at: string; key: (item: Rec) => string }[] = [
-    { at: 'workitems', key: (item) => String(item.id) },
-    { at: 'projectControl.records', key: (item) => String(item.id) },
-    { at: 'roadmap.milestones', key: (item) => String(item.id) },
-    { at: 'roadmap.phases', key: (item) => String(item.id) },
-    { at: 'roadmap.sprints', key: (item) => String(item.id) },
-    { at: 'roadmap.sprintResults.credits', key: (item) => String(item.taskKey) },
-    { at: 'roadmap.sprintResults.closures', key: (item) => String(item.sprintId) },
-    { at: 'roadmap.sprintParticipation', key: (item) => `${String(item.sprintId)}:${String((item.task as Rec).id)}` }
-];
-const keyFor = (at: string) => COLLECTIONS.find((entry) => entry.at === at)!.key;
 // Project and workflow come first: replaying a workitem needs the members of that moment.
 const BLOCKS_BEFORE = ['project', 'workflow'] as const;
 const BLOCKS_AFTER = ['relations', 'dayPlanner', 'views', 'extensions'] as const;
@@ -38,9 +24,10 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 
 export function diffProjectState(before: ProjectCheckpoint, after: ProjectCheckpoint): ProjectPatchOp[] {
     const ops: ProjectPatchOp[] = [];
-    const block = (at: string) => { if (!same(read(before, at), read(after, at))) ops.push({ op: 'set', at, value: read(after, at) ?? null }); };
+    const block = (at: ProjectBlockPath) => { if (!same(read(before, at), read(after, at))) ops.push({ op: 'set', at, value: read(after, at) ?? null }); };
     BLOCKS_BEFORE.forEach(block);
-    for (const { at, key } of COLLECTIONS) {
+    for (const at of PROJECT_COLLECTION_PATHS) {
+        const key = (row: Rec) => projectCollectionIdentity(at, row);
         const previous = (read(before, at) || []) as Rec[], next = (read(after, at) || []) as Rec[];
         const previousByKey = new Map(previous.map((item) => [key(item), item]));
         const nextKeys = next.map(key), nextSet = new Set(nextKeys);
@@ -90,17 +77,20 @@ function writeCollection(state: ReplayState, at: string, items: Rec[]): void {
     extensions.roadmap = { ...current, [at.split('.')[1]]: items };
 }
 
-function toRuntime(state: ReplayState, at: string, value: Rec): Rec {
-    const members = memberIndexFor(getProjectData(state as LooseBoardData));
-    if (at === 'workitems') return workitemFromFile(value, members) as unknown as Rec;
-    if (at === 'projectControl.records') return controlFromFile(value, members) as unknown as Rec;
-    return value;
-}
-
 function applyBlock(state: ReplayState, at: string, value: unknown): void {
     const extensions = state.extensions as BoardExtensions;
     if (at === 'project') {
+        const previous = getProjectData(state as LooseBoardData);
         const { project, title } = projectBlockFromFile(value as Rec);
+        const names = new Map(project.members.map((member) => [member.id, member.name]));
+        const oldIds = new Map(previous.members.map((member) => [member.name, member.id]));
+        const rename = (name: string) => names.get(oldIds.get(name) || '') || name;
+        state.board = { ...state.board, tasks: state.board?.tasks?.map((task) => ({
+            ...task,
+            assignees: task.assignees.map((name, index) => names.get(task.assigneeIds?.[index] || '') || rename(name)),
+            responsible: names.get(task.responsibleId || '') || rename(task.responsible)
+        })) };
+        if (extensions.projectControl) extensions.projectControl = { ...extensions.projectControl, records: extensions.projectControl.records.map((record) => ({ ...record, owner: rename(record.owner), assignees: record.assignees.map(rename) })) };
         extensions.project = project;
         state.board = { ...state.board, settings: { ...state.board?.settings, title } };
     } else if (at === 'workflow') {
@@ -121,6 +111,7 @@ function applyBlock(state: ReplayState, at: string, value: unknown): void {
         if (hidden) extensions.boardView = { version: 1, hiddenStateIds: hidden.technical || [], ...(hidden.functional ? { functionalHiddenStateIds: hidden.functional } : {}) };
         else delete extensions.boardView;
     } else if (at === 'extensions') {
+        for (const key of Object.keys(extensions)) if (!KNOWN_PROJECT_EXTENSIONS.has(key)) delete extensions[key];
         Object.assign(extensions, value || {});
     }
 }
@@ -128,20 +119,32 @@ function applyBlock(state: ReplayState, at: string, value: unknown): void {
 /** Replay never mutates its input: earlier states stay valid observations. */
 export function applyProjectPatch<T extends object>(input: T, ops: readonly ProjectPatchOp[]): T {
     const state = { ...input, board: { ...(input as ReplayState).board }, extensions: { ...(input as ReplayState).extensions } } as unknown as ReplayState;
+    // An identity map per changed collection makes a bulk patch linear in its
+    // input rows + operations. Flush before a block that can depend on those rows.
+    const pending = new Map<ProjectCollectionPath, Map<string, Rec>>();
+    let members: ReturnType<typeof memberIndexFor> | undefined;
+    const flush = () => {
+        for (const [at, rows] of pending) writeCollection(state, at, [...rows.values()]);
+        pending.clear();
+    };
     for (const op of ops) {
-        if (op.op === 'set') { applyBlock(state, op.at, op.value); continue; }
-        const key = keyFor(op.at);
-        let items = collection(state, op.at);
-        // Runtime rows and v1 rows share their identity field, so one key function serves both.
-        if (op.op === 'remove') items = items.filter((item) => key(item) !== op.key);
-        else if (op.op === 'order') { const byKey = new Map(items.map((item) => [key(item), item])); items = op.keys.map((id) => byKey.get(id)!).filter(Boolean); }
-        else {
-            const value = toRuntime(state, op.at, op.value as Rec);
-            const index = items.findIndex((item) => key(item) === op.key);
-            items = index < 0 ? [...items, value] : items.map((item, position) => (position === index ? value : item));
+        if (op.op === 'set') { flush(); applyBlock(state, op.at, op.value); if (op.at === 'project') members = undefined; continue; }
+        let rows = pending.get(op.at);
+        if (!rows) { rows = new Map(collection(state, op.at).map((row) => [projectCollectionIdentity(op.at, row), row])); pending.set(op.at, rows); }
+        if (op.op === 'remove') rows.delete(op.key);
+        else if (op.op === 'order') {
+            if (op.keys.length !== rows.size || op.keys.some((id) => !rows.has(id))) throw new Error('Invalid project patch collection order.');
+            pending.set(op.at, new Map(op.keys.map((id) => [id, rows!.get(id)!])));
+        } else {
+            let value = op.value;
+            if (op.at === 'workitems' || op.at === 'projectControl.records') {
+                members ||= memberIndexFor(getProjectData(state as LooseBoardData));
+                value = op.at === 'workitems' ? workitemFromFile(value, members) as unknown as Rec : controlFromFile(value, members) as unknown as Rec;
+            }
+            rows.set(op.key, value);
         }
-        writeCollection(state, op.at, items);
     }
+    flush();
     if (state.board?.tasks && ops.some((op) => op.at === 'workitems')) state.board.tasks = resolveInheritedPlanning(state.board.tasks);
     return state as unknown as T;
 }

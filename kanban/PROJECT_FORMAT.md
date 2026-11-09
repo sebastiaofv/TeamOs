@@ -3,7 +3,7 @@
 ```text
 <project>/
 ├── project.json          # current state, rewritten on every save, always read on open
-├── history.json          # append-only, read on demand
+├── history.json          # append-only; envelope checked on open, events loaded on demand
 ├── attachments/<sha256>  # binaries named by content hash
 └── backup/schema-6/      # only exists after converting an older folder
 ```
@@ -72,11 +72,15 @@ An event has `id`, `at`, `kind`, `entityType`, `entityId`, `summary`, optional `
 | `patch` | Forward-only operations for a board-level change |
 | `checkpoint` | The whole project, without `comments` and `system` |
 
-`patch` operations are `upsert` / `remove` / `order` on identified collections and `set` on blocks.
+`patch` operations are `upsert` / `remove` / `order` on identified collections and `set` on blocks. Paths, operation fields, identities and entity payloads are validated at the history boundary. Bulk replay indexes each changed collection once, preserving explicit ordering and earlier states.
 
-Checkpoints are written at the baseline, `board.restored`, `board.reconciled`, and whenever the accumulated events since the last one reach its size (at least 64 KiB). A checkpoint taken before projects had members carries `project.derived: true`, so replay keeps deriving members as older files always did.
+Checkpoints are written at the baseline, `board.restored`, `board.reconciled`, and whenever the accumulated UTF-8 event bytes, including the incoming event, reach the previous checkpoint size. A checkpoint taken before projects had members carries `project.derived: true`, so replay keeps deriving members as older files always did.
 
-Historical views take comments, record history, sequences and transfers from the current project, limited to what existed at that moment. Sequences in `system` are the only source of numbers; history is never scanned for them.
+Volume checkpoints cover ordinary workitem events as well as board and Sprint events. A checkpoint can accompany a task/changes payload so lifecycle and history evidence remains available. Random-access reconstruction starts at the nearest complete checkpoint; partial legacy column snapshots retain their original replay behavior.
+
+Project Control comment bodies remain once in `comments`, including comments whose record was removed by a restore. A retained control comment outside the current record's membership has `subject.current: false`. `meta.controlRefs` records newly published comment/history IDs; baseline, restore and reconciliation use `meta.controlRefsReset` to preserve the proven visible membership. Historical consultation uses canonical sequence positions, including equal or out-of-order timestamps. Canonical record histories remain in `recordHistory.control`, including records outside the current roster. The runtime catalogs are omitted from persisted checkpoints.
+
+Historical views take canonical comments, record history, sequences and transfers from their catalogs, limited to what existed at the selected event position. Sequences in `system` are the only source of numbers; history is never scanned for them.
 
 ## Detection
 
@@ -88,3 +92,10 @@ Historical views take comments, record history, sequences and transfers from the
 | Anything else | | Reject without changing files |
 
 The conversion copies both files to `backup/schema-6/`, verifies the copies, writes `history.json`, and writes `project.json` last. Attachments are not touched. It folds accepted journal transactions into `events`, because their `projectHash` no longer applies to the new text.
+
+
+Opening scans the full root structure in bounded 64 KiB chunks to reject ambiguous or duplicate envelope fields wherever they occur. It does not allocate/normalize events, record histories, or attachments; those contents load on consultation. Normal writes reuse the verified structure while file size/mtime match, reread canonical identity fields, and retain that verification across app-controlled appends. This structural scan adds open-time work proportional to history bytes, avoiding full event deserialization and the unsafe prefix-only shortcut.
+
+Conversion uses the same project-identity lock as saves and watchers, rereads inputs under the lock, checks both live files before replacement, and never overwrites a verified backup. It recovers canonical control bodies from legacy snapshots and preserves proven permanent identities despite historical project-title changes. New folders establish their baseline before writing either file. The first v1 writer could leave a blank history header with its actual baseline in a transaction; opening such a folder verifies the full recovered journal and repairs that header once under the project lock. A mismatched baseline is rejected without writes.
+
+Reproducible persistence timings and memory observations are recorded in [PROJECT_FORMAT_BENCHMARKS.md](PROJECT_FORMAT_BENCHMARKS.md); run `npm run bench:project-files` to repeat them.

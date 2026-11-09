@@ -12,17 +12,26 @@ import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, DAY_PLANNER_VERSION, ROADMAP_VERSIO
 import { parseAttachmentReference } from './attachmentReferences';
 import { getWorkflow } from './workflow';
 import { WORKITEM_FIELDS, workitemFieldNames, workitemType } from './workitems';
-import { projectNameKey } from './projectData';
-import { isRecord } from './util';
+import { getProjectData, projectNameKey } from './projectData';
+import { isRecord, normalizeTimestamp } from './util';
+import { parseRoadmapIsoDate } from './roadmap';
+import { assertControlComment } from './controlHistory';
 
 export const PROJECT_FILE_SCHEMA_VERSION = 1;
 type Rec = Record<string, unknown>;
 type MemberIndex = { members: ProjectMember[]; byKey: Map<string, string>; names: Map<string, string> };
 
 export type ProjectStorageMetadata = { version: 1; baselineEventId: string; historyTransactionId?: string; legacyFileName?: string; convertedFromHash?: string; checkpointBytes?: number; patchBytes?: number };
+type ProjectFileMeta = { schemaVersion: 1; appId: string; revision: number; createdAt: string; updatedAt: string };
+type ProjectFileProject = Omit<ProjectData, 'version'> & { title: string; derived?: true };
+type ProjectFileWorkflow = {
+    technical: Omit<Workflow, 'version'>; functional: Omit<Workflow, 'version'>; types?: Omit<WorkflowTypes, 'version'>;
+    automation: { hierarchy?: Omit<HierarchyAutomations, 'version'>; transitions?: Omit<NonNullable<BoardExtensions['workitemAutomation']>, 'version'> };
+};
+type ProjectFileRoadmap = Pick<RoadmapExtension, 'milestones' | 'phases' | 'sprints'> & { sprintResults: Pick<SprintResults, 'credits' | 'closures'>; sprintParticipation: NonNullable<BoardExtensions['sprintParticipation']>['entries'] };
 export type ProjectFileV1 = {
-    meta: Rec; project: Rec; workflow: Rec; workitems: Rec[]; relations: { edges: Rec[]; external: Record<string, Rec> };
-    roadmap: Rec; dayPlanner: { blocks: unknown[] }; projectControl: { records: Rec[] }; comments: Rec[];
+    meta: ProjectFileMeta; project: ProjectFileProject; workflow: ProjectFileWorkflow; workitems: Rec[]; relations: { edges: Rec[]; external: Record<string, Rec> };
+    roadmap: ProjectFileRoadmap; dayPlanner: { blocks: unknown[] }; projectControl: { records: Rec[] }; comments: Rec[];
     views?: Rec; system?: Rec; extensions?: Rec;
 };
 /** A project.json without comments, sequences, transfers or storage metadata. */
@@ -54,7 +63,12 @@ function memberId(index: MemberIndex, name: string): string {
     index.byKey.set(key, id); index.names.set(id, name.trim());
     return id;
 }
-const memberName = (index: MemberIndex, id: unknown) => index.names.get(String(id)) || '';
+const memberName = (index: MemberIndex, id: unknown) => {
+    if (id === null || id === undefined || id === '') return '';
+    const name = index.names.get(String(id));
+    if (!name) throw new Error(`Invalid project.json: unknown member ${String(id)}.`);
+    return name;
+};
 const emptyToNull = (value: unknown) => (value === '' || value === undefined ? null : value);
 
 export function workitemToFile(task: Task, index: MemberIndex): Rec {
@@ -90,14 +104,34 @@ export function workitemToFile(task: Task, index: MemberIndex): Rec {
         ...(task.severity ? { severity: task.severity } : {}),
         ...(task.acceptance ? { acceptance: task.acceptance } : {}),
         ...(task.sprintHistory?.length ? { sprintHistory: task.sprintHistory } : {}),
-        createdAt: task.createdAt, updatedAt: task.updatedAt
+        createdAt: task.createdAt, updatedAt: task.updatedAt,
+        ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {})
     };
 }
 
-function assertWorkitemFile(value: Rec): void {
+export function assertWorkitemFile(value: Rec): void {
     const type = String(value.type) as Task['type'] & string;
     const allowed = new Set<string>(workitemFieldNames(workitemType({ type })));
     const fail = (field: string) => { throw new Error(`Invalid project.json: workitem ${String(value.id)} has field ${field}, which does not apply to ${type}.`); };
+    const invalid = () => { throw new Error(`Invalid project.json: malformed workitem ${String(value.id)}.`); };
+    if (!['task', 'story', 'epic', 'bug'].includes(type) || !Number.isSafeInteger(value.id) || Number(value.id) < 1 || typeof value.title !== 'string' || !value.title.trim() || typeof value.description !== 'string' || typeof value.status !== 'string' || !value.status.trim()) invalid();
+    if (!Array.isArray(value.assigneeIds) || value.assigneeIds.some((id) => typeof id !== 'string' || !id) || new Set(value.assigneeIds).size !== value.assigneeIds.length || (value.responsibleId !== null && (typeof value.responsibleId !== 'string' || !value.assigneeIds.includes(value.responsibleId)))) invalid();
+    if (!normalizeTimestamp(value.createdAt) || !normalizeTimestamp(value.updatedAt) || ('statusChangedAt' in value && !normalizeTimestamp(value.statusChangedAt))) invalid();
+    if (typeof value.blocked !== 'boolean' || typeof value.archived !== 'boolean' || !Array.isArray(value.checklist) || value.checklist.some((item) => !isRecord(item) || typeof item.text !== 'string' || typeof item.done !== 'boolean') || !Array.isArray(value.attachments) || !Array.isArray(value.tags) || value.tags.some((tag) => typeof tag !== 'string')) invalid();
+    if (!['none', 'inherit', 'explicit'].includes(String(value.phaseMode)) || !['none', 'inherit', 'explicit'].includes(String(value.milestoneMode))) invalid();
+    if (value.dueDate !== null && (typeof value.dueDate !== 'string' || !parseRoadmapIsoDate(value.dueDate))) invalid();
+    if ('parentId' in value && value.parentId !== null && (!Number.isSafeInteger(value.parentId) || Number(value.parentId) < 1)) invalid();
+    for (const field of ['phaseId', 'milestoneId', 'sprintId']) if (field in value && value[field] !== null && (typeof value[field] !== 'string' || !value[field])) invalid();
+    for (const field of ['phaseId', 'milestoneId']) if (value[field === 'phaseId' ? 'phaseMode' : 'milestoneMode'] === 'explicit' && (typeof value[field] !== 'string' || !value[field])) invalid();
+    for (const field of ['permanentId', 'displayId', 'severity', 'blockerReason']) if (field in value && typeof value[field] !== 'string') invalid();
+    if ('pullRequests' in value && (!Array.isArray(value.pullRequests) || value.pullRequests.some((link) => typeof link !== 'string'))) invalid();
+    if ('storyPoints' in value && value.storyPoints !== null && (typeof value.storyPoints !== 'number' || !Number.isFinite(value.storyPoints) || value.storyPoints < 0)) invalid();
+    for (const attachment of value.attachments as unknown[]) {
+        if (!isRecord(attachment) || typeof attachment.id !== 'string' || !attachment.id || typeof attachment.name !== 'string' || typeof attachment.mime !== 'string' || !['file', 'image'].includes(String(attachment.kind)) || typeof attachment.sizeBytes !== 'number' || !Number.isFinite(attachment.sizeBytes) || attachment.sizeBytes < 0 || !normalizeTimestamp(attachment.createdAt) || (typeof attachment.dataUrl !== 'string' && (typeof attachment.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(attachment.sha256)))) invalid();
+    }
+    if (value.priority !== null && !['high', 'medium', 'low'].includes(String(value.priority))) invalid();
+    if ('effort' in value && value.effort !== null && !['XS', 'S', 'M', 'L', 'XL'].includes(String(value.effort))) invalid();
+    for (const field of WORKITEM_FIELDS) if (field in value && typeof value[field] !== 'string') invalid();
     for (const field of WORKITEM_FIELDS) if (field in value && !allowed.has(field)) fail(field);
     if (type === 'epic') for (const field of EPIC_EXCLUDED) if (field in value) fail(field);
     if ('phaseId' in value && value.phaseMode !== 'explicit') fail('phaseId');
@@ -125,7 +159,8 @@ export function workitemFromFile(value: Rec, index: MemberIndex): Task {
         assigneeIds: [...assigneeIds], responsibleId: (value.responsibleId ?? '') as string,
         tags: (value.tags || []) as string[], blocked: Boolean(value.blocked), blockerReason: (value.blockerReason || '') as string,
         checklist: (value.checklist || []) as Task['checklist'], attachments: (value.attachments || []) as Attachment[], archived: Boolean(value.archived),
-        createdAt: value.createdAt as string, updatedAt: value.updatedAt as string, dueDate: (value.dueDate ?? '') as string,
+        createdAt: value.createdAt as string, updatedAt: value.updatedAt as string,
+        ...(value.statusChangedAt ? { statusChangedAt: value.statusChangedAt as string } : {}), dueDate: (value.dueDate ?? '') as string,
         priority: (value.priority ?? null) as Task['priority'], effort: (value.effort ?? null) as Task['effort'],
         ...(value.storyPoints !== undefined ? { storyPoints: value.storyPoints as number | null } : {}),
         phaseId: (value.phaseId ?? '') as string, milestoneId: (value.milestoneId ?? '') as string, sprintId: (value.sprintId ?? '') as string,
@@ -227,7 +262,7 @@ export function relationsFromFile(relations: ProjectFileV1['relations'] | undefi
     };
 }
 
-function roadmapToFile(extensions: BoardExtensions): Rec {
+function roadmapToFile(extensions: BoardExtensions): ProjectFileRoadmap {
     const roadmap = extensions.roadmap;
     const results = extensions.sprintResults;
     const closed = new Set(results?.closures.map((closure) => closure.sprintId));
@@ -249,7 +284,7 @@ export function roadmapBlocksFromFile(roadmap: Rec): Pick<BoardExtensions, 'road
     };
 }
 
-const withoutVersion = <T extends object>(value: T): Rec => {
+const withoutVersion = <T extends object>(value: T): Omit<T, 'version'> => {
     const { version: _version, ...rest } = value as T & { version?: unknown };
     void _version;
     return rest;
@@ -274,21 +309,24 @@ export function projectBlockFromFile(block: Rec): { project: ProjectData; title:
 
 export const memberIndexFor = (project: { members?: readonly ProjectMember[] } | undefined) => memberIndex(project?.members || []);
 
-const KNOWN_EXTENSIONS = new Set(['project', 'workflow', 'functionalWorkflow', 'workflowTypes', 'hierarchyAutomations', 'workitemAutomation', 'roadmap', 'sprintResults', 'sprintParticipation', 'dayPlanner', 'projectControl', 'conversations', 'taskRelations', 'permanentRelations', 'boardView', 'taskIdentity', 'sprintCatalog', 'projectTransfers', 'projectStorage', 'timeline', 'conversationRefs']);
+export const KNOWN_PROJECT_EXTENSIONS = new Set(['controlComments', 'controlRecordHistory', 'project', 'workflow', 'functionalWorkflow', 'workflowTypes', 'hierarchyAutomations', 'workitemAutomation', 'roadmap', 'sprintResults', 'sprintParticipation', 'dayPlanner', 'projectControl', 'conversations', 'taskRelations', 'permanentRelations', 'boardView', 'taskIdentity', 'sprintCatalog', 'projectTransfers', 'projectStorage', 'timeline', 'conversationRefs']);
 
 /** Runtime → project.json. Record and transfer histories belong to history.json and are never written here. */
 export function toProjectFile(data: BoardData): ProjectFileV1 {
     const extensions = data.extensions;
-    const project = extensions.project;
+    const project = extensions.project || getProjectData(data);
     const index = memberIndexFor(project);
     const technical = getWorkflow(data);
     const workitems = data.board.tasks.map((task) => workitemToFile(task, index));
     const records = (extensions.projectControl?.records || []).map((record) => controlToFile(record, index));
+    const controlComments = new Map((extensions.controlComments || []).map((entry) => [`${entry.recordId}:${entry.comment.id}`, entry]));
+    const activeControlComments = new Set((extensions.projectControl?.records || []).flatMap((record) => record.comments.map((comment) => `${record.id}:${comment.id}`)));
+    for (const record of extensions.projectControl?.records || []) for (const comment of record.comments) controlComments.set(`${record.id}:${comment.id}`, { recordId: record.id, comment });
     const comments: Rec[] = [
         ...(extensions.conversations?.entries || []).map(({ taskId, workitemKey, workitemCreatedAt, ...comment }: WorkitemComment) => ({ ...comment, subject: { type: 'workitem', taskId, workitemKey, workitemCreatedAt } })),
-        ...(extensions.projectControl?.records || []).flatMap((record) => record.comments.map((comment) => ({ ...comment, subject: { type: 'control', recordId: record.id } })))
+        ...[...controlComments.values()].map(({ recordId, comment }) => ({ ...comment, subject: { type: 'control', recordId, ...(activeControlComments.has(`${recordId}:${comment.id}`) ? {} : { current: false }) } }))
     ];
-    const unknown = Object.fromEntries(Object.entries(extensions).filter(([key]) => !KNOWN_EXTENSIONS.has(key)));
+    const unknown = Object.fromEntries(Object.entries(extensions).filter(([key]) => !KNOWN_PROJECT_EXTENSIONS.has(key)));
     const storage = extensions.projectStorage as ProjectStorageMetadata | undefined;
     const automation = {
         ...(extensions.hierarchyAutomations ? { hierarchy: withoutVersion(extensions.hierarchyAutomations) } : {}),
@@ -297,7 +335,7 @@ export function toProjectFile(data: BoardData): ProjectFileV1 {
     const views = extensions.boardView ? { board: { hiddenStateIds: { technical: extensions.boardView.hiddenStateIds, ...(extensions.boardView.functionalHiddenStateIds ? { functional: extensions.boardView.functionalHiddenStateIds } : {}) } } } : undefined;
     return {
         meta: { schemaVersion: PROJECT_FILE_SCHEMA_VERSION, appId: BOARD_APP_ID, revision: data.meta.revision ?? 0, createdAt: data.meta.createdAt, updatedAt: data.meta.updatedAt },
-        project: { ...(project ? withoutVersion({ ...project, members: index.members }) : {}), title: data.board.settings.title },
+        project: { ...withoutVersion({ ...project, members: index.members }), title: data.board.settings.title },
         workflow: {
             technical: withoutVersion(technical),
             functional: withoutVersion((extensions.functionalWorkflow as Workflow | undefined) || technical),
@@ -341,12 +379,20 @@ export function fromProjectFile(file: ProjectFileV1 | ProjectCheckpoint): BoardD
     const workflow = workflowBlockFromFile(file.workflow);
     const comments = file.comments || [];
     const controlComments = new Map<string, ControlComment[]>();
+    const canonicalControlComments: NonNullable<BoardExtensions['controlComments']> = [];
+    const controlCommentIds = new Set<string>();
     const workitemComments: WorkitemComment[] = [];
     for (const { subject, ...comment } of comments) {
         const about = subject as Rec;
         if (about.type === 'control') {
+            assertControlComment(comment);
+            if (typeof about.recordId !== 'string' || !about.recordId || (about.current !== undefined && typeof about.current !== 'boolean')) throw new Error('Invalid Project Control comment subject.');
+            const identity = `${about.recordId}:${comment.id}`;
+            if (controlCommentIds.has(identity)) throw new Error('Duplicate Project Control comment.');
+            controlCommentIds.add(identity);
+            canonicalControlComments.push({ recordId: about.recordId, comment });
             const list = controlComments.get(about.recordId as string) || [];
-            list.push(comment as unknown as ControlComment);
+            if (about.current !== false) list.push(comment);
             controlComments.set(about.recordId as string, list);
         } else {
             const { type: _type, ...reference } = about;
@@ -364,6 +410,7 @@ export function fromProjectFile(file: ProjectFileV1 | ProjectCheckpoint): BoardD
     const storage = system?.storage as Rec | undefined;
     const extensions: BoardExtensions = {
         ...(file.extensions || {}),
+        ...(canonicalControlComments.length ? { controlComments: canonicalControlComments } : {}),
         project,
         ...workflow,
         ...roadmapBlocksFromFile(file.roadmap || {}),

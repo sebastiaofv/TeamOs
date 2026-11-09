@@ -55,7 +55,7 @@ test('a hydrated 1000-event Dashboard stays within its interaction budget and re
     await expect(page.locator('#portfolioDashboard .dashboard-history tbody tr')).toHaveCount(1001);
     expect(elapsed).toBeLessThan(2000);
     testInfo.annotations.push({ type: 'Dashboard interaction', description: `${Math.round(elapsed)} ms; 20 workitems, 1000 events` });
-    expect(await page.evaluate(() => window.__folderDisk.reads['perf/history.json'])).toBe(1);
+    expect(await page.evaluate(() => window.__folderDisk.fullReads['perf/history.json'])).toBe(1);
     // Every original observation still opens its exact historical position.
     await page.locator('#portfolioDashboard .dashboard-history tbody tr').first().getByRole('button').click();
     await expect(page.locator('#portfolioDashboard [role="status"]').first()).toContainText('2026-11-03');
@@ -77,7 +77,7 @@ test('opening details after loading 10000 events stays fast and preserves commen
     await page.getByRole('tab', { name: 'History', exact: true }).click();
     await expect(page.locator('.task-history')).toBeVisible();
     await expect(page.locator('.history-entry')).toHaveCount(0);
-    expect(await page.evaluate(() => window.__folderDisk.reads['perf/history.json'])).toBe(1);
+    expect(await page.evaluate(() => window.__folderDisk.fullReads['perf/history.json'])).toBe(1);
 });
 
 test('switching views preserves an expanded Sprint and its table state', async ({ page }) => {

@@ -15,6 +15,7 @@ import { getTaskAttachments } from './attachments';
 import { createBoardStateSnapshot, hashTextContent } from './serialize';
 import { applyProjectPatch } from './projectPatch';
 import type { ProjectControl } from './projectControl';
+import { controlReferencesThrough } from './controlHistory';
 import { getBoardExtensionsObject } from './extensions';
 import { cloneSerializable, areSerializableValuesEqual } from './serializable';
 import { nowIso } from './util';
@@ -136,6 +137,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
+    if (event.checkpoint) return cloneSerializable(event.checkpoint);
     if (event.patch) return applyProjectPatch(state, event.patch);
     if (['board.restored', 'board.reconciled', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations'].includes(event.kind) && event.snapshot) {
         return cloneSerializable(event.snapshot);
@@ -343,19 +345,20 @@ export function ensureBoardTimelineBaseline(boardData: LooseBoardData): Timeline
 
 /** Checkpoints exclude comments, record histories, sequences and transfers: those stay canonical
  * in the current project, and an observation sees what existed at its moment. */
-function applyCurrentRecordContext(snapshot: BoardData, current: LooseBoardData, at: string): void {
+function applyCurrentRecordContext(snapshot: BoardData, current: LooseBoardData, events: readonly TimelineEvent[], index: number): void {
     const currentControl = current.extensions?.projectControl as ProjectControl | undefined;
     if (currentControl?.lastNumber && !snapshot.extensions.projectControl) snapshot.extensions.projectControl = { version: 3, lastNumber: currentControl.lastNumber, records: [] };
     const control = snapshot.extensions.projectControl;
-    if (control && currentControl) {
-        control.lastNumber = Math.max(control.lastNumber, currentControl.lastNumber);
-        const until = Date.parse(at);
-        const visible = <T extends { at: string }>(entries: readonly T[]) => entries.filter((entry) => Date.parse(entry.at) <= until);
+    if (control) {
+        control.lastNumber = Math.max(control.lastNumber, currentControl?.lastNumber || 0);
+        const visible = controlReferencesThrough(events, index);
+        const comments = new Map<string, typeof control.records[number]['comments']>();
+        for (const { recordId, comment } of current.extensions?.controlComments as BoardData['extensions']['controlComments'] || []) comments.set(recordId, [...(comments.get(recordId) || []), comment]);
+        const histories = current.extensions?.controlRecordHistory as BoardData['extensions']['controlRecordHistory'];
         for (const record of control.records) {
-            const source = currentControl.records.find((item) => item.id === record.id);
-            if (!source) continue;
-            if (!record.comments.length) record.comments = cloneSerializable(visible(source.comments));
-            if (!record.history.length) record.history = cloneSerializable(visible(source.history));
+            const source = currentControl?.records.find((item) => item.id === record.id);
+            if (!record.comments.length) record.comments = cloneSerializable((comments.get(record.id) || source?.comments || []).filter((comment) => visible.get(record.id)?.comments.has(comment.id)));
+            if (!record.history.length) record.history = cloneSerializable((histories?.[record.id] || source?.history || []).filter((entry) => visible.get(record.id)?.history.has(entry.id)));
         }
     }
     const transfers = current.extensions?.projectTransfers as BoardData['extensions']['projectTransfers'];
@@ -369,10 +372,16 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     }
     const maxIndex = timeline.events.length - 1;
     const targetIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
-    let state: ReplayState | null | undefined = timeline.events[0]?.snapshot
-        ? cloneSerializable(timeline.events[0].snapshot)
+    let checkpointIndex = targetIndex;
+    const completeCheckpoint = (event: TimelineEvent) => event.checkpoint || (
+        ['board.baseline', 'board.restored', 'board.reconciled', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations', 'roadmap.updated'].includes(event.kind)
+        && Array.isArray(event.snapshot?.board?.tasks) && event.snapshot?.board?.settings && event.snapshot.extensions ? event.snapshot : undefined);
+    while (checkpointIndex > 0 && !completeCheckpoint(timeline.events[checkpointIndex])) checkpointIndex--;
+    const checkpoint = timeline.events[checkpointIndex].checkpoint || timeline.events[checkpointIndex].snapshot;
+    let state: ReplayState | null | undefined = checkpoint
+        ? cloneSerializable(checkpoint)
         : createBoardStateSnapshot(boardData);
-    for (let index = 1; index <= targetIndex; index += 1) {
+    for (let index = checkpointIndex + 1; index <= targetIndex; index += 1) {
         state = applyTimelineEventToState(state, timeline.events[index]);
     }
     const snapshot = createBoardStateSnapshot(state);
@@ -385,7 +394,7 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.projectStorage ? undefined : boardData?.extensions?.timeline);
     if (knownCatalog) snapshot.extensions.sprintCatalog = normalizeSprintCatalog(knownCatalog, snapshot.extensions.roadmap?.sprints || []);
     reserveTaskIdentities(snapshot, boardData || undefined);
-    if (boardData?.extensions?.projectStorage) applyCurrentRecordContext(snapshot, boardData as LooseBoardData, timeline.events[targetIndex].at);
+    if (boardData?.extensions?.projectStorage) applyCurrentRecordContext(snapshot, boardData as LooseBoardData, timeline.events, targetIndex);
     const conversations = boardData && commentsThrough(boardData, targetIndex);
     if (conversations) {
         snapshot.extensions.conversations = conversations;
@@ -413,6 +422,8 @@ export function appendTimelineEvent(boardData: LooseBoardData, eventInput: Timel
     if (Object.prototype.hasOwnProperty.call(eventInput, 'snapshot')) {
         rawEvent.snapshot = eventInput.snapshot;
     }
+    if (eventInput.checkpoint) rawEvent.checkpoint = eventInput.checkpoint;
+    if (eventInput.patch) rawEvent.patch = eventInput.patch;
     if (Object.prototype.hasOwnProperty.call(eventInput, 'meta')) {
         rawEvent.meta = eventInput.meta;
     }
