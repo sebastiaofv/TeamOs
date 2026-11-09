@@ -59,7 +59,7 @@ describe('relation commands', () => {
     let answer!: (confirmed: boolean) => void;
     confirm.mockReturnValueOnce(new Promise<boolean>((resolve) => { answer = resolve; }));
     const pending = actions.associatePortfolioTasks('p1', 1, 2, 'blockedBy', true);
-    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('Workitem #1 is blocked by #2.'), { confirmLabel: 'Save' });
+    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('Workitem #1 is blocked by #2.'), expect.objectContaining({ confirmLabel: 'Save', workitems: expect.any(Object) }));
     expect(getRelations(data())).toEqual([{ sourceId: 1, targetId: 2, kind: 'blocks' }]);
     expect(enqueueSave).not.toHaveBeenCalled();
     answer(true);
@@ -87,7 +87,7 @@ describe('relation commands', () => {
     expect(data()).toEqual(before);
     expect(enqueueSave).not.toHaveBeenCalled();
     await expect(actions.removePortfolioTaskRelation('p1', 1, 2)).resolves.toBe(true);
-    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('Both workitems will be preserved'), { confirmLabel: 'Remove' });
+    expect(confirm).toHaveBeenLastCalledWith(expect.stringContaining('Both workitems will be preserved'), expect.objectContaining({ confirmLabel: 'Remove', workitems: expect.any(Object) }));
     expect(getRelations(data())).toEqual([]);
     expect(data().board.tasks).toEqual(before.board.tasks);
     expect(isTaskBlocked(data(), 2)).toBe(false);

@@ -1,3 +1,4 @@
+import { getHierarchyAutomations, type HierarchyAutomations } from '@/domain/hierarchyAutomations';
 import { useRef, useState } from 'react';
 import type { Workflow, WorkflowKind, WorkitemType } from '@/domain/types';
 import type { ProjectSettingsDraft } from '@/domain/projectData';
@@ -8,7 +9,7 @@ import type { DialogPropsByName } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
 
-type Tab = 'general' | WorkflowKind;
+type Tab = 'general' | 'automations' | WorkflowKind;
 type WorkflowSection = 'states' | 'references' | 'types';
 
 function useWorkflowDraft(vm: DialogPropsByName['projectSettings'], kind: WorkflowKind, canEdit: () => boolean) {
@@ -35,6 +36,8 @@ export function useProjectSettingsEditor(vm: DialogPropsByName['projectSettings'
     const { saveProjectSettings } = usePortfolioActions();
     const [original] = useState(() => ({ name: vm.data.board.settings.title, project: getProjectData(vm.data) }));
     const [general, setGeneral] = useState(() => cloneSerializable(original));
+    const [originalAutomations] = useState(() => cloneSerializable(getHierarchyAutomations(vm.data)));
+    const [automations, setAutomations] = useState(originalAutomations);
     const [tab, selectTab] = useState<Tab>('general');
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
@@ -64,6 +67,7 @@ export function useProjectSettingsEditor(vm: DialogPropsByName['projectSettings'
             if (vm.onCreate) {
                 const data = cloneSerializable(vm.data);
                 applyProjectSettings(data, general);
+                data.extensions.hierarchyAutomations = cloneSerializable(automations);
                 if (!data.extensions.project?.acronym) throw new ProjectDataError('acronym');
                 for (const editor of changed) applyWorkflow(data, editor.draft, editor.relocations, editor.kind);
                 if (typesChanged) applyWorkflowTypes(data, functionalTypes);
@@ -72,12 +76,13 @@ export function useProjectSettingsEditor(vm: DialogPropsByName['projectSettings'
             }
             await saveProjectSettings(vm.boardId, general, original, changed.length ? changed.map((editor) => ({
                 kind: editor.kind, original: editor.original, workflow: editor.draft, relocations: editor.relocations
-            })) : undefined, typesChanged ? { original: originalTypes, functional: functionalTypes } : undefined);
+            })) : undefined, typesChanged ? { original: originalTypes, functional: functionalTypes } : undefined, { original: originalAutomations, config: automations });
         } catch (error) { if (!(error instanceof ProjectDataError)) throw error; selectTab('general'); setError(t(`project.error.${error.code}`)); } finally { saving.current = false; setBusy(false); }
     }
 
     return {
-        general, tab, selectTab, busy, save, error, technical, functional, types,
+        general, tab, selectTab, busy, save, error, technical, functional, types, automations,
+        editAutomations: (config: HierarchyAutomations) => { if (canEdit()) setAutomations(config); },
         editGeneral: (patch: Partial<ProjectSettingsDraft>) => { if (canEdit()) setGeneral((value) => ({ ...value, ...patch })); }
     };
 }

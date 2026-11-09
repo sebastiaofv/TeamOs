@@ -24,7 +24,7 @@ export type BoardMutationOptions = {
     markDirty?: (boardId: string) => unknown;
     closeDialogFn?: (name?: DialogName) => void;
     openDialogFn?: typeof openDialog;
-    alert?: (text: string, options?: { title?: string }) => unknown;
+    alert?: (text: string, options?: { title?: string; workitems?: import('@/app/types').WorkitemReview }) => unknown;
     confirm?: (text: string, options?: ConfirmOptions) => unknown;
     choose?: typeof showChoice;
     prompt?: typeof showPrompt;

@@ -181,6 +181,7 @@ export type BoardExtensions = {
     permanentRelations?: import('./permanentRelations').PermanentRelations;
     projectTransfers?: import('./projectTransfers').ProjectTransfers;
     sprintParticipation?: { version: 1; entries: { sprintId: string; task: Task; at: string }[] };
+    hierarchyAutomations?: import('./hierarchyAutomations').HierarchyAutomations;
     workitemAutomation?: WorkitemAutomation;
     boardView?: BoardViewPreferences;
     workflow?: Workflow;

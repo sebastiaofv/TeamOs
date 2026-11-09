@@ -18,7 +18,8 @@
 }
 
 #projectSettingsModal [hidden] { display: none; }
-#projectSettingsModal .project-settings-general { overflow-y: auto; min-height: 0; flex: 1; }
+#projectSettingsModal .project-settings-general,
+#projectSettingsModal .project-settings-automations { overflow-y: auto; min-height: 0; flex: 1; }
 .project-settings-tabs > button { font-size: 13px; }
 .project-settings-workflow > .workflow-tabs { background: var(--bg-secondary); }
 .project-settings-workflow > .workflow-tabs > button { padding-top: 10px; padding-bottom: 10px; }
@@ -90,5 +91,23 @@
 
 .project-workflow-help { margin: 0; padding: 10px 20px; color: var(--text-secondary); font-size: 12px; border-bottom: 1px solid var(--border); }
 @media (max-width: 600px) {
-    .project-settings-tabs > button { font-size: 12px; padding-inline: 10px; }
+    .project-settings-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding-inline: 8px; }
+    .project-settings-tabs > button { font-size: 11px; padding-inline: 4px; justify-content: center; }
 }
+
+.automation-settings { display: grid; gap: 20px; }
+.automation-settings p { color: var(--text-secondary); line-height: 1.5; font-size: 12px; }
+.automation-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.automation-legend p + p { border-left: 1px solid var(--border); padding-left: 12px; }
+.automation-group h2 { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+#projectSettingsModal .modal-content:has([data-project-tab="automations"][aria-selected="true"]) { max-width: 800px; }
+.automation-rule { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--border-light); padding: 12px 0; }
+.automation-rule h3 { font-size: 13px; margin-bottom: 3px; }
+.automation-toggle { display: flex; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 20px; padding: 3px; gap: 2px; background: var(--bg-secondary); }
+.automation-toggle label { cursor: pointer; position: relative; border-radius: 16px; padding: 7px 12px; font-size: 12px; color: var(--text-secondary); }
+.automation-toggle label.is-selected { background: var(--accent); color: var(--bg-primary); }
+.automation-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.automation-toggle label:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.automation-toggle:disabled { opacity: 0.6; }
+.automation-toggle:disabled label { cursor: default; }
+@media (max-width: 600px) { .automation-rule { gap: 10px; } .automation-toggle label { padding: 7px 8px; } .automation-rule > div { min-width: 0; } .automation-legend p + p { border-left: 0; padding-left: 0; } }

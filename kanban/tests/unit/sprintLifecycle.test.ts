@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 import { fromPartial } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
+import { defaultHierarchyAutomations } from '@/domain/hierarchyAutomations';
+import { defaultWorkflow } from '@/domain/workflow';
 import { normalizeTask } from '@/domain/task';
 import type { Task, WorkitemType } from '@/domain/types';
 import { createAppStore } from '@/features/portfolio/state/store';
@@ -22,9 +24,10 @@ function setup(choice: string | null = 'keep') {
         { id: 's1', title: 'Delivery', startDate: '2026-01-01', endDate: '2099-12-31', status: 'active', goal: 'Deliver', capacity: 21 },
         { id: 's2', title: 'Next', startDate: '2000-01-01', endDate: '2000-01-14', status: 'planned' }
     ] };
+    data.extensions.workflow!.transitions.doing.push('backlog');
     data.board.tasks = [item(1, 'story', { storyPoints: 8, acceptanceCriteria: 'Accepted', status: 'ready-to-test' }), item(2, 'task', { parentId: 1, status: 'done' }), item(3, 'task', { parentId: 1 }), item(4, 'task', { storyPoints: 3 }), item(5, 'bug', { storyPoints: 5 }), item(6, 'story', { storyPoints: 2, acceptanceCriteria: 'Accepted' })];
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Sprint lifecycle', handle: {}, data })], selectedPortfolioBoardId: 'p' });
-    const choose = vi.fn(async (): Promise<string | null> => choice); const alert = vi.fn(); const save = vi.fn(async () => true); const confirm = vi.fn(async () => true);
+    const choose = vi.fn(async (): Promise<string | null> => choice); const alert = vi.fn(); const save = vi.fn(async () => true); const confirm = vi.fn(async (_text: string, _options?: import('@/app/overlays/appMessages').ConfirmOptions) => true);
     const prompt = vi.fn(async (): Promise<string | null> => 'Ana');
     const actions = createPortfolioMutationActions({ store, choose: async (_text, choices) => { const answer = await choose(); return choices.find((option) => option.value === answer)?.value ?? null; }, alert, confirm, prompt, enqueueSave: save, markDirty: vi.fn(), closeDialogFn: vi.fn(), openDialogFn: vi.fn() });
     return { store, actions, choose, alert, save, confirm, prompt, data: () => store.getState().portfolioBoards[0].data };
@@ -136,7 +139,7 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         }
     });
 
-    it('updates the chosen start/end date to local today through both the button and editor', async () => {
+    it('updates the start to today and keeps the edited end date when selected in the separate closure date prompt', async () => {
         const { actions, data, choose } = setup('today');
         const today = new Date();
         const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -144,9 +147,10 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         choose.mockResolvedValueOnce('today').mockResolvedValueOnce('keep');
         await actions.changeSprintStatus('p', 's2', 'active');
         expect(data().extensions.roadmap!.sprints[1].startDate).toBe(date);
+        choose.mockResolvedValueOnce('keep');
         actions.openRoadmapEntityModal('sprints', 's2');
         await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 's2', title: 'Next', status: 'done', startDate: date, endDate: '2099-12-31' });
-        expect(data().extensions.roadmap!.sprints[1].endDate).toBe(date);
+        expect(data().extensions.roadmap!.sprints[1].endDate).toBe('2099-12-31');
         expect(data().extensions.sprintResults!.closures[0].sprintId).toBe('s2');
     });
 
@@ -163,16 +167,20 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         const closure = data().extensions.sprintResults!.closures[0];
         expect(closure).toMatchObject({ sprint: { status: 'done', capacity: 21, goal: 'Deliver' }, plannedPoints: 18, velocity: 18, completedIds: [1, 4, 5, 6], carryOverIds: [] });
         // All its Tasks are Done: the Story keeps awaiting validation and does not return to Unplanned.
-        expect(data().board.tasks[0]).toMatchObject({ status: 'ready-to-test', sprintId: '' });
+        expect(data().board.tasks[0]).toMatchObject({ status: 'ready-to-test', sprintId: 's1' });
         expect(unplannedTableRows(buildPortfolioRowsFromBoardData(store.getState(), store.getState().portfolioBoards[0], data(), { canMutate: true })).map((row) => row.taskId)).not.toContain(1);
         expect(data().board.tasks[1]).toMatchObject({ status: 'done', sprintId: 's1' });
+        data().extensions.workflow = defaultWorkflow();
+        data().extensions.workflow!.transitions.done.push('doing');
+        await actions.movePortfolioTaskToStatus('p', 3, 'doing');
         await actions.setPortfolioTaskProperties('p', 1, { sprintId: 's2' });
+        expect(data().board.tasks[2].sprintId).toBe('s2');
         await actions.movePortfolioTaskToStatus('p', 1, 'done');
         expect(data().extensions.sprintResults!.credits).toHaveLength(4);
         expect(data().extensions.sprintResults!.closures[0]).toEqual(closure);
     });
 
-    it.each(['button', 'editor'])('freezes all workitems and their states via %s, resets only unfinished planning units, and preserves child Task states', async (source) => {
+    it.each(['button', 'editor'])('freezes all workitems and their states via %s, reviews unfinished Task resets and preserves original child states in FREEZE', async (source) => {
         const { actions, data, store } = setup();
         if (source === 'button') await actions.changeSprintStatus('p', 's1', 'done');
         else {
@@ -183,7 +191,7 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         expect(closure.tasks[0]).toMatchObject({ status: 'ready-to-test', storyPoints: 8 });
         expect(closure.tasks[2]).toMatchObject({ status: 'doing', parentId: 1 });
         expect(closure.carryOverIds).toEqual([1, 4, 5, 6]);
-        expect(data().board.tasks.map((task) => task.status)).toEqual(['backlog', 'done', 'doing', 'backlog', 'backlog', 'backlog']);
+        expect(data().board.tasks.map((task) => task.status)).toEqual(['backlog', 'done', 'backlog', 'backlog', 'backlog', 'backlog']);
         expect(data().board.tasks.map((task) => task.sprintId)).toEqual(['', 's1', '', '', '', '']);
         const rows = buildPortfolioRowsFromBoardData(store.getState(), store.getState().portfolioBoards[0], data());
         expect(unplannedTableRows(rows).map((row) => row.taskId)).toEqual([1, 4, 5, 6]);
@@ -203,11 +211,31 @@ describe('manual Sprint lifecycle and frozen results (US-22)', () => {
         expect(reconstructBoardStateFromTimeline(data(), 0).extensions.sprintResults).toBeUndefined();
     });
 
-    it('cancels closure atomically when the carry-over review is declined', async () => {
-        const { actions, data, confirm, save } = setup();
+    it.each(['button', 'editor'])('separates automation approval from Backlog information via %s and excludes implemented Stories', async (source) => {
+        const { actions, data, confirm } = setup();
+        data().board.tasks[2].status = 'done';
+        if (source === 'button') await actions.changeSprintStatus('p', 's1', 'done');
+        else {
+            actions.openRoadmapEntityModal('sprints', 's1');
+            await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 's1', title: 'Delivery', startDate: '2026-01-01', endDate: '2099-12-31', status: 'done' });
+        }
+        expect(confirm).toHaveBeenCalledTimes(2);
+        const options = confirm.mock.calls[1][1];
+        expect(options).toMatchObject({ title: 'Finish Sprint', informational: true });
+        expect(confirm.mock.calls[0][1]?.workitems?.rules).toMatchObject([{ name: 'Return unfinished Tasks to Backlog' }]);
+        expect(options!.workitems!.rows.map((row: { id: string }) => row.id)).toEqual(['#4', '#5', '#6']);
+        expect(data().board.tasks[0]).toMatchObject({ status: 'ready-to-test', sprintId: 's1' });
+    });
+
+    it.each(['button', 'editor'])('cancels closure atomically via %s when the date choice is cancelled', async (source) => {
+        const { actions, data, choose, save } = setup();
         const before = structuredClone(data());
-        confirm.mockResolvedValueOnce(false);
-        await actions.changeSprintStatus('p', 's1', 'done');
+        choose.mockResolvedValueOnce(null);
+        if (source === 'button') await actions.changeSprintStatus('p', 's1', 'done');
+        else {
+            actions.openRoadmapEntityModal('sprints', 's1');
+            await actions.saveRoadmapEntity({ kind: 'sprints', itemId: 's1', title: 'Delivery', startDate: '2026-01-01', endDate: '2099-12-31', status: 'done' });
+        }
         expect(data()).toEqual(before);
         expect(save).not.toHaveBeenCalled();
     });
@@ -396,4 +424,76 @@ describe('Sprint feedback: counts, deletion, Story Point indicators and start (U
         const status = (id: number) => data().board.tasks.find((task) => task.id === id)!.status;
         expect([7, 8, 9, 10, 11].map(status)).toEqual(['to-do', 'to-do', 'to-do', 'doing', 'to-do']);
     });
+});
+
+
+describe('Sprint closure automation modes and stable associations (#72)', () => {
+    it.each(['off', 'confirm', 'automatic'] as const)('respects %s while freezing the original Tasks and only listing visible planning units', async (mode) => {
+        const { actions, data, confirm } = setup();
+        data().extensions.hierarchyAutomations = defaultHierarchyAutomations();
+        data().extensions.hierarchyAutomations!.rules.sprintUnfinishedTasks = mode;
+        await actions.changeSprintStatus('p', 's1', 'done');
+        expect(data().board.tasks[2].status).toBe(mode === 'off' ? 'doing' : 'backlog');
+        expect(data().board.tasks[3].status).toBe(mode === 'off' ? 'doing' : 'backlog');
+        const info = confirm.mock.calls.find((call) => call[1]?.title === 'Finish Sprint');
+        expect(info?.[1]?.informational).toBe(true);
+        expect(info?.[1]?.workitems?.rows.map((row) => row.id)).toEqual(['#1', '#4', '#5', '#6']);
+        expect(data().extensions.sprintResults!.closures[0].tasks[2].status).toBe('doing');
+        const events = data().extensions.timeline!.events.filter((event) => event.meta?.automationRule === 'sprintUnfinishedTasks');
+        expect(events.map((event) => event.meta?.automationOutcome)).toEqual(mode === 'off' ? [] : [mode === 'confirm' ? 'approved' : 'automatic', mode === 'confirm' ? 'approved' : 'automatic']);
+    });
+    it('keeps rejected Task statuses while closing and preserving frozen participation', async () => {
+        const { actions, data, confirm } = setup();
+        confirm.mockResolvedValueOnce(false);
+        await actions.changeSprintStatus('p', 's1', 'done');
+        expect(data().board.tasks[2]).toMatchObject({ status: 'doing', sprintId: '' });
+        expect(data().extensions.roadmap!.sprints[0].status).toBe('done');
+        expect(data().extensions.timeline!.events.filter((event) => event.meta?.automationOutcome === 'rejected')).toHaveLength(2);
+    });
+    it.each(['confirm', 'automatic'] as const)('reports forbidden Sprint Task resets in %s and never forces them', async (mode) => {
+        const { actions, data, confirm } = setup();
+        data().extensions.workflow!.transitions.doing = data().extensions.workflow!.transitions.doing.filter((id) => id !== 'backlog');
+        data().extensions.hierarchyAutomations = defaultHierarchyAutomations();
+        data().extensions.hierarchyAutomations!.rules.sprintUnfinishedTasks = mode;
+        await actions.changeSprintStatus('p', 's1', 'done');
+        const blocked = confirm.mock.calls.find((call) => call[1]?.title === 'Review workflow automations');
+        expect(blocked?.[1]).toMatchObject({ informational: true });
+        expect(blocked?.[1]?.workitems?.rows).toEqual(expect.arrayContaining([expect.objectContaining({ field: 'Status', from: 'In progress', to: 'Backlog' })]));
+        expect(blocked?.[1]?.selections).toBeUndefined();
+        expect(data().board.tasks[2].status).toBe('doing');
+    });
+    it('keeps a completed Sprint association on Task and Story reopening, then joins a newly selected Sprint without changing FREEZE', async () => {
+        const { actions, data } = setup();
+        data().board.tasks[2].status = 'done';
+        await actions.changeSprintStatus('p', 's1', 'done');
+        const frozen = structuredClone(data().extensions.sprintResults!.closures[0]);
+        data().extensions.workflow!.transitions.done.push('doing');
+        data().extensions.hierarchyAutomations = defaultHierarchyAutomations();
+        data().extensions.hierarchyAutomations!.rules.reopenParent = 'off';
+        await actions.movePortfolioTaskToStatus('p', 3, 'doing');
+        expect(data().board.tasks[0].sprintId).toBe('s1');
+        expect(data().board.tasks[2].sprintId).toBe('s1');
+        await actions.movePortfolioTaskToStatus('p', 1, 'doing');
+        expect(data().board.tasks[0].sprintId).toBe('s1');
+        await actions.setPortfolioTaskProperties('p', 1, { sprintId: 's2' });
+        expect(data().board.tasks[2].sprintId).toBe('s2');
+        expect(data().extensions.sprintResults!.closures[0]).toEqual(frozen);
+    });
+    it('validates an end date chosen as today without saving a Sprint whose start is in the future', async () => {
+        const { actions, data, choose, save, alert } = setup('today');
+        data().extensions.roadmap!.sprints[0].startDate = '2099-01-01';
+        await actions.changeSprintStatus('p', 's1', 'done');
+        expect(choose).toHaveBeenCalledTimes(1); expect(alert).toHaveBeenCalled(); expect(save).not.toHaveBeenCalled();
+    });
+});
+
+
+it('lists the resulting Backlog after reset decisions, including a cancelled standalone Task only when it is actually reopened', async () => {
+    const { actions, data, confirm } = setup();
+    data().board.tasks[3].status = 'cancelled';
+    data().extensions.workflow!.transitions.cancelled.push('backlog');
+    await actions.changeSprintStatus('p', 's1', 'done');
+    const info = confirm.mock.calls.find((call) => call[1]?.title === 'Finish Sprint');
+    expect(info?.[1]?.workitems?.rows.map((row) => row.id)).toContain('#4');
+    expect(data().board.tasks[3].status).toBe('backlog');
 });
