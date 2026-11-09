@@ -9,7 +9,7 @@ export type AppMessageButton = {
     submitsSelections?: boolean;
 };
 
-export type MessageSelection = { defaultValue?: string; group?: string; required?: boolean; id: string; label: string; current?: string; options: { value: string; label: string }[] };
+export type MessageSelection = { defaultValue?: string; group?: string; required?: boolean; id: string; label: string; current?: string; options: { value: string; label: string; reviewValue?: string }[] };
 
 export type AppMessageReview = {
     rejection?: boolean;
@@ -25,7 +25,8 @@ export type AppMessageReview = {
 export type WorkitemReview = {
     heading?: string;
     countSelection?: boolean;
-    rows: { id: string; type: import('@/domain/types').WorkitemType; title: string; from?: string; to?: string; selectionId?: string; selectionIds?: string[]; rule?: string }[];
+    rules?: { name: string; description: string }[];
+    rows: { id: string; type: import('@/domain/types').WorkitemType; title: string; field?: string; from?: string; to?: string; reason?: string; selectionId?: string; selectionValue?: boolean; selectionIds?: string[]; rule?: string }[];
 };
 
 export type AppMessage = {

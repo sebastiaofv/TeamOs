@@ -3,24 +3,26 @@ import { canTransition, getWorkflow, statusCategory } from './workflow';
 import { childrenOf, parentOf, workitemType } from './workitems';
 import { nowIso } from './util';
 
-export const AUTOMATION_RULES = ['parentToTodo', 'startParent', 'prepareTesting', 'completeEpic', 'cancelParent', 'reopenParent', 'hierarchyChanges'] as const;
+export const AUTOMATION_RULES = ['parentToTodo', 'startParent', 'prepareTesting', 'completeEpic', 'cancelParent', 'reopenParent', 'hierarchyChanges', 'sprintUnfinishedTasks'] as const;
 export type AutomationRule = typeof AUTOMATION_RULES[number];
 export type AutomationMode = 'off' | 'confirm' | 'automatic';
 export type HierarchyAutomations = { version: 1; rules: Record<AutomationRule, AutomationMode> };
 export type AutomationEffect = {
     parentId: number; taskId: number; rule: AutomationRule; mode: AutomationMode;
-    from: string; to: string; outcome: 'automatic' | 'approved' | 'rejected';
+    from: string; to: string; outcome: 'automatic' | 'approved' | 'rejected' | 'blocked';
 };
 export function defaultHierarchyAutomations(): HierarchyAutomations {
     return { version: 1, rules: Object.fromEntries(AUTOMATION_RULES.map((rule) => [rule, 'confirm'])) as HierarchyAutomations['rules'] };
 }
 export function parseHierarchyAutomations(value: unknown): HierarchyAutomations {
-    const config = value as HierarchyAutomations | null;
+    const config = structuredClone(value) as HierarchyAutomations | null;
+    // Version 1 projects created before the Sprint rule inherit its default.
+    if (config?.version === 1 && config.rules && !Object.hasOwn(config.rules, 'sprintUnfinishedTasks')) config.rules.sprintUnfinishedTasks = 'confirm';
     if (!config || config.version !== 1 || !config.rules || AUTOMATION_RULES.some((rule) => !['off', 'confirm', 'automatic'].includes(config.rules[rule])) || Object.keys(config.rules).some((rule) => !AUTOMATION_RULES.includes(rule as AutomationRule))) throw new Error('Invalid hierarchy automation settings.');
     return structuredClone(config);
 }
 export function getHierarchyAutomations(data: BoardData): HierarchyAutomations {
-    return data.extensions.hierarchyAutomations || defaultHierarchyAutomations();
+    return data.extensions.hierarchyAutomations ? parseHierarchyAutomations(data.extensions.hierarchyAutomations) : defaultHierarchyAutomations();
 }
 export const automationEffectKey = (effect: Pick<AutomationEffect, 'parentId' | 'rule' | 'from' | 'to'>) => `${effect.parentId}:${effect.rule}:${effect.from}:${effect.to}`;
 
@@ -30,6 +32,25 @@ export const automationEffectKey = (effect: Pick<AutomationEffect, 'parentId' | 
 export function applyHierarchyAutomations(data: BoardData, previous: BoardData, approve: (effect: AutomationEffect) => boolean | undefined): AutomationEffect[] {
     const settings = getHierarchyAutomations(data);
     const effects: AutomationEffect[] = [];
+    const sprintMode = settings.rules.sprintUnfinishedTasks;
+    for (const closure of data.extensions.sprintResults?.closures || []) {
+        if (previous.extensions.sprintResults?.closures.some((entry) => entry.sprintId === closure.sprintId) || sprintMode === 'off') continue;
+        for (const task of data.board.tasks) {
+            const before = previous.board.tasks.find((entry) => entry.id === task.id);
+            if (!before || before.sprintId !== closure.sprintId || workitemType(task) !== 'task' || statusCategory(before.status, previous, before) === 'completed') continue;
+            const workflow = getWorkflow(data, task);
+            const target = workflow.states.find((state) => state.id === workflow.references.backlog) || workflow.states.find((state) => state.category === 'backlog');
+            if (!target || task.status === target.id) continue;
+            const effect: AutomationEffect = { parentId: task.id, taskId: task.id, rule: 'sprintUnfinishedTasks', mode: sprintMode, from: task.status, to: target.id, outcome: 'blocked' };
+            if (canTransition(data, task.status, target.id, task)) {
+                const decision = sprintMode === 'confirm' ? approve(effect) : true;
+                if (decision === undefined) continue;
+                effect.outcome = decision ? sprintMode === 'confirm' ? 'approved' : 'automatic' : 'rejected';
+                if (decision) { task.status = target.id; task.statusChangedAt = task.updatedAt = nowIso(); delete task.acceptance; }
+            }
+            effects.push(effect);
+        }
+    }
     const oldTasks = new Map(previous.board.tasks.map((task) => [task.id, task]));
     const changed = new Set(data.board.tasks.filter((task) => {
         const old = oldTasks.get(task.id);
@@ -76,8 +97,13 @@ export function applyHierarchyAutomations(data: BoardData, previous: BoardData, 
         if (mode === 'off' || currentCategory === target) continue;
         const workflow = getWorkflow(data, parent);
         const candidates = workflow.states.filter((state) => state.category === target && canTransition(data, parent.status, state.id, parent));
-        const to = candidates.find((state) => state.id === workflow.references[target])?.id || candidates[0]?.id;
-        if (!to || to === parent.status || !canTransition(data, parent.status, to, parent)) continue;
+        const to = candidates.find((state) => state.id === workflow.references[target])?.id || candidates[0]?.id
+            || workflow.states.find((state) => state.id === workflow.references[target])?.id || workflow.states.find((state) => state.category === target)?.id;
+        if (!to || to === parent.status) continue;
+        if (!canTransition(data, parent.status, to, parent)) {
+            effects.push({ parentId: parent.id, taskId: changedChildren[0]?.id ?? parent.id, rule, mode, from: parent.status, to, outcome: 'blocked' });
+            continue;
+        }
         const effect: AutomationEffect = { parentId: parent.id, taskId: changedChildren[0]?.id ?? parent.id, rule, mode, from: parent.status, to, outcome: mode === 'automatic' ? 'automatic' : 'approved' };
         const decision = mode === 'confirm' ? approve(effect) : true;
         if (decision === undefined) continue;

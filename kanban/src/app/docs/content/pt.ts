@@ -536,16 +536,18 @@ export const DOCS_PT: DocSection[] = [
                         'O progresso de execução de uma Story a partir das suas Tasks.',
                         'O bloqueio por dependência a partir de bloqueadores por concluir.',
                         'As Tasks de uma Story seguem o sprint da Story; os filhos herdam fase e marco salvo indicação explícita.',
-                        'O estado dos sprints (Planeado, Ativo, Concluído) a partir das datas, atualizado à meia-noite.',
+                        'O estado de um Sprint muda apenas quando o inicia ou encerra.',
                         'Eventos de histórico para cada alteração guardada.'
                     ] },
-                    { kind: 'h', text: 'Automação de Stories' },
-                    { kind: 'p', text: 'Um projeto pode definir regras de automação de Stories: quando a primeira Task de uma Story começa (**A execução começa**) ou quando todas as Tasks estão concluídas (**A execução termina**), uma Story num dos estados de origem elegíveis avança para um estado de destino. Se o workflow funcional proibir essa transição, a Task é guardada na mesma e a aplicação explica porque é que a Story não avançou. Estas regras ficam guardadas no ficheiro do projeto; atualmente não existe editor para elas nas Definições do projeto.' },
+                    { kind: 'h', text: 'Automatismos do workflow' },
+                    { kind: 'p', text: 'Abra **Definições do projeto → Automatismos** para configurar oito regras por projeto. **Off** desativa a regra, **On 1** pede aprovação e **On 2** executa automaticamente as alterações permitidas. As novas regras começam em On 1. Alterar manualmente o Status não pede confirmação adicional, salvo quando desencadeia uma regra ativa ou exige aceitação funcional.' },
+                    { kind: 'p', text: '**Validar automatismos do workflow** explica a regra desencadeada e lista os workitems afetados com badge do tipo, ID, título, campo e valor atual → proposto. Nas propostas, escolha **Aplicar alteração** ou **Manter estado atual**. Uma transição proibida pelo workflow apresenta um aviso informativo sem seletores de decisão; a edição original mantém-se.' },
+                    { kind: 'p', text: 'Encerrar um Sprint pergunta separadamente se pretende usar hoje como data de fim. **Devolver Tasks pendentes ao Backlog** controla as alterações de Status das Tasks no fecho. Um aviso informativo autónomo lista apenas os workitems visíveis no Backlog; as Tasks filhas continuam agrupadas no respetivo pai. Stories implementadas a aguardar testes mantêm o Sprint. Reabrir uma Story ou Task preserva a associação até ao fecho ou a uma alteração posterior de planeamento. A participação e os resultados dos Sprints encerrados mantêm-se congelados.' },
                     { kind: 'h', text: 'Nunca automático' },
                     { kind: 'list', items: [
                         'A aceitação funcional de Stories e Bugs.',
-                        'A conclusão de um Epic ou dos seus filhos.',
-                        'Reabrir uma Story aceite quando uma das suas Tasks é reaberta.'
+                        'Transições proibidas pelo workflow configurado.',
+                        'Alterações por regras configuradas como Off.'
                     ] }
                 ],
                 related: ['wi-acceptance', 'plan-inheritance', 'files-history']

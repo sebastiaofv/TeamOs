@@ -964,7 +964,7 @@ test.describe('US-13 grouped mappings and rejected transfers', () => {
       if (!blocked) {
         await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' });
         await page.locator('#appMessageConfirmBtn').click();
-        await expect(page.locator('.transfer-workitem')).toHaveCount(3);
+        await expect(page.locator('.workitem-review-row select')).toHaveCount(5);
       } else {
         await expect(page.locator('.transfer-error')).toContainText('1 workitem(s)');
         await expect(page.locator('#appMessageModal .modal-footer button')).toHaveText(['Close']);

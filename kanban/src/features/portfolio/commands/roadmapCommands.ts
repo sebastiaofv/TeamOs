@@ -1,11 +1,13 @@
+import { resolveHierarchyAutomations } from './hierarchyAutomationChanges';
+import { workitemReviewRow } from './workitemReview';
 import { formatDate } from '@/domain/dates';
-import { closeSprint, startSprint, sprintUnplannedWorkitems } from '@/domain/sprintResults';
+import { closeSprint, startSprint } from '@/domain/sprintResults';
 import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
-import type { SprintStatus } from '@/domain/types';
+import type { BoardData, SprintStatus } from '@/domain/types';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
 import { controlRecords, saveControlRecord } from '@/domain/projectControl';
 import { workitemLabel } from '@/domain/taskIdentity';
-import { eligibleSprint, hasPendingWork, isPlanningUnit, workitemType, WorkitemError } from '@/domain/workitems';
+import { eligibleSprint, hasPendingWork, isPlanningUnit, WorkitemError } from '@/domain/workitems';
 // Roadmap editing, sprint assignment, and row expansion.
 
 import type { RoadmapItem, RoadmapKind, Task } from '@/domain/types';
@@ -28,7 +30,7 @@ import {
 } from '@/domain/roadmap';
 
 import { cloneSerializable, createBoardStateSnapshot } from '@/domain/serialize';
-import { appendTimelineEvent } from '@/domain/timeline';
+import { appendTimelineEvent, ensureBoardTimelineBaseline } from '@/domain/timeline';
 
 import { nowIso, todayLocalIsoDate } from '@/domain/util';
 import { getSprintCatalog, registerSprintCreation } from '@/domain/sprintCatalog';
@@ -294,7 +296,20 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
     }
 
     async function prepareSprintDates(draft: { status: SprintStatus; startDate: string; endDate: string }, previousStatus: SprintStatus): Promise<boolean> {
-        if (draft.status === previousStatus || draft.status === 'planned' || draft.status === 'done') return true;
+        if (draft.status === previousStatus || draft.status === 'planned') return true;
+        if (draft.status === 'done') {
+            const today = todayLocalIsoDate();
+            if (draft.endDate !== today) {
+                const choice = await choose(translateCurrent('sprint.updateEnd', { today: formatDate(today) }), [
+                    { value: 'today', label: translateCurrent('sprint.useToday') },
+                    { value: 'keep', label: translateCurrent('sprint.keepDate') }
+                ], { title: translateCurrent('roadmapDialog.endDate') });
+                if (choice === null) return false;
+                if (choice === 'today') draft.endDate = today;
+            }
+            if (draft.startDate > draft.endDate) { await alert(translateCurrent('roadmap.dateOrderInvalid')); return false; }
+            return true;
+        }
         const today = todayLocalIsoDate();
         if (draft.startDate !== today) {
             const choice = await choose(translateCurrent('sprint.updateStart', { today }), [
@@ -313,18 +328,21 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         return true;
     }
 
-    async function confirmSprintClosure(boardId: string, sprintId: string, endDate: string): Promise<boolean> {
+    async function prepareSprintClosure(boardId: string, sprintId: string, finalSprint: RoadmapItem): Promise<BoardData | null> {
         const current = getBoardRecord(boardId)?.data;
-        if (!current) return false;
-        const accepted = await confirm(translateCurrent('sprint.finishHelp', { date: formatDate(endDate) }), {
-            title: translateCurrent('sprint.finish'), confirmLabel: translateCurrent('messages.confirm'),
-            workitems: { heading: translateCurrent('table.unplannedWorkitems'), rows: sprintUnplannedWorkitems(current, sprintId).map((task) => ({
-                id: workitemLabel(task), title: task.title, type: workitemType(task)
-            })) }
+        if (!current) return null;
+        const preview = cloneSerializable(current);
+        ensureBoardTimelineBaseline(preview);
+        closeSprint(preview, sprintId, finalSprint);
+        const review = resolveHierarchyAutomations(preview, current, confirm);
+        if (review) await review;
+        const returning = preview.board.tasks.filter((task) => current.board.tasks.some((before) => before.id === task.id && before.sprintId === sprintId) && isPlanningUnit(preview, task) && hasPendingWork(preview, task));
+        if (returning.length) await confirm(translateCurrent('sprint.backlogInfo'), {
+            title: translateCurrent('sprint.finish'), informational: true,
+            workitems: { heading: 'Backlog', rows: returning.map((task) => workitemReviewRow(task, 'Sprint', finalSprint.title, 'Backlog')) }
         });
-        if (!accepted) return false;
-        if (getBoardRecord(boardId)?.data !== current) { await alert(translateCurrent('roadmap.impactChanged')); return false; }
-        return true;
+        if (getBoardRecord(boardId)?.data !== current) { await alert(translateCurrent('roadmap.impactChanged')); return null; }
+        return preview;
     }
 
     async function changeSprintStatus(boardId: string, sprintId: string, status: SprintStatus) {
@@ -334,13 +352,14 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
         if (!sprint || getSprintStatus(sprint) === status) return;
         const next = { ...sprint, status, startDate: sprint.startDate || '', endDate: sprint.endDate || '' };
         if (!(await prepareSprintDates(next, getSprintStatus(sprint)))) return;
-        if (status === 'done' && !(await confirmSprintClosure(boardId, sprintId, next.endDate))) return;
+        const closure = status === 'done' ? await prepareSprintClosure(boardId, sprintId, next) : null;
+        if (status === 'done' && !closure) return;
         if (getBoardRecord(boardId)?.data !== current) { await alert(translateCurrent('roadmap.impactChanged')); return; }
         return runPortfolioBoardMutation(boardId, (data) => {
+            if (closure) Object.assign(data, closure);
             const roadmap = getRoadmapExtensionObject(data, { create: true });
             const index = roadmap.sprints.findIndex((item) => item.id === sprintId);
             if (index < 0) return false;
-            if (status === 'done') closeSprint(data, sprintId, next);
             if (status === 'active') startSprint(data, sprintId);
             roadmap.sprints[index] = next;
             appendTimelineEvent(data, { kind: 'roadmap.updated', entityType: 'board', entityId: 'board', summary: `${next.title}: ${status}`, snapshot: createBoardStateSnapshot(data), meta: { roadmapKind: 'sprints', roadmapItemId: sprintId, action: status } });
@@ -404,6 +423,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             }
         }
         let closingSprint = false;
+        let closure: BoardData | null = null;
         if (context.kind === 'sprints') {
             if (draft.capacity !== null && (!Number.isFinite(draft.capacity) || draft.capacity < 0)) { await alert(translateCurrent('sprint.invalidCapacity')); return; }
             const data = getBoardRecord(context.boardId)?.data;
@@ -412,7 +432,10 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             if (previous && draft.status !== getSprintStatus(previous)) {
                 if (!(await prepareSprintDates(draft, getSprintStatus(previous)))) return;
                 closingSprint = draft.status === 'done';
-                if (closingSprint && !(await confirmSprintClosure(context.boardId, draft.itemId, draft.endDate))) return;
+                if (closingSprint) {
+                    closure = await prepareSprintClosure(context.boardId, draft.itemId, { ...previous, title: draft.title, startDate: draft.startDate, endDate: draft.endDate, status: draft.status, goal: draft.goal, capacity: draft.capacity, review: draft.review, retrospective: draft.retrospective });
+                    if (!closure) return;
+                }
                 if (getBoardRecord(context.boardId)?.data !== data) { await alert(translateCurrent('roadmap.impactChanged')); return; }
             }
         }
@@ -441,6 +464,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             }
         }
         const changed = await runPortfolioBoardMutation(context.boardId, (boardData) => {
+            if (closure) Object.assign(boardData, closure);
             const roadmap = getRoadmapExtensionObject(boardData, { create: true });
             const items = roadmap[config.itemsKey];
             const index = draft.itemId ? items.findIndex((item) => item.id === draft.itemId) : -1;
@@ -467,7 +491,6 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 if (expectedParentImpact && JSON.stringify(actual) !== JSON.stringify(expectedParentImpact)) throw new Error(translateCurrent('roadmap.impactChanged'));
                 updatePhase(boardData, nextItem, relocation);
             } else if (index >= 0) {
-                if (context.kind === 'sprints' && nextItem.status === 'done' && getSprintStatus(previousItem!) !== 'done') closeSprint(boardData, nextId, nextItem);
                 if (context.kind === 'sprints' && nextItem.status === 'active' && getSprintStatus(previousItem!) !== 'active') startSprint(boardData, nextId);
                 items[index] = nextItem;
             } else {
@@ -526,13 +549,13 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             const choice = await choose(translateCurrent('roadmap.reassignImpact', { count: affected.length }) + impactText(affected), [
                 { value: '', label: translateCurrent('roadmap.clearAssignments') },
                 ...roadmap[kind].filter((target) => target.id !== itemId && (kind !== 'phases' || isLeafPhase(roadmap.phases, target.id))).map((target) => ({ value: target.id, label: target.title }))
-            ], { title: `${translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() })} · ${item.title}`, selectionLabel: translateCurrent('roadmap.assignmentDestination') });
+            ], { title: `${translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() })} · ${item.title}`, selectionLabel: translateCurrent('roadmap.assignmentDestination'), workitems: { rows: affected.map((task) => workitemReviewRow(task, label, item.title, translateCurrent('roadmap.assignmentDestination'))) } });
             if (choice === null) return;
             relocation = choice;
         } else {
             const confirmed = await confirm(translateCurrent(kind === 'sprints' ? (affected.length ? 'sprint.deleteQuestion' : 'roadmap.deleteQuestion') : 'roadmap.deletePlanningQuestion', { title: item.title, count: affected.length }) + impactText(affected), {
                 title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
-                confirmLabel: translateCurrent('common.delete'), danger: true
+                confirmLabel: translateCurrent('common.delete'), danger: true, workitems: { rows: affected.map((task) => workitemReviewRow(task, label, item.title, '—')) }
             });
             if (!confirmed) return;
         }

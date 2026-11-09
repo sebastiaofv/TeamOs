@@ -8,8 +8,8 @@ import type { AppMessage, MessageSelection } from '@/app/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { translateCurrent } from '@/shared/i18n';
 
-export type ConfirmOptions = { workitems?: import('@/app/types').WorkitemReview; cancelLabel?: string; review?: import('@/app/types').AppMessageReview; title?: string; confirmLabel?: string; danger?: boolean; selections?: MessageSelection[] };
-export type PromptOptions = { title?: string; confirmLabel?: string; required?: boolean; readOnly?: boolean; inputType?: 'text' | 'date' };
+export type ConfirmOptions = { informational?: boolean; workitems?: import('@/app/types').WorkitemReview; cancelLabel?: string; review?: import('@/app/types').AppMessageReview; title?: string; confirmLabel?: string; danger?: boolean; selections?: MessageSelection[] };
+export type PromptOptions = { title?: string; confirmLabel?: string; required?: boolean; readOnly?: boolean; inputType?: 'text' | 'date'; workitems?: import('@/app/types').WorkitemReview };
 export type Choice<T> = { value: T; label: string; primary?: boolean };
 
 type PendingMessage = { message: AppMessage; resolve: (value: unknown) => void };
@@ -46,17 +46,18 @@ export function cancelAppMessages(): void {
 }
 
 // Resolves once the message is dismissed.
-export function showAlert(text: string, { title }: { title?: string } = {}): Promise<void> {
+export function showAlert(text: string, { title, workitems }: { title?: string; workitems?: import('@/app/types').WorkitemReview } = {}): Promise<void> {
     return request({
         title: title || translateCurrent('messages.notice'),
         text,
+        ...(workitems ? { workitems } : {}),
         buttons: [{ label: translateCurrent('common.ok'), value: undefined, primary: true }],
         cancelValue: undefined
     });
 }
 
 // Resolves selected field values (or true without fields) when confirmed, false when cancelled.
-export function showConfirm(text: string, { title, confirmLabel, danger = false, selections, review, workitems, cancelLabel }: ConfirmOptions = {}): Promise<boolean | Record<string, string>> {
+export function showConfirm(text: string, { title, confirmLabel, danger = false, selections, review, workitems, cancelLabel, informational = false }: ConfirmOptions = {}): Promise<boolean | Record<string, string>> {
     return request({
         title: title || translateCurrent('messages.confirm'),
         text,
@@ -64,18 +65,19 @@ export function showConfirm(text: string, { title, confirmLabel, danger = false,
         ...(review ? { review } : {}),
         ...(workitems ? { workitems } : {}),
         buttons: [
-            ...(!review?.rejection ? [{ label: cancelLabel || translateCurrent('messages.cancel'), value: false, cancel: true }] : []),
+            ...(!review?.rejection && !informational ? [{ label: cancelLabel || translateCurrent('messages.cancel'), value: false, cancel: true }] : []),
             { label: confirmLabel || translateCurrent('common.ok'), value: true, primary: true, danger, ...(selections?.length ? { submitsSelections: true } : {}) }
         ],
-        cancelValue: false
+        cancelValue: informational ? true : false
     });
 }
 
 // Resolves with the entered text, or null when cancelled.
-export function showPrompt(text: string, defaultValue: unknown = '', { title, confirmLabel, required = false, readOnly = false, inputType }: PromptOptions = {}): Promise<string | null> {
+export function showPrompt(text: string, defaultValue: unknown = '', { title, confirmLabel, required = false, readOnly = false, inputType, workitems }: PromptOptions = {}): Promise<string | null> {
     return request({
         title: title || translateCurrent('messages.input'),
         text,
+        ...(workitems ? { workitems } : {}),
         input: { ...(readOnly ? { readOnly } : {}), defaultValue: String(defaultValue ?? ''), ...(required ? { required } : {}), ...(inputType && inputType !== 'text' ? { type: inputType } : {}) },
         buttons: [
             { label: translateCurrent('messages.cancel'), value: null, cancel: true },
@@ -88,10 +90,11 @@ export function showPrompt(text: string, defaultValue: unknown = '', { title, co
 // Resolves with the chosen value, or null when cancelled. `choices` are
 // { value, label, primary? } entries, shown after Cancel, or in a dropdown
 // with an explicit confirmation when selectionLabel is supplied.
-export function showChoice<T>(text: string, choices: readonly Choice<T>[], { title, selectionLabel, requiredSelection }: { title?: string; selectionLabel?: string; requiredSelection?: boolean } = {}): Promise<T | null> {
+export function showChoice<T>(text: string, choices: readonly Choice<T>[], { title, selectionLabel, requiredSelection, workitems }: { title?: string; selectionLabel?: string; requiredSelection?: boolean; workitems?: import('@/app/types').WorkitemReview } = {}): Promise<T | null> {
     return request({
         title: title || translateCurrent('messages.choose'),
         text,
+        ...(workitems ? { workitems } : {}),
         ...(selectionLabel ? { selection: { required: requiredSelection, label: selectionLabel, options: choices.map(({ value, label }) => ({ value, label })) } } : {}),
         buttons: [
             { label: translateCurrent('messages.cancel'), value: null, cancel: true },

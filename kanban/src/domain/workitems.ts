@@ -134,7 +134,11 @@ export function syncWorkitemPlanning(data: BoardData, previous: BoardData): void
         const before = previousById.get(task.id);
         if (!isPlanningUnit(data, task)) delete task.storyPoints;
         const parent = task.parentId == null ? undefined : byId.get(task.parentId);
-        if (workitemType(task) === 'task' && parent && ['story', 'bug'].includes(workitemType(parent)) && !isTerminal(data, task)) task.sprintId = eligibleSprint(data, parent.sprintId) ? parent.sprintId : '';
+        if (workitemType(task) === 'task' && parent && ['story', 'bug'].includes(workitemType(parent)) && !isTerminal(data, task)) {
+            // A status change alone never discards the current allocation, including a closed Sprint.
+            const allocationChanged = !before || before.parentId !== task.parentId || previousById.get(parent.id)?.sprintId !== parent.sprintId;
+            if (allocationChanged || eligibleSprint(data, parent.sprintId)) task.sprintId = eligibleSprint(data, parent.sprintId) ? parent.sprintId : '';
+        }
         else if (before?.parentId && !task.parentId && !isTerminal(data, task) && !eligibleSprint(data, task.sprintId)) task.sprintId = '';
         if (task.parentId && !before) { task.phaseMode ??= 'inherit'; task.milestoneMode ??= 'inherit'; }
         if (before?.sprintId && before.sprintId !== task.sprintId) {

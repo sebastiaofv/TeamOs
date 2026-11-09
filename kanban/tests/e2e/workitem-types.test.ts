@@ -111,10 +111,12 @@ test('parent changes preview their impact and Cancel preserves the existing hier
     await portfolioCard(page, 'Implementar confirmação').getByRole('button', { name: 'Edit', exact: true }).click();
     await page.locator('#workitemParent').selectOption('1201');
     await page.locator('#taskModalSaveBtn').click();
-    await answerAppMessage(page, { button: 'Cancel', expectText: '#1202 Pagar com cartão → #1201 Checkout acessível' });
+    await expect(page.locator('.workitem-review-transition')).toHaveText('#1202 Pagar com cartão→#1201 Checkout acessível');
+    await answerAppMessage(page, { button: 'Cancel' });
     expect((await readSavedBoard(page, 'us12')).board.tasks.find((task: { id: number }) => task.id === 1204).parentId).toBe(1202);
     await page.locator('#taskModalSaveBtn').click();
-    await answerAppMessage(page, { expectText: 'Parent workitem' });
+    await expect(page.locator('.workitem-review-field')).toContainText(['Parent workitem']);
+    await answerAppMessage(page);
     await expect(page.locator('#taskModal')).toHaveCount(0);
     const saved = await readSavedBoard(page, 'us12');
     expect(saved.board.tasks.find((task: { id: number }) => task.id === 1204)).toMatchObject({ parentId: 1201, sprintId: 'current' });

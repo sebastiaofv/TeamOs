@@ -1,3 +1,5 @@
+import type { WorkitemReview } from '@/app/types';
+import { workitemReviewRow, reviewDecision, statusName } from './workitemReview';
 import { sprintPhaseDateConflicts } from '@/domain/sprintPhaseDates';
 import { recalculatePhaseDates } from '@/domain/phaseTree';
 import { formatDate } from '@/domain/dates';
@@ -8,12 +10,12 @@ import { lastCommentAuthor } from '@/features/portfolio/task/conversationDrafts'
 import { requestWorkitemAcceptance } from './workitemAcceptance';
 import { workitemLabel } from '@/domain/taskIdentity';
 import type { BoardRecord } from '@/features/portfolio/types';
-import type { BoardData, Task } from '@/domain/types';
+import type { BoardData } from '@/domain/types';
 import type { BoardMutationOptions, BoardMutator } from './mutationContext';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { cloneSerializable } from '@/domain/serializable';
 import { resolveHierarchyAutomations } from './hierarchyAutomationChanges';
-import { assertWorkitems, childrenOf, effectivePlanning, parentOf, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
+import { assertWorkitems, childrenOf, effectivePlanning, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, ensureBoardTimelineBaseline, recordTaskTimelineEvent, createTimelineEventId } from '@/domain/timeline';
 import { annotateTimelineOperation } from '@/domain/taskHistory';
 import { createWorkitemDisplayId, ensurePermanentTaskIdentities, reserveTaskIdentities } from '@/domain/taskIdentity';
@@ -69,7 +71,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             if (beforeTask && task.status !== beforeTask.status && !canTransition(draft.data, beforeTask.status, task.status, task)) throw new Error(translateCurrent('workflow.transitionDenied'));
             touchTask(task);
         }
-        recordTaskTimelineEvent(draft.data, beforeTask, captureTaskTimelineSnapshot(draft.data, taskId));
+
     }
     const previousIds = new Set(current.data.board.tasks.map((task) => task.id));
     const nextIds = new Set(draft.data.board.tasks.map((task) => task.id));
@@ -93,52 +95,81 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     const stage = cloneSerializable(draft.data);
     syncWorkitemPlanning(draft.data, current.data);
     assertWorkitems(draft.data, current.data);
-    const previews: string[] = [];
+    const previews: WorkitemReview['rows'] = [];
+    const reversals = new Map<string, () => void>();
     const beforeTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
     const stageTasks = new Map(stage.board.tasks.map((task) => [task.id, task]));
     const sprintName = (data: BoardData, id: string) => data.extensions.roadmap?.sprints.find((sprint) => sprint.id === id)?.title || id || '—';
-    const stateName = (data: BoardData, id: string, task?: Task) => getWorkflow(data, task).states.find((state) => state.id === id)?.name || id;
     for (const task of draft.data.board.tasks) {
         const before = beforeTasks.get(task.id);
         const category = statusCategory(task.status, draft.data, task);
         const changedStatus = !before || before.status !== task.status || statusCategory(before.status, current.data, before) !== category;
         const changedCriteria = before && workitemType(task) === 'story' && before.acceptanceCriteria !== task.acceptanceCriteria;
         if ((changedStatus || changedCriteria) && category === 'completed' && ['story', 'bug'].includes(workitemType(task))) {
-            const author = await requestWorkitemAcceptance(draft.data, task, prompt, projectActor(current.id)?.name);
+            const author = await requestWorkitemAcceptance(draft.data, task, prompt, projectActor(current.id)?.name, before ? statusName(current.data, before) : '—');
             if (author === null) return false;
             task.acceptance = { author: author.trim(), at: new Date().toISOString(), local: true };
         }
         if (changedStatus && category !== 'completed') delete task.acceptance;
-        if (before && changedStatus && (category === 'cancelled' || ['completed', 'cancelled'].includes(statusCategory(before.status, current.data, before)))) previews.push(`${workitemLabel(task)} ${task.title}\n${stateName(current.data, before.status, before)} → ${stateName(draft.data, task.status, task)}`);
-        if (before && ((before.parentId ?? null) !== (task.parentId ?? null) || (confirmSprintAllocation && before.sprintId !== task.sprintId))) {
+        if (before) for (const field of ['parentId', 'sprintId'] as const) {
+            if (field === 'sprintId' && !confirmSprintAllocation || (field === 'parentId' ? (before.parentId ?? null) === (task.parentId ?? null) : before.sprintId === task.sprintId)) continue;
             const name = (id: number | null | undefined, data: BoardData) => { const item = data.board.tasks.find((entry) => entry.id === id); return item ? `${workitemLabel(item)} ${item.title}` : '—'; };
-            previews.push(`${workitemLabel(task)} ${task.title}\n${translateCurrent('workitems.parent')}: ${name(before.parentId, current.data)} → ${name(task.parentId, draft.data)}\nSprint: ${sprintName(current.data, before.sprintId)} → ${sprintName(draft.data, task.sprintId)}`);
+            const row = workitemReviewRow(task, field === 'parentId' ? translateCurrent('workitems.parent') : 'Sprint',
+                field === 'parentId' ? name(before.parentId, current.data) : sprintName(current.data, before.sprintId),
+                field === 'parentId' ? name(task.parentId, draft.data) : sprintName(draft.data, task.sprintId));
+            // Inherited allocation changes follow the parent decision and cannot be overridden independently.
+            if (before[field] !== stageTasks.get(task.id)?.[field]) {
+                row.selectionId = `${task.id}:${field}`;
+                reversals.set(row.selectionId, () => {
+                    if (field === 'parentId') {
+                        task.parentId = before.parentId;
+                        task.sprintId = before.sprintId;
+                        if (before.storyPoints === undefined) delete task.storyPoints; else task.storyPoints = before.storyPoints;
+                    } else task.sprintId = before.sprintId;
+                });
+            }
+            previews.push(row);
         }
-        if (changedStatus && category === 'completed' && workitemType(task) === 'epic' && childrenOf(draft.data, task.id).some((child) => !['completed', 'cancelled'].includes(statusCategory(child.status, draft.data, child)))) previews.push(translateCurrent('workitems.epicPending', { id: workitemLabel(task), title: task.title }));
-        const parent = parentOf(draft.data, task);
-        if (before && changedStatus && parent && workitemType(parent) === 'story' && statusCategory(parent.status, draft.data, parent) === 'completed' && category !== 'completed') previews.push(translateCurrent('workitems.reopened', { id: workitemLabel(task), parent: workitemLabel(parent) }));
+        if (changedStatus && category === 'completed' && workitemType(task) === 'epic' && childrenOf(draft.data, task.id).some((child) => !['completed', 'cancelled'].includes(statusCategory(child.status, draft.data, child)))) {
+            previews.push({ ...workitemReviewRow(task, translateCurrent('task.status'), getWorkflow(current.data, before).states.find((state) => state.id === before?.status)?.name || before?.status || '—', getWorkflow(draft.data, task).states.find((state) => state.id === task.status)?.name || task.status), reason: translateCurrent('workitems.epicPending', { id: workitemLabel(task), title: task.title }) });
+        }
         if (before) for (const field of ['phaseId', 'milestoneId'] as const) {
             const oldValue = effectivePlanning(current.data, before, field); const newValue = effectivePlanning(draft.data, task, field);
-            if (oldValue !== newValue && before[field] === task[field] && (field === 'phaseId' ? before.phaseMode === task.phaseMode : before.milestoneMode === task.milestoneMode)) previews.push(`${workitemLabel(task)} ${task.title} · ${translateCurrent(field === 'phaseId' ? 'task.phase' : 'task.milestone')}: ${oldValue || '—'} → ${newValue || '—'}`);
+            if (oldValue !== newValue && before[field] === task[field] && (field === 'phaseId' ? before.phaseMode === task.phaseMode : before.milestoneMode === task.milestoneMode)) {
+                const name = (data: BoardData, id: string) => data.extensions.roadmap?.[field === 'phaseId' ? 'phases' : 'milestones'].find((item) => item.id === id)?.title || id || '—';
+                previews.push(workitemReviewRow(task, translateCurrent(field === 'phaseId' ? 'task.phase' : 'task.milestone'), name(current.data, oldValue), name(draft.data, newValue)));
+            }
         }
     }
     if (previews.length) {
-        const answer = await confirm(translateCurrent('workitems.impact') + '\n\n' + previews.join('\n\n'), { title: translateCurrent('workitems.confirmChanges'), confirmLabel: translateCurrent('messages.confirm') });
+        const answer = await confirm(translateCurrent('workitems.impact'), { title: translateCurrent('workitems.confirmChanges'), confirmLabel: translateCurrent('messages.confirm'),
+            workitems: { rows: previews }, selections: previews.filter((row) => row.selectionId).map((row) => reviewDecision(row.selectionId!, `${row.id}: ${row.field}`)) });
         if (!answer) return false;
+        if (typeof answer === 'object' && [...reversals.keys()].some((key) => (answer as Record<string, unknown>)[key] === 'keep')) {
+            // Recompute inherited allocation and participation from the unreviewed stage,
+            // so a kept parent/Sprint never leaves a proposed side effect in history.
+            for (const task of draft.data.board.tasks) {
+                const raw = stageTasks.get(task.id);
+                if (!raw) continue;
+                if (!reversals.has(`${task.id}:sprintId`)) task.sprintId = raw.sprintId;
+                if (raw.sprintHistory === undefined) delete task.sprintHistory; else task.sprintHistory = cloneSerializable(raw.sprintHistory);
+            }
+            if (stage.extensions.sprintParticipation === undefined) delete draft.data.extensions.sprintParticipation;
+            else draft.data.extensions.sprintParticipation = cloneSerializable(stage.extensions.sprintParticipation);
+            for (const [key, revert] of reversals) if ((answer as Record<string, unknown>)[key] === 'keep') revert();
+        }
+        syncWorkitemPlanning(draft.data, current.data);
+        for (const event of draft.data.extensions.timeline?.events.slice(firstEvent) || []) if (event.kind === 'roadmap.bulk-assigned' && event.meta?.action === 'assign-existing') {
+            const ids = (event.meta.taskIds as number[]).filter((id) => draft.data.board.tasks.find((task) => task.id === id)?.sprintId === event.meta!.roadmapItemId);
+            event.meta.taskIds = ids;
+        }
     }
     assertWorkitems(draft.data, current.data);
-    for (const task of draft.data.board.tasks) {
+    if (!boardSnapshotRecorded) for (const task of draft.data.board.tasks) {
         const before = beforeTasks.get(task.id);
-        const rawStage = stageTasks.get(task.id);
-        if (rawStage && JSON.stringify(rawStage) !== JSON.stringify(task)) {
-            const stageTask = captureTaskTimelineSnapshot(stage, task.id);
-            const count = draft.data.extensions.timeline?.events.length || 0;
-            recordTaskTimelineEvent(draft.data, stageTask, captureTaskTimelineSnapshot(draft.data, task.id));
-            const event = draft.data.extensions.timeline?.events.at(-1);
-            if (event && (draft.data.extensions.timeline?.events.length || 0) > count) {
-                event.meta = { ...event.meta, ...(task.acceptance && !before?.acceptance ? { author: task.acceptance.author } : {}) };
-            }
-        }
+        if (!before) continue;
+        const event = recordTaskTimelineEvent(draft.data, captureTaskTimelineSnapshot(current.data, task.id), captureTaskTimelineSnapshot(draft.data, task.id));
+        if (event && task.acceptance && !before.acceptance) event.meta = { ...event.meta, author: task.acceptance.author };
     }
     const automationReview = !boardSnapshotRecorded && resolveHierarchyAutomations(draft.data, current.data, confirm);
     if (automationReview) await automationReview;
@@ -147,6 +178,10 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     if (dateConflicts.length) {
         const answer = await confirm(translateCurrent('planning.phaseDatesConflict'), {
             title: translateCurrent('planning.phaseDatesTitle'), confirmLabel: translateCurrent('messages.confirm'),
+            workitems: { rows: dateConflicts.flatMap((entry) => draft.data.board.tasks.filter((task) => effectivePlanning(draft.data, task, 'phaseId') === entry.phaseId).map((task) => {
+                const phase = draft.data.extensions.roadmap!.phases.find((phase) => phase.id === entry.phaseId)!;
+                return { ...workitemReviewRow(task, translateCurrent('task.phase'), `${entry.title}: ${formatDate(phase.startDate!)} – ${formatDate(phase.endDate!)}`, `${entry.title}: ${formatDate(entry.startDate)} – ${formatDate(entry.endDate)}`), selectionId: entry.phaseId };
+            })) },
             selections: dateConflicts.map((entry) => {
                 const phase = draft.data.extensions.roadmap!.phases.find((phase) => phase.id === entry.phaseId)!;
                 return { id: entry.phaseId, label: entry.title, options: [

@@ -191,10 +191,10 @@ test('US-13 fixtures expose explicit mapping, planning removal, preserved commen
     await page.locator('#appMessageSelection').selectOption({ label: 'US-13 · Manutenção' }); await page.locator('#appMessageConfirmBtn').click();
     await page.locator('[data-field="state"]').selectOption({ label: 'Reparação' });
     await expect(page.locator('#appMessageConfirmBtn')).toBeEnabled();
-    await expect(page.locator('.transfer-workitem h4')).toContainText('Reparar portão');
+    await expect(page.locator('.workitem-review')).toContainText('Reparar portão');
     for (const field of await page.locator('select[data-field]:not([data-field="state"])').all()) await expect(field).toHaveValue('__remove__');
-    await expect(page.locator('.transfer-workitem')).toContainText('29/10/2026 · 09:00–10:00');
-    await expect(page.locator('.transfer-workitem')).toContainText('Exterior');
+    await expect(page.locator('.workitem-review')).toContainText('29/10/2026 · 09:00–10:00');
+    await expect(page.locator('.workitem-review')).toContainText('Exterior');
     await page.locator('[data-field="member-0"]').selectOption({ label: 'Bruno' });
     await page.locator('[data-field="tag-0"]').selectOption({ label: 'maintenance' });
     for (const select of await page.locator('.transfer-mapping-table select[data-field^="association-"]').all()) await select.selectOption('__remove__');
@@ -312,12 +312,11 @@ test('moving a parent with a started child lists its identity, title and state a
     const card = portfolioCard(page, 'Parent story'); await card.hover();
     await card.getByLabel('Task actions', { exact: true }).click();
     await card.getByRole('button', { name: 'Move to project…' }).click();
-    await expect(page.locator('.transfer-children')).toContainText('Child task');
-    await expect(page.locator('.transfer-children')).toContainText('in progress');
-    await expect(page.locator('.transfer-children tbody tr')).toHaveCount(3);
-    await expect(page.locator('.transfer-child-blocked')).toHaveCount(2);
-    await expect(page.locator('.transfer-child-blocked [role="img"]')).toHaveCount(2);
-    await expect(page.locator('.transfer-child-blocked [role="img"]').first()).toHaveAttribute('aria-label', 'Blocks transfer');
+    await expect(page.locator('.workitem-review')).toContainText('Child task');
+    await expect(page.locator('.workitem-review')).toContainText('in progress');
+    await expect(page.locator('.workitem-review-row')).toHaveCount(3);
+    await expect(page.locator('.workitem-review-reason')).toHaveCount(2);
+    await expect(page.locator('.workitem-review .workitem-type')).toHaveCount(3);
     await expect(page.locator('.transfer-error')).toContainText('2 workitem(s)');
     await expect(page.locator('#appMessageText')).toHaveCount(1);
     await expect(page.locator('.transfer-mapping-fields')).toHaveCount(0);
@@ -342,13 +341,12 @@ test('moving a parent reviews and moves every eligible descendant with explicit 
     await card.getByRole('button', { name: 'Move to project…' }).click();
     await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' });
     await page.locator('#appMessageConfirmBtn').click();
-    await expect(page.locator('.transfer-children tbody tr')).toHaveCount(4);
-    await expect(page.locator('.transfer-children')).toContainText('backlog');
+    await expect(page.locator('.workitem-review-row select')).toHaveCount(5);
+    await expect(page.locator('.workitem-review')).toContainText('backlog');
     await expect(page.locator('#appMessageConfirmBtn')).toBeEnabled();
-    await expect(page.locator('.transfer-workitem')).toHaveCount(5);
-    await expect(page.locator('.transfer-workitem h4')).toHaveText(['#1 · Parent story', '#2 · Child task 2', '#3 · Child task 3', '#4 · Child task 4', '#5 · Child task 5']);
+    await expect(page.locator('.workitem-review-title')).toContainText(['Parent story', 'Parent story', 'Child task 2', 'Child task 3', 'Child task 4', 'Child task 5']);
     for (const field of await page.locator('select[data-field]').all()) await expect(field).toHaveValue('backlog');
-    for (const field of await page.locator('.transfer-mapping-table select').all()) await field.selectOption('to-do');
+    for (const field of await page.locator('select[data-field]').all()) await field.selectOption('to-do');
     await page.locator('#appMessageConfirmBtn').click();
     await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
     const target = await readSavedBoard(page, 'target');
@@ -440,12 +438,10 @@ test('child associations are grouped and submitted independently with removal de
     await card.getByRole('button', { name: 'Move to project…' }).click();
     await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' });
     await page.locator('#appMessageConfirmBtn').click();
-    await expect(page.locator('.transfer-workitem')).toHaveCount(3);
-    for (const group of await page.locator('.transfer-workitem').all()) {
-        await expect(group.getByLabel('Status', { exact: true })).toHaveValue('backlog');
-        await expect(group.getByLabel('Tags', { exact: true })).toHaveValue('__remove__');
-    }
-    await page.getByRole('region', { name: '#2 · Remap child', exact: true }).getByLabel('Tags', { exact: true }).selectOption('mapped');
+    await expect(page.locator('.workitem-review-row select')).toHaveCount(6);
+    for (const field of await page.locator('select[data-field$="state"]').all()) await expect(field).toHaveValue('backlog');
+    for (const field of await page.locator('select[data-field$="tag-0"]').all()) await expect(field).toHaveValue('__remove__');
+    await page.locator('.workitem-review-row').filter({ has: page.locator('.workitem-review-title', { hasText: 'Remap child' }) }).getByLabel('Tags', { exact: true }).selectOption('mapped');
     await page.locator('#appMessageConfirmBtn').click();
     await answerAppMessage(page, { expectText: 'Transfer saved successfully.' });
     const target = await readSavedBoard(page, 'target');

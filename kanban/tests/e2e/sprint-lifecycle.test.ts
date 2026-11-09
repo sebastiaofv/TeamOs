@@ -3,6 +3,7 @@ import { defaultWorkflow } from '@/domain/workflow';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, confirmWorkitemChanges, answerAppMessage } from '../support/portfolio';
 
 test.use({ timezoneId: 'Europe/Lisbon' });
+const closureWorkflow = () => { const workflow = defaultWorkflow(); workflow.transitions.doing.push('backlog'); return workflow; };
 
 // Answers one message of a chain: the next message may reuse the open dialog,
 // so this only waits for the expected text, never for the dialog to close.
@@ -23,7 +24,7 @@ for (const finish of ['button', 'editor'] as const) {
       { id: 3, title: 'Unfinished development', type: 'task', parentId: 1, status: 'doing', sprintId: 's1' },
       { id: 4, title: 'Independent work', type: 'task', status: 'doing', sprintId: 's1', storyPoints: 3 },
       { id: 5, title: 'Future work', type: 'bug', status: 'backlog', storyPoints: 5 }
-    ], extensions: { functionalWorkflow: defaultWorkflow(), roadmap: { version: 5, phases: [], milestones: [], sprints: [
+    ], extensions: { workflow: closureWorkflow(), functionalWorkflow: defaultWorkflow(), roadmap: { version: 5, phases: [], milestones: [], sprints: [
       { id: 's1', title: 'Delivery', startDate: '2026-11-01', endDate: '2026-11-14', status: 'planned', goal: 'Ship the increment', capacity: 21 },
       { id: 's2', title: 'Next', startDate: '2026-11-15', endDate: '2026-11-30', status: 'planned' }
     ] } } }], { selectedBoardId: 'p' });
@@ -60,10 +61,13 @@ for (const finish of ['button', 'editor'] as const) {
       await expect(page.locator('#roadmapEntityModal')).toBeHidden();
       await sprint.getByRole('button', { name: 'Finish Sprint', exact: true }).click();
     }
+    await answerChainedMessage(page, { button: 'Keep planned date', expectText: 'end date' });
+    await expect(page.locator('#appMessageTitle')).toHaveText('Review workflow automations');
+    await answerChainedMessage(page, { button: 'Apply changes (2)' });
     await expect(page.locator('#appMessageTitle')).toHaveText('Finish Sprint');
-    await expect(page.locator('#appMessageModal .workitem-review-row')).toHaveCount(3);
+    await expect(page.locator('#appMessageModal .workitem-review-row')).toHaveCount(2);
     await expect(page.locator('#appMessageModal select')).toHaveCount(0);
-    await answerAppMessage(page, { button: 'Confirm' });
+    await answerAppMessage(page, { button: 'OK' });
     await expect(sprint.locator('.sprint-status-done')).toHaveText('Done');
     await expect(sprint.getByRole('button', { name: 'Finish Sprint', exact: true })).toHaveCount(0);
     const saved = await readSavedBoard(page, 'p');
@@ -72,7 +76,7 @@ for (const finish of ['button', 'editor'] as const) {
     expect(closure).toMatchObject({ plannedPoints: 11, velocity: 0, carryOverIds: [1, 4] });
     expect(closure.tasks[0]).toMatchObject({ status: 'ready-to-test', storyPoints: 8 });
     expect(saved.board.tasks.slice(0, 4)).toMatchObject([
-      { status: 'backlog', sprintId: '' }, { status: 'done', sprintId: 's1' }, { status: 'doing', sprintId: '' }, { status: 'backlog', sprintId: '' }
+      { status: 'backlog', sprintId: '' }, { status: 'done', sprintId: 's1' }, { status: 'backlog', sprintId: '' }, { status: 'backlog', sprintId: '' }
     ]);
     // Planned SP / capacity and completed SP / planned SP, frozen at closure.
     await expect(sprint.locator('[data-sprint-points="capacity"]')).toHaveText('11/21');
@@ -96,7 +100,7 @@ for (const finish of ['button', 'editor'] as const) {
     await confirmWorkitemChanges(page);
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
     const reassigned = await readSavedBoard(page, 'p');
-    expect(reassigned.board.tasks.slice(0, 3)).toMatchObject([{ sprintId: 's2' }, { sprintId: 's1', status: 'done' }, { sprintId: 's2', status: 'doing' }]);
+    expect(reassigned.board.tasks.slice(0, 3)).toMatchObject([{ sprintId: 's2' }, { sprintId: 's1', status: 'done' }, { sprintId: 's2', status: 'backlog' }]);
     expect(reassigned.extensions.sprintResults.closures[0]).toEqual(closure);
     await page.reload();
     await seedPortfolioBoards(page, [{ id: 'reopened', title: 'Reopened', hasHandle: true, tasks: reassigned.board.tasks, extensions: reassigned.extensions }], { selectedBoardId: 'reopened' });
@@ -127,7 +131,7 @@ test('Story Points edit independently of Effort and disappear when an independen
   await page.locator('#detailParentInput').selectOption('1');
   await confirmWorkitemChanges(page);
   await expect(page.locator('#detailStoryPointsInput')).toHaveCount(0);
-  expect((await readSavedBoard(page, 'p')).board.tasks[1].storyPoints).toBeUndefined();
+  await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[1].storyPoints).toBeUndefined();
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Bug', exact: true }).click();
   await expect(page.locator('#detailStoryPointsInput')).toHaveValue('5');
@@ -189,13 +193,13 @@ test('Sprint dates follow the duration in business days, and starting late asks 
   expect((await readSavedBoard(page, 'p')).extensions.roadmap.sprints[0]).toMatchObject({ status: 'active', startDate: '2026-11-04', endDate: '2026-11-25' });
 });
 
-for (const finish of ['button', 'editor'] as const) test(`Sprint closure via ${finish} retains implemented Stories, cancels atomically and confirms once`, async ({ page }, testInfo) => {
+for (const finish of ['button', 'editor'] as const) test(`Sprint closure via ${finish} retains implemented Stories, separates date choice, automation approval and Backlog information`, async ({ page }, testInfo) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Closure review', hasHandle: true, tasks: [
         { id: 1, title: 'Story in Testing', type: 'story', status: 'ready-to-test', sprintId: 's1' },
         { id: 2, title: 'Implementation complete', type: 'task', parentId: 1, status: 'done', sprintId: 's1' },
         { id: 3, title: 'Unfinished task', type: 'task', status: 'doing', sprintId: 's1' }
-    ], extensions: { functionalWorkflow: defaultWorkflow(), roadmap: { version: 5, phases: [], milestones: [], sprints: [
+    ], extensions: { workflow: closureWorkflow(), functionalWorkflow: defaultWorkflow(), roadmap: { version: 5, phases: [], milestones: [], sprints: [
         { id: 's1', title: 'Delivery', startDate: '2026-01-01', endDate: '2099-12-31', status: 'active' }
     ] } } }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode="table"]').click();
@@ -211,19 +215,25 @@ for (const finish of ['button', 'editor'] as const) test(`Sprint closure via ${f
     };
     await close();
     const modal = page.locator('#appMessageModal');
-    await expect(modal.locator('#appMessageTitle')).toHaveText('Finish Sprint');
-    await expect(modal.locator('.workitem-review h3')).toHaveText('Unplanned workitems');
-    await expect(modal.locator('.workitem-review-row')).toHaveCount(1);
-    await expect(modal.locator('.workitem-review-title')).toHaveText('Unfinished task');
-    await expect(modal.getByRole('button')).toHaveText(['Cancel', 'Confirm']);
-    await page.setViewportSize({ width: 390, height: 720 });
-    await expect(modal.getByRole('button', { name: 'Confirm', exact: true })).toBeInViewport();
-    await page.screenshot({ path: testInfo.outputPath(`sprint-close-${finish}.png`), fullPage: true });
+    await expect(modal.locator('#appMessageText')).toContainText('end date');
     await answerAppMessage(page, { button: 'Cancel' });
     expect((await readSavedBoard(page, 'p')).extensions.sprintResults?.closures || []).toHaveLength(0);
     await expect(sprint.locator('.sprint-status-active')).toHaveText('Active');
     await close();
-    await answerAppMessage(page, { button: 'Confirm' });
+    await answerChainedMessage(page, { button: 'Keep planned date' });
+    await expect(modal.locator('#appMessageTitle')).toHaveText('Review workflow automations');
+    await expect(modal.locator('.workitem-review-title')).toHaveText('Unfinished task');
+    await answerChainedMessage(page, { button: 'Apply changes (1)' });
+    await expect(modal.locator('#appMessageTitle')).toHaveText('Finish Sprint');
+    await expect(modal.locator('.workitem-review h3')).toHaveText('Backlog');
+    await expect(modal.locator('.workitem-review-row')).toHaveCount(1);
+    await expect(modal.locator('.workitem-review-title')).toHaveText('Unfinished task');
+    await expect(modal.locator('select')).toHaveCount(0);
+    await expect(modal.getByRole('button')).toHaveText(['OK']);
+    await page.setViewportSize({ width: 390, height: 720 });
+    await expect(modal.getByRole('button', { name: 'OK', exact: true })).toBeInViewport();
+    await page.screenshot({ path: testInfo.outputPath(`sprint-close-${finish}.png`), fullPage: true });
+    await answerAppMessage(page, { button: 'OK' });
     await expect(sprint.locator('.sprint-status-done')).toHaveText('Done');
     await expect(modal).toHaveCount(0);
     const saved = await readSavedBoard(page, 'p');

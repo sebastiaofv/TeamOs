@@ -1,9 +1,10 @@
 import { type AutomationRule, type AutomationMode, type HierarchyAutomations } from '@/domain/hierarchyAutomations';
 import { useI18n } from '@/shared/i18n';
 
-const GROUPS: { name: 'progress' | 'exceptions'; rules: AutomationRule[] }[] = [
+const GROUPS: { name: 'progress' | 'exceptions' | 'sprint'; rules: AutomationRule[] }[] = [
     { name: 'progress', rules: ['parentToTodo', 'startParent', 'prepareTesting', 'completeEpic'] },
-    { name: 'exceptions', rules: ['cancelParent', 'reopenParent', 'hierarchyChanges'] }
+    { name: 'exceptions', rules: ['cancelParent', 'reopenParent', 'hierarchyChanges'] },
+    { name: 'sprint', rules: ['sprintUnfinishedTasks'] }
 ];
 const MODES: AutomationMode[] = ['off', 'confirm', 'automatic'];
 export function AutomationSettings({ config, onChange, disabled }: { config: HierarchyAutomations; onChange: (config: HierarchyAutomations) => void; disabled: boolean }) {

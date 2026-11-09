@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { fromPartial } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '@/domain/board';
 import { normalizeTask } from '@/domain/task';
-import { applyHierarchyAutomations, defaultHierarchyAutomations, getHierarchyAutomations, type AutomationMode, type AutomationRule } from '@/domain/hierarchyAutomations';
+import { applyHierarchyAutomations, defaultHierarchyAutomations, getHierarchyAutomations, parseHierarchyAutomations, type AutomationMode, type AutomationRule } from '@/domain/hierarchyAutomations';
 import { serializeBoardDataFromObject } from '@/domain/serialize';
 import { getWorkflow } from '@/domain/workflow';
 import { ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline } from '@/domain/timeline';
@@ -38,7 +38,7 @@ function setup(data = project()) {
 describe('US-30 hierarchy rules', () => {
     it('defaults every rule to validation, including legacy projects without settings', () => {
         const data = project(); delete data.extensions.hierarchyAutomations;
-        expect(Object.values(getHierarchyAutomations(data).rules)).toEqual(Array(7).fill('confirm'));
+        expect(Object.values(getHierarchyAutomations(data).rules)).toEqual(Array(8).fill('confirm'));
     });
     const scenarios: { rule: AutomationRule; before: string[]; after: Partial<Task>; expected: string }[] = [
         { rule: 'parentToTodo', before: ['backlog', 'backlog', 'backlog'], after: { status: 'to-do' }, expected: 'to-do' },
@@ -100,7 +100,7 @@ describe('US-30 hierarchy rules', () => {
         before.extensions.functionalWorkflow!.transitions['to-do'] = ['cancelled'];
         before.extensions.functionalWorkflow!.transitions.backlog.push('development');
         const blocked = structuredClone(before); blocked.board.tasks[2].status = 'doing';
-        expect(applyHierarchyAutomations(blocked, before, () => true)).toEqual([]); expect(blocked.board.tasks[1].status).toBe('to-do');
+        expect(applyHierarchyAutomations(blocked, before, () => true)).toMatchObject([{ outcome: 'blocked', from: 'to-do', to: 'development' }]); expect(blocked.board.tasks[1].status).toBe('to-do');
     });
     it('reassesses both old and new parents on reparenting and keeps structural configuration independent', () => {
         const before = project('off'); before.extensions.hierarchyAutomations!.rules.hierarchyChanges = 'automatic';
@@ -125,7 +125,7 @@ describe('US-30 mutation integration and persistence', () => {
         await actions.movePortfolioTaskToStatus('p', 3, 'doing');
         expect(statuses(data())).toEqual(['doing', 'doing', 'doing']); expect(confirm).toHaveBeenCalledTimes(1);
         expect(confirm.mock.calls[0][1]?.selections).toHaveLength(2);
-        expect(confirm.mock.calls[0][1]?.workitems).toMatchObject({ heading: 'Start parent work', countSelection: true, rows: [{ from: 'To Do', to: 'In progress' }, { from: 'To Do', to: 'In progress' }] });
+        expect(confirm.mock.calls[0][1]?.workitems).toMatchObject({ rules: [{ name: 'Start parent work' }], countSelection: true, rows: [{ from: 'To Do', to: 'In progress' }, { from: 'To Do', to: 'In progress' }] });
     });
     it.each([false, { '2:startParent:to-do:doing': 'keep', '1:startParent:to-do:doing': 'advance' }])('preserves the child edit and does not cascade rejected states: %j', async (answer) => {
         const { actions, data, confirm, save } = setup(); confirm.mockResolvedValueOnce(answer);
@@ -222,4 +222,50 @@ describe('US-30 mutation integration and persistence', () => {
         const board = serializeBoardDataFromObject(raw); validateBoardData(board);
         expect(board.board.tasks.length).toBeGreaterThan(15); expect(getHierarchyAutomations(board)).toEqual(defaultHierarchyAutomations());
     });
+});
+
+
+describe('November 9 workflow feedback', () => {
+    it('reopens a Task without redundant confirmation when all rules are Off', async () => {
+        const before = project('off'); before.extensions.workflow!.transitions.done.push('doing'); before.board.tasks[1].status = 'done'; before.board.tasks[2].status = 'done';
+        const { actions, confirm, data } = setup(before);
+        expect(await actions.movePortfolioTaskToStatus('p', 3, 'doing')).toBe(true);
+        expect(confirm).not.toHaveBeenCalled();
+        expect(data().board.tasks[1].status).toBe('done');
+    });
+    it.each(['confirm', 'automatic'] as const)('reports blocked workflow transitions in %s without a decision selector', async (mode) => {
+        const before = project(mode);
+        before.board.tasks[2].status = 'doing';
+        const { actions, confirm, data } = setup(before);
+        await actions.movePortfolioTaskToStatus('p', 3, 'done');
+        expect(data().board.tasks[1].status).toBe('to-do');
+        expect(confirm).toHaveBeenCalledTimes(1);
+        expect(confirm.mock.calls[0][1]).toMatchObject({ informational: true, title: 'Review workflow automations', workitems: { rows: [{ from: 'To Do', to: 'Ready to test', field: 'Status' }] } });
+        expect(confirm.mock.calls[0][1]?.selections).toBeUndefined();
+    });
+});
+
+
+it('migrates saved seven-rule settings with the new Sprint rule in On 1', () => {
+    const legacy = JSON.parse(JSON.stringify(defaultHierarchyAutomations()));
+    delete legacy.rules.sprintUnfinishedTasks;
+    legacy.rules.startParent = 'off';
+    const migrated = parseHierarchyAutomations(legacy);
+    expect(migrated.rules.sprintUnfinishedTasks).toBe('confirm');
+    expect(migrated.rules.startParent).toBe('off');
+    expect(legacy.rules.sprintUnfinishedTasks).toBeUndefined();
+});
+
+
+it('keeps a parent field independently of another edit, including estimates and replayed history', async () => {
+    const before = project('off');
+    before.board.tasks[2].parentId = null; before.board.tasks[2].storyPoints = 8;
+    const { context, data, confirm } = setup(before);
+    confirm.mockResolvedValueOnce({ '3:parentId': 'keep' });
+    await context.runPortfolioTaskMutation('p', 3, (task) => { task.parentId = 2; task.title = 'A retained edit'; return true; });
+    expect(data().board.tasks[2]).toMatchObject({ parentId: null, storyPoints: 8, title: 'A retained edit' });
+    const events = data().extensions.timeline!.events;
+    expect(events.some((event) => event.entityId === '3' && event.changes?.parentId)).toBe(false);
+    const replay = reconstructBoardStateFromTimeline(data(), events.length - 1);
+    expect(replay.board.tasks[2]).toMatchObject({ parentId: null, storyPoints: 8, title: 'A retained edit' });
 });
