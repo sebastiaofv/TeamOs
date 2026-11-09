@@ -149,6 +149,7 @@ for (const language of ['en', 'pt']) for (const [kind, title, id] of [
     await sidebar.locator('#taskTagNewItem').selectOption('documentation');
     await sidebar.locator('#taskTagAddBtn').click();
     await waitForBoardWrites(page);
+    await expect.poll(async () => (await readSavedBoard(page, 'control')).extensions.projectControl.records.find((item: any) => item.id === id).tags).toContain('documentation');
     let record = (await readSavedBoard(page, 'control')).extensions.projectControl.records.find((item: any) => item.id === id);
     expect(record.owner).toBe('Bruno Costa');
     expect(record.assignees).toEqual(expect.arrayContaining(['Ana Silva', 'Rui Costa', 'Bruno Costa']));
@@ -165,6 +166,7 @@ for (const language of ['en', 'pt']) for (const [kind, title, id] of [
     await sidebar.locator('.tag-editor-row').filter({ hasText: 'documentation' }).getByRole('button').click();
     await dialog(page).getByRole('button', { name: language === 'pt' ? 'Fechar' : 'Close', exact: true }).last().click();
     await waitForBoardWrites(page);
+    await expect.poll(async () => (await readSavedBoard(page, 'control')).extensions.projectControl.records.find((item: any) => item.id === id).tags).not.toContain('documentation');
     record = (await readSavedBoard(page, 'control')).extensions.projectControl.records.find((item: any) => item.id === id);
     expect(record.owner).toBe(''); expect(record.assignees).not.toContain('Bruno Costa'); expect(record.tags).not.toContain('documentation');
     await page.getByRole('button', { name: title, exact: true }).click();

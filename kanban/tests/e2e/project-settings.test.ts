@@ -214,7 +214,7 @@ test('project tabs retain both drafts and save the intended project together', a
     await openProjectSettingsFromPicker(page, 'Configured project');
     const modal = page.locator('#projectSettingsModal');
     const tabs = modal.getByRole('tablist', { name: 'Project settings', exact: true });
-    await expect(tabs.getByRole('tab')).toHaveText(['General', 'Technical workflow', 'Functional workflow']);
+    await expect(tabs.getByRole('tab')).toHaveText(['General', 'Technical workflow', 'Functional workflow', 'Automations']);
     await page.locator('#projectName').fill('Renamed project');
     await tabs.getByRole('tab', { name: 'General', exact: true }).focus();
     await page.keyboard.press('ArrowRight');

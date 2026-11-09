@@ -62,7 +62,16 @@ export function recordSprintCredits(data: BoardData, previous: BoardData): void 
     if (results.credits.length || results.closures.length) data.extensions.sprintResults = results;
 }
 
-/** Freeze before returning planning units to Backlog. Child Task states are never reset. */
+export function sprintUnplannedWorkitems(data: BoardData, sprintId: string): Task[] {
+    return sprintUnallocatedWorkitems(data, sprintId).filter((task) => isPlanningUnit(data, task));
+}
+
+/** Current workitems that lose their Sprint allocation on closure. */
+function sprintUnallocatedWorkitems(data: BoardData, sprintId: string): Task[] {
+    return data.board.tasks.filter((task) => task.sprintId === sprintId && (isPlanningUnit(data, task) ? hasPendingWork(data, task) : !isTerminal(data, task)));
+}
+
+/** Freeze before returning planning units to Backlog. Task state resets are governed by the Sprint automation. */
 export function closeSprint(data: BoardData, sprintId: string, finalSprint?: RoadmapItem): void {
     const results = data.extensions.sprintResults ||= { version: 1, credits: [], closures: [] };
     if (results.closures.some((closure) => closure.sprintId === sprintId)) return;
@@ -80,9 +89,8 @@ export function closeSprint(data: BoardData, sprintId: string, finalSprint?: Roa
     // Freeze all recorded rows, including children and workitems that left earlier.
     const entries = data.extensions.sprintParticipation?.entries || [];
     data.extensions.sprintParticipation = { version: 1, entries: [...entries.filter((entry) => entry.sprintId !== sprintId), ...tasks.map((task) => ({ sprintId, task: structuredClone(task), at: timestamp }))] };
-    for (const task of data.board.tasks) {
-        if (task.sprintId !== sprintId || isTerminal(data, task)) continue;
-        if (carryOverIds.includes(task.id)) {
+    for (const task of sprintUnallocatedWorkitems(data, sprintId)) {
+        if (carryOverIds.includes(task.id) && workitemType(task) !== 'task') {
             const workflow = getWorkflow(data, task);
             const backlog = workflow.states.find((state) => state.id === workflow.references.backlog) || workflow.states.find((state) => state.category === 'backlog');
             if (!backlog) throw new Error('A Backlog workflow state is required to finish this Sprint.');

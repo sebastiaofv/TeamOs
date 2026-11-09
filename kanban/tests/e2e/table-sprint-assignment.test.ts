@@ -68,7 +68,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await page.locator('#roadmapEntityModalSaveBtn').click();
   await confirmWorkitemChanges(page);
   await waitForBoardWrites(page);
-  expect((await readSavedBoard(page, 'p')).board.tasks[2].sprintId).toBe('planned');
+  await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[2].sprintId).toBe('planned');
   await expect(page.locator('#workitemsTable')).toHaveCount(0);
   await page.locator('[data-view-mode="board"]').click();
   await expect(portfolioCard(page, 'Board selection').locator('input[type="checkbox"]')).toHaveCount(0);

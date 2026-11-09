@@ -1,3 +1,4 @@
+import { parseHierarchyAutomations } from './hierarchyAutomations';
 import { parseSprintResults } from './sprintResults';
 import { parseProjectControl } from './projectControl';
 import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData } from './types';
@@ -45,6 +46,7 @@ export function normalizeBoardExtensionsValue(
     const nextExtensions = ((base && typeof base === 'object' && !Array.isArray(base))
         ? { ...base }
         : {}) as BoardExtensions;
+    if (nextExtensions.hierarchyAutomations !== undefined) nextExtensions.hierarchyAutomations = parseHierarchyAutomations(nextExtensions.hierarchyAutomations);
     if (nextExtensions.sprintResults !== undefined) nextExtensions.sprintResults = parseSprintResults(nextExtensions.sprintResults);
     if (nextExtensions.project !== undefined) nextExtensions.project = parseProjectData(nextExtensions.project);
     if (nextExtensions.projectControl !== undefined) nextExtensions.projectControl = parseProjectControl(nextExtensions.projectControl);

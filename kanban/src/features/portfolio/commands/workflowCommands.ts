@@ -1,7 +1,8 @@
+import { workitemReviewRow, statusName } from './workitemReview';
 import { WorkitemError } from '@/domain/workitems';
 import type { WorkflowCategory, WorkflowKind, WorkitemAutomation } from '@/domain/types';
 import type { BoardMutationContext } from './mutationContext';
-import { allowedWorkflowDestinations, statusCategory } from '@/domain/workflow';
+import { allowedWorkflowDestinations, getWorkflow, statusCategory } from '@/domain/workflow';
 import { appendTimelineEvent } from '@/domain/timeline';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { translateCurrent } from '@/shared/i18n';
@@ -16,8 +17,8 @@ export function createWorkflowActions({ runPortfolioBoardMutation, getBoardRecor
         const task = data?.board.tasks.find((item) => item.id === taskId);
         if (!data || !task || statusCategory(task.status, data, task) === category) return false;
         const eligible = allowedWorkflowDestinations(data, task.status, category, task);
-        if (!eligible.length) { await alert(translateCurrent('workflow.transitionDenied')); return false; }
-        const target = eligible.length === 1 ? eligible[0].id : await choose(translateCurrent('workflow.chooseDestination'), eligible.map((state) => ({ value: state.id, label: state.name })));
+        if (!eligible.length) { await alert(translateCurrent('workflow.transitionDenied'), { workitems: { rows: [workitemReviewRow(task, translateCurrent('task.status'), statusName(data, task), getWorkflow(data, task).states.find((state) => state.category === category)?.name || category)] } }); return false; }
+        const target = eligible.length === 1 ? eligible[0].id : await choose(translateCurrent('workflow.chooseDestination'), eligible.map((state) => ({ value: state.id, label: state.name })), { workitems: { rows: [workitemReviewRow(task, translateCurrent('task.status'), statusName(data, task), eligible.map((state) => state.name).join(' / '))] } });
         if (!target) return false;
         if (getBoardRecord(boardId)?.data.board.tasks.find((item) => item.id === taskId)?.status !== task.status) return false;
         return moveTask(boardId, taskId, target);

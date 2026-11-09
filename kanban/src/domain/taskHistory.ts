@@ -91,6 +91,7 @@ function relationValue(relations: Relations, id: number, state: State | null | u
 
 function categories(event: TimelineEvent, changes: HistoryChange[]): HistoryCategory[] {
     const values = new Set<HistoryCategory>();
+    if (['task.automation.rejected', 'task.automation.blocked'].includes(event.kind)) values.add('status');
     if (event.kind === 'task.created') values.add('creation');
     if (event.kind === 'board.restored') values.add('restore');
     for (const { field } of changes) {
@@ -161,7 +162,7 @@ export function projectTaskHistory(data: BoardData, selectedTask: Task, eventInd
                 after: reference(field, safeValue(field, change.after), event, 'after', null, data) });
         }
         if (own && event.meta?.transfer) changes.push({ field: 'transfer', before: null, after: event.meta.transfer });
-        const publication = own && ['task.comment.published', 'task.comment.referenced'].includes(event.kind);
+        const publication = own && ['task.comment.published', 'task.comment.referenced', 'task.automation.rejected', 'task.automation.blocked'].includes(event.kind);
         if (!changes.length && !publication && !(own && ['task.created', 'task.deleted', 'task.updated', 'task.status.changed', 'task.archived', 'task.restored'].includes(event.kind))) continue;
         // A known no-op is not a fictitious update. Unknown legacy details remain explicit.
         if (!changes.length && !publication && beforeTask && afterTask && event.changes) continue;
@@ -195,6 +196,7 @@ export function projectTaskHistory(data: BoardData, selectedTask: Task, eventInd
         existing.changes.push(...entry.changes); existing.categories = [...new Set([...existing.categories, ...entry.categories])];
         existing.index = entry.index; existing.at = entry.at; existing.bulk ||= entry.bulk;
         existing.partial ||= entry.partial;
+        existing.cause ||= entry.cause;
         existing.author ||= entry.author; existing.localAuthor ||= entry.localAuthor;
     }
     result.entries = [...grouped.values()].sort((a, b) => b.index - a.index);

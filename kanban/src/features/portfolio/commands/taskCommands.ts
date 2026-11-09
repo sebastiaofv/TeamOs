@@ -1,3 +1,4 @@
+import { workitemReviewRow, statusName } from './workitemReview';
 import type { DetailContext } from '@/features/portfolio/state/slices';
 import { workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import { childrenOf, eligibleSprint, isPlanningUnit, WorkitemError } from '@/domain/workitems';
@@ -206,7 +207,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const confirmed = await confirm(translateCurrent('messages.deleteQuestion', { title }) + impact, {
             title: translateCurrent('messages.deleteTask'),
             confirmLabel: translateCurrent('messages.delete'),
-            danger: true
+            danger: true, workitems: { rows: [workitemReviewRow(source.task, translateCurrent('review.workitem'), translateCurrent('review.present'), translateCurrent('review.deleted'))] }
         });
         if (!confirmed) return;
 
@@ -396,7 +397,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         if (!validStatuses.has(normalizedTargetStatus)) return false;
         if (source.task.status === normalizedTargetStatus) return false;
         if (!canTransition(source.boardRecord.data, source.task.status, normalizedTargetStatus, source.task)) {
-            await alert(translateCurrent('workflow.transitionDenied'));
+            await alert(translateCurrent('workflow.transitionDenied'), { workitems: { rows: [workitemReviewRow(source.task, translateCurrent('task.status'), statusName(source.boardRecord.data, source.task), getWorkflow(source.boardRecord.data, source.task).states.find((state) => state.id === normalizedTargetStatus)?.name || normalizedTargetStatus)] } });
             return false;
         }
         return Boolean(await runPortfolioTaskMutation(boardId, taskId, (task) => {
@@ -409,8 +410,11 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
     // Adds `name` to the task's assignees, or removes it when already there.
     async function confirmResponsibleParticipantRemoval(name: string): Promise<boolean> {
+        const context = getState().portfolioEditContext || getState().portfolioDetailContext;
+        const source = context ? findPortfolioTaskSource(context.boardId, context.taskId) : null;
         return Boolean(await confirm(translateCurrent('task.removeResponsibleQuestion', { name }), {
-            title: translateCurrent('editor.removeAssignee'), confirmLabel: translateCurrent('common.remove'), danger: true
+            title: translateCurrent('editor.removeAssignee'), confirmLabel: translateCurrent('common.remove'), danger: true,
+            ...(source ? { workitems: { rows: [workitemReviewRow(source.task, translateCurrent('task.responsible'), name, '—')] } } : {})
         }));
     }
 
