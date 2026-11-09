@@ -116,6 +116,8 @@
 }
 
 .portfolio-task-card-select {
+    /* Keep the screen-reader label inside the horizontally scrolling Board. */
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 6px;
