@@ -13,7 +13,7 @@ import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
 
-type Props = { boardId: string; data: BoardData; source: BoardData; phaseId: string; start: string; end: string; visible: DashboardSection[]; inspect: (name: string, tasks: Task[], data?: BoardData) => void; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
+type Props = { dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; phaseId: string; start: string; end: string; visible: DashboardSection[]; inspect: (name: string, tasks: Task[], data?: BoardData) => void; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
 const COLORS = { completed: '#22a56a', 'in-progress': '#3985ff', pending: '#949dab', cancelled: '#ba7899' };
 
 function Ring({ percent, label, children }: { percent: number | null; label: string; children: React.ReactNode }) {
@@ -32,12 +32,12 @@ function Workitems({ tasks, data, boardId, contexts }: { tasks: Task[]; data: Bo
     </tbody></table></div>;
 }
 
-export function DashboardOverview({ boardId, data, source, phaseId, start, end, visible, inspect, openRoadmap }: Props) {
+export function DashboardOverview({ dependencyBlockedIds, boardId, data, source, phaseId, start, end, visible, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
     const [control, setControl] = useState<ControlRecord | null>(null);
     const { metrics, planning, statistics, period, current, controls, sprints } = useMemo(() => {
         const tasks = dashboardTasks(data, phaseId);
-        const metrics = dashboardMetrics(data, tasks, end);
+        const metrics = dashboardMetrics(data, tasks, end, dependencyBlockedIds);
         const planning = dashboardOverviewPlanning(data, phaseId, end);
         const statistics = dashboardStatistics(data, phaseId);
         const period = dashboardPeriodWorkitems(source, data, phaseId, start, end);
@@ -45,16 +45,16 @@ export function DashboardOverview({ boardId, data, source, phaseId, start, end, 
         const controls = dashboardControl(data, phaseId, start, end);
         const sprints = dashboardSprints(data, phaseId, end).filter((sprint) => sprint.status === 'active' && (!phaseId || sprint.tasks.length || sprint.item.parentId === phaseId));
         return { metrics, planning, statistics, period, current, controls, sprints };
-    }, [data, source, phaseId, start, end]);
+    }, [data, source, phaseId, start, end, dependencyBlockedIds]);
     const percent = (value: number | null) => value === null ? t('dashboard.na') : `${new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(value)}%`;
     const warning = <span className="dashboard-warning">⚠ {t('dashboard.overdue')}</span>;
     const categoryLabel = (category: string) => t(category === 'in-progress' ? 'dashboard.inProgress' : category === 'pending' ? 'dashboard.pending' : category === 'cancelled' ? 'dashboard.cancelled' : 'dashboard.completed');
     return <div className="dashboard-section-grid">
         {visible.includes('projectOverview') && <section className="dashboard-panel dashboard-overview" data-dashboard-section="projectOverview"><h3>{t('dashboard.section.projectOverview')}</h3>
-            <div className="dashboard-overview-content"><button type="button" className="dashboard-progress-button" data-dashboard-kpi="progress" onClick={() => inspect(t('dashboard.progress'), metrics.eligible)}>
+            <div className="dashboard-overview-content"><div className="dashboard-progress-summary"><button type="button" className="dashboard-progress-button" data-dashboard-kpi="progress" onClick={() => inspect(t('dashboard.progress'), metrics.eligible)}>
                 <Ring percent={metrics.progress.percent} label={`${t('dashboard.progress')}: ${percent(metrics.progress.percent)}`}><strong>{percent(metrics.progress.percent)}</strong><small>{t('dashboard.projectProgress')}</small></Ring>
                 <small>{t('dashboard.progressRule', { done: metrics.completed.length, total: metrics.eligible.length })}</small>
-            </button><div className="dashboard-phase-summary"><h4>{t('dashboard.projectPhases')}</h4>
+            </button><button type="button" className="dashboard-progress-button" data-dashboard-kpi="blocked" onClick={() => inspect(t('dashboard.blockedWorkitems'), metrics.blocked)}><strong>{metrics.blocked.length}</strong><small>{t('dashboard.blockedWorkitems')}</small></button></div><div className="dashboard-phase-summary"><h4>{t('dashboard.projectPhases')}</h4>
                 {!planning.phases.length ? <p>{t('dashboard.noOpenPhases')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>{t('task.phase')}</th><th>{t('dashboard.percentComplete')}</th><th>{t('dashboard.endDate')}</th></tr></thead><tbody>{planning.phases.map((group) => <tr key={group.item.id} data-dashboard-planning={group.item.id}><td>
                     <button className="dashboard-link" type="button" onClick={() => openRoadmap('phases', group.item)}>{group.item.title}</button>{group.overdue ? warning : group.current && <span className="dashboard-badge">{t('dashboard.currentPhase')}</span>}
                 </td><td><button className="dashboard-link" type="button" onClick={() => inspect(group.item.title, group.tasks)}>{percent(group.progress.percent)}</button></td><td>{formatDate(group.item.endDate || '') || t('dashboard.na')}</td></tr>)}</tbody></table></div>}

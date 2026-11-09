@@ -25,7 +25,7 @@ import type { TableSort } from '@/features/portfolio/table/tableModel';
 import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 
 export type EditContext = { boardId: string; taskId: number; returnToDetail?: DetailContext };
-export type CreateContext = { boardId: string; status: TaskStatus; returnToDetail?: DetailContext; relatedTo?: { taskId: number; kind: TaskRelationKind } };
+export type CreateContext = { boardId: string; status: TaskStatus; sprintId?: string; returnToDetail?: DetailContext; relatedTo?: { taskId: number; kind: TaskRelationKind } };
 export type DetailContext = { boardId: string; taskId: number; readOnly: boolean; historyEventIndex?: number; returnToDetail?: DetailContext };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode; unplannedTaskIds?: number[] };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };
@@ -42,6 +42,8 @@ export type PortfolioSlice = {
     productProjectSelectionByKey: Record<string, string>;
     selectedPortfolioViewMode: PortfolioViewMode;
     portfolioFilters: PortfolioFilters;
+    tableFiltersByScope: Record<string, import('@/features/portfolio/table/tableControls').TableFilterState>;
+    activeTableFilterScope: string;
     portfolioBoardActiveSprintsOnly: boolean;
     portfolioTableSortByBoardId: Record<string, TableSort>;
     portfolioSortKey: PortfolioSortKey;
@@ -108,6 +110,8 @@ export function createPortfolioSlice(): PortfolioSlice {
         portfolioTableSortByBoardId: {},
         portfolioBoardActiveSprintsOnly: true,
         portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: [] },
+        tableFiltersByScope: {},
+        activeTableFilterScope: '',
         portfolioSortKey: 'priority',
         portfolioSortDir: 'asc',
         portfolioEditContext: null,

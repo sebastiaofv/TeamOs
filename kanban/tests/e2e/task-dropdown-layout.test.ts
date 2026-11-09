@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, openTaskEditor } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, openTaskEditor, toggleTheme } from '../support/portfolio';
 
 for (const { width, dark } of [1280, 390].flatMap((width) => [false, true].map((dark) => ({ width, dark })))) {
     test(`task member/tag dropdowns stay contained at ${width}px (${dark ? 'dark' : 'light'})`, async ({ page }) => {
         await page.setViewportSize({ width, height: 800 });
         await gotoApp(page);
-        if (dark) await page.locator('#themeToggleBtn').click();
+        if (dark) await toggleTheme(page);
         const member = 'A member with a very long display name '.repeat(5).trim();
         const tag = 'w'.repeat(30);
         await seedPortfolioBoards(page, [{ id: 'p', title: 'Dropdowns', hasHandle: true,

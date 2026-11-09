@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards } from './support/portfolio';
+import { gotoApp, seedPortfolioBoards, toggleTheme } from './support/portfolio';
 
 for (const theme of ['light', 'dark']) for (const width of [1840, 390]) {
     test(`dashboard nine-section layout at ${width}px (${theme})`, async ({ page }) => {
@@ -12,7 +12,7 @@ for (const theme of ['light', 'dark']) for (const width of [1840, 390]) {
         await page.locator('[data-view-mode="dashboard"]').click();
         await page.getByLabel('Start date', { exact: true }).fill('24/10/2026');
         await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
-        if (theme === 'dark') await page.locator('#themeToggleBtn').click();
+        if (theme === 'dark') await toggleTheme(page);
         await page.mouse.move(1, 1);
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
         const grid = page.locator('.dashboard-section-grid');

@@ -1,7 +1,7 @@
-import { showTimeline } from '../support/portfolio';
+import { showTimeline, toggleLanguage, gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, installControlledPortfolioWriter, mutateExternalBoardFile, triggerExternalFileCheck, setTimelineSlider, mockImportProjectsPicker, openProjectPicker } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, installControlledPortfolioWriter, mutateExternalBoardFile, triggerExternalFileCheck, setTimelineSlider, mockImportProjectsPicker } from '../support/portfolio';
+
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==';
 
@@ -106,8 +106,8 @@ test('a failed save keeps the applied publication and retry saves that same reco
     const id = await page.locator('.comment-publication').getAttribute('data-comment-id');
     await expect(page.locator('#commentText')).toHaveValue('');
     await page.keyboard.press('Escape');
-    await expect(page.locator('.chip-save-state.error')).toBeVisible();
-    await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    await expect(page.locator('.header-project-picker > .chip-save-state.error')).toBeVisible();
+    await openProjectPicker(page); await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.conversations?.entries.length).toBe(1);
     const saved = await readSavedBoard(page, 'p');
     expect(saved.extensions.conversations.entries[0].id).toBe(id);
@@ -180,7 +180,7 @@ test('import rejects structurally PNG-looking but undecodable image content rath
     await mockImportProjectsPicker(page, [{ fileName: 'invalid-image.board.json', payload: fixture }]);
     await page.locator('#importProjectsBtn').click();
     await expect(page.locator('#appMessageModal')).toContainText('Invalid comment: format');
-    await expect(page.locator('#portfolioBoardsChips')).toContainText('No projects loaded');
+    await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
 });
 
 test('external removal retains an orphaned draft for recovery instead of deleting it', async ({ page }) => {
@@ -202,7 +202,7 @@ for (const language of ['en', 'pt'] as const) {
     test(`dedicated Comments tab keeps drafts, posts as the selected project member, and prepends publications (${language})`, async ({ page }) => {
         await gotoApp(page);
         await seedPortfolioBoards(page, [{ id: 'p', title: 'Tab review', hasHandle: true, tasks: [{ id: 1, title: 'Selected workitem' }] }], { selectedBoardId: 'p' });
-        if (language === 'pt') await page.locator('#languageToggleBtn').click();
+        if (language === 'pt') await toggleLanguage(page);
         await portfolioCard(page, 'Selected workitem').click();
         const comments = page.getByRole('tab', { name: language === 'pt' ? 'Comentários' : 'Comments', exact: true });
         const details = page.getByRole('tab', { name: language === 'pt' ? 'Detalhes' : 'Details', exact: true });

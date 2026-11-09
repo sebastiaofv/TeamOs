@@ -30,18 +30,18 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'start-layout',
                 title: 'Orientação no ecrã',
-                summary: 'O ecrã é composto pela barra superior, a barra de ferramentas, os chips de projeto e a vista ativa.',
+                summary: 'A barra superior reúne as ações globais; a navegação e a seleção de projeto dão acesso a cada vista, com os controlos na sua barra existente.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Barra superior', 'Tema, definições da aplicação, idioma, atalhos de teclado, esta documentação, Importar projetos e Novo projeto. Está sempre disponível, mesmo enquanto lê a documentação.'],
+                        ['Barra superior', 'Seletor de projeto junto ao logo, pesquisa (abre a [paleta de comandos](prod-palette)), atalhos de teclado, documentação, definições da aplicação, Importar projetos e Novo projeto. Está sempre disponível, mesmo enquanto lê a documentação.'],
                         ['Botão de documentação', 'O ícone de livro abre esta documentação no lugar do espaço de trabalho. Durante a leitura mostra um ícone de aplicação: clique para voltar exatamente onde estava.'],
-                        ['Barra de ferramentas', 'A caixa de pesquisa (abre a [paleta de comandos](prod-palette)), Filtros, Ordenação e o seletor de vistas.'],
-                        ['Chips de projeto', 'Alternam entre **Todos os projetos** e um único projeto. Cada chip mostra o estado de gravação e tem uma roda dentada para as [Definições do projeto](projects-settings). Os projetos do mesmo produto aparecem agrupados.'],
+                        ['Navegação', 'Os botões de vista ficam à esquerda, por baixo da barra superior. Pesquisa, filtros e ordenação ficam à direita na barra do Board, junto de Apenas sprints ativos, e à esquerda no cabeçalho da Tabela. Colunas e criação de workitems na Tabela alinham à direita. Dashboard, Roadmap e Planeador não apresentam estes controlos de pesquisa.'],
+                        ['Seletor de projeto', 'Junto ao logo, abra o nome selecionado para escolher **Todos** ou um projeto. Expanda um produto para ver os seus projetos. O menu mantém definições, remoção e repetição de gravação; o estado de gravação do projeto selecionado também aparece junto ao nome.'],
                         ['Vista', 'A área principal: Quadro, Dashboard, Tabela, Roadmap, Controlo do projeto, Calendário ou Planeador.'],
                         ['Barra do histórico', 'Opcional. Ative-a nas Definições da aplicação para percorrer o [histórico](files-history) de um projeto.']
                     ] },
                     { kind: 'h', text: 'Vistas e seleção de projeto' },
-                    { kind: 'p', text: 'O Quadro, o Calendário e o Planeador funcionam com todos os projetos carregados. O Dashboard, a Tabela, o Roadmap e o Controlo do projeto descrevem um único projeto, por isso os respetivos botões aparecem quando seleciona o chip de um projeto. Consulte [Escolher uma vista](views-choose).' },
+                    { kind: 'p', text: 'O Quadro, o Calendário e o Planeador funcionam com todos os projetos carregados. O Dashboard, a Tabela, o Roadmap e o Controlo do projeto descrevem um único projeto, por isso os respetivos botões aparecem quando seleciona um projeto junto ao logo. Consulte [Escolher uma vista](views-choose).' },
                     { kind: 'callout', tone: 'tip', text: 'Prima [[?]] a qualquer momento para ver todos os atalhos de teclado e [[H]] para abrir ou fechar esta documentação.' }
                 ],
                 related: ['views-choose', 'prod-shortcuts']
@@ -128,7 +128,7 @@ export const DOCS_PT: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Refinar o backlog' },
                     { kind: 'steps', items: [
-                        'Abra a **Tabela** do projeto e use **Workitems por planear** para ver o que ainda não está num sprint.',
+                        'Abra a **Tabela** do projeto e use **Backlog** para ver o que ainda não está num sprint.',
                         'Ordene por prioridade ou pontuação e filtre por etiqueta ou participante.',
                         'Garanta que as Stories do topo têm Critérios de aceitação claros e Tasks suficientemente pequenas para terminar num sprint.'
                     ] },
@@ -241,9 +241,9 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'p', text: 'Um **projeto** é um conjunto independente de workitems com os seus próprios workflows e definições, guardado no seu próprio ficheiro. Um **produto** é apenas um nome partilhado por vários projetos: não tem workitems nem workflows próprios, nem outros níveis de agrupamento.' },
                     { kind: 'steps', items: [
-                        'Abra as [Definições do projeto](projects-settings) com a roda dentada do chip do projeto.',
+                        'Abra as [Definições do projeto](projects-settings) no seletor de projeto junto ao logo.',
                         'Em **Geral**, introduza o mesmo nome de **Produto** em cada projeto relacionado. Maiúsculas e espaços exteriores são ignorados.',
-                        'Guarde. Os chips de projeto passam a aparecer agrupados num cabeçalho de produto expansível.'
+                        'Guarde. Os projetos passam a aparecer agrupados num produto expansível no seletor.'
                     ] },
                     { kind: 'p', text: 'Projetos do mesmo produto podem trocar workitems através de [cópia e movimento](projects-transfers). Projetos sem produto ficam independentes.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Use um projeto por equipa ou por componente entregue de forma independente e um produto para os ver em conjunto. Evite um único projeto enorme para tudo.' }
@@ -255,7 +255,7 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Definições do projeto',
                 summary: 'Nome, sigla, descrição, estado, produto, membros, etiquetas e os dois workflows.',
                 blocks: [
-                    { kind: 'p', text: 'Abra as Definições do projeto com a roda dentada junto ao chip do projeto. A janela tem três separadores: **Geral**, **Workflow técnico** e **Workflow funcional**. As alterações de todos os separadores formam um único rascunho e só são aplicadas quando clica em **Guardar**; Cancelar, Escape ou fechar a janela descarta-as.' },
+                    { kind: 'p', text: 'Abra as Definições do projeto no seletor de projeto junto ao logo. A janela tem três separadores: **Geral**, **Workflow técnico** e **Workflow funcional**. As alterações de todos os separadores formam um único rascunho e só são aplicadas quando clica em **Guardar**; Cancelar, Escape ou fechar a janela descarta-as.' },
                     { kind: 'terms', items: [
                         ['Nome do projeto', 'Obrigatório. Mudar o nome do projeto ou do ficheiro não altera a sua identidade.'],
                         ['Sigla do projeto', '1 a 4 letras, única entre os projetos abertos. É o prefixo dos IDs dos novos workitems (EP, US, TK, BG). Os IDs existentes nunca mudam.'],
@@ -387,7 +387,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Participantes / Responsável', 'Membros do projeto; consulte [Pessoas](projects-people).'],
                         ['Etiquetas', 'Do catálogo do projeto.'],
                         ['Prioridade / Esforço', 'Alta–Baixa e XS–XL; juntos dão a pontuação.'],
-                        ['Prazo', 'Os itens em atraso são destacados nos cartões e no Calendário.'],
+                        ['Prazo', 'Os prazos continuam disponíveis nos detalhes dos workitems e no Calendário.'],
                         ['Lista de tarefas', 'Uma checklist reordenável para pequenos passos.'],
                         ['Bloqueada', 'Um bloqueio manual que exige um motivo.'],
                         ['Fase / Marco / Sprint', 'Associações de planeamento; consulte [Planeamento](plan-inheritance).']
@@ -424,7 +424,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Bloqueio manual', 'Marque **Bloqueada** no editor e descreva o que está a bloquear. Retire-o quando estiver resolvido.'],
                         ['Bloqueio por dependência', 'Derivado automaticamente de bloqueadores diretos por concluir (Bloqueia / É bloqueado por), incluindo arquivados. Desaparece quando os bloqueadores são concluídos ou a ligação é removida.']
                     ] },
-                    { kind: 'p', text: 'Ambos aparecem nos cartões e nos detalhes e são incluídos pelo filtro **Bloqueadas**. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
+                    { kind: 'p', text: 'Ambos aparecem nos detalhes e têm colunas e filtros independentes nas tabelas de workitems, incluindo o Roadmap. **Bloqueio manual** mantém-se até ser removido manualmente; **Bloqueio por dependências** desaparece quando todos os bloqueadores estão Done, mantendo as relações. O filtro **Bloqueadas** e o Dashboard consideram qualquer das duas fontes. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'As dependências são informativas: não impedem mudanças de estado e nunca substituem um bloqueio manual.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -514,14 +514,14 @@ export const DOCS_PT: DocSection[] = [
                         ['Board Técnico', 'Tasks. Apenas Sprints ativos está selecionado por defeito; desmarque para incluir Tasks sem Sprint e outros Sprints.'],
                         ['Board Funcional', 'User Stories.']
                     ] },
-                    { kind: 'p', text: 'As colunas mostram os estados Por iniciar, Em curso e Concluído. Os itens em Backlog são trabalhados na Tabela ou nos detalhes e **enviados para o Board** quando estiverem prontos. Use **Colunas do Board** para ocultar estados de que não precisa; ocultar uma coluna nunca move nem apaga workitems. Com **Todos os projetos** selecionado, o quadro agrupa os cartões por categoria entre projetos.' },
+                    { kind: 'p', text: 'As colunas mostram os estados Por iniciar, Em curso e Concluído. Os itens em Backlog são trabalhados na Tabela ou nos detalhes e **enviados para o Board** quando estiverem prontos. Abra **Filtros e vista → Colunas do Board** para ocultar estados de que não precisa; ocultar uma coluna nunca move nem apaga workitems. Com **Todos os projetos** selecionado, o quadro agrupa os cartões por categoria entre projetos.' },
                     { kind: 'h', text: 'Mover cartões' },
                     { kind: 'list', items: [
                         'Arraste um cartão com o rato, ou mantenha premido em ecrãs táteis.',
                         'Com o teclado, selecione um cartão com [[J]] / [[K]] e prima [[1]]–[[4]] para o mover.',
                         'Abra a [paleta de comandos](prod-palette) sobre um cartão e escolha **Mover para…**.'
                     ] },
-                    { kind: 'p', text: 'Os cartões mostram ID, título, pessoas, etiquetas, prioridade, esforço, prazo, bloqueio, progresso da lista de tarefas e, nas Stories, o progresso de execução. Clique num cartão para ver os detalhes; altere o responsável no cartão ou avance com a seta superior direita. O menu ⋯ permite copiar ou mover; Eliminar está no menu ⋯ dos detalhes.' },
+                    { kind: 'p', text: 'Os cartões mostram o ID no topo esquerdo, um título menor em até duas linhas abaixo e o tipo e responsável no rodapé. A seta no topo direito avança para o próximo estado permitido pelo workflow; continua a ser possível arrastar os cartões. Altere o responsável no dropdown ou clique no cartão para abrir os detalhes. Edição, eliminação, cópia, transferência, datas, bloqueio e progresso continuam nos detalhes. As colunas preenchem a largura disponível e mantêm-se iguais quando há espaço. Com muitos estados ou uma janela estreita, as colunas vazias passam a metade da largura das ocupadas; o scroll horizontal continua disponível quando necessário.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Um movimento não permitido pelo workflow é recusado. Mover uma Story ou um Bug para Concluído pede a [aceitação funcional](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -572,8 +572,9 @@ export const DOCS_PT: DocSection[] = [
                         'Selecione um projeto e abra o **Roadmap**.',
                         'Use **+ Fase**, **+ Marco** e **+ Sprint** para criar itens, com datas e cor.',
                         'Associe workitems a uma fase-folha e a um marco no editor do workitem (ou deixe os filhos [herdar](plan-inheritance)).',
-                        'Expanda uma fase para ver os seus workitems por workitem, por sprint ou por marco, e acompanhar o progresso.'
+                        'Use Workitems associados em qualquer fase ou Sprint para abrir a tabela. Nas fases-pai, inclui os workitems de todas as fases descendentes; a seta separada expande apenas a hierarquia.'
                     ] },
+                    { kind: 'p', text: 'O Roadmap mantém largura e zoom à esquerda e + Marco / + Fase à direita. Os losangos dos marcos são compactos, têm tamanho fixo, contorno vincado na cor escolhida e áreas preenchida/vazia distintas nos dois modos de cor. Preenchem-se progressivamente com a conclusão dos workitems; a exatamente 100%, surge um check branco grande dentro do losango totalmente preenchido, mantendo a cor escolhida. Marcos sem workitems apresentam N/A sem check. As guias tracejadas mantêm a identidade da cor, com mais contraste no modo escuro. O zoom vai de 100% a 300% em passos de 25 pontos: 100% ajusta todo o período do projeto à largura disponível e valores superiores expandem apenas a escala horizontal das datas, com scroll, mantendo textos, ícones e alturas das barras. Os losangos alinham com as linhas tracejadas da timeline; nome, data e percentagem aparecem num tooltip de duas linhas ao passar o rato ou focar por teclado. Usam uma linha, acrescentando uma segunda apenas para sobreposições; as restantes têm scroll. Clique no losango para consultar workitems. As tabelas de fases, marcos e Sprints apresentam ID, Título, Tipo, Estado, Responsável, Prioridade, Bloqueio manual, Bloqueio por dependências e Atualizado, por esta ordem. Clique no nome da fase ou Sprint para editar e passe o rato na barra para ver datas. Os Sprints usam Play para iniciar e uma bandeira axadrezada para finalizar, mantendo as confirmações. Os Sprints concluídos não apresentam este botão.' },
                     { kind: 'p', text: 'O progresso conta os workitems elegíveis concluídos (os cancelados são excluídos). Entregáveis pendentes de aceitação no Controlo do projeto mantêm o progresso de fases e marcos abaixo de 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma fase com subfases não pode ser apagada em cascata: mova ou apague primeiro as subfases. Apagar uma fase ou marco com workitems associados pede que os realoque ou limpe explicitamente.' }
                 ],
@@ -587,9 +588,10 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Criar um sprint' },
                     { kind: 'list', items: [
                         'No Roadmap, com **+ Sprint**.',
-                        'A partir de uma seleção: selecione cartões no Quadro ou linhas em **Tabela → Workitems por planear** e escolha **Criar sprint** ou **Adicionar ao sprint existente**.'
+                        'A partir de uma seleção: selecione linhas em **Tabela → Backlog** e abra **Ações de sprint** para escolher **Criar sprint** ou **Adicionar ao sprint**.'
                     ] },
                     { kind: 'p', text: 'Cada sprint recebe o número seguinte do projeto e aparece como `Sprint 3 - Título`. Os números nunca são reutilizados.' },
+                    { kind: 'p', text: 'Eliminar um Sprint Planeado pede uma única confirmação, com uma só lista de workitems afetados. Ao confirmar, as associações ao Sprint são removidas automaticamente, mantendo os estados; cancelar não altera nada. Quando a alocação exige ajustar datas de fases, cada fase apresenta as datas atuais/propostas e a escolha de datas acima dos workitems envolvidos.' },
                     { kind: 'h', text: 'Alocação e participação' },
                     { kind: 'terms', items: [
                         ['Alocação atual a sprint', 'O único sprint Planeado ou Ativo em que um workitem está atualmente planeado.'],
@@ -663,7 +665,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Calendário', 'Ver prazos e períodos por mês ou ano', 'Todos os projetos ou um'],
                         ['Planeador', 'Agendar o seu dia ou semana', 'Todos os projetos ou um']
                     ] },
-                    { kind: 'p', text: 'Os filtros e a ordenação aplicam-se a todas as vistas. Mudar de vista, ou abrir esta documentação, mantém a seleção e os filtros.' }
+                    { kind: 'p', text: 'O Board, cada subseção da Tabela e cada Sprint expandido mantêm pesquisa e filtros independentes. Ao regressar a uma vista, são recuperados os seus filtros nesta sessão.' }
                 ],
                 related: ['views-filters', 'start-layout']
             },
@@ -673,15 +675,16 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Uma lista configurável de workitems com hierarquia, perspetivas de sprint e exportação CSV.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['TODOS', 'Linhas expansíveis Epic → Story → Task, Tasks diretas de Epics e Tasks e Bugs independentes. Os descendentes correspondentes continuam visíveis quando os filtros ocultam os antecessores.'],
-                        ['Perspetivas por tipo', 'Epics, User Stories, Tasks, Bugs ou Todas as Tasks e Bugs.'],
-                        ['Workitems por planear', 'Não concluídos e sem sprint. Selecione linhas para criar um sprint ou adicioná-las a um.'],
-                        ['Sprints', 'Uma tabela expansível por sprint, do mais recente para o mais antigo, com datas, estado e completude. As Stories expandem-se nas Tasks participantes.']
+                        ['Todos (por defeito)', 'Linhas expansíveis Epic → Story → Task, Tasks diretas de Epics e Tasks e Bugs independentes. Os descendentes correspondentes continuam visíveis quando os filtros ocultam os antecessores.'],
+                        ['Dropdown de vistas', 'Alterne entre Todos, Epic, User Stories, Workitems independentes e Todas as Tasks e Bugs. O botão apresenta a vista selecionada.'],
+                        ['Backlog', 'Não concluídos e sem sprint. Selecione linhas para criar um sprint ou adicioná-las a um.'],
+                        ['Sprints', 'Uma tabela expansível por sprint, do mais recente para o mais antigo, com nome e datas à esquerda e os controlos compactos do Roadmap à direita, sem timeline. As Stories expandem-se nas Tasks participantes.']
                     ] },
                     { kind: 'list', items: [
-                        'Pesquise por ID, título e descrição; filtre colunas; ordene por qualquer coluna.',
-                        'Escolha, reordene e reponha colunas em **Colunas**.',
-                        '**Exportar CSV** inclui todas as linhas filtradas, mesmo as recolhidas, com separador vírgula ou ponto e vírgula.',
+                        'Cada tabela tem uma única toolbar: contagens, número de selecionados e Limpar seleção à esquerda; pesquisa e ícones de Filtros, Colunas e Exportar CSV à direita, seguidos de um separador e + Criar workitem. No Backlog, **Ações de sprint** fica após o separador, imediatamente antes de +, e agrupa Criar sprint e Adicionar ao sprint. Mantêm-se as validações de seleção e de sprints elegíveis. Pesquise por ID, título e descrição; ordene por qualquer coluna.',
+                        'Use **Filtros** para os filtros comuns e para tipo de workitem, Epic e User Story. O ícone **Colunas** abre listas Visíveis e Ocultas lado a lado. Oculte com o olho, adicione com + e reordene as visíveis pelo manípulo de arrasto ou pelas setas para cima/baixo. ID e Título permanecem visíveis com cadeado; Repor colunas restaura as predefinições. As preferências ficam guardadas localmente por projeto e contexto de tabela.',
+                        'O ícone **Exportar CSV** abre um modal: escolha vírgula ou ponto e vírgula e confirme para descarregar todas as linhas filtradas, mesmo as recolhidas.',
+                        'As tabelas dos Sprints não têm checkboxes de seleção, menu Ações de sprint ou + Criar workitem; mantêm pesquisa, filtros, colunas, exportação e hierarquia.',
                         'As datas e horas são apresentadas em UTC.'
                     ] }
                 ],
@@ -714,6 +717,13 @@ export const DOCS_PT: DocSection[] = [
                         ['Entregável', 'Planeado → Em curso → Entregue → Aceite, com datas prevista, de entrega e de aceitação e um validador.']
                     ] },
                     { kind: 'p', text: 'Os registos têm IDs como `CHK-RK-1`, participantes, etiquetas, comentários e histórico, e podem ser associados a fases, marcos e workitems. Filtre por Todos, Pendentes, Em atraso ou Pendente de aceitação.' },
+                    { kind: 'list', items: [
+                        'Riscos, Decisões e Entregáveis mantêm subseções próprias com o mesmo layout de **Tabela → Todos**. Contagens e seleção ficam à esquerda; pesquisa, ícones de Filtros, Colunas e Exportar CSV, separador e **+ Novo registo** ficam à direita.',
+                        'Abra **Filtros** para estado, responsável, associações a fases/milestones e Pendentes, além dos campos de cada tipo: avaliações/nível de risco, decisor/data, ou validador/data prevista/Em atraso/Pendente de aceitação. Os filtros ativos aparecem em etiquetas removíveis.',
+                        'Selecione linhas ou a página atual, limpe a seleção, ordene por qualquer coluna visível e escolha 25, 50 ou 100 linhas por página. Clique numa linha, ID ou título para abrir o detalhe existente.',
+                        'O ícone **Colunas** permite mostrar, ocultar, reordenar ou repor colunas. ID e título são obrigatórios. As listas Visíveis e Ocultas têm controlos olho/+, arrasto e setas para cima/baixo. As preferências ficam guardadas localmente por projeto e subseção, independentes das colunas da tabela de workitems. A coluna Estado apresenta apenas o estado do registo.',
+                        '**Exportar CSV** pede vírgula ou ponto e vírgula e exporta todos os registos filtrados/ordenados pela ordem das colunas visíveis, incluindo outras páginas. Em leitura e no histórico mantém consulta e exportação; **+** fica desativado.'
+                    ] },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Entregáveis pendentes de aceitação mantêm o progresso das respetivas fases e marcos abaixo de 100%.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Reveja os riscos abertos no planeamento do sprint e registe decisões importantes — incluindo acordos da retrospetiva — como Decisões.' }
                 ],
@@ -725,12 +735,12 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Reduza cada vista ao que importa neste momento.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Pesquisa**: escreva na [paleta de comandos](prod-palette) e escolha **Filtrar quadro por “…”**. A barra de ferramentas mostra o filtro ativo; clique em × para o limpar.',
-                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Os filtros ativos aparecem como chips removíveis.',
+                        '**Pesquisa**: use o campo na barra do Board ou no cabeçalho da Tabela, ou abra a [paleta de comandos](prod-palette) pela lupa na barra superior ou com [[Ctrl/⌘]] + [[K]] e escolha **Filtrar quadro por “…”**. A secção mostra a pesquisa atual; clique em × para a limpar.',
+                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Abra **Filtros e vista** na barra do Board ou **Filtros** no cabeçalho da Tabela. O botão mostra o número de filtros ativos. Use **Limpar tudo** ou **Repor** no cabeçalho do painel para limpar os filtros configurados; não aparecem etiquetas de filtros.',
                         '**Ordenação**: por prioridade, esforço, pontuação ou nome, ascendente ou descendente.',
                         '**Repor**: prima [[R]] para repor filtros e ordenação.'
                     ] },
-                    { kind: 'p', text: 'Os filtros combinam-se entre si e aplicam-se a todas as vistas. Ficam guardados no endereço, por isso pode guardar uma vista filtrada nos favoritos. A Tabela tem os seus próprios filtros de coluna.' }
+                    { kind: 'p', text: 'Os filtros combinam-se dentro de cada vista. O Board inclui filtros por Epic e User Story, com os mesmos critérios da Tabela. A pesquisa e os filtros de cada subseção da Tabela e de cada Sprint são independentes e mantêm-se durante a sessão; limpar uma tabela não altera as outras. Os filtros do Board continuam guardados no endereço.' }
                 ],
                 related: ['views-choose', 'prod-palette']
             }
@@ -833,9 +843,9 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Preferências pessoais, memorizadas neste navegador.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Tema', 'O botão da paleta permite escolher Clássico (o design original) ou Moderno (superfícies neutras, um destaque ameixa discreto e tipografia Inter). O botão lua/sol alterna, de forma independente, entre claro e escuro em qualquer tema. Ambas as escolhas ficam guardadas neste navegador, incluindo entre separadores, sem alterar projetos ou rascunhos abertos.'],
-                        ['Idioma', 'O botão EN/PT alterna entre inglês e português, incluindo esta documentação.'],
-                        ['Definições da aplicação', 'A roda dentada mostra ou oculta a barra do histórico.'],
+                        ['Tema', 'As Definições permitem escolher Clássico (o design original) ou Moderno (azul petróleo, superfícies suaves e tipografia Inter). As opções Claro/Escuro alternam o modo de forma independente em qualquer tema. Ambas as escolhas ficam guardadas neste navegador, incluindo entre separadores, sem alterar projetos ou rascunhos abertos.'],
+                        ['Idioma', 'Nas Definições, escolha English ou Português, incluindo esta documentação.'],
+                        ['Definições da aplicação', 'A roda dentada abre um painel flutuante com aparência, tema, idioma e visibilidade da barra do histórico.'],
                         ['Atalhos', 'Ativa ou desativa os atalhos de uma só tecla.']
                     ] },
                     { kind: 'p', text: 'Estas preferências ficam guardadas apenas neste navegador; não são escritas nos ficheiros de projeto.' }
@@ -863,7 +873,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: '4. Planear a execução' },
                     { kind: 'p', text: 'A partir da US-2, crie as Tasks `SHP-TK-4` Integrar o gateway de pagamento (Rui, esforço M) e `SHP-TK-5` Ecrã de seleção do cartão (Marta, esforço S). Associe a TK-5 como **bloqueada pela** TK-4, porque o ecrã precisa da API.' },
                     { kind: 'h', text: '5. Planear o sprint' },
-                    { kind: 'p', text: 'Em **Tabela → Workitems por planear**, selecione a US-2 e a US-3 e escolha **Criar sprint**: **Sprint 1 - Pagamento com cartão**, duas semanas. As Tasks acompanham as suas Stories.' },
+                    { kind: 'p', text: 'Em **Tabela → Backlog**, selecione a US-2 e a US-3 e escolha **Ações de sprint → Criar sprint**: **Sprint 1 - Pagamento com cartão**, duas semanas. As Tasks acompanham as suas Stories.' },
                     { kind: 'h', text: '6. Executar' },
                     { kind: 'p', text: 'Quando o sprint começa, o Board Técnico mostra a TK-4 e a TK-5. O Rui arrasta a TK-4 para Em curso; a TK-5 fica bloqueada por dependência. O Rui reserva duas horas no Planeador. Quando a TK-4 fica concluída, a TK-5 é desbloqueada e a Marta começa-a.' },
                     { kind: 'h', text: '7. Aceitar' },

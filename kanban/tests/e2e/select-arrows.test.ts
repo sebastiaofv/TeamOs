@@ -1,5 +1,5 @@
 import { test, expect, type Locator } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, toggleTheme, openProjectSettingsFromPicker, openFiltersPanel } from '../support/portfolio';
 
 async function expectContainedArrows(scope: Locator) {
     const fields = await scope.locator('select:not([multiple]):not([size]):visible').evaluateAll((selects) => selects
@@ -37,22 +37,22 @@ for (const width of [1280, 390]) {
         test(`dropdown arrows stay inside fields throughout the app at ${width}px (${theme})`, async ({ page }, testInfo) => {
             await page.setViewportSize({ width, height: 900 });
             await gotoApp(page);
-            if (theme === 'dark') await page.locator('#themeToggleBtn').click();
+            if (theme === 'dark') await toggleTheme(page);
             await seedPortfolioBoards(page, [{
                 id: 'arrows', title: 'Arrow checks', hasHandle: true, members: ['Ana'], tags: ['ui'],
                 tasks: [{ id: 1, title: 'Arrow task', status: 'backlog' }]
             }], { selectedBoardId: 'arrows' });
 
-            await expectContainedArrows(page.locator('#portfolioToolbar'));
+            await page.locator('#portfolioFiltersBtn').click();
+            await expectContainedArrows(page.locator('#portfolioFiltersPanel'));
             await page.locator('#portfolioSortSelect').selectOption('effort');
             await expect(page.locator('#portfolioSortSelect')).toHaveValue('effort');
             await page.locator('#portfolioSortSelect').selectOption('priority');
             await page.locator('#portfolioSortSelect').screenshot({ path: testInfo.outputPath('sort-dropdown.png') });
-            await page.locator('#portfolioFiltersBtn').click();
             await expectContainedArrows(page.locator('#portfolioFiltersPanel'));
             await page.locator('#portfolioFiltersPanel').getByRole('button', { name: 'Done', exact: true }).click();
 
-            await page.getByRole('button', { name: 'Settings for Arrow checks', exact: true }).click();
+            await openProjectSettingsFromPicker(page, 'Arrow checks');
             const settings = page.locator('#projectSettingsModal');
             await expectContainedArrows(settings);
             await settings.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
@@ -61,7 +61,7 @@ for (const width of [1280, 390]) {
             await expectContainedArrows(settings);
             await page.keyboard.press('Escape');
 
-            await portfolioCard(page, 'Arrow task').getByRole('button', { name: 'Edit', exact: true }).click();
+            await portfolioCard(page, 'Arrow task').click(); await page.locator('#taskDetailEditBtn').click();
             await expectContainedArrows(page.locator('#taskModal'));
             await page.locator('#taskModal .modal-content').screenshot({ path: testInfo.outputPath('editor-dropdowns.png') });
             await page.keyboard.press('Escape');
@@ -71,7 +71,7 @@ for (const width of [1280, 390]) {
 
             await page.locator('[data-view-mode="table"]').click();
             await expectContainedArrows(page.locator('#portfolioTable'));
-            await page.locator('.table-hierarchy-options > summary').click();
+            await openFiltersPanel(page);
             await expectContainedArrows(page.locator('#portfolioTable'));
             await page.keyboard.press('Escape');
 

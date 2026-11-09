@@ -1,18 +1,9 @@
 .portfolio-control { overflow: visible; }
+.portfolio-control > .control-tabs { padding: 0; flex-shrink: 0; }
 .control-tabs { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 0; }
-.control-tabs .active { color: var(--accent); border-color: var(--accent); background: var(--bg-secondary); }
-.control-filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; }
-.control-filters label, .control-related > label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
-.control-filters input, .control-filters select { min-width: 120px; max-width: 250px; }
-.control-filters .control-check { flex-direction: row; align-items: center; min-height: 32px; }
-.control-check input { min-width: 0; }
-.control-table-scroll { overflow: auto; border: 1px solid var(--border); }
-.control-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.control-table th, .control-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
-.control-table th { background: var(--bg-secondary); white-space: nowrap; }
-.control-table th button, .control-link { color: inherit; background: transparent; border: 0; cursor: pointer; font: inherit; text-align: left; padding: 2px; }
-.control-link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
-.control-table tbody tr:hover { background: var(--bg-secondary); }
+.control-tabs .active { color: var(--accent); border-color: var(--accent); background: var(--bg-card); }
+.control-related > label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.5; }
+.control-link { color: var(--accent); background: transparent; border: 0; cursor: pointer; font: inherit; text-align: left; padding: 2px; text-decoration: underline; text-underline-offset: 3px; }
 .control-risk { font-weight: 600; white-space: nowrap; }
 .control-risk::before { content: '●'; margin-right: 6px; }
 .control-risk.low::before { color: #23834b; }
@@ -30,12 +21,11 @@
 .control-related-tag { display: block; margin-bottom: 4px; }
 .control-pending, .control-overdue { display: block; color: var(--text-secondary); margin-top: 4px; }
 .control-overdue { color: var(--danger, #c33); font-weight: 600; }
-.control-empty { padding: 24px; text-align: center; color: var(--text-secondary); }
 .portfolio-view-toggle { flex-wrap: wrap; }
 
 .roadmap-edit-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 
-.control-filters input:not([type=checkbox]), .control-filters select, .control-related input[type=search], .control-associations input[type=search] { border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); padding: 8px 10px; font: inherit; min-height: 34px; }
+.control-related input[type=search], .control-associations input[type=search] { border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); padding: 8px 10px; font: inherit; min-height: 34px; }
 .control-modal .field-hint { margin: 6px 0 16px; }
 .control-modal .history-filter { display: grid; }
 .control-associations { margin-top: 16px; }

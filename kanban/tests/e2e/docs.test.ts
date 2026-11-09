@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, toggleTheme, toggleLanguage } from '../support/portfolio';
 
 const toggle = (page: Page) => page.locator('#docsToggleBtn');
 const docs = (page: Page) => page.locator('#docsView');
@@ -33,8 +33,8 @@ test.describe('in-app documentation', () => {
 
   test('returning restores the selected project, view and in-view state', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'alpha', hasHandle: true, title: 'Alpha', tasks: [{ id: 1, title: 'Alpha story', status: 'to-do', type: 'story' }] }], { selectedBoardId: 'alpha' });
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
-    await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Functional', exact: true })).toHaveAttribute('aria-pressed', 'true');
     const url = page.url();
 
     await toggle(page).click();
@@ -43,7 +43,7 @@ test.describe('in-app documentation', () => {
     await toggle(page).click();
 
     await expect(page.locator('.portfolio-chip.active')).toContainText('Alpha');
-    await expect(page.getByRole('button', { name: 'Functional Board', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('button', { name: 'Functional', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page).toHaveURL(url);
 
     await page.getByRole('button', { name: 'Table', exact: true }).click();
@@ -138,15 +138,15 @@ test.describe('in-app documentation', () => {
     await toggle(page).focus();
     await page.keyboard.press('Enter');
     await expect(docs(page)).toBeVisible();
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
     await expect(heading(page)).toHaveText('O que é o TeamOS');
     await expect(toggle(page)).toHaveAttribute('aria-label', 'Voltar à aplicação');
     await expect(docs(page).getByRole('navigation', { name: 'Índice' })).toContainText('Metodologia Agile no TeamOS');
-    await page.locator('#languageToggleBtn').click();
+    await toggleLanguage(page);
   });
 
   test('uses the dark theme tokens', async ({ page }) => {
-    await page.locator('#themeToggleBtn').click();
+    await toggleTheme(page);
     await toggle(page).click();
     const colors = await page.evaluate(() => ({
       body: getComputedStyle(document.body).backgroundColor,

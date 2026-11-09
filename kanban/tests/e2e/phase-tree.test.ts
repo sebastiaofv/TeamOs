@@ -9,7 +9,7 @@ test('first child relocation is explicit and atomic; progress is global and tree
     }], { selectedBoardId: 'p' });
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
     await expect(page.locator('#roadmap-row-phase-phase')).toContainText('50%');
-    await expect(page.getByRole('button', { name: 'Show tasks for Delivery', exact: true })).toHaveAttribute('title', '2 of 2 associated workitems');
+    await expect(page.getByRole('button', { name: 'Show tasks for Delivery', exact: false })).toHaveAttribute('title', '2 of 2 associated workitems');
     await setBoardSearch(page, 'Complete');
     await expect(page.locator('#roadmap-row-phase-phase')).toContainText('50%');
     await setBoardSearch(page, '');
@@ -23,9 +23,11 @@ test('first child relocation is explicit and atomic; progress is global and tree
     await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[1].phaseId).toBe('implementation');
     await page.getByRole('button', { name: 'Expand/collapse subphases of Delivery' }).click();
     await expect(page.locator('#roadmap-row-phase-implementation')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Show tasks for Delivery' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Show tasks for Delivery' })).toHaveCount(1);
     await expect(page.locator('[data-roadmap-task-list="phase:phase"]')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Delete Delivery', exact: true }).click();
+    await page.getByRole('button', { name: 'Delivery', exact: true }).click();
+    await page.locator('#roadmapEntityModal .modal-header summary').click();
+    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await answerAppMessage(page, { expectText: 'Move or delete subphases first' });
     expect((await readSavedBoard(page, 'p')).extensions.roadmap.phases).toHaveLength(2);
 });

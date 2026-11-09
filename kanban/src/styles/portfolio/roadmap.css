@@ -2,15 +2,18 @@
 .roadmap-workspace { min-width: 0; }
 .roadmap-view-controls { position: sticky; top: 0; z-index: 9; }
 .roadmap-view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--border); background: var(--bg-card); font-size: 12px; }
-.roadmap-view-controls > label, .roadmap-archive-control { display: inline-flex; align-items: center; gap: 6px; }
+.roadmap-view-controls > label, .roadmap-archive-control { display: inline-flex; align-items: center; gap: 8px; }
 .roadmap-view-controls input[type="range"] { width: 90px; accent-color: var(--accent); }
 .roadmap-view-controls select, .roadmap-modal-filters select { color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border); border-radius: 0; min-height: 30px; padding: 5px 8px; font: inherit; font-size: 13px; }
-.roadmap-completion-controls { display: inline-flex; gap: 3px; flex-wrap: wrap; }
+.roadmap-completion-controls { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 .roadmap-completion-controls .btn { font-size: 11px; padding: 4px 7px; }
 .roadmap-completion-controls [aria-pressed="true"], .roadmap-perspectives [aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--bg-secondary); }
-.portfolio-roadmap-timeline { --roadmap-label-width: 440px; --roadmap-temporal-min: 640px; width: 100%; min-width: calc(var(--roadmap-label-width) + var(--roadmap-temporal-min) + 16px); position: relative; border: 1px solid var(--border); background: var(--bg-primary); }
+/* Fit the full date range at 100%; scale only its horizontal track above 100%.
+   cqw uses the Roadmap viewport, independent of the zoomed content width.
+   Reserve half the viewport for dates when the preferred labels cannot fit. */
+.portfolio-roadmap-timeline { --roadmap-label-width: min(var(--roadmap-preferred-label-width, 440px), 50cqw); --roadmap-temporal-width: calc((100cqw - var(--roadmap-label-width) - 18px) * var(--roadmap-zoom, 1)); width: calc(var(--roadmap-label-width) + var(--roadmap-temporal-width) + 18px); min-width: 0; position: relative; border: 1px solid var(--border); background: var(--bg-primary); }
 .roadmap-axis-shell, .roadmap-row-main { display: grid; grid-template-columns: var(--roadmap-label-width) minmax(0, 1fr); gap: 0; padding-right: 16px; }
-.roadmap-axis-shell { position: sticky; top: calc(var(--roadmap-controls-height, 0px) + 1px); z-index: 8; isolation: isolate; border-bottom: 1px solid var(--border); background: var(--bg-card); }
+.roadmap-axis-shell { position: sticky; top: calc(var(--roadmap-controls-height, 0px) + 1px); z-index: 8; isolation: isolate; overflow: clip; border-bottom: 1px solid var(--border); background: var(--bg-card); }
 .roadmap-axis-label { display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 12px; font-size: 13px; font-weight: 600; }
 .roadmap-axis-label span { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
 .roadmap-axis { position: relative; min-width: 0; }
@@ -26,7 +29,8 @@
 .roadmap-temporal-overlay { position: absolute; top: 0; bottom: 0; left: var(--roadmap-label-width); right: 16px; pointer-events: none; z-index: 1; }
 .roadmap-grid-guide, .milestone-date-guide { position: absolute; bottom: 0; width: 0; border-left: 1px solid var(--border-light); pointer-events: none; }
 .roadmap-year-guide { border-color: var(--text-muted); opacity: 0.45; }
-.milestone-date-guide { border: 0; width: 1px; opacity: 0.8; }
+.milestone-date-guide { border: 0; width: 1px; transform: translateX(-50%); color: var(--milestone-color); opacity: 0.8; }
+:root[data-theme="dark"] .milestone-date-guide { color: color-mix(in srgb, var(--milestone-color) 55%, white); opacity: 1; }
 .roadmap-date-overlay { position: absolute; top: 0; bottom: 0; left: var(--roadmap-label-width); right: 16px; pointer-events: none; z-index: 4; }
 .roadmap-today-marker, .roadmap-today-axis-line { position: absolute; top: 14px; bottom: 0; width: 0; border-left: 1px solid #2563eb; pointer-events: none; z-index: 2; }
 .roadmap-today-marker-label { position: absolute; top: 0; transform: translateX(-50%); border-radius: 3px; padding: 1px 4px; background: #2563eb; color: #fff; font-size: 11px; font-weight: 700; z-index: 3; white-space: nowrap; }
@@ -56,10 +60,10 @@
 .roadmap-row-meta { font-size: 11px; color: var(--text-secondary); white-space: nowrap; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
 .roadmap-row-actions { display: inline-flex; gap: 3px; flex: 0 0 auto; }
 .roadmap-action-btn, .roadmap-section-btn, .roadmap-disclosure-btn { border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font: inherit; cursor: pointer; }
-.roadmap-action-btn { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 20px; width: 20px; height: 22px; font-size: 12px; }
-.roadmap-tree-toggle { flex-basis: 18px; width: 18px; border-color: transparent; font-size: 10px; }
+.roadmap-action-btn { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 24px; width: 24px; height: 24px; font-size: 12px; }
+.roadmap-tree-toggle { flex-basis: 24px; width: 24px; border-color: transparent; font-size: 10px; }
 .roadmap-section-btn { padding: 4px 10px; font-size: 12px; }
-.roadmap-disclosure-btn { padding: 3px 5px; font-size: 11px; white-space: nowrap; color: var(--text-secondary); }
+.roadmap-disclosure-btn { display: inline-flex; align-items: center; gap: 4px; padding: 3px 5px; font-size: 11px; white-space: nowrap; color: var(--text-secondary); }
 .roadmap-action-btn:hover, .roadmap-section-btn:hover, .roadmap-disclosure-btn:hover { background: var(--bg-secondary); border-color: var(--accent); }
 .roadmap-row-track { position: relative; min-width: 0; height: 28px; }
 .roadmap-row-timeline-bar { position: absolute; top: 4px; height: 21px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; padding: 0; }
@@ -84,9 +88,9 @@
 #milestoneWorkitemsModal .milestone-modal-content { width: min(1100px, 96vw); max-width: min(1100px, 96vw); }
 .milestone-modal-heading { display: flex; align-items: center; gap: 18px; min-width: 0; }
 .milestone-modal-heading > div { min-width: 0; overflow-wrap: anywhere; }
-.milestone-modal-heading .milestone-diamond { margin: 8px; width: 38px; height: 38px; flex-basis: 38px; }
-.milestone-modal-heading .milestone-diamond::before { width: 29px; height: 29px; }
-.milestone-modal-heading .milestone-diamond > span { font-size: 10px; }
+.milestone-modal-heading .milestone-diamond { margin: 8px; }
+
+
 .milestone-modal-heading p { color: var(--text-secondary); font-size: 12px; margin-top: 5px; }
 .roadmap-modal-filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; font-size: 12px; }
 .table-tools-expanded { display: contents; }
@@ -113,8 +117,8 @@
 .milestone-color-picker input:focus-visible + span { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 
 /* Keep Sprint names and dates readable alongside the manual lifecycle controls. */
-.roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-labels { flex-wrap: wrap; }
-.roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-actions { flex: 1 0 100%; justify-content: flex-end; align-items: center; }
+.roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-labels { flex-wrap: nowrap; }
+.roadmap-row[data-roadmap-kind="sprint"] .roadmap-row-actions { flex: none; justify-content: flex-end; align-items: center; }
 .roadmap-row-actions .sprint-lifecycle-action { padding: 3px 8px; font-size: 11px; min-height: 22px; }
 
 .sprint-points {
@@ -140,3 +144,50 @@
     color: var(--priority-high);
     font-weight: 700;
 }
+
+.roadmap-create-btn { display: inline-flex; align-items: center; gap: 6px; }
+.roadmap-view-controls .roadmap-create-btn:first-of-type { margin-left: auto; }
+.roadmap-axis-label { justify-content: flex-start; }
+.roadmap-edit-name { background: transparent; border: 0; padding: 0; color: inherit; font-family: inherit; text-align: left; cursor: pointer; }
+.roadmap-edit-name:hover { color: var(--accent); text-decoration: underline; }
+.roadmap-row-actions .sprint-lifecycle-action.icon-btn { display: inline-flex; align-items: center; justify-content: center; padding: 0; width: 26px; height: 26px; min-height: 26px; }
+.roadmap-row-actions .sprint-points { flex-wrap: nowrap; gap: 3px; }
+.roadmap-row-actions .sprint-points-indicator { padding: 1px 3px; font-size: 10px; }
+.roadmap-row[data-roadmap-kind="sprint"] .roadmap-disclosure-btn { font-size: 10px; padding-inline: 3px; }
+.roadmap-row[data-roadmap-kind="sprint"] .table-status-badge { padding-inline: 4px; font-size: 10px; }
+.milestone-annotation { width: 32px; height: 36px; min-height: 36px; transform: translateX(-50%); justify-content: center; }
+.milestone-diamond { flex-basis: 29.333px; width: 29.333px; height: 29.333px; }
+.milestone-diamond::before { width: 20px; height: 20px; }
+.milestone-diamond > span { font-size: 6px; }
+.milestone-annotations { width: calc(100% + 48px); margin-inline: -24px; scrollbar-width: thin; }
+.milestone-annotation-canvas { width: var(--roadmap-axis-width); margin-inline: 24px; }
+.milestone-tooltip { position: fixed; z-index: 1000; padding: 8px 10px; max-height: 58px; overflow: auto; box-sizing: border-box; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); box-shadow: 0 4px 16px #0003; font-size: 12px; overflow-wrap: anywhere; pointer-events: none; }
+.roadmap-modal-actions { display: inline-flex; gap: 10px; align-items: center; margin-left: auto; }
+#roadmapEntityModal .modal-header > .task-transfer-menu { margin-left: auto; }
+
+/* Keep scrollbar space outside the shared date axis and fit two complete lanes. */
+.milestone-annotations { overflow-x: hidden; }
+.milestone-annotations::-webkit-scrollbar { display: block; width: 8px; }
+.milestone-diamond { background: transparent; }
+.milestone-diamond::before { display: none; }
+.milestone-diamond > svg { width: 100%; height: 100%; display: block; }
+.milestone-base { fill: color-mix(in srgb, var(--milestone-color) 10%, var(--bg-card)); }
+.milestone-progress-fill { fill: var(--milestone-color); }
+.milestone-outline { fill: none; stroke: var(--milestone-color); stroke-width: 2; stroke-linejoin: round; }
+:root[data-theme="dark"] .milestone-base { fill: color-mix(in srgb, color-mix(in srgb, var(--milestone-color) 10%, var(--bg-card)) 92%, white); }
+:root[data-theme="dark"] .milestone-progress-fill { fill: color-mix(in srgb, var(--milestone-color) 80%, white); }
+:root[data-theme="dark"] .milestone-outline { stroke: color-mix(in srgb, var(--milestone-color) 70%, white); }
+.milestone-diamond[data-progress="100"] .milestone-progress-fill { fill: var(--milestone-color); }
+.milestone-complete-check { fill: none; stroke: white; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.milestone-tooltip { display: grid; gap: 3px; max-height: none; overflow: hidden; line-height: 16px; }
+.milestone-tooltip > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.milestone-date-guide svg { display: block; }
+
+.roadmap-row-timeline-bar { cursor: default; }
+
+.roadmap-disclosure-btn { min-width: 24px; min-height: 24px; }
+
+/* Use the axis container directly so zoom/label changes never wait for ResizeObserver. */
+.roadmap-axis { container-type: inline-size; }
+.milestone-annotation-canvas { width: 100cqw; }

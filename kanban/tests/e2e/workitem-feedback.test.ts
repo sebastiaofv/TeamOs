@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, portfolioCard, answerAppMessage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, portfolioCard, answerAppMessage, toggleTheme, openFiltersPanel, selectTableView } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
 async function seed(page: Page, writable = true, testingWorkflow = false) {
@@ -16,18 +16,18 @@ async function seed(page: Page, writable = true, testingWorkflow = false) {
         tasks: fixture.board.tasks, extensions }], { selectedBoardId: 'feedback' });
 }
 async function story(page: Page) {
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await portfolioCard(page, 'Pagar com cartão').click();
 }
 
 test('Board creation uses one toolbar button and terminal exception columns default to hidden in both modes', async ({ page }) => {
     await seed(page);
-    for (const mode of ['Technical Board', 'Functional Board']) {
+    for (const mode of ['Technical', 'Functional']) {
         await page.getByRole('button', { name: mode, exact: true }).click();
         await expect(page.locator('.add-task-card')).toHaveCount(0);
         await expect(page.locator('.portfolio-column[data-status="cancelled"]')).toHaveCount(0);
         await expect(page.locator('.portfolio-column[data-status="duplication"]')).toHaveCount(0);
-        await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+        await openFiltersPanel(page);
         await page.getByRole('checkbox', { name: 'Cancelled', exact: true }).check();
         await expect(page.locator('.portfolio-column[data-status="cancelled"]')).toBeVisible();
         await page.keyboard.press('Escape');
@@ -39,7 +39,7 @@ test('Board creation uses one toolbar button and terminal exception columns defa
 test('only Task editors show checklists, all editors leave Pull Requests in its tab', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Table', exact: true }).click();
-    await page.locator('[data-table-view="epics"]').click();
+    await selectTableView(page, 'epics');
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     for (const type of ['epic', 'story', 'task', 'bug']) {
         await page.locator('#workitemType').selectOption(type);
@@ -111,7 +111,7 @@ for (const width of [1440, 390]) test(`sidebar edits stay usable and types have 
     if (width === 390) await page.locator('.workitem-sidebar').scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath(`sidebar-light-${width}.png`) });
     await page.keyboard.press('Escape');
-    await page.locator('#themeToggleBtn').click();
+    await toggleTheme(page);
     await story(page);
     if (width === 390) await page.locator('.workitem-sidebar').scrollIntoViewIfNeeded();
     await page.screenshot({ path: testInfo.outputPath(`sidebar-dark-${width}.png`) });
@@ -122,11 +122,11 @@ for (const width of [1440, 390]) test(`sidebar edits stay usable and types have 
     for (let theme = 0; theme < 2; theme++) {
         const colors: Record<string, string> = {};
         for (const perspective of ['epics', 'stories', 'all']) {
-            await page.locator(`[data-table-view="${perspective}"]`).click();
+            await selectTableView(page, perspective);
             Object.assign(colors, await page.locator('#workitemsTable [data-workitem-type]').evaluateAll((badges) => Object.fromEntries(badges.map((badge) => [badge.getAttribute('data-workitem-type'), getComputedStyle(badge).color]))));
         }
         expect(Object.keys(colors).sort()).toEqual(['bug', 'epic', 'story', 'task']);
         expect(new Set(Object.values(colors)).size).toBe(4);
-        if (!theme) await page.locator('#themeToggleBtn').click();
+        if (!theme) await toggleTheme(page);
     }
 });

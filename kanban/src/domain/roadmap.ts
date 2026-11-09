@@ -322,10 +322,12 @@ export function getRoadmapYearTicks(range: RangeLike, width = Infinity): Roadmap
     const minimumGap = 56 / Math.max(1, width) * 100;
     const visible = [ticks[0]];
     const last = ticks[ticks.length - 1];
+    // End labels are right-aligned near the edge, so reserve room on their left too.
+    const finalGap = minimumGap * (last.position > 95 ? 1.5 : 1);
     for (const tick of ticks.slice(1, -1)) {
-        if (tick.position - visible[visible.length - 1].position >= minimumGap && last.position - tick.position >= minimumGap) visible.push(tick);
+        if (tick.position - visible[visible.length - 1].position >= minimumGap && last.position - tick.position >= finalGap) visible.push(tick);
     }
-    if (ticks.length > 1 && last.position - visible[visible.length - 1].position >= minimumGap) visible.push(last);
+    if (ticks.length > 1 && last.position - visible[visible.length - 1].position >= finalGap) visible.push(last);
     return visible;
 }
 

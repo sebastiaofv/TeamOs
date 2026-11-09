@@ -30,18 +30,18 @@ export const DOCS_EN: DocSection[] = [
             {
                 id: 'start-layout',
                 title: 'Finding your way around',
-                summary: 'The screen is made of the top bar, the project toolbar, the project chips and the active view.',
+                summary: 'The top bar holds global actions; navigation and project selection lead to each view, with controls inside its existing toolbar.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Top bar', 'Theme, app settings, language, keyboard shortcuts, this documentation, Import Projects and New Project. It is always available, including while you read the documentation.'],
+                        ['Top bar', 'The project selector beside the logo, search (opens the [command palette](prod-palette)), keyboard shortcuts, documentation, app settings, Import Projects and New Project. It is always available, including while you read the documentation.'],
                         ['Documentation button', 'The book icon opens this documentation in place of the workspace. While reading, it shows an application icon: click it to return exactly where you were.'],
-                        ['Toolbar', 'The search box (opens the [command palette](prod-palette)), Filters, Sort and the view switcher.'],
-                        ['Project chips', 'Switch between **All projects** and a single project. Each chip shows the save state and has a gear for [Project settings](projects-settings). Projects sharing a product are grouped.'],
+                        ['Navigation', 'The view buttons sit on the left below the top bar. Search, filters and sort appear on the right of the Board toolbar beside Active Sprints only, and on the left of the Table heading. Table columns and workitem creation align to the right. Dashboard, Roadmap and Planner do not show these query controls.'],
+                        ['Project selector', 'Beside the logo, open the selected name to choose **All** or a project. Expand a product to see its projects. Project settings, removal and save retry remain in this menu; the selected project’s save state also appears beside its name.'],
                         ['View', 'The main area: Board, Dashboard, Table, Roadmap, Project Control, Calendar or Day Planner.'],
                         ['Timeline bar', 'Optional. Enable it in App settings to scrub through a project\'s [history](files-history).']
                     ] },
                     { kind: 'h', text: 'Views and project selection' },
-                    { kind: 'p', text: 'Board, Calendar and Day Planner work across all loaded projects. Dashboard, Table, Roadmap and Project Control describe one project, so their buttons appear once you select a project chip. See [Choosing a view](views-choose).' },
+                    { kind: 'p', text: 'Board, Calendar and Day Planner work across all loaded projects. Dashboard, Table, Roadmap and Project Control describe one project, so their buttons appear once you select a project beside the logo. See [Choosing a view](views-choose).' },
                     { kind: 'callout', tone: 'tip', text: 'Press [[?]] at any time to see every keyboard shortcut, and [[H]] to open or close this documentation.' }
                 ],
                 related: ['views-choose', 'prod-shortcuts']
@@ -128,7 +128,7 @@ export const DOCS_EN: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Refining the backlog' },
                     { kind: 'steps', items: [
-                        'Open the **Table** for the project and use **Unplanned workitems** to see what is not yet in a sprint.',
+                        'Open the **Table** for the project and use **Backlog** to see what is not yet in a sprint.',
                         'Sort by priority or score, and filter by tag or participant.',
                         'Make sure the top Stories have clear Acceptance Criteria and Tasks sized small enough to finish within a sprint.'
                     ] },
@@ -241,9 +241,9 @@ export const DOCS_EN: DocSection[] = [
                 blocks: [
                     { kind: 'p', text: 'A **project** is an independent collection of workitems with its own workflows and settings, stored in its own file. A **product** is just a name shared by several projects: it has no workitems or workflows of its own and no further levels of grouping.' },
                     { kind: 'steps', items: [
-                        'Open [Project settings](projects-settings) with the gear on the project chip.',
+                        'Open [Project settings](projects-settings) from the project selector beside the logo.',
                         'In **General**, enter the same **Product** name in each related project. Case and outer spaces are ignored.',
-                        'Save. The project chips are now grouped under an expandable product header.'
+                        'Save. The projects are now grouped under an expandable product in the selector.'
                     ] },
                     { kind: 'p', text: 'Projects in the same product can exchange workitems through [copy and move](projects-transfers). Projects without a product stay independent.' },
                     { kind: 'callout', tone: 'method', title: 'Agile practice', text: 'Use one project per team or per independently delivered component, and a product to view them together. Avoid one huge project for everything.' }
@@ -255,7 +255,7 @@ export const DOCS_EN: DocSection[] = [
                 title: 'Project settings',
                 summary: 'Name, acronym, description, status, product, members, tags and the two workflows.',
                 blocks: [
-                    { kind: 'p', text: 'Open Project settings with the gear beside the project chip. The dialog has three tabs: **General**, **Technical workflow** and **Functional workflow**. Changes in all tabs are kept as one draft and apply only when you click **Save**; Cancel, Escape or closing the dialog discards them.' },
+                    { kind: 'p', text: 'Open Project settings from the project selector beside the logo. The dialog has three tabs: **General**, **Technical workflow** and **Functional workflow**. Changes in all tabs are kept as one draft and apply only when you click **Save**; Cancel, Escape or closing the dialog discards them.' },
                     { kind: 'terms', items: [
                         ['Project name', 'Required. Renaming the project or the file does not change its identity.'],
                         ['Project Acronym', '1 to 4 letters, unique among the open projects. It prefixes the IDs of new workitems (EP, US, TK, BG). Existing IDs never change.'],
@@ -387,7 +387,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Participants / Responsible', 'Project members; see [People](projects-people).'],
                         ['Tags', 'From the project catalogue.'],
                         ['Priority / Effort', 'High–Low and XS–XL; together they give the score.'],
-                        ['Due date', 'Overdue items are highlighted on cards and in the Calendar.'],
+                        ['Due date', 'Due dates remain available in workitem details and the Calendar.'],
                         ['Todo list', 'A reorderable checklist for small steps.'],
                         ['Blocked', 'A manual block that requires a reason.'],
                         ['Phase / Milestone / Sprint', 'Planning associations; see [Planning](plan-inheritance).']
@@ -424,7 +424,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Manual block', 'Tick **Blocked** in the editor and describe what is blocking. Clear it when resolved.'],
                         ['Dependency block', 'Derived automatically from unfinished direct blockers (Blocks / Blocked by). It clears when the blockers are completed or the link is removed.']
                     ] },
-                    { kind: 'p', text: 'Both appear on cards and in details and are included by the **Blocked** filter. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
+                    { kind: 'p', text: 'Both appear in details and have independent columns and filters in workitem tables, including Roadmap tables. **Manually Blocked** stays active until manually cleared; **Dependency Blocked** clears when every blocker is Done, even while the relations remain. The **Blocked** filter and Dashboard count either source. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Dependencies are informative: they do not prevent status changes, and a dependency never overwrites a manual block.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -514,14 +514,14 @@ export const DOCS_EN: DocSection[] = [
                         ['Technical Board', 'Tasks. Active Sprints only is selected by default; clear it to include unsprinted Tasks and other Sprints.'],
                         ['Functional Board', 'User Stories and Bugs.']
                     ] },
-                    { kind: 'p', text: 'Columns show the To do, In progress and Completed states. Backlog items are worked in the Table or details and **sent to the Board** when ready. Use **Board columns** to hide states you do not need; hiding a column never moves or deletes workitems. With **All projects** selected, the board groups cards by category across projects.' },
+                    { kind: 'p', text: 'Columns show the To do, In progress and Completed states. Backlog items are worked in the Table or details and **sent to the Board** when ready. Open **Filters & View → Board columns** to hide states you do not need; hiding a column never moves or deletes workitems. With **All projects** selected, the board groups cards by category across projects.' },
                     { kind: 'h', text: 'Moving cards' },
                     { kind: 'list', items: [
                         'Drag a card with the mouse, or press and hold on touch screens.',
                         'With the keyboard, select a card with [[J]] / [[K]] and press [[1]]–[[4]] to move it.',
                         'Open the [command palette](prod-palette) on a card and choose **Move to…**.'
                     ] },
-                    { kind: 'p', text: 'Cards show the ID, title, people, tags, priority, effort, due date, blocking, checklist progress and, for Stories, execution progress. Click a card for details; change its responsible person directly or use the top-right arrow to advance along an allowed transition. The ⋯ menu offers copy and move; Delete is in the details ⋯ menu.' },
+                    { kind: 'p', text: 'Cards show the ID at the top left, a smaller title of up to two lines below, and the type and responsible person at the bottom. The top-right arrow advances to the next allowed workflow state; dragging remains available. Change the responsible person directly using the dropdown, or click the card to open details. Editing, deletion, copy, move, dates, blocking and progress remain available in details. Columns fill the available width and stay equal when space permits. With many states or a narrow window, empty columns shrink to half the width of occupied columns; horizontal scrolling remains available when needed.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A move not allowed by the workflow is refused. Moving a Story or Bug to Completed asks for [functional acceptance](wi-acceptance).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
@@ -572,8 +572,9 @@ export const DOCS_EN: DocSection[] = [
                         'Select a project and open **Roadmap**.',
                         'Use **+ Phase**, **+ Milestone** and **+ Sprint** to create items, with dates and a colour.',
                         'Assign workitems to a leaf phase and a milestone in the workitem editor (or let children [inherit](plan-inheritance)).',
-                        'Expand a leaf phase to see its workitem table and progress. Parent phases only expand their child hierarchy.'
+                        'Use Associated Workitems on any phase or Sprint to open its table. Parent phases include workitems from every descendant phase; the separate arrow expands only the phase hierarchy.'
                     ] },
+                    { kind: 'p', text: 'The Roadmap keeps width and zoom controls on the left and + Milestone / + Phase on the right. Milestone diamonds are compact, have a fixed size, a clear outline in the chosen colour and distinct filled/unfilled areas in both colour modes. They fill progressively as workitems complete; at exactly 100%, a large white check appears inside the fully filled diamond, keeping its chosen colour. Empty milestones show N/A without a check. Dashed guides retain their colour identity with brighter contrast in dark mode. Zoom runs from 100% to 300% in 25-point steps: 100% fits the complete project period into the available width, and higher values expand only the horizontal date scale with scrolling, keeping text, icons and bar heights fixed. Diamonds align with their dashed timeline guides; names, dates and completion percentages appear in a two-line tooltip on hover or keyboard focus. They use one lane, adding a second only for overlaps; additional lanes scroll. Click a diamond for associated workitems. Phase, milestone and Sprint tables show ID, Title, Type, Status, Responsible, Priority, Manually Blocked, Dependency Blocked and Updated, in that order. Click a phase or Sprint name to edit it, and hover its timeline bar for dates. Sprint rows use a Play icon to start and a chequered flag to finish, retaining confirmations. Completed Sprints have no lifecycle button.' },
                     { kind: 'p', text: 'Progress counts completed eligible workitems (cancelled ones are excluded). Deliverables awaiting acceptance in Project Control keep phase and milestone progress below 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A phase with subphases cannot be deleted in cascade: move or delete the subphases first. Deleting a phase or milestone with assigned workitems asks you to reallocate or explicitly clear them.' }
                 ],
@@ -587,9 +588,10 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Creating a sprint' },
                     { kind: 'list', items: [
                         'In the Roadmap with **+ Sprint**.',
-                        'From a selection: select cards on the Board or rows in **Table → Unplanned workitems**, then **Create Sprint** or **Add to Existing Sprint**.'
+                        'From a selection: select rows in **Table → Backlog**, then open **Sprint Actions** and choose **Create Sprint** or **Add to sprint**.'
                     ] },
                     { kind: 'p', text: 'Each sprint receives the next number in the project and is shown as `Sprint 3 - Title`. Numbers are never reused.' },
+                    { kind: 'p', text: 'Deleting a Planned Sprint asks for one confirmation, with one list of affected workitems. Confirming automatically removes their Sprint associations while keeping their statuses; cancelling changes nothing. When allocating work requires phase-date changes, each phase has its current/proposed dates and date choice above its affected workitems.' },
                     { kind: 'h', text: 'Allocation and participation' },
                     { kind: 'terms', items: [
                         ['Current Sprint allocation', 'The single Planned or Active sprint in which a workitem is currently planned.'],
@@ -663,7 +665,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Calendar', 'See due dates and periods by month or year', 'All projects or one'],
                         ['Day Planner', 'Schedule your own day or week', 'All projects or one']
                     ] },
-                    { kind: 'p', text: 'Filters and sort apply across views. Switching views, or opening this documentation, keeps your selection and filters.' }
+                    { kind: 'p', text: 'The Board, each Table subsection and each expanded Sprint keep independent search and filters. Returning to a view restores its filters during the session.' }
                 ],
                 related: ['views-filters', 'start-layout']
             },
@@ -673,15 +675,16 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'A configurable list of workitems with hierarchy, sprint perspectives and CSV export.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['ALL', 'Collapsible Epic → Story → Task rows, direct Epic Tasks, and independent Tasks and Bugs. Matching descendants stay visible when filters hide their ancestors.'],
-                        ['Type perspectives', 'Epics, User Stories, Tasks, Bugs or All Tasks & Bugs.'],
-                        ['Unplanned workitems', 'Not completed and without a sprint. Select rows to create a sprint or add them to one.'],
-                        ['Sprints', 'One collapsible table per sprint, newest first, with dates, status and completeness. Stories expand into their participating Tasks.']
+                        ['All (default)', 'Collapsible Epic → Story → Task rows, direct Epic Tasks, and independent Tasks and Bugs. Matching descendants stay visible when filters hide their ancestors.'],
+                        ['View dropdown', 'Switch between All, Epic, User Stories, Independent Workitems and All Tasks & Bugs. The button shows the selected view.'],
+                        ['Backlog', 'Not completed and without a sprint. Select rows to create a sprint or add them to one.'],
+                        ['Sprints', 'One collapsible table per sprint, newest first, with name and dates on the left and compact Roadmap controls on the right, without a timeline. Stories expand into their participating Tasks.']
                     ] },
                     { kind: 'list', items: [
-                        'Search by ID, title and description; filter columns; sort by any column.',
-                        'Choose, reorder and reset columns with **Columns**.',
-                        '**Export CSV** includes all filtered rows, even collapsed ones, with a comma or semicolon separator.',
+                        'Each table has one toolbar: workitem counts, selection count and Clear selection on the left; search, Filters, Columns and Export CSV icons on the right, followed by a divider and + Create workitem. In Backlog, **Sprint Actions** sits after the divider, immediately before +, and groups Create Sprint and Add to sprint. Existing selection and eligible-sprint checks still apply. Search by ID, title and description; sort by any column.',
+                        'Use **Filters** for shared filters and workitem type, Epic and User Story. The **Columns** icon opens side-by-side Visible and Hidden lists. Hide with the eye, add with +, and reorder visible columns by dragging their handles or using the up/down arrows. ID and Title stay visible and locked; Reset to default restores the initial columns. Preferences are kept locally per project and table context.',
+                        'The **Export CSV** icon opens a modal: choose comma or semicolon and confirm to download all filtered rows, even collapsed ones.',
+                        'Sprint tables have no row-selection checkboxes, Sprint Actions menu or + Create workitem; their search, filters, columns, export and hierarchy remain available.',
                         'Timestamps are shown in UTC.'
                     ] }
                 ],
@@ -714,6 +717,13 @@ export const DOCS_EN: DocSection[] = [
                         ['Deliverable', 'Planned → In progress → Delivered → Accepted, with due, delivered and accepted dates and a validator.']
                     ] },
                     { kind: 'p', text: 'Records have IDs like `CHK-RK-1`, participants, tags, comments and history, and can be associated with phases, milestones and workitems. Filter by All, Pending, Overdue or Pending acceptance.' },
+                    { kind: 'list', items: [
+                        'Risks, Decisions and Deliverables keep separate subsections with the same table layout as **Table → All**. Counts and selection stay on the left; search, Filters, Columns, Export CSV, a divider and **+ New record** sit on the right.',
+                        'Open the **Filters** icon for status, responsible person, phase/milestone associations and Pending, plus the fields for each type: assessments/risk level, decision maker/date, or validator/due date/Overdue/Pending acceptance. Active filters appear as removable tags.',
+                        'Select rows or the current page, clear selection, sort by any visible column and use 25, 50 or 100 rows per page. Click a row, ID or title to open its existing detail dialog.',
+                        'The **Columns** icon shows, hides, reorders or resets columns. ID and title are required. Visible and Hidden lists support eye/+ controls, drag handles and up/down arrows. Preferences are saved locally per project and subsection, independently of workitem-table columns. Status cells show only the item status.',
+                        '**Export CSV** asks for comma or semicolon and exports all filtered/sorted records in the visible column order, including other pages. Read-only and historical views retain consultation and export; **+** is disabled.'
+                    ] },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Deliverables awaiting acceptance keep the progress of their phases and milestones below 100%.' },
                     { kind: 'callout', tone: 'method', title: 'Agile practice', text: 'Review open risks in sprint planning, and record important decisions — including retrospective agreements — as Decisions.' }
                 ],
@@ -725,12 +735,12 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'Narrow every view to what matters right now.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Search**: type in the [command palette](prod-palette) and choose **Filter board by “…”**. The toolbar shows the active filter; click × to clear it.',
-                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Active filters appear as removable chips.',
+                        '**Search**: use the search field in the Board toolbar or Table heading, or open the [command palette](prod-palette) with the top-bar magnifying glass or [[Ctrl/⌘]] + [[K]] and choose **Filter board by “…”**. The section shows the current query; click × to clear it.',
+                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Open **Filters & View** in the Board toolbar or **Filters** in the Table heading. The filter button shows the active count. Use **Clear all** or **Reset** in the panel header to clear the configured filters; no filter chips are shown.',
                         '**Sort**: by priority, effort, score or name, ascending or descending.',
                         '**Reset**: press [[R]] to reset filters and sort.'
                     ] },
-                    { kind: 'p', text: 'Filters combine with each other and apply across views. They are kept in the address, so you can bookmark a filtered view. The Table has its own column filters.' }
+                    { kind: 'p', text: 'Filters combine within each view. The Board includes Epic and User Story filters using the same criteria as the Table. Each Table subsection and each Sprint keep independent search and filters during the session; resetting one table leaves the others intact. Board filters remain in the address.' }
                 ],
                 related: ['views-choose', 'prod-palette']
             }
@@ -833,9 +843,9 @@ export const DOCS_EN: DocSection[] = [
                 summary: 'Personal preferences, remembered in this browser.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Theme', 'The palette button chooses Classic (the original design) or Modern (neutral surfaces, a restrained plum accent and Inter typography). The moon/sun button independently switches either theme between light and dark. Both choices are remembered in this browser, including across tabs, without changing your projects or open drafts.'],
-                        ['Language', 'The EN/PT button switches between English and Portuguese, including this documentation.'],
-                        ['App settings', 'The gear shows or hides the timeline bar.'],
+                        ['Theme', 'Open App settings to choose Classic (the original design) or Modern (petroleum blue, soft surfaces and Inter typography). The Light/Dark choices switch either theme independently. Both choices are remembered in this browser, including across tabs, without changing your projects or open drafts.'],
+                        ['Language', 'App settings offers English and Português, including this documentation.'],
+                        ['App settings', 'The gear opens a floating panel with appearance, theme, language and timeline visibility.'],
                         ['Shortcuts', 'Enable or disable single-key shortcuts.']
                     ] },
                     { kind: 'p', text: 'These preferences are stored in this browser only; they are not written to project files.' }
@@ -863,7 +873,7 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: '4. Plan the execution' },
                     { kind: 'p', text: 'From US-2, create Tasks `SHP-TK-4` Integrate payment gateway (Rui, effort M) and `SHP-TK-5` Card selection screen (Marta, effort S). Link TK-5 as **blocked by** TK-4 because the screen needs the API.' },
                     { kind: 'h', text: '5. Plan the sprint' },
-                    { kind: 'p', text: 'In **Table → Unplanned workitems**, select US-2 and US-3 and choose **Create Sprint**: **Sprint 1 - Card checkout**, two weeks. The Tasks follow their Stories.' },
+                    { kind: 'p', text: 'In **Table → Backlog**, select US-2 and US-3 and choose **Sprint Actions → Create Sprint**: **Sprint 1 - Card checkout**, two weeks. The Tasks follow their Stories.' },
                     { kind: 'h', text: '6. Execute' },
                     { kind: 'p', text: 'When the sprint starts, the Technical Board shows TK-4 and TK-5. Rui drags TK-4 to In progress; TK-5 is marked blocked by dependency. Rui plans two hours in the Day Planner. When TK-4 is Done, TK-5 is unblocked and Marta starts it.' },
                     { kind: 'h', text: '7. Accept' },

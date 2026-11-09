@@ -49,7 +49,9 @@ test('defaults to active Sprints and offers all, specific Sprint, direct assignm
     await expect(card.getByRole('combobox', { name: 'Responsible' })).toHaveValue('');
     await expect(card.getByRole('option', { name: 'Not assigned', exact: true })).toHaveCount(1);
     await card.getByRole('combobox', { name: 'Responsible' }).selectOption('Rui');
-    await card.locator('.task-header').getByRole('button', { name: /^Advance to / }).click();
+    await card.click();
+    await page.locator('#detailStatusInput').selectOption('doing');
+    await page.keyboard.press('Escape');
     await expect(card).toHaveAttribute('data-status', 'doing');
     await page.getByRole('checkbox', { name: 'Active Sprints only' }).uncheck();
     await expect(portfolioCard(page, 'Future Task')).toBeVisible();
@@ -69,7 +71,7 @@ test('defaults to active Sprints and offers all, specific Sprint, direct assignm
 
 test('creates functional Bugs with a child execution Task and removes severity', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Bugs', acronym: 'BUGS', hasHandle: true, members: ['Ana'], tasks: [] }], { selectedBoardId: 'p' });
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
     await page.locator('#workitemType').selectOption('bug');
     await page.locator('#taskName').fill('Checkout failure');
@@ -81,14 +83,14 @@ test('creates functional Bugs with a child execution Task and removes severity',
     await page.locator('#taskDetailModalFooterCloseBtn').click();
     await expect(portfolioCard(page, 'Checkout failure')).toHaveCount(1);
     await expect(portfolioCard(page, 'Checkout failure')).toContainText('BUGS-BG-1');
-    await page.getByRole('button', { name: 'Technical Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Technical', exact: true }).click();
     await expect(portfolioCard(page, 'Checkout failure')).toHaveCount(1);
     await expect(portfolioCard(page, 'Checkout failure')).toContainText('BUGS-TK-2');
-    await portfolioCard(page, 'Checkout failure').getByRole('button', { name: 'Edit', exact: true }).click();
+    await portfolioCard(page, 'Checkout failure').click(); await page.locator('#taskDetailEditBtn').click();
     await expect(page.locator('#workitemParent')).toHaveValue('1');
     await expect(page.locator('#workitemParent option:checked')).toContainText('BUGS-BG-1');
     await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await portfolioCard(page, 'Checkout failure').click();
     await page.getByRole('button', { name: 'Create Task', exact: true }).click();
     await expect(page.locator('#workitemParent')).toHaveValue('1');
@@ -100,7 +102,7 @@ test('creates functional Bugs with a child execution Task and removes severity',
     await expect(page.locator('.workitem-child-section li')).toHaveCount(2);
 });
 
-test('shows only a bare workitem table under leaf phases and integrates Task-only Calendar and heatmap', async ({ page }) => {
+test('shows a filterable workitem table under leaf phases and integrates Task-only Calendar and heatmap', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Planning', hasHandle: true, members: ['Ana'], extensions: { roadmap: planning }, tasks: [
         { id: 1, title: 'Task deadline', status: 'to-do', dueDate: '2026-11-15', phaseId: 'leaf' },
         { id: 2, title: 'Story deadline', type: 'story', status: 'to-do', dueDate: '2026-11-15', phaseId: 'leaf' }
@@ -110,7 +112,7 @@ test('shows only a bare workitem table under leaf phases and integrates Task-onl
     const area = page.locator('[data-roadmap-task-list="phase:leaf"]');
     await expect(area.locator('table')).toBeVisible();
     await expect(area.getByRole('columnheader', { name: 'User Story', exact: true })).toHaveCount(0);
-    await expect(area.locator('.table-heading')).toHaveCount(0);
+    await expect(area.locator('[data-portfolio-filter-trigger]')).toBeVisible();
     await expect(page.locator('[data-roadmap-task-list="phase:parent"]')).toHaveCount(0);
     await page.locator('[data-view-mode="planner"]').click();
     await expect(page.getByLabel('Include Stories and Epics')).toHaveCount(0);
@@ -148,7 +150,7 @@ for (const choice of ['keep', 'update'] as const) test(`reviews inherited phase 
         { id: 1, title: 'Parent Story', type: 'story', status: 'to-do', phaseId: 'leaf', phaseMode: 'explicit' },
         { id: 2, title: 'Child Task', status: 'to-do', parentId: 1, phaseMode: 'inherit' }
     ] }], { selectedBoardId: 'p' });
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await portfolioCard(page, 'Parent Story').click();
     await page.locator('#detailSprintInput').selectOption('active');
     await answerAppMessage(page, { button: 'Confirm' });
@@ -165,9 +167,9 @@ test('shows a spinner while autosave waits for the project file', async ({ page 
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Saving', hasHandle: true, members: ['Ana'], tasks: [{ id: 1, title: 'Assign me', status: 'to-do' }] }], { selectedBoardId: 'p' });
     await installControlledPortfolioWriter(page, { boardId: 'p', holdWrites: true });
     await portfolioCard(page, 'Assign me').getByRole('combobox', { name: 'Responsible' }).selectOption('Ana');
-    await expect(page.locator('.chip-save-state.saving .save-spinner')).toBeVisible();
-    await expect(portfolioCard(page, 'Assign me').locator('.task-advance .save-spinner')).toBeVisible();
+    await expect(page.locator('.header-project-picker > .chip-save-state.saving .save-spinner')).toBeVisible();
+    await expect(portfolioCard(page, 'Assign me').locator('select')).toBeDisabled();
     await page.evaluate(() => window.__releaseNextPortfolioWrite!());
-    await expect(page.locator('.chip-save-state.saving')).toHaveCount(0);
+    await expect(page.locator('.header-project-picker > .chip-save-state.saving')).toHaveCount(0);
     await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[0].responsible).toBe('Ana');
 });
