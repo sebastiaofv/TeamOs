@@ -1,3 +1,4 @@
+import { isAttachmentSource } from './attachmentReferences';
 import { controlRecords } from './projectControl';
 import type { Attachment, AttachmentKind, LooseBoardData, TaskInput } from './types';
 import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_COUNT } from './constants';
@@ -116,7 +117,7 @@ export function stripLegacyTaskAttachmentsFromExtensions(extensionsValue: unknow
 
 export function normalizeAttachmentRecord(raw: unknown): Attachment | null {
     if (!isRecord(raw)) return null;
-    const dataUrl = typeof raw.dataUrl === 'string' && raw.dataUrl.startsWith('data:') ? raw.dataUrl : '';
+    const dataUrl = isAttachmentSource(raw.dataUrl) ? raw.dataUrl : '';
     if (!dataUrl) return null;
     const name = typeof raw.name === 'string' && raw.name.trim() ? raw.name.trim() : 'Attachment';
     const mime = typeof raw.mime === 'string' ? raw.mime.trim() : '';

@@ -1,3 +1,4 @@
+import { AttachmentImage, AttachmentDownload } from './AttachmentMedia';
 import { formatTimestamp } from '@/domain/dates';
 import { projectActor, useProjectIdentityRevision } from '@/features/portfolio/projects/projectIdentity';
 import { controlRecords } from '@/domain/projectControl';
@@ -103,7 +104,7 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
     }
 
     const imageCard = (image: Attachment) => <div className="comment-image" key={image.id}>
-        <button type="button" onClick={() => setZoom(image)} aria-label={t('comments.enlarge', { name: image.name })}><img src={image.dataUrl} alt={image.name} loading="lazy" /></button>
+        <button type="button" onClick={() => setZoom(image)} aria-label={t('comments.enlarge', { name: image.name })}><AttachmentImage src={image.dataUrl} mime={image.mime} alt={image.name} loading="lazy" /></button>
     </div>;
     const totalBytes = calculateBoardAttachmentBytes(board?.data) + draft.images.reduce((sum, image) => sum + image.sizeBytes, 0);
     return <section className="task-conversation" aria-labelledby="taskConversationHeading">
@@ -134,7 +135,7 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
             <label className="sr-only" htmlFor="commentText">{t('comments.body')}</label>
             <textarea id="commentText" rows={3} placeholder={t('comments.placeholder')} value={draft.text} onChange={(e) => update({ text: e.target.value, error: undefined })} />
             <div className="comment-images">{draft.images.map((image) => <div className="comment-image" key={image.id}>
-                <img src={image.dataUrl} alt={image.name} /><button type="button" className="btn" disabled={busy} aria-label={t('comments.removeImage', { name: image.name })} onClick={() => update({ images: draft.images.filter((item) => item.id !== image.id) })}>{t('common.remove')}</button>
+                <AttachmentImage src={image.dataUrl} mime={image.mime} alt={image.name} /><button type="button" className="btn" disabled={busy} aria-label={t('comments.removeImage', { name: image.name })} onClick={() => update({ images: draft.images.filter((item) => item.id !== image.id) })}>{t('common.remove')}</button>
             </div>)}</div>
             {draft.error && <p className="comment-error" role="alert">{t(`comments.error.${draft.error}`)}</p>}
             {totalBytes > ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES && <p className="comment-warning" role="status">{t('comments.sizeWarning')}</p>}
@@ -165,7 +166,7 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
         <Dialog.Root open={Boolean(zoom)} onOpenChange={(open) => { if (!open) setZoom(null); }}><Dialog.Portal><Dialog.Overlay className="modal active comment-image-overlay">
             <Dialog.Content className="modal-content comment-image-viewer" aria-describedby={undefined} onEscapeKeyDown={(event) => { event.preventDefault(); event.stopPropagation(); setZoom(null); }}>
                 <div className="modal-header"><Dialog.Title className="modal-title">{zoom?.name || t('comments.image')}</Dialog.Title><Dialog.Close className="modal-close" aria-label={t('common.close')}>×</Dialog.Close></div>
-                {zoom && <div className="modal-body"><img src={zoom.dataUrl} alt={zoom.name} /><a className="btn" href={zoom.dataUrl} download={zoom.name}>{t('common.download')}</a></div>}
+                {zoom && <div className="modal-body"><AttachmentImage src={zoom.dataUrl} mime={zoom.mime} alt={zoom.name} /><AttachmentDownload className="btn" href={zoom.dataUrl} download={zoom.name}>{t('common.download')}</AttachmentDownload></div>}
             </Dialog.Content>
         </Dialog.Overlay></Dialog.Portal></Dialog.Root>
     </section>;

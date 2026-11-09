@@ -279,7 +279,8 @@ test.describe('2.1a modals and toast', () => {
       ], { selectedBoardId: 'v1' });
       await portfolioCard(page, 'Prepare launch checklist').click();
       await expect(page.locator('#taskDetailModal')).toBeVisible();
-      await expect(page.locator('#detailAttachments')).toContainText('notes.txt');
+      await expect(page.getByRole('tab', { name: 'Attachments', exact: true })).toBeVisible();
+      await expect(page.locator('#detailAttachments')).toHaveCount(0);
       await expect(page).toHaveScreenshot(`task-detail-full-${theme}.png`, { fullPage: true, maxDiffPixelRatio: 0 });
     });
 

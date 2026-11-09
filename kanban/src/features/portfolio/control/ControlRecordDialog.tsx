@@ -1,3 +1,4 @@
+import { useProjectHistory } from '@/features/portfolio/hooks/useProjectHistory';
 import { DateInput } from '@/shared/ui/DateInput';
 import { SaveButton, SaveIndicator } from '@/features/portfolio/projects/ProjectSaveStatus';
 import { formatTimestamp } from '@/domain/dates';
@@ -45,6 +46,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
     const [editing, setEditing] = useState(!recordId);
     const [author, setAuthor] = useState(() => lastCommentAuthor(boardId));
     const [tab, setTab] = useState<'details' | 'response' | 'comments' | 'history'>('details');
+    const historyLoad = useProjectHistory(boardId, tab === 'history');
     const [acronym, setAcronym] = useState('');
     const activeKind = draft.kind;
     const tabs = activeKind === 'risks' ? ['details', 'response', 'comments', 'history'] as const : ['details', 'comments', 'history'] as const;
@@ -118,7 +120,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                 <div className="workitem-header-actions"><SaveIndicator boardId={boardId} />{readonly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}<Dialog.Close className="modal-close" aria-label={t('common.close')} disabled={busy}>×</Dialog.Close></div>
             </div>
             <div className="detail-tabs" role="tablist" aria-label={t('control.view')}>{tabs.map((value) => <button key={value} type="button" role="tab" id={`control-tab-${value}`} aria-controls={`control-panel-${value}`} aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigateControlTabs(event, tabs.filter((entry) => record || entry === 'details' || entry === 'response'), value, setTab)} disabled={(value === 'comments' || value === 'history') && !record} onClick={() => setTab(value)}>{t(`control.${value}`)}</button>)}</div>
-            <div className="modal-body">
+            <div className="modal-body">{historyLoad.error && <p role="alert">{historyLoad.error} <button type="button" className="btn" onClick={historyLoad.retry}>{t('common.retry')}</button></p>}
                 {recordId && !record ? <p role="alert">{t('control.stale')}</p> : <>
                 <form onSubmit={(event) => {
                     event.preventDefault(); if (editing) void save(draft, true);

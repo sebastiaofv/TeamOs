@@ -1,3 +1,4 @@
+import { isAttachmentSource } from './attachmentReferences';
 import { parseSprintResults } from './sprintResults';
 import { parseProjectControl } from './projectControl';
 import { allPermanentRelations, assertPermanentGraph, parsePermanentRelations } from './permanentRelations';
@@ -272,7 +273,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
         if (data.board.columns.length !== workflow.states.length || data.board.columns.some((col, index) => col.status !== workflow.states[index].id || col.title !== workflow.states[index].name)) throw new Error('Workflow columns do not match states.');
     }
     parseTaskIdentityReservation((extensions as Record<string, unknown>).taskIdentity);
-    parseConversations((extensions as Record<string, unknown>).conversations, normalizeTimelineExtension((extensions as Record<string, unknown>).timeline)?.events);
+    parseConversations((extensions as Record<string, unknown>).conversations, (extensions as Record<string, unknown>).projectStorage ? null : normalizeTimelineExtension((extensions as Record<string, unknown>).timeline)?.events);
     if (Object.prototype.hasOwnProperty.call(extensions, ROADMAP_EXTENSION_KEY)) {
         const normalizedRoadmap = normalizeRoadmapExtension((extensions as Record<string, unknown>)[ROADMAP_EXTENSION_KEY]);
         if (!normalizedRoadmap) {
@@ -444,7 +445,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
                 if (attachment.kind !== 'image' && attachment.kind !== 'file') {
                     throw new Error('Attachment kind is invalid.');
                 }
-                if (typeof attachment.dataUrl !== 'string' || !attachment.dataUrl.startsWith('data:')) {
+                if (!isAttachmentSource(attachment.dataUrl)) {
                     throw new Error('Attachment dataUrl must be a data URL string.');
                 }
                 if (!normalizeTimestamp(attachment.createdAt)) {

@@ -1,3 +1,8 @@
 # Preserve compiler output, including whitespace inside bundled string literals.
 dist/** -whitespace linguist-generated=true
 dist-standalone/** -whitespace linguist-generated=true
+
+# Generated folder-project fixtures; the generator and walkthrough stay reviewable.
+test-board/us-25/**/project.json linguist-generated=true
+test-board/us-25/**/history.json linguist-generated=true
+test-board/us-25/migration/*.board.json linguist-generated=true
