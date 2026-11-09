@@ -88,9 +88,11 @@ test.describe('US-01 workitems table', () => {
       await expect(page).toHaveScreenshot(`table-review-assign-${theme}.png`);
       await page.locator('#roadmapEntityModalCancelBtn').click();
       await selectTableView(page, 'sprints');
-      await page.locator('[data-table-sprint="active"] > summary .table-sprint-name').click();
+      await page.locator('[data-table-sprint="active"] > summary').click();
       await page.mouse.move(1, 1);
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await expect(page.locator('#roadmapEntityModal')).toHaveCount(0);
+      await expect(page.locator('[data-table-sprint="active"] table')).toBeVisible();
       await expect(page).toHaveScreenshot(`table-review-sprints-${theme}.png`);
     });
   }

@@ -572,7 +572,7 @@ export const DOCS_PT: DocSection[] = [
                         'Associe workitems a uma fase-folha e a um marco no editor do workitem (ou deixe os filhos [herdar](plan-inheritance)).',
                         'Expanda uma fase-folha ou Sprint para ver a tabela de workitems. As fases-pai expandem as suas subfases.'
                     ] },
-                    { kind: 'p', text: 'O Roadmap mantém largura e zoom à esquerda e + Marco / + Fase à direita. Os losangos dos marcos têm tamanho fixo e mostram o progresso; nome e data aparecem ao passar o rato ou focar por teclado. Usam uma linha, acrescentando uma segunda apenas para sobreposições; as restantes têm scroll. Clique no losango para consultar workitems. Clique no nome da fase ou Sprint para editar e passe o rato na barra para ver datas. Os Sprints usam Play para iniciar e uma bandeira axadrezada para finalizar, mantendo as confirmações. Os Sprints concluídos não apresentam este botão.' },
+                    { kind: 'p', text: 'O Roadmap mantém largura e zoom à esquerda e + Marco / + Fase à direita. Os losangos dos marcos são compactos, têm tamanho fixo, mostram a percentagem sem casas decimais e alinham com as linhas tracejadas da timeline; nome e data aparecem ao passar o rato ou focar por teclado. Usam uma linha, acrescentando uma segunda apenas para sobreposições; as restantes têm scroll. Clique no losango para consultar workitems. As tabelas de fases, marcos e Sprints apresentam ID, Título, Tipo, Estado, Responsável, Prioridade, Bloqueado e Atualizado, por esta ordem. Clique no nome da fase ou Sprint para editar e passe o rato na barra para ver datas. Os Sprints usam Play para iniciar e uma bandeira axadrezada para finalizar, mantendo as confirmações. Os Sprints concluídos não apresentam este botão.' },
                     { kind: 'p', text: 'O progresso conta os workitems elegíveis concluídos (os cancelados são excluídos). Entregáveis pendentes de aceitação no Controlo do projeto mantêm o progresso de fases e marcos abaixo de 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma fase com subfases não pode ser apagada em cascata: mova ou apague primeiro as subfases. Apagar uma fase ou marco com workitems associados pede que os realoque ou limpe explicitamente.' }
                 ],
@@ -662,7 +662,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Calendário', 'Ver prazos e períodos por mês ou ano', 'Todos os projetos ou um'],
                         ['Planeador', 'Agendar o seu dia ou semana', 'Todos os projetos ou um']
                     ] },
-                    { kind: 'p', text: 'Os filtros e a ordenação aplicam-se a todas as vistas. Mudar de vista, ou abrir esta documentação, mantém a seleção e os filtros.' }
+                    { kind: 'p', text: 'O Board, cada subseção da Tabela e cada Sprint expandido mantêm pesquisa e filtros independentes. Ao regressar a uma vista, são recuperados os seus filtros nesta sessão.' }
                 ],
                 related: ['views-filters', 'start-layout']
             },
@@ -675,7 +675,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Todos (por defeito)', 'Linhas expansíveis Epic → Story → Task, Tasks diretas de Epics e Tasks e Bugs independentes. Os descendentes correspondentes continuam visíveis quando os filtros ocultam os antecessores.'],
                         ['Dropdown de vistas', 'Alterne entre Todos, Epic, User Stories, Workitems independentes e Todas as Tasks e Bugs. O botão apresenta a vista selecionada.'],
                         ['Backlog', 'Não concluídos e sem sprint. Selecione linhas para criar um sprint ou adicioná-las a um.'],
-                        ['Sprints', 'Uma tabela expansível por sprint, do mais recente para o mais antigo, com datas, estado e completude. As Stories expandem-se nas Tasks participantes.']
+                        ['Sprints', 'Uma tabela expansível por sprint, do mais recente para o mais antigo, com nome e datas à esquerda e os controlos compactos do Roadmap à direita, sem timeline. As Stories expandem-se nas Tasks participantes.']
                     ] },
                     { kind: 'list', items: [
                         'Cada tabela tem uma única toolbar: contagens, número de selecionados e Limpar seleção à esquerda; pesquisa e ícones de Filtros, Colunas e Exportar CSV à direita, seguidos de um separador e + Criar workitem. No Backlog, **Ações de sprint** fica após o separador, imediatamente antes de +, e agrupa Criar sprint e Adicionar ao sprint. Mantêm-se as validações de seleção e de sprints elegíveis. Pesquise por ID, título e descrição; ordene por qualquer coluna.',
@@ -737,7 +737,7 @@ export const DOCS_PT: DocSection[] = [
                         '**Ordenação**: por prioridade, esforço, pontuação ou nome, ascendente ou descendente.',
                         '**Repor**: prima [[R]] para repor filtros e ordenação.'
                     ] },
-                    { kind: 'p', text: 'Os filtros combinam-se entre si e aplicam-se a todas as vistas. Ficam guardados no endereço, por isso pode guardar uma vista filtrada nos favoritos. A Tabela tem os seus próprios filtros de coluna.' }
+                    { kind: 'p', text: 'Os filtros combinam-se dentro de cada vista. O Board inclui filtros por Epic e User Story, com os mesmos critérios da Tabela. A pesquisa e os filtros de cada subseção da Tabela e de cada Sprint são independentes e mantêm-se durante a sessão; limpar uma tabela não altera as outras. Os filtros do Board continuam guardados no endereço.' }
                 ],
                 related: ['views-choose', 'prod-palette']
             }

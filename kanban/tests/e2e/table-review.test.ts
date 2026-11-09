@@ -26,7 +26,7 @@ test('planning view selects eligible workitems and reuses sprint creation withou
   await page.getByRole('button', { name: 'Sprints', exact: true }).click();
   const sprint = page.locator('[data-table-sprint="sprint-from-table"]');
   await expect(sprint).toContainText('0%');
-  await sprint.locator(':scope > summary .table-sprint-name').click();
+  await sprint.locator(':scope > summary').click();
   await expect(sprint.locator('tbody tr')).toHaveCount(2);
 });
 
@@ -91,7 +91,7 @@ test('sprint sections retain counts while collapsed and show only their own filt
   await expect(future.locator(':scope > summary')).toContainText('N/A (0/0)');
   await past.locator(':scope > summary').focus();
   await page.keyboard.press('Enter');
-  await active.locator(':scope > summary .table-sprint-name').click();
+  await active.locator(':scope > summary').click();
   await expect(past.locator('tbody tr')).toHaveCount(3);
   await expect(active.locator('tbody tr')).toHaveCount(1);
   const downloadPromise = page.waitForEvent('download');
@@ -111,7 +111,7 @@ test('sprint sections retain counts while collapsed and show only their own filt
   await page.keyboard.press('Escape');
   await expect(past.locator('tbody tr')).toHaveCount(1);
   await expect(past.locator(':scope > summary')).toContainText('66.7% complete (2/3)');
-  await past.locator(':scope > summary .table-sprint-name').click();
+  await past.locator(':scope > summary').click();
   await expect(past.locator('table')).toBeHidden();
   await expect(past.locator(':scope > summary')).toContainText('66.7%');
 });

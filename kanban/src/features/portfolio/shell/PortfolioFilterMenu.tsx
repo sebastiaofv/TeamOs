@@ -1,3 +1,4 @@
+import { useAppStore } from '@/features/portfolio/state/store';
 import { DateInput } from '@/shared/ui/DateInput';
 // The toolbar's Filters button, its dropdown panel, and the row of active
 // filter tags. Filters apply as soon as they change; the panel closes on an
@@ -89,7 +90,10 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
     // The command palette's "Open filters" command.
     useEffect(() => {
         const onRequest = (event: Event) => {
-            if (Array.from(document.querySelectorAll<HTMLElement>('[data-portfolio-filter-trigger]')).find(button => button.getClientRects().length > 0) !== buttonRef.current) return;
+            const visible = Array.from(document.querySelectorAll<HTMLElement>('[data-portfolio-filter-trigger]')).filter(button => button.getClientRects().length > 0);
+            const activeScope = useAppStore.getState().activeTableFilterScope;
+            const requested = visible.find(button => button.closest('[data-table-filter-scope]')?.getAttribute('data-table-filter-scope') === activeScope) || visible[0];
+            if (requested !== buttonRef.current) return;
             focusSort.current = event instanceof CustomEvent && Boolean(event.detail?.focusSort);
             setOpen(true);
             if (open && focusSort.current) panelRef.current?.querySelector<HTMLSelectElement>('#portfolioSortSelect')?.focus();

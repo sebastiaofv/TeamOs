@@ -21,8 +21,8 @@ export function nextMilestoneColor(items: RoadmapItem[]): string {
     return MILESTONE_COLORS.find((color) => !used.has(color)) || MILESTONE_COLORS[0];
 }
 
-export const MILESTONE_LANE_HEIGHT = 52;
-export const MILESTONE_MARKER_WIDTH = 44;
+export const MILESTONE_LANE_HEIGHT = 36;
+export const MILESTONE_MARKER_WIDTH = 32;
 
 /** Pack only the diamond footprints. Extra collision lanes scroll within a two-lane strip. */
 export function layoutMilestones(positions: number[], width: number) {

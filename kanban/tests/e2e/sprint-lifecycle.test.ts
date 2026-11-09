@@ -77,7 +77,7 @@ for (const finish of ['button', 'editor'] as const) {
     await expect(sprint.locator('[data-sprint-points="capacity"]')).toHaveText('11/21');
     await expect(sprint.locator('[data-sprint-points="completed"]')).toHaveText('0/11');
     await expect(sprint.locator('[data-sprint-points="completed"] .sprint-points-alert')).toHaveText('0');
-    await sprint.locator(':scope > summary .table-sprint-name').click();
+    await sprint.locator(':scope > summary').click();
     await expect(sprint.locator('[data-sprint-closure-note]')).toHaveText('The data in this table reflects the state of the workitems when the Sprint was closed: 04/11/2026.');
     await expect(sprint.locator('tr[data-task-id="1"] [data-column="status"]')).toContainText('Ready to test');
     // The frozen row opens the Story with its current data.

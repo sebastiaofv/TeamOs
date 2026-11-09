@@ -42,6 +42,8 @@ export type PortfolioSlice = {
     productProjectSelectionByKey: Record<string, string>;
     selectedPortfolioViewMode: PortfolioViewMode;
     portfolioFilters: PortfolioFilters;
+    tableFiltersByScope: Record<string, import('@/features/portfolio/table/tableControls').TableFilterState>;
+    activeTableFilterScope: string;
     portfolioBoardActiveSprintsOnly: boolean;
     portfolioTableSortByBoardId: Record<string, TableSort>;
     portfolioSortKey: PortfolioSortKey;
@@ -108,6 +110,8 @@ export function createPortfolioSlice(): PortfolioSlice {
         portfolioTableSortByBoardId: {},
         portfolioBoardActiveSprintsOnly: true,
         portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: [] },
+        tableFiltersByScope: {},
+        activeTableFilterScope: '',
         portfolioSortKey: 'priority',
         portfolioSortDir: 'asc',
         portfolioEditContext: null,

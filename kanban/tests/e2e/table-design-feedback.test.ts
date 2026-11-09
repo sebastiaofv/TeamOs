@@ -67,7 +67,7 @@ test('each expanded Sprint has scoped search, filters, counts, columns and expor
     await page.locator('[data-table-view="sprints"]').click();
     for (const id of ['a', 'b']) {
         const sprint = page.locator(`[data-table-sprint="${id}"]`);
-        await sprint.locator(':scope > summary .table-sprint-name').click();
+        await sprint.locator(':scope > summary').click();
         await expect(sprint.locator('.table-heading')).toHaveCount(1);
         await expect(sprint.locator('table input[type=checkbox], .table-sprint-actions, [id^=tableCreateSprint], [id^=tableAddToSprint]')).toHaveCount(0);
         await expect(sprint.locator('thead th:not([data-column])')).toHaveCount(0);

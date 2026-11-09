@@ -116,12 +116,12 @@ test('milestone strip uses one lane unless diamonds collide, then scrolls after 
         { id: 'a', title: 'First', dueDate: '2026-11-01' }, { id: 'b', title: 'Last', dueDate: '2026-11-30' }
     ] } } }], { selectedBoardId: 'markers' });
     await page.locator('[data-view-mode=roadmap]').click();
-    await expect(page.locator('.milestone-annotations')).toHaveCSS('height', '52px');
+    await expect(page.locator('.milestone-annotations')).toHaveCSS('height', '36px');
     await page.reload();
     await seedPortfolioBoards(page, [{ id: 'crowded', title: 'Crowded', hasHandle: true, tasks: [], extensions: { roadmap: { version: 3, phases: [phase], sprints: [], milestones: Array.from({ length: 5 }, (_, i) => ({ id: `m${i}`, title: `Milestone ${i}`, dueDate: '2026-11-30' })) } } }], { selectedBoardId: 'crowded' });
     await page.locator('[data-view-mode=roadmap]').click();
     const strip = page.locator('.milestone-annotations');
-    await expect(strip).toHaveCSS('height', '104px');
+    await expect(strip).toHaveCSS('height', '72px');
     expect(await strip.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
     const last = page.locator('.milestone-annotation').last();
     await last.hover();

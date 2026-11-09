@@ -17,7 +17,6 @@ import {
     getRoadmapTimelinePlacement
 } from '@/domain/roadmap';
 import { phaseTreeRows, planningProgress } from '@/domain/phaseTree';
-import { DEFAULT_PORTFOLIO_FILTERS, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
 import { milestoneColor } from '@/domain/milestonePresentation';
 
 export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadmapViewModel | null {
@@ -31,7 +30,6 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
     const roadmap = getRoadmapExtensionOrEmpty(boardData);
     const range = getVisibleRoadmapDateRange(roadmap);
     const expanded = state?.portfolioRoadmapExpandedRowsByBoardId?.[board.id] || {};
-    const filters = { ...DEFAULT_PORTFOLIO_FILTERS, ...state?.portfolioFilters };
     const historical = Boolean(timelineView?.isPreview);
     const sourceRows = buildPortfolioRowsFromBoardData(state, board, boardData, { canMutate: false, historical });
     const byId = new Map(sourceRows.map((row) => [row.taskId, row]));
@@ -55,7 +53,7 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
         const leaves = scopedTasks.filter((task) => !scopedTasks.some((child) => child.parentId === task.id));
         progress.associated = leaves.length;
         return { key, item, boardData: context, participation: participation || undefined, tasks: scopedTasks, rows,
-            visibleCount: leaves.filter((task) => taskMatchesPortfolioFilters(task, filters, context)).length,
+            visibleCount: leaves.length,
             progress };
     };
     function grouped(tasks: Task[], kind: 'sprints' | 'milestones'): RoadmapWorkScope[] {

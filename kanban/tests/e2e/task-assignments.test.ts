@@ -38,7 +38,7 @@ test('responsibility and participation stay coherent through editing, confirmati
   });
 });
 
-test('responsible and participant filters combine across all views, including empty allocations', async ({ page }) => {
+test('responsible and participant filters combine independently in Board and Table, including empty allocations', async ({ page }) => {
   await gotoApp(page);
   await seedPortfolioBoards(page, [{ id: 'p', title: 'Assignments', hasHandle: true, tasks: [
     { id: 1, title: 'Matching item', status: 'doing', assignees: ['Ana', 'Rui'], dueDate: '2026-01-05', phaseId: 'build' },
@@ -58,6 +58,11 @@ test('responsible and participant filters combine across all views, including em
     await page.locator(`[data-view-mode="${view}"]`).click();
     if (view === 'board' || view === 'table') {
       await openFiltersPanel(page);
+      if (view === 'table') {
+        await expect(page.locator('#portfolioResponsibleFilter')).toHaveValue('');
+        await page.locator('#portfolioResponsibleFilter').selectOption('Ana');
+        await page.getByLabel('Participant', { exact: true }).selectOption('Rui');
+      }
       await expect(page.locator('#portfolioResponsibleFilter')).toHaveValue('Ana');
       await expect(page.getByLabel('Participant', { exact: true })).toHaveValue('Rui');
       await page.keyboard.press('Escape');
@@ -103,12 +108,22 @@ test('responsible and participant filters combine in planning and sprint tables 
   await page.getByLabel('Participant', { exact: true }).selectOption('Rui');
   await page.keyboard.press('Escape');
   await selectTableView(page, 'unplanned');
+  await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
+  await openFiltersPanel(page);
+  await page.locator('#portfolioResponsibleFilter').selectOption('Ana');
+  await page.getByLabel('Participant', { exact: true }).selectOption('Rui');
+  await page.keyboard.press('Escape');
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
   await expect(page.locator('#workitemsTable tbody tr')).toContainText('Matching unplanned');
   await selectTableView(page, 'sprints');
   const sprint = page.locator('[data-table-sprint="s1"]');
   await expect(sprint.locator(':scope > summary')).toContainText('50% complete (1/2)');
-  await sprint.locator(':scope > summary .table-sprint-name').click();
+  await sprint.locator(':scope > summary').click();
+  await expect(sprint.locator('tbody tr')).toHaveCount(2);
+  await sprint.locator('[data-portfolio-filter-trigger]').click();
+  await sprint.locator('[id^=portfolioResponsibleFilter]').selectOption('Ana');
+  await sprint.getByLabel('Participant', { exact: true }).selectOption('Rui');
+  await page.keyboard.press('Escape');
   await expect(sprint.locator('tbody tr')).toHaveCount(1);
   await expect(sprint.locator('tbody tr')).toContainText('Matching sprint item');
 });

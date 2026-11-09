@@ -1,3 +1,4 @@
+import { QueryFilterContext } from '@/features/portfolio/shell/QueryFilterContext';
 import { TableColumnMenu } from './TableColumnMenu';
 import { TablePagination } from './TablePagination';
 import { showChoice } from '@/app/overlays/appMessages';
@@ -9,8 +10,8 @@ import { SprintAction } from '@/features/portfolio/roadmap/SprintAction';
 import { SprintPoints } from '@/features/portfolio/roadmap/SprintPoints';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
-import { isPlanningUnit, workitemType, parentOf, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
-import { useMemo, useState, type MouseEvent } from 'react';
+import { isPlanningUnit, workitemType, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
+import { useEffect, useMemo, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardData } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
@@ -25,7 +26,7 @@ import {
     normalizeTableColumns, filterTableRows, sortTableRows, tableCellValue, buildTableCsv,
     type TableColumnId
 } from './tableModel';
-import { clearTableFilters, setTableSort } from './tableControls';
+import { clearTableFilters, clearTablePanelFilters, DEFAULT_TABLE_FILTER_STATE, setTableFilter, setTableSort } from './tableControls';
 import { PRIORITY_LABELS, COLUMN_LABELS } from './tableLabels';
 import { useTableDisclosure } from './useTableDisclosure';
 import { formatTableTimestamp } from './tablePresentation';
@@ -109,13 +110,18 @@ function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPo
     return <details className="table-sprint-section" data-table-sprint={group.sprint.id}
         onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary>
-            <span className="table-sprint-name">{t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}</span>
-            <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
-            <span>{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
-            {sprintPointsData && <SprintPoints data={sprintPointsData} sprintId={group.sprint.id} />}
-            <button className="btn" type="button" disabled={!canEdit} aria-label={`${t('common.edit')} ${group.sprint.title}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); actions.openRoadmapEntityModal('sprints', group.sprint.id, { boardId }); }}>{t('common.edit')}</button>
-            <SprintAction sprint={group.sprint} boardId={boardId} disabled={!canEdit} />
-            <span className="table-sprint-dates">{formatDate(group.sprint.startDate || '') || t('table.notDefined')} → {formatDate(group.sprint.endDate || '') || t('table.notDefined')}</span>
+            <span className="sr-only">{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
+            <span className="table-sprint-labels">
+                <button type="button" className="roadmap-row-title roadmap-edit-name table-sprint-name" title={t('table.sprintIdentity', { number: group.number, name: group.sprint.title })} aria-label={`${t('common.edit')} ${group.sprint.title}`}
+                    onClick={(event) => { event.preventDefault(); event.stopPropagation(); actions.openRoadmapEntityModal('sprints', group.sprint.id, { boardId }); }}>{t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}</button>
+                <span className="table-sprint-dates">{formatDate(group.sprint.startDate || '') || t('table.notDefined')} → {formatDate(group.sprint.endDate || '') || t('table.notDefined')}</span>
+            </span>
+            <span className="roadmap-row-actions table-sprint-controls">
+                <span className="roadmap-disclosure-btn" title={t('roadmap.visibleAssociated', { visible: group.rows.length, total: group.rows.length })}><WorkspaceIcon name="table" />{group.rows.length}/{group.rows.length}</span>
+                <SprintPoints data={sprintPointsData} sprintId={group.sprint.id} />
+                <span className={`table-status-badge sprint-status-${group.status}`}>{t(`table.sprintStatus.${group.status}`)}</span>
+                <SprintAction compact sprint={group.sprint} boardId={boardId} disabled={!canEdit} />
+            </span>
         </summary>
         {expanded && group.closedAt && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(group.closedAt) })}</p>}
         {expanded && <WorkitemTable hidden={hidden} boardId={boardId} project={`${project} · ${t('table.sprintIdentity', { number: group.number, name: group.sprint.title })}`} boardData={group.boardData}
@@ -123,8 +129,8 @@ function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPo
     </details>;
 }
 
-export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', createSprintId, planning = false, scope = '', preferenceContext, compact = false, emptyLabel, nested = false, bare = false, selectable = true }: {
-    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; createSprintId?: string; planning?: boolean; scope?: string; preferenceContext?: string; compact?: boolean; emptyLabel?: string; nested?: boolean; bare?: boolean; selectable?: boolean;
+export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows, canCreate, createType = 'task', createSprintId, planning = false, scope = '', preferenceContext, compact = false, emptyLabel, nested = false, bare = false, selectable = true, fixedColumns }: {
+    hidden: boolean; boardId: string; project: string; boardData: BoardData; sourceRows: PortfolioRow[]; canCreate: boolean; createType?: import('@/domain/types').WorkitemType; createSprintId?: string; planning?: boolean; scope?: string; preferenceContext?: string; compact?: boolean; emptyLabel?: string; nested?: boolean; bare?: boolean; selectable?: boolean; fixedColumns?: readonly TableColumnId[];
 }) {
     const { t, language } = useI18n();
     const today = useLocalToday();
@@ -132,11 +138,11 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const actions = usePortfolioActions();
     const sortRef = useFocusTarget<HTMLButtonElement>('portfolioTableSort', !hidden && !compact);
     const sprintDisclosure = useTableDisclosure(hidden);
-    const filters = useAppStore((state) => state.portfolioFilters);
-    const [hierarchy, setHierarchy] = useState({ type: '', epic: '', story: '' });
     const preferenceScope = `${boardData.extensions.project?.id || boardId}.${preferenceContext || scope || 'all'}`;
+    const filters = useAppStore(state => state.tableFiltersByScope[preferenceScope] || DEFAULT_TABLE_FILTER_STATE);
+    useEffect(() => { if (!hidden && !bare) useAppStore.setState({ activeTableFilterScope: preferenceScope }); }, [hidden, bare, preferenceScope]);
     const [selectedColumns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences(preferenceScope) ?? readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
-    const columns = selectedColumns.filter((column) => column !== 'archived' && (!bare || column !== 'story'));
+    const columns = fixedColumns ? [...fixedColumns] : selectedColumns.filter((column) => column !== 'archived' && (!bare || column !== 'story'));
     const sort = useAppStore((state) => state.portfolioTableSortByBoardId[boardId] || DEFAULT_TABLE_SORT);
     const focusSortColumn = columns.find((column) => column === sort.column) ?? columns[0];
     const [page, setPage] = useState(0);
@@ -146,17 +152,13 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
     const scopedId = (id: string) => scope ? `${id}-${scope}` : id;
     const hierarchyFields: AdditionalPortfolioFilter[] = [
-        { key: 'type', id: scopedId('tableTypeFilter'), label: t('workitems.type'), value: hierarchy.type, changed: Boolean(hierarchy.type),
+        { key: 'type', id: scopedId('tableTypeFilter'), label: t('workitems.type'), value: filters.type, changed: Boolean(filters.type),
             options: [{ value: '', label: t('common.all') }, ...WORKITEM_TYPES.map(type => ({ value: type, label: t(`workitems.type.${type}`) }))],
-            onChange: value => { setHierarchy(previous => ({ ...previous, type: String(value) })); setPage(0); },
-            reset: () => { setHierarchy(previous => ({ ...previous, type: '' })); setPage(0); } },
-        ...(['epic', 'story'] as const).map(type => ({ key: type, id: scopedId(`tableHierarchy-${type}`), label: t(`workitems.type.${type}`), value: hierarchy[type], changed: Boolean(hierarchy[type]),
-            options: [{ value: '', label: t('common.all') }, ...boardData.board.tasks.filter(task => workitemType(task) === type).map(task => ({ value: String(task.id), label: `${workitemLabel(task)} ${task.title}` }))],
-            onChange: (value: string | string[]) => { setHierarchy(previous => ({ ...previous, [type]: String(value) })); setPage(0); },
-            reset: () => { setHierarchy(previous => ({ ...previous, [type]: '' })); setPage(0); } }))
+            onChange: value => setTableFilter('type', String(value), preferenceScope),
+            reset: () => setTableFilter('type', '', preferenceScope) }
     ];
-    const rows = useMemo(() => sortTableRows(filterTableRows(sourceRows, filters).filter((row) => (!hierarchy.type || workitemType(row.task) === hierarchy.type) && (!hierarchy.epic || String(epicOf(boardData, row.task)?.id || '') === hierarchy.epic) && (!hierarchy.story || (workitemType(parentOf(boardData, row.task) || {}) === 'story' && String(row.task.parentId) === hierarchy.story))), sort.column, sort.direction, boardData),
-        [sourceRows, filters, sort, boardData, hierarchy]);
+    const rows = useMemo(() => sortTableRows(filterTableRows(sourceRows, filters).filter(row => !filters.type || workitemType(row.task) === filters.type), sort.column, sort.direction, boardData),
+        [sourceRows, filters, sort, boardData]);
     const rowGroups = useMemo(() => groupTableRows(rows, nested), [rows, nested]);
     const pageCount = Math.max(1, Math.ceil(rowGroups.length / pageSize));
     const currentPage = pageScope.filters === filters && pageScope.sort === sort ? Math.min(page, pageCount - 1) : 0;
@@ -164,8 +166,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const selectedCount = selectable ? sourceRows.filter((row) => selected.has(row.taskId)).length : 0;
     const allPageSelected = pageRows.length > 0 && pageRows.every(({ row }) => selected.has(row.taskId));
     function clearFilters() {
-        clearTableFilters();
-        setHierarchy({ type: '', epic: '', story: '' });
+        clearTableFilters(false, preferenceScope);
         setPage(0);
     }
     function changeColumns(next: TableColumnId[]) {
@@ -213,7 +214,8 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     }
 
     return (
-        <div className={`table-panel${compact ? ' table-panel-compact' : ''}`}>
+        <QueryFilterContext.Provider value={{ filters, setFilter: (key, value) => setTableFilter(key, value, preferenceScope), clearPanel: () => clearTablePanelFilters(preferenceScope) }}>
+        <div className={`table-panel${compact ? ' table-panel-compact' : ''}`} data-table-filter-scope={preferenceScope} onFocusCapture={() => useAppStore.setState({ activeTableFilterScope: preferenceScope })} onPointerDownCapture={() => useAppStore.setState({ activeTableFilterScope: preferenceScope })}>
             {!bare && <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
                 <summary className="btn" hidden={!compact}>{t('roadmap.tableOptions')}</summary>
                 <div className="table-heading">
@@ -292,5 +294,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                     onPage={next => { setPageScope({ filters, sort }); setPage(next); }} onPageSize={size => { setPageSize(size); setPage(0); }} />}
             </>}
         </div>
+        </QueryFilterContext.Provider>
     );
 }

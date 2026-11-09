@@ -32,7 +32,7 @@ describe('Roadmap clarification view models', () => {
         expect(initial.visibleCount).toBe(4);
         store.setState({ portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, statuses: ['done'] } });
         const filtered = view().phaseRows.find((row) => row.item?.id === 'delivery')!;
-        expect(filtered.visibleCount).toBe(1); expect(filtered.progress).toEqual(initial.progress);
+        expect(filtered.visibleCount).toBe(4); expect(filtered.progress).toEqual(initial.progress);
         store.setState({ portfolioFilters: { ...DEFAULT_PORTFOLIO_FILTERS, archive: 'all' } });
         expect(view().phaseRows.find((row) => row.item?.id === 'delivery')!.visibleCount).toBe(4);
         vi.useFakeTimers(); vi.setSystemTime(new Date('2030-12-01T00:00:00Z'));

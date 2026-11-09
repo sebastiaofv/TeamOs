@@ -42,6 +42,8 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (filters.phaseId) params.set('pph', filters.phaseId);
     if (filters.milestoneId) params.set('pm', filters.milestoneId);
     if (filters.sprintId) params.set('psp', filters.sprintId);
+    if (filters.epicId) params.set('pep', filters.epicId);
+    if (filters.storyId) params.set('pus', filters.storyId);
     if (state.portfolioSortKey !== 'priority') params.set('ps', state.portfolioSortKey);
     if (state.portfolioSortDir === 'desc') params.set('pd', state.portfolioSortDir);
     if (state.selectedPortfolioBoardId) params.set('pb', state.selectedPortfolioBoardId);
@@ -77,7 +79,9 @@ export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDef
             statuses: readQueryParam('pst', '', windowRef).split(','),
             phaseId: readQueryParam('pph', '', windowRef),
             milestoneId: readQueryParam('pm', '', windowRef),
-            sprintId: readQueryParam('psp', '', windowRef)
+            sprintId: readQueryParam('psp', '', windowRef),
+            epicId: readQueryParam('pep', '', windowRef),
+            storyId: readQueryParam('pus', '', windowRef)
         }),
         portfolioSortKey: normalizePortfolioSortKey(portfolioSort),
         portfolioSortDir: normalizePortfolioSortDir(portfolioSortDir),

@@ -69,7 +69,7 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         rows: s.portfolioTasks,
         selectedBoardId: s.selectedPortfolioBoardId,
         tableView: s.selectedPortfolioViewMode === 'table',
-        boardSearch: s.portfolioFilters.search
+        boardSearch: s.selectedPortfolioViewMode === 'table' ? (s.tableFiltersByScope[s.activeTableFilterScope]?.search || '') : s.portfolioFilters.search
     })));
     const [query, setQuery] = useState(initialQuery);
     const [stack, setStack] = useState<PaletteFrame[]>([]);

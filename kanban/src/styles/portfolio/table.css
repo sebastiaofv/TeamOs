@@ -146,3 +146,17 @@
     .table-column-option { flex-wrap: wrap; }
     .table-column-name { flex-basis: 50%; }
 }
+
+/* Match the Roadmap's light row separation, with dates beside the editable name. */
+.table-sprint-section { border: 0; border-bottom: 1px solid var(--border-light); }
+.table-sprint-section > summary { flex-wrap: nowrap; gap: 7px; min-height: 38px; padding: 5px 12px; background: var(--bg-card); }
+.table-sprint-section > summary::before { font-size: 10px; flex: 0 0 24px; text-align: center; }
+.table-sprint-labels { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.table-sprint-labels .table-sprint-name { flex: 0 1 auto; }
+.table-sprint-labels .table-sprint-dates { margin: 0; font-size: 11px; }
+.table-sprint-controls { align-items: center; margin-left: auto; }
+@media (max-width: 600px) {
+    .table-sprint-section > summary { flex-wrap: wrap; }
+    .table-sprint-labels { flex-basis: calc(100% - 40px); }
+    .table-sprint-controls { padding-left: 31px; flex-wrap: wrap; justify-content: flex-end; }
+}

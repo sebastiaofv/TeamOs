@@ -19,6 +19,7 @@ export const TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze([
     'effort', 'tags', 'archived', 'responsible'
 ]);
 export const DEFAULT_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(['id', 'title', 'type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']);
+export const ROADMAP_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(['id', 'title', 'type', 'status', 'responsible', 'priority', 'blocked', 'updatedAt']);
 export type TableSort = { column: TableColumnId | 'score'; direction: 'asc' | 'desc' };
 export const DEFAULT_TABLE_SORT: TableSort = Object.freeze({ column: 'id', direction: 'asc' });
 

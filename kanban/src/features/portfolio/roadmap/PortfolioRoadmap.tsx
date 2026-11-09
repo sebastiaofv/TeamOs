@@ -14,6 +14,7 @@ import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { formatRoadmapDateRange, getRoadmapAxisTicks, getRoadmapYearTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '@/domain/roadmap';
 import { formatDueDateForUi } from '@/domain/calendar';
 import { selectRoadmapMilestone } from '@/features/portfolio/commands/roadmapNavigation';
+import { ROADMAP_TABLE_COLUMNS } from '@/features/portfolio/table/tableModel';
 import { formatClosureDate, WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
 import { useI18n } from '@/shared/i18n';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
@@ -47,10 +48,10 @@ function ProgressBar({ row, left, width, toggle }: { row: RoadmapPlanningRow; le
     </button>;
 }
 
-function useProgressText() {
+function useProgressText(maximumFractionDigits = 1) {
     const { t, language } = useI18n();
     return (scope: RoadmapWorkScope) => scope.progress.percent === null ? t('roadmap.notApplicable')
-        : `${new Intl.NumberFormat(language === 'pt' ? 'pt-PT' : 'en', { maximumFractionDigits: 1 }).format(scope.progress.percent)}%`;
+        : `${new Intl.NumberFormat(language === 'pt' ? 'pt-PT' : 'en', { maximumFractionDigits }).format(scope.progress.percent)}%`;
 }
 
 function ScopeTable({ scope, view, scopeId }: { scope: RoadmapWorkScope; view: PortfolioRoadmapViewModel; scopeId: string }) {
@@ -58,7 +59,7 @@ function ScopeTable({ scope, view, scopeId }: { scope: RoadmapWorkScope; view: P
     if (!view.boardData) return null;
     const closure = /^sprints?:/.test(scope.key) && scope.item ? view.boardData.extensions.sprintResults?.closures.find((entry) => entry.sprintId === scope.item!.id) : undefined;
     return <div className="roadmap-scope-table">
-        <WorkitemTable bare nested hidden={false} boardId={view.boardId} project={`${view.boardTitle}${scope.item ? ` · ${scope.item.title}` : ''}`} boardData={scope.boardData}
+        <WorkitemTable selectable={false} fixedColumns={ROADMAP_TABLE_COLUMNS} bare nested hidden={false} boardId={view.boardId} project={`${view.boardTitle}${scope.item ? ` · ${scope.item.title}` : ''}`} boardData={scope.boardData}
             sourceRows={scope.rows} canCreate={false} scope={domId(scopeId)} emptyLabel={t('roadmap.noTasksAssigned')} />
         {closure && <p className="table-sprint-note table-sprint-frozen-note" data-sprint-closure-note>{t('sprint.frozenNote', { date: formatClosureDate(closure.closedAt) })}</p>}
     </div>;
@@ -101,14 +102,14 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
 }
 
 function MilestoneDiamond({ marker }: { marker: RoadmapMilestoneMarker }) {
-    const percent = useProgressText();
+    const percent = useProgressText(0);
     const value = percent(marker);
     return <span className="milestone-diamond" style={{ '--milestone-color': marker.item!.color } as CSSProperties}><span>{value}</span></span>;
 }
 
 function MilestoneButton({ marker, select }: { marker: RoadmapMilestoneMarker & { lane: number }; select: () => void }) {
     const id = useId();
-    const percent = useProgressText();
+    const percent = useProgressText(0);
     const [anchor, setAnchor] = useState<{ left: number; top: number; width: number } | null>(null);
     const name = `${marker.item!.title} · ${formatDueDateForUi(marker.item!.dueDate)}`;
     useEffect(() => {
@@ -140,7 +141,7 @@ function MilestoneGuide({ marker, markers, top, local = false }: { marker: Roadm
 }
 
 function MilestoneDialog({ marker, view, canEdit, close }: { marker?: RoadmapMilestoneMarker; view: PortfolioRoadmapViewModel; canEdit: boolean; close: () => void }) {
-    const { t } = useI18n(); const percent = useProgressText(); const actions = usePortfolioActions();
+    const { t } = useI18n(); const percent = useProgressText(0); const actions = usePortfolioActions();
     const returnFocus = useReturnFocus();
     const anotherDialog = useAppStore((state) => Boolean(state.activeDialog || state.appMessage));
     return <Dialog.Root open={Boolean(marker)} onOpenChange={(open) => { if (!open && !anotherDialog) close(); }}><Dialog.Portal><Dialog.Overlay className="modal active milestone-modal" id="milestoneWorkitemsModal">
@@ -170,7 +171,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
     const marker = getRoadmapTodayMarker(view.range);
     const annotationLanes = Math.max(0, ...milestones.map((milestone) => milestone.lane + 1));
     const annotationHeight = Math.min(2, annotationLanes) * MILESTONE_LANE_HEIGHT;
-    const style = { '--roadmap-label-width': `${labelWidth ?? view.labelWidth}px`, '--roadmap-temporal-min': `${640 * zoom}px` } as CSSProperties;
+    const style = { '--roadmap-label-width': `${labelWidth ?? view.labelWidth}px`, '--roadmap-temporal-min': `${640 * zoom}px`, '--roadmap-axis-width': `${axis.width}px` } as CSSProperties;
     const selected = milestones.find((item) => item.item?.id === milestoneId);
     return <div className="roadmap-workspace" style={{ '--roadmap-controls-height': `${controls.height}px` } as CSSProperties}>
         <div ref={controls.ref} className="roadmap-view-controls">
@@ -218,7 +219,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
 function ConnectedRoadmap() {
     const state = useAppStore(useShallow((value) => ({ portfolioBoards: value.portfolioBoards, selectedPortfolioBoardId: value.selectedPortfolioBoardId,
         portfolioTimelineSelection: value.portfolioTimelineSelection, portfolioRoadmapExpandedRowsByBoardId: value.portfolioRoadmapExpandedRowsByBoardId,
-        portfolioFilters: value.portfolioFilters, activeLanguage: value.activeLanguage })));
+        activeLanguage: value.activeLanguage })));
     const view = buildPortfolioRoadmapView(state);
     return view ? <PortfolioRoadmapView key={view.boardId} view={view} /> : null;
 }

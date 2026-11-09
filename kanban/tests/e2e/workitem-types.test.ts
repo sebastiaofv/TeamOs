@@ -164,7 +164,7 @@ test('Table filters type, Epic and Story before pagination and export', async ({
 test('Sprint expansion shows only participating child Tasks beneath their Story', async ({ page }) => {
     await seed(page); await page.locator('[data-view-mode="table"]').click(); await selectTableView(page, 'sprints');
     const sprint = page.locator('[data-table-sprint="current"]');
-    await sprint.locator(':scope > summary .table-sprint-name').click();
+    await sprint.locator(':scope > summary').click();
     const table = sprint.locator('table');
     await expect(sprint.locator('.workitem-tree')).toHaveCount(0);
     await expect(table).toContainText('Pagar com cartão');
@@ -195,7 +195,7 @@ test(`Sprint table and Roadmap retain recorded work and read-only details after 
     await page.getByRole('button', { name: 'Table', exact: true }).click();
     await selectTableView(page, 'sprints');
     const sprint = page.locator('[data-table-sprint="past"]');
-    await sprint.locator(':scope > summary .table-sprint-name').click();
+    await sprint.locator(':scope > summary').click();
     const table = sprint.locator('table');
     await table.getByRole('button', { name: 'Expand Recorded story', exact: true }).click();
     // The row keeps the recorded data, but a workitem that still exists opens with its current data (US-22).

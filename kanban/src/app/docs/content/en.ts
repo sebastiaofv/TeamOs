@@ -572,7 +572,7 @@ export const DOCS_EN: DocSection[] = [
                         'Assign workitems to a leaf phase and a milestone in the workitem editor (or let children [inherit](plan-inheritance)).',
                         'Expand a leaf phase to see its workitem table and progress. Parent phases only expand their child hierarchy.'
                     ] },
-                    { kind: 'p', text: 'The Roadmap keeps width and zoom controls on the left and + Milestone / + Phase on the right. Milestone diamonds have a fixed size and show progress; names and dates appear on hover or keyboard focus. They use one lane, adding a second only for overlaps; additional lanes scroll. Click a diamond for associated workitems. Click a phase or Sprint name to edit it, and hover its timeline bar for dates. Sprint rows use a Play icon to start and a chequered flag to finish, retaining confirmations. Completed Sprints have no lifecycle button.' },
+                    { kind: 'p', text: 'The Roadmap keeps width and zoom controls on the left and + Milestone / + Phase on the right. Milestone diamonds are compact, have a fixed size, show integer completion percentages and align with their dashed timeline guides; names and dates appear on hover or keyboard focus. They use one lane, adding a second only for overlaps; additional lanes scroll. Click a diamond for associated workitems. Phase, milestone and Sprint tables show ID, Title, Type, Status, Responsible, Priority, Blocked and Updated, in that order. Click a phase or Sprint name to edit it, and hover its timeline bar for dates. Sprint rows use a Play icon to start and a chequered flag to finish, retaining confirmations. Completed Sprints have no lifecycle button.' },
                     { kind: 'p', text: 'Progress counts completed eligible workitems (cancelled ones are excluded). Deliverables awaiting acceptance in Project Control keep phase and milestone progress below 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A phase with subphases cannot be deleted in cascade: move or delete the subphases first. Deleting a phase or milestone with assigned workitems asks you to reallocate or explicitly clear them.' }
                 ],
@@ -662,7 +662,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Calendar', 'See due dates and periods by month or year', 'All projects or one'],
                         ['Day Planner', 'Schedule your own day or week', 'All projects or one']
                     ] },
-                    { kind: 'p', text: 'Filters and sort apply across views. Switching views, or opening this documentation, keeps your selection and filters.' }
+                    { kind: 'p', text: 'The Board, each Table subsection and each expanded Sprint keep independent search and filters. Returning to a view restores its filters during the session.' }
                 ],
                 related: ['views-filters', 'start-layout']
             },
@@ -675,7 +675,7 @@ export const DOCS_EN: DocSection[] = [
                         ['All (default)', 'Collapsible Epic → Story → Task rows, direct Epic Tasks, and independent Tasks and Bugs. Matching descendants stay visible when filters hide their ancestors.'],
                         ['View dropdown', 'Switch between All, Epic, User Stories, Independent Workitems and All Tasks & Bugs. The button shows the selected view.'],
                         ['Backlog', 'Not completed and without a sprint. Select rows to create a sprint or add them to one.'],
-                        ['Sprints', 'One collapsible table per sprint, newest first, with dates, status and completeness. Stories expand into their participating Tasks.']
+                        ['Sprints', 'One collapsible table per sprint, newest first, with name and dates on the left and compact Roadmap controls on the right, without a timeline. Stories expand into their participating Tasks.']
                     ] },
                     { kind: 'list', items: [
                         'Each table has one toolbar: workitem counts, selection count and Clear selection on the left; search, Filters, Columns and Export CSV icons on the right, followed by a divider and + Create workitem. In Backlog, **Sprint Actions** sits after the divider, immediately before +, and groups Create Sprint and Add to sprint. Existing selection and eligible-sprint checks still apply. Search by ID, title and description; sort by any column.',
@@ -737,7 +737,7 @@ export const DOCS_EN: DocSection[] = [
                         '**Sort**: by priority, effort, score or name, ascending or descending.',
                         '**Reset**: press [[R]] to reset filters and sort.'
                     ] },
-                    { kind: 'p', text: 'Filters combine with each other and apply across views. They are kept in the address, so you can bookmark a filtered view. The Table has its own column filters.' }
+                    { kind: 'p', text: 'Filters combine within each view. The Board includes Epic and User Story filters using the same criteria as the Table. Each Table subsection and each Sprint keep independent search and filters during the session; resetting one table leaves the others intact. Board filters remain in the address.' }
                 ],
                 related: ['views-choose', 'prod-palette']
             }

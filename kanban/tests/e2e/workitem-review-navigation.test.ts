@@ -143,17 +143,18 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'hierarchy');
     const headings = await page.locator('#workitemsTable thead th').allTextContents();
+    const roadmapHeadings = ['ID ↑', 'Title ↕', 'Type ↕', 'Status ↕', 'Responsible ↕', 'Priority ↕', 'Blocked ↕', 'Updated ↕'];
     await page.locator('[data-view-mode="roadmap"]').click();
     await page.getByRole('button', { name: 'Show tasks for Delivery', exact: false }).click();
     const phase = page.locator('[data-roadmap-task-list="phase:p"]');
-    await expect(phase.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
+    await expect(phase.locator('thead th')).toHaveText(roadmapHeadings);
     await phase.getByRole('button', { name: 'Expand Epic', exact: true }).click();
     await phase.getByRole('button', { name: 'Expand Story', exact: true }).click();
     await expect(phase.locator('tbody tr')).toHaveCount(6);
     await expect(phase.locator('[data-task-id="3"]')).toHaveAttribute('data-depth', '2');
     await page.locator('.milestone-annotation[data-roadmap-id="m"]').click();
     const milestone = page.locator('#milestoneWorkitemsModal');
-    await expect(milestone.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
+    await expect(milestone.locator('thead th')).toHaveText(roadmapHeadings);
     await milestone.getByRole('button', { name: 'Expand Epic', exact: true }).click();
     await milestone.getByRole('button', { name: 'Expand Story', exact: true }).click();
     await expect(milestone.locator('[data-task-id="3"]')).toHaveAttribute('data-depth', '2');
@@ -165,7 +166,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.getByRole('button', { name: 'Show tasks for Sprint', exact: false }).click();
     const sprint = page.locator('[data-roadmap-task-list="sprint:s"]');
     await expect(sprint.locator('.workitem-tree')).toHaveCount(0);
-    await expect(sprint.locator('thead th')).toHaveText(headings.filter((heading) => !heading.startsWith('User Story')));
+    await expect(sprint.locator('thead th')).toHaveText(roadmapHeadings);
     await expect(sprint.locator('tbody tr')).toHaveCount(2);
     await sprint.getByRole('button', { name: 'Expand Story', exact: true }).click();
     await expect(sprint.locator('tbody tr')).toHaveCount(3);
@@ -173,7 +174,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'sprints');
     const mainSprint = page.locator('[data-table-sprint="s"]');
-    await mainSprint.locator(':scope > summary .table-sprint-name').click();
+    await mainSprint.locator(':scope > summary').click();
     await mainSprint.getByRole('button', { name: 'Expand Story', exact: true }).click();
     await expect(mainSprint.locator('thead th')).toHaveText(headings.filter(Boolean));
     await expect(mainSprint.locator('table input[type=checkbox]')).toHaveCount(0);

@@ -24,7 +24,9 @@ export const DEFAULT_PORTFOLIO_FILTERS: Readonly<PortfolioFilters> = Object.free
     statuses: [],
     phaseId: '',
     milestoneId: '',
-    sprintId: ''
+    sprintId: '',
+    epicId: '',
+    storyId: ''
 });
 
 const PRIORITY_FILTER_VALUES: readonly PortfolioFilters['priority'][] = ['', 'high', 'medium', 'low'];
@@ -49,7 +51,7 @@ export function normalizePortfolioFilterValue<K extends PortfolioFilterName>(nam
         normalized = Array.isArray(value) && statuses.length === value.length
             && statuses.every((status, index) => status === value[index]) ? value : statuses;
     }
-    else if (name === 'phaseId' || name === 'milestoneId' || name === 'sprintId') normalized = typeof value === 'string' ? value.trim() : '';
+    else if (name === 'phaseId' || name === 'milestoneId' || name === 'sprintId' || name === 'epicId' || name === 'storyId') normalized = typeof value === 'string' ? value.trim() : '';
     else normalized = DEFAULT_PORTFOLIO_FILTERS[name];
     return normalized as PortfolioFilters[K];
 }
@@ -65,7 +67,7 @@ export function normalizePortfolioFilterSet(filters: Partial<Record<PortfolioFil
 
 // The filters shown in the toolbar's Filters panel, in panel order. Search has
 // its own box and is not one of them.
-export const PANEL_PORTFOLIO_FILTERS = ['blocked', 'responsible', 'assignee', 'priority', 'effort', 'statuses', 'phaseId', 'milestoneId', 'sprintId'] as const;
+export const PANEL_PORTFOLIO_FILTERS = ['blocked', 'responsible', 'assignee', 'priority', 'effort', 'statuses', 'phaseId', 'milestoneId', 'sprintId', 'epicId', 'storyId'] as const;
 export type PanelPortfolioFilterName = typeof PANEL_PORTFOLIO_FILTERS[number];
 
 export function getActivePortfolioFilterNames(filters: Partial<Record<PortfolioFilterName, unknown>> | null | undefined): PanelPortfolioFilterName[] {
@@ -84,6 +86,8 @@ export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilter
     if (filters.phaseId === '__none__' ? Boolean(phaseId) : filters.phaseId && !phaseDescendants(getRoadmapExtension(data)?.phases || [], filters.phaseId).has(phaseId)) return false;
     if (filters.milestoneId === '__none__' ? Boolean(milestoneId) : filters.milestoneId && milestoneId !== filters.milestoneId) return false;
     if (filters.sprintId && task.sprintId !== filters.sprintId) return false;
+    if (filters.epicId && (!data?.board || String(epicOf(data as BoardData, task)?.id || '') !== filters.epicId)) return false;
+    if (filters.storyId && (!data?.board || workitemType(parentOf(data as BoardData, task) || {}) !== 'story' || String(task.parentId) !== filters.storyId)) return false;
     if (filters.priority && task.priority !== filters.priority) return false;
     if (filters.effort && task.effort !== filters.effort) return false;
     if (filters.blocked === 'blocked' && !task.blocked) return false;

@@ -47,7 +47,8 @@ function DocsToggleButton() {
 export function AppHeader({ theme }: { theme: Theme }) {
     const { t } = useI18n();
     const settingsOpen = useAppStore((state) => state.activeDialog === 'appSettings');
-    const search = useAppStore((state) => state.portfolioFilters.search);
+    const search = useAppStore((state) => state.selectedPortfolioViewMode === 'table'
+        ? (state.tableFiltersByScope[state.activeTableFilterScope]?.search || '') : state.portfolioFilters.search);
     return (
         <header className="header">
             <div className="header-identity">

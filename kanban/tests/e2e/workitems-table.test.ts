@@ -245,7 +245,7 @@ test.describe('workitems table', () => {
     await expect(page.locator('#tableExportCsv')).toBeFocused();
   });
 
-  test('keeps the main search visible when switching to Table', async ({ page }) => {
+  test('keeps search accessible and independent when switching to Table', async ({ page }) => {
     await seedPortfolioBoards(page, [{
       id: 'search', title: 'Search continuity', hasHandle: true,
       tasks: [{ id: 1, title: 'Visible workitem' }]
@@ -254,7 +254,7 @@ test.describe('workitems table', () => {
     await setBoardSearch(page, 'Visible');
     await openTable(page, false);
     await expect(page.locator('#portfolioSearchBtn')).toBeVisible();
-    await expectTableSearch(page, 'Visible');
+    await expectTableSearch(page, '');
     await setTableSearch(page, 'missing');
     await expect(tableRows(page)).toHaveCount(0);
     await page.locator('#portfolioSearchBtn').click();
@@ -266,7 +266,7 @@ test.describe('workitems table', () => {
     await expectRowIds(page, [1]);
     await setTableSearch(page, 'workitem');
     await page.locator('[data-view-mode="board"]').click();
-    await expect(page.locator('#portfolioSearchInput')).toHaveValue('workitem');
+    await expect(page.locator('#portfolioSearchInput')).toHaveValue('Visible');
     await openTable(page);
     await expectTableSearch(page, 'workitem');
     await page.locator('#portfolioSearchBtn').click();

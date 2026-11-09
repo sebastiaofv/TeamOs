@@ -96,7 +96,7 @@ test('fractional milestone progress stays inside the small coloured diamond in b
     for (const theme of ['light', 'dark']) {
         if (theme === 'dark') await toggleTheme(page);
         const diamond = page.locator('.milestone-annotation .milestone-diamond');
-        await expect(diamond).toHaveText('33.3%');
+        await expect(diamond).toHaveText('33%');
         const geometry = await diamond.evaluate((element) => {
             const text = element.querySelector('span')!.getBoundingClientRect();
             const shape = getComputedStyle(element, '::before');
@@ -167,7 +167,6 @@ test('phase detail navigation preserves zoom, width, selection and scroll', asyn
     await page.getByRole('button', { name: 'Show tasks for API', exact: false }).click();
     const work = area(page, 'phase:api');
     expect(await ids(work)).toEqual([501, 502]);
-    await work.getByRole('checkbox', { name: 'Select API contracts', exact: true }).check();
     const trigger = work.getByRole('button', { name: 'API contracts', exact: true });
     await trigger.scrollIntoViewIfNeeded();
     const before = await page.locator('#portfolioRoadmapView').evaluate((element) => ({ top: element.scrollTop, left: element.scrollLeft }));
@@ -177,7 +176,7 @@ test('phase detail navigation preserves zoom, width, selection and scroll', asyn
     await expect(page.locator('#detailSprintInput')).toHaveValue('october');
     await page.keyboard.press('Escape');
     await expect(trigger).toBeFocused();
-    await expect(work.getByRole('checkbox', { name: 'Select API contracts', exact: true })).toBeChecked();
+    await expect(work.getByRole('checkbox')).toHaveCount(0);
     await expect(page.getByLabel('Timeline zoom', { exact: true })).toHaveValue('1.5');
     await expect(page.getByLabel('Identification column width', { exact: true })).toHaveValue('500');
     const after = await page.locator('#portfolioRoadmapView').evaluate((element) => ({ top: element.scrollTop, left: element.scrollLeft }));
@@ -194,12 +193,11 @@ test('milestone diamonds open the shared table modal and returning from a workit
     await expect(modal.locator('.milestone-diamond')).toHaveText('25%');
     expect(await ids(modal)).toEqual([501, 502, 503, 506]);
     expect(await ids(modal)).toEqual([501, 502, 503, 506]);
-    await modal.getByRole('checkbox', { name: 'Select API contracts', exact: true }).check();
     await modal.getByRole('button', { name: 'API contracts', exact: true }).click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(modal).toBeVisible();
-    await expect(modal.getByRole('checkbox', { name: 'Select API contracts', exact: true })).toBeChecked();
+    await expect(modal.getByRole('checkbox')).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(modal).toHaveCount(0);
     await expect(trigger).toBeFocused();

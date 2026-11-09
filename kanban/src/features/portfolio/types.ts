@@ -72,6 +72,8 @@ export type PortfolioFilters = {
     phaseId: string;
     milestoneId: string;
     sprintId: string;
+    epicId: string;
+    storyId: string;
 };
 export type PortfolioSortKey = 'board' | 'task' | 'column' | 'priority' | 'effort' | 'score' | 'dueDate' | 'updatedAt';
 export type SortDir = 'asc' | 'desc';

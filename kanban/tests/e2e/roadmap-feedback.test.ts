@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'feedback', title: 'Feedback', hasHandle: true,
         tasks: [{ id: 1, title: 'Done', status: 'done', phaseId: 'p0' }, { id: 2, title: 'Open', status: 'doing', phaseId: 'p0' }],
-        extensions: { roadmap: { version: 3, milestones: [{ id: 'm', title: 'Release', dueDate: '2027-01-01' }], sprints: [],
+        extensions: { roadmap: { version: 3, milestones: [{ id: 'm', title: 'Release', dueDate: '2027-01-01' }, { id: 'm2', title: 'Second', dueDate: '2027-01-01' }, { id: 'm3', title: 'Third', dueDate: '2027-01-01' }], sprints: [],
             phases: Array.from({ length: 35 }, (_, i) => ({ id: `p${i}`, title: `Phase ${i}`, startDate: '2026-10-01', endDate: '2027-04-30' })) } }
     }], { selectedBoardId: 'feedback' });
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 
 test('timeline and milestone identification remain fixed and opaque while phases scroll', async ({ page }) => {
     const header = page.locator('.roadmap-axis-shell');
-    const milestone = page.locator('.milestone-annotation');
+    const milestone = page.locator('.milestone-annotation').first();
     const before = await header.boundingBox();
     const milestoneBefore = await milestone.boundingBox();
     await page.locator('#portfolioRoadmapView').evaluate((element) => { element.scrollTop = 250; });
@@ -85,4 +85,18 @@ test('phase creation persists the chosen palette colour and default deletion cle
     await expect.poll(async () => (await readSavedBoard(page, 'feedback')).board.tasks.map((task: { phaseId: string }) => task.phaseId)).toEqual(['', '']);
     const saved = await readSavedBoard(page, 'feedback');
     expect(saved.board.tasks.map((task: { status: string }) => task.status)).toEqual(['done', 'doing']);
+});
+
+test('milestone guides stay centred on the diamonds when labels and zoom change', async ({ page }) => {
+    await page.addStyleTag({ content: '.milestone-annotations { overflow-y: scroll; scrollbar-gutter: stable; } .milestone-annotations::-webkit-scrollbar { display: block; width: 16px; }' });
+    const assertAligned = async () => {
+        const diamond = (await page.locator('[data-roadmap-id="m"] .milestone-diamond').boundingBox())!;
+        const guide = (await page.locator('[data-milestone-guide="m"]').boundingBox())!;
+        expect(Math.abs(diamond.x + diamond.width / 2 - (guide.x + guide.width / 2))).toBeLessThanOrEqual(0.1);
+    };
+    await assertAligned();
+    await page.getByLabel('Timeline zoom', { exact: true }).selectOption('2');
+    await assertAligned();
+    await page.getByLabel('Identification column width', { exact: true }).fill('500');
+    await assertAligned();
 });
