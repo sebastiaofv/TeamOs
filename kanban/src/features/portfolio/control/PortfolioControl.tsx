@@ -2,6 +2,7 @@ import { formatDate } from '@/domain/dates';
 import { DateInput } from '@/shared/ui/DateInput';
 import { navigateControlTabs } from './controlTabNavigation';
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { CONTROL_KINDS, CONTROL_STATUSES, ASSESSMENTS, controlPending, controlRecords, riskLevel, type ControlKind, type ControlRecord } from '@/domain/projectControl';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
@@ -13,11 +14,12 @@ import { ControlBadge } from './ControlBadge';
 
 type SortKey = 'id' | 'title' | 'status' | 'owner' | 'probability' | 'impact' | 'riskLevel' | 'decisionMaker' | 'decisionDate' | 'validator' | 'dueDate';
 export function PortfolioControl({ hidden }: { hidden: boolean }) {
-    const state = useAppStore();
+    const state = useAppStore(useShallow((value) => ({ portfolioBoards: value.portfolioBoards, selectedPortfolioBoardId: value.selectedPortfolioBoardId, portfolioTimelineSelection: value.portfolioTimelineSelection })));
+    if (hidden) return null;
     const timeline = getSelectedPortfolioTimelineView(state);
     const board = state.portfolioBoards.find((item) => item.id === state.selectedPortfolioBoardId);
     const data = timeline?.isPreview ? timeline.projectedBoard : board?.data;
-    if (hidden || !board || !data) return null;
+    if (!board || !data) return null;
     return <ControlTable key={board.id} boardId={board.id} data={data} readOnly={!board.handle || Boolean(timeline?.isPreview)} />;
 }
 function ControlTable({ boardId, data, readOnly }: { boardId: string; data: NonNullable<ReturnType<typeof getSelectedPortfolioTimelineView>>['boardRecord']['data']; readOnly: boolean }) {

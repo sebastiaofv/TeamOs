@@ -17,6 +17,7 @@ import { mergeProject, type MergeDecisions } from '@/domain/projectMerge';
 import { appendTimelineEvent } from '@/domain/timeline';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { cloneSerializable } from '@/domain/serializable';
+import { cloneBoardForMutation } from '@/domain/boardMutation';
 import { recoveryId, removeProjectRecovery, saveProjectRecovery, type ProjectRecovery } from './projectRecovery';
 import { validateConversationPixels } from '@/infrastructure/browser/commentImages';
 import { Logger } from '@/infrastructure/logging/logger';
@@ -26,6 +27,7 @@ export type ProjectFileState = {
     external: BoardSnapshot | null;
     recovery: Promise<void>;
     inFlight: Promise<boolean> | null;
+    historyInFlight?: Promise<void>;
     lastModified: number;
     size: number;
     lastTextHash: string;
@@ -165,7 +167,7 @@ export function syncProjectSaveStates(store: AppStore = useAppStore): void {
 
 /** Normalize legacy input without making its import time a content change. */
 export function normalizeProjectVersion(parsed: BoardData, current?: BoardData): BoardData {
-    const data = serializeBoardDataFromObject(parsed);
+    const data = serializeBoardDataFromObject(parsed, { reuseTimeline: true });
     data.meta.updatedAt = parsed.meta.updatedAt;
     if (!parsed.extensions.project && current?.extensions.project) data.extensions.project!.id = current.extensions.project.id;
     inheritLegacyTaskIdentities(data, parsed, current);
@@ -184,7 +186,7 @@ function persistLocalRecovery(boardId: string): void {
     const runtime = getProjectFileState(boardId, { create: false });
     if (!current || !runtime?.base) return;
     const draft = { projectId: current.data.extensions.project!.id, fileName: current.fileName,
-        base: cloneSerializable(runtime.base), baseHash: runtime.lastTextHash, local: cloneSerializable(current.data) };
+        base: cloneBoardForMutation(runtime.base), baseHash: runtime.lastTextHash, local: cloneBoardForMutation(current.data) };
     runtime.recovery = runtime.recovery.then(() => saveProjectRecovery(draft)).then(() => {
         updateProjectSaveState(boardId, { recoveryError: '' });
     }).catch((error: unknown) => {
@@ -410,25 +412,31 @@ export function projectHasUnsavedChanges(boardId: string): boolean {
 
 /** Hydration is a read, never a mutation or a new recovery revision. */
 export async function ensureProjectHistoryLoaded(boardId: string): Promise<void> {
-    let board = getPortfolioBoardRecord(boardId);
+    const board = getPortfolioBoardRecord(boardId);
     const storage = getDirectoryProject(board?.handle);
     if (!board?.handle || !storage || storage.loaded) return;
+    const handle = board.handle;
     const runtime = getProjectFileState(boardId)!;
-    if (runtime.inFlight) await runtime.inFlight;
-    const persisted = await loadDirectoryHistory(board.handle);
-    board = getPortfolioBoardRecord(boardId);
-    if (!persisted || !board) return;
-    const timeline = mergeDirectoryTimeline(persisted, board.data.extensions.timeline, false);
-    parseConversations(board.data.extensions.conversations, timeline.events);
-    const hydrated = cloneSerializable(board.data);
-    hydrated.extensions.timeline = timeline;
-    attachHistoryArchives(hydrated, storage.archives);
-    BoardRepository.validate(hydrated);
-    storage.loaded = true;
-    if (runtime.base) {
-        runtime.base = { ...runtime.base, extensions: { ...runtime.base.extensions, timeline: persisted } };
-        attachHistoryArchives(runtime.base, storage.archives);
-    }
-    publishData(boardId, hydrated);
-    useAppStore.setState({ portfolioTimelineSelection: { boardId, eventIndex: Math.max(0, timeline.events.length - 1) } });
+    if (runtime.historyInFlight) return runtime.historyInFlight;
+    runtime.historyInFlight = (async () => {
+        if (runtime.inFlight) await runtime.inFlight;
+        if (getPortfolioBoardRecord(boardId)?.handle !== handle) return;
+        const persisted = await loadDirectoryHistory(handle);
+        const current = getPortfolioBoardRecord(boardId);
+        if (!persisted || current?.handle !== handle) return;
+        const timeline = mergeDirectoryTimeline(persisted, current.data.extensions.timeline, false);
+        parseConversations(current.data.extensions.conversations, timeline.events);
+        const hydrated = cloneBoardForMutation(current.data);
+        hydrated.extensions.timeline = timeline;
+        attachHistoryArchives(hydrated, storage.archives);
+        BoardRepository.validate(hydrated);
+        storage.loaded = true;
+        if (runtime.base) {
+            runtime.base = { ...runtime.base, extensions: { ...runtime.base.extensions, timeline: persisted } };
+            attachHistoryArchives(runtime.base, storage.archives);
+        }
+        publishData(boardId, hydrated);
+        useAppStore.setState({ portfolioTimelineSelection: { boardId, eventIndex: Math.max(0, timeline.events.length - 1) } });
+    })().finally(() => { runtime.historyInFlight = undefined; });
+    return runtime.historyInFlight;
 }

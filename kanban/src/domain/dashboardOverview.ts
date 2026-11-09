@@ -4,7 +4,7 @@ import { controlPending, controlRecords, gateControlProgress } from './projectCo
 import { phaseDescendants, planningProgress } from './phaseTree';
 import { applyTimelineEventToState, getBoardTimelineData, reconstructBoardStateFromTimeline } from './timeline';
 import { createBoardStateSnapshot } from './serialize';
-import { statusCategory } from './workflow';
+import { statusCategory, withWorkflowReadCache } from './workflow';
 import { isPlanningUnit, workitemType } from './workitems';
 
 export const DASHBOARD_SECTIONS = ['projectOverview', 'activeSprint', 'projectStatistics', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'] as const;
@@ -42,48 +42,50 @@ export function dashboardStatistics(data: BoardData, phaseId: string) {
 /** Count actual status changes, not baseline contents, workflow edits, or restores.
  * Rows use their state at the end date; deleted items retain their last recorded detail. */
 export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, phaseId: string, start: string, end: string) {
-    const timeline = getBoardTimelineData(source);
-    const result = { started: [] as Task[], completed: [] as Task[], availableFrom: timeline?.events[0]?.at.slice(0, 10) || null, available: Boolean(timeline?.events[0]?.snapshot?.board), contexts: new Map<number, BoardData>() };
-    if (!result.available || !timeline) return result;
-    const started = new Map<number, Task>();
-    const completed = new Map<number, Task>();
-    // Keep raw replay separate: normalizing a legacy baseline derives a people
-    // catalog that must not be fed into later events introducing new members.
-    let replay: Parameters<typeof applyTimelineEventToState>[0] = timeline.events[0].snapshot;
-    let previous = reconstructBoardStateFromTimeline(source, 0);
-    for (let index = 1; index < timeline.events.length; index++) {
-        const event = timeline.events[index];
-        const date = event.at.slice(0, 10);
-        replay = applyTimelineEventToState(replay, event) || replay;
-        const next = createBoardStateSnapshot(replay);
-        if (date >= start && date <= end && ['task.status.changed', 'task.updated', 'task.created', 'board.workitems.updated'].includes(event.kind)) {
-            const scoped = dashboardTasks(next, phaseId);
-            for (const task of scoped.filter((task) => dashboardReportable(next, task))) {
-                const before = previous.board.tasks.find((old) => old.id === task.id && old.createdAt === task.createdAt);
-                if ((!before && event.kind !== 'task.created') || before?.status === task.status) continue;
-                const beforeCategory = before ? statusCategory(before.status, previous, before) : null;
-                const afterCategory = statusCategory(task.status, next, task);
-                if (beforeCategory === afterCategory) continue;
-                if (afterCategory === 'in-progress') started.set(task.id, task);
-                if (afterCategory === 'completed') completed.set(task.id, task);
+    return withWorkflowReadCache(() => {
+        const timeline = getBoardTimelineData(source);
+        const result = { started: [] as Task[], completed: [] as Task[], availableFrom: timeline?.events[0]?.at.slice(0, 10) || null, available: Boolean(timeline?.events[0]?.snapshot?.board), contexts: new Map<number, BoardData>() };
+        if (!result.available || !timeline) return result;
+        const started = new Map<number, Task>();
+        const completed = new Map<number, Task>();
+        // Keep raw replay separate: normalizing a legacy baseline derives a people
+        // catalog that must not be fed into later events introducing new members.
+        let replay: Parameters<typeof applyTimelineEventToState>[0] = timeline.events[0].snapshot;
+        let previous = reconstructBoardStateFromTimeline(source, 0);
+        for (let index = 1; index < timeline.events.length; index++) {
+            const event = timeline.events[index];
+            const date = event.at.slice(0, 10);
+            replay = applyTimelineEventToState(replay, event) || replay;
+            const next = createBoardStateSnapshot(replay);
+            if (date >= start && date <= end && ['task.status.changed', 'task.updated', 'task.created', 'board.workitems.updated'].includes(event.kind)) {
+                const scoped = dashboardTasks(next, phaseId);
+                for (const task of scoped.filter((task) => dashboardReportable(next, task))) {
+                    const before = previous.board.tasks.find((old) => old.id === task.id && old.createdAt === task.createdAt);
+                    if ((!before && event.kind !== 'task.created') || before?.status === task.status) continue;
+                    const beforeCategory = before ? statusCategory(before.status, previous, before) : null;
+                    const afterCategory = statusCategory(task.status, next, task);
+                    if (beforeCategory === afterCategory) continue;
+                    if (afterCategory === 'in-progress') started.set(task.id, task);
+                    if (afterCategory === 'completed') completed.set(task.id, task);
+                }
             }
-        }
-        for (const task of next.board.tasks) {
-            if (date <= end && (started.has(task.id) || completed.has(task.id))) {
-                if (started.has(task.id)) started.set(task.id, task);
-                if (completed.has(task.id)) completed.set(task.id, task);
-                result.contexts.set(task.id, next);
+            for (const task of next.board.tasks) {
+                if (date <= end && (started.has(task.id) || completed.has(task.id))) {
+                    if (started.has(task.id)) started.set(task.id, task);
+                    if (completed.has(task.id)) completed.set(task.id, task);
+                    result.contexts.set(task.id, next);
+                }
             }
+            previous = next;
         }
-        previous = next;
-    }
-    const endRows = (members: Map<number, Task>) => [...members.values()].flatMap((task) => {
-        const atEnd = endData.board.tasks.find((row) => row.id === task.id && row.createdAt === task.createdAt);
-        if (atEnd && !dashboardTasks(endData, phaseId).some((row) => row.id === atEnd.id)) return [];
-        return [atEnd || task];
+        const endRows = (members: Map<number, Task>) => [...members.values()].flatMap((task) => {
+            const atEnd = endData.board.tasks.find((row) => row.id === task.id && row.createdAt === task.createdAt);
+            if (atEnd && !dashboardTasks(endData, phaseId).some((row) => row.id === atEnd.id)) return [];
+            return [atEnd || task];
+        });
+        result.started = endRows(started); result.completed = endRows(completed);
+        return result;
     });
-    result.started = endRows(started); result.completed = endRows(completed);
-    return result;
 }
 
 export function dashboardOverviewPlanning(data: BoardData, phaseId: string, end: string) {

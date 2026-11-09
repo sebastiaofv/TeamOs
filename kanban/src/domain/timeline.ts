@@ -21,7 +21,7 @@ import { applyPlannerBlockChange, normalizeDayPlannerBlock } from './dayPlanner'
 import { findTaskInBoardData } from './boardData';
 import { normalizeTask } from './task';
 import { getRelations } from '@/domain/taskRelations';
-import { normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
+import { isNormalizedTimeline, rememberNormalizedTimeline, normalizeTimelineEvent, normalizeTimelineExtension } from './timelineSchema';
 import { normalizeSprintCatalog, parseSprintCatalog } from '@/domain/sprintCatalog';
 import { getWorkflow } from './workflow';
 import { parseBoardView } from './boardView';
@@ -45,11 +45,11 @@ type ReplayState = {
 const TASK_TIMELINE_FIELDS = ['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'storyPoints', 'phaseId', 'milestoneId', 'sprintId', 'status', 'pullRequests', 'type', 'parentId', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'phaseMode', 'milestoneMode', 'acceptance', 'sprintHistory'] as const;
 
 export function createEmptyTimelineData(): TimelineExtension {
-    return {
+    return rememberNormalizedTimeline({
         version: TIMELINE_VERSION,
         baselineEventId: '',
         events: []
-    };
+    });
 }
 
 export function createTimelineEventId(): string {
@@ -138,8 +138,10 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         return cloneSerializable(event.snapshot);
     }
 
-    const nextState = cloneSerializable(state);
-    const board = nextState.board || { columns: [], tasks: [], settings: {} };
+    // Replay states are immutable. Copy only the containers/values changed by
+    // this event, keeping earlier observations and canonical event data intact.
+    const nextState = { ...state };
+    const board = { ...nextState.board };
     nextState.board = board;
     board.tasks = Array.isArray(board.tasks) ? board.tasks : [];
     board.columns = Array.isArray(board.columns) ? board.columns : [];
@@ -147,7 +149,8 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         ? board.settings
         : {};
     const tasks = board.tasks;
-    const settings = board.settings;
+    const settings = { ...board.settings };
+    board.settings = settings;
     if (event.kind === 'sprint.results.updated' && event.changes?.sprintResults) { nextState.extensions = { ...nextState.extensions, sprintResults: cloneSerializable(event.changes.sprintResults.after) }; return nextState; }
     if (event.kind === 'sprint.participation.updated' && event.changes?.sprintParticipation) { nextState.extensions = { ...nextState.extensions, sprintParticipation: cloneSerializable(event.changes.sprintParticipation.after) }; return nextState; }
     if (['task.comment.published', 'task.comment.referenced'].includes(event.kind) && typeof event.meta?.commentId === 'string') {
@@ -175,8 +178,11 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         return nextState;
     }
     if (event.kind === 'task.updated' || event.kind === 'task.status.changed' || event.kind === 'task.archived' || event.kind === 'task.restored') {
-        const task = tasks.find((entry) => Number(entry?.id) === Number(event.entityId));
-        if (!task || !event.changes) return nextState;
+        const taskIndex = tasks.findIndex((entry) => Number(entry?.id) === Number(event.entityId));
+        if (taskIndex < 0 || !event.changes) return nextState;
+        const task = { ...tasks[taskIndex] };
+        board.tasks = tasks.slice();
+        board.tasks[taskIndex] = task;
         Object.entries(event.changes).forEach(([field, change]) => {
             task[field] = cloneSerializable(change.after);
         });
@@ -198,7 +204,7 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
     }
     if (event.kind === 'roadmap.bulk-assigned') {
         const extensions = nextState.extensions && typeof nextState.extensions === 'object'
-            ? nextState.extensions
+            ? { ...nextState.extensions }
             : {};
         nextState.extensions = extensions;
         const roadmap = normalizeRoadmapExtension(extensions[ROADMAP_EXTENSION_KEY]) || createEmptyRoadmapExtension();
@@ -217,15 +223,13 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
         if (event.meta?.sprintCatalog !== undefined) extensions.sprintCatalog = parseSprintCatalog(event.meta.sprintCatalog);
 
         const taskIdSet = new Set(Array.isArray(event.meta?.taskIds) ? event.meta.taskIds.map((taskId) => Number(taskId)) : []);
-        tasks.forEach((task) => {
-            if (!taskIdSet.has(Number(task?.id))) return;
-            task.sprintId = sprint.id;
-        });
+        board.tasks = tasks.map((task) => taskIdSet.has(Number(task?.id)) ? { ...task, sprintId: sprint.id } : task);
         return nextState;
     }
     if (event.kind.startsWith('planner.block.')) {
         const change = event.changes?.block;
         if (!change) return nextState;
+        nextState.extensions = cloneSerializable(nextState.extensions || {});
         applyPlannerBlockChange(nextState, normalizeDayPlannerBlock(change.before), normalizeDayPlannerBlock(change.after));
         return nextState;
     }
@@ -245,6 +249,7 @@ export function getTimelineExtensionObject(boardData: LooseBoardData | null | un
     const extensions = getBoardExtensionsObject(boardData, { create });
     if (!extensions) return null;
     const current = extensions[TIMELINE_EXTENSION_KEY];
+    if (isNormalizedTimeline(current)) return current;
     const normalized = normalizeTimelineExtension(current);
     if (normalized) {
         extensions[TIMELINE_EXTENSION_KEY] = normalized;
@@ -279,8 +284,30 @@ export function recordTaskRelationsTimelineEvent(data: BoardData, taskId: number
 }
 
 export function getBoardTimelineData(boardData: LooseBoardData | null | undefined): TimelineExtension | null {
-    const timeline = getTimelineExtensionObject(boardData);
-    return timeline ? normalizeTimelineExtension(timeline) : null;
+    return getTimelineExtensionObject(boardData);
+}
+
+/** One forward replay for reports. Snapshots omit conversation/history payloads;
+ * opening an observation still uses the complete standalone projection below. */
+export function* iterateBoardTimeline(boardData: BoardData, include: (event: TimelineEvent, index: number) => boolean = () => true) {
+    const timeline = getBoardTimelineData(boardData);
+    if (!timeline?.events[0]?.snapshot?.board) return;
+    let state: ReplayState | null | undefined = timeline.events[0].snapshot;
+    for (let index = 0; index < timeline.events.length; index++) {
+        const event = timeline.events[index];
+        if (index) state = applyTimelineEventToState(state, event);
+        if (!include(event, index)) continue;
+        const replay = state;
+        let snapshot: BoardData | undefined;
+        yield { index, event, get snapshot() {
+            if (!snapshot) {
+                snapshot = createBoardStateSnapshot(replay);
+                if (snapshot.extensions.project && boardData.extensions.project) snapshot.extensions.project.id = boardData.extensions.project.id;
+                inheritLegacyTaskIdentities(snapshot, replay as LooseBoardData, boardData);
+            }
+            return snapshot;
+        } };
+    }
 }
 
 export function ensureBoardTimelineBaseline(boardData: LooseBoardData): TimelineExtension | null {

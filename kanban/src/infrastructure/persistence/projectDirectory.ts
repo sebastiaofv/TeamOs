@@ -1,7 +1,7 @@
 import type { BoardData, TimelineExtension } from '@/domain/types';
 import type { BoardFileHandle, ProjectDirectoryHandle } from '@/infrastructure/browser/types';
 import { parseAttachmentReference } from '@/domain/attachmentReferences';
-import { normalizeTimelineExtension, normalizeTimelineEvent } from '@/domain/timelineSchema';
+import { isNormalizedTimeline, rememberNormalizedTimeline, normalizeTimelineExtension, normalizeTimelineEvent } from '@/domain/timelineSchema';
 import { validateBoardData } from '@/domain/board';
 import { serializeBoardDataFromObject, hashTextContent } from '@/domain/serialize';
 import { cloneSerializable } from '@/domain/serializable';
@@ -191,13 +191,13 @@ export function attachDirectoryHistory(handle: BoardFileHandle, data: BoardData)
     const storage = projects.get(handle);
     if (storage) {
         const timeline = storage.loaded ? storage.timeline : storage.buffer;
-        if (timeline) data.extensions.timeline = cloneSerializable(timeline);
+        if (timeline) data.extensions.timeline = rememberNormalizedTimeline({ ...timeline, events: timeline.events.slice() });
         attachHistoryArchives(data, storage.loaded ? storage.archives : storage.bufferArchives);
     }
     return data;
 }
 export function mergeDirectoryTimeline(persisted: TimelineExtension, local: TimelineExtension | undefined, loaded: boolean): TimelineExtension {
-    const result = cloneSerializable(persisted);
+    const result = { ...persisted, events: persisted.events.slice() };
     const ids = new Set(result.events.map((event) => event.id));
     for (const event of local?.events || []) {
         // An unopened project seeds a local checkpoint for ordinary commands.
@@ -206,6 +206,7 @@ export function mergeDirectoryTimeline(persisted: TimelineExtension, local: Time
         if (!ids.has(event.id)) { result.events.push(cloneSerializable(event)); ids.add(event.id); }
     }
     result.baselineEventId = result.events[0]?.id || '';
+    if (isNormalizedTimeline(persisted) && (!local || isNormalizedTimeline(local))) rememberNormalizedTimeline(result);
     return result;
 }
 
@@ -265,7 +266,10 @@ async function externalize(value: unknown, storage: DirectoryProject, seen = new
 export async function writeDirectoryProject(handle: BoardFileHandle, input: BoardData): Promise<{ text: string; data: BoardData }> {
     const storage = projects.get(handle)!;
     const expectedProjectHash = storage.projectHash;
-    const data = await externalize(input, storage) as BoardData;
+    // Persisted event payloads already contain canonical attachment references.
+    // Only traverse current state and new events, regardless of history size.
+    const { timeline: inputTimeline, ...extensions } = input.extensions;
+    const data = await externalize({ ...input, extensions }, storage) as BoardData;
     const incomingArchives = detachHistoryArchives(data);
     const deltaArchives: Archives = {};
     for (const [key, entry] of Object.entries(incomingArchives)) {
@@ -273,7 +277,13 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
         const originalEvents = entry.originalEvents?.filter((item) => !storage.sessionArchiveIds.has(`${key}:${item.id}`));
         if (history.length || originalEvents?.length) deltaArchives[key] = { history, ...(originalEvents ? { originalEvents } : {}) };
     }
-    const local = data.extensions.timeline;
+    let local: TimelineExtension | undefined;
+    if (inputTimeline) {
+        const events: TimelineExtension['events'] = [];
+        for (const event of inputTimeline.events) events.push(storage.sessionEventIds.has(event.id)
+            ? event : await externalize(event, storage) as typeof event);
+        local = rememberNormalizedTimeline({ ...inputTimeline, events });
+    }
     const newEvents = (local?.events || []).filter((event) => !storage.sessionEventIds.has(event.id) && !(event.kind === 'board.baseline' && storage.baselineEventId));
     const changed = newEvents.length > 0 || Object.keys(deltaArchives).length > 0;
     const transactionId = changed ? crypto.randomUUID() : storage.historyTransactionId;
@@ -302,7 +312,7 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
         storage.archives = mergeArchives(storage.archives || {}, incomingArchives);
     }
     attachHistoryArchives(data, storage.loaded ? storage.archives : incomingArchives);
-    if (storage.loaded) data.extensions.timeline = cloneSerializable(storage.timeline);
+    if (storage.loaded && storage.timeline) data.extensions.timeline = rememberNormalizedTimeline({ ...storage.timeline, events: storage.timeline.events.slice() });
     else if (local) data.extensions.timeline = local;
     return { text, data };
 }

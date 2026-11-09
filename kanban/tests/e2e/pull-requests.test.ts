@@ -175,6 +175,7 @@ test('Pull Requests lives in its own accessible tab and retains an unconfirmed U
     await expect(page.getByRole('tabpanel', { name: 'Pull Requests', exact: true })).toBeVisible();
     const scope = page.locator('#task-panel-pullRequests .pull-request-links');
     await scope.getByRole('button', { name: 'Add pull request link', exact: true }).click();
+    await expect(scope.getByLabel('Full URL', { exact: true })).toBeFocused();
     await scope.getByLabel('Full URL', { exact: true }).fill(internal);
     await links.press('End'); await expect(history).toBeFocused();
     await history.press('ArrowRight'); await expect(details).toBeFocused();

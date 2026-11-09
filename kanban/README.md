@@ -155,6 +155,7 @@ Manual boards, walkthroughs and general instructions are together in [`test-boar
 
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
 - `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
+- `npm run bench:performance` — isolated Chromium measurements of real priority mutations and historical reports, with synthetic projects. Compare another checkout with `-- --root /absolute/path/to/kanban`. See [issue 78 measurements and regression scenarios](test-board/issue-78.md).
 - `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if the port is already taken. Set `PLAYWRIGHT_PORT` for concurrent worktree runs.
 - `npm run lint` — ESLint with `typescript-eslint`.
 

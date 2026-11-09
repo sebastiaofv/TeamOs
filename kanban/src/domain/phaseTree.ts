@@ -66,7 +66,8 @@ export function planningTaskCategory(task: Pick<Task, 'status' | 'type'>, data?:
 
 export function planningProgress(tasks: readonly Task[], data?: LooseBoardData | null, options: { leavesOnly?: boolean } = {}) {
     const unique = [...new Map(tasks.map((task) => [task.id, task])).values()];
-    const leaves = options.leavesOnly !== false && data?.board?.tasks && Array.isArray(data.board.tasks) ? unique.filter((task) => !(data.board!.tasks as Task[]).some((child) => child.parentId === task.id)) : unique;
+    const parents = new Set(Array.isArray(data?.board?.tasks) ? data.board.tasks.map((task) => task.parentId) : []);
+    const leaves = options.leavesOnly !== false && data?.board?.tasks && Array.isArray(data.board.tasks) ? unique.filter((task) => !parents.has(task.id)) : unique;
     const cancelled = leaves.filter((task) => planningTaskCategory(task, data) === 'cancelled').length;
     const eligible = leaves.length - cancelled;
     const completed = leaves.filter((task) => planningTaskCategory(task, data) === 'completed').length;

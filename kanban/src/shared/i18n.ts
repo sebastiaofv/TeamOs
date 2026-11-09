@@ -7,6 +7,7 @@ import type { Language } from '@/shared/types/ui';
 type TranslationValues = Record<string, string | number>;
 
 const en = {
+    "history.loading": "Loading history…",
     "automations.rule": "Rule",
     "automations.group.sprint": "Sprint closure",
     "automations.sprintUnfinishedTasks.name": "Return unfinished Tasks to Backlog",
@@ -1278,6 +1279,7 @@ const en = {
 type TranslationKey = keyof typeof en;
 
 const pt: Record<TranslationKey, string> = {
+    "history.loading": "A carregar histórico…",
     "automations.rule": "Regra",
     "automations.group.sprint": "Encerramento de Sprints",
     "automations.sprintUnfinishedTasks.name": "Devolver Tasks pendentes ao Backlog",
