@@ -1,3 +1,4 @@
+import { WorkitemReviewContent } from './WorkitemReviewContent';
 import { DateInput } from '@/shared/ui/DateInput';
 import { AppMessageReviewContent } from './AppMessageReviewContent';
 import { translateCurrent } from '@/shared/i18n';
@@ -42,7 +43,7 @@ export function AppMessageDialog() {
                         role="alertdialog"
                         aria-labelledby="appMessageTitle"
                         aria-describedby="appMessageText"
-                        className={`modal-content${message?.review ? ' has-transfer-review' : ''}`}
+                        className={`modal-content${message?.review ? ' has-transfer-review' : message?.workitems ? ' has-workitem-review' : ''}`}
                         onInteractOutside={keepOpen}
                         onEscapeKeyDown={stopEscape}
                         {...returnFocus}
@@ -80,8 +81,9 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                 {!message.review && <Dialog.Description asChild>
                     <p className="app-message-text" id="appMessageText">{message.text}</p>
                 </Dialog.Description>}
-                {message.review && <AppMessageReviewContent review={message.review} />}
-                {Boolean(message.selections?.length) && <div className={message.review ? 'transfer-mapping-fields' : undefined}>
+                {message.review && <AppMessageReviewContent review={message.workitems ? { ...message.review, children: undefined } : message.review} />}
+                {message.workitems && <WorkitemReviewContent review={message.workitems} fields={message.selections} selections={selections} onChange={(id, value) => setSelections((current) => ({ ...current, [id]: value }))} selectionRef={selectionRef} />}
+                {Boolean(message.selections?.some((field) => !message.workitems?.rows.some((row) => row.selectionId === field.id || row.selectionIds?.includes(field.id)))) && <div className={message.review ? 'transfer-mapping-fields' : undefined}>
                     {message.review && <div className="transfer-section-heading">
                         <h3>{message.review.mappingLabel}</h3><p>{message.review.mappingNote}</p>
                     </div>}
@@ -90,7 +92,7 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                         <div className={message.review ? 'transfer-table-scroll' : undefined}>
                             <table className={message.review ? 'transfer-mapping-table' : 'app-message-fields'}>
                                 {message.review && <thead><tr><th>{translateCurrent('transfer.field')}</th><th>{translateCurrent('transfer.current')}</th><th>{translateCurrent('transfer.targetValue')}</th></tr></thead>}
-                                <tbody>{message.selections?.map((field, index) => field.group === group && <tr className="form-group app-message-field" key={field.id}>
+                                <tbody>{message.selections?.map((field, index) => field.group === group && !message.workitems?.rows.some((row) => row.selectionId === field.id || row.selectionIds?.includes(field.id)) && <tr className="form-group app-message-field" key={field.id}>
                                     <th scope="row"><label htmlFor={`appMessageSelection-${index}`}>{field.label}</label></th>
                                     {message.review && <td className="transfer-current-value" data-label={translateCurrent('transfer.current')}>{field.current || '—'}</td>}
                                     <td data-label={message.review ? translateCurrent('transfer.targetValue') : undefined}><select required={field.required} data-field={field.id} ref={index === 0 ? selectionRef : undefined} id={`appMessageSelection-${index}`} value={selections[field.id]} onChange={(event) => setSelections((current) => ({ ...current, [field.id]: event.target.value }))}>
@@ -158,7 +160,7 @@ function AppMessageBody({ message, inputRef, primaryRef, selectionRef }: {
                         disabled={Boolean((button.submitsInput && message.input?.required && !inputValue.trim()) || ((button.submitsSelection || button.submitsSelections) && missingSelections))}
                         onClick={() => answer(button)}
                     >
-                        {button.label}
+                        {button.primary && message.workitems?.countSelection ? translateCurrent('automations.applyCount', { count: message.workitems.rows.filter((row) => row.selectionId && selections[row.selectionId] === 'advance').length }) : button.label}
                     </button>
                 ))}
             </div>

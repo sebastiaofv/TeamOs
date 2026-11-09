@@ -18,7 +18,7 @@ export function childTransferReview(data: BoardData, children: Task[]): Pick<App
 /** Every project-local value is reviewed beside its source value; nothing is matched by name. */
 export function projectTransferFields(source: BoardData, destination: BoardData, task: Task, prefix = '', hierarchy: Task[] = []) {
     const catalog = destination.extensions.project!;
-    const remove = { value: '__remove__', label: t('transfer.removeExplicit') };
+    const remove = { value: '__remove__', label: t('transfer.removeExplicit'), reviewValue: '—' };
     const members = transferMemberInputs(task);
     const removals = transferRemovals(source, task).filter((entry) => entry.kind !== 'child');
     const fields: MessageSelection[] = [{ required: true, id: `${prefix}state`, label: t('task.status'),

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import {
-  answerAppMessage,
+
   gotoApp,
   portfolioCard,
   readSavedBoard,
@@ -94,7 +94,7 @@ test.describe('command palette', () => {
 
     await expect(page.locator('#portfolio-done-column')).toContainText('Write spec');
     await page.locator('#undoBtn').click();
-    await answerAppMessage(page, { expectText: 'Write spec' });
+    await expect(page.locator('#appMessageModal')).toHaveCount(0);
     await expect(page.locator('#portfolio-to-do-column')).toContainText('Write spec');
   });
 

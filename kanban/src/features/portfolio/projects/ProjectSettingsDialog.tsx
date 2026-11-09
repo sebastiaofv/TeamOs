@@ -1,3 +1,4 @@
+import { AutomationSettings } from './AutomationSettings';
 import { SaveButton } from '@/features/portfolio/projects/ProjectSaveStatus';
 import { useRef, useState, type KeyboardEvent } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -72,7 +73,7 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
     function navigateTabs(event: KeyboardEvent<HTMLButtonElement>) {
         if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();
-        const tabs = ['general', 'technical', 'functional'] as const;
+        const tabs = ['general', 'technical', 'functional', 'automations'] as const;
         const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length];
         setTab(next);
         event.currentTarget.parentElement?.querySelector<HTMLButtonElement>(`[data-project-tab="${next}"]`)?.focus();
@@ -86,10 +87,10 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
             <Dialog.Close ref={closeRef} className="modal-close" aria-label={t('common.close')}>&times;</Dialog.Close>
         </div>
         <div className="workflow-tabs project-settings-tabs" role="tablist" aria-label={t('project.settings')}>
-            {(['general', 'technical', 'functional'] as const).map((value) => <button key={value} type="button" role="tab"
+            {(['general', 'technical', 'functional', 'automations'] as const).map((value) => <button key={value} type="button" role="tab"
                 id={`project-settings-tab-${value}`} data-project-tab={value} aria-controls={`project-settings-panel-${value}`}
                 aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onClick={() => setTab(value)} onKeyDown={navigateTabs}>
-                {t(value === 'general' ? 'project.general' : `project.workflow.${value}`)}
+                {t(value === 'general' ? 'project.general' : value === 'automations' ? 'automations.title' : `project.workflow.${value}`)}
             </button>)}
         </div>
         <div className="modal-body project-settings-general" role="tabpanel" id="project-settings-panel-general" aria-labelledby="project-settings-tab-general" hidden={tab !== 'general'}>
@@ -176,6 +177,10 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
             {tab === kind && <WorkflowEditor data={vm.data} readOnly={vm.readOnly} busy={saving} editor={editor[kind]} types={editor.types} />}
             {editor[kind].error && <div className="workflow-validation" role="alert">{editor[kind].error}</div>}
         </div>)}
+        <div className="modal-body project-settings-automations" role="tabpanel" id="project-settings-panel-automations" aria-labelledby="project-settings-tab-automations" hidden={tab !== 'automations'}>
+            <AutomationSettings config={editor.automations} onChange={editor.editAutomations} disabled={vm.readOnly || saving} />
+            {editor.error && <p role="alert" className="form-error">{editor.error}</p>}
+        </div>
         <div className="modal-footer workflow-modal-footer">
             <span>{t(vm.readOnly ? 'workflow.readOnlyNote' : 'workflow.draftNote')}</span>
             <div><Dialog.Close className="btn" disabled={saving}>{t(vm.readOnly ? 'common.close' : 'common.cancel')}</Dialog.Close>

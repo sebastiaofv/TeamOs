@@ -9,7 +9,7 @@ export type AppMessageButton = {
     submitsSelections?: boolean;
 };
 
-export type MessageSelection = { defaultValue?: string; group?: string; required?: boolean; id: string; label: string; current?: string; options: { value: string; label: string }[] };
+export type MessageSelection = { defaultValue?: string; group?: string; required?: boolean; id: string; label: string; current?: string; options: { value: string; label: string; reviewValue?: string }[] };
 
 export type AppMessageReview = {
     rejection?: boolean;
@@ -21,7 +21,16 @@ export type AppMessageReview = {
     mappingLabel: string; mappingNote: string; note: string;
 };
 
+/** Compact workitem rows shared by automation and Sprint reviews. */
+export type WorkitemReview = {
+    heading?: string;
+    countSelection?: boolean;
+    rules?: { name: string; description: string }[];
+    rows: { id: string; type: import('@/domain/types').WorkitemType; title: string; field?: string; from?: string; to?: string; reason?: string; selectionId?: string; selectionValue?: boolean; selectionIds?: string[]; rule?: string }[];
+};
+
 export type AppMessage = {
+    workitems?: WorkitemReview;
     review?: AppMessageReview;
     id: number;
     title: string;

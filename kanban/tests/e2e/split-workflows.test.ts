@@ -14,7 +14,7 @@ test('settings keep independent workflow drafts and apply labels and colours to 
     await page.getByRole('button', { name: 'Settings for Two processes', exact: true }).click();
     const modal = page.locator('#projectSettingsModal');
     const tabs = modal.getByRole('tablist', { name: 'Project settings', exact: true });
-    await expect(tabs.getByRole('tab')).toHaveText(['General', 'Technical workflow', 'Functional workflow']);
+    await expect(tabs.getByRole('tab')).toHaveText(['General', 'Technical workflow', 'Functional workflow', 'Automations']);
     await tabs.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await expect(modal).toContainText('Applies to: Task, Bug.');
     await modal.locator('[data-state-choice="doing"]').click();

@@ -1,3 +1,5 @@
+import { workitemReviewRow, statusName } from './workitemReview';
+import { resolveHierarchyAutomations } from './hierarchyAutomationChanges';
 import { ensureProjectHistoryLoaded } from '@/infrastructure/persistence/projectFiles';
 import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { childTransferReview, projectTransferFields } from './projectTransferReview';
@@ -60,7 +62,12 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const currentDestination = getBoardRecord(destinationId)!;
             if (!writable(source!.id) || !writable(destinationId)) throw new TransferError('unavailable');
             const nextSource = removeTransferredSource(currentSource.data, operation, currentDestination.data);
-            if (nextSource !== currentSource.data) publish(source!.id, nextSource);
+            if (nextSource !== currentSource.data) {
+                const review = resolveHierarchyAutomations(nextSource, currentSource.data, confirm);
+                if (review) await review;
+                if (getBoardRecord(source!.id)?.data !== currentSource.data) throw new TransferError('stale');
+                publish(source!.id, nextSource);
+            }
             if (!await enqueueSave(getBoardRecord(source!.id))) return false;
             return await saveCompletedReceipt(destinationId, operation);
         } finally { unlock(); onBoardChanged(destinationId); if (source) onBoardChanged(source.id); }
@@ -95,7 +102,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const children = mode === 'move' ? transferDescendants(source.data, taskId) : [];
             const childReview = childTransferReview(source.data, children);
             if (childReview.children?.some((child) => child.blocked)) {
-                await confirm(t('workitems.error.childrenState'), { title: t(`transfer.${mode}`), confirmLabel: t('common.close'), review: {
+                await confirm(t('workitems.error.childrenState'), { title: t(`transfer.${mode}`), confirmLabel: t('common.close'), workitems: { rows: children.map((child) => ({ ...workitemReviewRow(child, t('task.status'), statusName(source.data, child), statusName(source.data, child)), reason: !['backlog', 'to-do'].includes(statusCategory(child.status, source.data, child)) ? t('workitems.error.childrenState') : undefined })) }, review: {
                     rejection: true,
                     source: source.title, destination: '—', state: '', color: '', sourceLabel: t('transfer.source'), destinationLabel: t('transfer.destination'), stateLabel: t('task.status'),
                     removalsLabel: '', removals: [], mappingLabel: '', mappingNote: '', note: t('transfer.rejectedChildren', { count: childReview.children!.filter((child) => child.blocked).length }), ...childReview
@@ -116,7 +123,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const childFields = children.map((child) => ({ child, editor: projectTransferFields(source.data, destination.data, child, `${child.permanentId}:`, hierarchy) }));
             const selections = [...rootFields.fields, ...childFields.flatMap((entry) => entry.editor.fields)];
             const note = t(children.length ? 'transfer.hierarchySummary' : 'transfer.scopeSummary');
-            const answer = await confirm(note, { title: t(`transfer.${mode}`), confirmLabel: t('common.confirm'), selections, review: {
+            const answer = await confirm(note, { title: t(`transfer.${mode}`), confirmLabel: t('common.confirm'), selections, workitems: { rows: [{ ...workitemReviewRow(task, t('transfer.destination'), source.title, destination.title) }, ...[{ task, fields: rootFields.fields }, ...childFields.map((entry) => ({ task: entry.child, fields: entry.editor.fields }))].flatMap((entry) => entry.fields.map((field) => ({ ...workitemReviewRow(entry.task, field.label, field.current || '—', field.options[0]?.label || '—'), selectionId: field.id, selectionValue: true })))] }, review: {
                 source: source.title, destination: destination.title, state: '', color: '',
                 sourceLabel: t('transfer.source'), destinationLabel: t('transfer.destination'), stateLabel: t('task.status'),
                 removalsLabel: t('transfer.removalsTitle'), removals: [],
