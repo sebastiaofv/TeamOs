@@ -9,6 +9,7 @@ import type { BoardData } from '@/domain/types';
 import type { BoardFile, BoardFileHandle } from '@/infrastructure/browser/types';
 import { BOARD_FILE_EXTENSION } from '@/domain/constants';
 import { validateBoardData } from '@/domain/board';
+import { parseProjectText } from '@/domain/projectFormat';
 import { serializeBoardDataFromObject, hashTextContent } from '@/domain/serialize';
 import { assertRequiredExtension, formatErrorMessage } from '@/domain/util';
 import { createPortfolioRecord } from './portfolioRecord';
@@ -56,7 +57,7 @@ export const BoardRepository = {
     },
     async readFileSnapshot(file: BoardFile, textOverride?: string): Promise<BoardSnapshot> {
         const text = textOverride === undefined ? await file.text() : textOverride;
-        const parsed: unknown = JSON.parse(text);
+        const parsed = parseProjectText(text);
         this.validate(parsed);
         await validateConversationPixels(parsed as BoardData);
         return {
@@ -83,7 +84,7 @@ export const BoardRepository = {
         if (file.name === 'project.json' && !getDirectoryProject(handle)) throw new Error('Open the project folder to validate history.json and attachments/.');
         if (!getDirectoryProject(handle)) assertRequiredExtension(file?.name || '', BOARD_FILE_EXTENSION, 'Project file');
         const text = await file.text();
-        const parsed: unknown = JSON.parse(text);
+        const parsed = parseProjectText(text);
         this.validate(parsed);
         await validateConversationPixels(parsed as BoardData);
         if (handle) attachDirectoryHistory(handle, parsed as BoardData);

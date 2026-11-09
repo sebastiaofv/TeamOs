@@ -86,9 +86,10 @@ export function closeSprint(data: BoardData, sprintId: string, finalSprint?: Roa
     results.closures.push({ sprint: structuredClone({ ...sprint, status: 'done' }), sprintId, closedAt: timestamp, tasks, workflow: structuredClone(getWorkflow(data)), functionalWorkflow: structuredClone(getWorkflow(data, 'functional')), workflowTypes: { version: 1, functional: functionalWorkitemTypes(data) },
         plannedPoints: units.reduce((sum, task) => sum + (task.storyPoints ?? 0), 0), completedIds: units.filter((task) => developmentCompleted(snapshot, task)).map((task) => task.id), carryOverIds,
         velocity: results.credits.filter((credit) => credit.sprintId === sprintId).reduce((sum, credit) => sum + credit.storyPoints, 0) });
-    // Freeze all recorded rows, including children and workitems that left earlier.
-    const entries = data.extensions.sprintParticipation?.entries || [];
-    data.extensions.sprintParticipation = { version: 1, entries: [...entries.filter((entry) => entry.sprintId !== sprintId), ...tasks.map((task) => ({ sprintId, task: structuredClone(task), at: timestamp }))] };
+    // The closure now owns the roster, so participation keeps only Sprints still open.
+    const entries = (data.extensions.sprintParticipation?.entries || []).filter((entry) => entry.sprintId !== sprintId);
+    if (entries.length) data.extensions.sprintParticipation = { version: 1, entries };
+    else delete data.extensions.sprintParticipation;
     for (const task of sprintUnallocatedWorkitems(data, sprintId)) {
         if (carryOverIds.includes(task.id) && workitemType(task) !== 'task') {
             const workflow = getWorkflow(data, task);

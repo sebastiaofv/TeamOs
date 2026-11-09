@@ -1,4 +1,4 @@
-import type { BoardData, Task, TimelineEvent } from './types';
+import type { BoardData, Task } from './types';
 import type { TaskHistoryEntry } from './taskHistory';
 import { projectTaskHistory } from './taskHistory';
 import { cloneSerializable } from './serializable';
@@ -21,9 +21,9 @@ export type ChildTransferChoice = { stateId: string; mapping: TransferMapping };
 export type TransferRemoval = { kind: 'phases' | 'milestones' | 'sprints' | 'sprintHistory' | 'planner' | 'parent' | 'child'; id: string; title: string; date?: string; start?: string; end?: string };
 export type TransferOperation = {
     id: string; batchId?: string; mode: TransferMode; status: 'pending' | 'complete'; at: string;
-    from: WorkitemReference; to: WorkitemReference; sourceTask: Task;
+    from: WorkitemReference; to: WorkitemReference; sourceTask: Pick<Task, 'id' | 'permanentId' | 'parentId'>;
     sourceSignature: string; mapping: TransferMapping; removed: TransferRemoval[];
-    history: TaskHistoryEntry[]; originalEvents: TimelineEvent[];
+    history: TaskHistoryEntry[];
 };
 export type ProjectTransfers = { version: 1; operations: TransferOperation[] };
 export class TransferError extends Error {
@@ -43,7 +43,7 @@ export function parseProjectTransfers(value: unknown): ProjectTransfers | undefi
             || (op.mapping.associations !== undefined && (!isRecord(op.mapping.associations) || !Object.values(op.mapping.associations).every((item) => typeof item === 'string')))
             || !Array.isArray(op.removed) || !op.removed.every((item) => isRecord(item) && ['kind', 'id', 'title'].every((key) => typeof item[key] === 'string'))
             || !Array.isArray(op.history) || !op.history.every((entry) => isRecord(entry) && typeof entry.id === 'string' && Array.isArray(entry.changes) && Array.isArray(entry.eventIds) && Array.isArray(entry.categories))
-            || !Array.isArray(op.originalEvents) || !op.originalEvents.every((event) => isRecord(event) && typeof event.id === 'string' && typeof event.kind === 'string')
+            || (op.originalEvents !== undefined && !Array.isArray(op.originalEvents)) || !((op.originalEvents || []) as unknown[]).every((event) => isRecord(event) && typeof event.id === 'string' && typeof event.kind === 'string')
             || Object.keys(op).some((key) => !['id', 'batchId', 'mode', 'status', 'at', 'from', 'to', 'sourceTask', 'sourceSignature', 'mapping', 'removed', 'history', 'originalEvents'].includes(key))) throw new TransferError('invalid');
         const from = parseWorkitemReference(op.from), to = parseWorkitemReference(op.to);
         if (from.projectId === to.projectId || (op.mode === 'move' ? from.permanentId !== to.permanentId : from.permanentId === to.permanentId)
@@ -56,7 +56,13 @@ export function parseProjectTransfers(value: unknown): ProjectTransfers | undefi
         if (!root || root.batchId !== root.id || op.mode !== 'move' || root.mode !== 'move'
             || op.from.projectId !== root.from.projectId || op.to.projectId !== root.to.projectId) throw new TransferError('invalid');
     }
-    return cloneSerializable(value) as ProjectTransfers;
+    const parsed = cloneSerializable(value) as ProjectTransfers;
+    // Older files stored unread event copies and the whole source workitem.
+    for (const op of parsed.operations) {
+        delete (op as TransferOperation & { originalEvents?: unknown }).originalEvents;
+        op.sourceTask = { id: op.sourceTask.id, permanentId: op.sourceTask.permanentId, parentId: op.sourceTask.parentId ?? null };
+    }
+    return parsed;
 }
 
 export function sameProduct(a: BoardData, b: BoardData): boolean {
@@ -200,9 +206,8 @@ function prepareSingleTransfer(source: RelationProject, destination: RelationPro
     if (acceptance) transferred.acceptance = acceptance;
     else delete transferred.acceptance;
     const from = referenceFor(source, task), to = referenceFor({ ...destination, data: target }, transferred);
-    const operation: TransferOperation = { id: operationId, mode, status: 'pending', at: now, from, to, sourceTask: cloneSerializable(task), sourceSignature: transferSourceSignature(source.data, task), mapping: cloneSerializable(mapping), removed: transferRemovals(source.data, task),
-        history: mode === 'move' ? cloneSerializable(projectTaskHistory(source.data, task).entries) : [],
-        originalEvents: mode === 'move' ? cloneSerializable(source.data.extensions.timeline?.events.filter((event) => event.entityType === 'task' && event.entityId === String(task.id)) || []) : [] };
+    const operation: TransferOperation = { id: operationId, mode, status: 'pending', at: now, from, to, sourceTask: { id: task.id, permanentId: task.permanentId, parentId: task.parentId ?? null }, sourceSignature: transferSourceSignature(source.data, task), mapping: cloneSerializable(mapping), removed: transferRemovals(source.data, task),
+        history: mode === 'move' ? cloneSerializable(projectTaskHistory(source.data, task).entries) : [] };
     target.extensions.projectTransfers = { version: 1, operations: [...(target.extensions.projectTransfers?.operations || []), operation] };
     appendTimelineEvent(target, { id: `${operationId}-created`, at: mode === 'move' ? task.createdAt : now, kind: 'task.created', entityType: 'task', entityId: String(id), summary: mode === 'move' ? 'Workitem received' : 'Workitem copied', snapshot: cloneSerializable(transferred) });
     if (mode === 'move') {

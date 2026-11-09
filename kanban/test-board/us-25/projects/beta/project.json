@@ -1,496 +1,38 @@
 {
   "meta": {
-    "schemaVersion": 6,
+    "schemaVersion": 1,
     "appId": "teamos-kanban",
+    "revision": 0,
     "createdAt": "2026-10-19T09:00:00Z",
-    "updatedAt": "2026-11-06T09:28:24.369Z"
+    "updatedAt": "2026-11-09T12:32:51.108Z"
   },
-  "board": {
-    "columns": [
+  "project": {
+    "id": "us25-beta",
+    "description": "Fictitious project for US-20",
+    "status": "active",
+    "members": [
       {
-        "status": "backlog",
-        "title": "Backlog"
+        "id": "ana",
+        "name": "Ana Silva"
       },
       {
-        "status": "to-do",
-        "title": "To Do"
+        "id": "rui",
+        "name": "Rui Costa"
       },
       {
-        "status": "doing",
-        "title": "Doing"
-      },
-      {
-        "status": "done",
-        "title": "Done"
+        "id": "bruno",
+        "name": "Bruno Costa"
       }
     ],
-    "tasks": [
-      {
-        "type": "task",
-        "parentId": null,
-        "phaseMode": "explicit",
-        "milestoneMode": "explicit",
-        "pullRequests": [],
-        "displayId": "ATL-TK-1",
-        "permanentId": "workitem:project-control-demo:1:2026-10-19T09%3A00%3A00Z",
-        "id": 1,
-        "title": "Build complete",
-        "description": "Fictitious completed execution work",
-        "assignees": [
-          "Ana Silva"
-        ],
-        "responsible": "Ana Silva",
-        "assigneeIds": [
-          "ana"
-        ],
-        "responsibleId": "ana",
-        "tags": [],
-        "blocked": false,
-        "blockerReason": "",
-        "checklist": [],
-        "attachments": [],
-        "archived": false,
-        "createdAt": "2026-10-19T09:00:00Z",
-        "updatedAt": "2026-10-19T09:00:00Z",
-        "dueDate": "2026-10-30",
-        "priority": null,
-        "effort": null,
-        "phaseId": "build",
-        "milestoneId": "release",
-        "sprintId": "",
-        "status": "done"
-      },
-      {
-        "type": "task",
-        "parentId": null,
-        "phaseMode": "explicit",
-        "milestoneMode": "explicit",
-        "pullRequests": [],
-        "displayId": "ATL-TK-2",
-        "permanentId": "workitem:project-control-demo:2:2026-10-19T09%3A00%3A00Z",
-        "id": 2,
-        "title": "Review complete",
-        "description": "Fictitious completed execution work",
-        "assignees": [
-          "Ana Silva"
-        ],
-        "responsible": "Ana Silva",
-        "assigneeIds": [
-          "ana"
-        ],
-        "responsibleId": "ana",
-        "tags": [],
-        "blocked": false,
-        "blockerReason": "",
-        "checklist": [],
-        "attachments": [],
-        "archived": false,
-        "createdAt": "2026-10-19T09:00:00Z",
-        "updatedAt": "2026-10-19T09:00:00Z",
-        "dueDate": "2026-10-30",
-        "priority": null,
-        "effort": null,
-        "phaseId": "review",
-        "milestoneId": "release",
-        "sprintId": "",
-        "status": "done"
-      },
-      {
-        "type": "task",
-        "parentId": null,
-        "phaseMode": "explicit",
-        "milestoneMode": "explicit",
-        "pullRequests": [],
-        "displayId": "ATL-TK-3",
-        "permanentId": "workitem:project-control-demo:3:2026-10-19T09%3A00%3A00Z",
-        "id": 3,
-        "title": "Independent complete",
-        "description": "Fictitious completed execution work",
-        "assignees": [
-          "Ana Silva"
-        ],
-        "responsible": "Ana Silva",
-        "assigneeIds": [
-          "ana"
-        ],
-        "responsibleId": "ana",
-        "tags": [],
-        "blocked": false,
-        "blockerReason": "",
-        "checklist": [],
-        "attachments": [],
-        "archived": false,
-        "createdAt": "2026-10-19T09:00:00Z",
-        "updatedAt": "2026-10-19T09:00:00Z",
-        "dueDate": "2026-10-30",
-        "priority": null,
-        "effort": null,
-        "phaseId": "review",
-        "milestoneId": "independent",
-        "sprintId": "",
-        "status": "done"
-      }
+    "tags": [
+      "feature",
+      "documentation"
     ],
-    "settings": {
-      "title": "US-25 Beta — large history and Project Control"
-    }
+    "acronym": "BETA",
+    "title": "US-25 Beta — large history and Project Control"
   },
-  "extensions": {
-    "roadmap": {
-      "version": 5,
-      "milestones": [
-        {
-          "id": "release",
-          "title": "Release approval",
-          "objective": "All acceptance evidence approved",
-          "dueDate": "2026-11-30"
-        },
-        {
-          "id": "independent",
-          "title": "Independent completed work",
-          "dueDate": "2026-11-15"
-        }
-      ],
-      "phases": [
-        {
-          "id": "launch",
-          "title": "Launch",
-          "objective": "Release the approved Atlas package",
-          "startDate": "2026-10-01",
-          "endDate": "2026-11-30"
-        },
-        {
-          "id": "build",
-          "title": "Build",
-          "objective": "Complete and validate implementation",
-          "parentId": "launch",
-          "startDate": "2026-10-01",
-          "endDate": "2026-10-31"
-        },
-        {
-          "id": "review",
-          "title": "Review",
-          "objective": "Validate delivery",
-          "parentId": "launch",
-          "startDate": "2026-11-01",
-          "endDate": "2026-11-30"
-        }
-      ],
-      "sprints": []
-    },
-    "project": {
-      "version": 1,
-      "id": "us25-beta",
-      "description": "Fictitious project for US-20",
-      "status": "active",
-      "members": [
-        {
-          "id": "ana",
-          "name": "Ana Silva"
-        },
-        {
-          "id": "rui",
-          "name": "Rui Costa"
-        },
-        {
-          "id": "bruno",
-          "name": "Bruno Costa"
-        }
-      ],
-      "tags": [
-        "feature",
-        "documentation"
-      ],
-      "acronym": "BETA"
-    },
-    "projectControl": {
-      "version": 3,
-      "lastNumber": 8,
-      "records": [
-        {
-          "id": "ATL-RK-1",
-          "kind": "risks",
-          "title": "Supplier availability",
-          "description": "Fictitious record for manual acceptance testing.",
-          "status": "open",
-          "owner": "Ana Silva",
-          "probability": "high",
-          "impact": "high",
-          "mitigationPlan": "Confirm alternate supplier",
-          "contingencyPlan": "Use reserved capacity",
-          "decisionMaker": "",
-          "decisionDate": "",
-          "rationale": "",
-          "validator": "",
-          "dueDate": "2026-10-28",
-          "deliveredDate": "",
-          "acceptedDate": "",
-          "materializedDate": "",
-          "actualImpact": "",
-          "related": {
-            "phaseIds": [
-              "build",
-              "review"
-            ],
-            "milestoneIds": [
-              "release"
-            ]
-          },
-          "createdAt": "2026-10-25T10:00:00.000Z",
-          "updatedAt": "2026-10-25T10:00:00.000Z",
-          "comments": [],
-          "history": [],
-          "assignees": [
-            "Ana Silva"
-          ],
-          "tags": [
-            "feature"
-          ]
-        },
-        {
-          "id": "ATL-RK-2",
-          "kind": "risks",
-          "title": "Environment outage",
-          "description": "Fictitious record for manual acceptance testing.",
-          "status": "materialized",
-          "owner": "Rui Costa",
-          "probability": "medium",
-          "impact": "high",
-          "mitigationPlan": "Confirm alternate supplier",
-          "contingencyPlan": "Use reserved capacity",
-          "decisionMaker": "",
-          "decisionDate": "",
-          "rationale": "",
-          "validator": "",
-          "dueDate": "2026-10-28",
-          "deliveredDate": "",
-          "acceptedDate": "",
-          "materializedDate": "2026-10-24",
-          "actualImpact": "Two hours unavailable",
-          "related": {
-            "phaseIds": [],
-            "milestoneIds": []
-          },
-          "createdAt": "2026-10-25T10:00:00.000Z",
-          "updatedAt": "2026-10-25T10:00:00.000Z",
-          "comments": [],
-          "history": [],
-          "assignees": [
-            "Rui Costa"
-          ],
-          "tags": []
-        },
-        {
-          "id": "ATL-RK-3",
-          "kind": "risks",
-          "title": "Documentation delay",
-          "description": "Fictitious record for manual acceptance testing.",
-          "status": "closed",
-          "owner": "Ana Silva",
-          "probability": "low",
-          "impact": "low",
-          "mitigationPlan": "Confirm alternate supplier",
-          "contingencyPlan": "Use reserved capacity",
-          "decisionMaker": "",
-          "decisionDate": "",
-          "rationale": "",
-          "validator": "",
-          "dueDate": "2026-10-28",
-          "deliveredDate": "",
-          "acceptedDate": "",
-          "materializedDate": "",
-          "actualImpact": "",
-          "related": {
-            "phaseIds": [],
-            "milestoneIds": []
-          },
-          "createdAt": "2026-10-25T10:00:00.000Z",
-          "updatedAt": "2026-10-25T10:00:00.000Z",
-          "comments": [],
-          "history": [],
-          "assignees": [
-            "Ana Silva"
-          ],
-          "tags": []
-        },
-        {
-          "id": "ATL-DC-4",
-          "kind": "decisions",
-          "title": "Choose supported runtime",
-          "description": "Fictitious record for manual acceptance testing.",
-          "status": "approved",
-          "owner": "Rui Costa",
-          "probability": "medium",
-          "impact": "medium",
-          "mitigationPlan": "",
-          "contingencyPlan": "",
-          "decisionMaker": "Rui Costa",
-          "decisionDate": "2026-10-25",
-          "rationale": "Supported throughout project lifetime",
-          "validator": "",
-          "dueDate": "2026-10-28",
-          "deliveredDate": "",
-          "acceptedDate": "",
-          "materializedDate": "",
-          "actualImpact": "",
-          "related": {
-            "phaseIds": [],
-            "milestoneIds": []
-          },
-          "createdAt": "2026-10-25T10:00:00.000Z",
-          "updatedAt": "2026-10-25T10:00:00.000Z",
-          "comments": [],
-          "history": [],
-          "assignees": [
-            "Rui Costa"
-          ],
-          "tags": []
-        },
-        {
-          "id": "ATL-DC-5",
-          "kind": "decisions",
-          "title": "Replace launch format",
-          "description": "Fictitious record for manual acceptance testing.",
-          "status": "superseded",
-          "owner": "Ana Silva",
-          "probability": "medium",
-          "impact": "medium",
-          "mitigationPlan": "",
-          "contingencyPlan": "",
-          "decisionMaker": "Rui Costa",
-          "decisionDate": "2026-10-25",
-          "rationale": "Supported throughout project lifetime",
-          "validator": "",
-          "dueDate": "2026-10-28",
-          "deliveredDate": "",
-          "acceptedDate": "",
-          "materializedDate": "",
-          "actualImpact": "",
-          "related": {
-            "phaseIds": [],
-            "milestoneIds": []
-          },
-          "createdAt": "2026-10-25T10:00:00.000Z",
-          "updatedAt": "2026-10-25T10:00:00.000Z",
-          "comments": [],
-          "history": [],
-          "assignees": [
-            "Ana Silva"
-          ],
-          "tags": []
-        },
-        {
-          "id": "ATL-DL-6",
-          "kind": "deliverables",
-          "title": "Release package",
-          "description": "Fictitious record for manual acceptance testing.",
-          "status": "delivered",
-          "owner": "Rui Costa",
-          "probability": "medium",
-          "impact": "medium",
-          "mitigationPlan": "",
-          "contingencyPlan": "",
-          "decisionMaker": "",
-          "decisionDate": "",
-          "rationale": "",
-          "validator": "Rui Costa",
-          "dueDate": "2026-10-28",
-          "deliveredDate": "2026-10-25",
-          "acceptedDate": "",
-          "materializedDate": "",
-          "actualImpact": "",
-          "related": {
-            "phaseIds": [
-              "build",
-              "review"
-            ],
-            "milestoneIds": [
-              "release"
-            ]
-          },
-          "createdAt": "2026-10-25T10:00:00.000Z",
-          "updatedAt": "2026-10-25T10:00:00.000Z",
-          "comments": [],
-          "history": [],
-          "assignees": [
-            "Rui Costa"
-          ],
-          "tags": []
-        },
-        {
-          "id": "ATL-DL-7",
-          "kind": "deliverables",
-          "title": "Acceptance report",
-          "description": "Fictitious record for manual acceptance testing.",
-          "status": "accepted",
-          "owner": "Ana Silva",
-          "probability": "medium",
-          "impact": "medium",
-          "mitigationPlan": "",
-          "contingencyPlan": "",
-          "decisionMaker": "",
-          "decisionDate": "",
-          "rationale": "",
-          "validator": "Rui Costa",
-          "dueDate": "2026-10-28",
-          "deliveredDate": "2026-10-25",
-          "acceptedDate": "2026-10-26",
-          "materializedDate": "",
-          "actualImpact": "",
-          "related": {
-            "phaseIds": [
-              "build"
-            ],
-            "milestoneIds": [
-              "release"
-            ]
-          },
-          "createdAt": "2026-10-25T10:00:00.000Z",
-          "updatedAt": "2026-10-25T10:00:00.000Z",
-          "comments": [],
-          "history": [],
-          "assignees": [
-            "Ana Silva"
-          ],
-          "tags": []
-        },
-        {
-          "id": "ATL-DL-8",
-          "kind": "deliverables",
-          "title": "Archived delivery proposal",
-          "description": "Fictitious record for manual acceptance testing.",
-          "status": "cancelled",
-          "owner": "Rui Costa",
-          "probability": "medium",
-          "impact": "medium",
-          "mitigationPlan": "",
-          "contingencyPlan": "",
-          "decisionMaker": "",
-          "decisionDate": "",
-          "rationale": "",
-          "validator": "Rui Costa",
-          "dueDate": "2026-10-28",
-          "deliveredDate": "",
-          "acceptedDate": "",
-          "materializedDate": "",
-          "actualImpact": "",
-          "related": {
-            "phaseIds": [],
-            "milestoneIds": []
-          },
-          "createdAt": "2026-10-25T10:00:00.000Z",
-          "updatedAt": "2026-10-25T10:00:00.000Z",
-          "comments": [],
-          "history": [],
-          "assignees": [
-            "Rui Costa"
-          ],
-          "tags": []
-        }
-      ]
-    },
-    "workflow": {
-      "version": 2,
+  "workflow": {
+    "technical": {
       "states": [
         {
           "id": "backlog",
@@ -547,21 +89,441 @@
         ]
       }
     },
-    "workflowTypes": {
-      "version": 1,
+    "functional": {
+      "states": [
+        {
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "To Do",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "Doing",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Done",
+          "color": "#34d399",
+          "category": "completed"
+        }
+      ],
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "done"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "doing",
+          "done"
+        ],
+        "to-do": [
+          "backlog",
+          "doing",
+          "done"
+        ],
+        "doing": [
+          "backlog",
+          "to-do",
+          "done"
+        ],
+        "done": [
+          "backlog",
+          "to-do",
+          "doing"
+        ]
+      }
+    },
+    "types": {
       "functional": [
         "epic",
         "story",
         "bug"
       ]
     },
-    "taskIdentity": {
-      "version": 1,
-      "highWaterMark": 3
+    "automation": {}
+  },
+  "workitems": [
+    {
+      "id": 1,
+      "permanentId": "workitem:project-control-demo:1:2026-10-19T09%3A00%3A00Z",
+      "displayId": "ATL-TK-1",
+      "type": "task",
+      "title": "Build complete",
+      "description": "Fictitious completed execution work",
+      "status": "done",
+      "parentId": null,
+      "assigneeIds": [
+        "ana"
+      ],
+      "responsibleId": "ana",
+      "tags": [],
+      "priority": null,
+      "effort": null,
+      "dueDate": "2026-10-30",
+      "sprintId": null,
+      "phaseMode": "explicit",
+      "phaseId": "build",
+      "milestoneMode": "explicit",
+      "milestoneId": "release",
+      "blocked": false,
+      "archived": false,
+      "checklist": [],
+      "pullRequests": [],
+      "attachments": [],
+      "createdAt": "2026-10-19T09:00:00Z",
+      "updatedAt": "2026-10-19T09:00:00Z"
     },
-    "projectStorage": {
-      "version": 1,
-      "baselineEventId": "baseline_h89567884"
+    {
+      "id": 2,
+      "permanentId": "workitem:project-control-demo:2:2026-10-19T09%3A00%3A00Z",
+      "displayId": "ATL-TK-2",
+      "type": "task",
+      "title": "Review complete",
+      "description": "Fictitious completed execution work",
+      "status": "done",
+      "parentId": null,
+      "assigneeIds": [
+        "ana"
+      ],
+      "responsibleId": "ana",
+      "tags": [],
+      "priority": null,
+      "effort": null,
+      "dueDate": "2026-10-30",
+      "sprintId": null,
+      "phaseMode": "explicit",
+      "phaseId": "review",
+      "milestoneMode": "explicit",
+      "milestoneId": "release",
+      "blocked": false,
+      "archived": false,
+      "checklist": [],
+      "pullRequests": [],
+      "attachments": [],
+      "createdAt": "2026-10-19T09:00:00Z",
+      "updatedAt": "2026-10-19T09:00:00Z"
+    },
+    {
+      "id": 3,
+      "permanentId": "workitem:project-control-demo:3:2026-10-19T09%3A00%3A00Z",
+      "displayId": "ATL-TK-3",
+      "type": "task",
+      "title": "Independent complete",
+      "description": "Fictitious completed execution work",
+      "status": "done",
+      "parentId": null,
+      "assigneeIds": [
+        "ana"
+      ],
+      "responsibleId": "ana",
+      "tags": [],
+      "priority": null,
+      "effort": null,
+      "dueDate": "2026-10-30",
+      "sprintId": null,
+      "phaseMode": "explicit",
+      "phaseId": "review",
+      "milestoneMode": "explicit",
+      "milestoneId": "independent",
+      "blocked": false,
+      "archived": false,
+      "checklist": [],
+      "pullRequests": [],
+      "attachments": [],
+      "createdAt": "2026-10-19T09:00:00Z",
+      "updatedAt": "2026-10-19T09:00:00Z"
     }
+  ],
+  "relations": {
+    "edges": [],
+    "external": {}
+  },
+  "roadmap": {
+    "milestones": [
+      {
+        "id": "release",
+        "title": "Release approval",
+        "objective": "All acceptance evidence approved",
+        "dueDate": "2026-11-30"
+      },
+      {
+        "id": "independent",
+        "title": "Independent completed work",
+        "dueDate": "2026-11-15"
+      }
+    ],
+    "phases": [
+      {
+        "id": "launch",
+        "title": "Launch",
+        "objective": "Release the approved Atlas package",
+        "startDate": "2026-10-01",
+        "endDate": "2026-11-30"
+      },
+      {
+        "id": "build",
+        "title": "Build",
+        "objective": "Complete and validate implementation",
+        "parentId": "launch",
+        "startDate": "2026-10-01",
+        "endDate": "2026-10-31"
+      },
+      {
+        "id": "review",
+        "title": "Review",
+        "objective": "Validate delivery",
+        "parentId": "launch",
+        "startDate": "2026-11-01",
+        "endDate": "2026-11-30"
+      }
+    ],
+    "sprints": [],
+    "sprintResults": {
+      "credits": [],
+      "closures": []
+    },
+    "sprintParticipation": []
+  },
+  "dayPlanner": {
+    "blocks": []
+  },
+  "projectControl": {
+    "records": [
+      {
+        "id": "ATL-RK-1",
+        "kind": "risks",
+        "title": "Supplier availability",
+        "description": "Fictitious record for manual acceptance testing.",
+        "status": "open",
+        "ownerId": "ana",
+        "assigneeIds": [
+          "ana"
+        ],
+        "tags": [
+          "feature"
+        ],
+        "related": {
+          "phaseIds": [
+            "build",
+            "review"
+          ],
+          "milestoneIds": [
+            "release"
+          ]
+        },
+        "dueDate": "2026-10-28",
+        "probability": "high",
+        "impact": "high",
+        "mitigationPlan": "Confirm alternate supplier",
+        "contingencyPlan": "Use reserved capacity",
+        "materializedDate": null,
+        "actualImpact": "",
+        "createdAt": "2026-10-25T10:00:00.000Z",
+        "updatedAt": "2026-10-25T10:00:00.000Z"
+      },
+      {
+        "id": "ATL-RK-2",
+        "kind": "risks",
+        "title": "Environment outage",
+        "description": "Fictitious record for manual acceptance testing.",
+        "status": "materialized",
+        "ownerId": "rui",
+        "assigneeIds": [
+          "rui"
+        ],
+        "tags": [],
+        "related": {
+          "phaseIds": [],
+          "milestoneIds": []
+        },
+        "dueDate": "2026-10-28",
+        "probability": "medium",
+        "impact": "high",
+        "mitigationPlan": "Confirm alternate supplier",
+        "contingencyPlan": "Use reserved capacity",
+        "materializedDate": "2026-10-24",
+        "actualImpact": "Two hours unavailable",
+        "createdAt": "2026-10-25T10:00:00.000Z",
+        "updatedAt": "2026-10-25T10:00:00.000Z"
+      },
+      {
+        "id": "ATL-RK-3",
+        "kind": "risks",
+        "title": "Documentation delay",
+        "description": "Fictitious record for manual acceptance testing.",
+        "status": "closed",
+        "ownerId": "ana",
+        "assigneeIds": [
+          "ana"
+        ],
+        "tags": [],
+        "related": {
+          "phaseIds": [],
+          "milestoneIds": []
+        },
+        "dueDate": "2026-10-28",
+        "probability": "low",
+        "impact": "low",
+        "mitigationPlan": "Confirm alternate supplier",
+        "contingencyPlan": "Use reserved capacity",
+        "materializedDate": null,
+        "actualImpact": "",
+        "createdAt": "2026-10-25T10:00:00.000Z",
+        "updatedAt": "2026-10-25T10:00:00.000Z"
+      },
+      {
+        "id": "ATL-DC-4",
+        "kind": "decisions",
+        "title": "Choose supported runtime",
+        "description": "Fictitious record for manual acceptance testing.",
+        "status": "approved",
+        "ownerId": "rui",
+        "assigneeIds": [
+          "rui"
+        ],
+        "tags": [],
+        "related": {
+          "phaseIds": [],
+          "milestoneIds": []
+        },
+        "dueDate": "2026-10-28",
+        "decisionMaker": "Rui Costa",
+        "decisionDate": "2026-10-25",
+        "rationale": "Supported throughout project lifetime",
+        "createdAt": "2026-10-25T10:00:00.000Z",
+        "updatedAt": "2026-10-25T10:00:00.000Z"
+      },
+      {
+        "id": "ATL-DC-5",
+        "kind": "decisions",
+        "title": "Replace launch format",
+        "description": "Fictitious record for manual acceptance testing.",
+        "status": "superseded",
+        "ownerId": "ana",
+        "assigneeIds": [
+          "ana"
+        ],
+        "tags": [],
+        "related": {
+          "phaseIds": [],
+          "milestoneIds": []
+        },
+        "dueDate": "2026-10-28",
+        "decisionMaker": "Rui Costa",
+        "decisionDate": "2026-10-25",
+        "rationale": "Supported throughout project lifetime",
+        "createdAt": "2026-10-25T10:00:00.000Z",
+        "updatedAt": "2026-10-25T10:00:00.000Z"
+      },
+      {
+        "id": "ATL-DL-6",
+        "kind": "deliverables",
+        "title": "Release package",
+        "description": "Fictitious record for manual acceptance testing.",
+        "status": "delivered",
+        "ownerId": "rui",
+        "assigneeIds": [
+          "rui"
+        ],
+        "tags": [],
+        "related": {
+          "phaseIds": [
+            "build",
+            "review"
+          ],
+          "milestoneIds": [
+            "release"
+          ]
+        },
+        "dueDate": "2026-10-28",
+        "validator": "Rui Costa",
+        "deliveredDate": "2026-10-25",
+        "acceptedDate": null,
+        "createdAt": "2026-10-25T10:00:00.000Z",
+        "updatedAt": "2026-10-25T10:00:00.000Z"
+      },
+      {
+        "id": "ATL-DL-7",
+        "kind": "deliverables",
+        "title": "Acceptance report",
+        "description": "Fictitious record for manual acceptance testing.",
+        "status": "accepted",
+        "ownerId": "ana",
+        "assigneeIds": [
+          "ana"
+        ],
+        "tags": [],
+        "related": {
+          "phaseIds": [
+            "build"
+          ],
+          "milestoneIds": [
+            "release"
+          ]
+        },
+        "dueDate": "2026-10-28",
+        "validator": "Rui Costa",
+        "deliveredDate": "2026-10-25",
+        "acceptedDate": "2026-10-26",
+        "createdAt": "2026-10-25T10:00:00.000Z",
+        "updatedAt": "2026-10-25T10:00:00.000Z"
+      },
+      {
+        "id": "ATL-DL-8",
+        "kind": "deliverables",
+        "title": "Archived delivery proposal",
+        "description": "Fictitious record for manual acceptance testing.",
+        "status": "cancelled",
+        "ownerId": "rui",
+        "assigneeIds": [
+          "rui"
+        ],
+        "tags": [],
+        "related": {
+          "phaseIds": [],
+          "milestoneIds": []
+        },
+        "dueDate": "2026-10-28",
+        "validator": "Rui Costa",
+        "deliveredDate": null,
+        "acceptedDate": null,
+        "createdAt": "2026-10-25T10:00:00.000Z",
+        "updatedAt": "2026-10-25T10:00:00.000Z"
+      }
+    ]
+  },
+  "comments": [],
+  "system": {
+    "sequences": {
+      "workitems": {
+        "lastId": 3
+      },
+      "sprints": {
+        "lastNumber": 0,
+        "entries": []
+      },
+      "controlRecords": {
+        "lastNumber": 8
+      }
+    },
+    "storage": {
+      "baselineEventId": "baseline_hbc95a9b7",
+      "checkpointBytes": 8133,
+      "patchBytes": 2987784
+    },
+    "transfers": []
   }
 }

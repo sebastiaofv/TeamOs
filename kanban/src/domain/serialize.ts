@@ -84,7 +84,7 @@ export function normalizeBoardExtensionsValue(
         }
     }
 
-    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || [], nextExtensions.timeline);
+    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || [], nextExtensions.projectStorage ? undefined : nextExtensions.timeline);
     if (sprintCatalog) nextExtensions.sprintCatalog = sprintCatalog;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, DAY_PLANNER_EXTENSION_KEY)) {

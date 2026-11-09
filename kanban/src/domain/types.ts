@@ -130,6 +130,8 @@ export type TimelineEvent = {
     summary: string;
     changes?: TimelineChanges;
     snapshot?: TimelineSnapshot;
+    /** Board-level change persisted without a full snapshot (history.json v1). */
+    patch?: import('./projectPatch').ProjectPatchOp[];
     meta?: TimelineEventMeta;
 };
 export type TimelineEventInput = Omit<TimelineEvent, 'id' | 'at'> & { id?: string; at?: string };
@@ -192,6 +194,8 @@ export type BoardExtensions = {
     dayPlanner?: DayPlannerExtension;
     taskRelations?: TaskRelationsExtension;
     sprintCatalog?: SprintCatalog;
+    projectStorage?: import('./projectFormat').ProjectStorageMetadata;
+    taskIdentity?: import('./taskIdentity').TaskIdentityReservation;
     sprintResults?: SprintResults;
     teamOsKanban?: TeamOsExtensions;
 };

@@ -26,7 +26,7 @@ function TimelineEventChanges({ event }: { event: TimelineEvent | null }) {
     if (changeEntries.length === 0) {
         return (
             <div className="timeline-empty">
-                {event?.snapshot
+                {event?.snapshot || event?.patch
                     ? t('timeline.fullSnapshot')
                     : t('timeline.noDiff')}
             </div>

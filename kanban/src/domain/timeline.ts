@@ -13,6 +13,8 @@ import type { TaskRelation } from '@/domain/types';
 import { ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, TIMELINE_VERSION } from './constants';
 import { getTaskAttachments } from './attachments';
 import { createBoardStateSnapshot, hashTextContent } from './serialize';
+import { applyProjectPatch } from './projectPatch';
+import type { ProjectControl } from './projectControl';
 import { getBoardExtensionsObject } from './extensions';
 import { cloneSerializable, areSerializableValuesEqual } from './serializable';
 import { nowIso } from './util';
@@ -134,6 +136,7 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
 
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
+    if (event.patch) return applyProjectPatch(state, event.patch);
     if (['board.restored', 'board.reconciled', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations'].includes(event.kind) && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
@@ -338,6 +341,27 @@ export function ensureBoardTimelineBaseline(boardData: LooseBoardData): Timeline
     return timeline;
 }
 
+/** Checkpoints exclude comments, record histories, sequences and transfers: those stay canonical
+ * in the current project, and an observation sees what existed at its moment. */
+function applyCurrentRecordContext(snapshot: BoardData, current: LooseBoardData, at: string): void {
+    const currentControl = current.extensions?.projectControl as ProjectControl | undefined;
+    if (currentControl?.lastNumber && !snapshot.extensions.projectControl) snapshot.extensions.projectControl = { version: 3, lastNumber: currentControl.lastNumber, records: [] };
+    const control = snapshot.extensions.projectControl;
+    if (control && currentControl) {
+        control.lastNumber = Math.max(control.lastNumber, currentControl.lastNumber);
+        const until = Date.parse(at);
+        const visible = <T extends { at: string }>(entries: readonly T[]) => entries.filter((entry) => Date.parse(entry.at) <= until);
+        for (const record of control.records) {
+            const source = currentControl.records.find((item) => item.id === record.id);
+            if (!source) continue;
+            if (!record.comments.length) record.comments = cloneSerializable(visible(source.comments));
+            if (!record.history.length) record.history = cloneSerializable(visible(source.history));
+        }
+    }
+    const transfers = current.extensions?.projectTransfers as BoardData['extensions']['projectTransfers'];
+    if (transfers && !snapshot.extensions.projectTransfers) snapshot.extensions.projectTransfers = cloneSerializable(transfers);
+}
+
 export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | null | undefined, eventIndex: unknown): BoardData {
     const timeline = getBoardTimelineData(boardData);
     if (!timeline || !Array.isArray(timeline.events) || timeline.events.length === 0) {
@@ -358,9 +382,10 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     inheritLegacyTaskIdentities(snapshot, state as LooseBoardData, boardData);
     // Identities are project-wide reservations, not mutable planning state.
     // Preview/restore may change membership, but must not renumber or reuse identities.
-    const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.timeline);
+    const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.projectStorage ? undefined : boardData?.extensions?.timeline);
     if (knownCatalog) snapshot.extensions.sprintCatalog = normalizeSprintCatalog(knownCatalog, snapshot.extensions.roadmap?.sprints || []);
     reserveTaskIdentities(snapshot, boardData || undefined);
+    if (boardData?.extensions?.projectStorage) applyCurrentRecordContext(snapshot, boardData as LooseBoardData, timeline.events[targetIndex].at);
     const conversations = boardData && commentsThrough(boardData, targetIndex);
     if (conversations) {
         snapshot.extensions.conversations = conversations;

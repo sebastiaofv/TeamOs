@@ -68,6 +68,10 @@ export function normalizeTimelineEvent(raw: unknown): TimelineEvent | null {
         if (!isRecord(raw.snapshot)) return null;
         event.snapshot = cloneSerializable(raw.snapshot) as TimelineSnapshot;
     }
+    if (Object.prototype.hasOwnProperty.call(raw, 'patch')) {
+        if (!Array.isArray(raw.patch)) return null;
+        event.patch = cloneSerializable(raw.patch) as TimelineEvent['patch'];
+    }
     if (Object.prototype.hasOwnProperty.call(raw, 'meta')) {
         if (!isRecord(raw.meta)) return null;
         event.meta = cloneSerializable(raw.meta) as TimelineEventMeta;

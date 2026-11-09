@@ -29,7 +29,7 @@ describe('project directory persistence', () => {
     it('opens current state without reading a large history or attachment binaries', async () => {
         const { directory, history } = await fixture();
         const raw = JSON.parse(history.text());
-        raw.timeline.events.push(...Array.from({ length: 10000 }, (_, index) => ({ ...raw.timeline.events[1], id: `large-${index}` })));
+        raw.events.push(...Array.from({ length: 10000 }, (_, index) => ({ ...raw.events[1], id: `large-${index}` })));
         history.setText(JSON.stringify(raw));
         const binary = await (await directory.getDirectoryHandle('attachments')).getFileHandle('unused', { create: true });
         binary.setText('a very large attachment');
@@ -88,7 +88,7 @@ describe('project directory persistence', () => {
         expect(history.fullReads).toBe(0);
         expect(getDirectoryProject(handle)?.loaded).toBe(false);
         expect((await loadDirectoryHistory(handle))?.events.map((event) => event.id)).toEqual([expect.stringContaining('baseline_'), 'old-event', 'new-event']);
-        expect(JSON.parse(project.text()).extensions.timeline).toBeUndefined();
+        expect(JSON.parse(project.text())).not.toHaveProperty('history');
         expect(getDirectoryProject(handle)?.loaded).toBe(false);
     });
 
@@ -111,7 +111,8 @@ describe('project directory persistence', () => {
         const directory = await parent.getDirectoryHandle('with-attachment');
         const history = await directory.getFileHandle('history.json');
         expect(history.text()).not.toContain('data:text/plain');
-        const reference = JSON.parse(history.text()).timeline.events.at(-1).snapshot.attachments[0].dataUrl;
+        const stored = JSON.parse(history.text());
+        const reference = `teamos-attachment:${encodeURIComponent(stored.projectId)}/${stored.events.at(-1).task.attachments[0].sha256}`;
         const binaries = await directory.getDirectoryHandle('attachments');
         expect(binaries.children.size).toBe(1);
         expect(await (await resolveAttachmentBlob(reference)).text()).toBe('hello');
@@ -136,9 +137,9 @@ describe('project directory persistence', () => {
         const handle = await createProjectDirectory(parent, 'migration', imported.data);
         const directory = await parent.getDirectoryHandle('migration');
         const current = JSON.parse((await directory.getFileHandle('project.json')).text());
-        expect(current.extensions.projectControl.records[0].history).toEqual([]);
-        expect(current.extensions.timeline).toBeUndefined();
-        expect(JSON.parse((await directory.getFileHandle('history.json')).text()).archives).toHaveProperty(`control:${data.extensions.projectControl!.records[0].id}`);
+        expect(current.projectControl.records[0]).not.toHaveProperty('history');
+        expect(current).not.toHaveProperty('extensions');
+        expect(JSON.parse((await directory.getFileHandle('history.json')).text()).recordHistory.control).toHaveProperty(data.extensions.projectControl!.records[0].id);
         expect((await BoardRepository.createRecordFromHandle(handle)).data.extensions.projectControl?.records[0].history).toHaveLength(1);
         expect(original.text()).toBe(before); expect(original.writes).toBe(0);
     });

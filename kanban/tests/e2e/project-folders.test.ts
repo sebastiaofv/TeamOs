@@ -27,10 +27,10 @@ for (const standalone of [false, true]) {
         const legacy = JSON.parse(readFileSync('test-board/us-25/migration/legacy.board.json', 'utf8'));
         const title = legacy.board.tasks[0].title;
         await renameTaskViaEditor(page, title, 'Changed without visiting history');
-        await expect.poll(async () => (await readFolderJson(page, 'alpha/project.json')).board.tasks[0].title).toBe('Changed without visiting history');
+        await expect.poll(async () => (await readFolderJson(page, 'alpha/project.json')).workitems[0].title).toBe('Changed without visiting history');
         expect(await page.evaluate(() => Object.keys(window.__folderDisk.reads).some((path) => path.includes('/attachments/')))).toBe(false);
         const saved = await readFolderJson(page, 'alpha/project.json');
-        expect(saved.extensions.timeline).toBeUndefined();
+        expect(saved).not.toHaveProperty('history');
         expect(JSON.stringify(saved)).not.toContain('data:');
         expect(await page.evaluate(() => window.__folderDisk.writes['beta/project.json'] || 0)).toBe(0);
         await page.locator('.portfolio-chip').filter({ hasText: 'US-25 Alpha' }).getByRole('button', { name: 'Remove project' }).click();
@@ -70,8 +70,8 @@ test('creates the destination structure and asks for another name on collision',
     await expect(page.locator('.portfolio-chip.active')).toContainText('Folder Alpha');
     await identifyOpenProjects(page);
     expect(await page.evaluate(() => window.__folderDisk.directories)).toContain('folder-alpha/attachments');
-    expect((await readFolderJson(page, 'folder-alpha/project.json')).board.tasks).toEqual([]);
-    expect((await readFolderJson(page, 'folder-alpha/history.json')).version).toBe(1);
+    expect((await readFolderJson(page, 'folder-alpha/project.json')).workitems).toEqual([]);
+    expect((await readFolderJson(page, 'folder-alpha/history.json')).schemaVersion).toBe(1);
     await page.locator('#newProjectBtn').click();
     await page.getByLabel('Project name', { exact: true }).fill('Folder Alpha');
     await page.locator('#projectAcronym').fill('FBL');
@@ -80,8 +80,8 @@ test('creates the destination structure and asks for another name on collision',
     await page.locator('#appMessageModal input').fill('folder-beta');
     await page.locator('#appMessageModal').getByRole('button', { name: 'OK', exact: true }).click();
     await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
-    expect((await readFolderJson(page, 'folder-alpha/project.json')).extensions.project.acronym).toBe('FAL');
-    expect((await readFolderJson(page, 'folder-beta/project.json')).extensions.project.acronym).toBe('FBL');
+    expect((await readFolderJson(page, 'folder-alpha/project.json')).project.acronym).toBe('FAL');
+    expect((await readFolderJson(page, 'folder-beta/project.json')).project.acronym).toBe('FBL');
 });
 
 test('reports incomplete projects, keeps valid siblings, and defers corrupt history and missing binary errors', async ({ page }) => {
@@ -124,11 +124,11 @@ test('Import Projects converts legacy boards in the selected folder without chan
     const path = await page.evaluate(() => Object.keys(window.__folderDisk.files).find((entry) => entry.endsWith('/project.json'))!);
     const current = await readFolderJson(page, path);
     const original = JSON.parse(legacy);
-    expect(current.extensions.project.id).toBe(original.extensions.project.id);
-    expect(current.extensions.timeline).toBeUndefined();
-    expect(current.board.tasks.map((task: { id: number; permanentId: string }) => [task.id, task.permanentId])).toEqual(original.board.tasks.map((task: { id: number; permanentId: string }) => [task.id, task.permanentId]));
+    expect(current.project.id).toBe(original.extensions.project.id);
+    expect(current).not.toHaveProperty('history');
+    expect(current.workitems.map((task: { id: number; permanentId: string }) => [task.id, task.permanentId])).toEqual(original.board.tasks.map((task: { id: number; permanentId: string }) => [task.id, task.permanentId]));
     expect(JSON.stringify(current)).not.toContain('data:');
-    expect((await readFolderJson(page, path.replace('project.json', 'history.json'))).timeline.events.map((event: { id: string }) => event.id)).toEqual(original.extensions.timeline.events.map((event: { id: string }) => event.id));
+    expect((await readFolderJson(page, path.replace('project.json', 'history.json'))).events.map((event: { id: string }) => event.id)).toEqual(original.extensions.timeline.events.map((event: { id: string }) => event.id));
     const legacyReads = await page.evaluate(() => window.__folderDisk.reads['legacy.board.json']);
     await page.locator('#importProjectsBtn').click();
     await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
@@ -161,11 +161,11 @@ test('writes valid append-only history using real browser file streams with Unic
             };
         } catch { return null; } // Atomic replacement can invalidate a concurrent file snapshot.
     });
-    await expect.poll(async () => (await readNative())?.project.board.tasks[0].title).toBe('Atualização — ação guardada');
+    await expect.poll(async () => (await readNative())?.project.workitems[0].title).toBe('Atualização — ação guardada');
     await expect.poll(async () => (await readNative())?.history.transactions.filter((entry: { kind: string }) => entry.kind === 'commit').length || 0).toBeGreaterThanOrEqual(3);
     const saved = await readNative();
     if (!saved) throw new Error('Native project files are not readable after save.');
-    expect(saved.project.extensions.timeline).toBeUndefined();
+    expect(saved.project).not.toHaveProperty('history');
     expect(saved.history.transactions.filter((entry: { kind: string }) => entry.kind === 'commit').length).toBeGreaterThanOrEqual(3);
     await portfolioCard(page, 'Atualização — ação guardada').click();
     await page.getByRole('tab', { name: 'History', exact: true }).click();
@@ -181,8 +181,8 @@ test('standalone: creates a project subfolder and closes the creation dialog', a
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
     await expect(page.locator('#projectSettingsModal')).toHaveCount(0);
     expect(await page.evaluate(() => window.__folderDisk.directories)).toContain('standalone-project/attachments');
-    expect((await readFolderJson(page, 'standalone-project/project.json')).board.settings.title).toBe('Standalone project');
-    expect((await readFolderJson(page, 'standalone-project/history.json')).version).toBe(1);
+    expect((await readFolderJson(page, 'standalone-project/project.json')).project.title).toBe('Standalone project');
+    expect((await readFolderJson(page, 'standalone-project/history.json')).schemaVersion).toBe(1);
 });
 
 
@@ -197,4 +197,17 @@ test('the import shortcut and palette use the same folder picker', async ({ page
     await page.locator('.palette-item').first().click();
     await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
     await expect(page.locator('#appMessageModal')).toHaveCount(0);
+});
+
+test('opens a folder saved by the previous version, converting it once and keeping a backup', async ({ page }) => {
+    await gotoApp(page);
+    await mockFolderPicker(page, fixtureTree('tests/fixtures/legacy/folder-v6'));
+    await page.locator('#importProjectsBtn').click();
+    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await identifyOpenProjects(page);
+    const converted = await readFolderJson(page, 'alpha/project.json');
+    expect(converted.meta.schemaVersion).toBe(1);
+    expect(converted).not.toHaveProperty('board');
+    expect((await readFolderJson(page, 'alpha/backup/schema-6/project.json')).board.tasks.map((task: { id: number }) => task.id)).toEqual(converted.workitems.map((task: { id: number }) => task.id));
+    expect((await readFolderJson(page, 'alpha/history.json')).schemaVersion).toBe(1);
 });

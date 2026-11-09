@@ -5,6 +5,8 @@ import { ensureBoardTimelineBaseline } from '../../src/domain/timeline';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 import { gotoApp, identifyOpenProjects, seedPortfolioBoards, selectPortfolioBoard } from '../support/portfolio';
 import { mockFolderPicker } from '../support/folderProjects';
+import { attachmentsToHashes, toProjectFile } from '../../src/domain/projectFormat';
+import { createHistoryWriter, eventToFile, serializeHistoryFile } from '../../src/domain/projectHistoryFormat';
 
 async function openLargeProject(page: Page, tasks: number, events: number) {
     await page.clock.setFixedTime(new Date('2026-11-09T12:00:00Z'));
@@ -19,9 +21,10 @@ async function openLargeProject(page: Page, tasks: number, events: number) {
     const timeline = project.extensions.timeline!;
     delete project.extensions.timeline;
     project.extensions.projectStorage = { version: 1, baselineEventId: timeline.baselineEventId };
+    const writer = createHistoryWriter(undefined);
     await mockFolderPicker(page, { directories: ['', 'perf', 'perf/attachments'], files: {
-        'perf/project.json': [...Buffer.from(JSON.stringify(project))],
-        'perf/history.json': [...Buffer.from(JSON.stringify({ version: 1, timeline, archives: {}, transactions: [] }))]
+        'perf/project.json': [...Buffer.from(JSON.stringify(attachmentsToHashes(toProjectFile(project))))],
+        'perf/history.json': [...Buffer.from(serializeHistoryFile(project.extensions.project!.id, timeline.baselineEventId, timeline.events.map((event) => eventToFile(event, writer)), {}))]
     } }, 'perf');
     await page.locator('#importProjectsBtn').click();
     await expect(page.locator('#projectIdentityModal')).toBeVisible();

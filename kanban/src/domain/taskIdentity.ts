@@ -15,6 +15,8 @@ export function reservedTaskHighWaterMark(data?: LooseBoardData | null): number 
     let max = parseTaskIdentityReservation(data?.extensions?.taskIdentity)?.highWaterMark || 0;
     const reserve = (value: unknown) => { if (Number.isSafeInteger(Number(value)) && Number(value) > max) max = Number(value); };
     if (Array.isArray(data?.board?.tasks)) data.board.tasks.forEach((task) => reserve(task?.id));
+    // Project folders persist the reservation; only unconverted files still derive it from history.
+    if (data?.extensions?.projectStorage) return max;
     const timeline = data?.extensions?.timeline as { events?: { entityType?: string; entityId?: string; snapshot?: { id?: unknown; board?: { tasks?: { id?: unknown }[] } } }[] } | undefined;
     if (Array.isArray(timeline?.events)) timeline.events.forEach((event) => {
         if (event.entityType === 'task') reserve(event.entityId);

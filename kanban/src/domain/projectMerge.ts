@@ -51,7 +51,7 @@ export function mergeProject(base: BoardData, local: BoardData, external: BoardD
         // Timestamps and revision counters are derived, never user conflicts.
         if (path === 'meta.revision') return Math.max(Number(l) || 0, Number(e) || 0);
         if (path.endsWith('.updatedAt')) return [l, e].filter((v): v is string => typeof v === 'string').sort().at(-1);
-        if (path === 'extensions.taskIdentity.highWaterMark' || path === 'extensions.sprintCatalog.lastNumber') return Math.max(Number(l) || 0, Number(e) || 0);
+        if (path === 'extensions.taskIdentity.highWaterMark' || path === 'extensions.sprintCatalog.lastNumber' || path === 'extensions.projectControl.lastNumber') return Math.max(Number(l) || 0, Number(e) || 0);
         if (equal(l, e)) return cloneSerializable(l);
         const externalChanged = !equal(b, e);
 
