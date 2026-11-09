@@ -37,6 +37,8 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (portfolioAssignee) params.set('pu', portfolioAssignee);
     if (filters.responsible) params.set('pr', filters.responsible);
     if (portfolioBlocked !== 'all') params.set('pbk', portfolioBlocked);
+    if (filters.manuallyBlocked !== 'all') params.set('pmb', filters.manuallyBlocked);
+    if (filters.dependencyBlocked !== 'all') params.set('pdb', filters.dependencyBlocked);
     if (portfolioEffort) params.set('pe', portfolioEffort);
     if (filters.statuses.length) params.set('pst', filters.statuses.join(','));
     if (filters.phaseId) params.set('pph', filters.phaseId);
@@ -75,6 +77,8 @@ export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDef
             assignee: readQueryParam('pu', '', windowRef),
             responsible: readQueryParam('pr', '', windowRef),
             blocked: readQueryParam('pbk', 'all', windowRef),
+            manuallyBlocked: readQueryParam('pmb', 'all', windowRef),
+            dependencyBlocked: readQueryParam('pdb', 'all', windowRef),
             effort: readQueryParam('pe', '', windowRef),
             statuses: readQueryParam('pst', '', windowRef).split(','),
             phaseId: readQueryParam('pph', '', windowRef),

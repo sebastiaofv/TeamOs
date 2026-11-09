@@ -55,6 +55,8 @@ export type PortfolioRow = {
     /** A frozen Sprint row whose workitem still exists: its details open with current data. */
     liveDetails?: boolean;
     boardData?: BoardData | null;
+    manuallyBlocked?: boolean;
+    dependencyBlocked?: boolean;
     task: Task;
 };
 
@@ -64,6 +66,8 @@ export type PortfolioFilters = {
     search: string;
     archive: ArchiveFilter;
     blocked: BlockedFilter;
+    manuallyBlocked: BlockedFilter;
+    dependencyBlocked: BlockedFilter;
     assignee: string;
     responsible: string;
     priority: '' | Priority;

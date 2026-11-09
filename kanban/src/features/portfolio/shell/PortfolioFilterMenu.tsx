@@ -30,7 +30,8 @@ function FilterIcon() {
 }
 
 // Board and Table use the same toolbar button, dropdown, field layout and focus behavior.
-export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false, title, children, scope = '', iconOnly = false }: {
+export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', dismissOnBlur = false, title, children, scope = '', iconOnly = false, showClearAll = false }: {
+    showClearAll?: boolean;
     scope?: string;
     iconOnly?: boolean;
     title?: string;
@@ -144,6 +145,7 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                 <div ref={panelRef} className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id={scopedId('portfolioFiltersPanel')} role="dialog" aria-labelledby={titleId}>
                     <div className="portfolio-filters-panel-head">
                         <h2 id={titleId}>{title || t('toolbar.filtersButton')}</h2>
+                        {showClearAll && <button className="btn-text" type="button" disabled={!activeCount} onClick={onClear}>{t('toolbar.clearAllFilters')}</button>}
                         <button className="btn-text" id={scopedId('resetPortfolioFiltersBtn')} type="button" disabled={!activeCount} onClick={onClear}>
                             {t('toolbar.resetShort')}
                         </button>

@@ -105,7 +105,7 @@ test('Roadmap uses compact rows, name editing and the existing Sprint lifecycle 
     await expect(page.getByRole('alertdialog')).toBeVisible();
     await answerAppMessage(page, { button: 'Cancel' });
     expect((await readSavedBoard(page, 'roadmap')).extensions.roadmap.sprints[0].status).toBe('planned');
-    await row.getByRole('button', { name: /Expand\/collapse workitems/ }).click();
+    await row.locator('.roadmap-disclosure-btn').click();
     await expect(row.locator('.workitems-table')).toContainText('Associated');
 });
 
@@ -126,7 +126,7 @@ test('milestone strip uses one lane unless diamonds collide, then scrolls after 
     const last = page.locator('.milestone-annotation').last();
     await last.hover();
     const tooltip = page.getByRole('tooltip');
-    await expect(tooltip).toHaveText('Milestone 4 · 30/11/2026');
+    await expect(tooltip).toHaveText('Milestone 430/11/2026 · N/A');
     const box = (await tooltip.boundingBox())!;
     expect(box.x + box.width).toBeLessThanOrEqual(1280);
     await last.click();

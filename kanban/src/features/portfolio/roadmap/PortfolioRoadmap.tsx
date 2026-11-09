@@ -36,16 +36,16 @@ function useElementSize<T extends HTMLElement>(initial = 0) {
     return { ref, width, height };
 }
 
-function ProgressBar({ row, left, width, toggle }: { row: RoadmapPlanningRow; left: number; width: number; toggle: () => void }) {
-    const { t, language } = useI18n(); const percent = useProgressText();
-    const bar = useElementSize<HTMLButtonElement>();
+function ProgressBar({ row, left, width }: { row: RoadmapPlanningRow; left: number; width: number }) {
+    const { language } = useI18n(); const percent = useProgressText();
+    const bar = useElementSize<HTMLDivElement>();
     const value = percent(row);
     const progress = row.progress.percent || 0;
     const inside = bar.width * progress / 100 >= value.length * 6.6 + 12;
-    return <button ref={bar.ref} className={`roadmap-row-timeline-bar${row.kind === 'phases' && row.item!.color ? ' roadmap-custom-phase-color' : ''}`} type="button" data-progress={row.progress.percent ?? 'na'} data-start={row.item!.startDate} data-end={row.item!.endDate}
-        style={{ left: `${left}%`, width: `${width}%`, ...(row.kind === 'phases' && row.item!.color ? { '--phase-color': row.item!.color } : {}) } as CSSProperties} title={`${row.item!.title} · ${formatRoadmapDateRange(row.item!, language)} · ${value}`} aria-label={t('roadmap.openBar', { title: row.item!.title, percent: value })} onClick={toggle}>
+    return <div ref={bar.ref} role="img" className={`roadmap-row-timeline-bar${row.kind === 'phases' && row.item!.color ? ' roadmap-custom-phase-color' : ''}`} data-progress={row.progress.percent ?? 'na'} data-start={row.item!.startDate} data-end={row.item!.endDate}
+        style={{ left: `${left}%`, width: `${width}%`, ...(row.kind === 'phases' && row.item!.color ? { '--phase-color': row.item!.color } : {}) } as CSSProperties} title={`${row.item!.title} · ${formatRoadmapDateRange(row.item!, language)} · ${value}`} aria-label={`${row.item!.title} · ${value}`}>
         <span className="roadmap-bar-fill" style={{ width: `${progress}%` }} /><span className={`roadmap-bar-value${inside ? ' roadmap-value-inside' : ''}`} style={{ left: `${progress}%` }}>{value}</span>
-    </button>;
+    </div>;
 }
 
 function useProgressText(maximumFractionDigits = 1) {
@@ -80,31 +80,28 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
     const placement = getRoadmapTimelinePlacement(item, view.range);
     const width = Math.max(placement?.width || 0, 5);
     const left = Math.min(placement?.left || 0, 100 - width);
-    const toggle = () => actions.togglePortfolioRoadmapRowExpanded(view.boardId, row.hasChildren ? `tree:${item.id}` : row.key);
+    const toggleWorkitems = () => actions.togglePortfolioRoadmapRowExpanded(view.boardId, row.key);
     return <div className={`roadmap-row${row.hasChildren ? ' roadmap-parent-row' : ' roadmap-leaf-row'}`} id={rowId} data-roadmap-kind={singular} data-roadmap-id={item.id} data-depth={row.depth}
-        role="group" tabIndex={0} aria-labelledby={`${rowId}-title`} onKeyDown={(event) => { if (event.target === event.currentTarget && ['Enter', ' '].includes(event.key)) { event.preventDefault(); toggle(); } }}
-        onClick={(event) => { if (!(event.target as Element).closest('button, input, select, label, .roadmap-work-area')) toggle(); }}>
+        role="group" aria-labelledby={`${rowId}-title`}>
         <div className="roadmap-row-main">
             <div className="roadmap-row-labels" style={{ paddingInlineStart: 12 + Math.min(row.depth, 12) * 14 }}>
                 {row.hasChildren ? <button className="roadmap-action-btn roadmap-tree-toggle" type="button" aria-expanded={!row.treeCollapsed} aria-label={t('roadmap.toggleSubphases', { title: item.title })} onClick={() => actions.togglePortfolioRoadmapRowExpanded(view.boardId, `tree:${item.id}`)}>{row.treeCollapsed ? '▸' : '▾'}</button>
-                    : <button className="roadmap-action-btn roadmap-tree-toggle" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={t('roadmap.toggleWorkitems', { title: item.title })} onClick={toggle}>{row.expanded ? '▾' : '▸'}</button>}
+                    : <span className="roadmap-tree-spacer" aria-hidden="true" />}
                 <button type="button" className="roadmap-row-title roadmap-edit-name" title={item.title} id={`${rowId}-title`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id, { boardId: view.boardId })}>{item.title}</button>
-                {!row.hasChildren && <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={`${t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })}: ${row.visibleCount}/${row.progress.associated}`} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggle}><WorkspaceIcon name="table" /> {row.visibleCount}/{row.progress.associated}</button>}
+                <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={`${t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })}: ${row.visibleCount}/${row.progress.associated}`} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggleWorkitems}><WorkspaceIcon name="table" /> {row.visibleCount}/{row.progress.associated}</button>
                 {row.kind === 'sprints' && <div className="roadmap-row-actions">{view.boardData && <SprintPoints data={view.boardData} sprintId={item.id} />}<span className={`table-status-badge sprint-status-${getSprintStatus(item)}`}>{t(`table.sprintStatus.${getSprintStatus(item)}`)}</span><SprintAction compact sprint={item} boardId={view.boardId} disabled={!canEdit} /></div>}
 
             </div>
             <div className="roadmap-row-track">
-                <ProgressBar row={row} left={left} width={width} toggle={toggle} />
+                <ProgressBar row={row} left={left} width={width} />
             </div>
         </div>
-        {row.expanded && !row.hasChildren && <WorkArea row={row} view={view} />}
+        {row.expanded && <WorkArea row={row} view={view} />}
     </div>;
 }
 
 function MilestoneDiamond({ marker }: { marker: RoadmapMilestoneMarker }) {
-    const percent = useProgressText(0);
-    const value = percent(marker);
-    return <span className="milestone-diamond" style={{ '--milestone-color': marker.item!.color } as CSSProperties}><span>{value}</span></span>;
+    return <span className="milestone-diamond" data-progress={marker.progress.percent ?? 'na'} style={{ '--milestone-color': marker.item!.color, '--milestone-progress': `${marker.progress.percent ?? 0}%` } as CSSProperties}><span className="milestone-progress-fill" /></span>;
 }
 
 function MilestoneButton({ marker, select }: { marker: RoadmapMilestoneMarker & { lane: number }; select: () => void }) {
@@ -121,14 +118,14 @@ function MilestoneButton({ marker, select }: { marker: RoadmapMilestoneMarker & 
     }, [anchor]);
     const show = (element: HTMLElement) => {
         const rect = element.getBoundingClientRect();
-        const width = Math.min(260, window.innerWidth - 16);
+        const width = Math.min(Math.max(300, marker.item!.title.length * 7 + 24), window.innerWidth - 16);
         setAnchor({ left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)), top: rect.bottom + 64 < window.innerHeight ? rect.bottom + 6 : Math.max(8, rect.top - 64), width });
     };
     return <><button className="milestone-annotation" type="button" data-roadmap-kind="milestone" data-roadmap-id={marker.item!.id}
         aria-label={`${name} · ${percent(marker)}`} aria-describedby={anchor ? id : undefined} style={{ left: `${marker.position}%`, top: marker.lane * MILESTONE_LANE_HEIGHT }} onClick={select}
         onMouseEnter={event => show(event.currentTarget)} onMouseLeave={() => setAnchor(null)} onFocus={event => show(event.currentTarget)} onBlur={() => setAnchor(null)} onKeyDown={event => { if (event.key === 'Escape') setAnchor(null); }}>
         <MilestoneDiamond marker={marker} />
-    </button>{anchor && createPortal(<div id={id} role="tooltip" className="milestone-tooltip" style={anchor}>{name}</div>, document.body)}</>;
+    </button>{anchor && createPortal(<div id={id} role="tooltip" className="milestone-tooltip" style={anchor}><span title={marker.item!.title}>{marker.item!.title}</span><span>{formatDueDateForUi(marker.item!.dueDate)} · {percent(marker)}</span></div>, document.body)}</>;
 }
 
 function MilestoneGuide({ marker, markers, top, local = false }: { marker: RoadmapMilestoneMarker; markers: RoadmapMilestoneMarker[]; top: number; local?: boolean }) {

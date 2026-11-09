@@ -80,12 +80,12 @@ test('review adjustments keep the axis compact, guides above bars and progress a
         const diamond = page.locator(`.milestone-annotation[data-roadmap-id="${id}"] .milestone-diamond`);
         const guideBox = await guide.boundingBox(); const diamondBox = await diamond.boundingBox();
         expect(Math.abs(guideBox!.x - diamondBox!.x - diamondBox!.width / 2)).toBeLessThanOrEqual(1);
-        const color = await diamond.evaluate((element) => getComputedStyle(element, '::before').backgroundColor);
-        await expect(guide).toHaveCSS('color', color); await expect(guide.locator('line')).toHaveAttribute('stroke-dasharray', /4 \d+/);
+        const color = await diamond.evaluate((element) => getComputedStyle(element).getPropertyValue('--milestone-color').trim());
+        expect(await guide.evaluate(element => getComputedStyle(element).color)).toBe(await diamond.evaluate((element, color) => { const probe = document.createElement('span'); probe.style.color = color; element.append(probe); const rgb = getComputedStyle(probe).color; probe.remove(); return rgb; }, color)); await expect(guide.locator('line')).toHaveAttribute('stroke-dasharray', /4 \d+/);
     }
 });
 
-test('fractional milestone progress stays inside the small coloured diamond in both themes', async ({ page }) => {
+test('fractional milestone progress fills the diamond and appears only in its tooltip in both themes', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'fraction', title: 'Fractional progress', hasHandle: true, tasks: [
         { id: 1, title: 'Done', status: 'done', milestoneId: 'm' },
@@ -96,24 +96,25 @@ test('fractional milestone progress stays inside the small coloured diamond in b
     for (const theme of ['light', 'dark']) {
         if (theme === 'dark') await toggleTheme(page);
         const diamond = page.locator('.milestone-annotation .milestone-diamond');
-        await expect(diamond).toHaveText('33%');
-        const geometry = await diamond.evaluate((element) => {
-            const text = element.querySelector('span')!.getBoundingClientRect();
-            const shape = getComputedStyle(element, '::before');
-            return { textWidth: text.width, textHeight: text.height, diagonal: parseFloat(shape.width) * Math.SQRT2 };
+        await expect(diamond).toHaveText('');
+        expect(Number(await diamond.getAttribute('data-progress'))).toBeCloseTo(100 / 3);
+        const fill = await diamond.evaluate(element => {
+            const progress = element.querySelector('.milestone-progress-fill')!;
+            return progress.getBoundingClientRect().width / element.getBoundingClientRect().width;
         });
-        // A centred text rectangle is contained by a diamond iff width + height <= diagonal.
-        expect(geometry.textWidth + geometry.textHeight).toBeLessThanOrEqual(geometry.diagonal);
+        expect(fill).toBeCloseTo(1 / 3, 2);
+        await diamond.hover();
+        await expect(page.getByRole('tooltip')).toContainText('33%');
     }
 });
 
-test('leaf arrows expose workitems and parent work/table expansion remains independent', async ({ page }) => {
+test('associated-workitem buttons expose tables independently from the phase tree', async ({ page }) => {
     await seed(page);
-    const leaf = page.getByRole('button', { name: 'Expand/collapse workitems of API', exact: true });
+    const leaf = page.locator('#roadmap-row-phase-api .roadmap-disclosure-btn');
     await leaf.focus(); await page.keyboard.press('Enter');
     await expect(leaf).toHaveAttribute('aria-expanded', 'true');
     await expect(area(page, 'phase:api')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Show tasks for Engineering', exact: false })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Show tasks for Engineering', exact: false })).toHaveCount(1);
     await expect(area(page, 'phase:api')).toBeVisible();
     const parent = page.getByRole('button', { name: 'Expand/collapse subphases of Engineering', exact: true });
     await parent.click(); await expect(area(page, 'phase:api')).toHaveCount(0);
@@ -155,7 +156,7 @@ test('leaf workitem tables omit perspective controls and the User Story column',
     await page.getByRole('button', { name: 'Show tasks for API', exact: false }).click();
     const work = area(page, 'phase:api');
     expect(await ids(work)).toEqual([501, 502]);
-    await expect(work.locator('.table-heading, .roadmap-perspectives, .table-summary')).toHaveCount(0);
+    await expect(work.locator('.roadmap-perspectives, .table-summary')).toHaveCount(0);
     await expect(work.getByRole('columnheader', { name: 'User Story', exact: true })).toHaveCount(0);
     expect((await readSavedBoard(page, 'p')).extensions.timeline).toBeUndefined();
 });
@@ -190,7 +191,7 @@ test('milestone diamonds open the shared table modal and returning from a workit
     const modal = page.locator('#milestoneWorkitemsModal');
     await expect(modal.getByRole('heading', { name: 'Public release', exact: true })).toBeVisible();
     await expect(modal.locator('.milestone-modal-heading')).toContainText('15/12/2026');
-    await expect(modal.locator('.milestone-diamond')).toHaveText('25%');
+    await expect(modal.locator('.milestone-diamond')).toHaveAttribute('data-progress', '25');
     expect(await ids(modal)).toEqual([501, 502, 503, 506]);
     expect(await ids(modal)).toEqual([501, 502, 503, 506]);
     await modal.getByRole('button', { name: 'API contracts', exact: true }).click();
@@ -211,7 +212,7 @@ test('nearby milestones remain separately accessible, empty groups use N/A, and 
     expect(Math.abs(release!.y - checkpoint!.y)).toBeGreaterThanOrEqual(32);
     await page.locator('.milestone-annotation[data-roadmap-id="checkpoint"]').click();
     const modal = page.locator('#milestoneWorkitemsModal');
-    await expect(modal.locator('.milestone-diamond')).toHaveText('N/A');
+    await expect(modal.locator('.milestone-diamond')).toHaveAttribute('data-progress', 'na');
     await expect(modal).toContainText('No tasks assigned');
     await expect(modal.getByRole('button', { name: 'Edit', exact: true })).toBeDisabled();
     await modal.locator('.modal-header summary').click();
@@ -265,7 +266,7 @@ test('milestone names and dates appear only in viewport-safe hover tooltips', as
     const milestone = page.locator('.milestone-annotation').last();
     await milestone.hover();
     const tooltip = page.getByRole('tooltip');
-    await expect(tooltip).toContainText((await milestone.getAttribute('aria-label'))!.split(' · ').slice(0, 2).join(' · '));
+    for (const text of (await milestone.getAttribute('aria-label'))!.split(' · ')) await expect(tooltip).toContainText(text);
     const box = (await tooltip.boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(1280);

@@ -3,7 +3,7 @@ import { useAppStore } from '@/features/portfolio/state/store';
 import { useQueryFilters } from './QueryFilterContext';
 import { useI18n } from '@/shared/i18n';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
-import { PortfolioActiveFilters, PortfolioToolbarFilters, type AdditionalPortfolioFilter } from './PortfolioFilters';
+import { PortfolioToolbarFilters, type AdditionalPortfolioFilter } from './PortfolioFilters';
 import type { WorkflowKind } from '@/domain/types';
 
 /** Reused fields inside the active view's existing toolbar. */
@@ -34,7 +34,6 @@ function QueryControlsContent({ boardMode, scope = '', additionalFields = [], ic
             </div>
             <PortfolioToolbarFilters boardMode={boardMode} scope={scope} additionalFields={additionalFields} iconOnly={iconOnlyFilters} />
         </div>
-        <PortfolioActiveFilters scope={scope} additionalFields={additionalFields} />
         {!table && <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{t('toolbar.resultsCount', { count: state.count })}</span>}
     </div>;
 }

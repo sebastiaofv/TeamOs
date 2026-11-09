@@ -36,7 +36,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await page.locator('[data-view-mode="roadmap"]').click();
         for (const width of [1280, 390]) {
             await page.setViewportSize({ width, height: 900 });
-            const targets = await page.locator('.roadmap-action-btn').evaluateAll((buttons) => buttons.map((button) => {
+            const targets = await page.locator('.roadmap-action-btn, .roadmap-disclosure-btn').evaluateAll((buttons) => buttons.map((button) => {
                 const bounds = button.getBoundingClientRect();
                 return { width: bounds.width, height: bounds.height };
             }));

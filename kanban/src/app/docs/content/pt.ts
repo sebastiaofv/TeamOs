@@ -424,7 +424,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Bloqueio manual', 'Marque **Bloqueada** no editor e descreva o que está a bloquear. Retire-o quando estiver resolvido.'],
                         ['Bloqueio por dependência', 'Derivado automaticamente de bloqueadores diretos por concluir (Bloqueia / É bloqueado por), incluindo arquivados. Desaparece quando os bloqueadores são concluídos ou a ligação é removida.']
                     ] },
-                    { kind: 'p', text: 'Ambos aparecem nos detalhes e são incluídos pelo filtro **Bloqueadas**. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
+                    { kind: 'p', text: 'Ambos aparecem nos detalhes e têm colunas e filtros independentes nas tabelas de workitems, incluindo o Roadmap. **Bloqueio manual** mantém-se até ser removido manualmente; **Bloqueio por dependências** desaparece quando todos os bloqueadores estão Done, mantendo as relações. O filtro **Bloqueadas** e o Dashboard consideram qualquer das duas fontes. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'As dependências são informativas: não impedem mudanças de estado e nunca substituem um bloqueio manual.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -572,9 +572,9 @@ export const DOCS_PT: DocSection[] = [
                         'Selecione um projeto e abra o **Roadmap**.',
                         'Use **+ Fase**, **+ Marco** e **+ Sprint** para criar itens, com datas e cor.',
                         'Associe workitems a uma fase-folha e a um marco no editor do workitem (ou deixe os filhos [herdar](plan-inheritance)).',
-                        'Expanda uma fase-folha ou Sprint para ver a tabela de workitems. As fases-pai expandem as suas subfases.'
+                        'Use Workitems associados em qualquer fase ou Sprint para abrir a tabela. Nas fases-pai, inclui os workitems de todas as fases descendentes; a seta separada expande apenas a hierarquia.'
                     ] },
-                    { kind: 'p', text: 'O Roadmap mantém largura e zoom à esquerda e + Marco / + Fase à direita. Os losangos dos marcos são compactos, têm tamanho fixo, mostram a percentagem sem casas decimais e alinham com as linhas tracejadas da timeline; nome e data aparecem ao passar o rato ou focar por teclado. Usam uma linha, acrescentando uma segunda apenas para sobreposições; as restantes têm scroll. Clique no losango para consultar workitems. As tabelas de fases, marcos e Sprints apresentam ID, Título, Tipo, Estado, Responsável, Prioridade, Bloqueado e Atualizado, por esta ordem. Clique no nome da fase ou Sprint para editar e passe o rato na barra para ver datas. Os Sprints usam Play para iniciar e uma bandeira axadrezada para finalizar, mantendo as confirmações. Os Sprints concluídos não apresentam este botão.' },
+                    { kind: 'p', text: 'O Roadmap mantém largura e zoom à esquerda e + Marco / + Fase à direita. Os losangos dos marcos são compactos, têm tamanho fixo, preenchem-se progressivamente com a conclusão dos workitems e alinham com as linhas tracejadas da timeline; nome, data e percentagem aparecem num tooltip de duas linhas ao passar o rato ou focar por teclado. Usam uma linha, acrescentando uma segunda apenas para sobreposições; as restantes têm scroll. Clique no losango para consultar workitems. As tabelas de fases, marcos e Sprints apresentam ID, Título, Tipo, Estado, Responsável, Prioridade, Bloqueio manual, Bloqueio por dependências e Atualizado, por esta ordem. Clique no nome da fase ou Sprint para editar e passe o rato na barra para ver datas. Os Sprints usam Play para iniciar e uma bandeira axadrezada para finalizar, mantendo as confirmações. Os Sprints concluídos não apresentam este botão.' },
                     { kind: 'p', text: 'O progresso conta os workitems elegíveis concluídos (os cancelados são excluídos). Entregáveis pendentes de aceitação no Controlo do projeto mantêm o progresso de fases e marcos abaixo de 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma fase com subfases não pode ser apagada em cascata: mova ou apague primeiro as subfases. Apagar uma fase ou marco com workitems associados pede que os realoque ou limpe explicitamente.' }
                 ],
@@ -735,7 +735,7 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'list', items: [
                         '**Pesquisa**: use o campo na barra do Board ou no cabeçalho da Tabela, ou abra a [paleta de comandos](prod-palette) pela lupa na barra superior ou com [[Ctrl/⌘]] + [[K]] e escolha **Filtrar quadro por “…”**. A secção mostra a pesquisa atual; clique em × para a limpar.',
-                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Abra **Filtros e vista** na barra do Board ou **Filtros** no cabeçalho da Tabela. Os filtros ativos aparecem aí como chips removíveis.',
+                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Abra **Filtros e vista** na barra do Board ou **Filtros** no cabeçalho da Tabela. O botão mostra o número de filtros ativos. Use **Limpar tudo** ou **Repor** no cabeçalho do painel para limpar os filtros configurados; não aparecem etiquetas de filtros.',
                         '**Ordenação**: por prioridade, esforço, pontuação ou nome, ascendente ou descendente.',
                         '**Repor**: prima [[R]] para repor filtros e ordenação.'
                     ] },

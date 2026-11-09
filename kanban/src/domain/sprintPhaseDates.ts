@@ -1,11 +1,11 @@
 import type { BoardData } from './types';
-import { effectivePlanning, workitemType } from './workitems';
+import { effectivePlanning } from './workitems';
 
-/** One review per phase, including Tasks inheriting their parent's phase. */
-export function sprintPhaseDateConflicts(data: BoardData, previous: BoardData) {
+/** One review per phase, scoped to the workitems explicitly changed by the operation. */
+export function sprintPhaseDateConflicts(data: BoardData, previous: BoardData, operationIds?: ReadonlySet<number>) {
     const conflicts = new Map<string, { phaseId: string; title: string; startDate: string; endDate: string; tasks: number[] }>();
     for (const task of data.board.tasks) {
-        if (workitemType(task) !== 'task' || !task.sprintId) continue;
+        if (!task.sprintId || (operationIds && !operationIds.has(task.id))) continue;
         const phaseId = effectivePlanning(data, task, 'phaseId');
         const phase = data.extensions.roadmap?.phases.find((entry) => entry.id === phaseId);
         const sprint = data.extensions.roadmap?.sprints.find((entry) => entry.id === task.sprintId);

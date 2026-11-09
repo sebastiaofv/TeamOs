@@ -424,7 +424,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Manual block', 'Tick **Blocked** in the editor and describe what is blocking. Clear it when resolved.'],
                         ['Dependency block', 'Derived automatically from unfinished direct blockers (Blocks / Blocked by). It clears when the blockers are completed or the link is removed.']
                     ] },
-                    { kind: 'p', text: 'Both appear in details and are included by the **Blocked** filter. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
+                    { kind: 'p', text: 'Both appear in details and have independent columns and filters in workitem tables, including Roadmap tables. **Manually Blocked** stays active until manually cleared; **Dependency Blocked** clears when every blocker is Done, even while the relations remain. The **Blocked** filter and Dashboard count either source. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Dependencies are informative: they do not prevent status changes, and a dependency never overwrites a manual block.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -572,9 +572,9 @@ export const DOCS_EN: DocSection[] = [
                         'Select a project and open **Roadmap**.',
                         'Use **+ Phase**, **+ Milestone** and **+ Sprint** to create items, with dates and a colour.',
                         'Assign workitems to a leaf phase and a milestone in the workitem editor (or let children [inherit](plan-inheritance)).',
-                        'Expand a leaf phase to see its workitem table and progress. Parent phases only expand their child hierarchy.'
+                        'Use Associated Workitems on any phase or Sprint to open its table. Parent phases include workitems from every descendant phase; the separate arrow expands only the phase hierarchy.'
                     ] },
-                    { kind: 'p', text: 'The Roadmap keeps width and zoom controls on the left and + Milestone / + Phase on the right. Milestone diamonds are compact, have a fixed size, show integer completion percentages and align with their dashed timeline guides; names and dates appear on hover or keyboard focus. They use one lane, adding a second only for overlaps; additional lanes scroll. Click a diamond for associated workitems. Phase, milestone and Sprint tables show ID, Title, Type, Status, Responsible, Priority, Blocked and Updated, in that order. Click a phase or Sprint name to edit it, and hover its timeline bar for dates. Sprint rows use a Play icon to start and a chequered flag to finish, retaining confirmations. Completed Sprints have no lifecycle button.' },
+                    { kind: 'p', text: 'The Roadmap keeps width and zoom controls on the left and + Milestone / + Phase on the right. Milestone diamonds are compact, have a fixed size, fill progressively as workitems complete and align with their dashed timeline guides; names, dates and completion percentages appear in a two-line tooltip on hover or keyboard focus. They use one lane, adding a second only for overlaps; additional lanes scroll. Click a diamond for associated workitems. Phase, milestone and Sprint tables show ID, Title, Type, Status, Responsible, Priority, Manually Blocked, Dependency Blocked and Updated, in that order. Click a phase or Sprint name to edit it, and hover its timeline bar for dates. Sprint rows use a Play icon to start and a chequered flag to finish, retaining confirmations. Completed Sprints have no lifecycle button.' },
                     { kind: 'p', text: 'Progress counts completed eligible workitems (cancelled ones are excluded). Deliverables awaiting acceptance in Project Control keep phase and milestone progress below 100%.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'A phase with subphases cannot be deleted in cascade: move or delete the subphases first. Deleting a phase or milestone with assigned workitems asks you to reallocate or explicitly clear them.' }
                 ],
@@ -735,7 +735,7 @@ export const DOCS_EN: DocSection[] = [
                 blocks: [
                     { kind: 'list', items: [
                         '**Search**: use the search field in the Board toolbar or Table heading, or open the [command palette](prod-palette) with the top-bar magnifying glass or [[Ctrl/⌘]] + [[K]] and choose **Filter board by “…”**. The section shows the current query; click × to clear it.',
-                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Open **Filters & View** in the Board toolbar or **Filters** in the Table heading. Active filters appear there as removable chips.',
+                        '**Filters**: blocked, responsible person, participant, priority, effort and planning. Open **Filters & View** in the Board toolbar or **Filters** in the Table heading. The filter button shows the active count. Use **Clear all** or **Reset** in the panel header to clear the configured filters; no filter chips are shown.',
                         '**Sort**: by priority, effort, score or name, ascending or descending.',
                         '**Reset**: press [[R]] to reset filters and sort.'
                     ] },

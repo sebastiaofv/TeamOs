@@ -9,6 +9,7 @@ import { getRoadmapExtension } from './roadmap';
 import { phaseDescendants } from './phaseTree';
 import { EFFORT_BUCKETS } from './constants';
 import { normalizeAssignee, normalizePortfolioBlockedFilter, taskAssignees } from './task';
+import { getDependencyBlockedTaskIds } from './taskRelations';
 import { matchesPeopleFilter } from './peopleFilters';
 
 export type PortfolioFilterName = keyof PortfolioFilters;
@@ -17,6 +18,8 @@ export const DEFAULT_PORTFOLIO_FILTERS: Readonly<PortfolioFilters> = Object.free
     search: '',
     archive: 'all',
     blocked: 'all',
+    manuallyBlocked: 'all',
+    dependencyBlocked: 'all',
     assignee: '',
     responsible: '',
     priority: '',
@@ -40,7 +43,7 @@ export function normalizePortfolioFilterValue<K extends PortfolioFilterName>(nam
     let normalized: PortfolioFilters[PortfolioFilterName];
     if (name === 'search') normalized = String(value ?? '');
     else if (name === 'archive') normalized = 'all';
-    else if (name === 'blocked') normalized = normalizePortfolioBlockedFilter(value);
+    else if (name === 'blocked' || name === 'manuallyBlocked' || name === 'dependencyBlocked') normalized = normalizePortfolioBlockedFilter(value);
     else if (name === 'assignee' || name === 'responsible') normalized = normalizeAssignee(value);
     else if (name === 'priority') normalized = includesValue(PRIORITY_FILTER_VALUES, value) ? value : '';
     else if (name === 'effort') normalized = includesValue(EFFORT_FILTER_VALUES, value) ? value : '';
@@ -67,7 +70,7 @@ export function normalizePortfolioFilterSet(filters: Partial<Record<PortfolioFil
 
 // The filters shown in the toolbar's Filters panel, in panel order. Search has
 // its own box and is not one of them.
-export const PANEL_PORTFOLIO_FILTERS = ['blocked', 'responsible', 'assignee', 'priority', 'effort', 'statuses', 'phaseId', 'milestoneId', 'sprintId', 'epicId', 'storyId'] as const;
+export const PANEL_PORTFOLIO_FILTERS = ['blocked', 'manuallyBlocked', 'dependencyBlocked', 'responsible', 'assignee', 'priority', 'effort', 'statuses', 'phaseId', 'milestoneId', 'sprintId', 'epicId', 'storyId'] as const;
 export type PanelPortfolioFilterName = typeof PANEL_PORTFOLIO_FILTERS[number];
 
 export function getActivePortfolioFilterNames(filters: Partial<Record<PortfolioFilterName, unknown>> | null | undefined): PanelPortfolioFilterName[] {
@@ -77,7 +80,7 @@ export function getActivePortfolioFilterNames(filters: Partial<Record<PortfolioF
 }
 
 /** Shared by every view: filters are ANDed, selected statuses are ORed. */
-export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilters, data?: LooseBoardData | null): boolean {
+export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilters, data?: LooseBoardData | null, blocking?: { manuallyBlocked?: boolean; dependencyBlocked?: boolean }): boolean {
     if (filters.statuses.length && !filters.statuses.includes(task.status)) return false;
     if (!matchesPeopleFilter(taskAssignees(task), filters.assignee)) return false;
     if (!matchesPeopleFilter(task.responsible ? [task.responsible] : [], filters.responsible)) return false;
@@ -92,6 +95,14 @@ export function taskMatchesPortfolioFilters(task: Task, filters: PortfolioFilter
     if (filters.effort && task.effort !== filters.effort) return false;
     if (filters.blocked === 'blocked' && !task.blocked) return false;
     if (filters.blocked === 'unblocked' && task.blocked) return false;
+    if (filters.manuallyBlocked && filters.manuallyBlocked !== 'all') {
+        const manual = blocking?.manuallyBlocked ?? Boolean((data as BoardData | undefined)?.board?.tasks.find((entry) => entry.id === task.id)?.blocked ?? task.blocked);
+        if ((filters.manuallyBlocked === 'blocked') !== manual) return false;
+    }
+    if (filters.dependencyBlocked && filters.dependencyBlocked !== 'all') {
+        const dependency = blocking?.dependencyBlocked ?? (data?.board ? getDependencyBlockedTaskIds(data as BoardData).has(task.id) : false);
+        if ((filters.dependencyBlocked === 'blocked') !== dependency) return false;
+    }
     const search = filters.search.trim().toLowerCase();
     return !search || [String(task.id), task.displayId || '', task.title || '', task.description || '', workitemType(task), ...(data?.board ? [parentOf(data as BoardData, task), epicOf(data as BoardData, task)].flatMap((item) => item ? [String(item.id), item.title] : []) : [])]
         .some((value) => value.toLowerCase().includes(search));

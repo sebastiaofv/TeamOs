@@ -23,7 +23,7 @@ test('first child relocation is explicit and atomic; progress is global and tree
     await expect.poll(async () => (await readSavedBoard(page, 'p')).board.tasks[1].phaseId).toBe('implementation');
     await page.getByRole('button', { name: 'Expand/collapse subphases of Delivery' }).click();
     await expect(page.locator('#roadmap-row-phase-implementation')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Show tasks for Delivery' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Show tasks for Delivery' })).toHaveCount(1);
     await expect(page.locator('[data-roadmap-task-list="phase:phase"]')).toHaveCount(0);
     await page.getByRole('button', { name: 'Delivery', exact: true }).click();
     await page.locator('#roadmapEntityModal .modal-header summary').click();

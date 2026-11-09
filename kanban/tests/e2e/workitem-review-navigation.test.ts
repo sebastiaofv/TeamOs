@@ -143,7 +143,7 @@ test('Roadmap phase, milestone and Sprint use the same table and hierarchy as Ta
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'hierarchy');
     const headings = await page.locator('#workitemsTable thead th').allTextContents();
-    const roadmapHeadings = ['ID ↑', 'Title ↕', 'Type ↕', 'Status ↕', 'Responsible ↕', 'Priority ↕', 'Blocked ↕', 'Updated ↕'];
+    const roadmapHeadings = ['ID ↑', 'Title ↕', 'Type ↕', 'Status ↕', 'Responsible ↕', 'Priority ↕', 'Manually Blocked ↕', 'Dependency Blocked ↕', 'Updated ↕'];
     await page.locator('[data-view-mode="roadmap"]').click();
     await page.getByRole('button', { name: 'Show tasks for Delivery', exact: false }).click();
     const phase = page.locator('[data-roadmap-task-list="phase:p"]');

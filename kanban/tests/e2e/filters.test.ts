@@ -28,7 +28,9 @@ test.describe('filters and sort', () => {
     await expect(page.locator('#portfolioBoard .task-title')).toHaveText(['Matching']);
     await page.locator('[data-view-mode="table"]').click();
     await expect(page.locator('#workitemsTable tbody tr')).toContainText('Other');
-    await page.locator('#portfolioClearFilters').click();
+    await openFiltersPanel(page);
+    await page.getByRole('button', { name: 'Clear all', exact: true }).click();
+    await page.keyboard.press('Escape');
     await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(2);
     await page.locator('[data-view-mode="board"]').click();
     await expect(page.locator('#portfolioBoard .task-title')).toHaveText(['Matching']);
@@ -197,7 +199,7 @@ test.describe('filters and sort', () => {
     for (const key of ['pa', 'pbk', 'pu', 'pp', 'pe']) expect(url.searchParams.get(key)).toBeNull();
   });
 
-  test('filters button shows how many filters are on and the tag row removes them', async ({ page }) => {
+  test('filters button counts applied filters and Clear all removes them without tags', async ({ page }) => {
     await seedPortfolioBoards(page, [{
       id: 'f1', title: 'Filter Project', hasHandle: true,
       tasks: [
@@ -225,12 +227,12 @@ test.describe('filters and sort', () => {
     await expect(page.locator('#portfolioFiltersPanel')).toHaveCount(0);
     await expect(button).toBeFocused();
 
-    await expect(tags.locator('.portfolio-active-filter')).toHaveText([/Blocked\s*Blocked Only/, /Priority\s*High/]);
-    await tags.getByRole('button', { name: 'Remove filter Priority: High' }).click();
+    await expect(tags).toHaveCount(0);
+    await openFiltersPanel(page);
+    await page.locator('#portfolioPriorityFilter').selectOption('');
     await expect(button.locator('.portfolio-filters-badge')).toHaveText('1');
     await expect(page.locator('.portfolio-task-card')).toHaveCount(1);
-
-    await tags.getByRole('button', { name: 'Clear all' }).click();
+    await page.getByRole('button', { name: 'Clear all', exact: true }).click();
     await expect(tags).toHaveCount(0);
     await expect(button.locator('.portfolio-filters-badge')).toHaveCount(0);
     await expect(page.locator('.portfolio-task-card')).toHaveCount(2);

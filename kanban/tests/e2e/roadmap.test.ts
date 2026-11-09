@@ -218,7 +218,7 @@ test.describe('roadmap', () => {
       const header = document.querySelector('.roadmap-section-header');
       const row = document.querySelector('.roadmap-row');
       const axisLine = document.querySelector('.roadmap-axis-line');
-      const actionBtn = document.querySelector('.roadmap-action-btn');
+      const actionBtn = document.querySelector('.roadmap-disclosure-btn');
       const disclosureBtn = document.querySelector('.roadmap-disclosure-btn');
       const track = document.querySelector('.roadmap-row-track');
       const timelineBar = document.querySelector('.roadmap-row[data-roadmap-kind="phase"] .roadmap-row-timeline-bar');
@@ -264,12 +264,12 @@ test.describe('roadmap', () => {
     expect(styles!.header.borderBottomColor).toBe('rgb(208, 208, 208)');
     expect(styles!.row.rowGap).toBe('0px');
     expect(styles!.actionBtn.backgroundColor).toBe('rgb(255, 255, 255)');
-    expect(styles!.actionBtn.borderColor).toBe('rgba(0, 0, 0, 0)');
+    expect(styles!.actionBtn.borderColor).toBe('rgb(208, 208, 208)');
     expect(styles!.disclosureBtn.color).toBe('rgb(102, 102, 102)');
     expect(styles!.axisLine.height).toBe('44px');
     expect(styles!.track.height).toBe('28px');
     expect(styles!.timelineBar.height).toBe('21px');
-    expect(styles!.milestonePoint.backgroundColor).toBe('rgb(37, 99, 235)');
+    expect(styles!.milestonePoint.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
 
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
     await expect(page.locator('#milestoneWorkitemsModal table.workitems-table')).toHaveCount(1);

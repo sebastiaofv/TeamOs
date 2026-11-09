@@ -121,3 +121,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 }
 
 @media (max-width: 600px) { .dashboard-filters > label, .dashboard-filters > .dashboard-visible-sections { flex-basis: 100%; } }
+
+.dashboard-progress-summary { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.dashboard-progress-summary [data-dashboard-kpi="blocked"] { flex-direction: row; gap: 8px; padding: 8px; border: 1px solid var(--border-light); border-radius: 4px; }
+.dashboard-progress-summary [data-dashboard-kpi="blocked"] strong { font-size: 20px; }

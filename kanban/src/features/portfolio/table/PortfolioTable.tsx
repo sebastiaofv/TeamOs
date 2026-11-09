@@ -197,7 +197,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
         if (column === 'type') return t(`workitems.type.${workitemType(row.task)}`);
         if (column === 'status') return row.columnTitle || row.task.status;
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
-        if (column === 'blocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
+        if (column === 'blocked' || column === 'dependencyBlocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
         if (column === 'createdAt' || column === 'updatedAt') return formatTableTimestamp(value) || t('table.notDefined');
         return value;
     }
@@ -216,6 +216,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     return (
         <QueryFilterContext.Provider value={{ filters, setFilter: (key, value) => setTableFilter(key, value, preferenceScope), clearPanel: () => clearTablePanelFilters(preferenceScope) }}>
         <div className={`table-panel${compact ? ' table-panel-compact' : ''}`} data-table-filter-scope={preferenceScope} onFocusCapture={() => useAppStore.setState({ activeTableFilterScope: preferenceScope })} onPointerDownCapture={() => useAppStore.setState({ activeTableFilterScope: preferenceScope })}>
+            {bare && <div className="table-heading"><PortfolioQueryControls active={!hidden} scope={scope} iconOnlyFilters /></div>}
             {!bare && <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
                 <summary className="btn" hidden={!compact}>{t('roadmap.tableOptions')}</summary>
                 <div className="table-heading">
@@ -285,7 +286,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                                     </div>
                                     : (column === 'epic' || column === 'story') && (column === 'epic' ? epicOf(boardData, row.task) : storyOf(boardData, row.task)) ? <button type="button" className="table-item-link" onClick={() => actions.openPortfolioTaskDetails(boardId, (column === 'epic' ? epicOf(boardData, row.task)! : storyOf(boardData, row.task)!).id)}>{cellText(row, column)}</button> : column === 'type' ? <WorkitemTypeBadge type={workitemType(row.task)} /> : column === 'status' && workflowState
                                         ? <WorkflowStateBadge state={workflowState} />
-                                        : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${column === 'blocked' && row.task.blocked ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
+                                        : <span title={cellText(row, column)} className={`table-cell-text${!tableCellValue(row, column, boardData) ? ' table-not-defined' : ''}${(column === 'blocked' || column === 'dependencyBlocked') && tableCellValue(row, column, boardData) === 'true' ? ' table-blocked-badge' : ''}`}>{cellText(row, column)}</span>}
                             </td>)}
                         </tr>; })}</tbody>
                     </table>

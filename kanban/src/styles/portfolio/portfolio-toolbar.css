@@ -385,3 +385,5 @@
 @media (prefers-reduced-motion: reduce) { .product-chevron { transition: none; } }
 
 .portfolio-chip > .chip-link[data-action="select-board"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.portfolio-filters-panel-head h2 { margin-right: auto; }

@@ -1,3 +1,4 @@
+import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { formatDate } from '@/domain/dates';
 import { DateInput } from '@/shared/ui/DateInput';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -95,7 +96,7 @@ function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string })
 }
 
 function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
-    const state = useAppStore(useShallow((value) => ({ portfolioBoards: value.portfolioBoards, selectedPortfolioBoardId: value.selectedPortfolioBoardId, portfolioTimelineSelection: value.portfolioTimelineSelection })));
+    const state = useAppStore(useShallow((value) => ({ portfolioBoards: value.portfolioBoards, selectedPortfolioBoardId: value.selectedPortfolioBoardId, portfolioTimelineSelection: value.portfolioTimelineSelection, unloadedRelationSources: value.unloadedRelationSources })));
     const timeline = useMemo(() => hidden ? null : getSelectedPortfolioTimelineView(state), [hidden, state]);
     const board = timeline?.boardRecord;
     const historyUnavailable = timeline?.isPreview && !timeline.timeline?.events[0]?.snapshot?.board;
@@ -121,6 +122,10 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const invalidPeriod = from > end;
     const snapshot = useMemo(() => !hidden && data && !invalidPeriod ? dashboardSnapshot(data, end, referenceDate) : null, [hidden, data, end, referenceDate, invalidPeriod]);
     const displayData = snapshot?.data;
+    const dependencyBlockedIds = useMemo(() => displayData ? permanentBlockedIds(displayData,
+        timeline?.isPreview || end < today ? [{ id: boardId, data: displayData }] : state.portfolioBoards.map(project => project.id === boardId ? { ...project, data: displayData } : project),
+        timeline?.isPreview || end < today ? [] : state.unloadedRelationSources.flatMap(entry => entry.relations)) : new Set<number>(),
+    [displayData, timeline?.isPreview, end, today, state.portfolioBoards, state.unloadedRelationSources, boardId]);
     const activePhase = displayData?.extensions.roadmap?.phases.some((phase) => phase.id === phaseId) ? phaseId : '';
     const observations = useMemo(() => !hidden && data && !invalidPeriod ? dashboardHistorySummary(data, activePhase, from, end) : [], [hidden, data, activePhase, from, end, invalidPeriod]);
     // Changing source state invalidates a drilldown so old rows cannot masquerade as current data.
@@ -153,7 +158,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
         </div>
         {invalidPeriod ? <p role="alert">{t('dashboard.invalidPeriod')}</p> : !displayData ? <p role="status">{t('dashboard.noHistoryBaseline')}</p> : <>
             <p className="dashboard-note">{t('dashboard.periodNote', { date: end })}</p>
-            {tab === 'overview' ? <DashboardOverview boardId={boardId} data={displayData} source={data} phaseId={activePhase} start={from} end={end} visible={visible} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId={activePhase} asOf={end} inspect={inspect} />}
+            {tab === 'overview' ? <DashboardOverview dependencyBlockedIds={dependencyBlockedIds} boardId={boardId} data={displayData} source={data} phaseId={activePhase} start={from} end={end} visible={visible} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId={activePhase} asOf={end} inspect={inspect} />}
         </>}
         <Drilldown drill={displayData ? drill : null} boardId={boardId} />
         <section className="dashboard-panel"><h3>{t('dashboard.history')}</h3><p className="dashboard-note">{t('dashboard.historyNote')}</p>

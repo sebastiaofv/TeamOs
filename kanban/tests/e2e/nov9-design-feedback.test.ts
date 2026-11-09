@@ -90,7 +90,7 @@ test('each Sprint keeps its own search and filters after collapse, view changes 
 
 test('Roadmap associated tables use exactly the requested columns regardless of Table preferences', async ({ page }) => {
     await page.locator('[data-view-mode="roadmap"]').click();
-    const columns = ['id', 'title', 'type', 'status', 'responsible', 'priority', 'blocked', 'updatedAt'];
+    const columns = ['id', 'title', 'type', 'status', 'responsible', 'priority', 'blocked', 'dependencyBlocked', 'updatedAt'];
     for (const row of ['phase-p', 'sprint-a']) {
         await page.locator(`#roadmap-row-${row} .roadmap-disclosure-btn`).click();
         expect(await page.locator(`#roadmap-row-${row} th[data-column]`).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-column')))).toEqual(columns);
@@ -126,8 +126,8 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await page.keyboard.press('Escape');
         await page.locator('[data-view-mode="roadmap"]').click();
         const diamond = page.locator('.milestone-annotation .milestone-diamond');
-        await expect(diamond).toHaveText('N/A');
-        expect(await diamond.evaluate(node => parseFloat(getComputedStyle(node, '::before').width))).toBe(20);
+        await expect(diamond).toHaveAttribute('data-progress', 'na');
+        expect((await diamond.boundingBox())!.width).toBeCloseTo(29.333, 1);
         const marker = (await diamond.boundingBox())!;
         const guide = (await page.locator('[data-milestone-guide="m"]').boundingBox())!;
         expect(Math.abs(marker.x + marker.width / 2 - guide.x - guide.width / 2)).toBeLessThan(0.1);

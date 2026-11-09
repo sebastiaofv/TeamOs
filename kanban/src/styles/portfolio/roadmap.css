@@ -160,3 +160,22 @@
 .milestone-tooltip { position: fixed; z-index: 1000; padding: 8px 10px; max-height: 58px; overflow: auto; box-sizing: border-box; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); box-shadow: 0 4px 16px #0003; font-size: 12px; overflow-wrap: anywhere; pointer-events: none; }
 .roadmap-modal-actions { display: inline-flex; gap: 10px; align-items: center; margin-left: auto; }
 #roadmapEntityModal .modal-header > .task-transfer-menu { margin-left: auto; }
+
+/* Keep scrollbar space outside the shared date axis and fit two complete lanes. */
+.milestone-annotations { overflow-x: hidden; }
+.milestone-annotations::-webkit-scrollbar { display: block; width: 8px; }
+.milestone-diamond { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); background: var(--bg-secondary); }
+.milestone-diamond::before { inset: 0; width: auto; height: auto; transform: none; border-radius: 0; background: color-mix(in srgb, var(--milestone-color) 30%, var(--bg-card)); }
+.milestone-diamond > .milestone-progress-fill { position: absolute; inset: 0 auto 0 0; width: var(--milestone-progress); background: color-mix(in srgb, var(--milestone-color) 55%, var(--bg-card)); }
+.milestone-tooltip { display: grid; gap: 3px; max-height: none; overflow: hidden; line-height: 16px; }
+.milestone-tooltip > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.milestone-date-guide svg { display: block; }
+
+.roadmap-row-timeline-bar { cursor: default; }
+
+.roadmap-disclosure-btn { min-width: 24px; min-height: 24px; }
+
+/* Use the axis container directly so zoom/label changes never wait for ResizeObserver. */
+.roadmap-axis { container-type: inline-size; }
+.milestone-annotation-canvas { width: 100cqw; }

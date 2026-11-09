@@ -57,10 +57,10 @@ async function expectTableFilter(page: Page, id: string, value: string | string[
 }
 
 async function clearTableViewFilters(page: Page) {
-  const clear = page.locator('#portfolioClearFilters');
-  if (await clear.isVisible()) await clear.click();
-  const searchClear = page.locator('#portfolioSearchClearBtn');
-  if (await searchClear.isVisible()) await searchClear.click();
+  await page.locator('#portfolioSearchInput').fill('');
+  if (!await page.locator('#portfolioFiltersPanel').isVisible()) await page.locator('#portfolioFiltersBtn').click();
+  if (await page.locator('#resetPortfolioFiltersBtn').isEnabled()) await page.locator('#resetPortfolioFiltersBtn').click();
+  await page.keyboard.press('Escape');
 }
 
 async function expectRowIds(page: Page, ids: number[]) {
@@ -192,7 +192,7 @@ test.describe('workitems table', () => {
     await expect(fields).toContainText(['Blocked', 'Responsible', 'Participant', 'Priority', 'Effort']);
     await page.locator('#portfolioEffortFilter').selectOption('S');
     await expectRowIds(page, [2]);
-    await page.locator('#resetPortfolioFiltersBtn').click();
+    if (await page.locator('#resetPortfolioFiltersBtn').isEnabled()) await page.locator('#resetPortfolioFiltersBtn').click();
     await page.locator('#portfolioFiltersPanel').getByRole('button', { name: 'Done', exact: true }).click();
     await page.keyboard.press('s');
     await expect(tableHeader(page, 'ID').getByRole('button')).toBeFocused();
@@ -353,7 +353,7 @@ test.describe('workitems table', () => {
     await expectRowIds(page, [12]);
     await setTableSearch(page, 'unmatched-text');
     await expect(tableRows(page)).toHaveCount(0);
-    await expect(page.locator('#portfolioClearFilters')).toBeVisible();
+    await expect(page.locator('#portfolioFiltersBtn .portfolio-filters-badge')).toHaveText('2');
 
     await clearTableViewFilters(page);
     await expectTableSearch(page, '');

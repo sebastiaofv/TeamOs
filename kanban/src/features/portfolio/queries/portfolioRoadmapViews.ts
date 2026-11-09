@@ -1,3 +1,5 @@
+import { getDependencyBlockedTaskIds } from '@/domain/taskRelations';
+import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { gateControlProgress } from '@/domain/projectControl';
 import { phaseDescendants } from '@/domain/phaseTree';
 import { consultSprintParticipation } from '@/domain/workitems';
@@ -39,10 +41,18 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
         const context = participation?.boardData || boardData;
         const ids = new Set(tasks.map((task) => task.id));
         const scopedTasks = participation ? participation.members.filter((task) => ids.has(task.id)) : tasks;
+        let frozenDependencies: Set<number> | null = null;
+        if (participation && scopedTasks.some(task => !participation.isCurrent(task.id))) {
+            // Keep blockers outside the Sprint roster available in its consultation context.
+            const blockingContext = { ...context, board: { ...context.board, tasks: [...new Map([...boardData.board.tasks, ...context.board.tasks].map(task => [task.id, task])).values()] } };
+            frozenDependencies = new Set([...getDependencyBlockedTaskIds(blockingContext), ...permanentBlockedIds(blockingContext, [{ ...board, data: blockingContext }])]);
+        }
         const rows = participation ? scopedTasks.map((task) => ({
             boardIndex: (state?.portfolioBoards || []).findIndex((entry) => entry.id === board.id),
             boardId: board.id, boardTitle: board.title, boardFileName: board.fileName,
             taskIndex: -1, ...byId.get(task.id), taskId: task.id,
+            manuallyBlocked: participation.isCurrent(task.id) ? byId.get(task.id)?.manuallyBlocked : Boolean(task.blocked),
+            dependencyBlocked: participation.isCurrent(task.id) ? byId.get(task.id)?.dependencyBlocked : frozenDependencies?.has(task.id),
             task: participation.isCurrent(task.id) ? byId.get(task.id)?.task || task : task, boardData: context,
             canMutate: false, historical: historical || !participation.isCurrent(task.id), liveDetails: !historical && byId.has(task.id)
         })) : tasks.flatMap((task) => byId.get(task.id) ? [byId.get(task.id)!] : []);

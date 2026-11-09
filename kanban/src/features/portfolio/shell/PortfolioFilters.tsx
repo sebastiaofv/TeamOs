@@ -1,4 +1,3 @@
-import { ActiveFilterTags } from './ActiveFilterTags';
 import type { WorkflowKind } from '@/domain/types';
 import { BoardColumnOptions } from '@/features/portfolio/board/BoardColumnOptions';
 import { PortfolioSortControl } from '@/features/portfolio/board/BoardSortControl';
@@ -79,6 +78,9 @@ function usePortfolioFilterFields() {
         field('blocked', t('toolbar.blocked'), 'portfolioBlockedFilter', [
             { value: 'all', label: t('common.all') }, { value: 'blocked', label: t('toolbar.blockedOnly') }, { value: 'unblocked', label: t('toolbar.unblockedOnly') }
         ]),
+        ...(['manuallyBlocked', 'dependencyBlocked'] as const).map(key => field(key, t(`table.${key}`), `portfolio${key === 'manuallyBlocked' ? 'Manually' : 'Dependency'}BlockedFilter`, [
+            { value: 'all', label: t('common.all') }, { value: 'blocked', label: t('common.yes') }, { value: 'unblocked', label: t('common.no') }
+        ])),
         field('responsible', t('task.responsible'), 'portfolioResponsibleFilter', [all, { value: NO_PERSON_FILTER, label: t('task.noResponsible') }, ...assignees.map((name) => ({ value: personNameFilter(name), label: name }))]),
         field('assignee', t('toolbar.participant'), 'portfolioAssigneeFilter', [all, { value: NO_PERSON_FILTER, label: t('task.noParticipants') }, ...assignees.map((name) => ({ value: personNameFilter(name), label: name }))]),
         field('priority', t('toolbar.priority'), 'portfolioPriorityFilter', [all, ...Object.entries(PRIORITY_LABELS).map(([value, key]) => ({ value, label: t(key) }))]),
@@ -90,21 +92,14 @@ function usePortfolioFilterFields() {
         field('epicId', t('workitems.type.epic'), 'tableHierarchy-epic', hierarchyOptions('epic')),
         field('storyId', t('workitems.type.story'), 'tableHierarchy-story', hierarchyOptions('story'))
     ];
-    return { fields, active: fields.filter((entry) => entry.changed), t, clearPanel };
+    return { fields, t, clearPanel };
 }
 
 export function PortfolioToolbarFilters({ boardMode, scope = '', additionalFields = [], iconOnly = false }: { boardMode?: WorkflowKind; scope?: string; additionalFields?: AdditionalPortfolioFilter[]; iconOnly?: boolean }) {
     const { fields, t, clearPanel } = usePortfolioFilterFields();
     const combined = [...fields.map(field => ({ ...field, id: scope ? `${field.id}-${scope}` : field.id })), ...additionalFields];
     const clear = () => { clearPanel(); additionalFields.forEach(field => field.reset()); };
-    return <FilterMenu iconOnly={iconOnly} scope={scope} fields={combined} activeCount={combined.filter(field => field.changed).length} onClear={clear} panelClassName="portfolio-filter-options" dismissOnBlur title={boardMode ? t('toolbar.filtersView') : undefined}>
+    return <FilterMenu showClearAll iconOnly={iconOnly} scope={scope} fields={combined} activeCount={combined.filter(field => field.changed).length} onClear={clear} panelClassName="portfolio-filter-options" dismissOnBlur title={boardMode ? t('toolbar.filtersView') : undefined}>
         {boardMode && <><PortfolioSortControl /><BoardColumnOptions mode={boardMode} /></>}
     </FilterMenu>;
-}
-
-export function PortfolioActiveFilters({ scope = '', additionalFields = [] }: { scope?: string; additionalFields?: AdditionalPortfolioFilter[] }) {
-    const { active: base, clearPanel } = usePortfolioFilterFields();
-    const active = [...base, ...additionalFields.filter(field => field.changed)];
-    const clear = () => { clearPanel(); additionalFields.forEach(field => field.reset()); };
-    return <ActiveFilterTags fields={active} onClear={clear} scope={scope} />;
 }
