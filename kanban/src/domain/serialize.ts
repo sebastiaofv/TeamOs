@@ -1,3 +1,4 @@
+import { unconvertedTimeline } from './legacySequences';
 import { parseHierarchyAutomations } from './hierarchyAutomations';
 import { parseSprintResults } from './sprintResults';
 import { parseProjectControl } from './projectControl';
@@ -85,7 +86,7 @@ export function normalizeBoardExtensionsValue(
         }
     }
 
-    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || [], nextExtensions.projectStorage ? undefined : nextExtensions.timeline);
+    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || [], unconvertedTimeline({ extensions: nextExtensions }));
     if (sprintCatalog) nextExtensions.sprintCatalog = sprintCatalog;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, DAY_PLANNER_EXTENSION_KEY)) {

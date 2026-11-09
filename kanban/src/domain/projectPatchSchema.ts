@@ -1,5 +1,5 @@
 import { isRecord, normalizeTimestamp } from './util';
-import { assertWorkitemFile, controlFromFile, KNOWN_PROJECT_EXTENSIONS, memberIndexFor, projectBlockFromFile, workflowBlockFromFile } from './projectFormat';
+import { assertWorkitemFile, closureFromFile, controlFromFile, KNOWN_PROJECT_EXTENSIONS, memberIndexFor, projectBlockFromFile, workflowBlockFromFile } from './projectFormat';
 import { parseProjectData } from './projectData';
 import { parseProjectControl } from './projectControl';
 import { parseWorkflow, parseWorkflowTypes } from './workflow';
@@ -38,7 +38,7 @@ function validEntity(at: ProjectCollectionPath, row: Row): boolean {
         return true;
     }
     if (at === 'roadmap.sprintResults.credits' || at === 'roadmap.sprintResults.closures') {
-        parseSprintResults({ version: 1, credits: at.endsWith('credits') ? [row] : [], closures: at.endsWith('closures') ? [row] : [] });
+        parseSprintResults({ version: 1, credits: at.endsWith('credits') ? [row] : [], closures: at.endsWith('closures') ? [closureFromFile(row)] : [] });
         return true;
     }
     if (at === 'roadmap.sprintParticipation') return typeof row.sprintId === 'string' && Boolean(row.sprintId) && Boolean(normalizeTimestamp(row.at)) && taskRow(row.task);

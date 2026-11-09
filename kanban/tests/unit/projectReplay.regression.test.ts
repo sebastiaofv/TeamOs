@@ -36,16 +36,17 @@ describe('volume checkpoints', () => {
         expect(applyTimelineEventToState(initial, eventFromFile(disk) as TimelineEvent)?.extensions?.[field]).toEqual(after);
     });
 
-    it('checkpoints ordinary workitem changes and retains creation evidence', () => {
+    it('never checkpoints field-level events by volume and keeps creation evidence', () => {
         const data = fixture();
         for (let index = 0; index < 40; index++) appendTimelineEvent(data, { id: `edit-${index}`, kind: 'task.updated', entityType: 'task', entityId: '1', summary: 'Edit', changes: { description: { before: `${index - 1}`, after: `${index} ${'é'.repeat(500)}` } } });
         const writer = createHistoryWriter(undefined);
         const stored = data.extensions.timeline!.events.map((event) => eventToFile(event, writer));
-        expect(stored.slice(1).some((event) => event.checkpoint)).toBe(true);
+        expect(stored.slice(1).some((event) => event.checkpoint)).toBe(false);
+        expect(writer.patchBytes).toBe(0);
         writer.patchBytes = writer.checkpointBytes;
         const task = { ...data.board.tasks[0], id: 2, title: 'Created task' };
         const created = eventToFile({ id: 'created', kind: 'task.created', at: data.meta.createdAt, entityType: 'task', entityId: '2', summary: 'Created', snapshot: task }, writer);
-        expect(created).toHaveProperty('checkpoint');
+        expect(created).not.toHaveProperty('checkpoint');
         expect(created.task).toMatchObject({ id: 2, title: 'Created task' });
         expect(eventFromFile(created).snapshot).toMatchObject({ id: 2 });
     });

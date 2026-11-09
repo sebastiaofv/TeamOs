@@ -1,3 +1,4 @@
+import { unconvertedTimeline } from './legacySequences';
 import { workitemLabelFor } from '@/domain/taskIdentity';
 import type {
     BoardData,
@@ -362,7 +363,11 @@ function applyCurrentRecordContext(snapshot: BoardData, current: LooseBoardData,
         }
     }
     const transfers = current.extensions?.projectTransfers as BoardData['extensions']['projectTransfers'];
-    if (transfers && !snapshot.extensions.projectTransfers) snapshot.extensions.projectTransfers = cloneSerializable(transfers);
+    if (transfers && !snapshot.extensions.projectTransfers) {
+        const until = Date.parse(events[index].at);
+        const operations = transfers.operations.filter((operation) => Date.parse(operation.at) <= until);
+        if (operations.length) snapshot.extensions.projectTransfers = { ...transfers, operations: cloneSerializable(operations) };
+    }
 }
 
 export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | null | undefined, eventIndex: unknown): BoardData {
@@ -391,7 +396,7 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     inheritLegacyTaskIdentities(snapshot, state as LooseBoardData, boardData);
     // Identities are project-wide reservations, not mutable planning state.
     // Preview/restore may change membership, but must not renumber or reuse identities.
-    const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], boardData?.extensions?.projectStorage ? undefined : boardData?.extensions?.timeline);
+    const knownCatalog = normalizeSprintCatalog(boardData?.extensions?.sprintCatalog, getRoadmapExtension(boardData)?.sprints || [], unconvertedTimeline(boardData));
     if (knownCatalog) snapshot.extensions.sprintCatalog = normalizeSprintCatalog(knownCatalog, snapshot.extensions.roadmap?.sprints || []);
     reserveTaskIdentities(snapshot, boardData || undefined);
     if (boardData?.extensions?.projectStorage) applyCurrentRecordContext(snapshot, boardData as LooseBoardData, timeline.events, targetIndex);

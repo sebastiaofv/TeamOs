@@ -17,7 +17,8 @@ import { WORKITEM_FIELDS, effectivePlanning, workitemFieldNames, workitemType } 
 import { MemoryDirectory, MemoryFile } from '../support/projectDirectory';
 
 const boardFiles = readdirSync('test-board').filter((name) => name.endsWith('.board.json')).map((name) => join('test-board', name));
-const fixtures = [...boardFiles, 'test-board/us-25/migration/legacy.board.json', 'tests/fixtures/project-control-v1.json', 'tests/fixtures/project-control-v2.json'];
+const fixtureBoards = readdirSync('tests/fixtures').filter((name) => name.endsWith('.board.json')).map((name) => join('tests/fixtures', name));
+const fixtures = [...boardFiles, ...fixtureBoards, 'test-board/us-25/migration/legacy.board.json', 'tests/fixtures/project-control-v1.json', 'tests/fixtures/project-control-v2.json'];
 const load = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as LooseBoardData;
 const runtime = (path: string) => { const data = serializeBoardDataFromObject(load(path)); data.extensions.projectStorage = { version: 1, baselineEventId: '' }; return data; };
 const roundTrip = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -164,7 +165,7 @@ describe('project folder conversion', () => {
         expect(record.data.board.tasks.map((task) => task.permanentId)).toEqual(before.board.tasks.map((task) => task.permanentId));
         expect(record.data.board.tasks[0].attachments[0].dataUrl).toBe(before.board.tasks[0].attachments[0].dataUrl);
         expect(record.data.extensions.conversations?.entries[0].id).toBe('us25-comment');
-        expect((await loadDirectoryHistory(handle))?.events.map((event) => event.id)).toEqual(['baseline_he3a58c1', 'comment-event-us25-comment']);
+        expect((await loadDirectoryHistory(handle))?.events.map((event) => event.id)).toEqual(['baseline_he3a58c1', 'comment-event-us25-comment', `project-converted-${hashTextContent(project)}`]);
         const converted = text(directory, 'project.json');
         await openProjectDirectory(directory);
         expect(text(directory, 'project.json')).toBe(converted);

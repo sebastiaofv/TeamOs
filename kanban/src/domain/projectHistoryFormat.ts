@@ -1,5 +1,6 @@
 // history.json v1: event translation, checkpoint policy and the single legacy conversion.
 
+import { reserveHistoricalControlNumber } from './legacySequences';
 import type { BoardData, LooseBoardData, TimelineEvent } from './types';
 import { fromProjectFile, toProjectCheckpoint, toProjectFile, attachmentsToHashes, type ProjectCheckpoint, type ProjectFileV1, type ProjectStorageMetadata } from './projectFormat';
 import { diffProjectState, isProjectSnapshot } from './projectPatch';
@@ -19,7 +20,7 @@ export const isHistoryFileV1 = (raw: unknown): raw is Rec & { events: Rec[] } =>
 export const isLegacyHistoryFile = (raw: unknown): boolean => isRecord(raw) && raw.version === 1 && isRecord(raw.timeline) && !('schemaVersion' in raw) && !('events' in raw);
 
 // A merge of two event streams has no reliable replay order; the others reset state outright.
-const MANDATORY_CHECKPOINTS = new Set(['board.baseline', 'board.restored', 'board.reconciled']);
+const MANDATORY_CHECKPOINTS = new Set(['board.baseline', 'board.restored', 'board.reconciled', 'board.converted']);
 export type HistoryWriter = { state: unknown; identityContext?: LooseBoardData; checkpointBytes: number; patchBytes: number };
 export const createHistoryWriter = (state: unknown, storage?: Pick<ProjectStorageMetadata, 'checkpointBytes' | 'patchBytes'>, identityContext = state as LooseBoardData | undefined): HistoryWriter => ({ state, identityContext, checkpointBytes: storage?.checkpointBytes || 0, patchBytes: storage?.patchBytes || 0 });
 
@@ -45,9 +46,10 @@ export function eventToFile(event: TimelineEvent, writer: HistoryWriter): Rec {
     let result: Rec = boardChange && next && writer.state
         ? { ...common, patch: diffProjectState(checkpointOf(writer.state, writer.identityContext), checkpointOf(next, writer.identityContext)) }
         : { ...common, ...(changes ? { changes } : {}), ...(snapshot && !isProjectSnapshot(snapshot) ? { task: snapshot } : {}), ...(event.patch ? { patch: event.patch } : {}) };
-    const bytes = byteLength(result);
+    // Only patches accumulate towards a checkpoint: field-level events stay cheap however many there are.
+    const patchBytes = result.patch ? byteLength(result.patch) : 0;
     const checkpointDue = !writer.state || MANDATORY_CHECKPOINTS.has(event.kind)
-        || writer.patchBytes + bytes >= writer.checkpointBytes;
+        || (patchBytes > 0 && writer.patchBytes + patchBytes >= writer.checkpointBytes);
     if (next && checkpointDue) {
         const checkpoint = checkpointOf(next, writer.identityContext);
         if (!(next as LooseBoardData).extensions?.project) checkpoint.project.derived = true;
@@ -55,7 +57,7 @@ export function eventToFile(event: TimelineEvent, writer: HistoryWriter): Rec {
         result = boardChange ? { ...common, checkpoint } : { ...result, checkpoint };
         writer.checkpointBytes = byteLength(checkpoint);
         writer.patchBytes = 0;
-    } else writer.patchBytes += bytes;
+    } else writer.patchBytes += patchBytes;
     writer.state = next;
     return result;
 }
@@ -109,9 +111,7 @@ export function convertLegacyProject(input: { project: LooseBoardData; events: r
     const data = serializeBoardDataFromObject({ ...raw, extensions: { ...extensions, timeline: { version: 1, baselineEventId: input.events[0]?.id || '', events: input.events } } }, { reuseTimeline: false });
     data.meta.updatedAt = raw.meta?.updatedAt as string || data.meta.updatedAt;
     delete data.extensions.timeline;
-    const lastNumber = input.events.reduce((highest, event) => Math.max(highest, (event.snapshot as { extensions?: { projectControl?: { lastNumber?: number } } } | undefined)?.extensions?.projectControl?.lastNumber || 0), data.extensions.projectControl?.lastNumber || 0);
-    if (data.extensions.projectControl) data.extensions.projectControl.lastNumber = lastNumber;
-    else if (lastNumber) data.extensions.projectControl = { version: 3, lastNumber, records: [] };
+    reserveHistoricalControlNumber(data, input.events);
     retainControlContext(data, raw, input.events);
     const archives = { ...input.archives };
     for (const [id, entries] of Object.entries(data.extensions.controlRecordHistory || {})) archives[`control:${id}`] = { history: [...new Map([...(archives[`control:${id}`]?.history || []), ...entries].map((entry) => [entry.id, entry])).values()] };
@@ -119,6 +119,8 @@ export function convertLegacyProject(input: { project: LooseBoardData; events: r
     const writer = createHistoryWriter(undefined, undefined, data);
     const events = input.events.map((event) => eventToFile(event, writer));
     const baselineEventId = input.events[0]?.id || '';
+    const lastAt = input.events.at(-1)?.at;
+    if (lastAt) events.push(eventToFile({ id: `project-converted-${input.projectHash}`, at: lastAt > data.meta.updatedAt ? lastAt : data.meta.updatedAt, kind: 'board.converted', entityType: 'board', entityId: 'board', summary: 'Project converted to format v1', snapshot: createBoardStateSnapshot(data) } as TimelineEvent, writer));
     data.extensions.projectStorage = { version: 1, baselineEventId, ...(projectStorage?.legacyFileName ? { legacyFileName: projectStorage.legacyFileName } : {}), convertedFromHash: input.projectHash, checkpointBytes: writer.checkpointBytes, patchBytes: writer.patchBytes };
     for (const record of data.extensions.projectControl?.records || []) record.history = [];
     for (const operation of data.extensions.projectTransfers?.operations || []) operation.history = [];

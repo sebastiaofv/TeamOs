@@ -1,3 +1,4 @@
+import { highestControlNumber, unconvertedTimeline } from './legacySequences';
 import type { Attachment, BoardData, LooseBoardData, TimelineChanges } from './types';
 import { isRecord, normalizeTimestamp, nowIso } from './util';
 import { cloneSerializable } from './serializable';
@@ -122,9 +123,8 @@ export function saveControlRecord(data: BoardData, input: ControlRecord, author:
     const extension = data.extensions.projectControl || emptyProjectControl();
     const before = extension.records.find((record) => record.id === input.id);
     if (input.id && !before) throw new ControlError('stale', 'Project Control record no longer exists.');
-    const timeline = data.extensions.timeline;
-    // Unconverted files may have restored a lower counter; project folders persist the only source.
-    const lastNumber = data.extensions.projectStorage ? extension.lastNumber : (timeline?.events || []).reduce((highest, event) => Math.max(highest, event.snapshot?.extensions?.projectControl?.lastNumber || 0), extension.lastNumber);
+        // Unconverted files may have restored a lower counter; project folders persist the only source.
+    const lastNumber = highestControlNumber(unconvertedTimeline(data)?.events || [], extension.lastNumber);
     const record = cloneSerializable(input);
     if (!before && !/^[A-Z]{1,4}$/.test(data.extensions.project?.acronym || '')) throw new ProjectDataError('acronym');
     record.id = before?.id || `${data.extensions.project!.acronym}-${CONTROL_TYPE_CODES[record.kind]}-${lastNumber + 1}`;

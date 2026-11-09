@@ -3,7 +3,7 @@
 // The only translation between project.json and the in-memory BoardData model.
 // Every function here is pure; file access stays in infrastructure/persistence.
 
-import type { Attachment, BoardData, BoardExtensions, ProjectData, ProjectMember, RoadmapExtension, SprintResults, Task, TaskRelation, Workflow, WorkflowTypes } from './types';
+import type { Attachment, BoardData, BoardExtensions, ProjectData, ProjectMember, RoadmapExtension, SprintClosure, SprintResults, Task, TaskRelation, Workflow, WorkflowTypes } from './types';
 import type { CONTROL_KINDS, ControlComment, ControlKind, ControlRecord } from './projectControl';
 import type { PermanentRelation, WorkitemReference } from './permanentRelations';
 import type { WorkitemComment } from './comments';
@@ -28,7 +28,7 @@ type ProjectFileWorkflow = {
     technical: Omit<Workflow, 'version'>; functional: Omit<Workflow, 'version'>; types?: Omit<WorkflowTypes, 'version'>;
     automation: { hierarchy?: Omit<HierarchyAutomations, 'version'>; transitions?: Omit<NonNullable<BoardExtensions['workitemAutomation']>, 'version'> };
 };
-type ProjectFileRoadmap = Pick<RoadmapExtension, 'milestones' | 'phases' | 'sprints'> & { sprintResults: Pick<SprintResults, 'credits' | 'closures'>; sprintParticipation: NonNullable<BoardExtensions['sprintParticipation']>['entries'] };
+type ProjectFileRoadmap = Pick<RoadmapExtension, 'milestones' | 'phases' | 'sprints'> & { sprintResults: { credits: SprintResults['credits']; closures: Rec[] }; sprintParticipation: NonNullable<BoardExtensions['sprintParticipation']>['entries'] };
 export type ProjectFileV1 = {
     meta: ProjectFileMeta; project: ProjectFileProject; workflow: ProjectFileWorkflow; workitems: Rec[]; relations: { edges: Rec[]; external: Record<string, Rec> };
     roadmap: ProjectFileRoadmap; dayPlanner: { blocks: unknown[] }; projectControl: { records: Rec[] }; comments: Rec[];
@@ -45,7 +45,17 @@ const CONTROL_FIELDS: Record<typeof CONTROL_KINDS[number], readonly string[]> = 
 };
 const ALL_CONTROL_FIELDS = Object.values(CONTROL_FIELDS).flat();
 const CONTROL_DATES = new Set(['decisionDate', 'dueDate', 'deliveredDate', 'acceptedDate', 'materializedDate']);
-const EPIC_EXCLUDED = ['parentId', 'effort', 'sprintId', 'pullRequests'];
+// Planning fields that depend on the workitem type. Text fields come from workitemFieldNames.
+const NOT_EPIC = ['story', 'task', 'bug'];
+const TYPE_RESTRICTED_FIELDS: Record<string, readonly string[]> = {
+    parentId: NOT_EPIC, effort: NOT_EPIC, sprintId: NOT_EPIC, pullRequests: NOT_EPIC, sprintHistory: NOT_EPIC, storyPoints: NOT_EPIC,
+    severity: ['bug'], acceptance: ['story', 'bug']
+};
+const applies = (field: string, type: string) => TYPE_RESTRICTED_FIELDS[field].includes(type);
+/** Only planning units carry points: a Task under a Story or Bug is estimated by its parent. */
+const carriesStoryPoints = (type: string, parentType: string | undefined) => applies('storyPoints', type) && !(type === 'task' && (parentType === 'story' || parentType === 'bug'));
+/** v1 has no "explicit without a value": such a row is simply unplanned. */
+const persistedPlanningMode = (mode: Task['phaseMode'], id: string) => (mode === 'explicit' && !id ? 'none' : mode || (id ? 'explicit' : 'none'));
 
 export const isProjectFileV1 = (raw: unknown): raw is ProjectFileV1 => isRecord(raw) && isRecord(raw.meta) && raw.meta.schemaVersion === PROJECT_FILE_SCHEMA_VERSION && Array.isArray(raw.workitems) && !('board' in raw);
 export const isLegacyProjectFile = (raw: unknown): boolean => isRecord(raw) && 'board' in raw && !('workitems' in raw);
@@ -71,7 +81,7 @@ const memberName = (index: MemberIndex, id: unknown) => {
 };
 const emptyToNull = (value: unknown) => (value === '' || value === undefined ? null : value);
 
-export function workitemToFile(task: Task, index: MemberIndex): Rec {
+export function workitemToFile(task: Task, index: MemberIndex, parentType?: string): Rec {
     const type = workitemType(task);
     const epic = type === 'epic';
     const fields = workitemFieldNames(type);
@@ -87,13 +97,13 @@ export function workitemToFile(task: Task, index: MemberIndex): Rec {
         tags: task.tags || [],
         priority: task.priority ?? null,
         ...(epic ? {} : { effort: task.effort ?? null }),
-        ...(task.storyPoints !== undefined ? { storyPoints: task.storyPoints } : {}),
+        ...(task.storyPoints !== undefined && carriesStoryPoints(type, parentType) ? { storyPoints: task.storyPoints } : {}),
         dueDate: emptyToNull(task.dueDate),
         ...(epic ? {} : { sprintId: emptyToNull(task.sprintId) }),
-        phaseMode: task.phaseMode || (task.phaseId ? 'explicit' : 'none'),
-        ...(task.phaseMode === 'explicit' || (!task.phaseMode && task.phaseId) ? { phaseId: task.phaseId } : {}),
-        milestoneMode: task.milestoneMode || (task.milestoneId ? 'explicit' : 'none'),
-        ...(task.milestoneMode === 'explicit' || (!task.milestoneMode && task.milestoneId) ? { milestoneId: task.milestoneId } : {}),
+        phaseMode: persistedPlanningMode(task.phaseMode, task.phaseId),
+        ...(persistedPlanningMode(task.phaseMode, task.phaseId) === 'explicit' ? { phaseId: task.phaseId } : {}),
+        milestoneMode: persistedPlanningMode(task.milestoneMode, task.milestoneId),
+        ...(persistedPlanningMode(task.milestoneMode, task.milestoneId) === 'explicit' ? { milestoneId: task.milestoneId } : {}),
         blocked: Boolean(task.blocked),
         ...(task.blocked ? { blockerReason: task.blockerReason || '' } : {}),
         archived: Boolean(task.archived),
@@ -101,9 +111,9 @@ export function workitemToFile(task: Task, index: MemberIndex): Rec {
         ...(epic ? {} : { pullRequests: task.pullRequests || [] }),
         attachments: task.attachments || [],
         ...Object.fromEntries(fields.map((field) => [field, task[field] ?? ''])),
-        ...(task.severity ? { severity: task.severity } : {}),
-        ...(task.acceptance ? { acceptance: task.acceptance } : {}),
-        ...(task.sprintHistory?.length ? { sprintHistory: task.sprintHistory } : {}),
+        ...(task.severity && applies('severity', type) ? { severity: task.severity } : {}),
+        ...(task.acceptance && applies('acceptance', type) ? { acceptance: task.acceptance } : {}),
+        ...(task.sprintHistory?.length && applies('sprintHistory', type) ? { sprintHistory: task.sprintHistory } : {}),
         createdAt: task.createdAt, updatedAt: task.updatedAt,
         ...(task.statusChangedAt ? { statusChangedAt: task.statusChangedAt } : {})
     };
@@ -133,7 +143,7 @@ export function assertWorkitemFile(value: Rec): void {
     if ('effort' in value && value.effort !== null && !['XS', 'S', 'M', 'L', 'XL'].includes(String(value.effort))) invalid();
     for (const field of WORKITEM_FIELDS) if (field in value && typeof value[field] !== 'string') invalid();
     for (const field of WORKITEM_FIELDS) if (field in value && !allowed.has(field)) fail(field);
-    if (type === 'epic') for (const field of EPIC_EXCLUDED) if (field in value) fail(field);
+    for (const field of Object.keys(TYPE_RESTRICTED_FIELDS)) if (field in value && !applies(field, type)) fail(field);
     if ('phaseId' in value && value.phaseMode !== 'explicit') fail('phaseId');
     if ('milestoneId' in value && value.milestoneMode !== 'explicit') fail('milestoneId');
     if ('blockerReason' in value && value.blocked !== true) fail('blockerReason');
@@ -262,20 +272,37 @@ export function relationsFromFile(relations: ProjectFileV1['relations'] | undefi
     };
 }
 
+/** Frozen rows keep the names of that moment, which must outlive renames and removed members; ids would only repeat them. */
+function frozenWorkitem<T extends { assigneeIds?: unknown; responsibleId?: unknown }>(task: T): Omit<T, 'assigneeIds' | 'responsibleId'> {
+    const { assigneeIds: _assigneeIds, responsibleId: _responsibleId, ...frozen } = task;
+    void _assigneeIds; void _responsibleId;
+    return frozen;
+}
+
+function closureToFile(closure: SprintClosure): Rec {
+    const { workflow, functionalWorkflow, workflowTypes, tasks, ...rest } = closure;
+    return { ...rest, tasks: tasks.map(frozenWorkitem), workflow: withoutVersion(workflow), functionalWorkflow: withoutVersion(functionalWorkflow), ...(workflowTypes ? { workflowTypes: withoutVersion(workflowTypes) } : {}) };
+}
+
+export function closureFromFile(value: Rec): SprintClosure {
+    return { ...value, workflow: { version: 2, ...(value.workflow as Rec) }, functionalWorkflow: { version: 2, ...(value.functionalWorkflow as Rec) }, ...(value.workflowTypes ? { workflowTypes: { version: 1, ...(value.workflowTypes as Rec) } } : {}) } as unknown as SprintClosure;
+}
+
 function roadmapToFile(extensions: BoardExtensions): ProjectFileRoadmap {
     const roadmap = extensions.roadmap;
     const results = extensions.sprintResults;
     const closed = new Set(results?.closures.map((closure) => closure.sprintId));
     return {
         milestones: roadmap?.milestones || [], phases: roadmap?.phases || [], sprints: roadmap?.sprints || [],
-        sprintResults: { credits: results?.credits || [], closures: results?.closures || [] },
-        sprintParticipation: (extensions.sprintParticipation?.entries || []).filter((entry) => !closed.has(entry.sprintId))
+        sprintResults: { credits: results?.credits || [], closures: (results?.closures || []).map(closureToFile) },
+        sprintParticipation: (extensions.sprintParticipation?.entries || []).filter((entry) => !closed.has(entry.sprintId)).map((entry) => ({ ...entry, task: frozenWorkitem(entry.task) })) as ProjectFileRoadmap['sprintParticipation']
     };
 }
 
 export function roadmapBlocksFromFile(roadmap: Rec): Pick<BoardExtensions, 'roadmap' | 'sprintResults' | 'sprintParticipation'> {
     const lists = { milestones: (roadmap.milestones || []) as RoadmapExtension['milestones'], phases: (roadmap.phases || []) as RoadmapExtension['phases'], sprints: (roadmap.sprints || []) as RoadmapExtension['sprints'] };
-    const results = (roadmap.sprintResults || {}) as Partial<SprintResults>;
+    const stored = (roadmap.sprintResults || {}) as { credits?: SprintResults['credits']; closures?: Rec[] };
+    const results = { credits: stored.credits, closures: stored.closures?.map(closureFromFile) };
     const participation = (roadmap.sprintParticipation || []) as NonNullable<BoardExtensions['sprintParticipation']>['entries'];
     return {
         ...(lists.milestones.length || lists.phases.length || lists.sprints.length ? { roadmap: { version: ROADMAP_VERSION, ...lists } } : {}),
@@ -317,7 +344,8 @@ export function toProjectFile(data: BoardData): ProjectFileV1 {
     const project = extensions.project || getProjectData(data);
     const index = memberIndexFor(project);
     const technical = getWorkflow(data);
-    const workitems = data.board.tasks.map((task) => workitemToFile(task, index));
+    const typeOf = new Map(data.board.tasks.map((task) => [task.id, workitemType(task)]));
+    const workitems = data.board.tasks.map((task) => workitemToFile(task, index, task.parentId == null ? undefined : typeOf.get(task.parentId)));
     const records = (extensions.projectControl?.records || []).map((record) => controlToFile(record, index));
     const controlComments = new Map((extensions.controlComments || []).map((entry) => [`${entry.recordId}:${entry.comment.id}`, entry]));
     const activeControlComments = new Set((extensions.projectControl?.records || []).flatMap((record) => record.comments.map((comment) => `${record.id}:${comment.id}`)));
@@ -375,6 +403,8 @@ export function fromProjectFile(file: ProjectFileV1 | ProjectCheckpoint): BoardD
     if (isRecord(file.meta) && file.meta.schemaVersion !== PROJECT_FILE_SCHEMA_VERSION) throw new Error('Invalid project.json: unsupported schemaVersion.');
     const { project, title } = projectBlockFromFile(file.project);
     const index = memberIndexFor(project);
+    const fileTypes = new Map(file.workitems.map((item) => [item.id, String(item.type)]));
+    for (const item of file.workitems) if ('storyPoints' in item && !carriesStoryPoints(String(item.type), fileTypes.get(item.parentId))) throw new Error(`Invalid project.json: workitem ${String(item.id)} is not a planning unit and cannot have storyPoints.`);
     const tasks = resolveInheritedPlanning(file.workitems.map((item) => workitemFromFile(item, index)));
     const workflow = workflowBlockFromFile(file.workflow);
     const comments = file.comments || [];

@@ -1,3 +1,4 @@
+import { unconvertedTimeline } from '@/domain/legacySequences';
 import type { BoardData, RoadmapItem, SprintCatalog, SprintIdentity } from '@/domain/types';
 import { hasExactKeys, isRecord, normalizeTimestamp } from '@/domain/util';
 
@@ -66,7 +67,7 @@ export function normalizeSprintCatalog(value: unknown, sprints: readonly Roadmap
 }
 
 export function getSprintCatalog(data: BoardData): SprintCatalog {
-    return normalizeSprintCatalog(data.extensions.sprintCatalog, data.extensions.roadmap?.sprints || [], data.extensions.projectStorage ? undefined : data.extensions.timeline) || { version: 1, lastNumber: 0, entries: [] };
+    return normalizeSprintCatalog(data.extensions.sprintCatalog, data.extensions.roadmap?.sprints || [], unconvertedTimeline(data)) || { version: 1, lastNumber: 0, entries: [] };
 }
 
 /** Allocate before inserting the new sprint, so legacy migration cannot consume its number. */

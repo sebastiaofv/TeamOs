@@ -5,7 +5,7 @@ import type { BoardData, BoardExtensions, LooseBoardData, RoadmapExtension, Task
 import { getProjectData } from './projectData';
 import { ROADMAP_VERSION, DAY_PLANNER_VERSION } from './constants';
 import type { ProjectCheckpoint, ProjectFileV1 } from './projectFormat';
-import { controlFromFile, KNOWN_PROJECT_EXTENSIONS, memberIndexFor, projectBlockFromFile, relationsFromFile, resolveInheritedPlanning, workflowBlockFromFile, workitemFromFile } from './projectFormat';
+import { closureFromFile, controlFromFile, KNOWN_PROJECT_EXTENSIONS, memberIndexFor, projectBlockFromFile, relationsFromFile, resolveInheritedPlanning, workflowBlockFromFile, workitemFromFile } from './projectFormat';
 import { isRecord } from './util';
 
 type Rec = Record<string, unknown>;
@@ -140,7 +140,7 @@ export function applyProjectPatch<T extends object>(input: T, ops: readonly Proj
             if (op.at === 'workitems' || op.at === 'projectControl.records') {
                 members ||= memberIndexFor(getProjectData(state as LooseBoardData));
                 value = op.at === 'workitems' ? workitemFromFile(value, members) as unknown as Rec : controlFromFile(value, members) as unknown as Rec;
-            }
+            } else if (op.at === 'roadmap.sprintResults.closures') value = closureFromFile(value) as unknown as Rec;
             rows.set(op.key, value);
         }
     }
