@@ -38,7 +38,7 @@ export async function writeJsonToFileHandle(fileHandle: BoardFileHandle, data: u
 
 export const BoardRepository = {
     serialize(boardData: unknown): BoardData {
-        return serializeBoardDataFromObject(boardData);
+        return serializeBoardDataFromObject(boardData, { reuseTimeline: true });
     },
     validate(boardData: unknown): void {
         validateBoardData(boardData);

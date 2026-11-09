@@ -162,11 +162,13 @@ export function buildTaskDetailViewModel(source: TaskDetailSource, taskId: unkno
     const task = normalizeTask(source.task, { workflow: getWorkflow(source.boardData, source.task) });
     const statusMap: Record<string, string> = Object.fromEntries(getWorkflow(source.boardData, task).states.map((state) => [state.id, state.name]));
     const roadmap = getRoadmapExtension(source.boardData);
+    let history: ReturnType<typeof projectTaskHistory> | undefined;
     return {
         readOnly,
         conversationContext: { boardId: source.boardRecord.id, task: source.task, readOnly, eventIndex: historyEventIndex },
         pullRequestContext: { boardId: source.boardRecord.id, taskId: Number(taskId), links: parsePullRequestLinks(task.pullRequests) },
-        history: projectTaskHistory(source.boardRecord.data, source.task, historyEventIndex),
+        historyEventIndex,
+        get history() { return history ||= projectTaskHistory(source.boardRecord.data, source.task, historyEventIndex); },
         historyKey: `${source.boardRecord.id}:${taskId}:${historyEventIndex ?? 'current'}`,
         boardId: source.boardRecord.id,
         taskId: task.id,

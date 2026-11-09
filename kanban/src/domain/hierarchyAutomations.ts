@@ -57,8 +57,9 @@ export function applyHierarchyAutomations(data: BoardData, previous: BoardData, 
         return !old || old.status !== task.status || old.parentId !== task.parentId;
     }).map((task) => task.id));
     const structural = new Set<number>();
+    const nextTasks = new Map(data.board.tasks.map((task) => [task.id, task]));
     for (const old of previous.board.tasks) {
-        const next = data.board.tasks.find((task) => task.id === old.id);
+        const next = nextTasks.get(old.id);
         if (!next || next.parentId !== old.parentId) { if (old.parentId != null) structural.add(old.parentId); }
     }
     for (const task of data.board.tasks) if (!oldTasks.has(task.id) || oldTasks.get(task.id)?.parentId !== task.parentId) {

@@ -3,7 +3,7 @@ import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { PortfolioQueryControls } from '@/features/portfolio/shell/PortfolioQueryControls';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
-import { useState, type ReactNode } from 'react';
+import { memo, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
     DndContext,
@@ -27,7 +27,7 @@ import type { PortfolioRow } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
-import { PortfolioTaskCard, type TaskCardState } from '@/features/portfolio/task/TaskCard';
+import { PortfolioTaskCard, sameTaskCardState, type TaskCardState } from '@/features/portfolio/task/TaskCard';
 import { useI18n, translateCurrent } from '@/shared/i18n';
 import { buildPortfolioBoardView } from '@/features/portfolio/queries/portfolioBoardView';
 
@@ -58,7 +58,7 @@ const BOARD_DRAG_ANNOUNCEMENTS: Announcements = {
     onDragCancel: ({ active }) => translateCurrent('drag.movingCancelled', { title: draggedTitle(active) })
 };
 
-function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCardState }) {
+const DraggableTaskCard = memo(function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCardState }) {
     const canDrag = Boolean(item.canMutate) && !item.historical;
     const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
         id: cardDragId(item),
@@ -72,7 +72,7 @@ function DraggableTaskCard({ item, state }: { item: PortfolioRow; state: TaskCar
         disabled: !canDrag
     });
     return <PortfolioTaskCard item={item} state={state} drag={{ setNodeRef, listeners, attributes, isDragging }} />;
-}
+}, (before, after) => before.item === after.item && sameTaskCardState(before.state, after.state, after.item));
 
 // Highlights only when the dragged card would change status here.
 function DroppableColumnBody({ column, children }: { column: BoardColumn; children: ReactNode }) {
@@ -112,7 +112,9 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
     const selectedBoard = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
-    const { columns, buckets } = buildPortfolioBoardView(state, mode, { activeSprintsOnly, today });
+    const { portfolioBoards, selectedPortfolioBoardId, portfolioVisibleRows, portfolioFilters, portfolioTimelineSelection } = state;
+    const { columns, buckets } = useMemo(() => buildPortfolioBoardView({ portfolioBoards, selectedPortfolioBoardId, portfolioVisibleRows, portfolioFilters, portfolioTimelineSelection }, mode, { activeSprintsOnly, today }),
+        [portfolioBoards, selectedPortfolioBoardId, portfolioVisibleRows, portfolioFilters, portfolioTimelineSelection, mode, activeSprintsOnly, today]);
     const layout = useBoardColumnLayout(columns.length);
     const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 

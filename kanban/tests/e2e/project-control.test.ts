@@ -286,7 +286,9 @@ test('creation offers all three item types with project IDs, singular badges and
         await expect(dialog(page).getByLabel('Title', { exact: true })).toHaveValue(`New ${label}`);
         await dialog(page).getByRole('button', { name: 'Save', exact: true }).click();
         await expect(dialog(page)).toHaveCount(0);
-        await waitForBoardWrites(page);
+        // Closing applies the local draft before the asynchronous disk commit.
+        // Wait for this record, rather than an earlier iteration's write.
+        await expect.poll(async () => (await readSavedBoard(page, 'control')).extensions.projectControl.records.some((record: { title: string }) => record.title === `New ${label}`)).toBe(true);
         const saved = await readSavedBoard(page, 'control');
         const created = saved.extensions.projectControl.records.find((record: any) => record.title === `New ${label}`);
         expect(created.id).toBe(`ATL-${code}-${number}`);

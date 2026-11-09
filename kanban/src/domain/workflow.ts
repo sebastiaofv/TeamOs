@@ -53,10 +53,27 @@ export function legacyWorkflow(columns?: unknown): Workflow {
     return workflow;
 }
 
+const parsedWorkflows = new Map<string, string>();
+let workflowReadCache: { configured: Map<unknown, Workflow>; legacy: Map<unknown, Workflow> } | undefined;
+
+/** Synchronous read-only projections can resolve each workflow once. The cache
+ * ends before control returns to an editor, so in-place draft edits stay fresh. */
+export function withWorkflowReadCache<T>(read: () => T): T {
+    if (workflowReadCache) return read();
+    workflowReadCache = { configured: new Map(), legacy: new Map() };
+    try { return read(); }
+    finally { workflowReadCache = undefined; }
+}
+
 /** v1's shared Not started category is split by stable Backlog ID; IDs, labels, order and transitions remain unchanged. */
 export function parseWorkflow(value: unknown): Workflow {
     if (!isRecord(value)) throw new Error('Invalid workflow structure.');
-    const input = cloneSerializable(value);
+    // Key by content: settings drafts can edit the same object in place. Return
+    // a detached value so editing a returned workflow cannot corrupt the cache.
+    const key = JSON.stringify(value);
+    const cached = parsedWorkflows.get(key);
+    if (cached) return JSON.parse(cached);
+    const input: Record<string, unknown> = JSON.parse(key);
     if (input.version === 1 && Array.isArray(input.states) && isRecord(input.references)) {
         input.version = 2;
         input.states = input.states.map((state) => ({ ...state, category: state.category === 'not-started' ? state.id === 'backlog' ? 'backlog' : 'to-do' : state.category }));
@@ -65,6 +82,8 @@ export function parseWorkflow(value: unknown): Workflow {
         input.references = references;
     }
     assertWorkflow(input);
+    if (parsedWorkflows.size >= 64) parsedWorkflows.delete(parsedWorkflows.keys().next().value!);
+    parsedWorkflows.set(key, JSON.stringify(input));
     return input;
 }
 
@@ -117,8 +136,16 @@ export function applyWorkflowTypes(data: BoardData, functional: readonly Workite
 
 /** Older projects share their existing process until either workflow is edited. */
 export function getWorkflow(data?: LooseBoardData | null, subject?: WorkflowSubject | null): Workflow {
-    if (workflowKind(subject, data) === 'functional' && data?.extensions?.functionalWorkflow !== undefined) return parseWorkflow(data.extensions.functionalWorkflow);
-    return data?.extensions?.workflow ? parseWorkflow(data.extensions.workflow) : legacyWorkflow(data?.board?.columns);
+    const functional = workflowKind(subject, data) === 'functional' && data?.extensions?.functionalWorkflow !== undefined;
+    const value = functional ? data?.extensions?.functionalWorkflow : data?.extensions?.workflow;
+    const configured = functional || Boolean(value);
+    const key = configured ? value : data?.board?.columns;
+    const cache = configured ? workflowReadCache?.configured : workflowReadCache?.legacy;
+    const cached = cache?.get(key);
+    if (cached) return cached;
+    const workflow = configured ? parseWorkflow(value) : legacyWorkflow(data?.board?.columns);
+    cache?.set(key, workflow);
+    return workflow;
 }
 
 export function allWorkflowStates(data?: LooseBoardData | null) {

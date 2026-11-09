@@ -51,7 +51,7 @@ export function TaskDetailDialog() {
     // Disk saves can replace embedded attachments with references, and lazy
     // history hydration changes the projection without a user mutation.
     const vm = useMemo(() => {
-        if (!initialVm || initialVm.history?.historicalIndex !== undefined) return initialVm;
+        if (!initialVm || initialVm.historyEventIndex !== undefined) return initialVm;
         const boardRecord = boards.find((board) => board.id === initialVm.boardId);
         const taskIndex = boardRecord?.data.board.tasks.findIndex((task) => task.id === initialVm.taskId) ?? -1;
         if (!boardRecord || taskIndex < 0 || boardRecord.data === initialVm.sourceBoardData) return initialVm;
@@ -63,7 +63,7 @@ export function TaskDetailDialog() {
 
     useLayoutEffect(() => {
         if (bodyRef.current) bodyRef.current.scrollTop = 0;
-    }, [vm?.boardId, vm?.taskId, vm?.history?.historicalIndex]);
+    }, [vm?.boardId, vm?.taskId, vm?.historyEventIndex]);
 
     return (
         <Dialog.Root open={open} onOpenChange={(next) => { if (!next) closeTaskDetail(); }}>
@@ -121,7 +121,7 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
         event.preventDefault(); setTab(visibleTabs[next].id);
         (event.currentTarget.parentElement?.querySelectorAll('button')[next] as HTMLButtonElement)?.focus();
     }
-    return <>{historyLoad.error && <p role="alert">{historyLoad.error} <button type="button" className="btn" onClick={historyLoad.retry}>{t('common.retry')}</button></p>}<div className="detail-tabs" role="tablist" aria-label={t('history.navigation')}>
+    return <>{historyLoad.loading && <p role="status" className="save-indicator"><span className="save-spinner" aria-hidden="true" />{t('history.loading')}</p>}{historyLoad.error && <p role="alert">{historyLoad.error} <button type="button" className="btn" onClick={historyLoad.retry}>{t('common.retry')}</button></p>}<div className="detail-tabs" role="tablist" aria-label={t('history.navigation')}>
         {visibleTabs.map((value, index) => <button key={value.id} id={`task-tab-${value.id}`} role="tab" type="button" aria-selected={tab === value.id} aria-controls={`task-panel-${value.id}`} tabIndex={tab === value.id ? 0 : -1} onKeyDown={(event) => navigate(event, index)} onClick={() => setTab(value.id)}>{t(value.label)}{value.id === 'relations' && relationCount > 0 && <span className="detail-tab-count" aria-hidden="true">{relationCount}</span>}</button>)}
     </div>
         <div role="tabpanel" id="task-panel-details" aria-labelledby="task-tab-details" tabIndex={0} hidden={tab !== 'details'}>
@@ -144,7 +144,7 @@ function TaskDetailContent({ vm }: { vm: TaskDetailViewModel }) {
             {tab === 'comments' && !historyLoad.loading && !historyLoad.error && vm.conversationContext && <TaskConversation key={`${vm.conversationContext.boardId}:${vm.conversationContext.task.id}:${vm.conversationContext.eventIndex ?? 'current'}`} context={vm.conversationContext} />}
         </div>
         <div role="tabpanel" id="task-panel-attachments" aria-labelledby="task-tab-attachments" tabIndex={0} hidden={tab !== 'attachments'}>
-            {tab === 'attachments' && <TaskAttachments key={`${vm.boardId}:${vm.taskId}:${vm.history?.historicalIndex ?? 'current'}`} vm={vm} />}
+            {tab === 'attachments' && <TaskAttachments key={`${vm.boardId}:${vm.taskId}:${vm.historyEventIndex ?? 'current'}`} vm={vm} />}
         </div>
         <div role="tabpanel" id="task-panel-pullRequests" aria-labelledby="task-tab-pullRequests" tabIndex={0} hidden={tab !== 'pullRequests'}>
             {vm.pullRequestContext && <TaskPullRequestLinks key={`${vm.boardId}:${vm.taskId}`} {...vm.pullRequestContext} readOnly={vm.readOnly} />}

@@ -3,7 +3,7 @@ import { DateInput } from '@/shared/ui/DateInput';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardData, RoadmapItem, Task } from '@/domain/types';
-import { dashboardHistory, dashboardMetrics, dashboardSprints, dashboardSprintScopeChanges } from '@/domain/dashboard';
+import { dashboardHistorySummary, dashboardMetrics, dashboardSprints, dashboardSprintScopeChanges } from '@/domain/dashboard';
 import { DASHBOARD_SECTIONS, dashboardSnapshot, type DashboardSection } from '@/domain/dashboardOverview';
 import { DashboardOverview } from './DashboardOverview';
 import { getWorkflow, workflowKind } from '@/domain/workflow';
@@ -96,7 +96,7 @@ function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string })
 
 function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const state = useAppStore(useShallow((value) => ({ portfolioBoards: value.portfolioBoards, selectedPortfolioBoardId: value.selectedPortfolioBoardId, portfolioTimelineSelection: value.portfolioTimelineSelection })));
-    const timeline = useMemo(() => getSelectedPortfolioTimelineView(state), [state]);
+    const timeline = useMemo(() => hidden ? null : getSelectedPortfolioTimelineView(state), [hidden, state]);
     const board = timeline?.boardRecord;
     const historyUnavailable = timeline?.isPreview && !timeline.timeline?.events[0]?.snapshot?.board;
     const data = useMemo(() => {
@@ -122,7 +122,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const snapshot = useMemo(() => !hidden && data && !invalidPeriod ? dashboardSnapshot(data, end, referenceDate) : null, [hidden, data, end, referenceDate, invalidPeriod]);
     const displayData = snapshot?.data;
     const activePhase = displayData?.extensions.roadmap?.phases.some((phase) => phase.id === phaseId) ? phaseId : '';
-    const observations = useMemo(() => !hidden && data && !invalidPeriod ? dashboardHistory(data, activePhase, from, end) : [], [hidden, data, activePhase, from, end, invalidPeriod]);
+    const observations = useMemo(() => !hidden && data && !invalidPeriod ? dashboardHistorySummary(data, activePhase, from, end) : [], [hidden, data, activePhase, from, end, invalidPeriod]);
     // Changing source state invalidates a drilldown so old rows cannot masquerade as current data.
     const source = useRef(displayData);
     useEffect(() => { if (source.current !== displayData) { source.current = displayData; setDrill(null); } }, [displayData]);
@@ -158,7 +158,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
         <Drilldown drill={displayData ? drill : null} boardId={boardId} />
         <section className="dashboard-panel"><h3>{t('dashboard.history')}</h3><p className="dashboard-note">{t('dashboard.historyNote')}</p>
             {invalidPeriod ? null : !observations.length ? <p>{t('dashboard.noHistory')}</p> : <div className="dashboard-scroll dashboard-history"><table className="dashboard-table"><thead><tr><th>{t('dashboard.observation')}</th><th>{t('dashboard.completed')}</th><th>{t('dashboard.open')}</th><th>{t('dashboard.progress')}</th></tr></thead><tbody>
-                {observations.map((point) => <tr key={point.index}><td><button className="dashboard-link" type="button" onClick={() => actions.setPortfolioTimelineSelection(boardId, point.index)}>{point.at}</button></td><td>{point.metrics.completed.length}</td><td>{point.metrics.open.length}</td><td>{point.metrics.progress.percent === null ? t('dashboard.na') : `${Math.round(point.metrics.progress.percent)}%`}</td></tr>)}
+                {observations.map((point) => <tr key={point.index}><td><button className="dashboard-link" type="button" onClick={() => actions.setPortfolioTimelineSelection(boardId, point.index)}>{point.at}</button></td><td>{point.completed}</td><td>{point.open}</td><td>{point.percent === null ? t('dashboard.na') : `${Math.round(point.percent)}%`}</td></tr>)}
             </tbody></table></div>}
         </section>
     </>;

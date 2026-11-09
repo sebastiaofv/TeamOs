@@ -140,6 +140,7 @@ export type TaskDetailViewModel = {
     conversationContext?: { boardId: string; task: Task; readOnly: boolean; eventIndex?: number };
     pullRequestContext?: { boardId: string; taskId: number; links: string[] };
     history?: TaskHistoryProjection;
+    historyEventIndex?: number;
     historyKey?: string;
     readOnly: boolean;
     boardId: string;

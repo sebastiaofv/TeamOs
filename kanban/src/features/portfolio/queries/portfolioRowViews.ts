@@ -3,7 +3,7 @@ import type { BoardRecord, PortfolioRow } from '@/features/portfolio/types';
 import type { AppState } from '@/features/portfolio/state/slices';
 import { normalizeTask } from '@/domain/task';
 import { createBoardStateSnapshot } from '@/domain/serialize';
-import { getWorkflow } from '@/domain/workflow';
+import { getWorkflow, withWorkflowReadCache } from '@/domain/workflow';
 import { getDependencyBlockedTaskIds } from '@/domain/taskRelations';
 
 // Selectors accept any slice of the store: components pass the fields they
@@ -15,22 +15,32 @@ export function getBoardRecord(state: SelectorState, boardId: string | null | un
         .find((board) => board?.id === boardId) || null;
 }
 
-export function buildPortfolioTasks(state: SelectorState): PortfolioRow[] {
-    return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : []).flatMap((board, boardIndex) => {
-        if (!board?.data?.board) return [];
-        const dependencyBlocked = new Set([...getDependencyBlockedTaskIds(board.data), ...permanentBlockedIds(board.data, state?.portfolioBoards || [], state?.unloadedRelationSources?.flatMap((entry) => entry.relations))]);
-        return (board.data.board.tasks || []).map((task, taskIndex) => ({
-            boardIndex,
-            boardId: board.id,
-            taskId: task.id,
-            taskIndex,
-            boardTitle: board.title,
-            boardFileName: board.fileName,
-            columnTitle: getWorkflow(board.data, task).states.find((state) => state.id === task.status)?.name || task.status,
-            canMutate: Boolean(board.handle),
-            boardData: board.data,
-            task: { ...normalizeTask(task, { workflow: getWorkflow(board.data, task) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
-        }));
+export function buildPortfolioTasks(state: SelectorState, previousRows: readonly PortfolioRow[] = []): PortfolioRow[] {
+    return withWorkflowReadCache(() => {
+        const previous = new Map(previousRows.map((row) => [`${row.boardId}:${row.taskId}`, row]));
+        return (Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : []).flatMap((board, boardIndex) => {
+            if (!board?.data?.board) return [];
+            const dependencyBlocked = new Set([...getDependencyBlockedTaskIds(board.data), ...permanentBlockedIds(board.data, state?.portfolioBoards || [], state?.unloadedRelationSources?.flatMap((entry) => entry.relations))]);
+            return (board.data.board.tasks || []).map((task, taskIndex) => {
+                const old = previous.get(`${board.id}:${task.id}`);
+                const blocked = Boolean(task.blocked) || dependencyBlocked.has(task.id);
+                if (old && old.boardData === board.data && old.boardIndex === boardIndex && old.taskIndex === taskIndex
+                    && old.boardTitle === board.title && old.boardFileName === board.fileName && old.canMutate === Boolean(board.handle)
+                    && old.task.blocked === blocked) return old;
+                return {
+                    boardIndex,
+                    boardId: board.id,
+                    taskId: task.id,
+                    taskIndex,
+                    boardTitle: board.title,
+                    boardFileName: board.fileName,
+                    columnTitle: getWorkflow(board.data, task).states.find((state) => state.id === task.status)?.name || task.status,
+                    canMutate: Boolean(board.handle),
+                    boardData: board.data,
+                    task: { ...normalizeTask(task, { workflow: getWorkflow(board.data, task) }), blocked }
+                };
+            });
+        });
     });
 }
 
@@ -40,22 +50,24 @@ export function buildPortfolioRowsFromBoardData(
     boardData: unknown,
     options: { canMutate?: boolean; historical?: boolean } = {}
 ): PortfolioRow[] {
-    if (!boardRecord || !boardData) return [];
-    const normalizedBoard = createBoardStateSnapshot(boardData);
-    const canMutate = Boolean(boardRecord.handle) && options.canMutate !== false;
-    const historical = Boolean(options.historical);
-    const dependencyBlocked = new Set([...getDependencyBlockedTaskIds(normalizedBoard), ...permanentBlockedIds(normalizedBoard, options.historical ? [{ ...boardRecord, data: normalizedBoard }] : state?.portfolioBoards || [], options.historical ? [] : state?.unloadedRelationSources?.flatMap((entry) => entry.relations))]);
-    return (normalizedBoard.board.tasks || []).map((task, taskIndex) => ({
-        boardIndex: (state?.portfolioBoards || []).findIndex((board) => board.id === boardRecord.id),
-        boardId: boardRecord.id,
-        taskId: task.id,
-        taskIndex,
-        boardTitle: boardRecord.title,
-        boardFileName: boardRecord.fileName,
-        columnTitle: getWorkflow(normalizedBoard, task).states.find((state) => state.id === task.status)?.name || task.status,
-        canMutate,
-        historical,
-        boardData: normalizedBoard,
-        task: { ...normalizeTask(task, { workflow: getWorkflow(normalizedBoard, task) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
-    }));
+    return withWorkflowReadCache(() => {
+        if (!boardRecord || !boardData) return [];
+        const normalizedBoard = createBoardStateSnapshot(boardData);
+        const canMutate = Boolean(boardRecord.handle) && options.canMutate !== false;
+        const historical = Boolean(options.historical);
+        const dependencyBlocked = new Set([...getDependencyBlockedTaskIds(normalizedBoard), ...permanentBlockedIds(normalizedBoard, options.historical ? [{ ...boardRecord, data: normalizedBoard }] : state?.portfolioBoards || [], options.historical ? [] : state?.unloadedRelationSources?.flatMap((entry) => entry.relations))]);
+        return (normalizedBoard.board.tasks || []).map((task, taskIndex) => ({
+            boardIndex: (state?.portfolioBoards || []).findIndex((board) => board.id === boardRecord.id),
+            boardId: boardRecord.id,
+            taskId: task.id,
+            taskIndex,
+            boardTitle: boardRecord.title,
+            boardFileName: boardRecord.fileName,
+            columnTitle: getWorkflow(normalizedBoard, task).states.find((state) => state.id === task.status)?.name || task.status,
+            canMutate,
+            historical,
+            boardData: normalizedBoard,
+            task: { ...normalizeTask(task, { workflow: getWorkflow(normalizedBoard, task) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
+        }));
+    });
 }
