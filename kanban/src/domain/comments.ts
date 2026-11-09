@@ -57,13 +57,14 @@ export function validateCommentInput(input: CommentInput): void {
     input.images.forEach((image) => { validateCommentImage(image); if (ids.has(image.id)) throw new CommentError('record'); ids.add(image.id); });
 }
 
-export function parseConversations(value: unknown, sequence?: readonly TimelineEvent[]): Conversations | undefined {
+/** null defers event associations until the folder history has been read. */
+export function parseConversations(value: unknown, sequence?: readonly TimelineEvent[] | null): Conversations | undefined {
     if (value === undefined) {
         if (sequence?.some((event) => ['task.comment.published', 'task.comment.referenced'].includes(event.kind))) throw new CommentError('record');
         return undefined;
     }
     if (!hasExactKeys(value, ['version', 'entries']) || value.version !== 1 || !Array.isArray(value.entries)) throw new CommentError('record');
-    if (value.entries.length && !sequence) throw new CommentError('record');
+    if (value.entries.length && sequence === undefined) throw new CommentError('record');
     const ids = new Set<string>(); const imageIds = new Set<string>();
     const eventIndices = new Map(sequence?.map((event, index) => [event.id, index]));
     const eventCounts = new Map<string, number>();

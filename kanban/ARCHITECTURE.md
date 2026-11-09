@@ -30,6 +30,8 @@ result. Infrastructure owns file and browser details behind small interfaces.
 
 - `domain/projectMerge.ts` merges normalized base/local/external versions by permanent entity identity and field; `projectMergeIntegrity.ts` isolates connected entities when validation fails. `infrastructure/persistence/projectFiles.ts` is the shared conditional-save path for edits and watcher checks, with Web Locks, exact written baselines, post-write verification and IndexedDB recovery. `meta.revision` is a save counter; raw text hashes detect changes. `board.reconciled` checkpoints preserve the accepted state in replay.
 
+- `infrastructure/persistence/projectDirectory.ts` owns folder validation, content-addressed attachment files, and the history journal. `history.json` contains a base timeline, record-history archives and append-only staged/committed transactions. `project.json` stores only current data and references, including the last history transaction identity. Appending uses `createWritable({ keepExistingData: true })`, `seek` and `truncate`; ordinary event writes read only the closing bytes, while explicit history consumers load and validate the full journal. A failed current-state write leaves its staged events uncommitted; a successful current-state hash can recover a missing commit marker. `projectFiles.ts` maintains the same disk-hash baselines, save queue, reconciliation and recovery for both formats.
+
 ## Folder map
 
 ```text

@@ -1,3 +1,4 @@
+import { activateDirectoryProject } from '@/infrastructure/persistence/projectDirectory';
 import { assertUniqueProjectAcronym, projectNameKey } from '@/domain/projectData';
 // Store-backed portfolio controls and project-session actions.
 //
@@ -58,6 +59,7 @@ async function handlesReferToSameFile(left: BoardFileHandle | null | undefined, 
 }
 
 async function recordsReferToSameFile(left: BoardRecord, right: BoardRecord): Promise<boolean> {
+    if (left.data.extensions.project?.id && left.data.extensions.project.id === right.data.extensions.project?.id) return true;
     if (left.sourceKey && right.sourceKey && left.sourceKey === right.sourceKey) return true;
     return handlesReferToSameFile(left.handle, right.handle);
 }
@@ -139,6 +141,7 @@ export function createPortfolioControlActions({
                     continue;
                 }
                 if (record.data.extensions.project) assertUniqueProjectAcronym(record.data.extensions.project, [...candidates, ...additions].flatMap((candidate) => candidate.data.extensions.project ? [candidate.data.extensions.project] : []));
+                activateDirectoryProject(record.handle);
                 additions.push(record);
             }
             if (additions.length === 0) {

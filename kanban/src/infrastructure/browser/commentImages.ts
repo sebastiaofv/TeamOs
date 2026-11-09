@@ -1,3 +1,4 @@
+import { parseAttachmentReference } from '@/domain/attachmentReferences';
 import type { Attachment, LooseBoardData } from '@/domain/types';
 import { CommentError, decodeCommentImage, imageMimeFromBytes, validateCommentImage } from '@/domain/commentImages';
 import { getComments } from '@/domain/comments';
@@ -10,7 +11,7 @@ const decoded = new Set<string>();
 let cachedCharacters = 0;
 export async function validateCommentImagePixels(image: Attachment): Promise<void> {
     validateCommentImage(image);
-    if (decoded.has(image.dataUrl)) return;
+    if (parseAttachmentReference(image.dataUrl) || decoded.has(image.dataUrl)) return;
     const { bytes, mime } = decodeCommentImage(image.dataUrl);
     if (typeof createImageBitmap === 'function') {
         try {
