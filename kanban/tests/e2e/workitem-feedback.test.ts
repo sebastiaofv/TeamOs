@@ -3,11 +3,17 @@ import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, portfolioCard, answerAppMessage, toggleTheme, openFiltersPanel, selectTableView } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
-async function seed(page: Page, writable = true) {
+async function seed(page: Page, writable = true, testingWorkflow = false) {
+    const extensions = structuredClone(fixture.extensions);
+    if (testingWorkflow) {
+        extensions.functionalWorkflow = structuredClone(extensions.workflow);
+        for (const state of extensions.functionalWorkflow.states) if (['ready-to-test', 'testing'].includes(state.id)) state.category = 'testing';
+        extensions.functionalWorkflow.references.testing = 'ready-to-test';
+    }
     await page.clock.setFixedTime('2026-10-28T12:00:00Z');
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'feedback', title: fixture.board.settings.title, hasHandle: writable,
-        tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'feedback' });
+        tasks: fixture.board.tasks, extensions }], { selectedBoardId: 'feedback' });
 }
 async function story(page: Page) {
     await page.getByRole('button', { name: 'Functional', exact: true }).click();
@@ -57,17 +63,19 @@ test('saving opens child details and closing or cancelling returns to its parent
 });
 
 test('detail properties and allowed status transitions save immediately with history, while content requires Edit', async ({ page }) => {
-    await seed(page);
+    await seed(page, true, true);
     await portfolioCard(page, 'Implementar confirmação').click();
     await expect(page.locator('#detailDescription')).toBeVisible();
     await expect(page.locator('#taskName')).toHaveCount(0);
     await page.getByRole('combobox', { name: 'Priority', exact: true }).selectOption('low');
     await expect.poll(async () => (await readSavedBoard(page, 'feedback')).board.tasks.find((task: { id: number }) => task.id === 1204).priority).toBe('low');
     await page.getByRole('combobox', { name: 'Status', exact: true }).selectOption('done');
-    const choice = page.getByRole('combobox', { name: '#1202 Pagar com cartão', exact: true });
+    const choice = page.getByRole('combobox', { name: '#1202: Decision', exact: true });
     await expect(choice).toBeVisible();
     await choice.selectOption('keep');
-    await answerAppMessage(page, { expectText: 'Review' });
+    await expect(page.locator('.workitem-review-title')).toHaveText('Pagar com cartão');
+    await expect(page.locator('.workitem-review-transition')).toHaveText('In progress→Ready to test');
+    await answerAppMessage(page, { expectText: 'Cascades follow applied changes' });
     const saved = await readSavedBoard(page, 'feedback');
     expect(saved.board.tasks.find((task: { id: number }) => task.id === 1202).status).toBe('doing');
     expect(saved.board.tasks.find((task: { id: number }) => task.id === 1204).status).toBe('done');

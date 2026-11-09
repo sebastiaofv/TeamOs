@@ -2,10 +2,16 @@ import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, portfolioCard, toggleTheme, selectTableView, openFiltersPanel } from '../support/portfolio';
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
-async function seed(page: Page, writable = true) {
+async function seed(page: Page, writable = true, testingWorkflow = false) {
+    const extensions = structuredClone(fixture.extensions);
+    if (testingWorkflow) {
+        extensions.functionalWorkflow = structuredClone(extensions.workflow);
+        for (const state of extensions.functionalWorkflow.states) if (['ready-to-test', 'testing'].includes(state.id)) state.category = 'testing';
+        extensions.functionalWorkflow.references.testing = 'ready-to-test';
+    }
     await page.clock.setFixedTime('2026-10-28T12:00:00.000Z');
     await gotoApp(page);
-    await seedPortfolioBoards(page, [{ id: 'us12', title: fixture.board.settings.title, hasHandle: writable, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us12' });
+    await seedPortfolioBoards(page, [{ id: 'us12', title: fixture.board.settings.title, hasHandle: writable, tasks: fixture.board.tasks, extensions }], { selectedBoardId: 'us12' });
 }
 async function move(page: Page, id: number, state: string) {
     await page.keyboard.press('ControlOrMeta+k');
@@ -56,9 +62,10 @@ test('creates a child with inherited planning and an immutable type, preserving 
 });
 
 test('technical completion advances the Story once and functional acceptance requires local attribution', async ({ page }) => {
-    await seed(page);
+    await seed(page, true, true);
     await move(page, 1204, 'Done');
-    await answerAppMessage(page, { expectText: 'Story #1202 will advance to Ready to test' });
+    await expect(page.locator('.workitem-review-transition')).toHaveText('In progress→Ready to test');
+    await answerAppMessage(page, { expectText: 'Cascades follow applied changes' });
     await expect.poll(async () => (await readSavedBoard(page, 'us12')).board.tasks.find((task: { id: number }) => task.id === 1202).status).toBe('ready-to-test');
     await move(page, 1202, 'Testing');
     await move(page, 1202, 'Done');
@@ -104,10 +111,12 @@ test('parent changes preview their impact and Cancel preserves the existing hier
     await portfolioCard(page, 'Implementar confirmação').click(); await page.locator('#taskDetailEditBtn').click();
     await page.locator('#workitemParent').selectOption('1201');
     await page.locator('#taskModalSaveBtn').click();
-    await answerAppMessage(page, { button: 'Cancel', expectText: '#1202 Pagar com cartão → #1201 Checkout acessível' });
+    await expect(page.locator('.workitem-review-transition')).toHaveText('#1202 Pagar com cartão→#1201 Checkout acessível');
+    await answerAppMessage(page, { button: 'Cancel' });
     expect((await readSavedBoard(page, 'us12')).board.tasks.find((task: { id: number }) => task.id === 1204).parentId).toBe(1202);
     await page.locator('#taskModalSaveBtn').click();
-    await answerAppMessage(page, { expectText: 'Parent workitem' });
+    await expect(page.locator('.workitem-review-field')).toContainText(['Parent workitem']);
+    await answerAppMessage(page);
     await expect(page.locator('#taskModal')).toHaveCount(0);
     const saved = await readSavedBoard(page, 'us12');
     expect(saved.board.tasks.find((task: { id: number }) => task.id === 1204)).toMatchObject({ parentId: 1201, sprintId: 'current' });

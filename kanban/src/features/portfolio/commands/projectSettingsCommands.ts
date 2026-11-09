@@ -1,3 +1,5 @@
+import { workitemReviewRow, statusName } from './workitemReview';
+import { getHierarchyAutomations, parseHierarchyAutomations, type HierarchyAutomations } from '@/domain/hierarchyAutomations';
 import type { Workflow, WorkflowKind, WorkitemType } from '@/domain/types';
 import { applyWorkflow, applyWorkflowTypes, functionalWorkitemTypes, getWorkflow, workflowKind } from '@/domain/workflow';
 import type { BoardMutationContext } from './mutationContext';
@@ -21,20 +23,25 @@ export function createProjectSettingsActions(context: BoardMutationContext) {
             readOnly: !context.canUsePortfolioTaskMutations(boardId)
         });
     }
-    async function saveProjectSettings(boardId: string, draft: ProjectSettingsDraft, original: unknown, workflowDraft?: WorkflowSettingsChange | WorkflowSettingsChange[], typesDraft?: { original: WorkitemType[]; functional: WorkitemType[] }) {
+    async function saveProjectSettings(boardId: string, draft: ProjectSettingsDraft, original: unknown, workflowDraft?: WorkflowSettingsChange | WorkflowSettingsChange[], typesDraft?: { original: WorkitemType[]; functional: WorkitemType[] }, automationsDraft?: { original: HierarchyAutomations; config: HierarchyAutomations }) {
         if (!canUsePortfolioTaskMutations(boardId)) { notifyPortfolioMutationUnavailable(boardId); return false; }
         const source = getBoardRecord(boardId)?.data;
         if (!source) return false;
         const changes = workflowDraft ? Array.isArray(workflowDraft) ? workflowDraft : [workflowDraft] : [];
         if (new Set(changes.map((change) => change.kind || 'technical')).size !== changes.length) throw new Error('Duplicate workflow changes.');
+        const workflowPreview = cloneSerializable(source);
+        for (const change of changes) {
+            for (const task of workflowPreview.board.tasks) if (workflowKind(task, source) === (change.kind || 'technical') && !change.workflow.states.some((state) => state.id === task.status)) task.status = change.relocations[task.status] || change.workflow.entryStateId;
+            workflowPreview.extensions[change.kind === 'functional' ? 'functionalWorkflow' : 'workflow'] = change.workflow;
+        }
         const affected = source.board.tasks.filter((task) => changes.some((change) => workflowKind(task, source) === (change.kind || 'technical') && change.original.states.find((state) => state.id === task.status)?.category !== change.workflow.states.find((state) => state.id === task.status)?.category));
-        if (affected.length && !(await confirm(translateCurrent('workflow.impact', { count: affected.length }), { title: translateCurrent('workflow.settings') }))) return false;
+        if (affected.length && !(await confirm(translateCurrent('workflow.impact', { count: affected.length }), { title: translateCurrent('workflow.settings'), workitems: { rows: affected.map((task) => workitemReviewRow(task, translateCurrent('task.status'), statusName(source, task), changes.find((change) => (change.kind || 'technical') === workflowKind(task, source))?.workflow.states.find((state) => state.id === workflowPreview.board.tasks.find((entry) => entry.id === task.id)!.status)?.name || task.status)) } }))) return false;
         if (typesDraft) {
             // Preview the workitems whose status cannot be kept in their new workflow.
             const preview = cloneSerializable(source);
             for (const change of changes) applyWorkflow(preview, change.workflow, change.relocations, change.kind);
             const moved = applyWorkflowTypes(preview, typesDraft.functional);
-            if (moved.length && !(await confirm(translateCurrent('workflow.typesImpact', { count: moved.length }), { title: translateCurrent('workflow.settings') }))) return false;
+            if (moved.length && !(await confirm(translateCurrent('workflow.typesImpact', { count: moved.length }), { title: translateCurrent('workflow.settings'), workitems: { rows: source.board.tasks.filter((task) => moved.includes(task.id)).map((task) => workitemReviewRow(task, translateCurrent('task.status'), statusName(source, task), statusName(preview, preview.board.tasks.find((entry) => entry.id === task.id)!))) } }))) return false;
         }
         return runPortfolioBoardMutation(boardId, (data) => {
             if (workflowDraft && getBoardRecord(boardId)?.data !== source) throw new ProjectDataError('stale');
@@ -44,9 +51,13 @@ export function createProjectSettingsActions(context: BoardMutationContext) {
             }
             for (const change of changes) if (!areSerializableValuesEqual(change.original, getWorkflow(data, change.kind))) throw new ProjectDataError('stale');
             if (typesDraft && !areSerializableValuesEqual([...typesDraft.original].sort(), functionalWorkitemTypes(data).sort())) throw new ProjectDataError('stale');
+            if (automationsDraft) {
+                if (!areSerializableValuesEqual(automationsDraft.original, getHierarchyAutomations(data))) throw new ProjectDataError('stale');
+                data.extensions.hierarchyAutomations = parseHierarchyAutomations(automationsDraft.config);
+            }
             const projectChanged = !areSerializableValuesEqual(original, draft);
             applyProjectSettings(data, draft);
-            if (projectChanged || !workflowDraft) appendTimelineEvent(data, {
+            if (projectChanged || !workflowDraft || automationsDraft) appendTimelineEvent(data, {
                 kind: 'board.project.updated', entityType: 'board', entityId: data.extensions.project!.id,
                 summary: translateCurrent('project.updated'), snapshot: createBoardStateSnapshot(data)
             });

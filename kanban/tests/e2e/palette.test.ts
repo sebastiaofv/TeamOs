@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { answerAppMessage, gotoApp, portfolioCard, readSavedBoard, seedPortfolioBoards, setBoardSearch, waitForBoardWrites } from '../support/portfolio';
+import { gotoApp, portfolioCard, readSavedBoard, seedPortfolioBoards, setBoardSearch, waitForBoardWrites } from '../support/portfolio';
 
 function localIsoDate(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -86,7 +86,7 @@ test.describe('command palette', () => {
 
     await expect(page.locator('#portfolio-done-column')).toContainText('Write spec');
     await page.locator('#undoBtn').click();
-    await answerAppMessage(page, { expectText: 'Write spec' });
+    await expect(page.locator('#appMessageModal')).toHaveCount(0);
     await expect(page.locator('#portfolio-to-do-column')).toContainText('Write spec');
   });
 

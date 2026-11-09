@@ -536,16 +536,18 @@ export const DOCS_EN: DocSection[] = [
                         'Story execution progress from its Tasks.',
                         'Dependency blocking from unfinished blockers.',
                         'Tasks of a Story follow the Story\'s sprint; children inherit phase and milestone unless set explicitly.',
-                        'Sprint status (Planned, Active, Done) from dates, refreshed at midnight.',
+                        'Sprint status changes only when you start or finish the Sprint.',
                         'History and timeline events for every saved change.'
                     ] },
-                    { kind: 'h', text: 'Story automation' },
-                    { kind: 'p', text: 'A project can define Story automation rules: when a Story\'s first Task starts (**Execution starts**), or when all its Tasks are completed (**Execution finishes**), a Story in one of the eligible source states advances to a destination state. If the functional workflow forbids that transition, the Task is still saved and the app explains why the Story did not advance. These rules are stored in the project file; there is currently no editor for them in Project settings.' },
+                    { kind: 'h', text: 'Workflow automations' },
+                    { kind: 'p', text: 'Open **Project Settings → Automations** to configure eight rules per project. **Off** disables a rule, **On 1** asks for approval and **On 2** applies permitted changes automatically. New rules default to On 1. Manual status changes require no extra confirmation unless they trigger an active automation or require functional acceptance.' },
+                    { kind: 'p', text: '**Review workflow automations** explains the triggered rule and lists each affected workitem with its type badge, ID, title, field and current → proposed value. Choose **Apply change** or **Keep current** for proposals. A forbidden workflow transition produces an information message without decision selectors; the original edit is kept.' },
+                    { kind: 'p', text: 'Finishing a Sprint asks separately whether to use today as its end date. **Return unfinished Tasks to Backlog** controls Task status changes at closure. A separate information message lists only workitems visible in the Backlog; child Tasks remain grouped under their parents. Implemented Stories awaiting testing keep their Sprint. Reopening a Story or Task preserves its allocation until closure or a later planning change. Closed Sprint participation and results remain frozen.' },
                     { kind: 'h', text: 'Never automatic' },
                     { kind: 'list', items: [
                         'Functional acceptance of Stories and Bugs.',
-                        'Completing an Epic or its children.',
-                        'Reopening an accepted Story when one of its Tasks is reopened.'
+                        'Transitions forbidden by the configured workflow.',
+                        'Changes through rules configured as Off.'
                     ] }
                 ],
                 related: ['wi-acceptance', 'plan-inheritance', 'files-history']

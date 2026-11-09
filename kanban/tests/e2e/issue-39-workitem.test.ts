@@ -166,7 +166,7 @@ test('todo completion saves directly while adding entries still requires Edit', 
   expect((await readSavedBoard(page, 'p1')).board.tasks[0].checklist[0].done).toBe(true);
   await checkbox.uncheck();
   await waitForBoardWrites(page);
-  expect((await readSavedBoard(page, 'p1')).board.tasks[0].checklist[0].done).toBe(false);
+  await expect.poll(async () => (await readSavedBoard(page, 'p1')).board.tasks[0].checklist[0].done).toBe(false);
   await expect(page.locator('#taskChecklistNewItem')).toHaveCount(0);
   await page.locator('#taskDetailEditBtn').click();
   await expect(page.locator('#taskChecklistNewItem')).toBeVisible();
