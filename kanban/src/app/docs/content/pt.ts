@@ -692,11 +692,11 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Dashboard',
                 summary: 'Estado, progresso e atividade do projeto num período à escolha.',
                 blocks: [
-                    { kind: 'p', text: 'A **Visão global** tem nove secções que pode mostrar ou ocultar: visão do projeto, sprint ativo, estatísticas do projeto, workitems iniciados, concluídos e em curso no período, riscos abertos, entregáveis e decisões.' },
+                    { kind: 'p', text: 'A **Visão global** tem seis widgets compactos: progresso, fases ativas, milestones próximos e em atraso, sprint ativo, estado dos workitems e Epics iniciados. Os workitems iniciados, concluídos e em curso, riscos abertos, entregáveis e decisões continuam disponíveis abaixo.' },
                     { kind: 'list', items: [
                         'Escolha as datas de **início** e **fim**: a atividade conta transições dentro do período; as secções de estado usam a data de fim.',
-                        'Restrinja a uma fase com **Âmbito do plano**.',
-                        'Selecione um indicador ou uma barra de gráfico para listar os workitems de origem e abri-los.',
+                        'As fases indicam Dentro do prazo, Início em atraso ou Em atraso. As barras de estados mostram quantidades e percentagens com as cores configuradas no workflow.',
+                        'Selecione um indicador ou uma legenda de estado para listar os workitems de origem e abri-los. Selecione o nome de um milestone ou Epic para consultar o detalhe.',
                         'A **Análise de sprints** mostra a participação registada e as alterações de âmbito de cada sprint.'
                     ] },
                     { kind: 'callout', tone: 'note', text: 'O Dashboard usa apenas o histórico registado. Quando falta histórico mostra N/A em vez de adivinhar. Os filtros do Quadro e da Tabela não o afetam.' }

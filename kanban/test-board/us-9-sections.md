@@ -1,5 +1,7 @@
 # US-9 — Dashboard sections (feedback of 04/11/2026)
 
+> Historical walkthrough. The current Project Overview is documented in [US-34](us-34-dashboard.md).
+
 Import a copy of `us-9-sections.board.json`. It extends the original `us-9.board.json` with category transitions, parent/child phases, completed/future phases, overdue and unassigned milestones, and real Project Control records. All names and data are fictitious. No file-schema change is required.
 
 Use **Start date 2026-10-24**, **End date 2026-10-31**, **Planning scope All phases**. Dates and timeline events use UTC calendar days. If testing after this date, explicitly select that end date.

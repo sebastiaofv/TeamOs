@@ -45,16 +45,16 @@ async function paintedClick(page: Page, selector: string) {
     }, selector);
 }
 
-test('a hydrated 1000-event Dashboard stays within its interaction budget and retains every observation', async ({ page }, testInfo) => {
+test('a hydrated 1000-event Dashboard stays within its interaction budget and retains historical consultation through dates', async ({ page }, testInfo) => {
     await openLargeProject(page, 20, 1000);
     await page.locator('#taskDetailModalCloseBtn').click();
     const elapsed = await paintedClick(page, '[data-view-mode="dashboard"]');
-    await expect(page.locator('#portfolioDashboard .dashboard-history tbody tr')).toHaveCount(1001);
+    await expect(page.locator('#portfolioDashboard .dashboard-history')).toHaveCount(0);
     expect(elapsed).toBeLessThan(2000);
     testInfo.annotations.push({ type: 'Dashboard interaction', description: `${Math.round(elapsed)} ms; 20 workitems, 1000 events` });
     expect(await page.evaluate(() => window.__folderDisk.reads['perf/history.json'])).toBe(1);
-    // Every original observation still opens its exact historical position.
-    await page.locator('#portfolioDashboard .dashboard-history tbody tr').first().getByRole('button').click();
+    await page.getByLabel('Start date', { exact: true }).fill('03/11/2026');
+    await page.getByLabel('End date', { exact: true }).fill('03/11/2026');
     await expect(page.locator('#portfolioDashboard [role="status"]').first()).toContainText('2026-11-03');
 });
 

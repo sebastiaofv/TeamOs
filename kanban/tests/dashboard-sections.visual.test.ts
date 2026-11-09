@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards } from './support/portfolio';
 
 for (const theme of ['light', 'dark']) for (const width of [1840, 390]) {
-    test(`dashboard nine-section layout at ${width}px (${theme})`, async ({ page }) => {
+    test(`dashboard overview widget layout at ${width}px (${theme})`, async ({ page }) => {
         await page.setViewportSize({ width, height: 980 });
         await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
         await gotoApp(page);

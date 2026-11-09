@@ -68,32 +68,43 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-visible-sections fieldset > div { display: flex; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
 .dashboard-section-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
 .dashboard-section-grid > .dashboard-panel { margin: 0; }
-.dashboard-overview { grid-column: span 4; }
-.dashboard-active-sprint, .dashboard-third { grid-column: span 2; }
-.dashboard-statistics { grid-column: 1 / -1; }
-.dashboard-overview-content { display: flex; align-items: center; gap: 20px; }
-.dashboard-progress-button { border: 0; padding: 0; background: transparent; color: var(--text-primary); font: inherit; cursor: pointer; display: flex; align-items: center; flex-direction: column; gap: 8px; }
-.dashboard-progress-button > small { font-size: 11px; line-height: 1.5; color: var(--text-secondary); max-width: 160px; }
-.dashboard-progress-button > strong { font-size: 28px; }
-.dashboard-progress-button:hover .dashboard-ring { box-shadow: 0 0 0 3px var(--border); }
-.dashboard-ring { width: 122px; height: 122px; border-radius: 50%; padding: 11px; flex-shrink: 0; background: conic-gradient(var(--ring-color) var(--ring-fill), var(--border) 0); }
-.dashboard-ring > div { border-radius: 50%; background: var(--bg-card); height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; text-align: center; }
-.dashboard-ring strong { font-size: 25px; font-weight: 600; }
-.dashboard-ring small { font-size: 10px; color: var(--text-secondary); max-width: 85px; }
+.dashboard-third { grid-column: span 2; }
+.dashboard-progress-button { border: 0; padding: 0; background: transparent; color: var(--text-primary); font: inherit; cursor: pointer; display: flex; align-items: flex-start; flex-direction: column; gap: 12px; width: 100%; text-align: start; }
+.dashboard-progress-button > small { font-size: 11px; line-height: 1.5; color: var(--text-secondary); }
+.dashboard-progress-button > strong { font-size: 28px; font-weight: 600; }
+.dashboard-progress { display: block; width: 100%; height: 8px; border: 0; border-radius: 4px; overflow: hidden; accent-color: var(--accent); background: var(--bg-secondary); }
+.dashboard-progress::-webkit-progress-bar { background: var(--bg-secondary); border-radius: 4px; }
+.dashboard-progress::-webkit-progress-value { background: var(--accent); border-radius: 4px; }
+.dashboard-progress::-moz-progress-bar { background: var(--accent); border-radius: 4px; }
+.dashboard-project-progress .dashboard-progress-button { padding-top: 12px; }
+.dashboard-project-progress .dashboard-progress-button > strong { font-size: 40px; }
+.dashboard-section-grid > [data-dashboard-section] { height: 320px; display: flex; flex-direction: column; overflow: hidden; }
+.dashboard-section-grid > .dashboard-third { min-height: 0; }
+.dashboard-widget-list, .dashboard-third > .dashboard-scroll { overflow: auto; min-height: 0; }
+.dashboard-planning-row { padding: 10px 0; border-bottom: 1px solid var(--border-light); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; font-size: 12px; }
+.dashboard-planning-row > div { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.dashboard-planning-row small { color: var(--text-secondary); align-self: center; }
+.dashboard-planning-row > div > button { overflow-wrap: anywhere; }
+.dashboard-situation-overdue, .dashboard-situation-late { color: var(--priority-high); }
+.dashboard-situation-onTarget { color: var(--accent); }
+.dashboard-planning-row .dashboard-badge, .dashboard-sprint-summary .dashboard-badge { flex-shrink: 0; white-space: nowrap; }
 .dashboard-section-grid h4 { font-size: 12px; margin: 0 0 10px; }
-.dashboard-phase-summary { flex: 1; min-width: 0; }
-.dashboard-milestone-summary { flex: 0 1 190px; min-width: 0; }
-.dashboard-milestone { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-light); }
-.dashboard-milestone small { color: var(--text-secondary); width: 100%; }
 .dashboard-warning { display: inline-block; color: var(--priority-high); border: 1px solid currentColor; border-radius: 3px; font-size: 10px; padding: 2px 4px; margin-inline-start: 6px; }
-.dashboard-phase-summary td .dashboard-badge { display: inline-block; margin-inline-start: 6px; }
-.dashboard-sprint-summary { background: var(--bg-primary); border: 1px solid var(--border-light); border-radius: 6px; padding: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 8px; }
-.dashboard-sprint-summary > div > button { font-weight: 600; }
-.dashboard-sprint-summary p { color: var(--text-secondary); margin-top: 12px; }
-.dashboard-sprint-summary progress { max-width: 130px; accent-color: var(--accent); }
-.dashboard-statistics-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
-.dashboard-statistics-grid article { display: flex; gap: 22px; align-items: center; min-width: 0; }
-.dashboard-statistics-grid article > div { flex: 1; min-width: 0; }
+.dashboard-sprint-summary { display: flex; flex-direction: column; gap: 12px; padding: 8px 0 16px; border-bottom: 1px solid var(--border-light); font-size: 12px; }
+.dashboard-sprint-summary > div > button { font-weight: 600; margin-inline-end: 10px; }
+.dashboard-sprint-summary p { color: var(--text-secondary); margin-top: 8px; }
+.dashboard-sprint-summary .dashboard-progress-button { gap: 6px; }
+.dashboard-sprint-summary .dashboard-progress-button > strong { font-size: 20px; }
+.dashboard-sprint-metrics { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 0; }
+.dashboard-sprint-metrics dt { color: var(--text-secondary); }
+.dashboard-sprint-metrics dd { margin: 0; font-weight: 600; }
+.dashboard-statistics-grid { display: flex; flex-direction: column; gap: 14px; overflow: auto; min-height: 0; }
+.dashboard-status-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dashboard-section-grid .dashboard-status-heading h4 { margin: 0; }
+.dashboard-stacked-bar { display: flex; height: 12px; overflow: hidden; border-radius: 4px; background: var(--bg-secondary); margin: 8px 0; }
+.dashboard-stacked-bar > span { height: 100%; }
+.dashboard-state-legend { display: flex; gap: 4px 12px; flex-wrap: wrap; }
+.dashboard-state-legend .dashboard-legend { width: auto; font-size: 11px; gap: 4px; padding: 2px 0; }
 .dashboard-legend { display: flex; gap: 8px; align-items: center; background: transparent; border: 0; color: var(--text-primary); font: inherit; font-size: 12px; padding: 6px 0; cursor: pointer; text-align: start; width: 100%; }
 .dashboard-legend > span:nth-child(2) { flex: 1; }
 .dashboard-legend small { color: var(--text-secondary); }
@@ -102,18 +113,11 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-section-grid + .dashboard-drilldown { margin-top: 16px; }
 .dashboard-visible-sections summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 @media (max-width: 1300px) {
-    .dashboard-overview { grid-column: span 6; }
-    .dashboard-active-sprint { grid-column: span 6; }
     .dashboard-third { grid-column: span 3; }
-    .dashboard-statistics-grid article { gap: 10px; flex-wrap: wrap; }
 }
 @media (max-width: 700px) {
     .dashboard-section-grid { grid-template-columns: minmax(0, 1fr); }
     .dashboard-section-grid > .dashboard-panel { grid-column: 1; }
-    .dashboard-overview-content { flex-direction: column; align-items: stretch; }
-    .dashboard-phase-summary, .dashboard-milestone-summary { flex: auto; width: 100%; }
-    .dashboard-statistics-grid { grid-template-columns: minmax(0, 1fr); }
-    .dashboard-statistics-grid article { gap: 24px; flex-wrap: nowrap; }
     .dashboard-filters > label { max-width: 100%; flex-basis: 100%; }
     .dashboard-visible-sections { flex-basis: 100%; }
     .dashboard-visible-sections fieldset { min-width: 0; }

@@ -3,7 +3,7 @@ import { DateInput } from '@/shared/ui/DateInput';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardData, RoadmapItem, Task } from '@/domain/types';
-import { dashboardHistorySummary, dashboardMetrics, dashboardSprints, dashboardSprintScopeChanges } from '@/domain/dashboard';
+import { dashboardMetrics, dashboardSprints, dashboardSprintScopeChanges } from '@/domain/dashboard';
 import { DASHBOARD_SECTIONS, dashboardSnapshot, type DashboardSection } from '@/domain/dashboardOverview';
 import { DashboardOverview } from './DashboardOverview';
 import { getWorkflow, workflowKind } from '@/domain/workflow';
@@ -111,7 +111,6 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const { t } = useI18n();
     const actions = usePortfolioActions();
     const [tab, setTab] = useState<'overview' | 'sprintAnalytics'>('overview');
-    const [phaseId, setPhaseId] = useState('');
     const [drill, setDrill] = useState<Drill | null>(null);
     const [from, setFrom] = useState(() => { const date = new Date(`${today}T12:00:00Z`); date.setUTCDate(date.getUTCDate() - 7); return date.toISOString().slice(0, 10); });
     const [to, setTo] = useState('');
@@ -119,10 +118,8 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const referenceDate = timeline?.isPreview ? timeline.selectedEvent!.at.slice(0, 10) : today;
     const end = to || referenceDate;
     const invalidPeriod = from > end;
-    const snapshot = useMemo(() => !hidden && data && !invalidPeriod ? dashboardSnapshot(data, end, referenceDate) : null, [hidden, data, end, referenceDate, invalidPeriod]);
+    const snapshot = useMemo(() => !hidden && data && !invalidPeriod ? dashboardSnapshot(data, end, today) : null, [hidden, data, end, today, invalidPeriod]);
     const displayData = snapshot?.data;
-    const activePhase = displayData?.extensions.roadmap?.phases.some((phase) => phase.id === phaseId) ? phaseId : '';
-    const observations = useMemo(() => !hidden && data && !invalidPeriod ? dashboardHistorySummary(data, activePhase, from, end) : [], [hidden, data, activePhase, from, end, invalidPeriod]);
     // Changing source state invalidates a drilldown so old rows cannot masquerade as current data.
     const source = useRef(displayData);
     useEffect(() => { if (source.current !== displayData) { source.current = displayData; setDrill(null); } }, [displayData]);
@@ -148,21 +145,15 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
             </fieldset></details>
             <label>{t('dashboard.startDate')}<DateInput aria-label={t('dashboard.startDate')}  value={from} max={end} onChange={(event) => { setFrom(event.target.value); setDrill(null); }} /></label>
             <label>{t('dashboard.endDate')}<DateInput aria-label={t('dashboard.endDate')}  value={end} min={from} max={referenceDate} onChange={(event) => { setTo(event.target.value); setDrill(null); }} /></label>
-            <label>{t('dashboard.scope')}<select aria-label={t('dashboard.scope')} value={activePhase} onChange={(event) => { setPhaseId(event.target.value); setDrill(null); }}><option value="">{t('dashboard.allPhases')}</option>{(displayData || data).extensions.roadmap?.phases.map((phase) => <option value={phase.id} key={phase.id}>{phase.title}</option>)}</select></label>
         </div>
         <div className="dashboard-tabs" role="group" aria-label={t('dashboard.title')}>
             {(['overview', 'sprintAnalytics'] as const).map((value) => <button type="button" className={`btn${tab === value ? ' active' : ''}`} key={value} aria-pressed={tab === value} onClick={() => { setTab(value); setDrill(null); }}>{t(`dashboard.${value}`)}</button>)}
         </div>
         {invalidPeriod ? <p role="alert">{t('dashboard.invalidPeriod')}</p> : !displayData ? <p role="status">{t('dashboard.noHistoryBaseline')}</p> : <>
             <p className="dashboard-note">{t('dashboard.periodNote', { date: end })}</p>
-            {tab === 'overview' ? <DashboardOverview boardId={boardId} data={displayData} source={data} phaseId={activePhase} start={from} end={end} visible={visible} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId={activePhase} asOf={end} inspect={inspect} />}
+            {tab === 'overview' ? <DashboardOverview boardId={boardId} data={displayData} source={data} start={from} end={end} visible={visible} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId="" asOf={end} inspect={inspect} />}
         </>}
         <Drilldown drill={displayData ? drill : null} boardId={boardId} />
-        <section className="dashboard-panel"><h3>{t('dashboard.history')}</h3><p className="dashboard-note">{t('dashboard.historyNote')}</p>
-            {invalidPeriod ? null : !observations.length ? <p>{t('dashboard.noHistory')}</p> : <div className="dashboard-scroll dashboard-history"><table className="dashboard-table"><thead><tr><th>{t('dashboard.observation')}</th><th>{t('dashboard.completed')}</th><th>{t('dashboard.open')}</th><th>{t('dashboard.progress')}</th></tr></thead><tbody>
-                {observations.map((point) => <tr key={point.index}><td><button className="dashboard-link" type="button" onClick={() => actions.setPortfolioTimelineSelection(boardId, point.index)}>{point.at}</button></td><td>{point.completed}</td><td>{point.open}</td><td>{point.percent === null ? t('dashboard.na') : `${Math.round(point.percent)}%`}</td></tr>)}
-            </tbody></table></div>}
-        </section>
     </>;
 }
 

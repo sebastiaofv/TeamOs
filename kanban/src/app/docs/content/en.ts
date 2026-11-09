@@ -692,11 +692,11 @@ export const DOCS_EN: DocSection[] = [
                 title: 'Dashboard',
                 summary: 'Project status, progress and activity for a chosen period.',
                 blocks: [
-                    { kind: 'p', text: '**Overview** has nine sections you can show or hide: project overview, active sprint, project statistics, workitems started, completed and in progress in the period, open risks, deliverables and decisions.' },
+                    { kind: 'p', text: '**Overview** has six compact project widgets: progress, active phases, next and overdue milestones, active sprint, workitem status and started Epics. Workitems started, completed and in progress, open risks, deliverables and decisions remain available below.' },
                     { kind: 'list', items: [
                         'Choose **Start** and **End** dates: activity counts transitions within the period; status sections use the end date.',
-                        'Restrict to a phase with **Planning scope**.',
-                        'Select an indicator or chart bar to list its source workitems, then open them.',
+                        'Phases show On Target, Late or Overdue. Workflow status bars show counts and percentages with the configured state colors.',
+                        'Select an indicator or status legend to list its source workitems, then open them. Select a milestone or Epic name to consult its details.',
                         '**Sprint Analytics** shows recorded participation and scope changes per sprint.'
                     ] },
                     { kind: 'callout', tone: 'note', text: 'The Dashboard only uses recorded history. Where history is missing it shows N/A rather than guessing. Board and Table filters do not affect it.' }

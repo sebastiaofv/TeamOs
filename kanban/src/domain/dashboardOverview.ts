@@ -1,13 +1,15 @@
 import type { BoardData, Task } from './types';
-import { dashboardPlanning, dashboardTasks } from './dashboard';
+import { dashboardPlanning, dashboardSprints, dashboardTasks } from './dashboard';
 import { controlPending, controlRecords, gateControlProgress } from './projectControl';
 import { phaseDescendants, planningProgress } from './phaseTree';
 import { applyTimelineEventToState, getBoardTimelineData, reconstructBoardStateFromTimeline } from './timeline';
 import { createBoardStateSnapshot } from './serialize';
-import { statusCategory, withWorkflowReadCache } from './workflow';
-import { isPlanningUnit, workitemType } from './workitems';
+import { getWorkflow, statusCategory, withWorkflowReadCache } from './workflow';
+import { isPlanningUnit, workitemProgress, workitemType } from './workitems';
+import { getSprintCalendarStatus, getSprintStatus } from './roadmap';
+import { developmentCompleted, sprintPointSummary } from './sprintResults';
 
-export const DASHBOARD_SECTIONS = ['projectOverview', 'activeSprint', 'projectStatistics', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'] as const;
+export const DASHBOARD_SECTIONS = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'workitemStatus', 'epics', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'] as const;
 export type DashboardSection = typeof DASHBOARD_SECTIONS[number];
 
 /** End dates include the entire UTC day. Never use today's state before the first observation. */
@@ -18,6 +20,14 @@ export function dashboardSnapshot(data: BoardData, end: string, currentDate: str
     const index = timeline.events.findLastIndex((event) => event.at.slice(0, 10) <= end);
     if (index < 0) return null;
     const snapshot = reconstructBoardStateFromTimeline(data, index);
+    // Legacy snapshots have no lifecycle status. Import normalization uses today,
+    // but historical consultation must infer that status at the selected end date.
+    const events = timeline.events.slice(0, index + 1);
+    for (const sprint of snapshot.extensions.roadmap?.sprints || []) {
+        const event = events.findLast((event) => event.meta?.sprint?.id === sprint.id || event.snapshot?.extensions?.roadmap?.sprints?.some((item) => item.id === sprint.id));
+        const recorded = event?.meta?.sprint?.id === sprint.id ? event.meta.sprint : event?.snapshot?.extensions?.roadmap?.sprints?.find((item) => item.id === sprint.id);
+        if (recorded && !recorded.status) sprint.status = getSprintCalendarStatus(sprint, end);
+    }
     return { data: { ...snapshot, extensions: { ...snapshot.extensions, timeline: { ...timeline, events: timeline.events.slice(0, index + 1) } } }, index };
 }
 
@@ -30,13 +40,29 @@ export function dashboardStatistics(data: BoardData, phaseId: string) {
     const tasks = dashboardTasks(data, phaseId);
     return (['story', 'task', 'bug'] as const).map((type) => {
         const members = tasks.filter((task) => workitemType(task) === type && (type !== 'task' || isPlanningUnit(data, task)));
-        return { type, tasks: members, categories: (['completed', 'in-progress', 'pending', 'cancelled'] as const).map((category) => ({
-            category, tasks: members.filter((task) => {
-                const actual = statusCategory(task.status, data, task);
-                return category === 'pending' ? actual === 'backlog' || actual === 'to-do' : actual === category;
-            })
+        const states = getWorkflow(data, { type }).states;
+        return { type, tasks: members, states: states.map((state) => ({
+            ...state, tasks: members.filter((task) => task.status === state.id)
         })) };
     });
+}
+
+/** Follow the lifecycle for explicit Sprints, including those still active after their deadline. */
+export function dashboardActiveSprints(data: BoardData, end: string) {
+    return dashboardSprints(data, '', end).filter((sprint) => getSprintStatus(sprint.item, end) === 'active').map((sprint) => {
+        const units = sprint.tasks.filter((task) => isPlanningUnit(sprint.data, task) && statusCategory(task.status, sprint.data, task) !== 'cancelled');
+        const completed = units.filter((task) => statusCategory(task.status, sprint.data, task) === 'completed');
+        const points = sprintPointSummary(data, sprint.item.id);
+        const completedPoints = data.board.tasks.filter((task) => task.sprintId === sprint.item.id && developmentCompleted(data, task)).reduce((sum, task) => sum + (task.storyPoints ?? 0), 0);
+        return { ...sprint, units, stories: sprint.tasks.filter((task) => workitemType(task) === 'story'),
+            points: { ...points, completed: completedPoints }, percent: units.length ? completed.length / units.length * 100 : null,
+            overdue: Boolean(sprint.item.endDate && sprint.item.endDate < end) };
+    });
+}
+
+export function dashboardEpics(data: BoardData) {
+    return data.board.tasks.filter((task) => workitemType(task) === 'epic' && ['in-progress', 'testing', 'completed'].includes(statusCategory(task.status, data, task)))
+        .map((task) => ({ task, progress: workitemProgress(data, task.id) }));
 }
 
 /** Count actual status changes, not baseline contents, workflow edits, or restores.
@@ -96,12 +122,17 @@ export function dashboardOverviewPlanning(data: BoardData, phaseId: string, end:
         const ids = group.kind === 'phases' ? phaseDescendants(data.extensions.roadmap?.phases || [], group.item.id) : new Set([group.item.id]);
         const percent = gateControlProgress(data, group.kind, ids, group.progress.percent);
         const pendingDeliverable = controlRecords(data).some((record) => record.kind === 'deliverables' && record.status !== 'accepted' && record.related[group.kind === 'phases' ? 'phaseIds' : 'milestoneIds'].some((id) => ids.has(id)));
-        const open = group.progress.eligible > group.progress.completed || pendingDeliverable || (group.kind === 'milestones' && group.progress.percent === null);
+        const open = (group.kind === 'phases' && group.progress.associated === 0) || group.progress.eligible > group.progress.completed || pendingDeliverable || (group.kind === 'milestones' && group.progress.percent === null);
         const date = group.kind === 'phases' ? group.item.endDate : group.item.dueDate;
         return { ...group, progress: { ...group.progress, percent }, open, overdue: Boolean(date && date < end && open) };
     });
-    const phases = planning.filter((group) => group.kind === 'phases' && !group.item.parentId && group.item.startDate && group.item.startDate <= end && group.open)
-        .sort((a, b) => a.item.startDate!.localeCompare(b.item.startDate!));
+    const phases = planning.filter((group) => group.kind === 'phases' && group.open)
+        .map((group) => {
+            const started = group.tasks.some((task) => ['in-progress', 'testing', 'completed'].includes(statusCategory(task.status, data, task)));
+            return { ...group, started, situation: group.overdue ? 'overdue' as const : !started && Boolean(group.item.startDate && group.item.startDate < end) ? 'late' as const : 'onTarget' as const };
+        })
+        .filter((group) => group.started || Boolean(group.item.startDate && group.item.startDate <= end))
+        .sort((a, b) => (a.item.startDate || '').localeCompare(b.item.startDate || '') || a.item.id.localeCompare(b.item.id));
     const milestones = planning.filter((group) => group.kind === 'milestones' && group.open && group.item.dueDate).sort((a, b) => a.item.dueDate!.localeCompare(b.item.dueDate!));
     const next = milestones.find((group) => group.item.dueDate! >= end);
     return { phases, milestones: [...milestones.filter((group) => group.overdue), ...(next ? [next] : [])] };

@@ -16,30 +16,19 @@ async function seed(page: Page, writable = true) {
 const kpi = (page: Page, key: string) => page.locator(`[data-dashboard-kpi="${key}"]`);
 const sources = (page: Page) => page.locator('#dashboardSources');
 
-for (const width of [1280, 390]) {
-    for (const tab of ['Overview', 'Sprint Analytics']) {
-        test(`dashboard scroll reaches history in ${tab} at ${width}px`, async ({ page }) => {
-            await page.setViewportSize({ width, height: 800 });
-            if (width === 1280) await seed(page);
-            else {
-                await gotoApp(page);
-                await seedPortfolioBoards(page, [{ id: 'scroll', title: 'Scroll project', hasHandle: true, tasks: [] }], { selectedBoardId: 'scroll' });
-                await page.locator('[data-view-mode="dashboard"]').click();
-            }
-            await page.getByRole('button', { name: tab, exact: true }).click();
-            const history = page.getByRole('heading', { name: 'Recorded history', exact: true });
-            const before = (await history.boundingBox())!.y;
-            expect(before).toBeGreaterThan(800);
-            await page.mouse.move(100, 600);
-            await page.mouse.wheel(0, 600);
-            await expect.poll(async () => (await history.boundingBox())!.y).toBeLessThan(before - 100);
-            await expect.poll(async () => {
-                await page.mouse.wheel(0, 1200);
-                const box = (await history.boundingBox())!;
-                return box.y >= 0 && box.y < 800;
-            }).toBe(true);
-        });
-    }
+for (const width of [1280, 390]) for (const tab of ['Overview', 'Sprint Analytics']) {
+    test(`dashboard keeps date filters and removes recorded history in ${tab} at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await seed(page);
+        await page.getByRole('button', { name: tab, exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'Recorded history', exact: true })).toHaveCount(0);
+        await expect(page.getByLabel('Start date', { exact: true })).toBeVisible();
+        await expect(page.getByLabel('End date', { exact: true })).toBeVisible();
+        await expect(page.getByLabel('Planning scope', { exact: true })).toHaveCount(0);
+        const sources = page.locator('#dashboardSources');
+        await sources.scrollIntoViewIfNeeded();
+        await expect(sources).toBeInViewport();
+    });
 }
 
 test('selected-project metrics count archived leaves and open their exact sources without changing data', async ({ page }) => {
@@ -71,36 +60,27 @@ test('selected-project metrics count archived leaves and open their exact source
     await expect(page.locator('#portfolioDashboard')).toBeHidden();
 });
 
-test('overview shows parent phases only; scope and read-only drilldowns retain context', async ({ page }) => {
+test('overview shows all active phases and read-only drilldowns retain project context', async ({ page }) => {
     await seed(page, false);
-    await expect(page.locator('[data-dashboard-section="projectOverview"] [data-dashboard-planning="delivery"]')).toBeVisible();
-    await expect(page.locator('[data-dashboard-planning="api"]')).toHaveCount(0);
-    await expect(page.locator('[data-dashboard-planning="ux"]')).toHaveCount(0);
-    await page.getByLabel('Planning scope', { exact: true }).selectOption('api');
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('50%');
+    for (const id of ['delivery', 'api', 'ux']) await expect(page.locator(`[data-dashboard-planning="${id}"]`)).toBeVisible();
     await kpi(page, 'progress').click();
-    await expect(sources(page).locator('tbody tr')).toHaveCount(2);
+    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
     await sources(page).getByRole('button', { name: 'Archived pending integration', exact: true }).click();
     await expect(page.locator('#taskDetailModal')).toContainText('Archived pending integration');
     await page.keyboard.press('Escape');
-    await page.locator('[data-dashboard-planning="delivery"]').getByRole('button', { name: 'Delivery programme', exact: true }).click();
-    await expect(page.locator('[data-roadmap-task-list="phase:delivery"]')).toHaveCount(0);
-    await page.locator('[data-view-mode="dashboard"]').click();
-    await expect(page.getByLabel('Planning scope', { exact: true })).toHaveValue('api');
     await page.locator('[data-dashboard-active-sprint="active"]').getByRole('button', { name: 'Sprint 2 - Implementation', exact: true }).click();
     await expect(page.locator('[data-roadmap-task-list="sprint:active"]')).toBeVisible();
 });
 
-test('empty and cancelled-only scopes show unavailable denominators and missing dates', async ({ page }) => {
-    await seed(page);
-    for (const phase of ['empty', 'cancelled-only']) {
-        await page.getByLabel('Planning scope', { exact: true }).selectOption(phase);
-        await expect(kpi(page, 'progress').locator('strong')).toHaveText('N/A');
-    }
+test('empty projects show unavailable progress and discreet empty widget messages', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'empty', title: 'Empty project', hasHandle: true, tasks: [] }], { selectedBoardId: 'empty' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('N/A');
+    await expect(page.locator('[data-dashboard-section="activeSprint"]')).toContainText('No active sprint');
+    await expect(page.locator('[data-dashboard-section="epics"]')).toContainText('No started Epics');
     await kpi(page, 'progress').click();
     await expect(sources(page)).toContainText('No source workitems');
-    await page.getByLabel('Planning scope', { exact: true }).selectOption('empty');
-    await expect(page.getByText('No workitems in this scope.', { exact: true }).first()).toBeVisible();
 });
 
 test('external file reload refreshes metrics and clears stale source lists', async ({ page }) => {
@@ -122,7 +102,7 @@ test('historical period uses saved observations and historical drilldowns instea
     await seed(page);
     await page.getByLabel('Start date', { exact: true }).fill('16/10/2026');
     await page.getByLabel('End date', { exact: true }).fill('19/10/2026');
-    await expect(page.getByText('No recorded observations in this period.', { exact: true })).toBeVisible();
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
     await page.getByLabel('Start date', { exact: true }).fill('21/10/2026');
     await expect(page.getByRole('alert')).toContainText('The end date');
     await page.getByLabel('Snapshot', { exact: true }).selectOption('0');

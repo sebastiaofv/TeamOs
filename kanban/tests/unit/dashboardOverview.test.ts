@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { BoardData } from '../../src/domain/types';
 import { validateBoardData } from '../../src/domain/board';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
-import { dashboardControl, dashboardOverviewPlanning, dashboardPeriodWorkitems, dashboardReportable, dashboardSnapshot, dashboardStatistics } from '../../src/domain/dashboardOverview';
+import { dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardPeriodWorkitems, dashboardReportable, dashboardSnapshot, dashboardStatistics } from '../../src/domain/dashboardOverview';
 
 const fixture = (): BoardData => serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
 const ids = (items: { id: number }[]) => items.map((item) => item.id);
@@ -33,6 +33,16 @@ describe('dashboard section reporting', () => {
         delete data.extensions.timeline;
         expect(dashboardSnapshot(data, '2026-10-30', '2026-11-04')).toBeNull();
         expect(dashboardSnapshot(data, '2026-11-04', '2026-11-04')?.data).toBe(data);
+    });
+    it('infers legacy Sprint status at the historical end date and preserves explicitly recorded lifecycle states', () => {
+        const data = fixture();
+        data.extensions.roadmap!.sprints.find((sprint) => sprint.id === 'active')!.status = 'done';
+        expect(dashboardActiveSprints(end(data, '2026-10-31'), '2026-10-31').map((row) => row.item.id)).toEqual(['active']);
+        for (const event of data.extensions.timeline!.events) {
+            const sprint = event.snapshot?.extensions?.roadmap?.sprints.find((item) => item.id === 'active');
+            if (sprint) sprint.status = 'planned';
+        }
+        expect(dashboardActiveSprints(end(data, '2026-10-31'), '2026-10-31').map((row) => row.item.id)).toEqual([]);
     });
     it('lists only actual category entries within inclusive boundaries, once per workitem', () => {
         const data = fixture();
@@ -75,19 +85,29 @@ describe('dashboard section reporting', () => {
         expect(ids(report.started)).toContain(911);
         expect(report.contexts.get(911)?.board.tasks.find((task) => task.id === 911)?.status).toBe('testing');
     });
-    it('groups all semantic state categories separately for Stories, independent Tasks and Bugs', () => {
+    it('groups actual workflow states separately for Stories, independent Tasks and Bugs', () => {
         const data = fixture();
         const groups = dashboardStatistics(data, 'ux');
         expect(ids(groups[0].tasks)).toEqual([910]);
         expect(ids(groups[1].tasks)).toEqual([905, 906, 908, 911, 912]);
-        expect(ids(groups[1].categories.find((category) => category.category === 'in-progress')!.tasks)).toEqual([905, 911]);
+        expect(ids(groups[1].states.find((state) => state.id === 'testing')!.tasks)).toEqual([911]);
         expect(ids(groups[2].tasks)).toEqual([914]);
-        for (const group of groups) expect(group.categories.reduce((total, category) => total + category.tasks.length, 0)).toBe(group.tasks.length);
+        for (const group of groups) expect(group.states.reduce((total, state) => total + state.tasks.length, 0)).toBe(group.tasks.length);
         data.extensions.functionalWorkflow = structuredClone(data.extensions.workflow!);
         data.extensions.functionalWorkflow.states.find((state) => state.id === 'accepted')!.category = 'in-progress';
         data.extensions.functionalWorkflow.states.find((state) => state.id === 'testing')!.category = 'completed';
         data.extensions.functionalWorkflow.references.completed = 'testing';
-        expect(ids(dashboardStatistics(data, 'ux')[0].categories.find((category) => category.category === 'in-progress')!.tasks)).toEqual([910]);
+        expect(ids(dashboardStatistics(data, 'ux')[0].states.find((state) => state.id === 'accepted')!.tasks)).toEqual([910]);
+    });
+    it('uses configured labels and colors from each workitem type workflow without merging equal categories', () => {
+        const data = fixture();
+        data.extensions.functionalWorkflow = structuredClone(data.extensions.workflow!);
+        const state = data.extensions.functionalWorkflow.states.find((state) => state.id === 'accepted')!;
+        state.name = 'Business approved'; state.color = '#123456';
+        const [stories, tasks] = dashboardStatistics(data, '');
+        expect(stories.states.find((row) => row.id === 'accepted')).toMatchObject({ name: 'Business approved', color: '#123456' });
+        expect(tasks.states.find((row) => row.id === 'accepted')?.name).toBe('Validated');
+        expect(tasks.states.filter((row) => row.category === 'in-progress').length).toBeGreaterThan(1);
     });
     it('uses the same independent-Task rule as Table, including Tasks directly under an Epic', () => {
         const data = fixture();
@@ -100,14 +120,14 @@ describe('dashboard section reporting', () => {
         data.extensions.timeline!.events.splice(1, 0, { id: 'direct-epic', at: '2026-10-24T09:00:00.000Z', kind: 'task.status.changed', entityType: 'task', entityId: '918', summary: 'Started', changes: { status: { before: 'to-do', after: 'testing' } } });
         expect(ids(dashboardPeriodWorkitems(data, data, 'ux', '2026-10-24', '2026-10-30').started)).toContain(918);
     });
-    it('shows only started parent phases with open work and retains consistent overdue phase/milestone alerts', () => {
+    it('shows all started phases with open work, including children, and retains milestone alerts', () => {
         const data = fixture();
         const planning = dashboardOverviewPlanning(data, '', '2026-10-31');
-        expect(planning.phases.map((group) => group.item.id)).toEqual(['late', 'delivery']);
+        expect(planning.phases.map((group) => group.item.id)).toEqual(['late', 'api', 'delivery', 'ux', 'future']);
         expect(planning.phases.find((group) => group.item.id === 'late')?.overdue).toBe(true);
         expect(planning.milestones.map((group) => group.item.id)).toEqual(['cancelled-milestone', 'empty-milestone', 'late-milestone', 'next-empty']);
         expect(planning.milestones[0].overdue).toBe(true);
-        expect(dashboardOverviewPlanning(data, 'api', '2026-10-31').phases.map((group) => group.item.id)).toEqual(['delivery']);
+        expect(dashboardOverviewPlanning(data, 'api', '2026-10-31').phases.map((group) => group.item.id)).toEqual(['api', 'delivery']);
     });
     it('honors pending deliverable acceptance for completed phase work', () => {
         const data = fixture();
@@ -115,6 +135,50 @@ describe('dashboard section reporting', () => {
         const phase = dashboardOverviewPlanning(data, '', '2026-10-31').phases.find((group) => group.item.id === 'finished');
         expect(phase?.progress.percent).toBe(99);
         expect(phase?.overdue).toBe(true);
+    });
+    it('distinguishes missed starts from missed deadlines and includes phases started ahead of schedule', () => {
+        const data = fixture();
+        data.extensions.roadmap!.phases.push(
+            { id: 'late-start', title: 'Late start', startDate: '2026-10-01', endDate: '2026-11-30' },
+            { id: 'deadline', title: 'Missed deadline', startDate: '2026-10-01', endDate: '2026-10-30' },
+            { id: 'today', title: 'Starts today', startDate: '2026-10-31', endDate: '2026-11-30' }
+        );
+        const phases = dashboardOverviewPlanning(data, '', '2026-10-31').phases;
+        expect(phases.find((group) => group.item.id === 'late-start')?.situation).toBe('late');
+        expect(phases.find((group) => group.item.id === 'deadline')?.situation).toBe('overdue');
+        expect(phases.find((group) => group.item.id === 'today')?.situation).toBe('onTarget');
+        expect(phases.find((group) => group.item.id === 'future')?.situation).toBe('onTarget');
+        expect(phases.some((group) => group.item.id === 'finished')).toBe(false);
+        expect(phases.some((group) => group.item.id === 'empty')).toBe(false);
+    });
+    it('reuses Epic progress and effective workflow status at the selected end date', () => {
+        const data = fixture();
+        const original = data.board.tasks.find((task) => task.id === 901)!;
+        data.board.tasks.push({ ...original, id: 918, status: 'to-do' }, { ...original, id: 919, status: 'accepted' });
+        const epics = dashboardEpics(data);
+        expect(epics.map(({ task }) => task.id)).toEqual([901, 919]);
+        expect(epics[0].progress.percent).toBe(0); // The Story still awaits validation, even with a completed child Task.
+        expect(epics[1].progress.percent).toBeNull();
+        original.status = 'accepted';
+        expect(dashboardEpics(end(data, '2026-10-30'))[0].task.status).toBe('doing');
+    });
+    it('keeps explicitly active overdue Sprints and counts SP once per planning unit using development completion', () => {
+        const data = fixture();
+        const sprint = data.extensions.roadmap!.sprints.find((item) => item.id === 'active')!;
+        sprint.status = 'active'; sprint.capacity = 10;
+        data.board.tasks.find((task) => task.id === 902)!.storyPoints = 8;
+        data.board.tasks.find((task) => task.id === 905)!.storyPoints = 3;
+        data.board.tasks.find((task) => task.id === 904)!.status = 'accepted';
+        const summary = dashboardActiveSprints(data, '2026-11-20')[0];
+        expect(summary.item.id).toBe('active');
+        expect(summary.stories.map((task) => task.id)).toEqual([902]);
+        expect(summary.points).toEqual({ planned: 11, capacity: 10, completed: 8 });
+        expect(summary.percent).toBe(0); // Existing completion still uses the planning units' own statuses.
+        expect(summary.overdue).toBe(true);
+        sprint.status = 'done';
+        expect(dashboardActiveSprints(data, '2026-11-20').some((row) => row.item.id === 'active')).toBe(false);
+        sprint.status = 'planned';
+        expect(dashboardActiveSprints(data, '2026-10-31').some((row) => row.item.id === 'active')).toBe(false);
     });
     it('reports open controls at the end date and accepted deliveries only when delivered in the period', () => {
         const data = fixture();
