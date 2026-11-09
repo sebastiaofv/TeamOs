@@ -1,4 +1,5 @@
 import { resolveHierarchyAutomations } from './hierarchyAutomationChanges';
+import { ensureProjectHistoryLoaded } from '@/infrastructure/persistence/projectFiles';
 import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { childTransferReview, projectTransferFields } from './projectTransferReview';
 import { requestWorkitemAcceptance } from './workitemAcceptance';
@@ -73,8 +74,11 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
     async function resumeProjectTransfer(destinationId: string, operationId: string): Promise<boolean> {
         try {
             await checkFiles();
+            await ensureProjectHistoryLoaded(destinationId);
             const operation = getBoardRecord(destinationId)?.data.extensions.projectTransfers?.operations.find((entry) => entry.id === operationId);
             if (!operation) throw new TransferError('stale');
+            const source = getState().portfolioBoards.find((board) => board.data.extensions.project?.id === operation.from.projectId);
+            if (source) await ensureProjectHistoryLoaded(source.id);
             const complete = await finish(destinationId, operation);
             if (complete) for (const [key, value] of failedCopies) if (value.operationId === operationId) failedCopies.delete(key);
             await alert(t(complete ? 'transfer.complete' : 'transfer.pending'));
@@ -86,6 +90,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
         preparing = true;
         try {
             await checkFiles();
+            await ensureProjectHistoryLoaded(boardId);
             const source = getBoardRecord(boardId);
             const task = source?.data.board.tasks.find((item) => item.id === taskId);
             if (!source || !task || isBoardInHistoricalPreview(getState(), boardId) || ['conflict', 'watch-error'].includes(getState().projectSaveStateById.get(boardId)?.watchStatus || '') || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
@@ -110,6 +115,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             if (!eligible.length) throw new TransferError('unavailable');
             const destinationId = await choose(t('transfer.destinationHelp', { source: source.title }), eligible.map((board) => ({ value: board.id, label: board.title })), { title: t(`transfer.${mode}`), selectionLabel: t('transfer.destination'), requiredSelection: true });
             if (!destinationId) return false;
+            await ensureProjectHistoryLoaded(destinationId);
             const destination = getBoardRecord(destinationId)!;
             const hierarchy = children.length ? [task, ...children] : [];
             const rootFields = projectTransferFields(source.data, destination.data, task, '', hierarchy);

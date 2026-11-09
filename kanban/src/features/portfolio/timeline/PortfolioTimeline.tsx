@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { useProjectHistory } from '@/features/portfolio/hooks/useProjectHistory';
+import { getDirectoryProject } from '@/infrastructure/persistence/projectDirectory';
 import { flushSync } from 'react-dom';
 import type { PortfolioTimelineViewModel } from '@/features/portfolio/types';
 import type { TimelineEvent } from '@/domain/types';
@@ -55,12 +58,16 @@ function TimelineEventList({ view, onSelect }: {
     view: PortfolioTimelineViewModel;
     onSelect: (boardId: string, eventIndex: number) => void;
 }) {
-    const { language } = useI18n();
+    const { language, t } = useI18n();
+    const [visibleCount, setVisibleCount] = useState(100);
     const events = Array.isArray(view.timeline?.events) ? view.timeline.events : [];
+    const selected = view.selectedIndex ?? events.length - 1;
+    const start = Math.max(0, Math.min(events.length - visibleCount, selected - Math.floor(visibleCount / 2)));
+    const end = Math.min(events.length, start + visibleCount);
     return (
-        <div role="listbox" aria-label={`${view.boardTitle} timeline events`}>
-            {events.slice().reverse().map((event, indexFromEnd) => {
-                const index = events.length - 1 - indexFromEnd;
+        <><div role="listbox" aria-label={`${view.boardTitle} timeline events`}>
+            {events.slice(start, end).reverse().map((event, indexFromEnd) => {
+                const index = end - 1 - indexFromEnd;
                 return (
                     <button
                         className={`timeline-event-item${index === view.selectedIndex ? ' active' : ''}`}
@@ -79,7 +86,7 @@ function TimelineEventList({ view, onSelect }: {
                     </button>
                 );
             })}
-        </div>
+        </div>{visibleCount < events.length && <button type="button" className="btn" onClick={() => setVisibleCount((count) => count + 100)}>{t('projects.moreEvents')}</button>}</>
     );
 }
 
@@ -219,13 +226,21 @@ export function PortfolioTimeline() {
     const actions = usePortfolioActions();
     const view = useAppStore((state) => state.portfolioTimelineView);
     const boardId = view?.boardId || '';
+    const board = useAppStore((state) => state.portfolioBoards.find((entry) => entry.id === boardId));
+    const storage = getDirectoryProject(board?.handle);
+    const [requestedBoard, setRequestedBoard] = useState('');
+    const historyLoad = useProjectHistory(boardId, requestedBoard === boardId);
+    const deferred = storage && !storage.loaded;
     const className = boardId
         ? `timeline-panel active${view?.isExpanded ? '' : ' collapsed'}`
         : 'timeline-panel';
 
     return (
         <div className={className} id="portfolioTimelinePanel" data-board-id={boardId}>
-            {view && <PortfolioTimelineView view={view} actions={actions} />}
+            {historyLoad.error && <p role="alert">{historyLoad.error}</p>}
+            {deferred ? <button className="btn" type="button" disabled={historyLoad.loading} onClick={() => { if (requestedBoard === boardId) historyLoad.retry(); else setRequestedBoard(boardId); }}>{historyLoad.loading ? '…' : <HistoryLabel />}</button> : view && <PortfolioTimelineView view={view} actions={actions} />}
         </div>
     );
 }
+
+function HistoryLabel() { const { t } = useI18n(); return <>{t('projects.loadHistory')}</>; }

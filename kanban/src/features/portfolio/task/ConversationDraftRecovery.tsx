@@ -1,3 +1,4 @@
+import { AttachmentDownload } from './dialogs/AttachmentMedia';
 import { controlRecords } from '@/domain/projectControl';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { conversationWorkitemKey } from '@/domain/comments';
@@ -25,7 +26,7 @@ export function ConversationDraftRecovery() {
         {orphaned.map(([key, draft]) => <details key={key}><summary>{t('comments.orphanDraft', { title: draft.title })}</summary>
             <p>{t('comments.recoveryHelp')}</p><textarea aria-label={t('comments.recoveredText')} readOnly value={draft.text} rows={4} />
             <p>{draft.author} · {t('comments.localAuthor')}</p>
-            {draft.images.map((image) => <a key={image.id} href={image.dataUrl} download={image.name}>{t('common.download')} · {image.name}</a>)}
+            {draft.images.map((image) => <AttachmentDownload key={image.id} href={image.dataUrl} download={image.name}>{t('common.download')} · {image.name}</AttachmentDownload>)}
             <div className="comment-actions"><button className="btn" onClick={() => downloadCommentRecovery(draft)}>{t('comments.downloadRecovery')}</button><button className="btn" onClick={() => discardConversationDraft(key)}>{t('comments.discard')}</button></div>
         </details>)}
     </aside>;

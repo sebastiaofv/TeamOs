@@ -1,3 +1,4 @@
+import { ensureProjectHistoryLoaded } from '@/infrastructure/persistence/projectFiles';
 import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { workitemLabelFor } from '@/domain/taskIdentity';
 import type { BoardMutationContext } from './mutationContext';
@@ -18,6 +19,7 @@ export function createCommentActions({ getState, getBoardRecord, canUsePortfolio
         inFlight.add(input.id);
         let applied = false;
         try {
+            await ensureProjectHistoryLoaded(boardId);
             validateCommentInput(input);
             for (const image of input.images) await validateCommentImagePixels(image);
             await runPortfolioBoardMutation(boardId, (data) => {

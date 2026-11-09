@@ -55,7 +55,7 @@ export function normalizeBoardExtensionsValue(
     delete nextExtensions.conversationRefs;
     if (!includeTimeline) delete nextExtensions.conversations;
     else if (nextExtensions.conversations !== undefined || normalizeTimelineExtension(nextExtensions.timeline)?.events.some((event) => event.kind === 'task.comment.published')) {
-        const conversations = parseConversations(nextExtensions.conversations, normalizeTimelineExtension(nextExtensions.timeline)?.events);
+        const conversations = parseConversations(nextExtensions.conversations, nextExtensions.projectStorage ? null : normalizeTimelineExtension(nextExtensions.timeline)?.events);
         if (conversations) nextExtensions.conversations = conversations;
     }
     if (nextExtensions.workflow) nextExtensions.workflow = parseWorkflow(nextExtensions.workflow);

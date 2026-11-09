@@ -1,3 +1,5 @@
+import { getDirectoryProject, loadDirectoryHistory, mergeDirectoryTimeline, attachHistoryArchives } from './projectDirectory';
+import { parseConversations } from '@/domain/comments';
 import { inheritLegacyTaskIdentities } from '@/domain/taskIdentity';
 import type { BoardData, LooseBoardData } from '@/domain/types';
 // Project file persistence: save queueing and save/watch state.
@@ -340,14 +342,15 @@ export async function enqueueProjectSave(boardRecord: BoardRecord | null | undef
                 const before = await BoardRepository.readHandleSnapshot(current.handle);
                 if (before.fileMeta.textHash !== runtime.lastTextHash) continue;
                 updateProjectSaveState(boardId, { status: 'saving', lastErrorMessage: '' });
-                const text = JSON.stringify(payload, null, 2);
-                await writeJsonToFileHandle(current.handle, payload);
+                const written = await writeJsonToFileHandle(current.handle, payload);
+                const savedPayload = written?.data || payload;
+                const text = written?.text || JSON.stringify(payload, null, 2);
                 // Our base is exactly what we wrote, never what another writer
                 // may put on disk between close() and the verification read.
-                setBaseline(runtime, { parsed: payload, fileMeta: { textHash: hashTextContent(text), lastModified: 0, size: text.length } });
+                setBaseline(runtime, { parsed: savedPayload, fileMeta: { textHash: hashTextContent(text), lastModified: 0, size: text.length } });
                 const latest = getPortfolioBoardRecord(boardId);
                 if (!latest) return false;
-                publishData(boardId, latest.data === source ? payload : { ...latest.data, meta: { ...latest.data.meta, revision: payload.meta.revision } });
+                publishData(boardId, latest.data === source ? savedPayload : { ...latest.data, meta: { ...latest.data.meta, revision: payload.meta.revision } });
                 updateProjectSaveState(boardId, { savedRevision: targetRevision, lastSavedAt: nowIso() });
                 notifications?.postMessage({ projectId: payload.extensions.project?.id });
                 const verification = await BoardRepository.readHandleSnapshot(current.handle);
@@ -403,4 +406,29 @@ export function retryProjectSave(boardId: string): boolean {
 export function projectHasUnsavedChanges(boardId: string): boolean {
     const state = getProjectSaveState(boardId, { create: false });
     return Boolean(state && state.revision > state.savedRevision);
+}
+
+/** Hydration is a read, never a mutation or a new recovery revision. */
+export async function ensureProjectHistoryLoaded(boardId: string): Promise<void> {
+    let board = getPortfolioBoardRecord(boardId);
+    const storage = getDirectoryProject(board?.handle);
+    if (!board?.handle || !storage || storage.loaded) return;
+    const runtime = getProjectFileState(boardId)!;
+    if (runtime.inFlight) await runtime.inFlight;
+    const persisted = await loadDirectoryHistory(board.handle);
+    board = getPortfolioBoardRecord(boardId);
+    if (!persisted || !board) return;
+    const timeline = mergeDirectoryTimeline(persisted, board.data.extensions.timeline, false);
+    parseConversations(board.data.extensions.conversations, timeline.events);
+    const hydrated = cloneSerializable(board.data);
+    hydrated.extensions.timeline = timeline;
+    attachHistoryArchives(hydrated, storage.archives);
+    BoardRepository.validate(hydrated);
+    storage.loaded = true;
+    if (runtime.base) {
+        runtime.base = { ...runtime.base, extensions: { ...runtime.base.extensions, timeline: persisted } };
+        attachHistoryArchives(runtime.base, storage.archives);
+    }
+    publishData(boardId, hydrated);
+    useAppStore.setState({ portfolioTimelineSelection: { boardId, eventIndex: Math.max(0, timeline.events.length - 1) } });
 }
