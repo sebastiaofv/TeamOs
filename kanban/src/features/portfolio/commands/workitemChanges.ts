@@ -14,6 +14,7 @@ import type { BoardData } from '@/domain/types';
 import type { BoardMutationOptions, BoardMutator } from './mutationContext';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { cloneSerializable } from '@/domain/serializable';
+import { cloneBoardCurrentState, cloneBoardForMutation } from '@/domain/boardMutation';
 import { resolveHierarchyAutomations } from './hierarchyAutomationChanges';
 import { assertWorkitems, childrenOf, effectivePlanning, syncWorkitemPlanning, workitemType, WorkitemError } from '@/domain/workitems';
 import { appendTimelineEvent, captureTaskTimelineSnapshot, ensureBoardTimelineBaseline, recordTaskTimelineEvent, createTimelineEventId } from '@/domain/timeline';
@@ -35,12 +36,13 @@ type Interaction = Required<Pick<BoardMutationOptions, 'alert' | 'confirm' | 'pr
  * Without user interaction, publication remains synchronous up to the disk write.
  */
 export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMutator, { taskId, confirmSprintAllocation = true, isCurrent, confirm, prompt, publish }: Interaction): Promise<boolean> {
-    const draft = { ...current, data: cloneSerializable(current.data) };
+    const draft = { ...current, data: cloneBoardForMutation(current.data) };
+    const currentTasks = new Map(current.data.board.tasks.map((task) => [task.id, task]));
     ensureBoardTimelineBaseline(draft.data);
     const firstEvent = draft.data.extensions.timeline?.events.length || 0;
     const beforeTask = taskId === undefined ? null : captureTaskTimelineSnapshot(draft.data, taskId);
     if (mutator(draft.data, draft) === false) return false;
-    for (const bug of draft.data.board.tasks.filter((task) => task.type === 'bug' && !current.data.board.tasks.some((before) => before.id === task.id))) {
+    for (const bug of draft.data.board.tasks.filter((task) => task.type === 'bug' && !currentTasks.has(task.id))) {
         const id = nextTaskIdForBoard({ data: draft.data });
         draft.data.board.tasks.push(normalizeTask({ id, type: 'task', parentId: bug.id, title: bug.title,
             description: bug.description, status: getWorkflow(draft.data, { type: 'task' }).entryStateId,
@@ -48,7 +50,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
             dueDate: bug.dueDate, sprintId: bug.sprintId, phaseMode: 'inherit', milestoneMode: 'inherit',
             createdAt: bug.createdAt, updatedAt: bug.updatedAt }, { includeStatusChangedAt: false, workflow: getWorkflow(draft.data, { type: 'task' }) }));
     }
-    ensurePermanentTaskIdentities({ ...draft.data, board: { ...draft.data.board, tasks: draft.data.board.tasks.filter((task) => !current.data.board.tasks.some((previous) => previous.id === task.id)) } });
+    ensurePermanentTaskIdentities({ ...draft.data, board: { ...draft.data.board, tasks: draft.data.board.tasks.filter((task) => !currentTasks.has(task.id)) } });
     const boardSnapshotRecorded = draft.data.extensions.timeline?.events.slice(firstEvent).some((event) => Boolean(event.snapshot?.board));
     const existingIds = new Set(current.data.board.tasks.map((task) => task.id));
     const createdTasks = draft.data.board.tasks.filter((task) => !boardSnapshotRecorded && !existingIds.has(task.id) && !task.displayId);
@@ -92,7 +94,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
         recordTaskTimelineEvent(draft.data, captureTaskTimelineSnapshot(current.data, task.id), null);
     }
     if (removeDeletedControlLinks(draft.data, current.data, lastCommentAuthor(current.id))) appendTimelineEvent(draft.data, { kind: 'board.control.associations', entityType: 'board', entityId: 'board', summary: 'Project Control associations updated after element deletion', snapshot: createBoardStateSnapshot(draft.data) });
-    const stage = cloneSerializable(draft.data);
+    const stage = cloneBoardCurrentState(draft.data);
     syncWorkitemPlanning(draft.data, current.data);
     assertWorkitems(draft.data, current.data);
     const previews: WorkitemReview['rows'] = [];
@@ -168,6 +170,7 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     if (!boardSnapshotRecorded) for (const task of draft.data.board.tasks) {
         const before = beforeTasks.get(task.id);
         if (!before) continue;
+        if (JSON.stringify(before) === JSON.stringify(task)) continue;
         const event = recordTaskTimelineEvent(draft.data, captureTaskTimelineSnapshot(current.data, task.id), captureTaskTimelineSnapshot(draft.data, task.id));
         if (event && task.acceptance && !before.acceptance) event.meta = { ...event.meta, author: task.acceptance.author };
     }

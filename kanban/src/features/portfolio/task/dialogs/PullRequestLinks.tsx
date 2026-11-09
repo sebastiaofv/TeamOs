@@ -20,13 +20,16 @@ export function PullRequestLinks({ value, onChange, readOnly = false, draft = fa
     const editButtonRefs = useRef(new Map<number, HTMLButtonElement>());
     const returnFocusIndex = useRef<number | null>(null);
     useLayoutEffect(() => {
+        if (editing !== null) inputRef.current?.focus();
+    }, [editing]);
+    useLayoutEffect(() => {
         if (editing !== null || busy || returnFocusIndex.current === null) return;
         const index = returnFocusIndex.current;
         returnFocusIndex.current = null;
         (index < 0 ? addButtonRef.current : editButtonRefs.current.get(index))?.focus();
     }, [editing, busy]);
     const clear = () => { setEditing(null); setInput(''); setError(null); };
-    const start = (index: number) => { returnFocusIndex.current = index; setInput(index < 0 ? '' : value[index]); setEditing(index); setError(null); requestAnimationFrame(() => inputRef.current?.focus()); };
+    const start = (index: number) => { returnFocusIndex.current = index; setInput(index < 0 ? '' : value[index]); setEditing(index); setError(null); };
     async function confirm() {
         if (editing === null || readOnly || busyRef.current) return;
         let next: string[];

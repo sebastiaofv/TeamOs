@@ -9,6 +9,19 @@ import { TIMELINE_VERSION } from './constants';
 import { cloneSerializable } from './serializable';
 import { isRecord, normalizeTimestamp } from './util';
 
+// Only internal, normalized timelines take the read path. Import/save validators
+// still call normalizeTimelineExtension and validate every event explicitly.
+const normalizedTimelines = new WeakSet<TimelineExtension>();
+
+export function rememberNormalizedTimeline(timeline: TimelineExtension): TimelineExtension {
+    normalizedTimelines.add(timeline);
+    return timeline;
+}
+
+export function isNormalizedTimeline(value: unknown): value is TimelineExtension {
+    return typeof value === 'object' && value !== null && normalizedTimelines.has(value as TimelineExtension);
+}
+
 export function normalizeTimelineChanges(changes: unknown): TimelineChanges | null {
     if (!isRecord(changes)) return null;
     const entries = Object.entries(changes);
@@ -74,9 +87,9 @@ export function normalizeTimelineExtension(value: unknown): TimelineExtension | 
     }
     const baselineEventId = typeof value.baselineEventId === 'string' ? value.baselineEventId.trim() : '';
     const fallbackBaselineId = events[0]?.id || '';
-    return {
+    return rememberNormalizedTimeline({
         version: TIMELINE_VERSION,
         baselineEventId: baselineEventId || fallbackBaselineId,
         events
-    };
+    });
 }

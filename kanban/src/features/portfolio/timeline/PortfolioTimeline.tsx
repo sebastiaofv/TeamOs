@@ -238,9 +238,9 @@ export function PortfolioTimeline() {
     return (
         <div className={className} id="portfolioTimelinePanel" data-board-id={boardId}>
             {historyLoad.error && <p role="alert">{historyLoad.error}</p>}
-            {deferred ? <button className="btn" type="button" disabled={historyLoad.loading} onClick={() => { if (requestedBoard === boardId) historyLoad.retry(); else setRequestedBoard(boardId); }}>{historyLoad.loading ? '…' : <HistoryLabel />}</button> : view && <PortfolioTimelineView view={view} actions={actions} />}
+            {deferred ? <button className="btn" type="button" disabled={historyLoad.loading} onClick={() => { if (requestedBoard === boardId) historyLoad.retry(); else setRequestedBoard(boardId); }}><HistoryLabel loading={historyLoad.loading} /></button> : view && <PortfolioTimelineView view={view} actions={actions} />}
         </div>
     );
 }
 
-function HistoryLabel() { const { t } = useI18n(); return <>{t('projects.loadHistory')}</>; }
+function HistoryLabel({ loading = false }: { loading?: boolean }) { const { t } = useI18n(); return <>{loading && <span className="save-spinner" aria-hidden="true" />}{t(loading ? 'history.loading' : 'projects.loadHistory')}</>; }

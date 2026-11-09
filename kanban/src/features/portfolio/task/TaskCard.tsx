@@ -2,7 +2,7 @@ import { TaskTransferMenu } from './TaskTransferMenu';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { workitemType, workitemProgress } from '@/domain/workitems';
-import { useState, useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
+import { memo, useState, useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import type { useDraggable } from '@dnd-kit/core';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
@@ -34,6 +34,19 @@ export type CardDrag = {
     isDragging: boolean;
 };
 
+/** Selection changes only affect the previously selected and next selected card. */
+export function sameTaskCardState(before: TaskCardState, after: TaskCardState, item: PortfolioRow): boolean {
+    const selected = (state: TaskCardState) => state.selectedPortfolioCardRef?.boardId === item.boardId
+        && Number(state.selectedPortfolioCardRef.taskId) === Number(item.taskId);
+    const bulkSelected = (state: TaskCardState) => (state.portfolioBulkSelectionByBoardId[item.boardId] || []).includes(Number(item.taskId));
+    return before.selectedPortfolioBoardId === after.selectedPortfolioBoardId
+        && before.portfolioFilters.search === after.portfolioFilters.search
+        && before.suppressPortfolioCardClickUntil === after.suppressPortfolioCardClickUntil
+        && before.portfolioBoards.find((board) => board.id === item.boardId) === after.portfolioBoards.find((board) => board.id === item.boardId)
+        && selected(before) === selected(after)
+        && bulkSelected(before) === bulkSelected(after);
+}
+
 function HighlightedTitle({ text = '', searchTerm }: { text?: string; searchTerm: string }) {
     const term = String(searchTerm || '').trim();
     if (!term) return text;
@@ -55,7 +68,7 @@ function selectedBulkTaskIds(state: Pick<AppState, 'portfolioBulkSelectionByBoar
 // `drag` comes from DraggableTaskCard on the board ({ setNodeRef, listeners,
 // isDragging }); other views pass none. `overlay` renders the copy that
 // follows the pointer while a card is dragged.
-export function PortfolioTaskCard({ item, state, drag = null, overlay = false }: {
+export const PortfolioTaskCard = memo(function PortfolioTaskCard({ item, state, drag = null, overlay = false }: {
     item: PortfolioRow;
     state: TaskCardState;
     drag?: CardDrag | null;
@@ -230,4 +243,9 @@ export function PortfolioTaskCard({ item, state, drag = null, overlay = false }:
 
         </article>
     );
-}
+}, (before, after) => before.item === after.item && before.overlay === after.overlay
+    && before.drag?.isDragging === after.drag?.isDragging
+    && before.drag?.setNodeRef === after.drag?.setNodeRef
+    && before.drag?.attributes === after.drag?.attributes
+    && before.drag?.listeners === after.drag?.listeners
+    && sameTaskCardState(before.state, after.state, after.item));

@@ -246,3 +246,52 @@ describe('project directory persistence', () => {
         expect(createPortfolioRecord({ data: createEmptyProjectData('Normal legacy') }).title).toBe('Normal legacy');
     });
 });
+
+describe('loaded-history performance', () => {
+    it('externalizes new history entries without walking already persisted event payloads', async () => {
+        const { directory } = await fixture();
+        const handle = await openProjectDirectory(directory);
+        const record = await BoardRepository.createRecordFromHandle(handle);
+        useAppStore.setState({ portfolioBoards: [record] }); syncProjectSaveStates();
+        await refreshProjectFileBaseline(record);
+        await ensureProjectHistoryLoaded(record.id);
+        const data = useAppStore.getState().portfolioBoards[0].data;
+        appendTimelineEvent(data, { id: 'delta', kind: 'board.settings.updated', entityType: 'board', entityId: 'board', summary: 'New title', changes: { title: { before: data.board.settings.title, after: 'Changed' } } });
+        data.board.settings.title = 'Changed';
+        const old = data.extensions.timeline!.events.find((event) => event.id === 'old-event')!;
+        const changes = old.changes;
+        let reads = 0;
+        Object.defineProperty(old, 'changes', { enumerable: true, get: () => { reads++; return changes; } });
+        await writeJsonToFileHandle(handle, data);
+        expect(reads).toBe(0);
+        expect((await loadDirectoryHistory(handle))!.events.map((event) => event.id)).toEqual([expect.stringContaining('baseline_'), 'old-event', 'delta']);
+    });
+
+    it('coalesces simultaneous history consumers into one load', async () => {
+        const { directory, history } = await fixture();
+        const handle = await openProjectDirectory(directory);
+        const record = await BoardRepository.createRecordFromHandle(handle);
+        useAppStore.setState({ portfolioBoards: [record] }); syncProjectSaveStates();
+        await refreshProjectFileBaseline(record);
+        await Promise.all([ensureProjectHistoryLoaded(record.id), ensureProjectHistoryLoaded(record.id)]);
+        expect(history.fullReads).toBe(1);
+        expect(getDirectoryProject(handle)!.loaded).toBe(true);
+    });
+
+    it('allows retry after a shared history load fails', async () => {
+        const { directory, history } = await fixture();
+        const original = history.text();
+        history.setText('invalid JSON');
+        const handle = await openProjectDirectory(directory);
+        const record = await BoardRepository.createRecordFromHandle(handle);
+        useAppStore.setState({ portfolioBoards: [record] }); syncProjectSaveStates();
+        await refreshProjectFileBaseline(record);
+        const failed = await Promise.allSettled([ensureProjectHistoryLoaded(record.id), ensureProjectHistoryLoaded(record.id)]);
+        expect(failed.map((result) => result.status)).toEqual(['rejected', 'rejected']);
+        expect(getDirectoryProject(handle)!.loaded).toBe(false);
+        history.setText(original);
+        await ensureProjectHistoryLoaded(record.id);
+        expect(history.fullReads).toBe(2);
+        expect(getDirectoryProject(handle)!.loaded).toBe(true);
+    });
+});

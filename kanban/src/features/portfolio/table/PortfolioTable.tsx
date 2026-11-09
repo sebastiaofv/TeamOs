@@ -58,7 +58,7 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     const { t } = useI18n();
     const [view, setView] = useState<TableView>('all');
     const today = useLocalToday();
-    const groups = useMemo(() => buildSprintTableGroups(currentSprintRosters(boardData, sourceRows), today), [boardData, sourceRows, today]);
+    const groups = useMemo(() => view === 'sprints' ? buildSprintTableGroups(currentSprintRosters(boardData, sourceRows), today) : [], [view, boardData, sourceRows, today]);
     const viewLabels = { hierarchy: 'workitems.hierarchyAll', epics: 'workitems.type.epic', stories: 'workitems.stories', independent: 'workitems.independent', all: 'workitems.all', unplanned: 'table.unplannedWorkitems', sprints: 'table.sprints' } as const;
     return <section id="portfolioTable" className={`portfolio-table${hidden ? ' hidden' : ''}`} aria-labelledby="tableTitle">
         <h2 id="tableTitle" className="sr-only">{t('table.title', { project })}</h2>

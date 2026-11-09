@@ -85,7 +85,7 @@ function normalizeSelection(state: AppState) {
 // so its cached projections are only read once they exist.
 export function buildPortfolioDerivedState(state: AppState, previous: Partial<AppState> = {}): DerivedState {
     const changed = (...keys: (keyof AppState)[]) => keys.some((key) => state[key] !== previous[key]);
-    const portfolioTasks = changed('portfolioBoards') ? buildPortfolioTasks(state) : previous.portfolioTasks!;
+    const portfolioTasks = changed('portfolioBoards') ? buildPortfolioTasks(state, previous.portfolioTasks) : previous.portfolioTasks!;
     const filters = changed('portfolioBoards', 'portfolioFilters')
         ? normalizePortfolioFilters({ ...state, portfolioTasks }) : previous.portfolioFilters!;
     const portfolioFilters = previous.portfolioFilters

@@ -5,14 +5,22 @@ import { getWorkflow } from '@/domain/workflow';
 import { workitemType } from '@/domain/workitems';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { translateCurrent as t } from '@/shared/i18n';
+import { cloneBoardCurrentState } from '@/domain/boardMutation';
 import type { ConfirmOptions } from '@/app/overlays/appMessages';
 
 /** One review for all possible cascades, followed by evaluation using only actual
  * decisions. Rejecting the review keeps the original child action intact. */
 export function resolveHierarchyAutomations(data: BoardData, previous: BoardData, confirm: (text: string, options?: ConfirmOptions) => unknown) {
-    const preview = applyHierarchyAutomations(structuredClone(data), previous, () => true);
+    const previousTasks = new Map(previous.board.tasks.map((task) => [task.id, task]));
+    const closures = new Set(previous.extensions.sprintResults?.closures.map((entry) => entry.sprintId));
+    const hasNewClosure = data.extensions.sprintResults?.closures.some((entry) => !closures.has(entry.sprintId));
+    if (!hasNewClosure && data.board.tasks.length === previous.board.tasks.length && data.board.tasks.every((task) => {
+        const before = previousTasks.get(task.id);
+        return before && before.status === task.status && before.parentId === task.parentId;
+    })) return;
+    const preview = applyHierarchyAutomations(cloneBoardCurrentState(data), previous, () => true);
     // Rejection can leave an upper parent eligible for a different transition.
-    const rejectedPreview = preview.some((effect) => effect.mode === 'confirm') ? applyHierarchyAutomations(structuredClone(data), previous, () => false) : [];
+    const rejectedPreview = preview.some((effect) => effect.mode === 'confirm') ? applyHierarchyAutomations(cloneBoardCurrentState(data), previous, () => false) : [];
     const proposals = [...new Map([...preview, ...rejectedPreview].filter((effect) => effect.mode === 'confirm' && effect.outcome !== 'blocked').map((effect) => [automationEffectKey(effect), effect])).values()];
     const reviewed = new Set(proposals.map(automationEffectKey));
     const state = (id: number, status: string) => getWorkflow(data, data.board.tasks.find((task) => task.id === id)).states.find((state) => state.id === status)?.name || status;
@@ -37,7 +45,7 @@ export function resolveHierarchyAutomations(data: BoardData, previous: BoardData
         ] }))
     });
     const apply = (decision: unknown) => {
-        const before = structuredClone(data);
+        const before = cloneBoardCurrentState(data);
         const effects = applyHierarchyAutomations(data, previous, (effect) => {
             const key = automationEffectKey(effect);
             if (!reviewed.has(key)) return undefined;
