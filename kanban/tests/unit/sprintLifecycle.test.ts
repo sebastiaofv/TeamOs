@@ -394,9 +394,36 @@ describe('Sprint feedback: counts, deletion, Story Point indicators and start (U
         expect(alert).toHaveBeenCalledTimes(1);
         expect(data().extensions.roadmap!.sprints.map((sprint) => sprint.id)).toEqual(['s1', 's2']);
         await actions.deleteRoadmapEntity('sprints', 's2');
-        expect(confirm).toHaveBeenCalled();
+        expect(confirm).toHaveBeenCalledTimes(1);
+        expect(confirm.mock.calls[0][0]).not.toContain('task 7');
+        expect(confirm.mock.calls[0][1]?.workitems?.rows.map(row => row.title)).toEqual(['task 7']);
         expect(data().extensions.roadmap!.sprints.map((sprint) => sprint.id)).toEqual(['s1']);
         expect(data().board.tasks.find((task) => task.id === 7)).toMatchObject({ sprintId: '', status: 'to-do' });
+    });
+
+    it('keeps the Sprint and its workitems untouched when deletion is cancelled', async () => {
+        const { actions, data, save, confirm } = setup();
+        data().board.tasks.push(item(7, 'task', { sprintId: 's2', status: 'to-do' }));
+        const before = structuredClone(data());
+        confirm.mockResolvedValueOnce(false);
+        await actions.deleteRoadmapEntity('sprints', 's2');
+        expect(confirm).toHaveBeenCalledTimes(1);
+        expect(save).not.toHaveBeenCalled();
+        expect(data()).toEqual(before);
+    });
+
+    it('refuses deletion if the associated roster changes during its confirmation', async () => {
+        const { actions, data, save, confirm, alert } = setup();
+        data().board.tasks.push(item(7, 'task', { sprintId: 's2', status: 'to-do' }));
+        confirm.mockImplementationOnce(async () => {
+            data().board.tasks.push(item(8, 'task', { sprintId: 's2', status: 'to-do' }));
+            return true;
+        });
+        await actions.deleteRoadmapEntity('sprints', 's2');
+        expect(save).not.toHaveBeenCalled();
+        expect(alert).toHaveBeenCalledWith(expect.stringContaining('changed'));
+        expect(data().extensions.roadmap!.sprints.some(sprint => sprint.id === 's2')).toBe(true);
+        expect(data().board.tasks.filter(task => task.sprintId === 's2').map(task => task.id)).toEqual([7, 8]);
     });
 
     it('reports planned Story Points against capacity and, once Done, the frozen completed points', async () => {

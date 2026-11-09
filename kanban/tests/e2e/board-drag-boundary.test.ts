@@ -6,11 +6,14 @@ import { gotoApp, seedPortfolioBoards, portfolioCard, dragWithMouse, answerAppMe
 
 type BoardMode = 'technical' | 'functional';
 async function seedBoard(page: Page, mode: BoardMode, status: string) {
+    const workflow = defaultWorkflow();
     await seedPortfolioBoards(page, [{ id: 'edge', title: 'Board boundary', hasHandle: true,
-        extensions: { workflow: defaultWorkflow(), functionalWorkflow: defaultWorkflow() },
-        tasks: [{ id: 1, title: 'Boundary workitem', type: mode === 'functional' ? 'story' : 'task', status, acceptanceCriteria: 'Reviewed' }]
+        extensions: { workflow, functionalWorkflow: defaultWorkflow() },
+        // Occupied columns must retain their full width in the compact design.
+        tasks: [{ id: 1, title: 'Boundary workitem', type: mode === 'functional' ? 'story' : 'task', status, acceptanceCriteria: 'Reviewed' },
+            ...workflow.states.map((state, index) => ({ id: index + 2, title: `Context ${state.id}`, type: mode === 'functional' ? 'story' : 'task', status: state.id }))]
     }], { selectedBoardId: 'edge' });
-    await page.getByRole('button', { name: mode === 'functional' ? 'Functional Board' : 'Technical Board', exact: true }).click();
+    await page.getByRole('button', { name: mode === 'functional' ? 'Functional' : 'Technical', exact: true }).click();
     const columns = page.locator('.workitem-board-columns');
     expect(await columns.evaluate((node) => node.scrollWidth > node.clientWidth)).toBe(true);
     return columns;
@@ -31,10 +34,12 @@ for (const style of ['classic', 'modern']) {
             await page.addInitScript((style) => localStorage.setItem('teamOsKanbanThemeStyle', style), style);
             await gotoApp(page);
             const columns = await seedBoard(page, mode, 'done');
-            // A single checkbox label in an offscreen column must not enlarge the document.
+            // Offscreen cards and their accessible names must not enlarge the document.
             await expectPageWithinViewport(page);
             await columns.evaluate((node) => { node.scrollLeft = node.scrollWidth; });
-            await page.getByRole('checkbox', { name: 'Select Boundary workitem', exact: true }).check();
+            await portfolioCard(page, 'Boundary workitem').click();
+            await expect(portfolioCard(page, 'Boundary workitem')).toHaveClass(/selected/);
+            await page.keyboard.press('Escape');
             await expectPageWithinViewport(page);
             expect(await columns.evaluate((node) => node.scrollLeft)).toBeGreaterThan(0);
         });
@@ -72,7 +77,9 @@ for (const style of ['classic', 'modern']) {
         const columns = await seedBoard(page, 'functional', 'done');
         await expectPageWithinViewport(page);
         await columns.evaluate((node) => { node.scrollLeft = node.scrollWidth; });
-        await page.getByRole('checkbox', { name: 'Select Boundary workitem', exact: true }).check();
+        await portfolioCard(page, 'Boundary workitem').click();
+        await expect(portfolioCard(page, 'Boundary workitem')).toHaveClass(/selected/);
+        await page.keyboard.press('Escape');
         await expectPageWithinViewport(page);
     });
 }

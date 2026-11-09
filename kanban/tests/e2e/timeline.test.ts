@@ -1,18 +1,5 @@
-import { confirmWorkitemChanges } from '../support/portfolio';
+import { openTableSprintActions, confirmWorkitemChanges, gotoApp, showTimeline, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, portfolioCard, openTaskEditor, renameTaskViaEditor, setTimelineSlider, answerAppMessage, selectTableView } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
-
-import {
-  gotoApp,
-  showTimeline,
-  seedPortfolioBoards,
-  readSavedBoard,
-  waitForBoardWrites,
-  portfolioCard,
-  openTaskEditor,
-  renameTaskViaEditor,
-  setTimelineSlider,
-  answerAppMessage
-} from '../support/portfolio';
 
 test.describe('timeline', () => {
   test.beforeEach(async ({ page }) => {
@@ -32,9 +19,11 @@ test.describe('timeline', () => {
       ]
     }], { selectedBoardId: 'alpha' });
 
-    await portfolioCard(page, 'Task A').locator('input[type="checkbox"]').check();
-    await portfolioCard(page, 'Task B').locator('input[type="checkbox"]').check();
-    await page.getByRole('button', { name: 'Create Sprint' }).click();
+    await page.locator('[data-view-mode="table"]').click();
+    await selectTableView(page, 'unplanned');
+    for (const id of [1, 2]) await page.locator(`#workitemsTable [data-task-id="${id}"] input[type="checkbox"]`).check();
+    await openTableSprintActions(page);
+    await page.locator('#tableCreateSprint').click();
     await page.fill('#roadmapEntityTitle', 'Sprint 12');
     await page.fill('#roadmapEntityStartDate', '01/04/2026');
     await page.fill('#roadmapEntityEndDate', '14/04/2026');
@@ -44,6 +33,7 @@ test.describe('timeline', () => {
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
     // A later edit makes the bulk sprint event (index 1) historical, so the
     // preview below is reconstructed from the timeline rather than live state.
+    await page.locator('[data-view-mode="board"]').click();
     await renameTaskViaEditor(page, 'Task A', 'Task A later');
     await waitForBoardWrites(page, 2);
 
@@ -104,7 +94,7 @@ test.describe('timeline', () => {
 
     await page.locator('#milestoneWorkitemsModal .modal-close').click();
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
-    await page.locator('#milestoneWorkitemsModal .modal-footer summary').click();
+    await page.locator('#milestoneWorkitemsModal .modal-header summary').click();
     await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageSelection')).toHaveValue('0');
     await answerAppMessage(page, { button: 'Confirm' });
@@ -121,7 +111,7 @@ test.describe('timeline', () => {
       await setTimelineSlider(page, index);
       await viewMode('roadmap');
       const rows = page.locator('#portfolioRoadmapView .milestone-annotation');
-      const titles = (await rows.locator('.milestone-annotation-label strong').allTextContents()).map((text) => text.trim());
+      const titles = await rows.evaluateAll(nodes => nodes.map(node => node.getAttribute('aria-label')!.split(' · ')[0]));
       const usage: string[] = [];
       for (let index = 0; index < await rows.count(); index++) {
         await rows.nth(index).click();

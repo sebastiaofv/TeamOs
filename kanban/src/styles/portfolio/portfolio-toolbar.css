@@ -8,19 +8,6 @@
     flex-wrap: wrap;
 }
 
-.portfolio-toolbar-left,
-.portfolio-toolbar-right {
-    display: inline-flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.portfolio-toolbar-left {
-    flex: 1;
-    min-width: 0;
-}
-
 .portfolio-chips {
     padding: 10px 16px;
     border-bottom: 1px solid var(--border-light);
@@ -33,6 +20,8 @@
 }
 
 .portfolio-chip {
+    min-width: 0;
+    max-width: 100%;
     border: 1px solid var(--border);
     background: var(--chip-bg, var(--bg-card));
     border-color: var(--chip-border, var(--border));
@@ -62,12 +51,13 @@
     text-decoration: underline;
 }
 
+/* Project colors already supply a readable foreground for their chip surface. */
 .chip-link-danger {
-    color: var(--priority-high);
+    color: inherit;
 }
 
 .chip-link-danger:hover {
-    color: var(--priority-high);
+    color: inherit;
 }
 
 .chip-readonly-label {
@@ -96,17 +86,6 @@
 
 .chip-save-state.external {
     color: var(--accent);
-}
-
-.portfolio-toolbar input,
-.portfolio-toolbar select {
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    font-size: 12px;
-}
-
-.portfolio-toolbar input {
-    padding: 6px 12px;
 }
 
 .portfolio-view-toggle {
@@ -230,7 +209,7 @@
     color: var(--text-muted);
 }
 
-.portfolio-filters-field select {
+.portfolio-filters-field :is(select, input) {
     width: 100%;
     padding: 5px 8px;
     border: 1px solid var(--border);
@@ -239,7 +218,7 @@
     font-size: 12px;
 }
 
-.portfolio-filters-field select.changed {
+.portfolio-filters-field :is(select, input).changed {
     border-color: var(--accent);
     box-shadow: inset 0 0 0 1px var(--accent);
 }
@@ -330,21 +309,6 @@
         padding: 10px 12px;
     }
 
-    .portfolio-toolbar-left,
-    .portfolio-toolbar-right {
-        width: 100%;
-        gap: 8px;
-    }
-
-    .portfolio-toolbar-left .search-box {
-        flex: 1 1 100%;
-        max-width: none;
-    }
-
-    .portfolio-toolbar-right {
-        justify-content: space-between;
-    }
-
     .portfolio-chips {
         padding-inline: 12px;
     }
@@ -419,3 +383,7 @@
     .product-projects .chip-link[data-action="select-board"] { min-width: 0; overflow-wrap: anywhere; }
 }
 @media (prefers-reduced-motion: reduce) { .product-chevron { transition: none; } }
+
+.portfolio-chip > .chip-link[data-action="select-board"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.portfolio-filters-panel-head h2 { margin-right: auto; }

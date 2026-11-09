@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, confirmWorkitemChanges, answerAppMessage, installControlledPortfolioWriter } from '../support/portfolio';
+import { openTableSprintActions, gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, confirmWorkitemChanges, answerAppMessage, installControlledPortfolioWriter, openProjectPicker, selectTableView } from '../support/portfolio';
 
 test.beforeEach(async ({ page }) => { await gotoApp(page); });
 
@@ -40,7 +40,7 @@ test('the selected member is fixed for comments while work assignment remains ed
 
 test('Bug details and editing omit to-do lists and preserve existing checklist data', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Bugs', hasHandle: true, tasks: [{ id: 1, title: 'Bug', type: 'bug', status: 'to-do', checklist: [{ text: 'Legacy checklist', done: false }] }] }], { selectedBoardId: 'p' });
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await portfolioCard(page, 'Bug').click();
     await expect(page.locator('#taskDetailModal').getByText('Legacy checklist', { exact: true })).toHaveCount(0);
     await page.screenshot({ path: '/tmp/teamos54-bug-details.png' });
@@ -55,8 +55,9 @@ test('Bug details and editing omit to-do lists and preserve existing checklist d
 for (const phaseChoice of ['keep', 'update'] as const) test(`creating a Sprint closes the editor after the phase-date decision (${phaseChoice})`, async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Phase dates', hasHandle: true, tasks: [{ id: 1, title: 'Plan this', type: 'story', status: 'to-do', phaseId: 'phase', phaseMode: 'explicit' }, { id: 2, title: 'Execution', parentId: 1, status: 'to-do', phaseMode: 'inherit' }], extensions: { roadmap: { version: 5, milestones: [], sprints: [], phases: [{ id: 'phase', title: 'Delivery', startDate: '2026-11-01', endDate: '2026-11-10' }] } } }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Delivery Sprint');
     await page.locator('#roadmapEntityStartDate').pressSequentially('05112026');
@@ -69,7 +70,7 @@ for (const phaseChoice of ['keep', 'update'] as const) test(`creating a Sprint c
     await page.locator('#appMessageSelection-0').selectOption(phaseChoice);
     await installControlledPortfolioWriter(page, { boardId: 'p', holdWrites: true });
     await answerAppMessage(page, { button: 'Confirm' });
-    await expect(page.locator('.chip-save-state.saving')).toBeVisible();
+    await expect(page.locator('.header-project-picker > .chip-save-state.saving')).toBeVisible();
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
     await page.evaluate(() => window.__releaseNextPortfolioWrite!());
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap?.sprints.length ?? 0).toBe(1);
@@ -81,8 +82,9 @@ for (const phaseChoice of ['keep', 'update'] as const) test(`creating a Sprint c
 test('creating a Sprint from a Story and its Tasks requires no extra allocation confirmation', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Sprint creation', hasHandle: true, tasks: [{ id: 1, title: 'Story', type: 'story', status: 'to-do' }, { id: 2, title: 'Child', parentId: 1, status: 'to-do' }] }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable tr[data-task-id="1"] input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('New Sprint');
     await page.locator('#roadmapEntityStartDate').pressSequentially('05112026');
@@ -100,17 +102,18 @@ test('creating a Sprint from a Story and its Tasks requires no extra allocation 
 test('retrying a failed Sprint save keeps the same Sprint and never reopens its creation form', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Save retry', hasHandle: true, tasks: [{ id: 1, title: 'Task', status: 'to-do' }] }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode="table"]').click();
-    await page.locator('[data-table-view="unplanned"]').click();
+    await selectTableView(page, 'unplanned');
     await page.locator('#workitemsTable tbody input[type="checkbox"]').check();
+    await openTableSprintActions(page);
     await page.locator('#tableCreateSprint').click();
     await page.locator('#roadmapEntityTitle').fill('Single Sprint');
     await page.locator('#roadmapEntityStartDate').fill('05/11/2026');
     await page.locator('#roadmapEntityEndDate').fill('20/11/2026');
     await installControlledPortfolioWriter(page, { boardId: 'p', failWrites: 1 });
     await page.locator('#roadmapEntityModalSaveBtn').click();
-    await expect(page.locator('.chip-save-state.error')).toBeVisible();
+    await expect(page.locator('.header-project-picker > .chip-save-state.error')).toBeVisible();
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
-    await page.getByRole('button', { name: 'Retry', exact: true }).click();
+    await openProjectPicker(page); await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap?.sprints.length ?? 0).toBe(1);
     await expect(page.locator('#roadmapEntityModal')).toBeHidden();
 });

@@ -12,7 +12,7 @@ import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
 
-type Props = { boardId: string; data: BoardData; source: BoardData; start: string; end: string; visible: DashboardSection[]; inspect: (name: string, tasks: Task[], data?: BoardData) => void; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
+type Props = { dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; start: string; end: string; visible: DashboardSection[]; inspect: (name: string, tasks: Task[], data?: BoardData) => void; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
 function Progress({ value, label }: { value: number | null; label: string }) {
     return <progress className="dashboard-progress" max={100} value={value ?? 0} aria-label={label} />;
 }
@@ -29,13 +29,13 @@ function Workitems({ tasks, data, boardId, contexts }: { tasks: Task[]; data: Bo
     </tbody></table></div>;
 }
 
-export function DashboardOverview({ boardId, data, source, start, end, visible, inspect, openRoadmap }: Props) {
+export function DashboardOverview({ dependencyBlockedIds, boardId, data, source, start, end, visible, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
     const actions = usePortfolioActions();
     const [control, setControl] = useState<ControlRecord | null>(null);
     const { metrics, planning, statistics, period, current, controls, sprints, epics } = useMemo(() => {
         const tasks = dashboardTasks(data);
-        const metrics = dashboardMetrics(data, tasks, end);
+        const metrics = dashboardMetrics(data, tasks, end, dependencyBlockedIds);
         const planning = dashboardOverviewPlanning(data, '', end);
         const statistics = dashboardStatistics(data, '');
         const period = dashboardPeriodWorkitems(source, data, '', start, end);
@@ -43,17 +43,17 @@ export function DashboardOverview({ boardId, data, source, start, end, visible, 
         const controls = dashboardControl(data, '', start, end);
         const sprints = dashboardActiveSprints(data, end);
         return { metrics, planning, statistics, period, current, controls, sprints, epics: dashboardEpics(data) };
-    }, [data, source, start, end]);
+    }, [data, source, start, end, dependencyBlockedIds]);
     const percent = (value: number | null) => value === null ? t('dashboard.na') : `${new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(value)}%`;
     const warning = <span className="dashboard-warning">⚠ {t('dashboard.overdue')}</span>;
     const situation = (value: 'overdue' | 'late' | 'onTarget') => <span className={`dashboard-badge dashboard-situation-${value}`}>{t(`dashboard.${value}`)}</span>;
     return <div className="dashboard-section-grid">
         {visible.includes('projectProgress') && <section className="dashboard-panel dashboard-third dashboard-project-progress" data-dashboard-section="projectProgress"><h3>{t('dashboard.projectProgress')}</h3>
-            <button type="button" className="dashboard-progress-button" data-dashboard-kpi="progress" onClick={() => inspect(t('dashboard.progress'), metrics.eligible)}>
+            <div className="dashboard-progress-summary"><button type="button" className="dashboard-progress-button" data-dashboard-kpi="progress" onClick={() => inspect(t('dashboard.progress'), metrics.eligible)}>
                 <strong>{percent(metrics.progress.percent)}</strong>
                 <Progress value={metrics.progress.percent} label={t('dashboard.projectProgress')} />
                 <small>{t('dashboard.progressRule', { done: metrics.completed.length, total: metrics.eligible.length })}</small>
-            </button>
+            </button><button type="button" className="dashboard-progress-button" data-dashboard-kpi="blocked" onClick={() => inspect(t('dashboard.blockedWorkitems'), metrics.blocked)}><strong>{metrics.blocked.length}</strong><small>{t('dashboard.blockedWorkitems')}</small></button></div>
         </section>}
         {visible.includes('activePhases') && <section className="dashboard-panel dashboard-third" data-dashboard-section="activePhases"><h3>{t('dashboard.section.activePhases')}</h3>
             {!planning.phases.length ? <p>{t('dashboard.noOpenPhases')}</p> : <div className="dashboard-widget-list">{planning.phases.map((group) => <article className="dashboard-planning-row" key={group.item.id} data-dashboard-planning={group.item.id}>

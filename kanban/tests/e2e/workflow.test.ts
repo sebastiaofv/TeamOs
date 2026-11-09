@@ -1,7 +1,7 @@
-import { confirmWorkitemChanges } from '../support/portfolio';
+import { confirmWorkitemChanges, openProjectSettingsFromPicker, gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, dragWithMouse, answerAppMessage, openProjectPicker } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, dragWithMouse, answerAppMessage } from '../support/portfolio';
+
 
 test('workflow settings remain draft-based and renamed states keep their own columns', async ({ page }) => {
     await gotoApp(page);
@@ -9,14 +9,14 @@ test('workflow settings remain draft-based and renamed states keep their own col
     await expect(page.locator('.portfolio-column[data-status="backlog"]')).toHaveCount(1);
     await dragWithMouse(page, portfolioCard(page, 'Intake').locator('.task-title'), page.locator('#portfolio-to-do-column'));
     await expect(portfolioCard(page, 'Intake')).toHaveAttribute('data-status', 'to-do');
-    await page.getByRole('button', { name: /^Settings for / }).click();
+    await openProjectSettingsFromPicker(page);
     await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     const dialog = page.getByRole('dialog');
     await dialog.locator('[data-state-choice="to-do"]').click();
     await dialog.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
     await expect(page.locator('#portfolio-to-do-heading')).toContainText('To Do');
-    await page.getByRole('button', { name: /^Settings for / }).click();
+    await openProjectSettingsFromPicker(page);
     await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await dialog.locator('[data-state-choice="to-do"]').click();
     await dialog.getByRole('textbox', { name: 'Title 2', exact: true }).fill('Ready');
@@ -35,7 +35,7 @@ test('same-category state columns support repeated testing cycles without new ca
         await dragWithMouse(page, portfolioCard(page, 'Business validation ready').locator('.task-title'), page.locator(`[id="portfolio-${status}-column"]`));
         await expect(portfolioCard(page, 'Business validation ready')).toHaveAttribute('data-status', status);
     }
-    await portfolioCard(page, 'Business validation ready').getByRole('button', { name: 'Edit', exact: true }).click();
+    await portfolioCard(page, 'Business validation ready').click(); await page.locator('#taskDetailEditBtn').click();
     await expect(page.locator('#taskName')).toHaveValue('Business validation ready');
     await expect(page.locator('.task-workflow-header, .task-workflow-controls')).toHaveCount(0);
     const saved = await readSavedBoard(page, 'p');
@@ -55,7 +55,7 @@ test('drops use the exact destination state in both project and aggregate boards
     await expect(portfolioCard(page, 'Unplanned intake')).toHaveAttribute('data-status', 'to-do');
     await dragWithMouse(page, portfolioCard(page, 'Unplanned intake').locator('.task-title'), page.locator('#portfolio-doing-column'));
     await expect(portfolioCard(page, 'Unplanned intake')).toHaveAttribute('data-status', 'doing');
-    await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click();
+    await openProjectPicker(page); await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click();
     await expect(page.locator('.portfolio-column')).toHaveCount(4);
     await dragWithMouse(page, portfolioCard(page, 'Unplanned intake').locator('.task-title'), page.locator('#portfolio-done-column'));
     await expect(portfolioCard(page, 'Unplanned intake')).toHaveAttribute('data-status', 'done');
@@ -68,7 +68,7 @@ test('terminal reopening is still configurable without changing the card appeara
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await dragWithMouse(page, portfolioCard(page, 'Delivered work').locator('.task-title'), page.locator('#portfolio-doing-column'));
     await answerAppMessage(page, { expectText: 'not allowed' });
-    await page.getByRole('button', { name: /^Settings for / }).click();
+    await openProjectSettingsFromPicker(page);
     await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
     await page.locator('[data-state-choice="done"]').click();
     await page.locator('[data-workflow-state="done"]').getByRole('checkbox', { name: 'In progress', exact: true }).check();

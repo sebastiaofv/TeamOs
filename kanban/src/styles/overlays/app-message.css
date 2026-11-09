@@ -27,7 +27,7 @@
     border-color: var(--priority-high);
 }
 
-.btn-danger:hover {
+.btn-danger:not(:disabled):hover {
     background: var(--priority-high);
     border-color: var(--priority-high);
     filter: brightness(0.92);
@@ -145,4 +145,23 @@
     .workitem-review-transition { grid-column: 1 / -1; grid-row: auto; }
     .workitem-review-row select { grid-column: 1 / -1; grid-row: auto; width: 100%; }
     .workitem-review-reason { grid-column: 1 / -1; }
+}
+
+/* Phase dates are a phase-level decision; affected workitems follow underneath. */
+#appMessageModal .has-phase-date-review { max-width: 1040px; }
+.phase-date-review-group { padding: 16px; border: 1px solid var(--border-light); }
+.phase-date-review-group + .phase-date-review-group { margin-top: 16px; }
+.phase-date-review-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr); align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-light); }
+.phase-date-review-summary { min-width: 0; }
+.phase-date-review-summary h3 { margin-bottom: 10px; overflow-wrap: anywhere; line-height: 1.5; }
+.phase-date-review-dates { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; font-size: 12px; line-height: 1.5; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.phase-date-review-dates > span:first-child, .phase-date-review-dates > strong { white-space: nowrap; }
+.phase-date-review-dates strong { color: var(--text-primary); font-weight: 600; }
+.phase-date-review-heading select { width: 100%; min-width: 0; max-width: none; min-height: 34px; padding: 6px 28px 6px 8px; border: 1px solid var(--border); background-color: var(--bg-card); color: var(--text-primary); font-size: 12px; font-variant-numeric: tabular-nums; }
+.phase-date-review .workitem-review-row { grid-template-columns: auto auto minmax(0, 1fr); }
+.phase-date-review .workitem-review-row:last-child { border-bottom: 0; padding-bottom: 0; }
+@media (max-width: 800px) {
+    .phase-date-review-group { padding: 12px; }
+    .phase-date-review-heading { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .phase-date-review-heading select { padding-inline: 8px; }
 }

@@ -1,5 +1,7 @@
+import { useBoardColumnLayout } from './useBoardColumnLayout';
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
+import { PortfolioQueryControls } from '@/features/portfolio/shell/PortfolioQueryControls';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
-import { PortfolioToolbarFilters } from '@/features/portfolio/shell/PortfolioFilters';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { memo, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -26,7 +28,6 @@ import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, sameTaskCardState, type TaskCardState } from '@/features/portfolio/task/TaskCard';
-import { BoardColumnMenu } from '@/features/portfolio/board/BoardColumnMenu';
 import { useI18n, translateCurrent } from '@/shared/i18n';
 import { buildPortfolioBoardView } from '@/features/portfolio/queries/portfolioBoardView';
 
@@ -114,6 +115,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     const { portfolioBoards, selectedPortfolioBoardId, portfolioVisibleRows, portfolioFilters, portfolioTimelineSelection } = state;
     const { columns, buckets } = useMemo(() => buildPortfolioBoardView({ portfolioBoards, selectedPortfolioBoardId, portfolioVisibleRows, portfolioFilters, portfolioTimelineSelection }, mode, { activeSprintsOnly, today }),
         [portfolioBoards, selectedPortfolioBoardId, portfolioVisibleRows, portfolioFilters, portfolioTimelineSelection, mode, activeSprintsOnly, today]);
+    const layout = useBoardColumnLayout(columns.length);
     const activeRow = activeCardId ? rows.find((row) => cardDragId(row) === activeCardId) : null;
 
     const canAddTasks = Boolean(state.selectedPortfolioBoardId)
@@ -147,18 +149,18 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
                 <div className="workitem-board-toolbar" role="group" aria-label={t('workitems.type')}>
                     {(['technical', 'functional'] as const).map((value) => <button className={`btn${mode === value ? ' active' : ''}`} type="button" key={value} aria-pressed={mode === value} onClick={() => setMode(value)}>{t(`workitems.${value}`)}</button>)}
                     <div className="workitem-board-actions">
-                        {canAddTasks && <button className="btn" type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}>{t('table.create')}</button>}
-                        <PortfolioToolbarFilters />
+                        <PortfolioQueryControls boardMode={mode} />
                         <label className="board-active-sprints"><input type="checkbox" checked={activeSprintsOnly && !state.portfolioFilters.sprintId} onChange={(event) => { setActiveSprintsOnly(event.target.checked); if (event.target.checked) setPortfolioFilter('sprintId', ''); }} />{t('board.activeSprintsOnly')}</label>
-                        <BoardColumnMenu mode={mode} />
+                        <span className="toolbar-divider" aria-hidden="true" />
+                        {canAddTasks && <button className="btn btn-primary board-create-btn" aria-label={t('table.create')} title={t('table.create')} type="button" onClick={() => actions.openPortfolioCreateTaskModal(state.selectedPortfolioBoardId, 'backlog', { preferredType: mode === 'functional' ? 'story' : 'task' })}><WorkspaceIcon name="plus" /></button>}
                     </div>
                 </div>
-                <div className="workitem-board-columns">
+                <div ref={layout.ref} className={`workitem-board-columns${layout.compact ? ' is-compact' : ''}`}>
                     {!columns.length && <p className="board-columns-empty" role="status">{t('board.allColumnsHidden')}</p>}
                     {columns.map((column) => {
                         const items = buckets[column.status] || [];
                         const title = columnTitle(column, t);
-                        return <section className="portfolio-column" data-status={column.status} key={column.status}>
+                        return <section className={`portfolio-column${items.length ? '' : ' is-empty'}`} data-status={column.status} key={column.status}>
                             <div className="portfolio-column-header"><h2 className="column-title" id={`portfolio-${column.status}-heading`}>{title}<small className="column-category">{t(`workflow.${column.category}`)}</small></h2><span className="column-count">{items.length}</span></div>
                             <DroppableColumnBody column={{ ...column, title }}>
                                 {items.length ? items.map((item) => <DraggableTaskCard item={item} state={state} key={cardDragId(item)} />) : <p className="empty-state">{t('common.noTasks')}</p>}

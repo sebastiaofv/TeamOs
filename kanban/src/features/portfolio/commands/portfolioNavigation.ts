@@ -37,11 +37,15 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (portfolioAssignee) params.set('pu', portfolioAssignee);
     if (filters.responsible) params.set('pr', filters.responsible);
     if (portfolioBlocked !== 'all') params.set('pbk', portfolioBlocked);
+    if (filters.manuallyBlocked !== 'all') params.set('pmb', filters.manuallyBlocked);
+    if (filters.dependencyBlocked !== 'all') params.set('pdb', filters.dependencyBlocked);
     if (portfolioEffort) params.set('pe', portfolioEffort);
     if (filters.statuses.length) params.set('pst', filters.statuses.join(','));
     if (filters.phaseId) params.set('pph', filters.phaseId);
     if (filters.milestoneId) params.set('pm', filters.milestoneId);
     if (filters.sprintId) params.set('psp', filters.sprintId);
+    if (filters.epicId) params.set('pep', filters.epicId);
+    if (filters.storyId) params.set('pus', filters.storyId);
     if (state.portfolioSortKey !== 'priority') params.set('ps', state.portfolioSortKey);
     if (state.portfolioSortDir === 'desc') params.set('pd', state.portfolioSortDir);
     if (state.selectedPortfolioBoardId) params.set('pb', state.selectedPortfolioBoardId);
@@ -73,11 +77,15 @@ export function applyPortfolioUrlState({ store = useAppStore, windowRef = getDef
             assignee: readQueryParam('pu', '', windowRef),
             responsible: readQueryParam('pr', '', windowRef),
             blocked: readQueryParam('pbk', 'all', windowRef),
+            manuallyBlocked: readQueryParam('pmb', 'all', windowRef),
+            dependencyBlocked: readQueryParam('pdb', 'all', windowRef),
             effort: readQueryParam('pe', '', windowRef),
             statuses: readQueryParam('pst', '', windowRef).split(','),
             phaseId: readQueryParam('pph', '', windowRef),
             milestoneId: readQueryParam('pm', '', windowRef),
-            sprintId: readQueryParam('psp', '', windowRef)
+            sprintId: readQueryParam('psp', '', windowRef),
+            epicId: readQueryParam('pep', '', windowRef),
+            storyId: readQueryParam('pus', '', windowRef)
         }),
         portfolioSortKey: normalizePortfolioSortKey(portfolioSort),
         portfolioSortDir: normalizePortfolioSortDir(portfolioSortDir),

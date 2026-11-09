@@ -44,10 +44,11 @@
 .table-column-panel {
     position: absolute;
     top: calc(100% + 6px);
-    left: 0;
+    right: 0;
     z-index: 25;
-    width: min(640px, 100%);
-    max-height: min(520px, var(--table-panel-height, 45dvh));
+    --table-panel-width: 580px;
+    width: min(var(--table-panel-width), 100%);
+    max-height: min(500px, var(--table-panel-height, 70dvh));
     overflow: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--border);
@@ -72,7 +73,8 @@
 .table-column-panel { padding: 14px; }
 .table-column-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .table-column-option { display: flex; align-items: center; gap: 4px; }
-.table-column-option label { flex: 1; }
+.table-column-option label { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; }
+.table-column-option input { flex: none; }
 .table-column-required, .table-not-defined { color: var(--text-secondary); }
 .table-summary { color: var(--text-secondary); }
 .table-summary p { flex: 1; }
@@ -80,7 +82,7 @@
 .workitems-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1000px; }
 .workitems-table th, .workitems-table td { padding: 8px 12px; border-bottom: 1px solid var(--border-light); text-align: left; vertical-align: middle; }
 .workitems-table th { position: sticky; top: 0; z-index: 1; background: var(--bg-secondary); white-space: nowrap; }
-.workitems-table th button { background: transparent; border: 0; color: var(--text-primary); cursor: pointer; font-weight: 600; }
+.workitems-table th button { display: inline-flex; align-items: center; gap: 6px; line-height: 1.5; background: transparent; border: 0; color: var(--text-primary); cursor: pointer; font-weight: 600; }
 .workitems-table [data-column] { min-width: 132px; max-width: 280px; overflow-wrap: anywhere; }
 .workitems-table [data-column="id"] { min-width: 80px; }
 .workitems-table [data-column="title"] { min-width: 240px; max-width: 360px; }
@@ -120,5 +122,41 @@
 .table-hierarchy-filters label { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .table-hierarchy-filters select { max-width: 260px; min-width: 100px; padding: 5px 8px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
 .table-scroll { min-height: 120px; }
-.table-hierarchy-filter-panel { position: absolute; top: calc(100% + 6px); left: 0; z-index: 25; width: min(420px, 100%); max-height: var(--table-panel-height, 45dvh); overflow: auto; padding: 12px; border: 1px solid var(--border); background: var(--bg-card); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14); }
+.table-hierarchy-filter-panel { position: absolute; top: calc(100% + 6px); right: 0; z-index: 25; --table-panel-width: 420px; width: min(var(--table-panel-width), 100%); max-height: var(--table-panel-height, 45dvh); overflow: auto; padding: 12px; border: 1px solid var(--border); background: var(--bg-card); box-shadow: 0 8px 28px rgba(0, 0, 0, 0.14); }
 .table-hierarchy-filter-panel .table-hierarchy-filters { padding: 0; }
+
+/* Visible columns form one ordered list beside the available hidden columns. */
+.table-column-panel { display: flex; flex-direction: column; padding: 12px; }
+.table-column-options { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; min-height: 0; overflow: auto; }
+.table-column-options section { min-width: 0; }
+.table-column-options h3 { position: sticky; top: 0; z-index: 2; padding: 4px 0 8px; font-size: 12px; background: var(--bg-card); }
+.table-column-list { display: flex; flex-direction: column; gap: 4px; }
+.table-column-option { padding: 3px 0; min-height: 30px; font-size: 12px; background: var(--bg-card); }
+.table-column-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.table-column-option .btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; min-width: 24px; height: 26px; padding: 0; flex: none; }
+.table-column-lock { display: inline-flex; justify-content: center; width: 24px; flex: none; color: var(--text-secondary); }
+.column-drag-handle { touch-action: none; cursor: grab; }
+.table-column-option.is-dragging { z-index: 3; outline: 1px solid var(--accent); }
+.table-column-panel > .btn { align-self: flex-start; flex: none; }
+.workitems-table [data-column="id"] { width: 1%; max-width: none; white-space: nowrap; overflow-wrap: normal; }
+.workitems-table [data-column="id"] .table-item-link { display: inline-block; white-space: nowrap; max-height: none; overflow: visible; }
+.table-heading .table-tools > .icon-btn, .table-heading .table-columns > summary.icon-btn { border: 1px solid var(--border); background: var(--bg-card); }
+@media (max-width: 520px) {
+    .table-column-options { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px; }
+    .table-column-option { flex-wrap: wrap; }
+    .table-column-name { flex-basis: 50%; }
+}
+
+/* Match the Roadmap's light row separation, with dates beside the editable name. */
+.table-sprint-section { border: 0; border-bottom: 1px solid var(--border-light); }
+.table-sprint-section > summary { flex-wrap: nowrap; gap: 7px; min-height: 38px; padding: 5px 12px; background: var(--bg-card); }
+.table-sprint-section > summary::before { font-size: 10px; flex: 0 0 24px; text-align: center; }
+.table-sprint-labels { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
+.table-sprint-labels .table-sprint-name { flex: 0 1 auto; }
+.table-sprint-labels .table-sprint-dates { margin: 0; font-size: 11px; }
+.table-sprint-controls { align-items: center; margin-left: auto; }
+@media (max-width: 600px) {
+    .table-sprint-section > summary { flex-wrap: wrap; }
+    .table-sprint-labels { flex-basis: calc(100% - 40px); }
+    .table-sprint-controls { padding-left: 31px; flex-wrap: wrap; justify-content: flex-end; }
+}

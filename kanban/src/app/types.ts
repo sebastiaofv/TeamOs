@@ -25,6 +25,7 @@ export type AppMessageReview = {
 export type WorkitemReview = {
     heading?: string;
     countSelection?: boolean;
+    phaseGroups?: { selectionId: string; title: string; from: string; to: string }[];
     rules?: { name: string; description: string }[];
     rows: { id: string; type: import('@/domain/types').WorkitemType; title: string; field?: string; from?: string; to?: string; reason?: string; selectionId?: string; selectionValue?: boolean; selectionIds?: string[]; rule?: string }[];
 };

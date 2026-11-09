@@ -14,7 +14,7 @@ test('timeline is hidden by default and its app setting persists both choices ac
   await gotoApp(page);
   await seedProject(page);
   await expect(page.locator('#portfolioTimelinePanel')).toHaveCount(0);
-  await expect(page.locator('#themeToggleBtn + #appSettingsBtn')).toBeVisible();
+  await expect(page.locator('#appSettingsBtn')).toBeVisible();
 
   await showTimeline(page);
   await expect(page.locator('#appSettingsBtn')).toBeFocused();
