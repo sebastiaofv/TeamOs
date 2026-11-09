@@ -27,6 +27,14 @@ for (const language of ['en', 'pt'] as const) test(`Sprint date review shows ind
     const delivery = review.getByRole('combobox', { name: /Delivery with a longer phase name: /, exact: false });
     const support = review.getByRole('combobox', { name: /Support: /, exact: false });
     await expect(review.getByRole('combobox')).toHaveCount(2);
+    const groups = review.locator('.phase-date-review-group');
+    await expect(groups).toHaveCount(2);
+    for (const group of await groups.all()) {
+        const heading = (await group.locator('.phase-date-review-heading').boundingBox())!;
+        const workitem = (await group.locator('.workitem-review-row').first().boundingBox())!;
+        expect(workitem.y).toBeGreaterThanOrEqual(heading.y + heading.height);
+        expect((await group.getByRole('combobox').boundingBox())!.width).toBeGreaterThanOrEqual(340);
+    }
     await expect(review.locator('.workitem-review-row')).toHaveCount(2);
     await expect(review.locator('.workitem-review-row').first()).toContainText('Story');
     const current = language === 'pt' ? 'datas atuais' : 'current dates';

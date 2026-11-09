@@ -43,7 +43,7 @@ export function AppMessageDialog() {
                         role="alertdialog"
                         aria-labelledby="appMessageTitle"
                         aria-describedby="appMessageText"
-                        className={`modal-content${message?.review ? ' has-transfer-review' : message?.workitems ? ' has-workitem-review' : ''}`}
+                        className={`modal-content${message?.review ? ' has-transfer-review' : message?.workitems ? ` has-workitem-review${message.workitems.phaseGroups?.length ? ' has-phase-date-review' : ''}` : ''}`}
                         onInteractOutside={keepOpen}
                         onEscapeKeyDown={stopEscape}
                         {...returnFocus}

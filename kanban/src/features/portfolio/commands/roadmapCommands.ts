@@ -553,7 +553,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             if (choice === null) return;
             relocation = choice;
         } else {
-            const confirmed = await confirm(translateCurrent(kind === 'sprints' ? (affected.length ? 'sprint.deleteQuestion' : 'roadmap.deleteQuestion') : 'roadmap.deletePlanningQuestion', { title: item.title, count: affected.length }) + impactText(affected), {
+            const confirmed = await confirm(translateCurrent(kind === 'sprints' ? (affected.length ? 'sprint.deleteQuestion' : 'roadmap.deleteQuestion') : 'roadmap.deletePlanningQuestion', { title: item.title, count: affected.length }) + (kind === 'sprints' ? '' : impactText(affected)), {
                 title: translateCurrent('roadmap.deleteTitle', { label: label.toLowerCase() }),
                 confirmLabel: translateCurrent('common.delete'), danger: true, workitems: { rows: affected.map((task) => workitemReviewRow(task, label, item.title, '—')) }
             });
@@ -594,7 +594,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
                 }
             });
             return true;
-        }, { onMutated: options.onApplied });
+        }, { confirmSprintAllocation: kind !== 'sprints', onMutated: options.onApplied });
     }
     return {
         setPortfolioTaskPlanning(boardId: string, taskId: number, field: 'phaseId' | 'milestoneId', value: string) {

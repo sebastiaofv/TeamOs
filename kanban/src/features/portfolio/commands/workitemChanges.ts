@@ -186,7 +186,10 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     if (dateConflicts.length) {
         const answer = await confirm(translateCurrent('planning.phaseDatesConflict'), {
             title: translateCurrent('planning.phaseDatesTitle'), confirmLabel: translateCurrent('messages.confirm'),
-            workitems: { rows: dateConflicts.flatMap((entry) => draft.data.board.tasks.filter((task) => entry.tasks.includes(task.id)).map((task) => {
+            workitems: { phaseGroups: dateConflicts.map(entry => {
+                const phase = draft.data.extensions.roadmap!.phases.find(phase => phase.id === entry.phaseId)!;
+                return { selectionId: entry.phaseId, title: entry.title, from: `${formatDate(phase.startDate!)} – ${formatDate(phase.endDate!)}`, to: `${formatDate(entry.startDate)} – ${formatDate(entry.endDate)}` };
+            }), rows: dateConflicts.flatMap((entry) => draft.data.board.tasks.filter((task) => entry.tasks.includes(task.id)).map((task) => {
                 const phase = draft.data.extensions.roadmap!.phases.find((phase) => phase.id === entry.phaseId)!;
                 return { ...workitemReviewRow(task, translateCurrent('task.phase'), `${entry.title}: ${formatDate(phase.startDate!)} – ${formatDate(phase.endDate!)}`, `${entry.title}: ${formatDate(entry.startDate)} – ${formatDate(entry.endDate)}`), selectionId: entry.phaseId };
             })) },

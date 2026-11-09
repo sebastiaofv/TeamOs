@@ -253,7 +253,7 @@ test.describe('roadmap', () => {
         disclosureBtn: getComputedStyle(disclosureBtn),
         track: getComputedStyle(track),
         timelineBar: getComputedStyle(timelineBar),
-        milestonePoint: getComputedStyle(milestonePoint, '::before')
+        milestonePoint: getComputedStyle(milestonePoint.querySelector('.milestone-outline')!)
       };
     });
 
@@ -269,7 +269,7 @@ test.describe('roadmap', () => {
     expect(styles!.axisLine.height).toBe('44px');
     expect(styles!.track.height).toBe('28px');
     expect(styles!.timelineBar.height).toBe('21px');
-    expect(styles!.milestonePoint.backgroundColor).not.toBe('rgba(0, 0, 0, 0)');
+    expect(styles!.milestonePoint.stroke).toBe('rgb(37, 99, 235)');
 
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
     await expect(page.locator('#milestoneWorkitemsModal table.workitems-table')).toHaveCount(1);

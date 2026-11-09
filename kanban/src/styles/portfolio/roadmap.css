@@ -164,9 +164,15 @@
 /* Keep scrollbar space outside the shared date axis and fit two complete lanes. */
 .milestone-annotations { overflow-x: hidden; }
 .milestone-annotations::-webkit-scrollbar { display: block; width: 8px; }
-.milestone-diamond { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); background: var(--bg-secondary); }
-.milestone-diamond::before { inset: 0; width: auto; height: auto; transform: none; border-radius: 0; background: color-mix(in srgb, var(--milestone-color) 30%, var(--bg-card)); }
-.milestone-diamond > .milestone-progress-fill { position: absolute; inset: 0 auto 0 0; width: var(--milestone-progress); background: color-mix(in srgb, var(--milestone-color) 55%, var(--bg-card)); }
+.milestone-diamond { background: transparent; }
+.milestone-diamond::before { display: none; }
+.milestone-diamond > svg { width: 100%; height: 100%; display: block; }
+.milestone-base { fill: color-mix(in srgb, var(--milestone-color) 10%, var(--bg-card)); }
+.milestone-progress-fill { fill: var(--milestone-color); }
+.milestone-outline { fill: none; stroke: var(--milestone-color); stroke-width: 2; stroke-linejoin: round; }
+:root[data-theme="dark"] .milestone-base { fill: color-mix(in srgb, color-mix(in srgb, var(--milestone-color) 10%, var(--bg-card)) 92%, white); }
+:root[data-theme="dark"] .milestone-progress-fill { fill: color-mix(in srgb, var(--milestone-color) 80%, white); }
+:root[data-theme="dark"] .milestone-outline { stroke: color-mix(in srgb, var(--milestone-color) 70%, white); }
 .milestone-tooltip { display: grid; gap: 3px; max-height: none; overflow: hidden; line-height: 16px; }
 .milestone-tooltip > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

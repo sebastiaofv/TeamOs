@@ -101,7 +101,16 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
 }
 
 function MilestoneDiamond({ marker }: { marker: RoadmapMilestoneMarker }) {
-    return <span className="milestone-diamond" data-progress={marker.progress.percent ?? 'na'} style={{ '--milestone-color': marker.item!.color, '--milestone-progress': `${marker.progress.percent ?? 0}%` } as CSSProperties}><span className="milestone-progress-fill" /></span>;
+    const clipId = useId();
+    const points = '15,1 29,15 15,29 1,15';
+    return <span className="milestone-diamond" data-progress={marker.progress.percent ?? 'na'} style={{ '--milestone-color': marker.item!.color } as CSSProperties}>
+        <svg viewBox="0 0 30 30" aria-hidden="true">
+            <defs><clipPath id={clipId}><polygon points={points} /></clipPath></defs>
+            <polygon points={points} className="milestone-base" />
+            <rect className="milestone-progress-fill" x="0" y="0" height="30" width={(marker.progress.percent ?? 0) / 100 * 30} clipPath={`url(#${clipId})`} />
+            <polygon points={points} className="milestone-outline" />
+        </svg>
+    </span>;
 }
 
 function MilestoneButton({ marker, select }: { marker: RoadmapMilestoneMarker & { lane: number }; select: () => void }) {
