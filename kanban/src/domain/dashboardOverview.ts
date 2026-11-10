@@ -9,7 +9,7 @@ import { isPlanningUnit, workitemProgress, workitemType } from './workitems';
 import { getSprintCalendarStatus, getSprintStatus } from './roadmap';
 import { developmentCompleted, sprintPointSummary } from './sprintResults';
 
-export const DASHBOARD_SECTIONS = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'workitemStatus', 'epics', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'] as const;
+export const DASHBOARD_SECTIONS = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'workitemStatus', 'epics', 'activitySummary', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'] as const;
 export type DashboardSection = typeof DASHBOARD_SECTIONS[number];
 
 /** End dates include the entire UTC day. Never use today's state before the first observation. */
@@ -31,9 +31,13 @@ export function dashboardSnapshot(data: BoardData, end: string, currentDate: str
     return { data: { ...snapshot, extensions: { ...snapshot.extensions, timeline: { ...timeline, events: timeline.events.slice(0, index + 1) } } }, index };
 }
 
-/** Stories and Tasks independent of a Story, matching Table's planning units. */
+/** User Stories, Bugs and independent Tasks; children never duplicate their parent. */
 export function dashboardReportable(data: BoardData, task: Task): boolean {
-    return workitemType(task) === 'story' || (workitemType(task) === 'task' && isPlanningUnit(data, task));
+    return ['story', 'bug'].includes(workitemType(task)) || (workitemType(task) === 'task' && isPlanningUnit(data, task));
+}
+
+export function dashboardInProgress(data: BoardData) {
+    return dashboardTasks(data).filter((task) => dashboardReportable(data, task) && ['in-progress', 'testing'].includes(statusCategory(task.status, data, task)));
 }
 
 export function dashboardStatistics(data: BoardData, phaseId: string) {
@@ -70,7 +74,7 @@ export function dashboardEpics(data: BoardData) {
 export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, phaseId: string, start: string, end: string) {
     return withWorkflowReadCache(() => {
         const timeline = getBoardTimelineData(source);
-        const result = { started: [] as Task[], completed: [] as Task[], availableFrom: timeline?.events[0]?.at.slice(0, 10) || null, available: Boolean(timeline?.events[0]?.snapshot?.board), contexts: new Map<number, BoardData>() };
+        const result = { started: [] as Task[], completed: [] as Task[], availableFrom: timeline?.events[0]?.at.slice(0, 10) || null, available: Boolean(timeline?.events[0]?.snapshot?.board), startedAt: new Map<number, string>(), completedAt: new Map<number, string>(), contexts: new Map<number, BoardData>() };
         if (!result.available || !timeline) return result;
         const started = new Map<number, Task>();
         const completed = new Map<number, Task>();
@@ -91,8 +95,14 @@ export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, 
                     const beforeCategory = before ? statusCategory(before.status, previous, before) : null;
                     const afterCategory = statusCategory(task.status, next, task);
                     if (beforeCategory === afterCategory) continue;
-                    if (afterCategory === 'in-progress') started.set(task.id, task);
-                    if (afterCategory === 'completed') completed.set(task.id, task);
+                    if (['in-progress', 'testing'].includes(afterCategory) && !['in-progress', 'testing'].includes(beforeCategory || '')) {
+                        started.set(task.id, task);
+                        if (!result.startedAt.has(task.id)) result.startedAt.set(task.id, event.at);
+                    }
+                    if (afterCategory === 'completed') {
+                        completed.set(task.id, task);
+                        if (!result.completedAt.has(task.id)) result.completedAt.set(task.id, event.at);
+                    }
                 }
             }
             for (const task of next.board.tasks) {
@@ -106,7 +116,7 @@ export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, 
         }
         const endRows = (members: Map<number, Task>) => [...members.values()].flatMap((task) => {
             const atEnd = endData.board.tasks.find((row) => row.id === task.id && row.createdAt === task.createdAt);
-            if (atEnd && !dashboardTasks(endData, phaseId).some((row) => row.id === atEnd.id)) return [];
+            if (atEnd && (!dashboardReportable(endData, atEnd) || !dashboardTasks(endData, phaseId).some((row) => row.id === atEnd.id))) return [];
             return [atEnd || task];
         });
         result.started = endRows(started); result.completed = endRows(completed);

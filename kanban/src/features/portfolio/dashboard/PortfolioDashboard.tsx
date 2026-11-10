@@ -1,3 +1,5 @@
+import { ActivityWorkitems, type ActivityDetails, type DashboardInspect } from './DashboardActivity';
+import { ACTIVITY_WIDGETS, dashboardActivityLayout, isActivityWidget, type ActivityWidget, type DashboardActivityLayout } from '@/domain/dashboardActivityLayout';
 import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { formatDate } from '@/domain/dates';
 import { DateInput } from '@/shared/ui/DateInput';
@@ -17,8 +19,8 @@ import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 
 type Metrics = ReturnType<typeof dashboardMetrics>;
-type Drill = { name: string; tasks: Task[]; data: BoardData };
-type Inspect = (name: string, tasks: Task[], data?: BoardData) => void;
+type Drill = { name: string; tasks: Task[]; data: BoardData; activity?: ActivityDetails };
+type Inspect = DashboardInspect;
 
 function Distribution({ metrics, data, inspect }: { metrics: Metrics; data: BoardData; inspect: Inspect }) {
     const { t } = useI18n();
@@ -87,7 +89,7 @@ function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string })
     return <section className="dashboard-panel dashboard-drilldown" id="dashboardSources" aria-labelledby="dashboardSourcesTitle">
         <h3 id="dashboardSourcesTitle" ref={heading} tabIndex={-1}>{drill ? t('dashboard.drilldown', { name: drill.name }) : t('dashboard.drillHint')}</h3>
         {drill && <><p>{t('dashboard.sourceCount', { count: drill.tasks.length })}</p>
-            {!drill.tasks.length ? <p>{t('dashboard.noSources')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th><th>{t('dashboard.dates')}</th></tr></thead>
+            {drill.activity ? <ActivityWorkitems tasks={drill.tasks} data={drill.data} boardId={boardId} details={drill.activity} /> : !drill.tasks.length ? <p>{t('dashboard.noSources')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th><th>{t('dashboard.dates')}</th></tr></thead>
                 <tbody>{drill.tasks.map((task) => <tr key={task.id}><td>{workitemLabel(task)}</td><td><button type="button" className="dashboard-link" onClick={() => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: drill.data, readOnly: true })}>{task.title}</button></td>
                     <td>{getWorkflow(drill.data, task).states.find((state) => state.id === task.status)?.name || task.status}</td><td>{task.responsible || t('dashboard.na')}</td><td>{formatDate(task.dueDate || '') || t('dashboard.na')}</td>
                 </tr>)}</tbody></table></div>}
@@ -116,6 +118,28 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const [from, setFrom] = useState(() => { const date = new Date(`${today}T12:00:00Z`); date.setUTCDate(date.getUTCDate() - 7); return date.toISOString().slice(0, 10); });
     const [to, setTo] = useState('');
     const [visible, setVisible] = useState<DashboardSection[]>([...DASHBOARD_SECTIONS]);
+    const [localActivityLayout, setLocalActivityLayout] = useState<DashboardActivityLayout | null>(null);
+    const activityLayout = localActivityLayout || dashboardActivityLayout(board?.data.extensions.dashboardActivity);
+    const shown = [...visible.filter((key) => !isActivityWidget(key)), ...activityLayout.order.filter((key) => !activityLayout.hidden.includes(key))];
+    const canSaveLayout = Boolean(board?.handle && !timeline?.isPreview);
+    const changeActivityLayout = (layout: DashboardActivityLayout) => {
+        setDrill(null);
+        if (canSaveLayout) { setLocalActivityLayout(null); void actions.saveDashboardActivityLayout(boardId, layout); }
+        else setLocalActivityLayout(layout);
+    };
+    const changeVisibility = (key: DashboardSection, checked: boolean) => {
+        if (isActivityWidget(key)) changeActivityLayout({ ...activityLayout, hidden: checked ? activityLayout.hidden.filter((value) => value !== key) : [...activityLayout.hidden, key] });
+        else setVisible((current) => checked ? [...current, key] : current.filter((value) => value !== key));
+        setDrill(null);
+    };
+    const moveActivity = (key: ActivityWidget, delta: number) => {
+        const order = [...activityLayout.order];
+        const index = order.indexOf(key);
+        const target = index + delta;
+        if (target < 0 || target >= order.length) return;
+        [order[index], order[target]] = [order[target], order[index]];
+        changeActivityLayout({ ...activityLayout, order });
+    };
     const referenceDate = timeline?.isPreview ? timeline.selectedEvent!.at.slice(0, 10) : today;
     const end = to || referenceDate;
     const invalidPeriod = from > end;
@@ -131,7 +155,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     if (hidden) return null;
     if (historyUnavailable) return <section className="dashboard-panel"><p>{t('dashboard.noHistoryBaseline')}</p><button type="button" className="btn" onClick={() => actions.movePortfolioTimelineToLatest(boardId)}>{t('dashboard.current')}</button></section>;
     if (!board || !data || !timeline) return null;
-    const inspect: Inspect = (name, members, context = displayData || data) => setDrill({ name, tasks: members, data: context });
+    const inspect: Inspect = (name, members, context = displayData || data, activity) => setDrill({ name, tasks: members, data: context, activity });
     const openRoadmap = (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => {
         if (snapshot?.index !== null && snapshot?.index !== undefined) actions.setPortfolioTimelineSelection(boardId, snapshot.index);
         navigateToRoadmapItem(boardId, kind, item.id, displayData || data);
@@ -142,9 +166,17 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
             <label className="dashboard-snapshot">{t('dashboard.snapshot')}<select aria-label={t('dashboard.snapshot')} value={timeline.isPreview ? String(timeline.selectedIndex) : 'current'} onChange={(event) => { setTo(''); setFrom(''); setDrill(null); if (event.target.value === 'current') actions.movePortfolioTimelineToLatest(boardId); else actions.setPortfolioTimelineSelection(boardId, Number(event.target.value)); }}>
                 <option value="current">{t('dashboard.current')}</option>{timeline.timeline?.events[0]?.snapshot?.board && timeline.timeline.events.slice(0, -1).map((event, index) => <option value={index} key={event.id}>{event.at} · {event.summary}</option>)}
             </select></label>
-            <details className="dashboard-visible-sections"><summary>{t('dashboard.visibleSections')} ({visible.length} / {DASHBOARD_SECTIONS.length})</summary><fieldset><legend className="sr-only">{t('dashboard.visibleSections')}</legend>
-                {DASHBOARD_SECTIONS.map((key) => <label key={key}><input type="checkbox" checked={visible.includes(key)} onChange={(event) => { setVisible((current) => event.target.checked ? [...current, key] : current.filter((value) => value !== key)); setDrill(null); }} />{t(`dashboard.section.${key}`)}</label>)}
-                <div><button className="btn" type="button" onClick={() => setVisible([...DASHBOARD_SECTIONS])}>{t('dashboard.selectAll')}</button><button className="btn" type="button" onClick={() => { setVisible([]); setDrill(null); }}>{t('dashboard.clearAll')}</button></div>
+            <details className="dashboard-visible-sections"><summary>{t('dashboard.visibleSections')} ({shown.length} / {DASHBOARD_SECTIONS.length})</summary><fieldset><legend className="sr-only">{t('dashboard.visibleSections')}</legend>
+                {DASHBOARD_SECTIONS.filter((key) => !isActivityWidget(key)).map((key) => <label key={key}><input type="checkbox" checked={shown.includes(key)} onChange={(event) => changeVisibility(key, event.target.checked)} />{t(`dashboard.section.${key}`)}</label>)}
+                <p>{t('dashboard.activityLayout')}</p>
+                {activityLayout.order.map((key, index) => <div className="dashboard-layout-row" key={key}>
+                    <label><input type="checkbox" checked={shown.includes(key)} onChange={(event) => changeVisibility(key, event.target.checked)} />{t(`dashboard.section.${key}`)}</label>
+                    <button type="button" className="btn" aria-label={t('dashboard.moveActivityUp', { name: t(`dashboard.section.${key}`) })} disabled={index === 0} onClick={() => moveActivity(key, -1)}>↑</button>
+                    <button type="button" className="btn" aria-label={t('dashboard.moveActivityDown', { name: t(`dashboard.section.${key}`) })} disabled={index === activityLayout.order.length - 1} onClick={() => moveActivity(key, 1)}>↓</button>
+                </div>)}
+                <button className="btn" type="button" onClick={() => changeActivityLayout(dashboardActivityLayout(null))}>{t('dashboard.resetActivity')}</button>
+                {canSaveLayout && <p className="dashboard-note">{t('dashboard.activityShared')}</p>}
+                <div className="dashboard-visibility-actions"><button className="btn" type="button" onClick={() => { setVisible([...DASHBOARD_SECTIONS]); changeActivityLayout({ ...activityLayout, hidden: [] }); }}>{t('dashboard.selectAll')}</button><button className="btn" type="button" onClick={() => { setVisible([]); changeActivityLayout({ ...activityLayout, hidden: [...ACTIVITY_WIDGETS] }); }}>{t('dashboard.clearAll')}</button></div>
             </fieldset></details>
             <label>{t('dashboard.startDate')}<DateInput aria-label={t('dashboard.startDate')}  value={from} max={end} onChange={(event) => { setFrom(event.target.value); setDrill(null); }} /></label>
             <label>{t('dashboard.endDate')}<DateInput aria-label={t('dashboard.endDate')}  value={end} min={from} max={referenceDate} onChange={(event) => { setTo(event.target.value); setDrill(null); }} /></label>
@@ -154,7 +186,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
         </div>
         {invalidPeriod ? <p role="alert">{t('dashboard.invalidPeriod')}</p> : !displayData ? <p role="status">{t('dashboard.noHistoryBaseline')}</p> : <>
             <p className="dashboard-note">{t('dashboard.periodNote', { date: end })}</p>
-            {tab === 'overview' ? <DashboardOverview dependencyBlockedIds={dependencyBlockedIds} boardId={boardId} data={displayData} source={data} start={from} end={end} visible={visible} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId="" asOf={end} inspect={inspect} />}
+            {tab === 'overview' ? <DashboardOverview dependencyBlockedIds={dependencyBlockedIds} boardId={boardId} data={displayData} source={data} start={from} end={end} visible={shown} activityOrder={activityLayout.order} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId="" asOf={end} inspect={inspect} />}
         </>}
         <Drilldown drill={displayData ? drill : null} boardId={boardId} />
     </>;

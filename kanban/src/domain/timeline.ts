@@ -1,3 +1,4 @@
+import { dashboardActivityLayout } from './dashboardActivityLayout';
 import { workitemLabelFor } from '@/domain/taskIdentity';
 import type {
     BoardData,
@@ -156,6 +157,10 @@ export function applyTimelineEventToState(state: ReplayState | null | undefined,
     if (['task.comment.published', 'task.comment.referenced'].includes(event.kind) && typeof event.meta?.commentId === 'string') {
         const previous = nextState.extensions?.conversationRefs;
         nextState.extensions = { ...nextState.extensions, conversationRefs: [...new Set([...(Array.isArray(previous) ? previous : []), event.meta.commentId])] };
+        return nextState;
+    }
+    if (event.kind === 'board.dashboard.activity.changed' && event.changes?.dashboardActivity) {
+        nextState.extensions = { ...nextState.extensions, dashboardActivity: dashboardActivityLayout(event.changes.dashboardActivity.after) };
         return nextState;
     }
     if (event.kind === 'board.columns.visibility.changed' && event.changes?.boardView) {

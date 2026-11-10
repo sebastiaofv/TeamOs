@@ -174,6 +174,7 @@ export type ProjectData = {
     tags: string[];
 };
 export type BoardExtensions = {
+    dashboardActivity?: import('./dashboardActivityLayout').DashboardActivityLayout;
     projectControl?: import('./projectControl').ProjectControl;
     [key: string]: unknown;
     conversations?: Conversations;

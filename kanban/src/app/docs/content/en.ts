@@ -700,6 +700,8 @@ export const DOCS_EN: DocSection[] = [
                         'Choose **Start** and **End** dates: activity counts transitions within the period; status sections use the end date.',
                         'Phases show On Target, Late or Overdue. Workflow status bars show counts and percentages with the configured state colors.',
                         'Select an indicator or status legend to list its source workitems, then open them. Select a milestone or Epic name to consult its details.',
+                        '**Progress Since Last Review** combines an Activity Summary with Started, Completed and In Progress lists. It counts User Stories, independent Tasks and Bugs once per indicator, including Testing in execution. Rows show type, ID, title, responsible person and the recorded transition date or end-date workflow status. Five rows appear initially; **View All** and the summary indicators open the complete lists.',
+                        'Use **Visible sections** to add/remove the four activity widgets and move them up/down. Their visibility and order are shared in the project file; **Reset to Default** restores the initial layout. Read-only and historical consultation keeps layout changes local.',
                         '**Sprint Analytics** shows recorded participation and scope changes per sprint.'
                     ] },
                     { kind: 'callout', tone: 'note', text: 'The Dashboard only uses recorded history. Where history is missing it shows N/A rather than guessing. Board and Table filters do not affect it.' }

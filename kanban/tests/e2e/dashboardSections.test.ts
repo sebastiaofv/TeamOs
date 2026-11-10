@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, toggleTheme } from '../support/portfolio';
+import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 import { LANGUAGE_STORAGE_KEY } from '../../src/domain/constants';
 
 const section = (page: Page, key: string) => page.locator(`[data-dashboard-section="${key}"]`);
@@ -13,48 +14,51 @@ async function seed(page: Page, writable = true) {
     await page.getByLabel('Start date', { exact: true }).fill('24/10/2026');
 }
 
-test('six overview widgets and existing sections appear in the requested order; visibility affects entire sections and supports all/none', async ({ page }) => {
+test('overview and four activity widgets appear in the requested order; visibility affects entire sections and supports all/none', async ({ page }) => {
     await seed(page);
-    const keys = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'workitemStatus', 'epics', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'];
-    await expect(page.locator('[data-dashboard-section]')).toHaveCount(12);
+    const keys = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'workitemStatus', 'epics', 'activitySummary', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'];
+    await expect(page.locator('[data-dashboard-section]')).toHaveCount(13);
     expect(await page.locator('[data-dashboard-section]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-dashboard-section')))).toEqual(keys);
     const summary = page.locator('.dashboard-visible-sections summary');
     const start = page.getByLabel('Start date', { exact: true });
     expect((await summary.boundingBox())!.x).toBeLessThan((await start.boundingBox())!.x);
     await summary.click();
     const filter = page.locator('.dashboard-visible-sections');
-    await expect(filter.getByRole('checkbox')).toHaveCount(12);
+    await expect(filter.getByRole('checkbox')).toHaveCount(13);
     await filter.getByRole('checkbox', { name: 'Workitem status', exact: true }).uncheck();
     await expect(section(page, 'workitemStatus')).toHaveCount(0);
     await expect(section(page, 'projectProgress')).toBeVisible();
     await filter.getByRole('button', { name: 'Clear all', exact: true }).click();
     await expect(page.locator('[data-dashboard-section]')).toHaveCount(0);
     await filter.getByRole('button', { name: 'Select all', exact: true }).click();
-    await expect(page.locator('[data-dashboard-section]')).toHaveCount(12);
-    await expect(section(page, 'started').locator('tbody tr')).toHaveCount(2);
+    await expect(page.locator('[data-dashboard-section]')).toHaveCount(13);
+    await expect(section(page, 'started').locator('tbody tr')).toHaveCount(3);
 });
 
-test('period activity uses category changes, independent Tasks and Stories, and end-date status/responsibility', async ({ page }) => {
+test('period activity includes Bugs, actual transition dates and end-date responsibility', async ({ page }) => {
     await seed(page);
     await page.getByLabel('End date', { exact: true }).fill('30/10/2026');
     const started = section(page, 'started');
     const completed = section(page, 'completedInPeriod');
-    await expect(started.locator('tbody tr')).toHaveCount(2);
+    await expect(started.locator('tbody tr')).toHaveCount(3);
     await expect(started).toContainText('Story started then completed');
     await expect(started).toContainText('Independent task started');
     await expect(started.locator('tr', { hasText: 'Story started then completed' })).toContainText('Marta');
-    await expect(started.locator('tr', { hasText: 'Independent task started' })).toContainText('Testing');
+    await expect(started.locator('tr', { hasText: 'Independent task started' })).toContainText('25/10/2026');
+    await expect(started.locator('thead th')).toHaveText(['Type', 'ID', 'Title', 'Responsible', 'Started on']);
     await expect(completed.locator('tbody tr')).toHaveCount(2);
     await expect(completed).toContainText('Independent completed at end boundary');
     await expect(started).not.toContainText('Child task excluded');
-    await expect(started).not.toContainText('Bug excluded');
+    await expect(started).toContainText('Bug excluded');
+    await expect(section(page, 'activitySummary').locator('strong')).toHaveText(['3', '2', (await section(page, 'currentlyInProgress').locator('.dashboard-activity-count').innerText()).trim()]);
     await expect(section(page, 'currentlyInProgress')).toContainText('Independent task started');
     await expect(section(page, 'currentlyInProgress')).not.toContainText('Story started then completed');
     await started.getByRole('button', { name: 'Independent task started', exact: true }).click();
     await expect(page.locator('#taskDetailModal')).toContainText('Testing');
     await page.keyboard.press('Escape');
     await page.getByLabel('Start date', { exact: true }).fill('26/10/2026');
-    await expect(started.locator('tbody tr')).toHaveCount(0); // Doing → Testing stays in the same category.
+    await expect(started.locator('tbody tr')).toHaveCount(1); // The Bug starts on 28/10; Doing → Testing is not another start.
+    await expect(started).toContainText('Bug excluded');
     await page.getByLabel('End date', { exact: true }).fill('29/10/2026');
     await expect(completed.locator('tbody tr')).toHaveCount(0);
     await expect(section(page, 'currentlyInProgress')).toContainText('Story started then completed');
@@ -205,9 +209,84 @@ test('standalone Dashboard supports offline historical widgets and detail naviga
     await page.locator('[data-view-mode="dashboard"]').click();
     await page.getByLabel('Start date', { exact: true }).fill('24/10/2026');
     await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
-    await expect(page.locator('[data-dashboard-section]')).toHaveCount(12);
+    await expect(page.locator('[data-dashboard-section]')).toHaveCount(13);
     await expect(section(page, 'projectProgress')).toContainText('30.8%');
     await section(page, 'milestones').getByRole('button', { name: 'Next unassigned checkpoint', exact: true }).click();
     await expect(page.locator('#milestoneWorkitemsModal')).toContainText('Next unassigned checkpoint');
     expect(errors).toEqual([]);
+});
+
+test('summary and View All open full Testing lists while previews remain limited to five rows', async ({ page }) => {
+    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const template = data.board.tasks.find((task: { id: number }) => task.id === 911);
+    const tasks = Array.from({ length: 8 }, (_, index) => ({ ...template, id: 930 + index, displayId: `ATL-TK-${930 + index}`, permanentId: `activity-${index}`, title: `Activity workitem ${index + 1} with a long descriptive title`, status: 'testing', phaseId: '', phaseMode: 'none', sprintId: '' }));
+    data.board.tasks = tasks;
+    data.extensions.workflow.states.find((state: { id: string }) => state.id === 'testing').category = 'testing';
+    data.extensions.workflow.references.testing = 'testing';
+    data.extensions.timeline = { version: 1, baselineEventId: 'activity-baseline', events: [
+        { id: 'activity-baseline', at: '2026-10-15T12:00:00.000Z', kind: 'board.baseline', entityType: 'board', entityId: 'board', summary: 'Baseline', snapshot: { meta: data.meta, board: { ...data.board, tasks: tasks.map((task) => ({ ...task, status: 'to-do' })) }, extensions: { workflow: data.extensions.workflow } } },
+        ...tasks.map((task, index) => ({ id: `started-${index}`, at: '2026-11-03T12:00:00.000Z', kind: 'task.status.changed', entityType: 'task', entityId: String(task.id), summary: 'Started Testing', changes: { status: { before: 'to-do', after: 'testing' } } }))
+    ] };
+    await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'activity', title: 'Activity previews', hasHandle: true, tasks, extensions: { workflow: data.extensions.workflow, timeline: data.extensions.timeline } }], { selectedBoardId: 'activity' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    const before = await readSavedBoard(page, 'activity');
+    await expect(section(page, 'started').locator('tbody tr')).toHaveCount(5);
+    await expect(section(page, 'currentlyInProgress').locator('tbody tr')).toHaveCount(5);
+    await expect(section(page, 'activitySummary').locator('strong')).toHaveText(['8', '0', '8']);
+    await expect(section(page, 'currentlyInProgress')).toContainText('Testing');
+    await section(page, 'started').getByRole('button', { name: 'View All (8)', exact: true }).click();
+    await expect(page.locator('#dashboardSources tbody tr')).toHaveCount(8);
+    await expect(page.locator('#dashboardSources')).toContainText('03/11/2026');
+    await page.locator('#dashboardSources tbody tr').last().getByRole('button', { name: tasks[7].title, exact: true }).click();
+    await expect(page.locator('#taskDetailModal')).toContainText(tasks[7].title);
+    await page.keyboard.press('Escape');
+    await section(page, 'activitySummary').getByRole('button', { name: /In Progress/ }).click();
+    await expect(page.locator('#dashboardSources tbody tr')).toHaveCount(8);
+    await expect(page.locator('#dashboardSources')).toContainText('Testing');
+    expect(await readSavedBoard(page, 'activity')).toEqual(before);
+});
+
+test('activity visibility/order are saved in the project and reset without changing workitems', async ({ page }) => {
+    await seed(page);
+    const original = await readSavedBoard(page, 'sections');
+    const filter = page.locator('.dashboard-visible-sections');
+    await filter.locator('summary').click();
+    await filter.getByRole('checkbox', { name: 'Started Workitems', exact: true }).uncheck();
+    await expect(section(page, 'started')).toHaveCount(0);
+    await filter.getByRole('button', { name: 'Move Completed Workitems up', exact: true }).click();
+    expect(await page.locator('.dashboard-activity [data-dashboard-section]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-dashboard-section')))).toEqual(['activitySummary', 'completedInPeriod', 'currentlyInProgress']);
+    await expect.poll(async () => (await readSavedBoard(page, 'sections')).extensions.dashboardActivity).toEqual({ version: 1, order: ['activitySummary', 'completedInPeriod', 'started', 'currentlyInProgress'], hidden: ['started'] });
+    expect(serializeBoardDataFromObject(await readSavedBoard(page, 'sections')).board).toEqual(serializeBoardDataFromObject(original).board);
+    const saved = await readSavedBoard(page, 'sections');
+    await page.reload();
+    await seedPortfolioBoards(page, [{ id: 'sections', title: saved.board.settings.title, hasHandle: true, tasks: saved.board.tasks, extensions: saved.extensions }], { selectedBoardId: 'sections' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await expect(section(page, 'started')).toHaveCount(0);
+    expect(await page.locator('.dashboard-activity [data-dashboard-section]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-dashboard-section')))).toEqual(['activitySummary', 'completedInPeriod', 'currentlyInProgress']);
+    await filter.locator('summary').click();
+    await filter.getByRole('button', { name: 'Reset to Default', exact: true }).click();
+    await expect(section(page, 'started')).toBeVisible();
+    await expect.poll(async () => (await readSavedBoard(page, 'sections')).extensions.dashboardActivity.hidden).toEqual([]);
+    expect(await page.locator('.dashboard-activity [data-dashboard-section]').evaluateAll((rows) => rows.map((row) => row.getAttribute('data-dashboard-section')))).toEqual(['activitySummary', 'started', 'completedInPeriod', 'currentlyInProgress']);
+});
+
+test('read-only activity changes stay local; zero activity and partial history have distinct messages', async ({ page }) => {
+    await seed(page, false);
+    const filter = page.locator('.dashboard-visible-sections');
+    await filter.locator('summary').click();
+    await filter.getByRole('checkbox', { name: 'Activity Summary', exact: true }).uncheck();
+    await filter.getByRole('button', { name: 'Move Completed Workitems up', exact: true }).click();
+    await expect(section(page, 'activitySummary')).toHaveCount(0);
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    await filter.getByRole('button', { name: 'Reset to Default', exact: true }).click();
+    await filter.locator('summary').click();
+    await page.getByLabel('Start date', { exact: true }).fill('15/10/2026');
+    await page.getByLabel('End date', { exact: true }).fill('15/10/2026');
+    await expect(section(page, 'started')).toContainText('No workitems match');
+    await expect(section(page, 'activitySummary').locator('strong').first()).toHaveText('0');
+    await page.getByLabel('Start date', { exact: true }).fill('01/10/2026');
+    await expect(section(page, 'started')).toContainText('History is available from');
+    await expect(section(page, 'activitySummary')).toContainText('History is available from');
 });

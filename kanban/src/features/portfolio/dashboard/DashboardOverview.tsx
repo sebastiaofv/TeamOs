@@ -1,10 +1,12 @@
+import { DashboardActivity, type DashboardInspect } from './DashboardActivity';
+import { isActivityWidget, type ActivityWidget } from '@/domain/dashboardActivityLayout';
 import { formatDate } from '@/domain/dates';
 import { useMemo, useState } from 'react';
-import type { BoardData, RoadmapItem, Task } from '@/domain/types';
+import type { BoardData, RoadmapItem } from '@/domain/types';
 import { dashboardMetrics, dashboardTasks } from '@/domain/dashboard';
-import { dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardPeriodWorkitems, dashboardReportable, dashboardStatistics, type DashboardSection } from '@/domain/dashboardOverview';
+import { dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardStatistics, type DashboardSection } from '@/domain/dashboardOverview';
 import { riskLevel, type ControlRecord } from '@/domain/projectControl';
-import { getWorkflow, statusCategory } from '@/domain/workflow';
+import { getWorkflow } from '@/domain/workflow';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { ControlBadge } from '@/features/portfolio/control/ControlBadge';
 import { ControlRecordDialog } from '@/features/portfolio/control/ControlRecordDialog';
@@ -12,42 +14,28 @@ import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
 
-type Props = { dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; start: string; end: string; visible: DashboardSection[]; inspect: (name: string, tasks: Task[], data?: BoardData) => void; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
+type Props = { dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; start: string; end: string; visible: DashboardSection[]; activityOrder: ActivityWidget[]; inspect: DashboardInspect; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
 function Progress({ value, label }: { value: number | null; label: string }) {
     return <progress className="dashboard-progress" max={100} value={value ?? 0} aria-label={label} />;
 }
 
-function Workitems({ tasks, data, boardId, contexts }: { tasks: Task[]; data: BoardData; boardId: string; contexts?: Map<number, BoardData> }) {
-    const { t } = useI18n();
-    const actions = usePortfolioActions();
-    return !tasks.length ? <p>{t('dashboard.noWorkitems')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th></tr></thead><tbody>
-        {tasks.map((task) => {
-            const context = data.board.tasks.some((row) => row.id === task.id && row.createdAt === task.createdAt) ? data : contexts?.get(task.id) || data;
-            const open = () => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: context, readOnly: true });
-            return <tr key={task.id}><td><button className="dashboard-link" onClick={open}>{workitemLabel(task)}</button></td><td><button className="dashboard-link" onClick={open}>{task.title}</button></td><td><WorkflowStateBadge state={getWorkflow(context, task).states.find((state) => state.id === task.status) || { id: task.status, name: task.status, category: 'to-do', color: '#949dab' }} /></td><td>{task.responsible || t('dashboard.na')}</td></tr>;
-        })}
-    </tbody></table></div>;
-}
-
-export function DashboardOverview({ dependencyBlockedIds, boardId, data, source, start, end, visible, inspect, openRoadmap }: Props) {
+export function DashboardOverview({ dependencyBlockedIds, boardId, data, source, start, end, visible, activityOrder, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
     const actions = usePortfolioActions();
     const [control, setControl] = useState<ControlRecord | null>(null);
-    const { metrics, planning, statistics, period, current, controls, sprints, epics } = useMemo(() => {
+    const { metrics, planning, statistics, controls, sprints, epics } = useMemo(() => {
         const tasks = dashboardTasks(data);
         const metrics = dashboardMetrics(data, tasks, end, dependencyBlockedIds);
         const planning = dashboardOverviewPlanning(data, '', end);
         const statistics = dashboardStatistics(data, '');
-        const period = dashboardPeriodWorkitems(source, data, '', start, end);
-        const current = tasks.filter((task) => dashboardReportable(data, task) && statusCategory(task.status, data, task) === 'in-progress');
         const controls = dashboardControl(data, '', start, end);
         const sprints = dashboardActiveSprints(data, end);
-        return { metrics, planning, statistics, period, current, controls, sprints, epics: dashboardEpics(data) };
-    }, [data, source, start, end, dependencyBlockedIds]);
+        return { metrics, planning, statistics, controls, sprints, epics: dashboardEpics(data) };
+    }, [data, start, end, dependencyBlockedIds]);
     const percent = (value: number | null) => value === null ? t('dashboard.na') : `${new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(value)}%`;
     const warning = <span className="dashboard-warning">⚠ {t('dashboard.overdue')}</span>;
     const situation = (value: 'overdue' | 'late' | 'onTarget') => <span className={`dashboard-badge dashboard-situation-${value}`}>{t(`dashboard.${value}`)}</span>;
-    return <div className="dashboard-section-grid">
+    return <div className="dashboard-overview-sections"><div className="dashboard-section-grid">
         {visible.includes('projectProgress') && <section className="dashboard-panel dashboard-third dashboard-project-progress" data-dashboard-section="projectProgress"><h3>{t('dashboard.projectProgress')}</h3>
             <div className="dashboard-progress-summary"><button type="button" className="dashboard-progress-button" data-dashboard-kpi="progress" onClick={() => inspect(t('dashboard.progress'), metrics.eligible)}>
                 <strong>{percent(metrics.progress.percent)}</strong>
@@ -90,14 +78,13 @@ export function DashboardOverview({ dependencyBlockedIds, boardId, data, source,
                 return <tr key={task.id}><td><button type="button" className="dashboard-link" onClick={open}>{workitemLabel(task)}</button></td><td><button type="button" className="dashboard-link" onClick={open}>{task.title}</button></td><td><WorkflowStateBadge state={getWorkflow(data, task).states.find((state) => state.id === task.status)!} /></td><td><span>{percent(progress.percent)}</span><Progress value={progress.percent} label={`${task.title}: ${percent(progress.percent)}`} /></td></tr>;
             })}</tbody></table></div>}
         </section>}
-        {(['started', 'completedInPeriod', 'currentlyInProgress'] as const).filter((key) => visible.includes(key)).map((key) => <section className="dashboard-panel dashboard-third" key={key} data-dashboard-section={key}><h3>{t(`dashboard.section.${key}`)}</h3>
-            {key !== 'currentlyInProgress' && (!period.available ? <p>{t('dashboard.noHistoryBaseline')}</p> : period.availableFrom && start < period.availableFrom && <p className="dashboard-note">{t('dashboard.partialHistory', { date: formatDate(period.availableFrom) })}</p>)}
-            {(key === 'currentlyInProgress' || period.available) && <Workitems boardId={boardId} data={data} contexts={period.contexts} tasks={key === 'started' ? period.started : key === 'completedInPeriod' ? period.completed : current} />}
-        </section>)}
+    </div>
+    <DashboardActivity boardId={boardId} data={data} source={source} start={start} end={end} visible={visible.filter(isActivityWidget)} order={activityOrder} inspect={inspect} />
+    <div className="dashboard-section-grid">
         {(['openRisks', 'deliverables', 'decisions'] as const).filter((key) => visible.includes(key)).map((key) => {
             const records = controls[key === 'openRisks' ? 'risks' : key];
             return <section className="dashboard-panel dashboard-third" key={key} data-dashboard-section={key}><h3>{t(`dashboard.section.${key}`)}</h3>{!records.length ? <p>{t('dashboard.noControlRecords')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('control.title')}</th><th>{t('control.status')}</th><th>{t(key === 'openRisks' ? 'control.riskLevel' : key === 'deliverables' ? 'control.dueDate' : 'control.owner')}</th>{key === 'openRisks' && <th>{t('control.owner')}</th>}</tr></thead><tbody>{records.map((record) => <tr key={record.id}><td><button type="button" className="dashboard-link" onClick={() => setControl(record)}>{record.id}</button></td><td><button type="button" className="dashboard-link" onClick={() => setControl(record)}>{record.title}</button></td><td><ControlBadge value={record.status} /></td><td>{key === 'openRisks' ? <ControlBadge value={riskLevel(record)} /> : key === 'deliverables' ? formatDate(record.deliveredDate || record.dueDate || '') || t('dashboard.na') : record.owner || t('dashboard.na')}</td>{key === 'openRisks' && <td>{record.owner || t('dashboard.na')}</td>}</tr>)}</tbody></table></div>}</section>;
         })}
         {control && <ControlRecordDialog key={control.id} boardId={boardId} recordId={control.id} kind={control.kind} data={data} readOnly onClose={() => setControl(null)} />}
-    </div>;
+    </div></div>;
 }

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { BoardData } from '../../src/domain/types';
 import { validateBoardData } from '../../src/domain/board';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
-import { dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardPeriodWorkitems, dashboardReportable, dashboardSnapshot, dashboardStatistics } from '../../src/domain/dashboardOverview';
+import { dashboardInProgress, dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardPeriodWorkitems, dashboardReportable, dashboardSnapshot, dashboardStatistics } from '../../src/domain/dashboardOverview';
 
 const fixture = (): BoardData => serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
 const ids = (items: { id: number }[]) => items.map((item) => item.id);
@@ -48,13 +48,60 @@ describe('dashboard section reporting', () => {
         const data = fixture();
         const snapshot = end(data, '2026-10-30');
         const report = dashboardPeriodWorkitems(data, snapshot, '', '2026-10-24', '2026-10-30');
-        expect(ids(report.started)).toEqual([910, 911]);
+        expect(ids(report.started)).toEqual([910, 911, 914]);
         expect(ids(report.completed)).toEqual([910, 912]);
         expect(report.started.find((task) => task.id === 910)?.status).toBe('accepted');
         expect(report.started.find((task) => task.id === 911)?.status).toBe('testing');
-        expect(dashboardPeriodWorkitems(data, snapshot, '', '2026-10-26', '2026-10-29').started).toEqual([]);
+        expect(ids(dashboardPeriodWorkitems(data, snapshot, '', '2026-10-26', '2026-10-29').started)).toEqual([914]);
         expect(dashboardPeriodWorkitems(data, snapshot, 'api', '2026-10-24', '2026-10-30').started).toEqual([]);
         expect(dashboardPeriodWorkitems(data, snapshot, '', '', '2026-10-15').started).toEqual([]);
+    });
+    it('includes Bugs and a separate Testing category, without counting execution-to-Testing moves twice', () => {
+        const data = fixture();
+        // A workflow may represent Testing as its own category instead of in-progress.
+        for (const event of data.extensions.timeline!.events) {
+            const workflow = event.snapshot?.extensions?.workflow;
+            if (workflow) { workflow.states.find((state) => state.id === 'testing')!.category = 'testing'; workflow.references.testing = 'testing'; }
+        }
+        data.extensions.workflow!.states.find((state) => state.id === 'testing')!.category = 'testing';
+        data.extensions.workflow!.references.testing = 'testing';
+        data.extensions.timeline!.events.push(
+            { id: 'bug-completed', at: '2026-10-31T23:59:59.000Z', entityType: 'task', entityId: '914', kind: 'task.status.changed', summary: 'Bug completed', changes: { status: { before: 'doing', after: 'accepted' } } },
+            { id: 'reopened', at: '2026-11-01T10:00:00.000Z', entityType: 'task', entityId: '911', kind: 'task.status.changed', summary: 'Reopened', changes: { status: { before: 'testing', after: 'to-do' } } },
+            { id: 'restarted', at: '2026-11-01T11:00:00.000Z', entityType: 'task', entityId: '911', kind: 'task.status.changed', summary: 'Retesting', changes: { status: { before: 'to-do', after: 'testing' } } }
+        );
+        const snapshot = end(data, '2026-11-01');
+        const report = dashboardPeriodWorkitems(data, snapshot, '', '2026-10-24', '2026-11-01');
+        expect(ids(report.started)).toEqual([910, 911, 914]);
+        expect(ids(report.completed)).toEqual([910, 912, 914]);
+        expect(report.startedAt.get(911)?.slice(0, 10)).toBe('2026-10-25');
+        expect(report.completedAt.get(914)).toBe('2026-10-31T23:59:59.000Z');
+        expect(ids(dashboardInProgress(snapshot))).toContain(911);
+        expect(ids(dashboardInProgress(snapshot))).not.toContain(914);
+        const testingOnly = dashboardPeriodWorkitems(data, snapshot, '', '2026-10-26', '2026-10-30');
+        expect(ids(testingOnly.started)).toEqual([914]);
+    });
+    it('counts direct entry into Testing and keeps pre-existing execution in the end-date count', () => {
+        const data = fixture();
+        const baseline = data.extensions.timeline!.events[0];
+        for (const event of data.extensions.timeline!.events) {
+            const workflow = event.snapshot?.extensions?.workflow;
+            if (workflow) { workflow.states.find((state) => state.id === 'testing')!.category = 'testing'; workflow.references.testing = 'testing'; }
+        }
+        data.extensions.timeline!.events = [baseline, { id: 'direct-test', at: '2026-10-25T00:00:00.000Z', entityType: 'task', entityId: '911', kind: 'task.status.changed', summary: 'Testing', changes: { status: { before: 'to-do', after: 'testing' } } }];
+        const snapshot = end(data, '2026-10-25');
+        const report = dashboardPeriodWorkitems(data, snapshot, '', '2026-10-25', '2026-10-25');
+        expect(ids(report.started)).toEqual([911]);
+        expect(report.startedAt.get(911)).toBe('2026-10-25T00:00:00.000Z');
+        expect(dashboardInProgress(snapshot).length).toBeGreaterThan(report.started.length);
+        expect(dashboardInProgress(snapshot).every((task) => !['epic'].includes(task.type || '') && task.id !== 913)).toBe(true);
+    });
+    it('distinguishes unavailable history, partial coverage and an observed period without activity', () => {
+        const data = fixture();
+        expect(dashboardPeriodWorkitems(data, data, '', '2026-10-01', '2026-10-15')).toMatchObject({ available: true, availableFrom: '2026-10-15', started: [], completed: [] });
+        const noHistory = { ...data, extensions: { ...data.extensions, timeline: undefined } };
+        expect(dashboardPeriodWorkitems(noHistory, noHistory, '', '2026-10-01', '2026-11-04')).toMatchObject({ available: false, availableFrom: null, started: [], completed: [] });
+        expect(dashboardInProgress(noHistory).length).toBeGreaterThan(0);
     });
     it('filters event dates without assuming the canonical event sequence is timestamp-sorted', () => {
         const data = fixture();

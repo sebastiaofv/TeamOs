@@ -15,7 +15,7 @@ for (const theme of ['light', 'dark']) for (const width of [1840, 390]) {
         if (theme === 'dark') await toggleTheme(page);
         await page.mouse.move(1, 1);
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-        const grid = page.locator('.dashboard-section-grid');
+        const grid = page.locator('.dashboard-overview-sections');
         const bounds = (await grid.boundingBox())!;
         // The app scrolls a bounded container. Give the screenshot a tall viewport
         // so every section is painted, rather than capturing clipped blank space.

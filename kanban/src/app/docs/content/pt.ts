@@ -700,6 +700,8 @@ export const DOCS_PT: DocSection[] = [
                         'Escolha as datas de **início** e **fim**: a atividade conta transições dentro do período; as secções de estado usam a data de fim.',
                         'As fases indicam Dentro do prazo, Início em atraso ou Em atraso. As barras de estados mostram quantidades e percentagens com as cores configuradas no workflow.',
                         'Selecione um indicador ou uma legenda de estado para listar os workitems de origem e abri-los. Selecione o nome de um milestone ou Epic para consultar o detalhe.',
+                        '**Progresso desde a última revisão** combina o Resumo de atividade com listas de workitems iniciados, concluídos e em curso. Conta User Stories, Tasks independentes e Bugs uma vez por indicador, incluindo Testing na execução. As linhas mostram tipo, ID, título, responsável e data efetiva ou estado na data de fim. As listas apresentam cinco linhas; **Ver todos** e os indicadores abrem a lista completa.',
+                        'Em **Secções visíveis**, adicione/remova os quatro widgets de atividade e reordene-os com as setas. A visibilidade e a ordem são partilhadas no ficheiro do projeto; **Repor predefinições** restaura a disposição inicial. Em leitura e no histórico, as alterações de disposição são apenas locais.',
                         'A **Análise de sprints** mostra a participação registada e as alterações de âmbito de cada sprint.'
                     ] },
                     { kind: 'callout', tone: 'note', text: 'O Dashboard usa apenas o histórico registado. Quando falta histórico mostra N/A em vez de adivinhar. Os filtros do Quadro e da Tabela não o afetam.' }
