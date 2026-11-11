@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { expandLargeLegacyHistory } from '../support/largeLegacyHistory';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { fromAny, fromPartial } from '@total-typescript/shoehorn';
@@ -136,7 +137,7 @@ describe('format rules', () => {
         expect(story).toMatchObject({ storyPoints: 5, acceptance }); expect(story).not.toHaveProperty('severity');
         expect(child).not.toHaveProperty('storyPoints'); expect(child).not.toHaveProperty('acceptance');
         expect(independent.storyPoints).toBe(2); expect(bug).toMatchObject({ severity: 'high', acceptance });
-        const reject = (index: number, field: string, value: unknown) => { const bad = roundTrip(file); bad.workitems[index][field] = value; expect(() => fromProjectFile(bad)).toThrow(field); };
+        const reject = (index: number, field: string, value: unknown) => { const bad = roundTrip(file); (bad.workitems[index] as Record<string, unknown>)[field] = value; expect(() => fromProjectFile(bad)).toThrow(field); };
         reject(0, 'storyPoints', 1); reject(0, 'sprintHistory', []); reject(1, 'severity', 'high'); reject(2, 'acceptance', acceptance); reject(2, 'storyPoints', 1); reject(3, 'severity', 'high');
     });
 
@@ -147,7 +148,7 @@ describe('format rules', () => {
         expect(() => fromProjectFile(file)).not.toThrow();
     });
 
-    it('stores closures without internal versions or duplicate assignment ids, and replays them', () => {
+    it('stores closures in the v1 workitem shape with the names of that moment, and replays them', () => {
         const data = createEmptyProjectData('Closed', 'CLS');
         data.extensions.project!.members.push({ id: 'ana', name: 'Ana' });
         data.extensions.roadmap = { version: 5, milestones: [], phases: [], sprints: [{ id: 'sprint-1', title: 'S1', startDate: '2026-01-01', endDate: '2026-01-14' }] };
@@ -157,10 +158,16 @@ describe('format rules', () => {
         const file = roundTrip(toProjectFile(data));
         const stored = (file.roadmap.sprintResults as { closures: Record<string, unknown>[] }).closures[0];
         expect(JSON.stringify(stored)).not.toContain('"version"');
-        expect((stored.tasks as Record<string, unknown>[])[0]).toMatchObject({ assignees: ['Ana'], responsible: 'Ana' });
-        expect((stored.tasks as Record<string, unknown>[])[0]).not.toHaveProperty('assigneeIds');
+        expect(stored).not.toHaveProperty('tasks');
+        expect((stored.workitems as Record<string, unknown>[])[0]).toMatchObject({ assigneeIds: ['ana'], responsibleId: 'ana' });
+        expect((stored.workitems as Record<string, unknown>[])[0]).not.toHaveProperty('assignees');
+        expect(stored.members).toEqual([{ id: 'ana', name: 'Ana' }]);
+        // Renaming the member later does not change the closed Sprint.
+        file.project.members = [{ id: 'ana', name: 'Ana Renamed' }];
         const restored = fromProjectFile(file).extensions.sprintResults!.closures[0];
         expect(restored.workflow.version).toBe(2);
+        expect(restored.tasks[0]).toMatchObject({ assignees: ['Ana'], responsible: 'Ana' });
+        expect(restored.tasks[0]).not.toHaveProperty('assigneeIds');
         const previous = fromProjectFile(roundTrip({ ...before, system: {} }) as never);
         const replayed = applyProjectPatch(previous, roundTrip(diffProjectState(before, toProjectCheckpoint(createBoardStateSnapshot(data)))));
         expect(replayed.extensions.sprintResults!.closures[0].workflow.version).toBe(2);
@@ -197,7 +204,9 @@ describe('format rules', () => {
 describe('golden conversion of folder fixtures', () => {
     const load6 = (name: string) => {
         const base = `tests/fixtures/legacy/${name === 'beta' ? 'folder-v6-large' : 'folder-v6'}/${name}`;
-        const project = readFileSync(join(base, 'project.json'), 'utf8'), history = readFileSync(join(base, 'history.json'), 'utf8');
+        const project = readFileSync(join(base, 'project.json'), 'utf8');
+        const stored = readFileSync(join(base, 'history.json'), 'utf8');
+        const history = name === 'beta' ? expandLargeLegacyHistory(stored) : stored;
         const directory = new MemoryDirectory(name);
         directory.children.set('project.json', new MemoryFile('project.json', project));
         directory.children.set('history.json', new MemoryFile('history.json', history));

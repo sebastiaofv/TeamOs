@@ -4,21 +4,21 @@
     "appId": "teamos-kanban",
     "revision": 0,
     "createdAt": "2026-11-03T09:00:00.000Z",
-    "updatedAt": "2026-11-09T12:32:51.088Z"
+    "updatedAt": "2026-11-11T19:45:10.688Z"
   },
   "project": {
     "id": "us25-valid",
+    "title": "US-25 Valid sibling",
+    "acronym": "GOOD",
     "description": "",
     "status": null,
+    "tags": [],
     "members": [
       {
         "id": "tester",
         "name": "Tester"
       }
-    ],
-    "tags": [],
-    "acronym": "GOOD",
-    "title": "US-25 Valid sibling"
+    ]
   },
   "workflow": {
     "technical": {
@@ -172,13 +172,13 @@
         "lastId": 5
       },
       "sprints": {
-        "lastNumber": 0,
-        "entries": []
+        "lastNumber": 0
       },
       "controlRecords": {
         "lastNumber": 0
       }
     },
+    "sprintNumbers": [],
     "storage": {
       "baselineEventId": ""
     },

@@ -4,12 +4,18 @@
     "appId": "teamos-kanban",
     "revision": 0,
     "createdAt": "2026-10-19T09:00:00Z",
-    "updatedAt": "2026-11-09T12:32:51.108Z"
+    "updatedAt": "2026-11-11T19:45:10.704Z"
   },
   "project": {
     "id": "us25-beta",
+    "title": "US-25 Beta — large history and Project Control",
+    "acronym": "BETA",
     "description": "Fictitious project for US-20",
     "status": "active",
+    "tags": [
+      "feature",
+      "documentation"
+    ],
     "members": [
       {
         "id": "ana",
@@ -23,13 +29,7 @@
         "id": "bruno",
         "name": "Bruno Costa"
       }
-    ],
-    "tags": [
-      "feature",
-      "documentation"
-    ],
-    "acronym": "BETA",
-    "title": "US-25 Beta — large history and Project Control"
+    ]
   },
   "workflow": {
     "technical": {
@@ -304,7 +304,7 @@
     "records": [
       {
         "id": "ATL-RK-1",
-        "kind": "risks",
+        "type": "risk",
         "title": "Supplier availability",
         "description": "Fictitious record for manual acceptance testing.",
         "status": "open",
@@ -336,7 +336,7 @@
       },
       {
         "id": "ATL-RK-2",
-        "kind": "risks",
+        "type": "risk",
         "title": "Environment outage",
         "description": "Fictitious record for manual acceptance testing.",
         "status": "materialized",
@@ -361,7 +361,7 @@
       },
       {
         "id": "ATL-RK-3",
-        "kind": "risks",
+        "type": "risk",
         "title": "Documentation delay",
         "description": "Fictitious record for manual acceptance testing.",
         "status": "closed",
@@ -386,7 +386,7 @@
       },
       {
         "id": "ATL-DC-4",
-        "kind": "decisions",
+        "type": "decision",
         "title": "Choose supported runtime",
         "description": "Fictitious record for manual acceptance testing.",
         "status": "approved",
@@ -408,7 +408,7 @@
       },
       {
         "id": "ATL-DC-5",
-        "kind": "decisions",
+        "type": "decision",
         "title": "Replace launch format",
         "description": "Fictitious record for manual acceptance testing.",
         "status": "superseded",
@@ -430,7 +430,7 @@
       },
       {
         "id": "ATL-DL-6",
-        "kind": "deliverables",
+        "type": "deliverable",
         "title": "Release package",
         "description": "Fictitious record for manual acceptance testing.",
         "status": "delivered",
@@ -457,7 +457,7 @@
       },
       {
         "id": "ATL-DL-7",
-        "kind": "deliverables",
+        "type": "deliverable",
         "title": "Acceptance report",
         "description": "Fictitious record for manual acceptance testing.",
         "status": "accepted",
@@ -483,7 +483,7 @@
       },
       {
         "id": "ATL-DL-8",
-        "kind": "deliverables",
+        "type": "deliverable",
         "title": "Archived delivery proposal",
         "description": "Fictitious record for manual acceptance testing.",
         "status": "cancelled",
@@ -512,17 +512,17 @@
         "lastId": 3
       },
       "sprints": {
-        "lastNumber": 0,
-        "entries": []
+        "lastNumber": 0
       },
       "controlRecords": {
         "lastNumber": 8
       }
     },
+    "sprintNumbers": [],
     "storage": {
-      "baselineEventId": "baseline_hbc95a9b7",
-      "checkpointBytes": 8133,
-      "patchBytes": 2987784
+      "baselineEventId": "baseline_haccc7b9c",
+      "checkpointBytes": 8127,
+      "patchBytes": 0
     },
     "transfers": []
   }

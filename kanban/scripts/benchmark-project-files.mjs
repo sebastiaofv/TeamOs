@@ -27,16 +27,21 @@ try {
         const sample = async (operation) => { const start = performance.now(); const result = await operation(); return { ms: performance.now() - start, result }; };
         const summarize = (samples) => { const sorted = [...samples].sort((a, b) => a - b); return { medianMs: +sorted[Math.floor(sorted.length / 2)].toFixed(2), p95Ms: +sorted[Math.ceil(sorted.length * .95) - 1].toFixed(2) }; };
         const results = [];
-        for (const scenario of ['control', 'sprints', 'attachments', 'long-history']) {
+        for (const scenario of ['control', 'sprints', 'attachments', 'long-history', 'large']) {
+            // `large` is the issue's bigger model project: 1,000 workitems and 100 records.
+            // It has fewer legacy edits because each one is a full ~0.8 MB snapshot and OPFS has a quota.
+            const workitems = scenario === 'large' ? 1000 : 100;
+            const controlled = scenario === 'control' || scenario === 'large';
+            const risks = scenario === 'large' ? 100 : 50;
             const binaries = [];
             const data = createEmptyProjectData(`Benchmark ${scenario}`, 'BEN');
             data.meta.createdAt = data.meta.updatedAt = '2026-01-01T00:00:00.000Z';
-            data.board.tasks = Array.from({ length: 100 }, (_, index) => normalizeTask({ id: index + 1, title: `Workitem ${index + 1}`, type: 'task', status: 'backlog', createdAt: data.meta.createdAt, updatedAt: data.meta.updatedAt }));
-            if (scenario === 'control') for (let index = 0; index < 50; index++) saveControlRecord(data, { ...newControlRecord('risks'), title: `Risk ${index}`, description: 'Context '.repeat(30) }, 'Tester');
+            data.board.tasks = Array.from({ length: workitems }, (_, index) => normalizeTask({ id: index + 1, title: `Workitem ${index + 1}`, type: 'task', status: 'backlog', createdAt: data.meta.createdAt, updatedAt: data.meta.updatedAt }));
+            if (controlled) for (let index = 0; index < risks; index++) saveControlRecord(data, { ...newControlRecord('risks'), title: `Risk ${index}`, description: 'Context '.repeat(30) }, 'Tester');
             ensureBoardTimelineBaseline(data);
-            for (let index = 0; index < (scenario === 'long-history' ? 10000 : 100); index++) {
-                if (scenario === 'control') {
-                    const risk = data.extensions.projectControl.records[index % 50];
+            for (let index = 0; index < (scenario === 'long-history' ? 10000 : scenario === 'large' ? 50 : 100); index++) {
+                if (controlled) {
+                    const risk = data.extensions.projectControl.records[index % risks];
                     saveControlRecord(data, { ...risk, description: `Revision ${index} ${'Context '.repeat(30)}` }, 'Tester');
                     appendTimelineEvent(data, { kind: 'board.control.updated', entityType: 'board', entityId: risk.id, summary: 'Risk updated', snapshot: createBoardStateSnapshot(data) });
                 } else if (scenario === 'sprints') {
@@ -72,7 +77,7 @@ try {
             for (const record of current.extensions.projectControl?.records || []) { archives[`control:${record.id}`] = { history: record.history }; record.history = []; }
             const legacyProject = JSON.stringify(current);
             const legacyHistory = JSON.stringify({ version: 1, timeline, archives, transactions: [] });
-            const samples = { open: [], save: [], conversion: [], historicalJump: [] };
+            const samples = { open: [], save: [], saveControl: [], conversion: [], historicalJump: [] };
             let projectBytes = 0, historyBytes = 0, logicalSaveBytes = 0, peakObservedHeapBytes = 0;
             for (let iteration = 0; iteration < 8; iteration++) {
                 const folderName = `${scenario}-${iteration}`;
@@ -83,24 +88,28 @@ try {
                 const record = opened.result;
                 record.data.extensions.timeline = await loadDirectoryHistory(record.handle);
                 const jump = await sample(() => reconstructBoardStateFromTimeline(record.data, timeline.events.length - 1));
-                if (jump.result.board.tasks.length !== 100) throw new Error('Historical workitems lost');
+                if (jump.result.board.tasks.length !== workitems) throw new Error('Historical workitems lost');
                 const beforeHistoryBytes = await size(directory, 'history.json');
                 const before = record.data.board.tasks[0].priority;
                 record.data.board.tasks[0].priority = before === 'high' ? 'low' : 'high';
                 appendTimelineEvent(record.data, { kind: 'task.updated', entityType: 'task', entityId: '1', summary: 'Priority', changes: { priority: { before, after: record.data.board.tasks[0].priority } } });
                 const save = await sample(() => writeJsonToFileHandle(record.handle, record.data));
+                // A board-level change: history stores a patch computed from the whole project.
+                saveControlRecord(record.data, { ...newControlRecord('risks'), title: 'Measured risk', description: 'Context '.repeat(30) }, 'Tester');
+                appendTimelineEvent(record.data, { kind: 'board.control.updated', entityType: 'board', entityId: 'board', summary: 'Risk created', snapshot: createBoardStateSnapshot(record.data) });
+                const saveControl = await sample(() => writeJsonToFileHandle(record.handle, record.data));
                 const conversionDirectory = await root.getDirectoryHandle(`${folderName}-legacy`, { create: true });
                 await conversionDirectory.getDirectoryHandle('attachments', { create: true });
                 for (const [name, bytes] of binaries) await write(await conversionDirectory.getDirectoryHandle('attachments'), name, bytes);
                 await write(conversionDirectory, 'project.json', legacyProject); await write(conversionDirectory, 'history.json', legacyHistory);
                 const conversion = await sample(() => openProjectDirectory(conversionDirectory));
-                if (iteration) for (const [name, value] of Object.entries({ open: opened.ms, save: save.ms, conversion: conversion.ms, historicalJump: jump.ms })) samples[name].push(value);
+                if (iteration) for (const [name, value] of Object.entries({ open: opened.ms, save: save.ms, saveControl: saveControl.ms, conversion: conversion.ms, historicalJump: jump.ms })) samples[name].push(value);
                 projectBytes = await size(directory, 'project.json'); historyBytes = await size(directory, 'history.json');
                 logicalSaveBytes = projectBytes + historyBytes - beforeHistoryBytes;
                 peakObservedHeapBytes = Math.max(peakObservedHeapBytes, performance.memory?.usedJSHeapSize || 0);
                 await root.removeEntry(folderName, { recursive: true }); await root.removeEntry(`${folderName}-legacy`, { recursive: true });
             }
-            results.push({ scenario, samples: 7, legacyProjectBytes: new Blob([legacyProject]).size, legacyHistoryBytes: new Blob([legacyHistory]).size, projectBytes, historyBytes, logicalSaveBytes, peakObservedHeapMB: +(peakObservedHeapBytes / 1024 / 1024).toFixed(1), ...Object.fromEntries(Object.entries(samples).map(([name, values]) => [name, summarize(values)])) });
+            results.push({ scenario, workitems, samples: 7, legacyProjectBytes: new Blob([legacyProject]).size, legacyHistoryBytes: new Blob([legacyHistory]).size, projectBytes, historyBytes, logicalSaveBytes, peakObservedHeapMB: +(peakObservedHeapBytes / 1024 / 1024).toFixed(1), ...Object.fromEntries(Object.entries(samples).map(([name, values]) => [name, summarize(values)])) });
         }
         const { applyProjectPatch, diffProjectState } = await import('/src/domain/projectPatch.ts');
         const { toProjectCheckpoint } = await import('/src/domain/projectFormat.ts');

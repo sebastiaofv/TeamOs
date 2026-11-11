@@ -136,11 +136,17 @@ export function buildTaskTimelineEvent(beforeTask: Task | null | undefined, afte
     };
 }
 
+// Unconverted histories carry a whole project in `snapshot` for these kinds.
+// Converted histories use `checkpoint` and `patch` instead.
+const LEGACY_STATE_SNAPSHOT_KINDS = new Set(['board.restored', 'board.reconciled', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations']);
+/** Kinds whose legacy snapshot can start a replay, when it holds the complete project. */
+const LEGACY_COMPLETE_SNAPSHOT_KINDS = new Set(['board.baseline', 'roadmap.updated', ...LEGACY_STATE_SNAPSHOT_KINDS]);
+
 export function applyTimelineEventToState(state: ReplayState | null | undefined, event: TimelineEvent | null | undefined): ReplayState | null | undefined {
     if (!state || !event) return state;
     if (event.checkpoint) return cloneSerializable(event.checkpoint);
     if (event.patch) return applyProjectPatch(state, event.patch);
-    if (['board.restored', 'board.reconciled', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations'].includes(event.kind) && event.snapshot) {
+    if (LEGACY_STATE_SNAPSHOT_KINDS.has(event.kind) && event.snapshot) {
         return cloneSerializable(event.snapshot);
     }
 
@@ -379,7 +385,7 @@ export function reconstructBoardStateFromTimeline(boardData: LooseBoardData | nu
     const targetIndex = Math.max(0, Math.min(maxIndex, Number(eventIndex)));
     let checkpointIndex = targetIndex;
     const completeCheckpoint = (event: TimelineEvent) => event.checkpoint || (
-        ['board.baseline', 'board.restored', 'board.reconciled', 'board.project.updated', 'workflow.updated', 'board.workitems.updated', 'board.control.updated', 'board.control.comment', 'board.control.associations', 'roadmap.updated'].includes(event.kind)
+        LEGACY_COMPLETE_SNAPSHOT_KINDS.has(event.kind)
         && Array.isArray(event.snapshot?.board?.tasks) && event.snapshot?.board?.settings && event.snapshot.extensions ? event.snapshot : undefined);
     while (checkpointIndex > 0 && !completeCheckpoint(timeline.events[checkpointIndex])) checkpointIndex--;
     const checkpoint = timeline.events[checkpointIndex].checkpoint || timeline.events[checkpointIndex].snapshot;

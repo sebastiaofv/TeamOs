@@ -88,20 +88,43 @@ async function scanEnvelope(file: BoardFile): Promise<Envelope> {
     return envelope as Envelope;
 }
 
-export async function validateHistoryEnvelope(handle: BoardFileHandle, projectId: string, baselineEventId: string, allowCachedStructure = false, allowLegacyEmptyBaseline = false): Promise<boolean> {
-    const file = await handle.getFile();
-    const previous = verified.get(handle);
-    // File metadata is an optimization, never evidence of project identity. Opens
-    // always scan structure; saves additionally reread identity even on a cache hit.
-    const prefix = allowCachedStructure && file.slice ? await file.slice(0, 16 * 1024).text() : '';
-    const identity = /^\s*\{\s*"schemaVersion"\s*:\s*1\s*,\s*"projectId"\s*:\s*("(?:[^"\\]|\\.)*")\s*,\s*"baselineEventId"\s*:\s*("(?:[^"\\]|\\.)*")\s*,\s*"events"\s*:\s*\[/.exec(prefix);
-    if (identity && (JSON.parse(identity[1]) !== projectId || JSON.parse(identity[2]) !== baselineEventId)) throw new Error('History identity does not match project.json.');
-    const envelope = allowCachedStructure && identity && previous && file.size !== undefined && file.lastModified !== undefined && previous.size === file.size && previous.lastModified === file.lastModified ? previous.envelope : await scanEnvelope(file);
+const HEADER = /^\s*\{\s*"schemaVersion"\s*:\s*1\s*,\s*"projectId"\s*:\s*("(?:[^"\\]|\\.)*")\s*,\s*"baselineEventId"\s*:\s*("(?:[^"\\]|\\.)*")\s*,\s*"events"\s*:\s*\[/;
+
+function assertIdentity(envelope: Pick<Envelope, 'projectId' | 'baselineEventId'>, projectId: string, baselineEventId: string): void {
     if (envelope.projectId !== projectId) throw new Error('History belongs to a different project.');
-    const legacyEmptyBaseline = allowLegacyEmptyBaseline && envelope.baselineEventId === '' && Boolean(baselineEventId);
-    if (envelope.baselineEventId !== baselineEventId && !legacyEmptyBaseline) throw new Error('History baseline does not match project.json.');
+    if (envelope.baselineEventId !== baselineEventId) throw new Error('History baseline does not match project.json.');
+}
+
+/** Constant-time check of the bytes the app relies on: the canonical header and
+ * the closing of the journal. Returns false when the file cannot be sliced. */
+async function checkEnds(file: BoardFile, projectId: string, baselineEventId: string): Promise<boolean> {
+    if (!file.slice || file.size === undefined) return false;
+    const header = HEADER.exec(await file.slice(0, 16 * 1024).text());
+    if (!header) throw new Error('Unsupported or ambiguous history envelope.');
+    assertIdentity({ projectId: JSON.parse(header[1]) as string, baselineEventId: JSON.parse(header[2]) as string }, projectId, baselineEventId);
+    const tail = await file.slice(Math.max(0, file.size - 32)).text();
+    if (!/\]\s*}\s*$/.test(tail)) throw new Error('Unsupported or ambiguous history envelope.');
+    return true;
+}
+
+/** Opening a folder: confirm the history belongs to this project without reading
+ * it. The structure is verified before the first append and whenever it is loaded. */
+export async function checkHistoryIdentity(handle: BoardFileHandle, projectId: string, baselineEventId: string): Promise<void> {
+    const file = await handle.getFile();
+    if (!await checkEnds(file, projectId, baselineEventId)) assertIdentity(await scanEnvelope(file), projectId, baselineEventId);
+}
+
+/** Before appending: the whole root structure must be the v1 envelope, because an
+ * append trusts that the last array is `transactions`. The scan runs once per
+ * unchanged file; identity is reread every time. */
+export async function verifyHistoryStructure(handle: BoardFileHandle, projectId: string, baselineEventId: string): Promise<void> {
+    const file = await handle.getFile();
+    const sliced = await checkEnds(file, projectId, baselineEventId);
+    const previous = verified.get(handle);
+    const unchanged = sliced && previous && file.lastModified !== undefined && previous.size === file.size && previous.lastModified === file.lastModified;
+    const envelope = unchanged ? previous.envelope : await scanEnvelope(file);
+    assertIdentity(envelope, projectId, baselineEventId);
     verified.set(handle, { size: file.size, lastModified: file.lastModified, envelope });
-    return legacyEmptyBaseline;
 }
 
 /** Our journal append changes no root fields; retain the verified envelope. */

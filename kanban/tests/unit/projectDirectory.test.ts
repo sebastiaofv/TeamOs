@@ -110,7 +110,7 @@ describe('project directory persistence', () => {
         const history = await directory.getFileHandle('history.json');
         expect(history.text()).not.toContain('data:text/plain');
         const stored = JSON.parse(history.text());
-        const reference = `teamos-attachment:${encodeURIComponent(stored.projectId)}/${stored.events.at(-1).task.attachments[0].sha256}`;
+        const reference = `teamos-attachment:${encodeURIComponent(stored.projectId)}/${stored.events.at(-1).workitem.attachments[0].sha256}`;
         const binaries = await directory.getDirectoryHandle('attachments');
         expect(binaries.children.size).toBe(1);
         expect(await (await resolveAttachmentBlob(reference)).text()).toBe('hello');

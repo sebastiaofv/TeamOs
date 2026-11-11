@@ -9,3 +9,12 @@ export async function withProjectIdentityLock<T>(id: string, operation: () => Pr
     try { return await next; }
     finally { if (pending.get(id) === next) pending.delete(id); }
 }
+
+/** Run only when nobody holds the lock, including this caller: never waits and never deadlocks. */
+export async function tryWithProjectIdentityLock<T>(id: string, operation: () => Promise<T>): Promise<T | undefined> {
+    if (typeof navigator !== 'undefined' && navigator.locks) {
+        return navigator.locks.request(`teamos:project:${id}`, { ifAvailable: true }, async (lock) => (lock ? operation() : undefined));
+    }
+    if (pending.has(id)) return undefined;
+    return withProjectIdentityLock(id, operation);
+}

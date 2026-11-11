@@ -33,7 +33,8 @@ describe('volume checkpoints', () => {
         const event: TimelineEvent = { id: 'sprint-update', at: data.meta.createdAt, kind: field === 'sprintResults' ? 'sprint.results.updated' : 'sprint.participation.updated', entityType: 'board', entityId: 'board', summary: 'Sprint', changes: { [field]: { before: null, after } } };
         const disk = eventToFile(event, writer);
         expect(disk).toHaveProperty('checkpoint');
-        expect(applyTimelineEventToState(initial, eventFromFile(disk) as TimelineEvent)?.extensions?.[field]).toEqual(after);
+        // Stored rows come back normalized (type and planning modes filled in), so compare what was written.
+        expect(applyTimelineEventToState(initial, eventFromFile(disk) as TimelineEvent)?.extensions?.[field]).toMatchObject(after);
     });
 
     it('never checkpoints field-level events by volume and keeps creation evidence', () => {
@@ -47,7 +48,7 @@ describe('volume checkpoints', () => {
         const task = { ...data.board.tasks[0], id: 2, title: 'Created task' };
         const created = eventToFile({ id: 'created', kind: 'task.created', at: data.meta.createdAt, entityType: 'task', entityId: '2', summary: 'Created', snapshot: task }, writer);
         expect(created).not.toHaveProperty('checkpoint');
-        expect(created.task).toMatchObject({ id: 2, title: 'Created task' });
+        expect(created.workitem).toMatchObject({ id: 2, title: 'Created task' });
         expect(eventFromFile(created).snapshot).toMatchObject({ id: 2 });
     });
 
@@ -109,7 +110,7 @@ it('retains control comment bodies and proven membership through restore and leg
     appendTimelineEvent(restored, { id: 'restore-empty', kind: 'board.restored', entityType: 'board', entityId: 'board', summary: 'No records', snapshot: createBoardStateSnapshot(restored) });
     const expected = restored.extensions.timeline!.events.map((_, index) => reconstructBoardStateFromTimeline(restored, index).extensions.projectControl?.records || []);
     const converted = convertLegacyProject({ project: restored, events: restored.extensions.timeline!.events, archives: {}, projectHash: 'h1' });
-    expect(converted.project.comments.filter((comment) => (comment.subject as { type: string }).type === 'control').map((comment) => comment.id)).toEqual(['c1', 'c2']);
+    expect(converted.project.comments.filter((comment) => (comment.subject as { kind: string }).kind === 'control').map((comment) => comment.id)).toEqual(['c1', 'c2']);
     const reopened = fromProjectFile(converted.project);
     const raw = JSON.parse(converted.historyText);
     reopened.extensions.timeline = { version: 1, baselineEventId: raw.baselineEventId, events: raw.events.map(eventFromFile) };

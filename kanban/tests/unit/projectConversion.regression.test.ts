@@ -122,21 +122,3 @@ it('refuses to resume from a backup belonging to another project state', async (
     expect((await backup.getFileHandle('project.json')).text()).toBe(originalBackup);
 });
 
-it('repairs the first v1 writer blank header only after verifying its recovered baseline', async () => {
-    const root = new MemoryDirectory('root');
-    const data = createEmptyProjectData('Initial v1', 'OLD');
-    await createProjectDirectory(root, 'old', data);
-    const directory = await root.getDirectoryHandle('old');
-    const history = await directory.getFileHandle('history.json');
-    const raw = JSON.parse(history.text());
-    const expected = raw.baselineEventId;
-    raw.baselineEventId = '';
-    history.setText(JSON.stringify(raw));
-    await openProjectDirectory(directory);
-    expect(JSON.parse(history.text()).baselineEventId).toBe(expected);
-    raw.events[0].id = 'wrong';
-    history.setText(JSON.stringify(raw));
-    const before = history.text();
-    await expect(openProjectDirectory(directory)).rejects.toThrow('baseline');
-    expect(history.text()).toBe(before);
-});

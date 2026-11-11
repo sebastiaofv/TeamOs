@@ -4,21 +4,21 @@
     "appId": "teamos-kanban",
     "revision": 0,
     "createdAt": "2026-11-03T09:00:00.000Z",
-    "updatedAt": "2026-11-09T12:32:51.088Z"
+    "updatedAt": "2026-11-11T19:45:10.688Z"
   },
   "project": {
     "id": "us25-missing-binary",
+    "title": "US-25 missing-binary",
+    "acronym": "BINA",
     "description": "",
     "status": null,
+    "tags": [],
     "members": [
       {
         "id": "tester",
         "name": "Tester"
       }
-    ],
-    "tags": [],
-    "acronym": "BINA",
-    "title": "US-25 missing-binary"
+    ]
   },
   "workflow": {
     "technical": {
@@ -479,7 +479,7 @@
     {
       "id": "us25-comment",
       "eventId": "comment-event-us25-comment",
-      "at": "2026-11-09T12:32:51.070Z",
+      "at": "2026-11-11T19:45:10.672Z",
       "author": {
         "name": "Tester",
         "kind": "local"
@@ -497,9 +497,9 @@
         }
       ],
       "subject": {
-        "type": "workitem",
-        "taskId": 1,
-        "workitemKey": "baseline:baseline_h411c70fd:1",
+        "kind": "workitem",
+        "workitemId": 1,
+        "workitemKey": "baseline:baseline_hcc69ca84:1",
         "workitemCreatedAt": "2026-11-03T09:00:00.000Z"
       }
     }
@@ -510,17 +510,17 @@
         "lastId": 5
       },
       "sprints": {
-        "lastNumber": 0,
-        "entries": []
+        "lastNumber": 0
       },
       "controlRecords": {
         "lastNumber": 0
       }
     },
+    "sprintNumbers": [],
     "storage": {
-      "baselineEventId": "baseline_h411c70fd",
-      "checkpointBytes": 9987,
-      "patchBytes": 250
+      "baselineEventId": "baseline_hcc69ca84",
+      "checkpointBytes": 9991,
+      "patchBytes": 0
     },
     "transfers": []
   }

@@ -3,7 +3,7 @@
     "schemaVersion": 6,
     "appId": "teamos-kanban",
     "createdAt": "2026-11-03T09:00:00.000Z",
-    "updatedAt": "2026-11-09T12:32:51.066Z"
+    "updatedAt": "2026-11-11T19:45:10.668Z"
   },
   "board": {
     "columns": [
@@ -451,11 +451,11 @@
     },
     "timeline": {
       "version": 1,
-      "baselineEventId": "baseline_h411c70fd",
+      "baselineEventId": "baseline_hcc69ca84",
       "events": [
         {
-          "id": "baseline_h411c70fd",
-          "at": "2026-11-09T12:32:51.066Z",
+          "id": "baseline_hcc69ca84",
+          "at": "2026-11-11T19:45:10.668Z",
           "kind": "board.baseline",
           "entityType": "board",
           "entityId": "board",
@@ -465,7 +465,7 @@
               "schemaVersion": 6,
               "appId": "teamos-kanban",
               "createdAt": "2026-11-03T09:00:00.000Z",
-              "updatedAt": "2026-11-09T12:32:51.066Z"
+              "updatedAt": "2026-11-11T19:45:10.668Z"
             },
             "board": {
               "columns": [
@@ -916,14 +916,14 @@
         },
         {
           "id": "comment-event-us25-comment",
-          "at": "2026-11-09T12:32:51.070Z",
+          "at": "2026-11-11T19:45:10.672Z",
           "kind": "task.comment.published",
           "entityType": "task",
           "entityId": "1",
           "summary": "Fixture image comment",
           "meta": {
             "commentId": "us25-comment",
-            "workitemKey": "baseline:baseline_h411c70fd:1"
+            "workitemKey": "baseline:baseline_hcc69ca84:1"
           }
         }
       ]
@@ -934,10 +934,10 @@
         {
           "id": "us25-comment",
           "taskId": 1,
-          "workitemKey": "baseline:baseline_h411c70fd:1",
+          "workitemKey": "baseline:baseline_hcc69ca84:1",
           "workitemCreatedAt": "2026-11-03T09:00:00.000Z",
           "eventId": "comment-event-us25-comment",
-          "at": "2026-11-09T12:32:51.070Z",
+          "at": "2026-11-11T19:45:10.672Z",
           "author": {
             "name": "Tester",
             "kind": "local"

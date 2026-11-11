@@ -1,5 +1,5 @@
 import { reserveHistoricalControlNumber } from '@/domain/legacySequences';
-import { validateHistoryEnvelope as validateEnvelope, rememberHistoryAppend } from './historyEnvelope';
+import { checkHistoryIdentity, verifyHistoryStructure, rememberHistoryAppend } from './historyEnvelope';
 import type { BoardData, TimelineExtension } from '@/domain/types';
 import type { BoardFileHandle, ProjectDirectoryHandle } from '@/infrastructure/browser/types';
 import { parseAttachmentReference } from '@/domain/attachmentReferences';
@@ -11,10 +11,11 @@ import { controlRecords } from '@/domain/projectControl';
 import { formatErrorMessage, isRecord } from '@/domain/util';
 import { attachmentsFromHashes, attachmentsToHashes, fromProjectFile, isLegacyProjectFile, isProjectFileV1, toProjectFile, type ProjectStorageMetadata } from '@/domain/projectFormat';
 import { archivesFromRecordHistory, archivesToRecordHistory, convertLegacyProject, createHistoryWriter, eventFromFile, eventToFile, isHistoryFileV1, isLegacyHistoryFile, serializeHistoryFile, type Archives } from '@/domain/projectHistoryFormat';
-import { withProjectIdentityLock } from './projectLock';
+import { tryWithProjectIdentityLock, withProjectIdentityLock } from './projectLock';
 import { controlReferencesThrough, retainControlContext } from '@/domain/controlHistory';
 import { ensureBoardTimelineBaseline } from '@/domain/timeline';
 
+const HISTORY_ROOT_KEYS = ['schemaVersion', 'projectId', 'baselineEventId', 'events', 'recordHistory', 'transactions'];
 type RawEvent = Record<string, unknown> & { id: string };
 type HistoryStage = { kind: 'stage'; id: string; projectHash: string; events: RawEvent[]; archives: Archives };
 type DirectoryProject = {
@@ -84,18 +85,7 @@ export async function openProjectDirectory(directory: ProjectDirectoryHandle): P
         const projectId = data.extensions.project?.id;
         if (!projectId) throw new Error('project.json has no valid project identity.');
         const storage: DirectoryProject = { directory, history, attachments, projectId, ...(metadata.legacyFileName ? { legacyFileName: metadata.legacyFileName } : {}), projectHash: hashTextContent(projectText), baselineEventId: metadata.baselineEventId, historyTransactionId: metadata.historyTransactionId, checkpointBytes: metadata.checkpointBytes || 0, patchBytes: metadata.patchBytes || 0, commitKnown: false, loaded: false, sessionArchiveIds: new Set(), sessionEventIds: new Set() };
-        const repairEmptyBaseline = await validateHistoryEnvelope(history, projectId, metadata.baselineEventId, false, true);
-        if (repairEmptyBaseline) await withProjectIdentityLock(projectId, async () => {
-            // The first v1 writer could create an empty journal header before
-            // seeding its baseline in a transaction. Verify recovery before repair.
-            const original = await readText(history);
-            await readHistory(handle, storage);
-            if (await readText(handle) !== projectText || await readText(history) !== original) throw new Error('Project files changed during history header repair. Reopen the folder.');
-            const corrected = JSON.parse(original) as Record<string, unknown>;
-            corrected.baselineEventId = metadata.baselineEventId;
-            await writeText(history, JSON.stringify(corrected));
-            await validateHistoryEnvelope(history, projectId, metadata.baselineEventId);
-        });
+        await historyCheck(() => checkHistoryIdentity(history, projectId, metadata.baselineEventId));
         projects.set(handle, storage);
         return handle;
     } catch (error) {
@@ -165,10 +155,13 @@ function mergeJournal(baseEvents: RawEvent[], baseArchives: Archives, transactio
     return { events: [...known.values()], archives };
 }
 
-async function readHistory(handle: BoardFileHandle, storage: DirectoryProject): Promise<TimelineExtension> {
+async function readHistory(handle: BoardFileHandle, storage: DirectoryProject, historyText?: string): Promise<TimelineExtension> {
     try {
-        const raw: unknown = JSON.parse(await (await storage.history.getFile()).text());
+        const raw: unknown = JSON.parse(historyText ?? await readText(storage.history));
         if (!isHistoryFileV1(raw)) throw new Error('Unsupported history format.');
+        // Appends trust that `transactions` closes the file; a loaded history must have exactly the v1 root.
+        const keys = Object.keys(raw);
+        if (keys.length !== HISTORY_ROOT_KEYS.length || keys.some((key, index) => key !== HISTORY_ROOT_KEYS[index])) throw new Error('Unsupported or ambiguous history envelope.');
         if (raw.projectId !== storage.projectId) throw new Error('History belongs to a different project.');
         const projectHash = hashTextContent(await (await handle.getFile()).text());
         const merged = mergeJournal(raw.events as RawEvent[], archivesFromRecordHistory(raw.recordHistory), raw.transactions, projectHash, (entry) => archivesFromRecordHistory(entry.recordHistory));
@@ -193,8 +186,8 @@ async function backupDirectory(directory: ProjectDirectoryHandle, create: boolea
 }
 const readText = async (handle: BoardFileHandle) => (await handle.getFile()).text();
 
-async function validateHistoryEnvelope(handle: BoardFileHandle, projectId: string, baselineEventId: string, cached = false, legacyEmpty = false): Promise<boolean> {
-    try { return await validateEnvelope(handle, projectId, baselineEventId, cached, legacyEmpty); }
+async function historyCheck(check: () => Promise<void>): Promise<void> {
+    try { await check(); }
     catch (error) { throw new Error(`history.json: ${formatErrorMessage(error)}`); }
 }
 
@@ -210,71 +203,97 @@ function assertNoStoredHistory(data: BoardData): void {
     for (const operation of data.extensions.projectTransfers?.operations || []) if (operation.history.length || (operation as { originalEvents?: unknown[] }).originalEvents?.length) throw new Error('Transfer history belongs in history.json.');
 }
 
-/** The single conversion of a project folder. project.json is written last, so a
- * legacy project.json always means the conversion can restart from the backup. */
-async function convertLegacyDirectory(directory: ProjectDirectoryHandle, handle: BoardFileHandle, history: BoardFileHandle, projectText: string, rawProject: unknown): Promise<string> {
-    if (!isRecord(rawProject) || !isRecord(rawProject.extensions) || rawProject.extensions.timeline !== undefined) throw new Error('project.json must contain current state without a timeline.');
-    validateBoardData(rawProject);
-    const legacyStorage = assertStorageMetadata(rawProject.extensions.projectStorage);
-    assertNoStoredHistory(rawProject as BoardData);
-    const originalHistoryText = await readText(history);
-    let historyText = originalHistoryText;
-    let rawHistory: unknown;
-    try { rawHistory = JSON.parse(historyText); } catch (error) { throw new Error(`history.json: ${formatErrorMessage(error)}`); }
-    if (isHistoryFileV1(rawHistory)) {
-        // An earlier conversion stopped between the two writes.
-        const backup = await backupDirectory(directory, false);
-        if (!backup) throw new Error('history.json: already converted but no backup exists; the folder is inconsistent.');
-        const backupProject = await readText(await backup.getFileHandle('project.json'));
-        if (backupProject !== projectText) throw new Error('project.json changed since conversion began; the backup was preserved.');
-        validateBoardData(JSON.parse(backupProject));
-        const projectId = (rawProject as BoardData).extensions.project?.id;
-        if (rawHistory.projectId !== projectId) throw new Error('History belongs to a different project.');
-        historyText = await readText(await backup.getFileHandle('history.json'));
-        rawHistory = JSON.parse(historyText);
-    }
-    if (!isLegacyHistoryFile(rawHistory)) throw new Error('history.json: unsupported history format.');
-    const legacy = rawHistory as { timeline: unknown; archives?: unknown; transactions?: unknown };
-    const projectId = (rawProject as BoardData).extensions.project?.id;
-    if (!projectId) throw new Error('project.json has no valid project identity.');
-    validateStoredReferences(rawProject, projectId);
-    validateStoredReferences(rawHistory, projectId);
-    const parseLegacyArchives = (value: unknown): Archives => Object.fromEntries(Object.entries(isRecord(value) ? value : {}).map(([key, entry]) => {
+type LegacyHistory = { timeline: unknown; archives?: unknown; transactions?: unknown };
+
+/** The legacy history to convert. When an earlier conversion stopped between its two
+ * writes, history.json is already v1 and the source is the verified backup. */
+async function legacyHistorySource(directory: ProjectDirectoryHandle, projectText: string, projectId: string, liveHistoryText: string): Promise<string> {
+    let live: unknown;
+    try { live = JSON.parse(liveHistoryText); } catch (error) { throw new Error(`history.json: ${formatErrorMessage(error)}`); }
+    if (!isHistoryFileV1(live)) return liveHistoryText;
+    const backup = await backupDirectory(directory, false);
+    if (!backup) throw new Error('history.json: already converted but no backup exists; the folder is inconsistent.');
+    const backupProject = await readText(await backup.getFileHandle('project.json'));
+    if (backupProject !== projectText) throw new Error('project.json changed since conversion began; the backup was preserved.');
+    validateBoardData(JSON.parse(backupProject));
+    if (live.projectId !== projectId) throw new Error('History belongs to a different project.');
+    return readText(await backup.getFileHandle('history.json'));
+}
+
+/** Legacy events and record histories, with the accepted journal transactions folded in. */
+function readLegacyHistory(historyText: string, projectId: string, projectHash: string, baselineEventId: string): { events: TimelineExtension['events']; archives: Archives } {
+    const raw: unknown = JSON.parse(historyText);
+    if (!isLegacyHistoryFile(raw)) throw new Error('history.json: unsupported history format.');
+    validateStoredReferences(raw, projectId);
+    const legacy = raw as LegacyHistory;
+    const parseArchives = (value: unknown): Archives => Object.fromEntries(Object.entries(isRecord(value) ? value : {}).map(([key, entry]) => {
         if (!isRecord(entry) || !Array.isArray(entry.history)) throw new Error('history.json: invalid record history.');
         return [key, { history: entry.history as { id: string }[] }];
     }));
     const base = normalizeTimelineExtension(legacy.timeline);
-    if (!base) throw new Error('history.json: invalid timeline.');
-    if (base.events.length && (base.events[0].kind !== 'board.baseline' || base.baselineEventId !== base.events[0].id)) throw new Error('history.json: invalid timeline.');
-    if (legacyStorage.baselineEventId && base.baselineEventId !== legacyStorage.baselineEventId) throw new Error('history.json: baseline does not match project.json.');
-    const merged = mergeJournal(base.events as unknown as RawEvent[], parseLegacyArchives(legacy.archives), legacy.transactions, hashTextContent(projectText), (entry) => parseLegacyArchives(entry.archives));
+    const validBaseline = base && (!base.events.length || (base.events[0].kind === 'board.baseline' && base.baselineEventId === base.events[0].id));
+    if (!validBaseline) throw new Error('history.json: invalid timeline.');
+    if (baselineEventId && base.baselineEventId !== baselineEventId) throw new Error('history.json: baseline does not match project.json.');
+    const merged = mergeJournal(base.events as unknown as RawEvent[], parseArchives(legacy.archives), legacy.transactions, projectHash, (entry) => parseArchives(entry.archives));
     const events = merged.events.map((event) => normalizeTimelineEvent(event));
     if (events.some((event) => !event)) throw new Error('history.json: invalid event.');
-    const converted = convertLegacyProject({ project: rawProject as BoardData, events: events as TimelineExtension['events'], archives: merged.archives, projectHash: hashTextContent(projectText) });
-    // External editors do not participate in Web Locks. Check both inputs at each
-    // write boundary, including after replacing history but before marking completion.
-    const checkCurrent = async (expectedHistory: string) => {
-        if (await readText(handle) !== projectText || await readText(history) !== expectedHistory) throw new Error('Project files changed during conversion. Reopen the folder; the backup was preserved.');
-    };
-    await checkCurrent(originalHistoryText);
+    return { events: events as TimelineExtension['events'], archives: merged.archives };
+}
+
+/** Copy both source files to backup/schema-6/ and verify them. A verified backup is never overwritten. */
+async function writeConversionBackup(directory: ProjectDirectoryHandle, files: readonly (readonly [string, string])[], checkCurrent: () => Promise<void>): Promise<void> {
     const backup = (await backupDirectory(directory, true))!;
-    for (const [name, text] of [['project.json', projectText], ['history.json', historyText]] as const) {
+    for (const [name, text] of files) {
         const target = await backup.getFileHandle(name, { create: true });
         const existing = await readText(target);
         if (existing && existing !== text) throw new Error(`backup/${name}: differs from the conversion source; the backup was preserved.`);
         if (!existing) {
-            await checkCurrent(originalHistoryText);
+            await checkCurrent();
             await writeText(target, text);
         }
         if (await readText(target) !== text) throw new Error(`backup/${name}: verification failed.`);
     }
-    await checkCurrent(originalHistoryText);
+}
+
+/** The single conversion of a project folder. project.json is written last, so a
+ * legacy project.json always means the conversion can restart from the backup. */
+async function convertLegacyDirectory(directory: ProjectDirectoryHandle, handle: BoardFileHandle, history: BoardFileHandle, projectText: string, rawProject: unknown): Promise<string> {
+    // 1. Validate the current state.
+    if (!isRecord(rawProject) || !isRecord(rawProject.extensions) || rawProject.extensions.timeline !== undefined) throw new Error('project.json must contain current state without a timeline.');
+    validateBoardData(rawProject);
+    const legacyStorage = assertStorageMetadata(rawProject.extensions.projectStorage);
+    assertNoStoredHistory(rawProject);
+    const projectId = rawProject.extensions.project?.id;
+    if (!projectId) throw new Error('project.json has no valid project identity.');
+    validateStoredReferences(rawProject, projectId);
+
+    // 2. Read the whole legacy history, from the backup when resuming.
+    const liveHistoryText = await readText(history);
+    const historyText = await legacyHistorySource(directory, projectText, projectId, liveHistoryText);
+    const projectHash = hashTextContent(projectText);
+    const legacy = readLegacyHistory(historyText, projectId, projectHash, legacyStorage.baselineEventId);
+
+    // 3. Convert in memory.
+    const converted = convertLegacyProject({ project: rawProject, ...legacy, projectHash });
+
+    // 4. Back up, then replace history.json and finally project.json. External editors do not
+    // participate in Web Locks, so both inputs are checked at each write boundary.
+    const checkCurrent = async (expectedHistory: string) => {
+        if (await readText(handle) !== projectText || await readText(history) !== expectedHistory) throw new Error('Project files changed during conversion. Reopen the folder; the backup was preserved.');
+    };
+    await checkCurrent(liveHistoryText);
+    await writeConversionBackup(directory, [['project.json', projectText], ['history.json', historyText]], () => checkCurrent(liveHistoryText));
+    await checkCurrent(liveHistoryText);
     await writeText(history, converted.historyText);
     await checkCurrent(converted.historyText);
     await writeText(handle, converted.projectText);
+
+    // 5. Reread and verify.
     const writtenHistory = await readText(history);
     const reread: unknown = JSON.parse(writtenHistory);
-    if (await readText(handle) !== converted.projectText || writtenHistory !== converted.historyText || !isHistoryFileV1(reread) || reread.projectId !== projectId) throw new Error('Project conversion could not be verified.');
+    const verified = await readText(handle) === converted.projectText && writtenHistory === converted.historyText
+        && isHistoryFileV1(reread) && reread.projectId === projectId;
+    if (!verified) throw new Error('Project conversion could not be verified.');
     return converted.projectText;
 }
 
@@ -305,11 +324,43 @@ async function finishHistoryCommit(storage: DirectoryProject): Promise<void> {
     storage.commitKnown = true;
 }
 
+/** Journal stages kept after folding: the last one, emptied, so its commit marker still has a transaction. */
+const foldedJournal = (id: string) => [
+    { kind: 'stage', id, projectHash: '', events: [], recordHistory: { control: {}, transfers: {} } },
+    { kind: 'commit', id }
+];
+
+/** Fold the journal into `events` and `recordHistory`, so the file reads as the history it holds.
+ * Runs only when no save holds the project lock, and only over committed or proven stages.
+ * Returns the history text it read, folded or not, so loading reads the file once. */
+async function readFoldedHistory(handle: BoardFileHandle, storage: DirectoryProject): Promise<string> {
+    const folded = await tryWithProjectIdentityLock(storage.projectId, async () => {
+        const historyText = await readText(storage.history);
+        // A malformed file is left as it is; readHistory reports it with the file name.
+        let raw: unknown;
+        try { raw = JSON.parse(historyText); } catch { return historyText; }
+        if (!isHistoryFileV1(raw) || !Array.isArray(raw.transactions) || !storage.historyTransactionId) return historyText;
+        const stages = raw.transactions.filter((entry) => isRecord(entry) && entry.kind === 'stage');
+        const last = stages.at(-1) as { id?: unknown } | undefined;
+        if (stages.length < 2 || last?.id !== storage.historyTransactionId) return historyText;
+        const projectText = await readText(handle);
+        if (hashTextContent(projectText) !== storage.projectHash) return historyText;
+        const merged = mergeJournal(raw.events as RawEvent[], archivesFromRecordHistory(raw.recordHistory), raw.transactions, storage.projectHash, (entry) => archivesFromRecordHistory(entry.recordHistory));
+        const text = serializeHistoryFile(storage.projectId, storage.baselineEventId, merged.events, merged.archives, foldedJournal(storage.historyTransactionId));
+        await writeText(storage.history, text);
+        if (await readText(storage.history) !== text) throw new Error(`${storage.directory.name}/history.json: folding could not be verified.`);
+        storage.commitKnown = true;
+        return text;
+    });
+    return folded ?? readText(storage.history);
+}
+
 /** Only history consumers call this. New local events merge without replacing older events. */
 export async function loadDirectoryHistory(handle: BoardFileHandle): Promise<TimelineExtension | undefined> {
     const storage = projects.get(handle);
     if (!storage) return undefined;
-    const timeline = await readHistory(handle, storage);
+    const historyText = await readFoldedHistory(handle, storage);
+    const timeline = await readHistory(handle, storage, historyText);
     storage.timeline = timeline;
     for (const event of timeline.events) storage.sessionEventIds.add(event.id);
     for (const [key, archive] of Object.entries(storage.archives || {})) for (const entry of archive.history) storage.sessionArchiveIds.add(`${key}:${entry.id}`);
@@ -421,19 +472,22 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
     const transactionId = changed ? crypto.randomUUID() : storage.historyTransactionId;
     const baselineEventId = storage.baselineEventId || local?.baselineEventId || '';
     delete data.extensions.timeline;
-    const diskText = newEvents.length ? await readText(handle) : '';
-    const diskFile: unknown = diskText ? JSON.parse(diskText) : undefined;
+    // One read serves both the conflict check and the patch baseline.
+    const diskText = newEvents.length || expectedProjectHash ? await readText(handle) : undefined;
+    const diskHash = diskText === undefined ? undefined : hashTextContent(diskText);
+    const diskFile: unknown = newEvents.length && diskText ? JSON.parse(diskText) : undefined;
     // Patches diff against the state of the last write, then follow each new event.
     const writer = createHistoryWriter(isProjectFileV1(diskFile) ? fromProjectFile(attachmentsFromHashes(diskFile, storage.projectId)) : undefined, storage);
     const eventsOnDisk = newEvents.map((event) => attachmentsToHashes(eventToFile(event, writer)));
     const convertedFromHash = isRecord(input.extensions.projectStorage) ? (input.extensions.projectStorage as ProjectStorageMetadata).convertedFromHash : undefined;
     data.extensions.projectStorage = { version: 1, baselineEventId, ...(storage.legacyFileName ? { legacyFileName: storage.legacyFileName } : {}), ...(transactionId ? { historyTransactionId: transactionId } : {}), ...(convertedFromHash ? { convertedFromHash } : {}), checkpointBytes: writer.checkpointBytes, patchBytes: writer.patchBytes };
     const text = json(attachmentsToHashes(toProjectFile(data)));
+    const changedOnDisk = () => new Error(`${storage.directory.name}/project.json changed during save. Retry to reconcile changes.`);
+    if (expectedProjectHash && diskHash !== expectedProjectHash) throw changedOnDisk();
     const checkProject = async () => {
-        if (expectedProjectHash && hashTextContent(await (await handle.getFile()).text()) !== expectedProjectHash) throw new Error(`${storage.directory.name}/project.json changed during save. Retry to reconcile changes.`);
+        if (expectedProjectHash && hashTextContent(await (await handle.getFile()).text()) !== expectedProjectHash) throw changedOnDisk();
     };
-    await checkProject();
-    if (changed || storage.historyTransactionId) await validateHistoryEnvelope(storage.history, storage.projectId, storage.baselineEventId, true);
+    if (changed || storage.historyTransactionId) await historyCheck(() => verifyHistoryStructure(storage.history, storage.projectId, storage.baselineEventId));
     await finishHistoryCommit(storage);
     if (changed) await appendHistory(storage, { kind: 'stage', id: transactionId!, projectHash: hashTextContent(text), events: eventsOnDisk, recordHistory: attachmentsToHashes(archivesToRecordHistory(deltaArchives)) });
     await checkProject();
