@@ -136,16 +136,15 @@ export function dashboardOverviewPlanning(data: BoardData, phaseId: string, end:
         const date = group.kind === 'phases' ? group.item.endDate : group.item.dueDate;
         return { ...group, progress: { ...group.progress, percent }, open, overdue: Boolean(date && date < end && open) };
     });
-    const phases = planning.filter((group) => group.kind === 'phases' && group.open)
+    const phases = planning.filter((group) => group.kind === 'phases' && !group.item.parentId)
         .map((group) => {
             const started = group.tasks.some((task) => ['in-progress', 'testing', 'completed'].includes(statusCategory(task.status, data, task)));
-            return { ...group, started, situation: group.overdue ? 'overdue' as const : !started && Boolean(group.item.startDate && group.item.startDate < end) ? 'late' as const : 'onTarget' as const };
+            return { ...group, started, situation: group.progress.percent === 100 ? 'completed' as const : group.overdue ? 'overdue' as const : !started && Boolean(group.item.startDate && group.item.startDate < end) ? 'late' as const : 'onTarget' as const };
         })
-        .filter((group) => group.started || Boolean(group.item.startDate && group.item.startDate <= end))
         .sort((a, b) => (a.item.startDate || '').localeCompare(b.item.startDate || '') || a.item.id.localeCompare(b.item.id));
-    const milestones = planning.filter((group) => group.kind === 'milestones' && group.open && group.item.dueDate).sort((a, b) => a.item.dueDate!.localeCompare(b.item.dueDate!));
-    const next = milestones.find((group) => group.item.dueDate! >= end);
-    return { phases, milestones: [...milestones.filter((group) => group.overdue), ...(next ? [next] : [])] };
+    const milestones = planning.filter((group) => group.kind === 'milestones')
+        .sort((a, b) => (a.item.dueDate || '9999').localeCompare(b.item.dueDate || '9999') || a.item.id.localeCompare(b.item.id));
+    return { phases, milestones };
 }
 
 export function dashboardControl(data: BoardData, phaseId: string, start: string, end: string) {

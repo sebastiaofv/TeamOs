@@ -1,3 +1,4 @@
+import { setDashboardDate } from '../support/dashboard';
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, toggleTheme } from '../support/portfolio';
@@ -11,7 +12,7 @@ async function seed(page: Page, writable = true) {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'sections', title: data.board.settings.title, hasHandle: writable, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sections' });
     await page.locator('[data-view-mode="dashboard"]').click();
-    await page.getByLabel('Start date', { exact: true }).fill('24/10/2026');
+    await setDashboardDate(page, 'Start date', '24/10/2026');
 }
 
 test('overview and four activity widgets appear in the requested order; visibility affects entire sections and supports all/none', async ({ page }) => {
@@ -20,7 +21,7 @@ test('overview and four activity widgets appear in the requested order; visibili
     await expect(page.locator('[data-dashboard-section]')).toHaveCount(13);
     expect(await page.locator('[data-dashboard-section]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-dashboard-section')))).toEqual(keys);
     const summary = page.locator('.dashboard-visible-sections summary');
-    const start = page.getByLabel('Start date', { exact: true });
+    const start = page.locator('.dashboard-range-field');
     expect((await summary.boundingBox())!.x).toBeLessThan((await start.boundingBox())!.x);
     await summary.click();
     const filter = page.locator('.dashboard-visible-sections');
@@ -37,7 +38,7 @@ test('overview and four activity widgets appear in the requested order; visibili
 
 test('period activity includes Bugs, actual transition dates and end-date responsibility', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('End date', { exact: true }).fill('30/10/2026');
+    await setDashboardDate(page, 'End date', '30/10/2026');
     const started = section(page, 'started');
     const completed = section(page, 'completedInPeriod');
     await expect(started.locator('tbody tr')).toHaveCount(3);
@@ -56,10 +57,10 @@ test('period activity includes Bugs, actual transition dates and end-date respon
     await started.getByRole('button', { name: 'Independent task started', exact: true }).click();
     await expect(page.locator('#taskDetailModal')).toContainText('Testing');
     await page.keyboard.press('Escape');
-    await page.getByLabel('Start date', { exact: true }).fill('26/10/2026');
+    await setDashboardDate(page, 'Start date', '26/10/2026');
     await expect(started.locator('tbody tr')).toHaveCount(1); // The Bug starts on 28/10; Doing → Testing is not another start.
     await expect(started).toContainText('Bug excluded');
-    await page.getByLabel('End date', { exact: true }).fill('29/10/2026');
+    await setDashboardDate(page, 'End date', '29/10/2026');
     await expect(completed.locator('tbody tr')).toHaveCount(0);
     await expect(section(page, 'currentlyInProgress')).toContainText('Story started then completed');
 });
@@ -68,7 +69,7 @@ test('historical controls show risks and decisions still open at end date and de
     await seed(page);
     await expect(section(page, 'openRisks').locator('tbody tr')).toHaveCount(1);
     await expect(section(page, 'decisions').locator('tbody tr')).toHaveCount(1);
-    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
+    await setDashboardDate(page, 'End date', '31/10/2026');
     await expect(section(page, 'openRisks').locator('tbody tr')).toHaveCount(2);
     await expect(section(page, 'decisions').locator('tbody tr')).toHaveCount(2);
     await expect(section(page, 'deliverables').locator('tbody tr')).toHaveCount(2);
@@ -89,15 +90,16 @@ test('historical controls show risks and decisions still open at end date and de
 
 test('phases and milestones are independent compact widgets with dates, progress and navigation', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
+    await setDashboardDate(page, 'End date', '31/10/2026');
     const phases = section(page, 'activePhases');
-    for (const title of ['Overdue parent phase', 'Delivery programme', 'API delivery', 'UX delivery', 'Future parent phase']) await expect(phases).toContainText(title);
-    await expect(phases).not.toContainText('Completed parent phase');
-    await expect(phases.locator('[data-dashboard-planning="late"]')).toContainText('Overdue');
-    await expect(phases.locator('[data-dashboard-planning="api"]')).toContainText('On Target');
-    await expect(phases.locator('[data-dashboard-planning="api"]')).toContainText('01/10/2026');
+    for (const title of ['Overdue parent phase', 'Delivery programme', 'Future parent phase', 'Completed parent phase']) await expect(phases).toContainText(title);
+    await expect(phases).not.toContainText('API delivery');
+    await expect(phases).not.toContainText('UX delivery');
+    await expect(phases.locator('[data-dashboard-planning="finished"]')).toHaveAttribute('data-phase-state', 'completed');
+    await expect(phases.locator('[data-dashboard-planning="late"]')).toHaveAttribute('data-phase-state', 'overdue');
+    await expect(phases.locator('[data-dashboard-planning="delivery"]')).toContainText('01/10/2026');
     const milestones = section(page, 'milestones');
-    await expect(milestones.locator('[data-dashboard-planning="late-milestone"] .dashboard-warning')).toBeVisible();
+    await expect(milestones.locator('[data-dashboard-planning="late-milestone"] .dashboard-situation-overdue')).toBeVisible();
     await expect(milestones.locator('[data-dashboard-planning="late-milestone"]')).toContainText('0%');
     await expect(milestones).toContainText('Next unassigned checkpoint');
     await milestones.getByRole('button', { name: 'Next unassigned checkpoint', exact: true }).click();
@@ -106,11 +108,11 @@ test('phases and milestones are independent compact widgets with dates, progress
 
 test('stacked horizontal bars distinguish actual workflow states and exclude child Tasks', async ({ page }) => {
     await seed(page);
-    await expect(section(page, 'workitemStatus').getByRole('img')).toHaveCount(3);
+    await expect(section(page, 'workitemStatus').locator('.dashboard-stacked-bar')).toHaveCount(3);
     const tasks = page.locator('[data-dashboard-statistics="task"]');
-    await expect(tasks.getByRole('img')).toHaveAccessibleName(/Independent Tasks:.*Testing 1/);
-    await expect(tasks.getByRole('img')).toHaveAccessibleName(/Independent Tasks:.*In progress 3/);
-    await tasks.getByRole('button', { name: /Testing 1/, exact: false }).click();
+    await expect(tasks.getByRole('group')).toHaveAccessibleName(/Independent Tasks:.*Testing 1/);
+    await expect(tasks.getByRole('group')).toHaveAccessibleName(/Independent Tasks:.*In progress 3/);
+    await tasks.getByRole('button', { name: /Testing: 1/, exact: false }).click();
     await expect(page.locator('#dashboardSources tbody tr')).toHaveCount(1);
     await expect(page.locator('#dashboardSources')).toContainText('Independent task started');
     await expect(page.locator('#dashboardSources')).not.toContainText('Child task excluded');
@@ -118,7 +120,7 @@ test('stacked horizontal bars distinguish actual workflow states and exclude chi
 
 test('started Epics use their own status and shared progress and open historical details', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
+    await setDashboardDate(page, 'End date', '31/10/2026');
     const epics = section(page, 'epics');
     await expect(epics.locator('tbody tr')).toHaveCount(1);
     await expect(epics).toContainText('0%');
@@ -134,16 +136,15 @@ test('active sprint displays shared planning-unit completion, dates and navigati
     await expect(sprint).toContainText('Sprint 2 - Implementation');
     await expect(sprint).toContainText('15/10/2026');
     await expect(sprint).toContainText('05/11/2026');
-    await expect(sprint).toContainText('User Stories1');
-    await expect(sprint).toContainText('Planned SP / capacity0 / N/A');
-    await expect(sprint).toContainText('Completed SP0');
+    await expect(sprint).toContainText('2Workitems');
+    await expect(sprint).toContainText('0 / 0Story Points');
     await expect(sprint).toContainText('On Target');
     await expect(sprint).toContainText('0%'); // Story validation and independent Task are still open.
     await sprint.getByRole('button', { name: 'Sprint 2 - Implementation', exact: true }).click();
     await expect(page.locator('[data-roadmap-task-list="sprint:active"]')).toBeVisible();
     await page.locator('[data-view-mode="dashboard"]').click();
-    await page.getByLabel('Start date', { exact: true }).fill('14/10/2026');
-    await page.getByLabel('End date', { exact: true }).fill('14/10/2026');
+    await setDashboardDate(page, 'Start date', '14/10/2026');
+    await setDashboardDate(page, 'End date', '14/10/2026');
     await expect(page.locator('#portfolioDashboard')).toContainText('no historical baseline');
 });
 
@@ -160,10 +161,9 @@ test('active Sprint SP/capacity and missed deadlines remain visible, alongside l
     await seedPortfolioBoards(page, [{ id: 'deadline', title: 'Deadline checks', hasHandle: false, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'deadline' });
     await page.locator('[data-view-mode="dashboard"]').click();
     const sprint = page.locator('[data-dashboard-active-sprint="active"]');
-    await expect(sprint).toContainText('11 / 10');
-    await expect(sprint).toContainText('Completed SP8');
+    await expect(sprint).toContainText('8 / 11Story Points');
     await expect(sprint).toContainText('Overdue');
-    await expect(page.locator('[data-dashboard-planning="late-start"]')).toContainText('Late');
+    await expect(page.locator('[data-dashboard-planning="late-start"]')).toHaveAttribute('data-phase-state', 'late');
     await expect(page.locator('[data-dashboard-planning="late-start"]')).toContainText('01/10/2026');
 });
 
@@ -188,7 +188,7 @@ for (const theme of ['light', 'dark']) test(`Portuguese read-only sections remai
 test('consultation leaves the project file untouched', async ({ page }) => {
     await seed(page);
     const before = await readSavedBoard(page, 'sections');
-    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
+    await setDashboardDate(page, 'End date', '31/10/2026');
     await section(page, 'openRisks').getByRole('button', { name: 'Risk closed after period', exact: true }).click();
     await page.keyboard.press('Escape');
     await page.locator('[data-dashboard-kpi="progress"]').click();
@@ -207,8 +207,8 @@ test('standalone Dashboard supports offline historical widgets and detail naviga
     await expect(page.locator('#portfolioView')).toBeVisible();
     await seedPortfolioBoards(page, [{ id: 'offline', title: data.board.settings.title, hasHandle: false, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'offline' });
     await page.locator('[data-view-mode="dashboard"]').click();
-    await page.getByLabel('Start date', { exact: true }).fill('24/10/2026');
-    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
+    await setDashboardDate(page, 'Start date', '24/10/2026');
+    await setDashboardDate(page, 'End date', '31/10/2026');
     await expect(page.locator('[data-dashboard-section]')).toHaveCount(13);
     await expect(section(page, 'projectProgress')).toContainText('30.8%');
     await section(page, 'milestones').getByRole('button', { name: 'Next unassigned checkpoint', exact: true }).click();
@@ -282,11 +282,74 @@ test('read-only activity changes stay local; zero activity and partial history h
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await filter.getByRole('button', { name: 'Reset to Default', exact: true }).click();
     await filter.locator('summary').click();
-    await page.getByLabel('Start date', { exact: true }).fill('15/10/2026');
-    await page.getByLabel('End date', { exact: true }).fill('15/10/2026');
+    await setDashboardDate(page, 'Start date', '15/10/2026');
+    await setDashboardDate(page, 'End date', '15/10/2026');
     await expect(section(page, 'started')).toContainText('No workitems match');
     await expect(section(page, 'activitySummary').locator('strong').first()).toHaveText('0');
-    await page.getByLabel('Start date', { exact: true }).fill('01/10/2026');
+    await setDashboardDate(page, 'Start date', '01/10/2026');
     await expect(section(page, 'started')).toContainText('History is available from');
     await expect(section(page, 'activitySummary')).toContainText('History is available from');
+});
+
+for (const width of [1280, 390]) test(`navigation, range field and compact menus preserve validation and keyboard dismissal at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await seed(page);
+    await expect(page.locator('#portfolioViewModeToggle button').last()).toHaveAttribute('data-view-mode', 'dashboard');
+    const tabs = page.locator('.dashboard-tabs');
+    const sections = page.locator('.dashboard-visible-sections summary');
+    const range = page.locator('.dashboard-range-field');
+    if (width > 700) expect(Math.abs((await tabs.boundingBox())!.y - (await range.boundingBox())!.y)).toBeLessThan(4);
+    expect((await sections.boundingBox())!.x).toBeLessThan((await range.boundingBox())!.x);
+    await expect(sections.locator('svg')).toHaveCount(1);
+    await expect(range).toContainText('24/10/2026 – 04/11/2026');
+    await expect(page.getByLabel('Start date', { exact: true })).toBeHidden();
+    await range.click();
+    const panel = (await page.locator('.dashboard-range-panel').boundingBox())!;
+    expect(panel.x).toBeGreaterThanOrEqual(0);
+    expect(panel.x + panel.width).toBeLessThanOrEqual(width);
+    await page.getByLabel('Start date', { exact: true }).fill('05/11/2026');
+    await expect(page.getByRole('alert')).toContainText('The end date');
+    await page.keyboard.press('Escape');
+    await expect(range).toBeFocused();
+    await expect(page.getByLabel('Start date', { exact: true })).toBeHidden();
+    await setDashboardDate(page, 'Start date', '24/10/2026');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    await range.click();
+    await page.getByLabel('End date', { exact: true }).fill('05/11/2026');
+    expect(await page.getByLabel('End date', { exact: true }).evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(false);
+    await page.getByLabel('End date', { exact: true }).fill('04/11/2026');
+    await page.getByRole('heading', { name: 'Project overview', exact: true }).click();
+    await expect(page.getByLabel('Start date', { exact: true })).toBeHidden();
+    await sections.click();
+    await page.keyboard.press('Escape');
+    await expect(sections).toBeFocused();
+    await expect(page.locator('[data-dashboard-kpi="blocked"]')).toHaveCount(0);
+    await expect(page.locator('.dashboard-reporting-info p')).toBeHidden();
+    await page.getByLabel('About these indicators', { exact: true }).click();
+    await expect(page.locator('.dashboard-reporting-info p')).toContainText('UTC');
+});
+
+test('phase alerts take precedence and completed milestones retain their detail links', async ({ page }) => {
+    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    data.extensions.roadmap.phases.push({ id: 'waiting', title: 'Waiting phase', startDate: '2026-10-01', endDate: '2026-12-01' });
+    data.extensions.roadmap.milestones.push({ id: 'complete', title: 'Completed checkpoint', dueDate: '2026-10-01' });
+    const completedTask = data.board.tasks.find((task: { id: number }) => task.id === 915);
+    completedTask.milestoneId = 'complete';
+    completedTask.milestoneMode = 'explicit';
+    await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'states', title: 'State checks', hasHandle: false, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'states' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    const phases = section(page, 'activePhases');
+    for (const [id, state] of [['finished', 'completed'], ['delivery', 'inProgress'], ['late', 'overdue'], ['waiting', 'late'], ['empty', 'future']]) {
+        await expect(phases.locator(`[data-dashboard-planning="${id}"]`)).toHaveAttribute('data-phase-state', state);
+    }
+    await expect(phases.locator('[data-dashboard-planning="late"] .dashboard-missed-date')).toHaveText('20/10/2026');
+    await expect(phases.locator('[data-dashboard-planning="waiting"] .dashboard-missed-date')).toHaveText('01/10/2026');
+    await expect(phases.locator('[data-dashboard-planning="finished"] .dashboard-missed-date')).toHaveCount(0);
+    const milestone = section(page, 'milestones').locator('[data-dashboard-planning="complete"]');
+    await expect(milestone.locator('td').first()).toHaveText('Completed');
+    await expect(milestone.getByRole('progressbar')).toHaveAttribute('value', '100');
+    await milestone.getByRole('button', { name: 'Completed checkpoint', exact: true }).click();
+    await expect(page.locator('#milestoneWorkitemsModal')).toContainText('Completed checkpoint');
 });

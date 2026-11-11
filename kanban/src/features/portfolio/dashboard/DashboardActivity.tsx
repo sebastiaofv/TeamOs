@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useMemo } from 'react';
 import type { BoardData, Task } from '@/domain/types';
 import { dashboardInProgress, dashboardPeriodWorkitems } from '@/domain/dashboardOverview';
@@ -14,7 +15,7 @@ export type ActivityKind = Exclude<ActivityWidget, 'activitySummary'>;
 export type ActivityDetails = { kind: ActivityKind; contexts: Map<number, BoardData>; dates?: Map<number, string> };
 export type DashboardInspect = (name: string, tasks: Task[], data?: BoardData, activity?: ActivityDetails) => void;
 const PREVIEW_LIMIT = 5;
-const icons = { started: '▷', completedInPeriod: '✓', currentlyInProgress: '◷' };
+const icons = { started: 'play', completedInPeriod: 'check', currentlyInProgress: 'runner' } as const;
 
 export function ActivityWorkitems({ tasks, data, boardId, details, limit }: {
     tasks: Task[]; data: BoardData; boardId: string; details: ActivityDetails; limit?: number;
@@ -53,18 +54,18 @@ export function DashboardActivity({ boardId, data, source, start, end, visible, 
     const open = (kind: ActivityKind) => inspect(t(`dashboard.section.${kind}`), groups[kind].tasks, data, { kind, contexts: period.contexts, dates: groups[kind].dates });
     if (!visible.length) return null;
     return <section className="dashboard-activity" aria-labelledby="dashboardActivityTitle">
-        <h2 id="dashboardActivityTitle" className="dashboard-activity-heading"><span aria-hidden="true">↗</span>{t('dashboard.progressSinceReview')}</h2>
+        <h2 id="dashboardActivityTitle" className="dashboard-activity-heading"><WorkspaceIcon name="chart" />{t('dashboard.progressSinceReview')}</h2>
         <div className="dashboard-activity-grid">{order.filter((key) => visible.includes(key)).map((key) => key === 'activitySummary' ?
             <section key={key} className="dashboard-panel dashboard-activity-summary" data-dashboard-section={key}>
-                <h3>{t('dashboard.section.activitySummary')}</h3>
+                <h3><WorkspaceIcon name="chart" />{t('dashboard.section.activitySummary')}</h3>
                 <div className="dashboard-activity-totals">{(['started', 'completedInPeriod', 'currentlyInProgress'] as const).map((kind) => <button key={kind} type="button" className={`dashboard-activity-total dashboard-activity-${kind}`} disabled={!available(kind)} onClick={() => open(kind)}>
-                    <span className="dashboard-activity-icon" aria-hidden="true">{icons[kind]}</span><span>{t(`dashboard.activity.${kind}`)}<strong>{available(kind) ? groups[kind].tasks.length : t('dashboard.na')}</strong></span>
+                    <span className="dashboard-activity-icon" aria-hidden="true"><WorkspaceIcon name={icons[kind]} /></span><span>{t(`dashboard.activity.${kind}`)}<strong>{available(kind) ? groups[kind].tasks.length : t('dashboard.na')}</strong></span>
                 </button>)}</div>
                 {!period.available && <p className="dashboard-note">{t('dashboard.noHistoryBaseline')}</p>}
                 {period.available && period.availableFrom && start < period.availableFrom && <p className="dashboard-note">{t('dashboard.partialHistory', { date: formatDate(period.availableFrom) })}</p>}
             </section> :
             <section key={key} className={`dashboard-panel dashboard-activity-detail dashboard-activity-${key}`} data-dashboard-section={key}>
-                <h3><span className="dashboard-activity-icon" aria-hidden="true">{icons[key]}</span>{t(`dashboard.section.${key}`)}<span className="dashboard-activity-count">{available(key) ? groups[key].tasks.length : t('dashboard.na')}</span></h3>
+                <h3><span className="dashboard-activity-icon" aria-hidden="true"><WorkspaceIcon name={icons[key]} /></span>{t(`dashboard.section.${key}`)}<span className="dashboard-activity-count">{available(key) ? groups[key].tasks.length : t('dashboard.na')}</span></h3>
                 {!available(key) ? <p className="dashboard-note">{t('dashboard.noHistoryBaseline')}</p> : <>
                     {key !== 'currentlyInProgress' && period.availableFrom && start < period.availableFrom && <p className="dashboard-note">{t('dashboard.partialHistory', { date: formatDate(period.availableFrom) })}</p>}
                     <ActivityWorkitems tasks={groups[key].tasks} data={data} boardId={boardId} details={{ kind: key, contexts: period.contexts, dates: groups[key].dates }} limit={PREVIEW_LIMIT} />

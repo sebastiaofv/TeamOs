@@ -101,11 +101,11 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
     const viewMode = normalizePortfolioViewMode(state.selectedPortfolioViewMode);
     const views = [
         { mode: 'board', label: t('toolbar.board') },
-        { mode: 'dashboard', label: t('dashboard.title') },
         { mode: 'table', label: t('table.view') },
         { mode: 'roadmap', label: t('toolbar.roadmap') },
         { mode: 'control', label: t('control.view') },
-        { mode: 'planner', label: t('toolbar.planner') }
+        { mode: 'planner', label: t('toolbar.planner') },
+        { mode: 'dashboard', label: t('dashboard.title') }
     ] as const;
     return <nav className={`portfolio-view-toggle${state.portfolioBoards.length ? '' : ' hidden'}`} id="portfolioViewModeToggle" aria-label={t('toolbar.selectedProjectViewMode')}>
         {views.filter(({ mode }) => state.selectedPortfolioBoardId || mode === 'board' || mode === 'planner').map(({ mode, label }) => {

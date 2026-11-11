@@ -424,7 +424,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Manual block', 'Tick **Blocked** in the editor and describe what is blocking. Clear it when resolved.'],
                         ['Dependency block', 'Derived automatically from unfinished direct blockers (Blocks / Blocked by). It clears when the blockers are completed or the link is removed.']
                     ] },
-                    { kind: 'p', text: 'Both appear in details and have independent columns and filters in workitem tables, including Roadmap tables. **Manually Blocked** stays active until manually cleared; **Dependency Blocked** clears when every blocker is Done, even while the relations remain. The **Blocked** filter and Dashboard count either source. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
+                    { kind: 'p', text: 'Both appear in details and have independent columns and filters in workitem tables, including Roadmap tables. **Manually Blocked** stays active until manually cleared; **Dependency Blocked** clears when every blocker is Done, even while the relations remain. The **Blocked** filter considers either source. Deleting a workitem lists its relationships and the blocking impact before you confirm.' },
                     { kind: 'callout', tone: 'rule', title: 'App rule', text: 'Dependencies are informative: they do not prevent status changes, and a dependency never overwrites a manual block.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -695,11 +695,11 @@ export const DOCS_EN: DocSection[] = [
                 title: 'Dashboard',
                 summary: 'Project status, progress and activity for a chosen period.',
                 blocks: [
-                    { kind: 'p', text: '**Overview** has six compact project widgets: progress, active phases, next and overdue milestones, active sprint, workitem status and started Epics. Workitems started, completed and in progress, open risks, deliverables and decisions remain available below.' },
+                    { kind: 'p', text: '**Overview** has six compact project widgets: progress, parent phases, milestones, active sprint, workitem status and started Epics. Workitems started, completed and in progress, open risks, deliverables and decisions remain available below.' },
                     { kind: 'list', items: [
-                        'Choose **Start** and **End** dates: activity counts transitions within the period; status sections use the end date.',
-                        'Phases show On Target, Late or Overdue. Workflow status bars show counts and percentages with the configured state colors.',
-                        'Select an indicator or status legend to list its source workitems, then open them. Select a milestone or Epic name to consult its details.',
+                        'Open **Dates** to choose the start and end in one range field; the saved snapshot selector remains inside this control. Activity and status use the selected range: activity counts transitions within the period; status sections use the end date.',
+                        'The horizontal phase sequence includes all parent phases, including completed and future ones. Alerts take priority and highlight the missed start or end date. Milestones show Completed, Overdue or On Target. The active Sprint shows workitem count, completed/planned Story Points and progress. Workflow status bars share one legend and show counts and percentages with configured colors.',
+                        'Select an indicator or workflow bar segment to list its source workitems, then open them. Select a milestone or Epic name to consult its details.',
                         '**Progress Since Last Review** combines an Activity Summary with Started, Completed and In Progress lists. It counts User Stories, independent Tasks and Bugs once per indicator, including Testing in execution. Rows show type, ID, title, responsible person and the recorded transition date or end-date workflow status. Five rows appear initially; **View All** and the summary indicators open the complete lists.',
                         'Use **Visible sections** to add/remove the four activity widgets and move them up/down. Their visibility and order are shared in the project file; **Reset to Default** restores the initial layout. Read-only and historical consultation keeps layout changes local.',
                         '**Sprint Analytics** shows recorded participation and scope changes per sprint.'

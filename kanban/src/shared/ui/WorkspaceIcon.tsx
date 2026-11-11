@@ -1,4 +1,11 @@
 const paths = {
+    progress: 'M8 1a7 7 0 1 1-7 7M8 4a4 4 0 1 1-4 4M1 1l7 7M1 1v4M1 1h4',
+    phases: 'M3 8h10M5 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0M15 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
+    check: 'M3 8l3 3 7-7',
+    alert: 'M8 1 15 14H1zM8 6v4M8 12h.01',
+    chart: 'M2 1v13h13M5 10V7M9 10V4M13 10V2',
+    settings: 'M2 4h12M2 12h12M5 2v4M11 10v4',
+    info: 'M8 7v5M8 4h.01M15 8a7 7 0 1 1-14 0 7 7 0 0 1 14 0',
     lock: 'M4 7V4a4 4 0 0 1 8 0v3M2 7h12v8H2zM8 10v2',
     eye: 'M1 8s2-5 7-5 7 5 7 5-2 5-7 5-7-5-7-5M10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
     arrowRight: 'M2 8h12M9 3l5 5-5 5',

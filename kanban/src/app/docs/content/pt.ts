@@ -424,7 +424,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Bloqueio manual', 'Marque **Bloqueada** no editor e descreva o que está a bloquear. Retire-o quando estiver resolvido.'],
                         ['Bloqueio por dependência', 'Derivado automaticamente de bloqueadores diretos por concluir (Bloqueia / É bloqueado por), incluindo arquivados. Desaparece quando os bloqueadores são concluídos ou a ligação é removida.']
                     ] },
-                    { kind: 'p', text: 'Ambos aparecem nos detalhes e têm colunas e filtros independentes nas tabelas de workitems, incluindo o Roadmap. **Bloqueio manual** mantém-se até ser removido manualmente; **Bloqueio por dependências** desaparece quando todos os bloqueadores estão Done, mantendo as relações. O filtro **Bloqueadas** e o Dashboard consideram qualquer das duas fontes. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
+                    { kind: 'p', text: 'Ambos aparecem nos detalhes e têm colunas e filtros independentes nas tabelas de workitems, incluindo o Roadmap. **Bloqueio manual** mantém-se até ser removido manualmente; **Bloqueio por dependências** desaparece quando todos os bloqueadores estão Done, mantendo as relações. O filtro **Bloqueadas** considera qualquer das duas fontes. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'As dependências são informativas: não impedem mudanças de estado e nunca substituem um bloqueio manual.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -695,11 +695,11 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Dashboard',
                 summary: 'Estado, progresso e atividade do projeto num período à escolha.',
                 blocks: [
-                    { kind: 'p', text: 'A **Visão global** tem seis widgets compactos: progresso, fases ativas, milestones próximos e em atraso, sprint ativo, estado dos workitems e Epics iniciados. Os workitems iniciados, concluídos e em curso, riscos abertos, entregáveis e decisões continuam disponíveis abaixo.' },
+                    { kind: 'p', text: 'A **Visão global** tem seis widgets compactos: progresso, fases-pai, milestones, sprint ativo, estado dos workitems e Epics iniciados. Os workitems iniciados, concluídos e em curso, riscos abertos, entregáveis e decisões continuam disponíveis abaixo.' },
                     { kind: 'list', items: [
-                        'Escolha as datas de **início** e **fim**: a atividade conta transições dentro do período; as secções de estado usam a data de fim.',
-                        'As fases indicam Dentro do prazo, Início em atraso ou Em atraso. As barras de estados mostram quantidades e percentagens com as cores configuradas no workflow.',
-                        'Selecione um indicador ou uma legenda de estado para listar os workitems de origem e abri-los. Selecione o nome de um milestone ou Epic para consultar o detalhe.',
+                        'Abra **Datas** para escolher o início e o fim num único campo de intervalo; o seletor de fotografias guardadas continua dentro deste controlo: a atividade conta transições dentro do período; as secções de estado usam a data de fim.',
+                        'A sequência horizontal inclui todas as fases-pai, incluindo concluídas e futuras. Os alertas têm prioridade e destacam a data de início ou fim em incumprimento. Os milestones indicam Concluído, Em atraso ou Dentro do prazo. O Sprint ativo mostra workitems, Story Points concluídos/planeados e progresso. As barras partilham uma legenda e mostram quantidades e percentagens com as cores do workflow.',
+                        'Selecione um indicador ou um segmento da barra de estados para listar os workitems de origem e abri-los. Selecione o nome de um milestone ou Epic para consultar o detalhe.',
                         '**Progresso desde a última revisão** combina o Resumo de atividade com listas de workitems iniciados, concluídos e em curso. Conta User Stories, Tasks independentes e Bugs uma vez por indicador, incluindo Testing na execução. As linhas mostram tipo, ID, título, responsável e data efetiva ou estado na data de fim. As listas apresentam cinco linhas; **Ver todos** e os indicadores abrem a lista completa.',
                         'Em **Secções visíveis**, adicione/remova os quatro widgets de atividade e reordene-os com as setas. A visibilidade e a ordem são partilhadas no ficheiro do projeto; **Repor predefinições** restaura a disposição inicial. Em leitura e no histórico, as alterações de disposição são apenas locais.',
                         'A **Análise de sprints** mostra a participação registada e as alterações de âmbito de cada sprint.'

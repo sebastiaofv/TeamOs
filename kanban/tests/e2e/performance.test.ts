@@ -1,3 +1,4 @@
+import { setDashboardDate } from '../support/dashboard';
 import { test, expect, type Page } from '@playwright/test';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { normalizeTask } from '../../src/domain/task';
@@ -53,8 +54,8 @@ test('a hydrated 1000-event Dashboard stays within its interaction budget and re
     expect(elapsed).toBeLessThan(2000);
     testInfo.annotations.push({ type: 'Dashboard interaction', description: `${Math.round(elapsed)} ms; 20 workitems, 1000 events` });
     expect(await page.evaluate(() => window.__folderDisk.reads['perf/history.json'])).toBe(1);
-    await page.getByLabel('Start date', { exact: true }).fill('03/11/2026');
-    await page.getByLabel('End date', { exact: true }).fill('03/11/2026');
+    await setDashboardDate(page, 'Start date', '03/11/2026');
+    await setDashboardDate(page, 'End date', '03/11/2026');
     await expect(page.locator('#portfolioDashboard [role="status"]').first()).toContainText('2026-11-03');
 });
 

@@ -101,9 +101,7 @@ test('blocking columns and filters recalculate after Done while manual blocking 
     await page.keyboard.press('Escape');
     await page.locator('[data-view-mode=dashboard]').click();
     const blocked = page.locator('[data-dashboard-kpi=blocked]');
-    await expect(blocked.locator('strong')).toHaveText('3');
-    await blocked.click();
-    await expect(page.locator('#dashboardSources tbody tr')).toHaveCount(3);
+    await expect(blocked).toHaveCount(0); // Blocked metrics belong to Project Control.
     await page.locator('[data-view-mode=table]').click();
     await page.locator('#workitemsTable [data-task-id="1"]').getByRole('button', { name: 'Blocker', exact: true }).click();
     await page.locator('#detailStatusInput').selectOption('done');
@@ -112,7 +110,7 @@ test('blocking columns and filters recalculate after Done while manual blocking 
     await expect(both.locator('[data-column=dependencyBlocked]')).toHaveText('No');
     await expect(dependency.locator('[data-column=dependencyBlocked]')).toHaveText('No');
     await page.locator('[data-view-mode=dashboard]').click();
-    await expect(blocked.locator('strong')).toHaveText('2');
+    await expect(blocked).toHaveCount(0);
     const saved = await readSavedBoard(page, 'p');
     expect(saved.board.tasks.find((task: { id: number }) => task.id === 4).blocked).toBe(true);
     expect(saved.extensions.taskRelations.relations).toHaveLength(2);

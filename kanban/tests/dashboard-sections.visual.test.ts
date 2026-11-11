@@ -1,3 +1,4 @@
+import { setDashboardDate } from './support/dashboard';
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, toggleTheme } from './support/portfolio';
@@ -10,8 +11,8 @@ for (const theme of ['light', 'dark']) for (const width of [1840, 390]) {
         const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
         await seedPortfolioBoards(page, [{ id: 'sections', title: data.board.settings.title, hasHandle: true, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sections' });
         await page.locator('[data-view-mode="dashboard"]').click();
-        await page.getByLabel('Start date', { exact: true }).fill('24/10/2026');
-        await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
+        await setDashboardDate(page, 'Start date', '24/10/2026');
+        await setDashboardDate(page, 'End date', '31/10/2026');
         if (theme === 'dark') await toggleTheme(page);
         await page.mouse.move(1, 1);
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());

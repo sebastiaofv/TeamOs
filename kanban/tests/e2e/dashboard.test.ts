@@ -1,3 +1,4 @@
+import { setDashboardDate, selectDashboardSnapshot } from '../support/dashboard';
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, mutateExternalBoardFile, triggerExternalFileCheck, toggleTheme, openProjectPicker } from '../support/portfolio';
@@ -22,9 +23,11 @@ for (const width of [1280, 390]) for (const tab of ['Overview', 'Sprint Analytic
         await seed(page);
         await page.getByRole('button', { name: tab, exact: true }).click();
         await expect(page.getByRole('heading', { name: 'Recorded history', exact: true })).toHaveCount(0);
+        await page.locator('.dashboard-range-field').click();
         await expect(page.getByLabel('Start date', { exact: true })).toBeVisible();
         await expect(page.getByLabel('End date', { exact: true })).toBeVisible();
         await expect(page.getByLabel('Planning scope', { exact: true })).toHaveCount(0);
+        await page.locator('.dashboard-range-field').click();
         const sources = page.locator('#dashboardSources');
         await sources.scrollIntoViewIfNeeded();
         await expect(sources).toBeInViewport();
@@ -62,7 +65,7 @@ test('selected-project metrics count archived leaves and open their exact source
 
 test('overview shows all active phases and read-only drilldowns retain project context', async ({ page }) => {
     await seed(page, false);
-    for (const id of ['delivery', 'api', 'ux']) await expect(page.locator(`[data-dashboard-planning="${id}"]`)).toBeVisible();
+    for (const id of ['delivery']) await expect(page.locator(`[data-dashboard-planning="${id}"]`)).toBeVisible();
     await kpi(page, 'progress').click();
     await expect(sources(page).locator('tbody tr')).toHaveCount(6);
     await sources(page).getByRole('button', { name: 'Archived pending integration', exact: true }).click();
@@ -104,12 +107,12 @@ test('external file reload refreshes metrics and clears stale source lists', asy
 
 test('historical period uses saved observations and historical drilldowns instead of current task status', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('Start date', { exact: true }).fill('16/10/2026');
-    await page.getByLabel('End date', { exact: true }).fill('19/10/2026');
+    await setDashboardDate(page, 'Start date', '16/10/2026');
+    await setDashboardDate(page, 'End date', '19/10/2026');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
-    await page.getByLabel('Start date', { exact: true }).fill('21/10/2026');
+    await setDashboardDate(page, 'Start date', '21/10/2026');
     await expect(page.getByRole('alert')).toContainText('The end date');
-    await page.getByLabel('Snapshot', { exact: true }).selectOption('0');
+    await selectDashboardSnapshot(page, '0');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
     await expect(page.locator('.dashboard-context')).toContainText('Historical snapshot');
     await kpi(page, 'progress').click();
@@ -118,13 +121,13 @@ test('historical period uses saved observations and historical drilldowns instea
     await row.getByRole('button').click();
     await expect(page.locator('#taskDetailModal')).toContainText('In progress');
     await page.keyboard.press('Escape');
-    await page.getByLabel('Snapshot', { exact: true }).selectOption('current');
+    await selectDashboardSnapshot(page, 'current');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('33.3%');
     await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
-    await page.getByLabel('Snapshot', { exact: true }).selectOption('0');
+    await selectDashboardSnapshot(page, '0');
     await expect(page.locator('.dashboard-scope-changes button')).toHaveCount(0);
-    await page.getByLabel('Snapshot', { exact: true }).selectOption('2');
+    await selectDashboardSnapshot(page, '2');
     await expect(page.locator('.dashboard-scope-changes button')).toHaveCount(1);
 });
 

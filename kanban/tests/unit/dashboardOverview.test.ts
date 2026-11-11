@@ -167,14 +167,14 @@ describe('dashboard section reporting', () => {
         data.extensions.timeline!.events.splice(1, 0, { id: 'direct-epic', at: '2026-10-24T09:00:00.000Z', kind: 'task.status.changed', entityType: 'task', entityId: '918', summary: 'Started', changes: { status: { before: 'to-do', after: 'testing' } } });
         expect(ids(dashboardPeriodWorkitems(data, data, 'ux', '2026-10-24', '2026-10-30').started)).toContain(918);
     });
-    it('shows all started phases with open work, including children, and retains milestone alerts', () => {
+    it('shows all parent phases chronologically, excludes children and includes all milestones', () => {
         const data = fixture();
         const planning = dashboardOverviewPlanning(data, '', '2026-10-31');
-        expect(planning.phases.map((group) => group.item.id)).toEqual(['late', 'api', 'delivery', 'ux', 'future']);
+        expect(planning.phases.map((group) => group.item.id)).toEqual(['finished', 'late', 'cancelled-only', 'delivery', 'future', 'empty']);
         expect(planning.phases.find((group) => group.item.id === 'late')?.overdue).toBe(true);
-        expect(planning.milestones.map((group) => group.item.id)).toEqual(['cancelled-milestone', 'empty-milestone', 'late-milestone', 'next-empty']);
+        expect(planning.milestones.map((group) => group.item.id)).toEqual(['cancelled-milestone', 'empty-milestone', 'late-milestone', 'next-empty', 'release']);
         expect(planning.milestones[0].overdue).toBe(true);
-        expect(dashboardOverviewPlanning(data, 'api', '2026-10-31').phases.map((group) => group.item.id)).toEqual(['api', 'delivery']);
+        expect(dashboardOverviewPlanning(data, 'api', '2026-10-31').phases.map((group) => group.item.id)).toEqual(['delivery']);
     });
     it('honors pending deliverable acceptance for completed phase work', () => {
         const data = fixture();
@@ -195,8 +195,8 @@ describe('dashboard section reporting', () => {
         expect(phases.find((group) => group.item.id === 'deadline')?.situation).toBe('overdue');
         expect(phases.find((group) => group.item.id === 'today')?.situation).toBe('onTarget');
         expect(phases.find((group) => group.item.id === 'future')?.situation).toBe('onTarget');
-        expect(phases.some((group) => group.item.id === 'finished')).toBe(false);
-        expect(phases.some((group) => group.item.id === 'empty')).toBe(false);
+        expect(phases.find((group) => group.item.id === 'finished')?.situation).toBe('completed');
+        expect(phases.some((group) => group.item.id === 'empty')).toBe(true);
     });
     it('reuses Epic progress and effective workflow status at the selected end date', () => {
         const data = fixture();
