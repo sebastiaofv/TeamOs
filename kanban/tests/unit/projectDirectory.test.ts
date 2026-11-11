@@ -29,14 +29,14 @@ describe('project directory persistence', () => {
     it('opens current state without reading a large history or attachment binaries', async () => {
         const { directory, history } = await fixture();
         const raw = JSON.parse(history.text());
-        raw.timeline.events.push(...Array.from({ length: 10000 }, (_, index) => ({ ...raw.timeline.events[1], id: `large-${index}` })));
+        raw.events.push(...Array.from({ length: 10000 }, (_, index) => ({ ...raw.events[1], id: `large-${index}` })));
         history.setText(JSON.stringify(raw));
         const binary = await (await directory.getDirectoryHandle('attachments')).getFileHandle('unused', { create: true });
         binary.setText('a very large attachment');
         const handle = await openProjectDirectory(directory);
         const board = await BoardRepository.createRecordFromHandle(handle);
         expect(board.data.extensions.timeline).toBeUndefined();
-        expect(history.reads).toBe(0); expect(binary.reads).toBe(0);
+        expect(history.fullReads).toBe(0); expect(binary.reads).toBe(0);
         const originalPrefix = history.text().slice(0, history.text().lastIndexOf(']'));
         appendTimelineEvent(board.data, { id: 'large-append', kind: 'board.settings.updated', entityType: 'board', entityId: 'board', summary: 'Append without loading history', changes: { title: { before: board.title, after: 'Updated' } } });
         board.data.board.settings.title = 'Updated';
@@ -68,12 +68,10 @@ describe('project directory persistence', () => {
         expect((await BoardRepository.createRecordFromHandle(result.handles[0])).title).toBe(directory.name);
     });
 
-    it('reports malformed project data and defers malformed history errors', async () => {
+    it('rejects malformed project and history envelopes before importing', async () => {
         const { directory, project, history } = await fixture();
         history.setText('invalid JSON');
-        const handle = await openProjectDirectory(directory);
-        expect(history.reads).toBe(0);
-        await expect(loadDirectoryHistory(handle)).rejects.toThrow('Folder project/history.json');
+        await expect(openProjectDirectory(directory)).rejects.toThrow('history.json');
         project.setText('{}');
         await expect(openProjectDirectory(directory)).rejects.toThrow('project.json');
     });
@@ -88,7 +86,7 @@ describe('project directory persistence', () => {
         expect(history.fullReads).toBe(0);
         expect(getDirectoryProject(handle)?.loaded).toBe(false);
         expect((await loadDirectoryHistory(handle))?.events.map((event) => event.id)).toEqual([expect.stringContaining('baseline_'), 'old-event', 'new-event']);
-        expect(JSON.parse(project.text()).extensions.timeline).toBeUndefined();
+        expect(JSON.parse(project.text())).not.toHaveProperty('history');
         expect(getDirectoryProject(handle)?.loaded).toBe(false);
     });
 
@@ -99,7 +97,7 @@ describe('project directory persistence', () => {
         const writes = history.writes;
         board.data.board.settings.title = 'State only';
         await writeJsonToFileHandle(handle, board.data);
-        expect(history.reads).toBe(0); expect(history.writes).toBe(writes);
+        expect(history.fullReads).toBe(0); expect(history.writes).toBe(writes);
     });
 
     it('extracts binary contents once and keeps historical attachments after removal', async () => {
@@ -111,7 +109,8 @@ describe('project directory persistence', () => {
         const directory = await parent.getDirectoryHandle('with-attachment');
         const history = await directory.getFileHandle('history.json');
         expect(history.text()).not.toContain('data:text/plain');
-        const reference = JSON.parse(history.text()).timeline.events.at(-1).snapshot.attachments[0].dataUrl;
+        const stored = JSON.parse(history.text());
+        const reference = `teamos-attachment:${encodeURIComponent(stored.projectId)}/${stored.events.at(-1).workitem.attachments[0].sha256}`;
         const binaries = await directory.getDirectoryHandle('attachments');
         expect(binaries.children.size).toBe(1);
         expect(await (await resolveAttachmentBlob(reference)).text()).toBe('hello');
@@ -136,9 +135,9 @@ describe('project directory persistence', () => {
         const handle = await createProjectDirectory(parent, 'migration', imported.data);
         const directory = await parent.getDirectoryHandle('migration');
         const current = JSON.parse((await directory.getFileHandle('project.json')).text());
-        expect(current.extensions.projectControl.records[0].history).toEqual([]);
-        expect(current.extensions.timeline).toBeUndefined();
-        expect(JSON.parse((await directory.getFileHandle('history.json')).text()).archives).toHaveProperty(`control:${data.extensions.projectControl!.records[0].id}`);
+        expect(current.projectControl.records[0]).not.toHaveProperty('history');
+        expect(current).not.toHaveProperty('extensions');
+        expect(JSON.parse((await directory.getFileHandle('history.json')).text()).recordHistory.control).toHaveProperty(data.extensions.projectControl!.records[0].id);
         expect((await BoardRepository.createRecordFromHandle(handle)).data.extensions.projectControl?.records[0].history).toHaveLength(1);
         expect(original.text()).toBe(before); expect(original.writes).toBe(0);
     });
@@ -176,7 +175,7 @@ describe('project directory persistence', () => {
         const board = await BoardRepository.createRecordFromHandle(handle);
         useAppStore.setState({ portfolioBoards: [board] }); syncProjectSaveStates();
         await refreshProjectFileBaseline(board);
-        expect(history.reads).toBe(0);
+        expect(history.fullReads).toBe(0);
         const updated = cloneSerializable(board.data);
         updated.board.settings.title = 'Queued save';
         appendTimelineEvent(updated, { id: 'queued', kind: 'board.settings.updated', entityType: 'board', entityId: 'board', summary: 'Queued', changes: { title: { before: board.title, after: 'Queued save' } } });
@@ -281,7 +280,7 @@ describe('loaded-history performance', () => {
     it('allows retry after a shared history load fails', async () => {
         const { directory, history } = await fixture();
         const original = history.text();
-        history.setText('invalid JSON');
+        history.setText(original.replace('"events":[', '"events":[invalid'));
         const handle = await openProjectDirectory(directory);
         const record = await BoardRepository.createRecordFromHandle(handle);
         useAppStore.setState({ portfolioBoards: [record] }); syncProjectSaveStates();

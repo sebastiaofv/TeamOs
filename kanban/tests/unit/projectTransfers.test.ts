@@ -286,7 +286,7 @@ describe('transfer lifecycle regressions', () => {
         expect(moved.destination.board.tasks.at(-1)!.acceptance).toEqual(task.acceptance);
         const reopened = prepareProjectTransfer(source, destination, task.id, 'move', 'doing', mapping, projects);
         expect(reopened.destination.board.tasks.at(-1)!.acceptance).toBeUndefined();
-        expect(reopened.operation.sourceTask.acceptance).toEqual(task.acceptance);
+        expect(reopened.operation.sourceTask).toEqual({ id: task.id, permanentId: task.permanentId, parentId: task.parentId ?? null });
         delete task.acceptance;
         expect(() => prepareProjectTransfer(source, destination, task.id, 'move', 'done', mapping, projects)).toThrow('author');
     });

@@ -123,7 +123,8 @@ export function syncWorkitemPlanning(data: BoardData, previous: BoardData): void
     const previousById = new Map(previous.board.tasks.map((task) => [task.id, task]));
     const byId = new Map(data.board.tasks.map((task) => [task.id, task]));
     const capture = (task: Task, overwrite: boolean) => {
-        if (!task.sprintId) return;
+        // A closure already holds the frozen roster of its Sprint.
+        if (!task.sprintId || data.extensions.sprintResults?.closures.some((closure) => closure.sprintId === task.sprintId)) return;
         const key = `${task.sprintId}:${task.id}`;
         const index = entryIndexes.get(key) ?? -1;
         const entry = { sprintId: task.sprintId, task: structuredClone(task), at: nowIso() };
@@ -154,6 +155,7 @@ export function syncWorkitemPlanning(data: BoardData, previous: BoardData): void
     }
     data.board.tasks.forEach((task) => capture(task, eligibleSprint(data, task.sprintId)));
     if (entries.length) data.extensions.sprintParticipation = { version: 1, entries };
+    else delete data.extensions.sprintParticipation;
 }
 export function applyStoryAutomation(data: BoardData, previous: BoardData): { storyId: number; taskId: number; blocked: boolean }[] {
     const effects: ReturnType<typeof applyStoryAutomation> = [];

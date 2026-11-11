@@ -1,3 +1,4 @@
+import { unconvertedTimeline } from './legacySequences';
 import { parseHierarchyAutomations } from './hierarchyAutomations';
 import { parseSprintResults } from './sprintResults';
 import { parseProjectControl } from './projectControl';
@@ -61,6 +62,7 @@ export function normalizeBoardExtensionsValue(
     if (nextExtensions.permanentRelations !== undefined) nextExtensions.permanentRelations = parsePermanentRelations(nextExtensions.permanentRelations);
     if (nextExtensions.projectTransfers !== undefined) nextExtensions.projectTransfers = parseProjectTransfers(nextExtensions.projectTransfers);
     delete nextExtensions.conversationRefs;
+    if (!includeTimeline) { delete nextExtensions.controlComments; delete nextExtensions.controlRecordHistory; }
     if (!includeTimeline) delete nextExtensions.conversations;
     else if (nextExtensions.conversations !== undefined || getTimeline()?.events.some((event) => event.kind === 'task.comment.published')) {
         const conversations = parseConversations(nextExtensions.conversations, nextExtensions.projectStorage ? null : getTimeline()?.events);
@@ -84,7 +86,7 @@ export function normalizeBoardExtensionsValue(
         }
     }
 
-    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || [], nextExtensions.timeline);
+    const sprintCatalog = normalizeSprintCatalog(nextExtensions.sprintCatalog, nextExtensions.roadmap?.sprints || [], unconvertedTimeline({ extensions: nextExtensions }));
     if (sprintCatalog) nextExtensions.sprintCatalog = sprintCatalog;
 
     if (Object.prototype.hasOwnProperty.call(nextExtensions, DAY_PLANNER_EXTENSION_KEY)) {
@@ -183,7 +185,7 @@ export function serializeBoardDataFromObject(boardData: unknown, options: { reus
         const normalizedTasks = Array.isArray(board.tasks)
             ? board.tasks.map(task => normalizeTask(migratedWorkitemStatus(input, task), {
                 fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
-                includeStatusChangedAt: false,
+                includeStatusChangedAt: true,
                 workflow: getWorkflow(input, task),
                 roadmap
             }))

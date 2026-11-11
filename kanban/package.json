@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc",
     "test:unit": "vitest run",
+    "bench:project-files": "node scripts/benchmark-project-files.mjs",
     "bench:performance": "node scripts/benchmark-performance.mjs",
     "test": "playwright test",
     "test:ui": "playwright test --ui",

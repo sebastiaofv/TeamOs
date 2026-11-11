@@ -8,6 +8,8 @@ import type {
 import { TIMELINE_VERSION } from './constants';
 import { cloneSerializable } from './serializable';
 import { isRecord, normalizeTimestamp } from './util';
+import { isProjectPatch } from './projectPatchSchema';
+import { isControlReferences } from './controlHistory';
 
 // Only internal, normalized timelines take the read path. Import/save validators
 // still call normalizeTimelineExtension and validate every event explicitly.
@@ -68,8 +70,18 @@ export function normalizeTimelineEvent(raw: unknown): TimelineEvent | null {
         if (!isRecord(raw.snapshot)) return null;
         event.snapshot = cloneSerializable(raw.snapshot) as TimelineSnapshot;
     }
+    if (Object.prototype.hasOwnProperty.call(raw, 'checkpoint')) {
+        if (!isRecord(raw.checkpoint) || !isRecord(raw.checkpoint.board)) return null;
+        event.checkpoint = raw.checkpoint === raw.snapshot ? event.snapshot as TimelineEvent['checkpoint'] : cloneSerializable(raw.checkpoint) as TimelineEvent['checkpoint'];
+    }
+    if (Object.prototype.hasOwnProperty.call(raw, 'patch')) {
+        if (!isProjectPatch(raw.patch)) return null;
+        event.patch = cloneSerializable(raw.patch) as TimelineEvent['patch'];
+    }
     if (Object.prototype.hasOwnProperty.call(raw, 'meta')) {
         if (!isRecord(raw.meta)) return null;
+        if (raw.meta.controlRefs !== undefined && !isControlReferences(raw.meta.controlRefs)) return null;
+        if (raw.meta.controlRefsReset !== undefined && !isControlReferences(raw.meta.controlRefsReset)) return null;
         event.meta = cloneSerializable(raw.meta) as TimelineEventMeta;
     }
     return event;

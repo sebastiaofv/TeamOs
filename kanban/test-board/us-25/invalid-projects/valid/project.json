@@ -1,37 +1,27 @@
 {
   "meta": {
-    "schemaVersion": 6,
+    "schemaVersion": 1,
     "appId": "teamos-kanban",
+    "revision": 0,
     "createdAt": "2026-11-03T09:00:00.000Z",
-    "updatedAt": "2026-11-06T09:28:24.351Z"
+    "updatedAt": "2026-11-11T19:45:10.688Z"
   },
-  "board": {
-    "columns": [
+  "project": {
+    "id": "us25-valid",
+    "title": "US-25 Valid sibling",
+    "acronym": "GOOD",
+    "description": "",
+    "status": null,
+    "tags": [],
+    "members": [
       {
-        "status": "backlog",
-        "title": "Backlog"
-      },
-      {
-        "status": "to-do",
-        "title": "To Do"
-      },
-      {
-        "status": "doing",
-        "title": "In Progress"
-      },
-      {
-        "status": "done",
-        "title": "Done"
+        "id": "tester",
+        "name": "Tester"
       }
-    ],
-    "tasks": [],
-    "settings": {
-      "title": "US-25 Valid sibling"
-    }
+    ]
   },
-  "extensions": {
-    "workflow": {
-      "version": 2,
+  "workflow": {
+    "technical": {
       "states": [
         {
           "id": "backlog",
@@ -88,35 +78,110 @@
         ]
       }
     },
-    "project": {
-      "version": 1,
-      "id": "us25-valid",
-      "description": "",
-      "status": null,
-      "members": [
+    "functional": {
+      "states": [
         {
-          "id": "tester",
-          "name": "Tester"
+          "id": "backlog",
+          "name": "Backlog",
+          "color": "#94a3b8",
+          "category": "backlog"
+        },
+        {
+          "id": "to-do",
+          "name": "To Do",
+          "color": "#60a5fa",
+          "category": "to-do"
+        },
+        {
+          "id": "doing",
+          "name": "In Progress",
+          "color": "#fbbf24",
+          "category": "in-progress"
+        },
+        {
+          "id": "done",
+          "name": "Done",
+          "color": "#34d399",
+          "category": "completed"
         }
       ],
-      "tags": [],
-      "acronym": "GOOD"
+      "entryStateId": "to-do",
+      "references": {
+        "backlog": "backlog",
+        "to-do": "to-do",
+        "in-progress": "doing",
+        "completed": "done"
+      },
+      "transitions": {
+        "backlog": [
+          "to-do",
+          "doing",
+          "done"
+        ],
+        "to-do": [
+          "backlog",
+          "doing",
+          "done"
+        ],
+        "doing": [
+          "backlog",
+          "to-do",
+          "done"
+        ],
+        "done": [
+          "backlog",
+          "to-do",
+          "doing"
+        ]
+      }
     },
-    "workflowTypes": {
-      "version": 1,
+    "types": {
       "functional": [
         "epic",
         "story",
         "bug"
       ]
     },
-    "taskIdentity": {
-      "version": 1,
-      "highWaterMark": 5
+    "automation": {}
+  },
+  "workitems": [],
+  "relations": {
+    "edges": [],
+    "external": {}
+  },
+  "roadmap": {
+    "milestones": [],
+    "phases": [],
+    "sprints": [],
+    "sprintResults": {
+      "credits": [],
+      "closures": []
     },
-    "projectStorage": {
-      "version": 1,
+    "sprintParticipation": []
+  },
+  "dayPlanner": {
+    "blocks": []
+  },
+  "projectControl": {
+    "records": []
+  },
+  "comments": [],
+  "system": {
+    "sequences": {
+      "workitems": {
+        "lastId": 5
+      },
+      "sprints": {
+        "lastNumber": 0
+      },
+      "controlRecords": {
+        "lastNumber": 0
+      }
+    },
+    "sprintNumbers": [],
+    "storage": {
       "baselineEventId": ""
-    }
+    },
+    "transfers": []
   }
 }

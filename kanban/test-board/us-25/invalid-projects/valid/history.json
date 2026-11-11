@@ -1,10 +1,6 @@
-{
-  "version": 1,
-  "timeline": {
-    "version": 1,
-    "baselineEventId": "",
-    "events": []
-  },
-  "archives": {},
-  "transactions": []
-}
+{"schemaVersion":1,"projectId":"us25-valid","baselineEventId":"",
+"events":[
+],
+"recordHistory":{"control":{},"transfers":{}},
+"transactions":[
+]}

@@ -48,22 +48,22 @@ try {
         const target = join(root, 'invalid-projects', name); await mkdir(target, { recursive: true });
         const projectId = `us25-${name}`;
         const invalidCurrent = JSON.parse(alphaText.replaceAll('us25-alpha', projectId));
-        invalidCurrent.board.settings.title = `US-25 ${name}`;
-        invalidCurrent.extensions.project.acronym = { 'missing-history': 'MISS', 'wrong-attachments-type': 'WRNG', 'corrupt-history': 'CORR', 'missing-binary': 'BINA' }[name];
+        invalidCurrent.project.title = `US-25 ${name}`;
+        invalidCurrent.project.acronym = { 'missing-history': 'MISS', 'wrong-attachments-type': 'WRNG', 'corrupt-history': 'CORR', 'missing-binary': 'BINA' }[name];
         await writeFile(join(target, 'project.json'), JSON.stringify(invalidCurrent, null, 2));
         if (name !== 'missing-history') await writeFile(join(target, 'history.json'), name === 'corrupt-history' ? '{bad JSON' : (await readFile(join(root, 'projects', 'alpha', 'history.json'), 'utf8')).replaceAll('us25-alpha', projectId));
         if (name === 'wrong-attachments-type') await writeFile(join(target, 'attachments'), 'This should be a directory.');
         else { await mkdir(join(target, 'attachments'), { recursive: true }); await writeFile(join(target, 'attachments', '.gitkeep'), ''); }
     }
     const valid = JSON.parse(alphaText);
-    valid.board.settings.title = 'US-25 Valid sibling'; valid.board.tasks = [];
-    valid.extensions.project.id = 'us25-valid'; valid.extensions.project.acronym = 'GOOD';
-    delete valid.extensions.conversations;
-    valid.extensions.projectStorage = { version: 1, baselineEventId: '' };
+    valid.project.title = 'US-25 Valid sibling'; valid.workitems = []; valid.relations = { edges: [], external: {} };
+    valid.project.id = 'us25-valid'; valid.project.acronym = 'GOOD';
+    valid.comments = [];
+    valid.system.storage = { baselineEventId: '' };
     const validRoot = join(root, 'invalid-projects', 'valid');
     await mkdir(join(validRoot, 'attachments'), { recursive: true });
     await writeFile(join(validRoot, 'project.json'), JSON.stringify(valid, null, 2));
-    await writeFile(join(validRoot, 'history.json'), JSON.stringify({ version: 1, timeline: { version: 1, baselineEventId: '', events: [] }, archives: {}, transactions: [] }, null, 2));
+    await writeFile(join(validRoot, 'history.json'), '{"schemaVersion":1,"projectId":"us25-valid","baselineEventId":"",\n"events":[\n],\n"recordHistory":{"control":{},"transfers":{}},\n"transactions":[\n]}\n');
     await writeFile(join(validRoot, 'attachments', '.gitkeep'), '');
     await mkdir(join(root, 'projects', 'notes'), { recursive: true });
     await writeFile(join(root, 'projects', 'notes', 'README.md'), 'This folder has no project.json and must be ignored.\n');

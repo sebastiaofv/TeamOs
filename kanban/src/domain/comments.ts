@@ -126,6 +126,7 @@ export function buildComment(data: BoardData, taskId: number, input: CommentInpu
 }
 
 export function commentsThrough(data: LooseBoardData, cutoff: number): Conversations | undefined {
+    if (!data.extensions?.conversations) return undefined;
     const allowed = new Set(events(data).slice(0, cutoff + 1).filter((event) => event.kind === 'task.comment.published').map((event) => String(event.meta?.commentId)));
     const entries = getComments(data).filter((comment) => allowed.has(comment.id));
     return data.extensions?.conversations ? { version: 1, entries: cloneSerializable(entries) } : undefined;

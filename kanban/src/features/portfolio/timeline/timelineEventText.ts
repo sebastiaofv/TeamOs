@@ -26,6 +26,7 @@ const DESCRIPTORS: Record<string, readonly Descriptor[]> = {
     'board.baseline': [{ key: 'timeline.baselineCreated' }],
     'board.reconciled': [{ key: 'timeline.projectReconciled' }],
     'board.restored': [{ key: 'timeline.boardRestored' }],
+    'board.converted': [{ key: 'timeline.boardConverted' }],
     'task.created': [{ key: 'timeline.taskCreated' }],
     'task.deleted': [{ key: 'timeline.taskDeleted' }],
     'task.archived': [{ key: 'timeline.taskArchived' }],
