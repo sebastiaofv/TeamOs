@@ -1,19 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-import {
-  gotoApp,
-  seedPortfolioBoards,
-  readSavedBoard,
-  waitForBoardWrites,
-  showTimeline,
-  setTimelineSlider,
-  portfolioCard,
-  closeDialogBy,
-  portfolioProjectChipButtons,
-  openTaskEditor,
-  answerAppMessage,
-  dragWithMouse
-} from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, showTimeline, setTimelineSlider, portfolioCard, closeDialogBy, portfolioProjectChipButtons, openTaskEditor, answerAppMessage, dragWithMouse, openProjectSettingsFromPicker } from '../support/portfolio';
 
 test.describe('task editor', () => {
   test.beforeEach(async ({ page }) => {
@@ -98,7 +85,7 @@ test.describe('task editor', () => {
     await expect(backlogColumn).toContainText('Investigate deploy issue');
     await expect(backlogColumn.locator('.task-card-owner select')).toContainText('Alex');
     await expect(backlogColumn.locator('select')).toContainText('Sam');
-    await expect(backlogColumn).toContainText('Blocked');
+    await expect(backlogColumn.locator('.task-card-blocker')).toHaveCount(0);
 
     await waitForBoardWrites(page);
     const result = await page.evaluate(() => {
@@ -276,7 +263,7 @@ test.describe('task editor', () => {
     await answerAppMessage(page, { expectText: 'at most 10 tags' });
 
     await page.locator('#taskModalCancelBtn').click();
-    await page.getByRole('button', { name: 'Settings for Project One', exact: true }).click();
+    await openProjectSettingsFromPicker(page, 'Project One');
     await page.locator('#projectNewTag').fill('a'.repeat(31));
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Add tag', exact: true }).click();
     await expect(page.locator('#projectSettingsModal [role="alert"]')).toContainText('30 characters');
@@ -324,7 +311,7 @@ test.describe('task editor', () => {
     await expect(page.locator('#taskModal')).toBeHidden();
 
     const card = portfolioCard(page, 'Date formatting task');
-    await expect(card.locator('time')).toHaveAttribute('title', 'Due: 05/03/2026');
+    await expect(card.locator('time')).toHaveCount(0);
 
     await waitForBoardWrites(page);
     const result = await page.evaluate(() => {
@@ -491,7 +478,7 @@ test.describe('task editor', () => {
       }
     }], { selectedBoardId: 'alpha' });
 
-    await portfolioCard(page, 'Task A').locator('[data-action="edit-task"]').click();
+    await portfolioCard(page, 'Task A').click(); await page.locator('#taskDetailEditBtn').click();
     await page.selectOption('#taskPhase', 'p1');
     await page.selectOption('#taskMilestone', 'm1');
     await page.getByRole('button', { name: 'Save Task' }).click();

@@ -21,25 +21,18 @@ export function nextMilestoneColor(items: RoadmapItem[]): string {
     return MILESTONE_COLORS.find((color) => !used.has(color)) || MILESTONE_COLORS[0];
 }
 
-export const MILESTONE_LANE_HEIGHT = 38;
-export const MILESTONE_LABEL_WIDTH = 140;
+export const MILESTONE_LANE_HEIGHT = 36;
+export const MILESTONE_MARKER_WIDTH = 32;
 
-/** Pack complete marker/label footprints, in pixels, on either side of the date. */
+/** Pack only the diamond footprints. Extra collision lanes scroll within a two-lane strip. */
 export function layoutMilestones(positions: number[], width: number) {
-    width = Math.max(2 * (MILESTONE_LABEL_WIDTH + 30), width);
-    const lanes: { start: number; end: number }[][] = [];
-    return positions.map((position) => {
+    width = Math.max(MILESTONE_MARKER_WIDTH, width);
+    const lanes: number[][] = [];
+    return positions.map(position => {
         const x = position * width / 100;
-        const preferredLeft = x >= width / 2;
-        for (let lane = 0; ; lane++) {
-            for (const labelAtEnd of [preferredLeft, !preferredLeft]) {
-                const start = x - (labelAtEnd ? MILESTONE_LABEL_WIDTH + 30 : 16);
-                const end = x + (labelAtEnd ? 16 : MILESTONE_LABEL_WIDTH + 30);
-                if (labelAtEnd ? start < -16 : end > width + 16) continue;
-                if ((lanes[lane] || []).some((other) => start < other.end + 6 && end + 6 > other.start)) continue;
-                (lanes[lane] ||= []).push({ start, end });
-                return { lane, labelAtEnd };
-            }
-        }
+        let lane = 0;
+        while ((lanes[lane] || []).some(other => Math.abs(x - other) < MILESTONE_MARKER_WIDTH + 6)) lane++;
+        (lanes[lane] ||= []).push(x);
+        return { lane };
     });
 }

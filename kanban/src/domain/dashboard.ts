@@ -14,7 +14,7 @@ export function dashboardTasks(data: BoardData, phaseId = ''): Task[] {
     return data.board.tasks.filter((task) => phases.has(effectivePlanning(data, task, 'phaseId')));
 }
 
-export function dashboardMetrics(data: BoardData, tasks: readonly Task[], asOf: string) {
+export function dashboardMetrics(data: BoardData, tasks: readonly Task[], asOf: string, additionalDependencies: ReadonlySet<number> = new Set()) {
     return withWorkflowReadCache(() => {
         const parents = new Set(data.board.tasks.map((task) => task.parentId));
         const leaves = tasks.filter((task) => !parents.has(task.id));
@@ -23,14 +23,14 @@ export function dashboardMetrics(data: BoardData, tasks: readonly Task[], asOf: 
         const eligible = leaves.filter((task) => category(task) !== 'cancelled');
         const completed = eligible.filter((task) => category(task) === 'completed');
         const open = eligible.filter((task) => category(task) !== 'completed');
-        const dependencies = getDependencyBlockedTaskIds(data);
+        const dependencies = new Set([...getDependencyBlockedTaskIds(data), ...additionalDependencies]);
         const deadlines = eligible.filter((task) => task.dueDate);
         return {
             tasks: [...tasks], leaves, eligible, completed, open,
             progress: planningProgress(tasks, data),
             inProgress: open.filter((task) => category(task) === 'in-progress'),
             pending: open.filter((task) => category(task) !== 'in-progress'),
-            blocked: open.filter((task) => task.blocked || dependencies.has(task.id)),
+            blocked: tasks.filter((task) => !['completed', 'cancelled'].includes(category(task)) && (task.blocked || dependencies.has(task.id))),
             overdue: deadlines.length ? open.filter((task) => task.dueDate && task.dueDate < asOf) : null,
             unassigned: eligible.filter((task) => !task.responsible),
             undated: eligible.filter((task) => !task.dueDate),

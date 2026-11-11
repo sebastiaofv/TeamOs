@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, toggleTheme } from '../support/portfolio';
 
 // Keep the multi-decade regression independent of the manual fixture's realistic dates.
 const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
@@ -21,8 +21,8 @@ test('long timelines keep year labels separate at every viewport and zoom', asyn
             await page.getByLabel('Timeline zoom', { exact: true }).selectOption(zoom);
             await expect.poll(async () => page.locator('.roadmap-axis-year').evaluateAll((labels) => {
                 const rects = labels.map((label) => label.getBoundingClientRect());
-                return rects.slice(1).every((rect, index) => rect.left >= rects[index].right + 4);
-            })).toBe(true);
+                return rects.slice(1).flatMap((rect, index) => rect.left >= rects[index].right + 4 ? [] : [{ previous: labels[index].textContent, current: labels[index + 1].textContent, gap: rect.left - rects[index].right }]);
+            }), `${width}px at ${Number(zoom) * 100}%`).toEqual([]);
             await expect.poll(async () => page.locator('.roadmap-axis-date-label').evaluateAll((labels) => {
                 const rects = labels.map((label) => label.getBoundingClientRect());
                 return rects.slice(1).every((rect, index) => rect.left >= rects[index].right + 4);
@@ -41,7 +41,7 @@ test('date and grid guides stay behind expanded workitem tables', async ({ page 
     // Sample inside the surface: fractional edge pixels also include adjacent timeline rows.
     const clip = { x: box.x + 2, y: box.y + 2, width: box.width - 4, height: box.height - 4 };
     for (const theme of ['light', 'dark']) {
-        if (theme === 'dark') await page.locator('#themeToggleBtn').click();
+        if (theme === 'dark') await toggleTheme(page);
         const visibleGuides = await page.screenshot({ clip, animations: 'disabled' });
         const hiddenGuides = await page.screenshot({ clip, animations: 'disabled', style: '.roadmap-temporal-overlay, .roadmap-date-overlay { visibility: hidden !important; }' });
         expect(visibleGuides.equals(hiddenGuides), 'Timeline guides must not paint over expanded table content').toBe(true);

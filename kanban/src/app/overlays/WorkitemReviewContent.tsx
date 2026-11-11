@@ -11,6 +11,26 @@ export function WorkitemReviewContent({ review, fields = [], selections, onChang
     selectionRef: RefObject<HTMLSelectElement | null>;
 }) {
     const { t } = useI18n();
+    if (review.phaseGroups?.length) return <section className="workitem-review phase-date-review" aria-label={review.heading}>
+        {review.phaseGroups.map((group, index) => {
+            const field = fields.find(field => field.id === group.selectionId);
+            return <section key={group.selectionId} className="phase-date-review-group" aria-labelledby={`phase-date-title-${index}`}>
+                <div className="phase-date-review-heading">
+                    <div className="phase-date-review-summary"><h3 id={`phase-date-title-${index}`}>{group.title}</h3>
+                        <div className="phase-date-review-dates" aria-label={t('planning.phaseDatesTitle')}><span>{group.from}</span><span aria-hidden="true">→</span><strong>{group.to}</strong></div>
+                    </div>
+                    {field && <select id={`appMessageSelection-${fields.indexOf(field)}`} ref={index === 0 ? selectionRef : undefined} required={field.required}
+                        aria-label={`${field.label}: ${t('automations.decision')}`} data-field={field.id} value={selections[field.id]} onChange={event => onChange(field.id, event.target.value)}>
+                        {field.required && <option value="" disabled>{t('common.choose')}</option>}
+                        {field.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>}
+                </div>
+                <ul>{review.rows.filter(row => row.selectionId === group.selectionId).map(row => <li key={row.id} className="workitem-review-row">
+                    <WorkitemTypeBadge type={row.type} /><span className="workitem-review-id">{row.id}</span><span className="workitem-review-title" title={row.title}>{row.title}</span>
+                </li>)}</ul>
+            </section>;
+        })}
+    </section>;
     return <section className="workitem-review" aria-label={review.heading}>
         {review.heading && <h3>{review.heading}</h3>}
         {review.rules?.map((rule) => <div key={rule.name} className="workitem-review-rule"><h3>{t('automations.rule')}: {rule.name}</h3><p>{rule.description}</p></div>)}

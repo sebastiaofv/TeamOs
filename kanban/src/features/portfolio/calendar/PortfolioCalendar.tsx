@@ -30,7 +30,7 @@ function PortfolioCalendarView({ model, state }: { model: PortfolioCalendarViewM
                             className="btn"
                             type="button"
                             data-action={view === 'month' ? 'calendar-prev-month' : 'calendar-prev-year'}
-                            aria-label={view === 'month' ? t('calendar.previousMonth') : t('calendar.previousYear')}
+                            aria-description={view === 'month' ? t('calendar.previousMonth') : t('calendar.previousYear')}
                             onClick={() => view === 'month'
                                 ? shiftPortfolioCalendarMonth(-1)
                                 : shiftPortfolioCalendarYear(-1)}
@@ -47,7 +47,7 @@ function PortfolioCalendarView({ model, state }: { model: PortfolioCalendarViewM
                             className="btn"
                             type="button"
                             data-action={view === 'month' ? 'calendar-next-month' : 'calendar-next-year'}
-                            aria-label={view === 'month' ? t('calendar.nextMonth') : t('calendar.nextYear')}
+                            aria-description={view === 'month' ? t('calendar.nextMonth') : t('calendar.nextYear')}
                             onClick={() => view === 'month'
                                 ? shiftPortfolioCalendarMonth(1)
                                 : shiftPortfolioCalendarYear(1)}

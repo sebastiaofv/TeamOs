@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'feedback', title: 'Feedback', hasHandle: true,
         tasks: [{ id: 1, title: 'Done', status: 'done', phaseId: 'p0' }, { id: 2, title: 'Open', status: 'doing', phaseId: 'p0' }],
-        extensions: { roadmap: { version: 3, milestones: [{ id: 'm', title: 'Release', dueDate: '2027-01-01' }], sprints: [],
+        extensions: { roadmap: { version: 3, milestones: [{ id: 'm', title: 'Release', dueDate: '2027-01-01' }, { id: 'm2', title: 'Second', dueDate: '2027-01-01' }, { id: 'm3', title: 'Third', dueDate: '2027-01-01' }], sprints: [],
             phases: Array.from({ length: 35 }, (_, i) => ({ id: `p${i}`, title: `Phase ${i}`, startDate: '2026-10-01', endDate: '2027-04-30' })) } }
     }], { selectedBoardId: 'feedback' });
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
 
 test('timeline and milestone identification remain fixed and opaque while phases scroll', async ({ page }) => {
     const header = page.locator('.roadmap-axis-shell');
-    const milestone = page.locator('.milestone-annotation');
+    const milestone = page.locator('.milestone-annotation').first();
     const before = await header.boundingBox();
     const milestoneBefore = await milestone.boundingBox();
     await page.locator('#portfolioRoadmapView').evaluate((element) => { element.scrollTop = 250; });
@@ -28,7 +28,9 @@ test('timeline and milestone identification remain fixed and opaque while phases
 });
 
 test('phase deletion selects a destination before a single confirmation and can cancel safely', async ({ page }) => {
-    await page.getByRole('button', { name: 'Delete Phase 0', exact: true }).click();
+    await page.getByRole('button', { name: 'Phase 0', exact: true }).click();
+    await page.locator('#roadmapEntityModal .modal-header summary').click();
+    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
     const message = page.locator('#appMessageModal');
     await expect(message).toContainText('#1 · Done');
     const destination = message.getByRole('combobox');
@@ -36,8 +38,11 @@ test('phase deletion selects a destination before a single confirmation and can 
     await expect(destination.locator('option')).toHaveCount(35);
     await destination.selectOption({ label: 'Phase 1' });
     await message.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.locator('#roadmapEntityModalCloseBtn').click();
     expect((await readSavedBoard(page, 'feedback')).extensions.roadmap.phases).toHaveLength(35);
-    await page.getByRole('button', { name: 'Delete Phase 0', exact: true }).click();
+    await page.getByRole('button', { name: 'Phase 0', exact: true }).click();
+    await page.locator('#roadmapEntityModal .modal-header summary').click();
+    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(destination).toHaveValue('0');
     await destination.selectOption({ label: 'Phase 1' });
     await message.getByRole('button', { name: 'Confirm', exact: true }).click();
@@ -53,14 +58,14 @@ test('axis uses separate years and denser dates, and phase colours survive editi
     await expect.poll(() => page.locator('.roadmap-axis-tick').count()).toBeGreaterThan(initialTicks);
     await page.getByLabel('Timeline zoom', { exact: true }).selectOption('1');
     await expect(page.locator('.roadmap-year-guide')).toHaveCount(1);
-    await page.getByRole('button', { name: 'Edit Phase 0', exact: true }).click();
+    await page.getByRole('button', { name: 'Phase 0', exact: true }).click();
     await page.getByRole('radio', { name: 'Purple', exact: true }).check();
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
     const bar = page.locator('#roadmap-row-phase-p0 .roadmap-row-timeline-bar');
     await expect(bar).toHaveAttribute('data-progress', '50');
     await expect.poll(async () => (await readSavedBoard(page, 'feedback')).extensions.roadmap.phases.find((phase: { id: string }) => phase.id === 'p0').color).toBe('#7c3aed');
     await expect(bar).toHaveCSS('--phase-color', '#7c3aed');
-    await page.getByRole('button', { name: 'Edit Phase 0', exact: true }).click();
+    await page.getByRole('button', { name: 'Phase 0', exact: true }).click();
     await expect(page.getByRole('radio', { name: 'Purple', exact: true })).toBeChecked();
 });
 
@@ -72,10 +77,26 @@ test('phase creation persists the chosen palette colour and default deletion cle
     await page.getByRole('radio', { name: 'Teal', exact: true }).check();
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'feedback')).extensions.roadmap.phases.find((phase: { id: string }) => phase.id === 'new-phase')?.color).toBe('#0f766e');
-    await page.getByRole('button', { name: 'Delete Phase 0', exact: true }).click();
+    await page.getByRole('button', { name: 'Phase 0', exact: true }).click();
+    await page.locator('#roadmapEntityModal .modal-header summary').click();
+    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageSelection')).toHaveValue('0');
     await page.locator('#appMessageConfirmBtn').click();
     await expect.poll(async () => (await readSavedBoard(page, 'feedback')).board.tasks.map((task: { phaseId: string }) => task.phaseId)).toEqual(['', '']);
     const saved = await readSavedBoard(page, 'feedback');
     expect(saved.board.tasks.map((task: { status: string }) => task.status)).toEqual(['done', 'doing']);
+});
+
+test('milestone guides stay centred on the diamonds when labels and zoom change', async ({ page }) => {
+    await page.addStyleTag({ content: '.milestone-annotations { overflow-y: scroll; scrollbar-gutter: stable; } .milestone-annotations::-webkit-scrollbar { display: block; width: 16px; }' });
+    const assertAligned = async () => {
+        const diamond = (await page.locator('[data-roadmap-id="m"] .milestone-diamond').boundingBox())!;
+        const guide = (await page.locator('[data-milestone-guide="m"]').boundingBox())!;
+        expect(Math.abs(diamond.x + diamond.width / 2 - (guide.x + guide.width / 2))).toBeLessThanOrEqual(0.1);
+    };
+    await assertAligned();
+    await page.getByLabel('Timeline zoom', { exact: true }).selectOption('2');
+    await assertAligned();
+    await page.getByLabel('Identification column width', { exact: true }).fill('500');
+    await assertAligned();
 });

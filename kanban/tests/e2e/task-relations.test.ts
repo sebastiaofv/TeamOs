@@ -1,6 +1,6 @@
-import { confirmWorkitemChanges } from '../support/portfolio';
+import { confirmWorkitemChanges, toggleLanguage, gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, openTaskEditor } from '../support/portfolio';
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, answerAppMessage, openTaskEditor } from '../support/portfolio';
+
 
 test('compact relation groups show current status and responsible first names, not participants, after editing and reopening', async ({ page }) => {
   await gotoApp(page);
@@ -43,7 +43,7 @@ test('compact relation groups show current status and responsible first names, n
   await expect(blocker.getByLabel('Responsible', { exact: true })).toHaveText('Rui');
 
   await page.locator('#taskDetailModalCloseBtn').click();
-  await page.locator('#languageToggleBtn').click();
+  await toggleLanguage(page);
   await portfolioCard(page, 'Source').click();
   await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const ptBlocker = page.getByRole('region', { name: 'Relações', exact: true }).getByRole('group', { name: 'É bloqueado por', exact: true });
@@ -321,25 +321,25 @@ test('dependency badges track completion and reopening without preventing status
     tasks: [{ id: 1, title: 'Dependent' }, { id: 2, title: 'Blocker', status: 'to-do' }, { id: 3, title: 'Manual', blocked: true, blockerReason: 'Own reason' }],
     extensions: { taskRelations: { version: 1, relations: [{ sourceId: 2, targetId: 1, kind: 'blocks' }, { sourceId: 2, targetId: 3, kind: 'blocks' }] } }
   }], { selectedBoardId: 'p1' });
-  await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toBeVisible();
+  await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toHaveCount(0);
   await portfolioCard(page, 'Dependent').hover();
   await page.keyboard.press('3');
   await expect.poll(async () => (await readSavedBoard(page, 'p1')).board.tasks[0].status).toBe('doing');
   await portfolioCard(page, 'Blocker').hover();
   await page.keyboard.press('4');
   await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toHaveCount(0);
-  await expect(portfolioCard(page, 'Manual').locator('.task-tag-blocked')).toBeVisible();
+  await expect(portfolioCard(page, 'Manual').locator('.task-tag-blocked')).toHaveCount(0);
   await portfolioCard(page, 'Blocker').hover();
   await page.keyboard.press('2');
   await confirmWorkitemChanges(page);
-  await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toBeVisible();
+  await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toHaveCount(0);
   await expect.poll(async () => (await readSavedBoard(page, 'p1')).board.tasks[1].status).toBe('to-do');
   const saved = await readSavedBoard(page, 'p1');
   expect(saved.board.tasks[0].blocked).toBe(false);
   expect(saved.board.tasks[2].blockerReason).toBe('Own reason');
   await page.reload();
   await seedPortfolioBoards(page, [{ id: 'reopened', title: 'Project', hasHandle: true, tasks: saved.board.tasks, extensions: saved.extensions }], { selectedBoardId: 'reopened' });
-  await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toBeVisible();
+  await expect(portfolioCard(page, 'Dependent').locator('.task-tag-blocked')).toHaveCount(0);
   await portfolioCard(page, 'Dependent').click();
   await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   await expect(page.getByRole('region', { name: 'Relations', exact: true }).getByRole('button', { name: '#2 Blocker', exact: true })).toBeVisible();
@@ -351,7 +351,7 @@ test('rejects a circular dependency with a clear Portuguese message and leaves t
     tasks: [{ id: 1, title: 'First' }, { id: 2, title: 'Second' }, { id: 3, title: 'Third' }],
     extensions: { taskRelations: { version: 1, relations: [{ sourceId: 1, targetId: 2, kind: 'blocks' }, { sourceId: 2, targetId: 3, kind: 'blocks' }] } }
   }], { selectedBoardId: 'p1' });
-  await page.locator('#languageToggleBtn').click();
+  await toggleLanguage(page);
   await portfolioCard(page, 'Third').click();
   await page.getByRole('tab', { name: /^(Relations|Relações)$/ }).click();
   const relations = page.getByRole('region', { name: 'Relações', exact: true });

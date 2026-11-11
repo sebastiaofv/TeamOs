@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
-import { gotoApp, seedPortfolioBoards } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, toggleTheme, openProjectSettingsFromPicker } from '../support/portfolio';
 
 for (const theme of ['light', 'dark']) {
     for (const width of [1280, 390]) {
@@ -9,8 +9,8 @@ for (const theme of ['light', 'dark']) {
             await gotoApp(page);
             const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
             await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
-            if (theme === 'dark') await page.getByRole('button', { name: 'Switch to dark mode', exact: true }).click();
-            await page.getByRole('button', { name: /^Settings for / }).click();
+            if (theme === 'dark') await toggleTheme(page);
+            await openProjectSettingsFromPicker(page);
             await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();
             const dialog = page.locator('.workflow-dialog');
             await page.screenshot({ path: testInfo.outputPath(`workflow-states-${theme}-${width}.png`) });

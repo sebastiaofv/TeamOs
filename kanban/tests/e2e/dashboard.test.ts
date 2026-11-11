@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, mutateExternalBoardFile, triggerExternalFileCheck } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, mutateExternalBoardFile, triggerExternalFileCheck, toggleTheme, openProjectPicker } from '../support/portfolio';
 import { LANGUAGE_STORAGE_KEY } from '../../src/domain/constants';
 
 async function seed(page: Page, writable = true) {
@@ -66,7 +66,7 @@ test('selected-project metrics count archived leaves and open their exact source
     await expect(sources(page).locator('tbody tr')).toHaveCount(6);
     expect(await readSavedBoard(page, 'p')).toEqual(before);
     await expect(page).toHaveURL(/pv=dashboard/);
-    await page.locator('#portfolioBoardsChips [data-board-id=""]').click();
+    await openProjectPicker(page); await page.locator('#portfolioBoardsChips [data-board-id=""]').click();
     await expect(page.locator('[data-view-mode="dashboard"]')).toBeHidden();
     await expect(page.locator('#portfolioDashboard')).toBeHidden();
 });
@@ -84,7 +84,7 @@ test('overview shows parent phases only; scope and read-only drilldowns retain c
     await expect(page.locator('#taskDetailModal')).toContainText('Archived pending integration');
     await page.keyboard.press('Escape');
     await page.locator('[data-dashboard-planning="delivery"]').getByRole('button', { name: 'Delivery programme', exact: true }).click();
-    await expect(page.locator('[data-roadmap-task-list="phase:delivery"]')).toHaveCount(0);
+    await expect(page.locator('[data-roadmap-task-list="phase:delivery"]')).toBeVisible();
     await page.locator('[data-view-mode="dashboard"]').click();
     await expect(page.getByLabel('Planning scope', { exact: true })).toHaveValue('api');
     await page.locator('[data-dashboard-active-sprint="active"]').getByRole('button', { name: 'Sprint 2 - Implementation', exact: true }).click();
@@ -127,7 +127,7 @@ test('historical period uses saved observations and historical drilldowns instea
     await expect(page.getByRole('alert')).toContainText('The end date');
     await page.getByLabel('Snapshot', { exact: true }).selectOption('0');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
-    await expect(page.locator('.dashboard-heading')).toContainText('Historical snapshot');
+    await expect(page.locator('.dashboard-context')).toContainText('Historical snapshot');
     await kpi(page, 'progress').click();
     const row = sources(page).locator('tr', { hasText: 'Validated implementation' });
     await expect(row).toContainText('In progress');
@@ -165,7 +165,7 @@ test('Portuguese dark mobile dashboard stays within viewport and remains keyboar
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript((key) => localStorage.setItem(key, 'pt'), LANGUAGE_STORAGE_KEY);
     await seed(page, false);
-    await page.locator('#themeToggleBtn').click();
+    await toggleTheme(page);
     await expect(page.getByRole('button', { name: 'Visão global', exact: true })).toBeVisible();
     const progress = kpi(page, 'progress');
     await progress.focus();

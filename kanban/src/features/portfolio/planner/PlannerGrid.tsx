@@ -68,7 +68,7 @@ export function PlannerGrid({ model, nowMinutes, preview = null, renderBlock }: 
     const week = model.mode === 'week';
     const style = { '--planner-slot': `${PLANNER_SLOT_PX}px`, '--planner-days': model.days.length } as CSSProperties;
     return (
-        <div className="planner-grid-panel">
+        <div className={`planner-grid-panel${week ? ' planner-week' : ''}`} style={style}>
             {week && (
                 <div className="planner-day-headers" style={style}>
                     <span />
@@ -79,7 +79,7 @@ export function PlannerGrid({ model, nowMinutes, preview = null, renderBlock }: 
                     ))}
                 </div>
             )}
-            <div className="planner-grid-scroll" ref={scrollRef}>
+            <div className="planner-grid-scroll" ref={scrollRef} tabIndex={0} role="region" aria-label={t('planner.schedule')}>
                 <div className="planner-grid" style={{ ...style, height: `${PLANNER_GRID_HEIGHT_PX}px` }}>
                     <div className="planner-hours" aria-hidden="true">
                         {HOURS.map((minutes) => (

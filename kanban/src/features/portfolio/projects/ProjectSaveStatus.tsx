@@ -9,5 +9,6 @@ export function SaveIndicator({ boardId }: { boardId: string }) {
 }
 export function SaveButton({ boardId, busy = false, children, disabled, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { boardId: string; busy?: boolean }) {
     const saving = useAppStore((state) => state.projectSaveStateById.get(boardId)?.status === 'saving');
-    return <button {...props} disabled={disabled || busy || saving} aria-busy={busy || saving}>{(busy || saving) && <span className="save-spinner" aria-hidden="true" />}{children}</button>;
+    const { t } = useI18n();
+    return <button {...props} disabled={disabled || busy || saving} aria-busy={busy || saving}>{(busy || saving) && <><span className="save-spinner" aria-hidden="true" /><span className="sr-only">{t('toolbar.saving')} · </span></>}{children}</button>;
 }

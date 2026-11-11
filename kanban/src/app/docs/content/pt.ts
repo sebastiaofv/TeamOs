@@ -30,19 +30,18 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'start-layout',
                 title: 'Orientação no ecrã',
-                summary: 'O ecrã é composto pela barra superior, a barra de ferramentas, os chips de projeto e a vista ativa.',
+                summary: 'Escolha o projeto junto ao logo, a vista abaixo do cabeçalho e os controlos dentro dessa vista.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Barra superior', 'Tema, definições da aplicação, idioma, atalhos de teclado, esta documentação, Importar projetos e Novo projeto. Está sempre disponível, mesmo enquanto lê a documentação.'],
-                        ['Botão de documentação', 'O ícone de livro abre esta documentação no lugar do espaço de trabalho. Durante a leitura mostra um ícone de aplicação: clique para voltar exatamente onde estava.'],
-                        ['Barra de ferramentas', 'A caixa de pesquisa (abre a [paleta de comandos](prod-palette)), Filtros, Ordenação e o seletor de vistas.'],
-                        ['Chips de projeto', 'Alternam entre **Todos os projetos** e um único projeto. Cada chip mostra o estado de gravação e tem uma roda dentada para as [Definições do projeto](projects-settings). Os projetos do mesmo produto aparecem agrupados.'],
-                        ['Vista', 'A área principal: Quadro, Dashboard, Tabela, Roadmap, Controlo do projeto, Calendário ou Planeador.'],
-                        ['Barra do histórico', 'Opcional. Ative-a nas Definições da aplicação para percorrer o [histórico](files-history) de um projeto.']
+                        ['Barra superior', 'Seletor de projeto junto ao logo, lupa para a [paleta de comandos](prod-palette), atalhos de teclado, documentação, Definições da aplicação, Importar projetos e Novo projeto. Continua disponível durante a leitura.'],
+                        ['Botão de documentação', 'O livro abre a documentação e passa a mostrar um ícone de aplicação. Clique para regressar ao espaço de trabalho, mantendo o projeto, a vista e os filtros.'],
+                        ['Navegação', 'Escolha Quadro, Dashboard, Tabela, Roadmap, Controlo do projeto ou Planeador por baixo da barra superior. O Calendário é um separador dentro do Planeador.'],
+                        ['Seletor de projeto', 'Abra o nome junto ao logo para escolher **Todos** ou um projeto. Expanda um produto para ver os seus projetos. As definições, a remoção e a repetição de gravação ficam neste menu; o estado de gravação também aparece junto ao nome selecionado.'],
+                        ['Controlos da vista', 'No Board, pesquisa e Filtros e vista ficam junto de Apenas sprints ativos. Cada tabela tem pesquisa, Filtros, Colunas e Exportar CSV. O Dashboard tem período e âmbito; o Roadmap tem largura e zoom; o Planeador tem Dia, Semana e Calendário.'],
+                        ['Barra do histórico', 'Ative-a nas Definições da aplicação para consultar o [histórico](files-history) do projeto selecionado.']
                     ] },
-                    { kind: 'h', text: 'Vistas e seleção de projeto' },
-                    { kind: 'p', text: 'O Quadro, o Calendário e o Planeador funcionam com todos os projetos carregados. O Dashboard, a Tabela, o Roadmap e o Controlo do projeto descrevem um único projeto, por isso os respetivos botões aparecem quando seleciona o chip de um projeto. Consulte [Escolher uma vista](views-choose).' },
-                    { kind: 'callout', tone: 'tip', text: 'Prima [[?]] a qualquer momento para ver todos os atalhos de teclado e [[H]] para abrir ou fechar esta documentação.' }
+                    { kind: 'p', text: 'O Quadro e o Planeador, incluindo o Calendário, funcionam com todos os projetos carregados ou com um projeto. Dashboard, Tabela, Roadmap e Controlo do projeto aparecem quando seleciona um único projeto.' },
+                    { kind: 'callout', tone: 'tip', text: 'Prima [[?]] para ver os atalhos e [[H]] para abrir ou fechar a documentação. Os atalhos de uma letra aplicam-se quando não está a escrever num campo.' }
                 ],
                 related: ['views-choose', 'prod-shortcuts']
             },
@@ -56,12 +55,12 @@ export const DOCS_PT: DocSection[] = [
                         'Clique em **+ Novo projeto** na barra superior (ou prima [[N]]).',
                         'Preencha as definições: o **Nome do projeto** e uma **Sigla do projeto** com 1 a 4 letras são obrigatórios. A sigla é o prefixo dos IDs dos novos workitems, por exemplo `CHK-US-2`.',
                         'Opcionalmente, acrescente descrição, produto, membros e etiquetas. Pode alterar tudo isto mais tarde.',
-                        'Selecione a pasta principal e autorize leitura e escrita. O TeamOS cria uma subpasta com `project.json`, `history.json` e `attachments/` e seleciona o projeto. Se o nome já existir, indique outro.'
+                        'Clique em **Guardar**, selecione a pasta principal e autorize leitura e escrita. O TeamOS cria uma subpasta com `project.json`, `history.json` e `attachments/` e seleciona o projeto. Se o nome já existir, indique outro.'
                     ] },
                     { kind: 'h', text: 'Abrir projetos existentes' },
                     { kind: 'steps', items: [
                         'Clique em **Importar projetos** (ou prima [[I]]) e selecione a pasta de um projeto ou uma pasta principal com projetos nas subpastas diretas. Os projetos abertos são mantidos, sem duplicados. Os ficheiros antigos `.board.json` encontrados na pasta selecionada são convertidos em subpastas, preservando os originais.',
-                        'Em alternativa, arraste os ficheiros de projeto para a janela.',
+                        'Em alternativa, arraste ficheiros antigos `.board.json` para a janela, para consulta em modo de leitura.',
                         'Quando o navegador pedir, autorize alterações ao ficheiro para que o projeto possa ser guardado.'
                     ] },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Os ficheiros arrastados para a janela não trazem permissão de escrita e abrem em **modo de leitura**: pode navegar e abrir workitems, mas não alterá-los. Use Importar projetos para trabalhar num ficheiro. Consulte [Abrir projetos e modo de leitura](files-open).' },
@@ -75,12 +74,12 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Um percurso curto e prático, desde um projeto vazio até uma User Story validada.',
                 blocks: [
                     { kind: 'steps', items: [
-                        '**Descreva o objetivo.** Selecione o projeto, abra o Quadro, mude para o **Board Funcional** e clique em **Criar workitem**. Crie um **Epic** que descreva o objetivo de negócio.',
-                        '**Expresse as necessidades.** A partir dos detalhes do Epic, crie **User Stories**. Dê a cada uma **Critérios de aceitação** — são obrigatórios para aceitar a Story mais tarde.',
+                        '**Descreva o objetivo.** Selecione o projeto, abra **Tabela → Todos** e clique em **Criar workitem**. Crie um **Epic** que descreva o objetivo de negócio.',
+                        '**Expresse as necessidades.** A partir dos detalhes do Epic, crie **User Stories**. Dê a cada uma **Critérios de aceitação** para a equipa validar o resultado mais tarde.',
                         '**Planeie o trabalho.** A partir de cada Story, crie as **Tasks** necessárias para a entregar. Defina prioridade e esforço.',
-                        '**Planeie um sprint.** Abra o [Roadmap](plan-roadmap) ou a Tabela, selecione as Stories e crie um sprint com datas de início e fim.',
-                        '**Execute.** No **Board Técnico**, as Tasks das Stories do sprint ativo aparecem nas colunas. Arraste-as à medida que o trabalho avança.',
-                        '**Aceite.** Quando as Tasks estiverem concluídas, mova a Story para um estado concluído. A aplicação pede a aceitação funcional: confirme que os critérios são cumpridos e indique o seu nome.'
+                        '**Planeie um sprint.** Em **Tabela → Backlog**, selecione as Stories e use **Ações de sprint → Criar sprint**. Indique datas, um Objetivo do Sprint e, opcionalmente, capacidade em Story Points.',
+                        '**Execute.** Inicie o Sprint no Roadmap ou em Tabela → Sprints. Com **Apenas sprints ativos** selecionado, o trabalho aparece no Board. Mova as Tasks pelas transições permitidas.',
+                        '**Aceite.** Quando as Tasks estiverem concluídas, mova a Story para um estado concluído. A aplicação pede a aceitação funcional: confirme o resultado com a identidade selecionada no projeto, ou indique um autor local se for pedido.'
                     ] },
                     { kind: 'callout', tone: 'tip', text: 'O [exemplo completo](ex-walkthrough) segue este percurso em detalhe com um projeto realista.' }
                 ],
@@ -118,7 +117,7 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Backlog e priorização',
                 summary: 'O backlog é a lista ordenada de tudo o que pode ser feito. Mantenha-o visível, atualizado e ordenado por valor.',
                 blocks: [
-                    { kind: 'p', text: 'No TeamOS, os novos workitems começam no estado reservado **Backlog**. Ficam aí até estarem prontos para ser trabalhados; depois são enviados para o estado de entrada do Board (por omissão **To Do**).' },
+                    { kind: 'p', text: 'Os novos workitems começam no estado reservado **Backlog**. Backlog é um estado do workflow; **Tabela → Backlog** é uma lista de unidades de planeamento com trabalho pendente e sem alocação a um Sprint elegível. Iniciar um Sprint move os seus workitems em Backlog para o primeiro estado Por iniciar do respetivo workflow.' },
                     { kind: 'h', text: 'Priorizar' },
                     { kind: 'list', items: [
                         'A **Prioridade** (alta, média, baixa) exprime importância ou urgência.',
@@ -128,8 +127,8 @@ export const DOCS_PT: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Refinar o backlog' },
                     { kind: 'steps', items: [
-                        'Abra a **Tabela** do projeto e use **Workitems por planear** para ver o que ainda não está num sprint.',
-                        'Ordene por prioridade ou pontuação e filtre por etiqueta ou participante.',
+                        'Abra a **Tabela** do projeto e use **Backlog** para ver o que ainda não está num sprint.',
+                        'Ordene por prioridade ou pontuação, filtre por participante e use `#etiqueta` na [paleta de comandos](prod-palette) para encontrar workitems etiquetados.',
                         'Garanta que as Stories do topo têm Critérios de aceitação claros e Tasks suficientemente pequenas para terminar num sprint.'
                     ] },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Refine o backlog regularmente (por exemplo, uma vez por sprint). Os itens do topo devem ser pequenos e bem compreendidos; os mais abaixo podem continuar genéricos.' },
@@ -151,7 +150,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Escrever uma boa User Story' },
                     { kind: 'p', text: 'Um formato comum é: **Como** tipo de utilizador, **quero** uma capacidade, **para** obter um benefício. Acrescente Critérios de aceitação que qualquer pessoa possa verificar, como “Dado…, quando…, então…”.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Boas Stories são Independentes, Negociáveis, Valiosas, Estimáveis, Pequenas e Testáveis (INVEST). Se uma Story não couber num sprint, divida-a por passo do processo, regra de negócio ou variação de dados.' },
-                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma User Story só pode pertencer a um Epic. Uma Task pode pertencer a um Epic, User Story ou Bug, ou ser independente. Os Bugs usam o workflow funcional e recebem uma Task de execução ao criar. O tipo de um workitem não pode mudar depois de criado.' }
+                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma User Story só pode pertencer a um Epic. Uma Task pode pertencer a um Epic, User Story ou Bug, ou ser independente. Os Bugs recebem uma Task de execução ao criar. O workflow depende da configuração dos tipos de workitem no projeto. O tipo de um workitem não pode mudar depois de criado.' }
                 ],
                 related: ['wi-types', 'wi-hierarchy', 'wi-acceptance']
             },
@@ -161,13 +160,14 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Escolha um objetivo de sprint, selecione as Stories que o servem e comprometa-se com o que cabe.',
                 blocks: [
                     { kind: 'steps', items: [
-                        'Acordem um **objetivo de sprint**: uma frase que descreve o resultado do sprint. Registe-o no título ou na descrição do sprint.',
-                        'Crie o sprint com datas de início e fim, no [Roadmap](plan-roadmap) ou a partir de uma seleção na Tabela.',
-                        'Acrescente as Stories, Tasks independentes e Bugs prontos de maior valor. Pare quando a experiência da equipa indicar que o sprint está cheio.',
-                        'Confirme que cada Story tem Tasks; as Tasks de uma Story acompanham automaticamente a Story no sprint.'
+                        'Acordem o resultado pretendido e registem-no no **Objetivo do Sprint**.',
+                        'Selecione Stories, Bugs ou Tasks independentes prontos no Board ou em **Tabela → Backlog**, e escolha **Criar sprint** (em **Ações de sprint** na Tabela).',
+                        'Defina início e fim, ou uma duração em dias úteis. Opcionalmente, indique a **Capacidade do Sprint (SP)** e estime workitems elegíveis com [Story Points](plan-sprints).',
+                        'Reveja a seleção e eventuais alterações às datas das fases. As Tasks de Stories e Bugs são planeadas através do respetivo pai.',
+                        'Use **Iniciar Sprint** no Roadmap ou em Tabela → Sprints quando a equipa começar.'
                     ] },
-                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'As Tasks de uma Story são planeadas através da Story: uma Task que pertence a uma Story segue sempre o sprint atual da Story. Só os sprints Planeados ou Ativos aceitam novos workitems; um sprint cuja data de fim já passou está Concluído.' },
-                    { kind: 'callout', tone: 'note', text: 'O TeamOS não regista story points, capacidade nem um fecho formal de sprint. O estado do sprint (Planeado, Ativo, Concluído) é derivado das datas. Use o esforço e o histórico da equipa como referência de planeamento.' }
+                    { kind: 'callout', tone: 'rule', text: 'O estado do Sprint é manual: um Sprint novo fica Planeado, Iniciar Sprint torna-o Ativo e Finalizar Sprint torna-o Concluído. A passagem da data de fim não o encerra. Só Sprints Planeados ou Ativos aceitam trabalho.' },
+                    { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Use os Story Points planeados e a capacidade introduzida como referências. O Esforço é uma estimativa separada; a aplicação não o converte em pontos nem impõe um limite de capacidade.' }
                 ],
                 related: ['plan-sprints', 'plan-inheritance', 'views-table']
             },
@@ -176,7 +176,7 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Executar no Board Kanban',
                 summary: 'Torne o trabalho visível, limite o trabalho em curso e remova bloqueios rapidamente.',
                 blocks: [
-                    { kind: 'p', text: 'Durante o sprint, o [Board](wf-board) é a imagem partilhada do trabalho da equipa. O **Board Técnico** mostra Tasks. O **Board Funcional** mostra User Stories e Bugs.' },
+                    { kind: 'p', text: 'Durante o sprint, o [Board](wf-board) é a imagem partilhada do trabalho da equipa. Por omissão, o **Board Técnico** mostra Tasks e o **Board Funcional** mostra User Stories e Bugs. O projeto pode atribuir os tipos a qualquer workflow; os Epics ficam na Tabela.' },
                     { kind: 'list', items: [
                         '**Puxe, não empurre**: comece um novo item apenas quando terminar outro.',
                         '**Torne os bloqueios explícitos**: marque um item como bloqueado com um motivo, ou associe-o como bloqueado por outro workitem.',
@@ -205,7 +205,7 @@ export const DOCS_PT: DocSection[] = [
                         'O **Dashboard** mostra o progresso do projeto, o sprint ativo, os workitems iniciados e concluídos num período e os riscos abertos.',
                         'O **Roadmap** mostra o progresso por fase e por marco.'
                     ] },
-                    { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Termine cada sprint com uma **revisão** (demonstrar e aceitar o que foi entregue) e uma **retrospetiva** (acordar uma ou duas melhorias). O TeamOS não guarda registos de revisão nem de retrospetiva; registe as decisões no [Controlo do projeto](views-control) ou em comentários.' }
+                    { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Termine cada sprint com uma **revisão** (demonstrar e aceitar o que foi entregue) e uma **retrospetiva** (acordar uma ou duas melhorias). Registe a discussão em **Revisão do Sprint** e **Retrospetiva do Sprint** no editor do Sprint. Guarde as decisões resultantes no [Controlo do projeto](views-control).' }
                 ],
                 related: ['wi-acceptance', 'views-dashboard', 'views-control']
             },
@@ -216,13 +216,13 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'table', head: ['Tema', 'Recomendação Agile', 'O que o TeamOS impõe'], rows: [
                         ['Hierarquia', 'Epics contêm Stories; Stories contêm Tasks', 'Stories e Bugs sob Epics; Tasks sob Epics, Stories ou Bugs; sem ciclos'],
-                        ['Aceitação', 'Aceitar com base em critérios acordados', 'Uma Story precisa de Critérios de aceitação e de não ter Tasks pendentes para ser concluída; Stories e Bugs exigem uma aceitação funcional com autor'],
+                        ['Aceitação', 'Aceitar com base em critérios acordados', 'Stories e Bugs exigem Tasks filhas em estados terminais e aceitação funcional com autor; os Critérios de aceitação são recomendados, não obrigatórios'],
                         ['Workflow', 'Acordar uma definição clara de cada estado', 'Os movimentos têm de seguir as transições configuradas'],
-                        ['Planeamento de sprint', 'Comprometer-se com o que cabe', 'As Tasks de Stories seguem a Story; só sprints Planeados/Ativos aceitam trabalho'],
+                        ['Planeamento de sprint', 'Comprometer-se com o que cabe', 'Tasks pendentes de Stories/Bugs seguem o pai; só Sprints Planeados/Ativos aceitam trabalho'],
                         ['WIP', 'Limitar o trabalho em curso', 'Não imposto'],
-                        ['Estimativa', 'Dimensão relativa, velocidade', 'Apenas tamanhos de esforço; sem story points nem velocidade'],
+                        ['Estimativa', 'Dimensão relativa, velocidade', 'Esforço e Story Points opcionais; capacidade manual; créditos de conclusão únicos e velocidade congelada'],
                         ['Dependências', 'Resolver bloqueios cedo', 'Informativas: o bloqueio é mostrado mas não impede mudanças de estado'],
-                        ['Revisão/retro', 'Realizá-las em cada sprint', 'Não registadas pela aplicação']
+                        ['Revisão/retro', 'Realizá-las em cada sprint', 'Campos Objetivo, Revisão e Retrospetiva no editor do Sprint']
                     ] },
                     { kind: 'callout', tone: 'note', text: 'Quando a aplicação não impõe uma prática, vale a pena acordá-la em equipa e registá-la na descrição do projeto.' }
                 ],
@@ -239,11 +239,11 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Produtos e projetos independentes',
                 summary: 'Um projeto contém workitems e workflows. Um produto apenas agrupa projetos relacionados.',
                 blocks: [
-                    { kind: 'p', text: 'Um **projeto** é um conjunto independente de workitems com os seus próprios workflows e definições, guardado no seu próprio ficheiro. Um **produto** é apenas um nome partilhado por vários projetos: não tem workitems nem workflows próprios, nem outros níveis de agrupamento.' },
+                    { kind: 'p', text: 'Um **projeto** é um conjunto independente de workitems com os seus próprios workflows e definições, guardado na sua própria pasta de projeto (ou num ficheiro antigo `.board.json`). Um **produto** é apenas um nome partilhado por vários projetos: não tem workitems nem workflows próprios, nem outros níveis de agrupamento.' },
                     { kind: 'steps', items: [
-                        'Abra as [Definições do projeto](projects-settings) com a roda dentada do chip do projeto.',
+                        'Abra as [Definições do projeto](projects-settings) no seletor de projeto junto ao logo.',
                         'Em **Geral**, introduza o mesmo nome de **Produto** em cada projeto relacionado. Maiúsculas e espaços exteriores são ignorados.',
-                        'Guarde. Os chips de projeto passam a aparecer agrupados num cabeçalho de produto expansível.'
+                        'Guarde. Os projetos passam a aparecer agrupados num produto expansível no seletor.'
                     ] },
                     { kind: 'p', text: 'Projetos do mesmo produto podem trocar workitems através de [cópia e movimento](projects-transfers). Projetos sem produto ficam independentes.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Use um projeto por equipa ou por componente entregue de forma independente e um produto para os ver em conjunto. Evite um único projeto enorme para tudo.' }
@@ -255,7 +255,7 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Definições do projeto',
                 summary: 'Nome, sigla, descrição, estado, produto, membros, etiquetas e os dois workflows.',
                 blocks: [
-                    { kind: 'p', text: 'Abra as Definições do projeto com a roda dentada junto ao chip do projeto. A janela tem três separadores: **Geral**, **Workflow técnico** e **Workflow funcional**. As alterações de todos os separadores formam um único rascunho e só são aplicadas quando clica em **Guardar**; Cancelar, Escape ou fechar a janela descarta-as.' },
+                    { kind: 'p', text: 'Abra as Definições do projeto no seletor de projeto junto ao logo. A janela tem quatro separadores: **Geral**, **Workflow técnico**, **Workflow funcional** e **Automatismos**. Os separadores de workflow também permitem atribuir cada tipo de workitem a um workflow. As alterações de todos os separadores formam um único rascunho e só são aplicadas quando clica em **Guardar**; Cancelar, Escape ou fechar a janela descarta-as.' },
                     { kind: 'terms', items: [
                         ['Nome do projeto', 'Obrigatório. Mudar o nome do projeto ou do ficheiro não altera a sua identidade.'],
                         ['Sigla do projeto', '1 a 4 letras, única entre os projetos abertos. É o prefixo dos IDs dos novos workitems (EP, US, TK, BG). Os IDs existentes nunca mudam.'],
@@ -280,8 +280,8 @@ export const DOCS_PT: DocSection[] = [
                     ] },
                     { kind: 'list', items: [
                         'Os nomes dos membros têm de ser únicos, ignorando maiúsculas e espaços exteriores.',
-                        'Mudar o nome de um membro atualiza todas as atribuições atuais, incluindo workitems arquivados.',
-                        'Um membro ainda atribuído não pode ser removido: substitua ou remova primeiro essas atribuições.',
+                        'Mudar o nome de um membro atualiza todas as atribuições atuais, incluindo workitems e registos de Controlo do projeto.',
+                        'Um membro atribuído a workitems ou registos de Controlo do projeto não pode ser removido: substitua ou remova primeiro essas atribuições.',
                         'Remover o participante responsável de um workitem pede confirmação, porque também retira a responsabilidade.'
                     ] },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Dê a cada Story um único responsável que a acompanhe até à aceitação, mesmo quando várias pessoas participam nas suas Tasks.' }
@@ -296,7 +296,7 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'p', text: 'Os novos projetos começam com as etiquetas removíveis `bug`, `feature`, `improvement` e `documentation`. Acrescente ou remova etiquetas em Definições do projeto → Geral.' },
                     { kind: 'list', items: [
                         'Uma etiqueta tem 1 a 30 caracteres; um workitem pode ter até 10 etiquetas.',
-                        'Etiquetas em uso (incluindo em workitems arquivados) não podem ser removidas até serem retiradas desses workitems.',
+                        'Etiquetas usadas em workitems ou registos de Controlo do projeto não podem ser removidas até serem retiradas desses registos.',
                         'Pesquise `#etiqueta` na [paleta de comandos](prod-palette) para encontrar workitems etiquetados, ou acrescente `#etiqueta` ao criar uma tarefa numa linha.'
                     ] },
                     { kind: 'callout', tone: 'tip', text: 'Use etiquetas para temas transversais (área, componente, cliente) e não para estado ou prioridade, que têm campos próprios.' }
@@ -332,15 +332,15 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'wi-types',
                 title: 'Epic, User Story, Task e Bug',
-                summary: 'Quatro tipos de workitem, cada um com o seu propósito e campos.',
+                summary: 'Quatro tipos de workitem com campos próprios; cada tipo pode ser atribuído a um workflow.',
                 blocks: [
                     { kind: 'table', head: ['Tipo', 'ID', 'Campos específicos', 'Workflow'], rows: [
-                        ['Epic', '`EP`', 'Objetivo / Resultado esperado, Âmbito, Valor de negócio', 'Funcional'],
-                        ['User Story', '`US`', 'Critérios de aceitação', 'Funcional'],
-                        ['Task', '`TK`', '—', 'Técnico'],
-                        ['Bug', '`BG`', 'Passos para reproduzir, Resultado esperado, Resultado observado, Ambiente / Versão', 'Funcional']
+                        ['Epic', '`EP`', 'Objetivo / Resultado esperado, Âmbito, Valor de negócio', 'Funcional por omissão'],
+                        ['User Story', '`US`', 'Critérios de aceitação', 'Funcional por omissão'],
+                        ['Task', '`TK`', '—', 'Técnico por omissão'],
+                        ['Bug', '`BG`', 'Passos para reproduzir, Resultado esperado, Resultado observado, Ambiente / Versão', 'Funcional por omissão']
                     ] },
-                    { kind: 'p', text: 'Os IDs combinam a sigla do projeto, o tipo e um número partilhado pelo projeto, por exemplo `CHK-US-2`. IDs e tipos nunca mudam depois da criação e os números apagados não são reutilizados.' },
+                    { kind: 'p', text: 'Os IDs combinam a sigla do projeto, o tipo e um número partilhado pelo projeto, por exemplo `CHK-US-2`. Os tipos nunca mudam depois da criação e os números apagados não são reutilizados. Os IDs visíveis mantêm-se no projeto; uma transferência atribui um ID do destino, enquanto um movimento mantém a identidade permanente.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Os Epics não podem ter Esforço, alocação a Sprint nem ligações de Pull Request: são planeados através das suas Stories e Tasks.' },
                     { kind: 'callout', tone: 'tip', text: 'Use “workitem” quando se refere a qualquer tipo. “Task” refere-se apenas a trabalho de execução.' }
                 ],
@@ -353,10 +353,10 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'h', text: 'Hierarquia' },
                     { kind: 'list', items: [
-                        'Epic → User Story → Task, e ainda Tasks diretamente sob um Epic.',
+                        'Epic → User Story ou Bug → Task, e ainda Tasks diretamente sob um Epic.',
                         'As Tasks independentes não têm pai. Os Bugs podem ter Tasks e recebem uma automaticamente ao criar.',
                         'O pai tem de estar no mesmo projeto; os ciclos são rejeitados.',
-                        'Para apagar ou mover um workitem com filhos, mova ou desassocie primeiro os filhos.'
+                        'Para eliminar um workitem, reatribua ou desassocie primeiro os filhos. Mover para outro projeto pode incluir descendentes se todos estiverem em Backlog ou Por iniciar; [reveja cada associação](projects-transfers).'
                     ] },
                     { kind: 'p', text: 'Crie filhos a partir dos detalhes do pai: ao fechar uma nova Task volta à sua Story, depois ao Epic e depois ao ponto de partida.' },
                     { kind: 'h', text: 'Relações' },
@@ -372,13 +372,13 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'wi-fields',
                 title: 'Criar e editar workitems',
-                summary: 'Título, descrição, pessoas, etiquetas, prioridade, esforço, datas, lista de tarefas e planeamento.',
+                summary: 'Título, descrição, pessoas, etiquetas, estimativas, datas, checklist e planeamento, no editor e nos detalhes.',
                 blocks: [
                     { kind: 'h', text: 'Formas de criar um workitem' },
                     { kind: 'list', items: [
                         '**Criar workitem** acima do Board ou na Tabela (selecione primeiro um único projeto).',
                         'A partir dos detalhes de um pai, para criar um filho.',
-                        'Defina o prazo no editor em dd/mm/aaaa; consulte os prazos em Planeador → Calendar.',
+                        'Defina o prazo no editor em dd/mm/aaaa; Planeador → Calendário consulta apenas prazos de Tasks.',
                         'Na [paleta de comandos](prod-palette) com `+ Título @pessoa !high #etiqueta ~S due:fri`.'
                     ] },
                     { kind: 'terms', items: [
@@ -387,12 +387,12 @@ export const DOCS_PT: DocSection[] = [
                         ['Participantes / Responsável', 'Membros do projeto; consulte [Pessoas](projects-people).'],
                         ['Etiquetas', 'Do catálogo do projeto.'],
                         ['Prioridade / Esforço', 'Alta–Baixa e XS–XL; juntos dão a pontuação.'],
-                        ['Prazo', 'Os itens em atraso são destacados nos cartões e no Calendário.'],
-                        ['Lista de tarefas', 'Uma checklist reordenável para pequenos passos.'],
+                        ['Prazo', 'Os prazos continuam disponíveis nos detalhes dos workitems e no Calendário.'],
+                        ['Lista de tarefas', 'Uma checklist reordenável para pequenos passos, disponível apenas nas Tasks.'],
                         ['Bloqueada', 'Um bloqueio manual que exige um motivo.'],
                         ['Fase / Marco / Sprint', 'Associações de planeamento; consulte [Planeamento](plan-inheritance).']
                     ] },
-                    { kind: 'p', text: 'Guardar um novo workitem abre os seus detalhes. Prima [[Ctrl/⌘]] + [[Enter]] para guardar a partir do editor. **Eliminar**, no menu ⋯ dos detalhes, remove o workitem definitivamente após confirmação.' }
+                    { kind: 'p', text: 'Guardar um novo workitem abre os seus detalhes. As propriedades editáveis na barra lateral são guardadas ao alterar; os Story Points estão aí disponíveis para unidades de planeamento elegíveis. Os separadores organizam Detalhes, Relações, Anexos, Comentários, Pull requests e Histórico; Epics não têm o separador Pull requests. Prima [[Ctrl/⌘]] + [[Enter]] para guardar no editor. **Eliminar**, no menu ⋯ dos detalhes, remove o workitem definitivamente após confirmação.' }
                 ],
                 related: ['wi-types', 'wi-collab', 'agile-backlog']
             },
@@ -401,17 +401,17 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Critérios de aceitação e aceitação funcional',
                 summary: 'O progresso de execução mede Tasks concluídas; a aceitação funcional confirma o resultado esperado.',
                 blocks: [
-                    { kind: 'p', text: 'Os **Critérios de aceitação** de uma User Story descrevem como verificar que a necessidade é cumprida. O seu **progresso de execução** é a proporção das Tasks não canceladas que estão concluídas — aparece como “Tarefas: 60%” no cartão.' },
+                    { kind: 'p', text: 'Os **Critérios de aceitação** de uma User Story descrevem como verificar o resultado esperado. Escreva-os antes da execução, mesmo que a aplicação permita aceitar sem os preencher. O **progresso de execução** conta as Tasks filhas concluídas, excluindo canceladas; é distinto da aceitação funcional e dos créditos de conclusão do Sprint.' },
                     { kind: 'h', text: 'Aceitar uma Story ou um Bug' },
                     { kind: 'steps', items: [
-                        'Garanta que todas as Tasks da Story estão concluídas, canceladas ou desassociadas e que os Critérios de aceitação estão preenchidos.',
-                        'Mova a Story (ou o Bug) para um estado da categoria **Concluído**.',
-                        'A aplicação mostra os critérios (ou o resultado esperado do Bug) e pede o seu nome de autor local.',
-                        'Confirme. A aceitação fica registada com o seu nome e a data como “local / não verificada”.'
+                        'Conclua, cancele ou desassocie todas as Tasks filhas pendentes da Story ou Bug.',
+                        'Mova a Story ou Bug para um estado da categoria **Concluído**, através de uma transição permitida.',
+                        'Reveja os critérios ou o resultado esperado apresentados. Confirme com a identidade de membro selecionada no projeto; se não existir, indique um nome de autor local não vazio.',
+                        'Confirme a aceitação. Ficam registados autor e data como atribuição local, não verificada.'
                     ] },
-                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Retirar uma Story ou um Bug da categoria Concluído remove a sua aceitação. Reabrir uma Task de uma Story aceite não reabre a Story: a aplicação avisa para que a possa rever. Concluir um Epic não conclui os seus filhos.' },
-                    { kind: 'callout', tone: 'note', text: 'Os nomes de autor são escritos localmente e não são verificados. Documentam quem confirmou o resultado; não são autenticação.' },
-                    { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Idealmente, quem representa o utilizador (por exemplo, o Product Owner) aceita a Story, durante a revisão do sprint.' }
+                    { kind: 'callout', tone: 'rule', text: 'Sair de Concluído remove a aceitação. Alterar os critérios de uma Story aceite pede nova aceitação. Reabrir uma Task pode desencadear [automatismos do pai](wf-automation), mas não fornece aceitação funcional. Concluir um Epic não conclui os seus filhos.' },
+                    { kind: 'callout', tone: 'note', text: 'Os nomes de autor são atribuição local, não contas autenticadas.' },
+                    { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Quem representa o utilizador deve validar o resultado na revisão do Sprint. Todas as Tasks Done significam implementação concluída, não aceitação.' }
                 ],
                 related: ['agile-review', 'wf-states', 'ex-walkthrough']
             },
@@ -424,7 +424,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Bloqueio manual', 'Marque **Bloqueada** no editor e descreva o que está a bloquear. Retire-o quando estiver resolvido.'],
                         ['Bloqueio por dependência', 'Derivado automaticamente de bloqueadores diretos por concluir (Bloqueia / É bloqueado por), incluindo arquivados. Desaparece quando os bloqueadores são concluídos ou a ligação é removida.']
                     ] },
-                    { kind: 'p', text: 'Ambos aparecem nos cartões e nos detalhes e são incluídos pelo filtro **Bloqueadas**. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
+                    { kind: 'p', text: 'Ambos aparecem nos detalhes e têm colunas e filtros independentes nas tabelas de workitems, incluindo o Roadmap. **Bloqueio manual** mantém-se até ser removido manualmente; **Bloqueio por dependências** desaparece quando todos os bloqueadores estão Done, mantendo as relações. O filtro **Bloqueadas** e o Dashboard consideram qualquer das duas fontes. Ao apagar um workitem, as suas relações e o impacto nos bloqueios são listados antes de confirmar.' },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'As dependências são informativas: não impedem mudanças de estado e nunca substituem um bloqueio manual.' }
                 ],
                 related: ['wi-hierarchy', 'agile-execution', 'views-filters']
@@ -437,16 +437,16 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Comentários' },
                     { kind: 'list', items: [
                         'Texto simples até 10 000 caracteres e até 10 imagens (PNG, JPEG ou WebP, 10 MiB cada). Cole capturas de ecrã diretamente.',
-                        'Escolha o seu nome de autor local antes de publicar. [[Ctrl/⌘]] + [[Enter]] publica.',
+                        'Selecione um membro ao abrir o projeto; comentários e carregamentos de anexos usam essa identidade local. [[Ctrl/⌘]] + [[Enter]] publica.',
                         'Os comentários publicados não podem ser editados nem apagados na aplicação. Os rascunhos por enviar são mantidos durante a sessão.'
                     ] },
                     { kind: 'h', text: 'Anexos' },
                     { kind: 'list', items: [
-                        'Até 10 ficheiros por workitem, 10 MB cada. Nos projetos em pastas, os binários ficam em `attachments/` e são lidos para miniaturas, abertura ou transferência. Os ficheiros antigos continuam a incorporá-los.',
+                        'Até 10 ficheiros por workitem, 10 MiB cada. Nos projetos em pastas, os binários ficam em `attachments/` e são lidos para miniaturas, abertura ou transferência. Os ficheiros antigos continuam a incorporá-los.',
                         'O separador Anexos lista a data de carregamento, o nome do ficheiro e quem o carregou, com **Abrir** para formatos comuns (imagens, PDF, texto, áudio, vídeo) e **Transferir** para todos.'
                     ] },
                     { kind: 'h', text: 'Pull requests' },
-                    { kind: 'p', text: 'Acrescente no editor ligações HTTP/HTTPS completas para pull requests. São apenas ligações locais: a aplicação não contacta o servidor até abrir uma.' }
+                    { kind: 'p', text: 'Acrescente ligações HTTP/HTTPS completas no separador **Pull requests** do workitem. Os Epics não têm este separador. São apenas ligações locais: a aplicação não contacta o servidor até abrir uma.' }
                 ],
                 related: ['wi-fields', 'files-history']
             }
@@ -462,24 +462,27 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Cada projeto tem dois workflows: um para necessidades de negócio e outro para trabalho de execução.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Workflow funcional', 'Aplica-se a Epics e User Stories: como uma necessidade avança da ideia até à aceitação.'],
-                        ['Workflow técnico', 'Aplica-se a Tasks: como o trabalho de execução avança de por iniciar até concluído.']
+                        ['Workflow funcional', 'Progressão das necessidades de negócio. Os novos projetos atribuem-lhe Epics, User Stories e Bugs.'],
+                        ['Workflow técnico', 'Trabalho de execução. Os novos projetos atribuem-lhe Tasks.']
                     ] },
-                    { kind: 'p', text: 'Ambos são editados nas Definições do projeto e são independentes: alterar um não afeta o outro. Os projetos mais antigos mantêm o processo existente até um workflow ser editado.' },
-                    { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Mantenha o workflow funcional próximo de como o cliente vê o progresso (pronto, em desenvolvimento, em validação, aceite) e o workflow técnico próximo de como a equipa trabalha (por iniciar, em curso, revisão, testes, concluído).' }
+                    { kind: 'p', text: 'Em **Definições do projeto → Workflow técnico / Workflow funcional**, escolha os tipos de workitem de cada workflow. Cada tipo pertence a um só workflow. O Board segue esta atribuição para workitems que não sejam Epics; os Epics ficam na Tabela.' },
+                    { kind: 'p', text: 'Ao mudar o workflow de um tipo, um workitem mantém o estado se este existir no novo workflow. Caso contrário, a aplicação escolhe um estado da mesma categoria, recorrendo ao estado de entrada se necessário, e pede revisão do impacto.' },
+                    { kind: 'callout', tone: 'note', text: 'As atribuições de tipos já configuradas são mantidas. Projetos anteriores à seleção de tipos adotam as predefinições na importação: os Bugs passam para Funcional, com estado da mesma categoria se necessário. Consulte as Definições para verificar cada tipo.' },
+                    { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Acorde com a equipa o significado dos estados. Distinga validação de negócio e execução mesmo com workflows personalizados.' }
                 ],
                 related: ['wf-states', 'wf-editing', 'wf-board']
             },
             {
                 id: 'wf-states',
                 title: 'Estados, categorias e transições',
-                summary: 'Os estados são definidos por si; cinco categorias fixas dão-lhes um significado comum.',
+                summary: 'Os estados são definidos por si; seis categorias fixas dão-lhes um significado comum.',
                 blocks: [
-                    { kind: 'p', text: 'Cada estado pertence a uma de cinco **categorias**. As categorias determinam o progresso, os indicadores de atraso, as dependências e a aceitação, seja qual for o nome do estado.' },
+                    { kind: 'p', text: 'Cada estado pertence a uma de seis **categorias**. As categorias determinam o progresso, os indicadores de atraso, as dependências e a aceitação, seja qual for o nome do estado.' },
                     { kind: 'table', head: ['Categoria', 'Significado', 'Estados por omissão'], rows: [
                         ['Backlog', 'Ainda não está pronto para o board', 'Backlog (reservado)'],
                         ['Por iniciar', 'Pronto a começar', 'To Do (entrada no Board)'],
-                        ['Em curso', 'Em trabalho', 'In progress, Ready to test, Testing, Re-analysis'],
+                        ['Em curso', 'Em trabalho', 'In progress, Re-analysis'],
+                        ['Em testes', 'Implementação pronta para validação ou em teste', 'Ready to test, Testing'],
                         ['Concluído', 'Terminado', 'Done'],
                         ['Cancelado', 'Não será feito', 'Cancelled, Duplication']
                     ] },
@@ -495,7 +498,7 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'steps', items: [
                         'Abra as Definições do projeto e escolha **Workflow técnico** ou **Workflow funcional**.',
-                        'Em **Estados e transições**, acrescente ou edite estados: nome, cor e categoria. Use as setas para os reordenar.',
+                        'Escolha os tipos de workitem do workflow. Em **Estados e transições**, acrescente ou edite nome, cor e categoria de cada estado e use as setas para os reordenar.',
                         'Para cada estado, selecione os **Destinos permitidos**. As transições de regresso configuram-se no estado de destino.',
                         'Em **Entrada e referências**, escolha o estado de entrada no Board e o estado de referência de cada categoria.',
                         'Guarde. Se removeu estados ou mudou categorias, escolha um destino para os workitems afetados (incluindo arquivados) e confirme o impacto.'
@@ -509,46 +512,48 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Utilizar o Board Kanban',
                 summary: 'As colunas são estados do workflow; arraste os cartões para os fazer avançar.',
                 blocks: [
-                    { kind: 'p', text: 'Com um projeto selecionado, o Quadro oferece duas perspetivas:' },
-                    { kind: 'terms', items: [
-                        ['Board Técnico', 'Tasks. Apenas Sprints ativos está selecionado por defeito; desmarque para incluir Tasks sem Sprint e outros Sprints.'],
-                        ['Board Funcional', 'User Stories.']
-                    ] },
-                    { kind: 'p', text: 'As colunas mostram os estados Por iniciar, Em curso e Concluído. Os itens em Backlog são trabalhados na Tabela ou nos detalhes e **enviados para o Board** quando estiverem prontos. Use **Colunas do Board** para ocultar estados de que não precisa; ocultar uma coluna nunca move nem apaga workitems. Com **Todos os projetos** selecionado, o quadro agrupa os cartões por categoria entre projetos.' },
-                    { kind: 'h', text: 'Mover cartões' },
+                    { kind: 'p', text: 'Escolha **Técnico** ou **Funcional** no Board. Os novos projetos mostram Tasks no Técnico e User Stories e Bugs no Funcional; as [Definições do projeto](wf-two) permitem alterar os tipos. Os Epics ficam na Tabela.' },
+                    { kind: 'p', text: '**Apenas Sprints ativos** começa selecionado nas duas perspetivas. Desmarque para incluir trabalho sem Sprint e Sprints Planeados ou encerrados. Selecionar um Sprint específico nos Filtros sobrepõe-se a esta opção.' },
+                    { kind: 'p', text: 'As colunas seguem o workflow selecionado, incluindo Backlog e Em testes. Os estados Cancelados ficam ocultos por omissão. Use **Filtros e vista → Colunas do Board** para escolher os estados visíveis; a preferência fica no projeto e não move nem elimina workitems. Com Todos os projetos, as colunas agrupam por categoria.' },
+                    { kind: 'h', text: 'Mover e editar cartões' },
                     { kind: 'list', items: [
-                        'Arraste um cartão com o rato, ou mantenha premido em ecrãs táteis.',
-                        'Com o teclado, selecione um cartão com [[J]] / [[K]] e prima [[1]]–[[4]] para o mover.',
-                        'Abra a [paleta de comandos](prod-palette) sobre um cartão e escolha **Mover para…**.'
+                        'Arraste um cartão com o rato ou mantenha-o premido num ecrã tátil.',
+                        'Selecione com [[J]] / [[K]] e use [[1]]–[[4]] para Backlog, Por iniciar, Em curso ou Concluído, respeitando as transições.',
+                        'Use a seta no topo direito para o próximo estado permitido, ou **Mover para…** na [paleta de comandos](prod-palette).',
+                        'Altere o responsável no dropdown do cartão ou abra os detalhes para edição, datas, bloqueios, progresso e cópia/movimento.',
+                        'Num projeto único com escrita, selecione cartões e use as ações de seleção para criar um Sprint ou adicionar trabalho a um existente.'
                     ] },
-                    { kind: 'p', text: 'Os cartões mostram ID, título, pessoas, etiquetas, prioridade, esforço, prazo, bloqueio, progresso da lista de tarefas e, nas Stories, o progresso de execução. Clique num cartão para ver os detalhes; altere o responsável no cartão ou avance com a seta superior direita. O menu ⋯ permite copiar ou mover; Eliminar está no menu ⋯ dos detalhes.' },
-                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Um movimento não permitido pelo workflow é recusado. Mover uma Story ou um Bug para Concluído pede a [aceitação funcional](wi-acceptance).' }
+                    { kind: 'p', text: 'Os cartões mostram ID, título, tipo e responsável. As colunas partilham a largura disponível; boards densos podem ter deslocamento horizontal.' },
+                    { kind: 'callout', tone: 'rule', text: 'O workflow tem de permitir cada movimento. Concluir uma Story ou Bug pede [aceitação funcional](wi-acceptance). Alterar estados de filhos pode desencadear [validação de automatismos](wf-automation).' }
                 ],
                 related: ['agile-execution', 'wf-states', 'views-filters']
             },
             {
                 id: 'wf-automation',
                 title: 'Automação',
-                summary: 'O que a aplicação atualiza por si e o que deixa deliberadamente às pessoas.',
+                summary: 'Configure oito regras de projeto para progresso dos pais, hierarquia e Tasks pendentes no fecho de Sprint.',
                 blocks: [
-                    { kind: 'h', text: 'Sempre automático' },
+                    { kind: 'h', text: 'Atualizações que acompanham sempre os dados' },
                     { kind: 'list', items: [
-                        'O progresso de execução de uma Story a partir das suas Tasks.',
-                        'O bloqueio por dependência a partir de bloqueadores por concluir.',
-                        'As Tasks de uma Story seguem o sprint da Story; os filhos herdam fase e marco salvo indicação explícita.',
-                        'O estado de um Sprint muda apenas quando o inicia ou encerra.',
-                        'Eventos de histórico para cada alteração guardada.'
+                        'O progresso de execução é calculado a partir das Tasks filhas.',
+                        'O bloqueio por dependência acompanha bloqueadores diretos por concluir, independentemente do bloqueio manual.',
+                        'Os filhos herdam fase e marco salvo escolha explícita. Tasks pendentes de Stories e Bugs seguem a alocação elegível do pai.',
+                        'As alterações guardadas ficam no histórico local.'
                     ] },
-                    { kind: 'h', text: 'Automatismos do workflow' },
-                    { kind: 'p', text: 'Abra **Definições do projeto → Automatismos** para configurar oito regras por projeto. **Off** desativa a regra, **On 1** pede aprovação e **On 2** executa automaticamente as alterações permitidas. As novas regras começam em On 1. Alterar manualmente o Status não pede confirmação adicional, salvo quando desencadeia uma regra ativa ou exige aceitação funcional.' },
-                    { kind: 'p', text: '**Validar automatismos do workflow** explica a regra desencadeada e lista os workitems afetados com badge do tipo, ID, título, campo e valor atual → proposto. Nas propostas, escolha **Aplicar alteração** ou **Manter estado atual**. Uma transição proibida pelo workflow apresenta um aviso informativo sem seletores de decisão; a edição original mantém-se.' },
-                    { kind: 'p', text: 'Encerrar um Sprint pergunta separadamente se pretende usar hoje como data de fim. **Devolver Tasks pendentes ao Backlog** controla as alterações de Status das Tasks no fecho. Um aviso informativo autónomo lista apenas os workitems visíveis no Backlog; as Tasks filhas continuam agrupadas no respetivo pai. Stories implementadas a aguardar testes mantêm o Sprint. Reabrir uma Story ou Task preserva a associação até ao fecho ou a uma alteração posterior de planeamento. A participação e os resultados dos Sprints encerrados mantêm-se congelados.' },
-                    { kind: 'h', text: 'Nunca automático' },
-                    { kind: 'list', items: [
-                        'A aceitação funcional de Stories e Bugs.',
-                        'Transições proibidas pelo workflow configurado.',
-                        'Alterações por regras configuradas como Off.'
-                    ] }
+                    { kind: 'h', text: 'Automatismos configuráveis' },
+                    { kind: 'p', text: 'Abra **Definições do projeto → Automatismos**. Cada regra suporta **Off** (desativada), **On 1** (pedir aprovação) e **On 2** (aplicar automaticamente quando permitido). As regras começam em On 1 e afetam eventos futuros; guardar definições não altera retroativamente os workitems.' },
+                    { kind: 'table', head: ['Regra', 'Quando se aplica'], rows: [
+                        ['Pai para To do', 'Um filho entra em Por iniciar e o pai está em Backlog.'],
+                        ['Iniciar trabalho do pai', 'Um filho inicia execução e o pai está em Backlog ou Por iniciar.'],
+                        ['Preparar testes da User Story', 'Todas as Tasks relevantes estão Em testes ou Concluídas; as canceladas são excluídas.'],
+                        ['Concluir Epic', 'Todos os filhos relevantes estão Concluídos.'],
+                        ['Cancelar pai', 'Todos os filhos estão Cancelados.'],
+                        ['Reabrir / Reavaliar pai', 'Um filho reabre ou regressa a uma categoria anterior.'],
+                        ['Alterações da hierarquia', 'Filhos são adicionados, removidos ou transferidos; os pais afetados são reavaliados.'],
+                        ['Devolver Tasks pendentes ao Backlog', 'Um Sprint encerra; as mudanças de estado continuam a exigir uma transição permitida.']
+                    ] },
+                    { kind: 'p', text: '**Validar automatismos do workflow** lista tipo, ID, título e estado atual → proposto dos workitems afetados. Escolha **Aplicar alteração** ou **Manter estado atual** nas propostas com aprovação. As cascatas seguem as alterações aplicadas. Uma transição proibida gera informação e mantém o estado afetado.' },
+                    { kind: 'callout', tone: 'rule', text: 'Os automatismos nunca fornecem aceitação funcional a Stories ou Bugs nem ignoram transições do workflow. O estado do Sprint é gerido separadamente com Iniciar / Finalizar Sprint. O [fecho](plan-sprints) congela resultados e remove alocações pendentes; a regra de Sprint controla se os estados das Tasks também regressam ao Backlog.' }
                 ],
                 related: ['wi-acceptance', 'plan-inheritance', 'files-history']
             }
@@ -564,39 +569,47 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Distribua o projeto no tempo com fases, marcos e sprints.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Fase', 'Um período do projeto com datas de início e fim. As fases podem ter subfases; as datas de uma fase-mãe são calculadas a partir das subfases.'],
-                        ['Marco', 'Um ponto de controlo datado, como um lançamento ou uma revisão.'],
-                        ['Sprint', 'Uma iteração com duração fixa; consulte [Sprints](plan-sprints).']
+                        ['Fase', 'Um período datado que pode conter subfases. As datas do pai são calculadas pelos descendentes; associe workitems às fases-folha.'],
+                        ['Marco', 'Um ponto datado, como um lançamento ou revisão.'],
+                        ['Sprint', 'Uma iteração independente criada por seleção no Board ou Tabela; consulte [Sprints](plan-sprints).']
                     ] },
                     { kind: 'steps', items: [
                         'Selecione um projeto e abra o **Roadmap**.',
-                        'Use **+ Fase**, **+ Marco** e **+ Sprint** para criar itens, com datas e cor.',
-                        'Associe workitems a uma fase-folha e a um marco no editor do workitem (ou deixe os filhos [herdar](plan-inheritance)).',
-                        'Expanda uma fase para ver os seus workitems por workitem, por sprint ou por marco, e acompanhar o progresso.'
+                        'Use **+ Fase** ou **+ Marco**, defina datas e escolha uma cor. Crie Sprints a partir de workitems selecionados no Board ou Tabela; o Roadmap não tem botão + Sprint autónomo.',
+                        'Associe workitems no editor ou deixe os filhos [herdar o planeamento](plan-inheritance).',
+                        'Use **Workitems associados** para tabelas de fase ou Sprint; uma fase-pai inclui descendentes. A seta expande a hierarquia. Clique no losango de um marco para consultar os seus workitems.'
                     ] },
-                    { kind: 'p', text: 'O progresso conta os workitems elegíveis concluídos (os cancelados são excluídos). Entregáveis pendentes de aceitação no Controlo do projeto mantêm o progresso de fases e marcos abaixo de 100%.' },
-                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Uma fase com subfases não pode ser apagada em cascata: mova ou apague primeiro as subfases. Apagar uma fase ou marco com workitems associados pede que os realoque ou limpe explicitamente.' }
+                    { kind: 'p', text: 'Largura e zoom ficam à esquerda. O zoom vai de **100% a 300%**, em passos de 25 pontos: 100% ajusta todo o período do projeto; valores maiores expandem a escala horizontal com deslocamento. Texto, ícones e altura das barras mantêm o tamanho.' },
+                    { kind: 'p', text: 'Os losangos preenchem-se com a conclusão e mostram um check a 100%. Marcos vazios mostram N/A. Passe o rato ou foque o losango para ver nome, data e percentagem. Clique no nome de fases ou Sprints para editar e passe o rato nas barras para ver datas. Os Sprints têm Play para iniciar e bandeira axadrezada para finalizar.' },
+                    { kind: 'p', text: 'As tabelas associadas começam com ID, Título, Tipo, Estado, Responsável, Prioridade, Bloqueio manual, Bloqueio por dependências e Atualizado. Pesquisa, filtros, colunas e exportação CSV seguem a [Tabela](views-table).' },
+                    { kind: 'callout', tone: 'rule', text: 'O trabalho cancelado é excluído do progresso. Entregáveis por aceitar podem manter fases e marcos abaixo de 100%. Eliminar uma fase ou marco associado exige realocação ou remoção explícita das ligações; elimine ou mova as subfases antes do pai.' }
                 ],
                 related: ['plan-sprints', 'plan-inheritance', 'views-control']
             },
             {
                 id: 'plan-sprints',
                 title: 'Sprints',
-                summary: 'Crie sprints, aloque trabalho e consulte quem participou em cada um.',
+                summary: 'Planeie com Story Points e capacidade, inicie e encerre manualmente e mantenha participação e resultados congelados.',
                 blocks: [
-                    { kind: 'h', text: 'Criar um sprint' },
-                    { kind: 'list', items: [
-                        'No Roadmap, com **+ Sprint**.',
-                        'A partir de uma seleção: selecione cartões no Quadro ou linhas em **Tabela → Workitems por planear** e escolha **Criar sprint** ou **Adicionar ao sprint existente**.'
+                    { kind: 'h', text: 'Criar e alocar' },
+                    { kind: 'steps', items: [
+                        'Selecione Stories, Bugs ou Tasks independentes prontos no Board ou em **Tabela → Backlog** de um projeto com escrita. Use **Criar sprint**, ou **Ações de sprint → Criar sprint** na Tabela. **Adicionar ao sprint** aloca a seleção a um Sprint elegível existente.',
+                        'Indique título, início e fim, **Objetivo do Sprint** e, opcionalmente, **Capacidade do Sprint (SP)**. O editor suporta duração em dias úteis; mudar início ou duração recalcula o fim.',
+                        'Reveja alocações e impactos nas datas das fases. Cada fase afetada mostra datas atuais/propostas e permite manter ou estender as datas.'
                     ] },
-                    { kind: 'p', text: 'Cada sprint recebe o número seguinte do projeto e aparece como `Sprint 3 - Título`. Os números nunca são reutilizados.' },
-                    { kind: 'h', text: 'Alocação e participação' },
-                    { kind: 'terms', items: [
-                        ['Alocação atual a sprint', 'O único sprint Planeado ou Ativo em que um workitem está atualmente planeado.'],
-                        ['Participação em sprint', 'O registo de que um workitem participou num sprint, mantido mesmo depois de a alocação mudar.']
+                    { kind: 'p', text: 'Cada Sprint tem um número permanente no projeto, como `Sprint 3 - Título`, nunca reutilizado. Só Sprints Planeados ou Ativos aceitam trabalho; os Epics são excluídos. Tasks pendentes de Stories e Bugs são planeadas através do pai, sem alocação independente.' },
+                    { kind: 'h', text: 'Story Points e capacidade' },
+                    { kind: 'p', text: 'Defina **Story Points (SP)** nos detalhes de Stories, Bugs e Tasks fora de uma Story ou Bug. As opções são Nenhum, 1, 2, 3, 5, 8 e 13. Associar uma Task a uma Story ou Bug remove a estimativa da Task. O Esforço (XS–XL) é separado e nunca convertido em pontos. A capacidade é introduzida por si, não um limite calculado automaticamente.' },
+                    { kind: 'p', text: 'Os cabeçalhos mostram pontos planeados face à capacidade e, após o fecho, pontos concluídos face aos planeados no fecho. Um crédito de conclusão é registado uma só vez quando a implementação termina num Sprint Ativo: todas as Tasks de uma Story devem estar Done; uma Story sem Tasks, Task independente ou Bug tem de passar a Done. A aceitação funcional é separada. Tasks canceladas não contam como Done para este crédito. No fecho, a velocidade soma os créditos; transportar trabalho para outro Sprint não volta a contar o mesmo trabalho.' },
+                    { kind: 'h', text: 'Iniciar e finalizar manualmente' },
+                    { kind: 'steps', items: [
+                        'Os novos Sprints começam **Planeados**. Use **Iniciar Sprint** no Roadmap ou em Tabela → Sprints para os tornar **Ativos**. Se o início previsto diferir de hoje, escolha se usa hoje; a aplicação permite recalcular o fim, manter o previsto ou indicar outra data.',
+                        'Iniciar move os workitems alocados em Backlog e os seus descendentes para o primeiro estado Por iniciar do respetivo workflow. A passagem da data de fim não encerra o Sprint.',
+                        'Use **Finalizar Sprint** para o tornar **Concluído**. Escolha se usa hoje como data de fim, reveja propostas de automatismos e consulte a lista que regressa ao Backlog.'
                     ] },
-                    { kind: 'p', text: 'Isto permite que **Tabela → Sprints** mostre o que cada sprint passado continha, mesmo depois de o trabalho por concluir ter avançado. A participação de uma Story não implica que todas as suas Tasks tenham participado em todos os seus sprints.' },
-                    { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'O estado do sprint depende do calendário: Planeado antes da data de início, Ativo entre as datas (inclusive), Concluído depois da data de fim. Só sprints Planeados e Ativos aceitam workitems. Os Epics nunca são alocados a sprints.' }
+                    { kind: 'p', text: 'O fecho congela participação, estados, workflows, estimativas, trabalho concluído/transportado e resultados. Unidades de planeamento pendentes perdem a alocação; Stories e Bugs pendentes regressam ao estado Backlog. Repor estados de Tasks depende de **Devolver Tasks pendentes ao Backlog** em [Automatismos](wf-automation). Stories com implementação concluída a aguardar aceitação mantêm o Sprint. Reabrir trabalho, por si só, não remove a alocação.' },
+                    { kind: 'p', text: 'Tabela → Sprints mantém a participação registada quando o trabalho atual muda. Os valores do fecho ficam congelados na tabela. Abrir um workitem existente pode mostrar os seus detalhes atuais editáveis; essas alterações não reescrevem o estado do fecho. Edite o Sprint para registar **Revisão do Sprint** e **Retrospetiva do Sprint**; estes campos continuam editáveis após o fecho.' },
+                    { kind: 'callout', tone: 'rule', text: 'Só Sprints Planeados podem ser eliminados. Uma confirmação lista os workitems afetados; eliminar remove a alocação e mantém os estados. Os projetos antigos inferem o estado pelas datas uma vez na migração e passam a guardá-lo explicitamente.' }
                 ],
                 related: ['agile-sprints', 'views-table', 'plan-roadmap']
             },
@@ -607,7 +620,7 @@ export const DOCS_PT: DocSection[] = [
                 blocks: [
                     { kind: 'p', text: 'Um novo workitem filho **herda** a fase e o marco efetivos do seu pai hierárquico. No editor, cada um dos dois campos pode ficar em **Herdar do pai**, num valor explícito ou em nenhum. A herança de fase e de marco são independentes.' },
                     { kind: 'p', text: 'Quando o planeamento de um pai muda, os filhos que herdam acompanham. Antes de guardar, a aplicação lista os workitems cuja fase ou marco efetivo muda, para poder rever o impacto.' },
-                    { kind: 'p', text: 'Os sprints funcionam de forma diferente: uma Task que pertence a uma Story segue sempre a alocação atual da Story.' },
+                    { kind: 'p', text: 'Nos Sprints, Tasks pendentes de Stories e Bugs seguem a alocação atual elegível do pai quando o planeamento muda. Tasks concluídas ou canceladas mantêm a participação registada. Reabrir uma Task, por si só, preserva a alocação até ao fecho ou a outra alteração de planeamento.' },
                     { kind: 'callout', tone: 'tip', text: 'Planeie ao nível mais alto que fizer sentido — o Epic ou a Story — e deixe os filhos herdar. Altere apenas as exceções.' }
                 ],
                 related: ['plan-roadmap', 'plan-sprints', 'wi-hierarchy']
@@ -615,7 +628,7 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'plan-calendar',
                 title: 'Calendário',
-                summary: 'Consulte prazos de Tasks e carga de trabalho por mês ou ano dentro de Planeador → Calendar.',
+                summary: 'Consulte prazos de Tasks e carga de trabalho por mês ou ano em Planeador → Calendário.',
                 blocks: [
                     { kind: 'list', items: [
                         'A **vista anual** mostra doze mini-meses; clique num mês para o abrir.',
@@ -633,8 +646,8 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Agende Tasks de qualquer projeto em blocos de tempo no seu dia ou semana.',
                 blocks: [
                     { kind: 'steps', items: [
-                        'Abra o **Planeador** (ou prima [[P]]). O tabuleiro lista os workitems que pode planear, filtrados como nas outras vistas.',
-                        'Arraste um workitem para o dia, entre as 07:00 e as 21:00, em intervalos de 15 minutos.',
+                        'Abra o **Planeador** (ou prima [[P]]). O tabuleiro agrupa Tasks por projeto e tem escolhas de estado próprias; os filtros existentes do Board também afetam as Tasks e os blocos visíveis.',
+                        'Arraste uma Task para o dia, entre as 07:00 e as 21:00, em intervalos de 15 minutos.',
                         'Arraste um bloco para o mover ou as suas extremidades para o redimensionar. Selecione um bloco e prima [[Delete]] para o remover.',
                         'Alterne entre **Dia** e **Semana** (segunda a sexta) e navegue com as setas ou [[T]] para hoje.'
                     ] },
@@ -660,10 +673,10 @@ export const DOCS_PT: DocSection[] = [
                         ['Tabela', 'Refinar, planear sprints, rever a hierarquia, exportar CSV', 'Um projeto'],
                         ['Roadmap', 'Planear fases, marcos e sprints no tempo', 'Um projeto'],
                         ['Controlo do projeto', 'Gerir riscos, decisões e entregáveis', 'Um projeto'],
-                        ['Calendário', 'Ver prazos e períodos por mês ou ano', 'Todos os projetos ou um'],
+                        ['Calendário', 'Consultar prazos de Tasks por mês ou ano dentro do Planeador', 'Todos os projetos ou um'],
                         ['Planeador', 'Agendar o seu dia ou semana', 'Todos os projetos ou um']
                     ] },
-                    { kind: 'p', text: 'Os filtros e a ordenação aplicam-se a todas as vistas. Mudar de vista, ou abrir esta documentação, mantém a seleção e os filtros.' }
+                    { kind: 'p', text: 'O Board, cada subseção da Tabela e cada Sprint expandido mantêm pesquisa e filtros independentes. Ao regressar a uma vista, são recuperados os seus filtros nesta sessão.' }
                 ],
                 related: ['views-filters', 'start-layout']
             },
@@ -673,16 +686,17 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Uma lista configurável de workitems com hierarquia, perspetivas de sprint e exportação CSV.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['TODOS', 'Linhas expansíveis Epic → Story → Task, Tasks diretas de Epics e Tasks e Bugs independentes. Os descendentes correspondentes continuam visíveis quando os filtros ocultam os antecessores.'],
-                        ['Perspetivas por tipo', 'Epics, User Stories, Tasks, Bugs ou Todas as Tasks e Bugs.'],
-                        ['Workitems por planear', 'Não concluídos e sem sprint. Selecione linhas para criar um sprint ou adicioná-las a um.'],
-                        ['Sprints', 'Uma tabela expansível por sprint, do mais recente para o mais antigo, com datas, estado e completude. As Stories expandem-se nas Tasks participantes.']
+                        ['Todos (por defeito)', 'Linhas expansíveis Epic → Story → Task, Tasks diretas de Epics e Tasks e Bugs independentes. Os descendentes correspondentes continuam visíveis quando os filtros ocultam os antecessores.'],
+                        ['Dropdown de vistas', 'Alterne entre Todos, Epic, User Stories, Workitems independentes e Todas as Tasks e Bugs. O botão apresenta a vista selecionada.'],
+                        ['Backlog', 'Unidades de planeamento com trabalho pendente e sem Sprint elegível. Exclui Epics e Tasks filhas de Stories/Bugs; uma Story com todas as Tasks Done ou Canceladas deixa de estar pendente, mesmo antes da aceitação. Selecione linhas para criar ou integrar um Sprint.'],
+                        ['Sprints', 'Uma tabela expansível por sprint, do mais recente para o mais antigo, com nome e datas à esquerda e os controlos compactos do Roadmap à direita, sem timeline. As Stories expandem-se nas Tasks participantes.']
                     ] },
                     { kind: 'list', items: [
-                        'Pesquise por ID, título e descrição; filtre colunas; ordene por qualquer coluna.',
-                        'Escolha, reordene e reponha colunas em **Colunas**.',
-                        '**Exportar CSV** inclui todas as linhas filtradas, mesmo as recolhidas, com separador vírgula ou ponto e vírgula.',
-                        'As datas e horas são apresentadas em UTC.'
+                        'Cada tabela tem uma única toolbar: contagens, número de selecionados e Limpar seleção à esquerda; pesquisa e ícones de Filtros, Colunas e Exportar CSV à direita, seguidos de um separador e + Criar workitem. No Backlog, **Ações de sprint** fica após o separador, imediatamente antes de +, e agrupa Criar sprint e Adicionar ao sprint. Mantêm-se as validações de seleção e de sprints elegíveis. Pesquise por ID, título e descrição; ordene por qualquer coluna.',
+                        'Use **Filtros** para os filtros comuns e para tipo de workitem, Epic e User Story. O ícone **Colunas** abre listas Visíveis e Ocultas lado a lado. Oculte com o olho, adicione com + e reordene as visíveis pelo manípulo de arrasto ou pelas setas para cima/baixo. ID e Título permanecem visíveis com cadeado; Repor colunas restaura as predefinições. As preferências ficam guardadas localmente por projeto e contexto de tabela.',
+                        'O ícone **Exportar CSV** abre um modal: escolha vírgula ou ponto e vírgula e confirme para descarregar todas as linhas filtradas, mesmo as recolhidas.',
+                        'As tabelas dos Sprints não têm checkboxes de seleção, menu Ações de sprint ou + Criar workitem; mantêm pesquisa, filtros, colunas, exportação e hierarquia.',
+                        'As horas das tabelas de workitems usam UTC e as datas dd/mm/aaaa. A completude do Sprint conta unidades únicas, exclui canceladas e inclui itens arquivados antigos. Os filtros afetam linhas e CSV, não o denominador. Sprints encerrados mantêm valores congelados; abrir um workitem existente pode mostrar os detalhes atuais sem alterar esse estado.'
                     ] }
                 ],
                 related: ['plan-sprints', 'agile-backlog', 'views-filters']
@@ -690,30 +704,39 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'views-dashboard',
                 title: 'Dashboard',
-                summary: 'Estado, progresso e atividade do projeto num período à escolha.',
+                summary: 'Consulte progresso, atividade num período UTC, registos de controlo e participação registada em Sprints.',
                 blocks: [
-                    { kind: 'p', text: 'A **Visão global** tem nove secções que pode mostrar ou ocultar: visão do projeto, sprint ativo, estatísticas do projeto, workitems iniciados, concluídos e em curso no período, riscos abertos, entregáveis e decisões.' },
+                    { kind: 'p', text: 'A **Visão global** tem nove secções que pode mostrar ou ocultar: visão do projeto, Sprint ativo, estatísticas, workitems iniciados, concluídos e atualmente em curso, riscos abertos, entregáveis e decisões.' },
                     { kind: 'list', items: [
-                        'Escolha as datas de **início** e **fim**: a atividade conta transições dentro do período; as secções de estado usam a data de fim.',
-                        'Restrinja a uma fase com **Âmbito do plano**.',
-                        'Selecione um indicador ou uma barra de gráfico para listar os workitems de origem e abri-los.',
-                        'A **Análise de sprints** mostra a participação registada e as alterações de âmbito de cada sprint.'
+                        'Escolha **Início** e **Fim**. A atividade usa transições registadas no período UTC; as secções de estado usam a data de fim. A secção atualmente em curso reflete o estado nessa data.',
+                        'Use **Âmbito do plano** para uma fase e os seus descendentes. Os filtros do Board e Tabela não afetam o Dashboard.',
+                        'A visão do projeto mostra progresso, bloqueios, fases iniciadas com trabalho aberto, atrasos e próximos marcos ou marcos em atraso. Três gráficos circulares mostram Stories, Tasks independentes e Bugs por categoria.',
+                        'Selecione um indicador ou segmento para listar os workitems de origem. Abra workitems, Roadmap, Sprints ou registos de Controlo para consulta.',
+                        'Use **Análise de sprints** para participação, contagens por categoria e alterações de âmbito. Selecione um Sprint para ver as suas distribuições e alterações.',
+                        'O seletor de estado e a tabela de histórico permitem consultar estados registados anteriores; volte a **Atual** / **Mais recente** para sair da pré-visualização.'
                     ] },
-                    { kind: 'callout', tone: 'note', text: 'O Dashboard usa apenas o histórico registado. Quando falta histórico mostra N/A em vez de adivinhar. Os filtros do Quadro e da Tabela não o afetam.' }
+                    { kind: 'callout', tone: 'note', text: 'Lacunas no histórico mostram N/A ou um aviso de histórico parcial. A Análise de sprints ainda apresenta métricas por implementar de capacidade, pontos, velocidade, burndown, trabalho transportado e objetivo/revisão; consulte os cabeçalhos e o editor do Sprint para os pontos e dados de fecho registados.' }
                 ],
                 related: ['agile-review', 'views-control', 'files-history']
             },
             {
                 id: 'views-control',
                 title: 'Controlo do projeto',
-                summary: 'Riscos, decisões e entregáveis, ligados a fases, marcos e workitems.',
+                summary: 'Riscos, decisões e entregáveis associados a fases e marcos.',
                 blocks: [
                     { kind: 'terms', items: [
                         ['Risco', 'Probabilidade × impacto dá o nível de risco (Baixo, Médio, Alto). Registe planos de mitigação e contingência; se se materializar, registe a data e o impacto real.'],
-                        ['Decisão', 'Proposta, Aprovada, Rejeitada ou Substituída, com decisor, data e fundamentação.'],
-                        ['Entregável', 'Planeado → Em curso → Entregue → Aceite, com datas prevista, de entrega e de aceitação e um validador.']
+                        ['Decisão', 'Proposta, Aprovada, Rejeitada, Substituída ou Cancelada, com decisor, data e fundamentação.'],
+                        ['Entregável', 'Planeado, Em curso, Entregue, Aceite ou Cancelado, com datas prevista, de entrega e de aceitação e um validador.']
                     ] },
-                    { kind: 'p', text: 'Os registos têm IDs como `CHK-RK-1`, participantes, etiquetas, comentários e histórico, e podem ser associados a fases, marcos e workitems. Filtre por Todos, Pendentes, Em atraso ou Pendente de aceitação.' },
+                    { kind: 'p', text: 'Os registos têm IDs como `CHK-RK-1`, participantes, etiquetas, comentários e histórico, e podem ser associados a fases e marcos. Ligações antigas a workitems ficam preservadas como metadados arquivados, não como associações ativas. Filtre por Todos, Pendentes, Em atraso ou Pendente de aceitação.' },
+                    { kind: 'list', items: [
+                        'Riscos, Decisões e Entregáveis mantêm subseções próprias com o mesmo layout de **Tabela → Todos**. Contagens e seleção ficam à esquerda; pesquisa, ícones de Filtros, Colunas e Exportar CSV, separador e **+ Novo registo** ficam à direita.',
+                        'Abra **Filtros** para estado, responsável, associações a fases/milestones e Pendentes, além dos campos de cada tipo: avaliações/nível de risco, decisor/data, ou validador/data prevista/Em atraso/Pendente de aceitação. Os filtros ativos aparecem em etiquetas removíveis.',
+                        'Selecione linhas ou a página atual, limpe a seleção, ordene por qualquer coluna visível e escolha 25, 50 ou 100 linhas por página. Clique numa linha, ID ou título para abrir o detalhe existente.',
+                        'O ícone **Colunas** permite mostrar, ocultar, reordenar ou repor colunas. ID e título são obrigatórios. As listas Visíveis e Ocultas têm controlos olho/+, arrasto e setas para cima/baixo. As preferências ficam guardadas localmente por projeto e subseção, independentes das colunas da tabela de workitems. A coluna Estado apresenta apenas o estado do registo.',
+                        '**Exportar CSV** pede vírgula ou ponto e vírgula e exporta todos os registos filtrados/ordenados pela ordem das colunas visíveis, incluindo outras páginas. Em leitura e no histórico mantém consulta e exportação; **+** fica desativado.'
+                    ] },
                     { kind: 'callout', tone: 'rule', title: 'Regra da aplicação', text: 'Entregáveis pendentes de aceitação mantêm o progresso das respetivas fases e marcos abaixo de 100%.' },
                     { kind: 'callout', tone: 'method', title: 'Prática Agile', text: 'Reveja os riscos abertos no planeamento do sprint e registe decisões importantes — incluindo acordos da retrospetiva — como Decisões.' }
                 ],
@@ -722,15 +745,15 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'views-filters',
                 title: 'Pesquisa, filtros e ordenação',
-                summary: 'Reduza cada vista ao que importa neste momento.',
+                summary: 'Use pesquisas independentes no Board e nas tabelas; Dashboard, Roadmap e Planeador têm controlos próprios.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Pesquisa**: escreva na [paleta de comandos](prod-palette) e escolha **Filtrar quadro por “…”**. A barra de ferramentas mostra o filtro ativo; clique em × para o limpar.',
-                        '**Filtros**: bloqueio, responsável, participante, prioridade, esforço e planeamento. Os filtros ativos aparecem como chips removíveis.',
+                        '**Pesquisa**: use o campo na barra do Board ou no cabeçalho da Tabela, ou abra a [paleta de comandos](prod-palette) pela lupa na barra superior ou com [[Ctrl/⌘]] + [[K]] e escolha **Filtrar quadro por “…”**. A secção mostra a pesquisa atual; clique em × para a limpar.',
+                        '**Filtros**: estado, bloqueio (combinado, manual ou por dependência), responsável, participante, prioridade, esforço e planeamento. Abra **Filtros e vista** na barra do Board ou **Filtros** no cabeçalho da Tabela. O botão mostra o número de filtros ativos. Use **Limpar tudo** ou **Repor** no cabeçalho do painel para limpar os filtros configurados; não aparecem etiquetas de filtros.',
                         '**Ordenação**: por prioridade, esforço, pontuação ou nome, ascendente ou descendente.',
                         '**Repor**: prima [[R]] para repor filtros e ordenação.'
                     ] },
-                    { kind: 'p', text: 'Os filtros combinam-se entre si e aplicam-se a todas as vistas. Ficam guardados no endereço, por isso pode guardar uma vista filtrada nos favoritos. A Tabela tem os seus próprios filtros de coluna.' }
+                    { kind: 'p', text: 'Os filtros combinam-se dentro de cada vista. O Board inclui filtros por Epic e User Story, com os mesmos critérios da Tabela. A pesquisa e os filtros de cada subseção da Tabela e de cada Sprint são independentes e mantêm-se durante a sessão; limpar uma tabela não altera as outras. Os filtros do Board ficam no endereço e também afetam Planeador/Calendário, que não apresentam os mesmos controlos de pesquisa. O Dashboard usa período e âmbito próprios.' }
                 ],
                 related: ['views-choose', 'prod-palette']
             }
@@ -743,32 +766,33 @@ export const DOCS_PT: DocSection[] = [
             {
                 id: 'files-open',
                 title: 'Abrir projetos e modo de leitura',
-                summary: 'Como os projetos são carregados e porque é que alguns abrem só para leitura.',
+                summary: 'Abra pastas para editar, converta ficheiros antigos ou arraste ficheiros antigos para consultar em modo de leitura.',
                 blocks: [
                     { kind: 'list', items: [
-                        '**Importar projetos** abre o seletor de pastas para um projeto ou projetos nas subpastas diretas, com leitura e escrita. A estrutura obrigatória e os dados atuais são validados antes da importação; erros num projeto não impedem os restantes.',
-                        '**Importar projetos** também converte ficheiros antigos `.board.json` encontrados diretamente na pasta selecionada, preservando IDs, histórico e imagens e mantendo os originais intactos. Feche o original antes de abrir a cópia migrada.',
-                        '**Arrastar ficheiros** para a janela carrega-os em **modo de leitura**, porque não é fornecida permissão de escrita.',
-                        'Os ficheiros têm de ser ficheiros de projeto TeamOS válidos (`.board.json`); os inválidos são reportados e não são importados.',
-                        'As versões antigas dos ficheiros são migradas na importação sem alterar IDs.'
+                        '**Importar projetos** abre uma pasta de projeto ou uma pasta principal com projetos nas subpastas diretas, com leitura e escrita. Cada projeto exige `project.json`, `history.json` e `attachments/`.',
+                        'Os projetos válidos abrem mesmo que outros sejam inválidos; os erros são apresentados individualmente. Os já carregados mantêm-se e os duplicados são ignorados.',
+                        'Ficheiros antigos `.board.json` diretamente na pasta escolhida são convertidos em subpastas, preservando IDs, histórico e imagens e mantendo os originais. Feche um original aberto antes de importar a cópia convertida.',
+                        'Arrastar ficheiros antigos `.board.json` para a janela abre-os em **modo de leitura**. Arrastar apenas o `project.json` de uma pasta não é uma forma de importação suportada.',
+                        'Se a seleção de pastas não estiver disponível mas a de ficheiros estiver, a aplicação permite criar e abrir ficheiros antigos `.board.json`. Os formatos antigos suportados são migrados sem substituir IDs.'
                     ] },
-                    { kind: 'p', text: 'Os projetos em modo de leitura mostram um aviso e uma marca no chip. Pode abrir detalhes, ler o histórico e seguir ligações, mas não alterar nada. Remova um projeto do portefólio com o × do chip; o ficheiro não é apagado.' }
+                    { kind: 'p', text: 'Os projetos só de leitura são identificados no seletor. Pode consultar detalhes, histórico, ligações e exportações, mas não editar. Remova um projeto pela sua entrada no seletor junto ao logo; fecha-o na aplicação sem eliminar os ficheiros.' }
                 ],
                 related: ['start-first-project', 'files-saving']
             },
             {
                 id: 'files-saving',
                 title: 'Gravação automática',
-                summary: 'Cada alteração é escrita no ficheiro do projeto; o chip mostra o estado de gravação.',
+                summary: 'As alterações aplicadas são guardadas na pasta; o seletor mostra gravação, falhas e conflitos.',
                 blocks: [
-                    { kind: 'p', text: 'Os projetos em pastas abrem apenas `project.json`. O histórico é lido de `history.json` quando consultado; gravações com novos eventos preservam os anteriores mesmo antes da consulta. Outras gravações não alteram o histórico. Os anexos são ficheiros separados, conservados quando necessários ao histórico ou a Desfazer.' },
-                    { kind: 'p', text: 'Não há botão Guardar para o projeto: cada alteração é guardada no ficheiro assim que a faz. O chip do projeto mostra **A guardar**, **Por guardar**, **Falha ao guardar**, **Conflito** ou **Atualização externa** quando relevante.' },
+                    { kind: 'p', text: 'Projetos em pastas carregam o estado atual de `project.json`. `history.json` é consultado quando necessário, incluindo a timeline e os separadores Histórico/Comentários. Os anexos ficam em `attachments/` e são lidos para pré-visualização, abertura ou transferência.' },
+                    { kind: 'p', text: 'Não há botão Guardar do projeto. As alterações aplicadas são guardadas automaticamente; os editores e Definições do projeto só aplicam o rascunho quando clica em Guardar. Novos eventos são acrescentados sem carregar ou reescrever o histórico anterior; gravações sem novos eventos não o alteram.' },
+                    { kind: 'p', text: 'O estado de gravação aparece junto ao projeto selecionado no cabeçalho e no seletor: **A guardar**, **Por guardar**, **Falha ao guardar**, **Conflito** ou **Atualização externa**. Algumas janelas também mostram um indicador de gravação.' },
                     { kind: 'list', items: [
-                        'Se uma gravação falhar, a alteração continua aplicada na aplicação; use **Tentar guardar novamente** no chip.',
-                        'Ações como mover a partir da paleta mostram **Desfazer** durante alguns segundos.',
-                        'Os editores e janelas (editor de workitem, Definições do projeto) só se aplicam quando os guarda.'
+                        'Se guardar falhar, as alterações continuam na aplicação. Abra o seletor e use **Tentar guardar novamente**.',
+                        'Os conflitos suspendem a gravação do projeto até serem [resolvidos](files-external). Alterações por guardar têm uma cópia de recuperação local.',
+                        'As alterações da paleta oferecem **Desfazer** durante alguns segundos. Referências do histórico e de Desfazer preservam anexos ainda necessários.'
                     ] },
-                    { kind: 'callout', tone: 'tip', text: 'Mantenha os ficheiros de projeto numa pasta sincronizada ou com cópia de segurança. Faça cópia de segurança da pasta completa, incluindo histórico e anexos.' }
+                    { kind: 'callout', tone: 'tip', text: 'Faça cópia de segurança ou sincronize a pasta completa: estado atual, histórico e anexos pertencem ao mesmo projeto. As preferências do navegador são separadas.' }
                 ],
                 related: ['files-external', 'files-history']
             },
@@ -833,9 +857,9 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Preferências pessoais, memorizadas neste navegador.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Tema', 'O botão da paleta permite escolher Clássico (o design original) ou Moderno (superfícies neutras, um destaque ameixa discreto e tipografia Inter). O botão lua/sol alterna, de forma independente, entre claro e escuro em qualquer tema. Ambas as escolhas ficam guardadas neste navegador, incluindo entre separadores, sem alterar projetos ou rascunhos abertos.'],
-                        ['Idioma', 'O botão EN/PT alterna entre inglês e português, incluindo esta documentação.'],
-                        ['Definições da aplicação', 'A roda dentada mostra ou oculta a barra do histórico.'],
+                        ['Tema', 'As Definições permitem escolher Clássico (o design original) ou Moderno (superfícies e controlos atualizados, com tipografia Inter incluída localmente). As opções Claro/Escuro alternam o modo de forma independente em qualquer tema. Ambas as escolhas ficam guardadas neste navegador, incluindo entre separadores, sem alterar projetos ou rascunhos abertos.'],
+                        ['Idioma', 'Nas Definições, escolha English ou Português, incluindo esta documentação.'],
+                        ['Definições da aplicação', 'A roda dentada abre um painel flutuante com aparência, tema, idioma e visibilidade da barra do histórico.'],
                         ['Atalhos', 'Ativa ou desativa os atalhos de uma só tecla.']
                     ] },
                     { kind: 'p', text: 'Estas preferências ficam guardadas apenas neste navegador; não são escritas nos ficheiros de projeto.' }
@@ -863,13 +887,13 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: '4. Planear a execução' },
                     { kind: 'p', text: 'A partir da US-2, crie as Tasks `SHP-TK-4` Integrar o gateway de pagamento (Rui, esforço M) e `SHP-TK-5` Ecrã de seleção do cartão (Marta, esforço S). Associe a TK-5 como **bloqueada pela** TK-4, porque o ecrã precisa da API.' },
                     { kind: 'h', text: '5. Planear o sprint' },
-                    { kind: 'p', text: 'Em **Tabela → Workitems por planear**, selecione a US-2 e a US-3 e escolha **Criar sprint**: **Sprint 1 - Pagamento com cartão**, duas semanas. As Tasks acompanham as suas Stories.' },
+                    { kind: 'p', text: 'Em **Tabela → Backlog**, selecione a US-2 e a US-3 e escolha **Ações de sprint → Criar sprint**: **Sprint 1 - Pagamento com cartão**, duas semanas. As Tasks acompanham as suas Stories.' },
                     { kind: 'h', text: '6. Executar' },
-                    { kind: 'p', text: 'Quando o sprint começa, o Board Técnico mostra a TK-4 e a TK-5. O Rui arrasta a TK-4 para Em curso; a TK-5 fica bloqueada por dependência. O Rui reserva duas horas no Planeador. Quando a TK-4 fica concluída, a TK-5 é desbloqueada e a Marta começa-a.' },
+                    { kind: 'p', text: 'Use **Iniciar Sprint** no Roadmap ou em Tabela → Sprints. O Board Técnico mostra então a TK-4 e a TK-5 com Apenas sprints ativos selecionado. O Rui arrasta a TK-4 para Em curso; a TK-5 fica bloqueada por dependência. O Rui reserva duas horas no Planeador. Quando a TK-4 fica concluída, a TK-5 é desbloqueada e a Marta começa-a.' },
                     { kind: 'h', text: '7. Aceitar' },
-                    { kind: 'p', text: 'Com as duas Tasks concluídas, a US-2 mostra **Tarefas: 100%** — a execução está completa, mas a Story ainda não está aceite. A Ana testa os critérios na revisão do sprint e move a US-2 para Done no Board Funcional. A aplicação mostra os critérios; a Ana indica o seu nome e confirma. A aceitação fica registada no histórico da US-2.' },
+                    { kind: 'p', text: 'Com as duas Tasks concluídas, a US-2 mostra **Tarefas: 100%** — a execução está completa, mas a Story ainda não está aceite. A Ana testa os critérios na revisão do sprint e move a US-2 pelas transições permitidas até Done no Board Funcional. A aplicação mostra os critérios; a Ana confirma com a identidade selecionada no projeto. A aceitação fica registada no histórico da US-2.' },
                     { kind: 'h', text: '8. Rever' },
-                    { kind: 'p', text: 'O Dashboard mostra o progresso da Versão 1 e o que foi concluído no sprint. Na retrospetiva, a equipa regista no Controlo do projeto a decisão “Acordar contratos de API antes do trabalho de interface”.' },
+                    { kind: 'p', text: 'O Dashboard mostra o progresso da Versão 1 e o que foi concluído no sprint. A equipa encerra o Sprint, regista a Revisão e a Retrospetiva no editor e guarda no Controlo do projeto a decisão “Acordar contratos de API antes do trabalho de interface”.' },
                     { kind: 'callout', tone: 'method', title: 'O que este exemplo mostra', text: 'O planeamento flui de cima para baixo (Epic → Story → Task, com planeamento herdado); a execução flui de baixo para cima (as Tasks terminam e o progresso cresce); e a aceitação é uma decisão humana explícita face aos critérios.' }
                 ],
                 related: ['start-first-flow', 'wi-acceptance', 'agile-sprints']
@@ -880,16 +904,16 @@ export const DOCS_PT: DocSection[] = [
                 summary: 'Respostas curtas a perguntas comuns.',
                 blocks: [
                     { kind: 'terms', items: [
-                        ['Porque não consigo editar um projeto?', 'Foi aberto arrastando o ficheiro (modo de leitura) ou está a pré-visualizar o histórico. Importe-o com Importar projetos, ou clique em Mais recente. Consulte [Abrir projetos e modo de leitura](files-open).'],
-                        ['Porque não consigo concluir uma Story?', 'Precisa de Critérios de aceitação e todas as Tasks têm de estar concluídas, canceladas ou desassociadas. Consulte [aceitação funcional](wi-acceptance).'],
-                        ['Todas as Tasks estão concluídas. Porque é que a Story não está?', 'Progresso de execução e aceitação funcional são coisas diferentes. Alguém tem de mover a Story para Concluído e aceitá-la.'],
-                        ['Um cartão não passa para uma coluna.', 'O workflow não permite essa transição. Verifique os destinos permitidos do estado nas [Definições do projeto](wf-editing).'],
-                        ['Porque é que uma Task não aparece no Board Técnico?', 'As Tasks de uma Story só aparecem enquanto o sprint da Story está ativo. Verifique as datas do sprint, ou abra a Tabela.'],
-                        ['Como atribuo alguém que não está na lista?', 'Acrescente a pessoa como membro nas [Definições do projeto](projects-people).'],
-                        ['Posso mover uma Task para outro projeto?', 'Sim, se os dois projetos partilharem um produto. Consulte [Copiar e mover](projects-transfers).'],
-                        ['Onde estão os meus dados?', 'Nos ficheiros `.board.json` que criou ou importou. Preferências como o tema ficam no navegador.'],
-                        ['Alterei algo por engano.', 'Use Desfazer de imediato, ou restaure um estado anterior a partir do [histórico](files-history).'],
-                        ['O TeamOS calcula a velocidade?', 'Não. Regista tamanhos de esforço e participação em sprints, mas não story points, capacidade nem resultados de fecho.']
+                        ['Porque não consigo editar um projeto?', 'Ficheiros antigos arrastados e pré-visualizações históricas são só de leitura. Tabelas de Sprints encerrados mostram valores congelados; abrir um workitem existente pode mostrar os detalhes atuais. Use Importar projetos para escrita ou volte a Mais recente. Consulte [Abrir projetos](files-open).'],
+                        ['Porque não consigo concluir uma Story ou Bug?', 'As Tasks filhas têm de estar Concluídas, Canceladas ou desassociadas, o workflow tem de permitir a transição e é preciso confirmar a [aceitação funcional](wi-acceptance). Os Critérios são recomendados, mas não obrigatórios.'],
+                        ['Todas as Tasks estão Done. Porque é que a Story não está?', 'Implementação concluída e aceitação são distintas. Reveja e aceite explicitamente a Story. Os [automatismos](wf-automation) podem prepará-la para testes, mas nunca aceitá-la.'],
+                        ['Porque continua o Sprint Ativo depois da data de fim?', 'O estado é manual. Use Finalizar Sprint no Roadmap ou Tabela → Sprints para registar o fecho e tratar trabalho pendente.'],
+                        ['Porque falta um workitem no Board?', 'Verifique a atribuição Técnico/Funcional, Apenas sprints ativos, Sprint e restantes filtros, e colunas ocultas. Desmarque Apenas sprints ativos para incluir trabalho sem Sprint; os Epics consultam-se na Tabela.'],
+                        ['Como atribuo uma pessoa que não aparece?', 'Adicione um membro nas [Definições do projeto](projects-people) ou no seletor de identidade do projeto.'],
+                        ['Posso mover uma Task para outro projeto?', 'Sim, entre projetos elegíveis do mesmo produto, revendo estados e associações de destino. Consulte [Copiar e mover](projects-transfers).'],
+                        ['Onde estão os dados?', 'Normalmente numa pasta com `project.json`, `history.json` e `attachments/`. Os ficheiros antigos `.board.json` continuam suportados. As preferências ficam no navegador.'],
+                        ['Alterei algo por engano.', 'Use Desfazer quando disponível, ou pré-visualize e restaure um estado no [histórico](files-history).'],
+                        ['O TeamOS calcula velocidade?', 'Regista Story Points opcionais, capacidade manual, créditos únicos de implementação concluída e velocidade congelada no fecho. Os cabeçalhos mostram os totais de pontos; a Análise de sprints do Dashboard ainda tem métricas por implementar. Consulte [Sprints](plan-sprints).']
                     ] }
                 ],
                 related: ['start-what', 'agile-rules']

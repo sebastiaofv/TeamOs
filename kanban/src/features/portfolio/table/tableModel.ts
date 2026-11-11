@@ -1,6 +1,8 @@
+import { buildCsv } from '@/infrastructure/browser/csv';
 import { workitemId, workitemLabel } from '@/domain/taskIdentity';
 import { effectivePlanning, workitemType, parentOf, epicOf } from '@/domain/workitems';
 import type { BoardData } from '@/domain/types';
+import { getDependencyBlockedTaskIds } from '@/domain/taskRelations';
 import { getWorkflow } from '@/domain/workflow';
 import type { PortfolioFilters, PortfolioRow } from '@/features/portfolio/types';
 import { DEFAULT_PORTFOLIO_FILTERS, taskMatchesPortfolioFilters } from '@/domain/portfolioFilters';
@@ -10,14 +12,15 @@ import { effortRank, priorityRank, taskScore } from '@/domain/scoring';
 export type TableColumnId =
     | 'type' | 'epic' | 'story' | 'id' | 'title' | 'status' | 'assignees' | 'priority' | 'phase' | 'updatedAt'
     | 'milestone' | 'sprint' | 'dueDate' | 'createdAt' | 'blocked' | 'blockerReason'
-    | 'effort' | 'tags' | 'archived' | 'responsible';
+    | 'dependencyBlocked' | 'effort' | 'tags' | 'archived' | 'responsible';
 
 export const TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze([
     'id', 'title', 'type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt',
-    'milestone', 'sprint', 'dueDate', 'createdAt', 'blocked', 'blockerReason',
+    'milestone', 'sprint', 'dueDate', 'createdAt', 'blocked', 'dependencyBlocked', 'blockerReason',
     'effort', 'tags', 'archived', 'responsible'
 ]);
 export const DEFAULT_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(['id', 'title', 'type', 'epic', 'story', 'status', 'assignees', 'priority', 'phase', 'updatedAt']);
+export const ROADMAP_TABLE_COLUMNS: readonly TableColumnId[] = Object.freeze(['id', 'title', 'type', 'status', 'responsible', 'priority', 'blocked', 'dependencyBlocked', 'updatedAt']);
 export type TableSort = { column: TableColumnId | 'score'; direction: 'asc' | 'desc' };
 export const DEFAULT_TABLE_SORT: TableSort = Object.freeze({ column: 'id', direction: 'asc' });
 
@@ -26,7 +29,7 @@ export const DEFAULT_TABLE_FILTERS = DEFAULT_PORTFOLIO_FILTERS;
 
 /** Each populated filter is ANDed; statuses are ORed within their selection. */
 export function filterTableRows(rows: PortfolioRow[], filters: TableFilters): PortfolioRow[] {
-    return rows.filter(({ task, boardData }) => taskMatchesPortfolioFilters(task, filters, boardData));
+    return rows.filter((row) => taskMatchesPortfolioFilters(row.task, filters, row.boardData, row));
 }
 
 /** Raw, unlocalized cells. Roadmap IDs are resolved only against this project. */
@@ -34,6 +37,8 @@ export function tableCellValue(row: PortfolioRow, column: TableColumnId, boardDa
     const { task } = row;
     const roadmap = boardData?.extensions.roadmap;
     switch (column) {
+        case 'blocked': return String(row.manuallyBlocked ?? (row.boardData || boardData)?.board.tasks.find((entry) => entry.id === task.id)?.blocked ?? task.blocked);
+        case 'dependencyBlocked': return String(row.dependencyBlocked ?? ((row.boardData || boardData) ? getDependencyBlockedTaskIds((row.boardData || boardData)!).has(task.id) : false));
         case 'type': return workitemType(task);
         case 'epic': { const epic = boardData && epicOf(boardData, task); return epic ? `${workitemLabel(epic)} ${epic.title}` : ''; }
         case 'story': { const parent = boardData && parentOf(boardData, task); return parent && workitemType(parent) === 'story' ? `${workitemLabel(parent)} ${parent.title}` : ''; }
@@ -58,7 +63,8 @@ function tableSortValue(row: PortfolioRow, column: TableSort['column'], boardDat
         case 'status': return getWorkflow(boardData, row.task).states.findIndex((s) => s.id === row.task.status);
         case 'priority': return priorityRank(row.task.priority);
         case 'effort': return effortRank(row.task.effort);
-        case 'blocked': return Number(row.task.blocked);
+        case 'blocked':
+        case 'dependencyBlocked': return Number(value === 'true');
         case 'archived': return Number(row.task.archived);
         case 'createdAt':
         case 'updatedAt': {
@@ -104,18 +110,6 @@ export type TableCsvOptions = {
     value?: (row: PortfolioRow, column: TableColumnId) => string;
 };
 
-function csvCell(value: string, separator: ',' | ';'): string {
-    // Spreadsheet parsers may ignore leading whitespace and control characters.
-    let start = 0;
-    while (start < value.length) {
-        const code = value.charCodeAt(start);
-        if (code > 32 && !(code >= 127 && code <= 159) && !/\s/u.test(value[start])) break;
-        start += 1;
-    }
-    const safe = start < value.length && '=+-@'.includes(value[start]) ? `'${value}` : value;
-    return safe.includes(separator) || /["\r\n]/u.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-}
-
 /** Pass the entire filtered/sorted result, independent of selection or pagination. */
 export function buildTableCsv(
     rows: PortfolioRow[], columns: readonly TableColumnId[], boardData: BoardData | null,
@@ -124,7 +118,5 @@ export function buildTableCsv(
     const separator = options.separator || ',';
     const header = options.header || ((column: TableColumnId) => column);
     const value = options.value || ((row: PortfolioRow, column: TableColumnId) => tableCellValue(row, column, boardData));
-    return [columns.map((column) => csvCell(header(column), separator)).join(separator),
-        ...rows.map((row) => columns.map((column) => csvCell(value(row, column), separator)).join(separator))]
-        .join('\r\n');
+    return buildCsv([columns.map(header), ...rows.map(row => columns.map(column => value(row, column)))], separator);
 }

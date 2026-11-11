@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { defaultHierarchyAutomations } from '@/domain/hierarchyAutomations';
 import { test, expect, type Page } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, openProjectSettingsFromPicker } from '../support/portfolio';
 
 const fixture = JSON.parse(readFileSync('test-board/us-30.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
@@ -9,7 +9,7 @@ async function seed(page: Page, writable = true) {
     await seedPortfolioBoards(page, [{ id: 'auto', title: fixture.board.settings.title, hasHandle: writable, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'auto' });
 }
 async function settings(page: Page) {
-    await page.getByRole('button', { name: /^Settings for / }).click();
+    await openProjectSettingsFromPicker(page, fixture.board.settings.title);
     await page.getByRole('tab', { name: 'Automations', exact: true }).click();
     return page.locator('#projectSettingsModal');
 }
@@ -75,7 +75,7 @@ test('Off suppresses proposals and read-only projects expose disabled controls',
     await expect.poll(async () => (await readSavedBoard(page, 'auto')).board.tasks.find((task: { id: number }) => task.id === 3).status).toBe('doing');
     expect((await readSavedBoard(page, 'auto')).board.tasks.find((task: { id: number }) => task.id === 2).status).toBe('to-do');
     await seedPortfolioBoards(page, [{ id: 'read', title: 'Read-only automations', hasHandle: false, tasks: fixture.board.tasks, extensions: { ...fixture.extensions, project: { ...fixture.extensions.project, id: 'read', acronym: 'READ' } } }], { selectedBoardId: 'read' });
-    await page.getByRole('button', { name: 'Settings for Read-only automations', exact: true }).click();
+    await openProjectSettingsFromPicker(page, 'Read-only automations');
     await page.getByRole('tab', { name: 'Automations', exact: true }).click();
     await expect(page.getByRole('radio').first()).toBeDisabled();
     await expect(page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);

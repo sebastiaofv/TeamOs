@@ -26,7 +26,7 @@ export function buildPortfolioTasks(state: SelectorState, previousRows: readonly
                 const blocked = Boolean(task.blocked) || dependencyBlocked.has(task.id);
                 if (old && old.boardData === board.data && old.boardIndex === boardIndex && old.taskIndex === taskIndex
                     && old.boardTitle === board.title && old.boardFileName === board.fileName && old.canMutate === Boolean(board.handle)
-                    && old.task.blocked === blocked) return old;
+                    && old.task.blocked === blocked && old.manuallyBlocked === Boolean(task.blocked) && old.dependencyBlocked === dependencyBlocked.has(task.id)) return old;
                 return {
                     boardIndex,
                     boardId: board.id,
@@ -37,6 +37,7 @@ export function buildPortfolioTasks(state: SelectorState, previousRows: readonly
                     columnTitle: getWorkflow(board.data, task).states.find((state) => state.id === task.status)?.name || task.status,
                     canMutate: Boolean(board.handle),
                     boardData: board.data,
+                    manuallyBlocked: Boolean(task.blocked), dependencyBlocked: dependencyBlocked.has(task.id),
                     task: { ...normalizeTask(task, { workflow: getWorkflow(board.data, task) }), blocked }
                 };
             });
@@ -66,6 +67,7 @@ export function buildPortfolioRowsFromBoardData(
             columnTitle: getWorkflow(normalizedBoard, task).states.find((state) => state.id === task.status)?.name || task.status,
             canMutate,
             historical,
+            manuallyBlocked: Boolean(task.blocked), dependencyBlocked: dependencyBlocked.has(task.id),
             boardData: normalizedBoard,
             task: { ...normalizeTask(task, { workflow: getWorkflow(normalizedBoard, task) }), blocked: Boolean(task.blocked) || dependencyBlocked.has(task.id) }
         }));

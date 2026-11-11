@@ -177,11 +177,19 @@ export async function applyWorkitemChange(current: BoardRecord, mutator: BoardMu
     const automationReview = !boardSnapshotRecorded && resolveHierarchyAutomations(draft.data, current.data, confirm);
     if (automationReview) await automationReview;
     assertWorkitems(draft.data, current.data);
-    const dateConflicts = sprintPhaseDateConflicts(draft.data, current.data);
+    const dateConflicts = sprintPhaseDateConflicts(draft.data, current.data, new Set(stage.board.tasks.filter((task) => {
+        const before = beforeTasks.get(task.id);
+        const sprint = stage.extensions.roadmap?.sprints.find(entry => entry.id === task.sprintId);
+        const oldSprint = current.data.extensions.roadmap?.sprints.find(entry => entry.id === task.sprintId);
+        return (sprint && oldSprint && (sprint.startDate !== oldSprint.startDate || sprint.endDate !== oldSprint.endDate)) || !before || before.sprintId !== task.sprintId || effectivePlanning(stage, task, 'phaseId') !== effectivePlanning(current.data, before, 'phaseId');
+    }).map((task) => task.id)));
     if (dateConflicts.length) {
         const answer = await confirm(translateCurrent('planning.phaseDatesConflict'), {
             title: translateCurrent('planning.phaseDatesTitle'), confirmLabel: translateCurrent('messages.confirm'),
-            workitems: { rows: dateConflicts.flatMap((entry) => draft.data.board.tasks.filter((task) => effectivePlanning(draft.data, task, 'phaseId') === entry.phaseId).map((task) => {
+            workitems: { phaseGroups: dateConflicts.map(entry => {
+                const phase = draft.data.extensions.roadmap!.phases.find(phase => phase.id === entry.phaseId)!;
+                return { selectionId: entry.phaseId, title: entry.title, from: `${formatDate(phase.startDate!)} – ${formatDate(phase.endDate!)}`, to: `${formatDate(entry.startDate)} – ${formatDate(entry.endDate)}` };
+            }), rows: dateConflicts.flatMap((entry) => draft.data.board.tasks.filter((task) => entry.tasks.includes(task.id)).map((task) => {
                 const phase = draft.data.extensions.roadmap!.phases.find((phase) => phase.id === entry.phaseId)!;
                 return { ...workitemReviewRow(task, translateCurrent('task.phase'), `${entry.title}: ${formatDate(phase.startDate!)} – ${formatDate(phase.endDate!)}`, `${entry.title}: ${formatDate(entry.startDate)} – ${formatDate(entry.endDate)}`), selectionId: entry.phaseId };
             })) },

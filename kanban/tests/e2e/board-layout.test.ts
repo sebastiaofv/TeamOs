@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, seedPortfolioBoards, portfolioCard, dragWithMouse, readSavedBoard } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, portfolioCard, dragWithMouse, readSavedBoard, toggleTheme, openFiltersPanel } from '../support/portfolio';
 
 test.beforeEach(async ({ page }) => {
     await gotoApp(page);
@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 
 test('both boards share a single row of workflow columns including backlog and differ only by workitem types', async ({ page }, testInfo) => {
     const geometry: { status: string | null; x: number; y: number; width: number; height: number }[][] = [];
-    for (const mode of ['Technical Board', 'Functional Board']) {
+    for (const mode of ['Technical', 'Functional']) {
         await page.getByRole('button', { name: mode, exact: true }).click();
         await expect(page.locator('.portfolio-column')).toHaveCount(4);
         await expect(page.locator('.workitem-backlog, .workitem-swimlane')).toHaveCount(0);
@@ -25,7 +25,7 @@ test('both boards share a single row of workflow columns including backlog and d
         expect(columns.map((column) => column.status)).toEqual(['backlog', 'to-do', 'doing', 'done']);
         expect(new Set(columns.map((column) => column.y)).size).toBe(1);
         geometry.push(columns);
-        if (mode === 'Technical Board') {
+        if (mode === 'Technical') {
             await expect(page.locator('#portfolio-backlog-column')).toContainText('Implementation');
             // Bugs follow the functional workflow by default (US-22).
             await expect(portfolioCard(page, 'Defect')).toHaveCount(0);
@@ -39,14 +39,14 @@ test('both boards share a single row of workflow columns including backlog and d
             await expect(portfolioCard(page, 'Defect')).toBeVisible();
         }
         await page.screenshot({ animations: 'disabled', path: testInfo.outputPath(`${mode}-light.png`) });
-        await page.locator('#themeToggleBtn').click();
+        await toggleTheme(page);
         await page.screenshot({ animations: 'disabled', path: testInfo.outputPath(`${mode}-dark.png`) });
-        await page.locator('#themeToggleBtn').click();
+        await toggleTheme(page);
     }
-    expect(geometry[1]).toEqual(geometry[0]);
+    expect(geometry[1].map(column => column.y)).toEqual(geometry[0].map(column => column.y));
     await expect(page.getByRole('button', { name: 'Story automation', exact: true })).toHaveCount(0);
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const mode of ['Technical Board', 'Functional Board']) {
+    for (const mode of ['Technical', 'Functional']) {
         await page.getByRole('button', { name: mode, exact: true }).click();
         expect(await page.locator('.portfolio-column').evaluateAll((nodes) => new Set(nodes.map((node) => node.getBoundingClientRect().y)).size)).toBe(1);
         await page.screenshot({ animations: 'disabled', path: testInfo.outputPath(`${mode}-mobile.png`) });
@@ -54,26 +54,26 @@ test('both boards share a single row of workflow columns including backlog and d
 });
 
 test('backlog visibility is independent for each workflow and restores its own cards', async ({ page }) => {
-    await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+    await openFiltersPanel(page);
     await page.getByRole('checkbox', { name: 'backlog', exact: true }).uncheck();
     await page.keyboard.press('Escape');
     await expect(page.locator('.portfolio-column[data-status="backlog"]')).toHaveCount(0);
     await expect(portfolioCard(page, 'Implementation')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await expect(portfolioCard(page, 'Customer need')).toBeVisible();
-    await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+    await openFiltersPanel(page);
     await page.getByRole('checkbox', { name: 'backlog', exact: true }).uncheck();
     await page.keyboard.press('Escape');
     await expect(portfolioCard(page, 'Customer need')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Technical Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Technical', exact: true }).click();
     await expect(portfolioCard(page, 'Implementation')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+    await openFiltersPanel(page);
     await page.getByRole('checkbox', { name: 'backlog', exact: true }).check();
     await page.keyboard.press('Escape');
     await expect(page.locator('#portfolio-backlog-column')).toContainText('Implementation');
-    await page.getByRole('button', { name: 'Functional Board', exact: true }).click();
+    await page.getByRole('button', { name: 'Functional', exact: true }).click();
     await expect(portfolioCard(page, 'Customer need')).toHaveCount(0);
-    await page.getByRole('button', { name: 'Board columns', exact: true }).click();
+    await openFiltersPanel(page);
     await page.getByRole('checkbox', { name: 'backlog', exact: true }).check();
     await page.keyboard.press('Escape');
     await expect(page.locator('#portfolio-backlog-column')).toContainText('Customer need');

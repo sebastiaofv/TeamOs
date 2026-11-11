@@ -89,7 +89,7 @@ test('switching views preserves an expanded Sprint and its table state', async (
     await page.locator('[data-view-mode="table"]').click();
     await page.locator('[data-table-view="sprints"]').click();
     const sprint = page.locator('[data-table-sprint="sprint"]');
-    await sprint.locator('.table-sprint-name').click();
+    await sprint.locator('.roadmap-disclosure-btn').click();
     await expect(sprint).toHaveAttribute('open', '');
     await expect(sprint.getByRole('button', { name: 'Participating workitem', exact: true })).toBeVisible();
     await page.locator('[data-view-mode="board"]').click();

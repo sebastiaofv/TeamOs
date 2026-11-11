@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, identifyOpenProjects, portfolioCard, renameTaskViaEditor, selectPortfolioBoard, showTimeline, portfolioProjectChipButtons } from '../support/portfolio';
+import { gotoApp, identifyOpenProjects, portfolioCard, renameTaskViaEditor, selectPortfolioBoard, showTimeline, portfolioProjectChipButtons, openProjectPicker } from '../support/portfolio';
 import { fixtureTree, mockFolderPicker, readFolderJson } from '../support/folderProjects';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -33,6 +33,7 @@ for (const standalone of [false, true]) {
         expect(saved).not.toHaveProperty('history');
         expect(JSON.stringify(saved)).not.toContain('data:');
         expect(await page.evaluate(() => window.__folderDisk.writes['beta/project.json'] || 0)).toBe(0);
+        await openProjectPicker(page);
         await page.locator('.portfolio-chip').filter({ hasText: 'US-25 Alpha' }).getByRole('button', { name: 'Remove project' }).click();
         await page.locator('#importProjectsBtn').click();
         await expect(portfolioProjectChipButtons(page)).toHaveCount(2);

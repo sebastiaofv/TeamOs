@@ -120,7 +120,7 @@ function MiniMonth({ items, year, month, aggregate, heatmap, taskCounts, heatSta
     const cellCount = getPortfolioCalendarMiniMonthCellCount(year, month);
 
     return (
-        <div className="portfolio-calendar-mini-month-grid">
+        <div className="portfolio-calendar-mini-month-grid" aria-hidden="true">
             <div className="portfolio-calendar-mini-weekdays">
                 {Array.from({ length: 7 }, (_, weekday) => {
                     const name = getCalendarWeekdayName(language, weekday, true);
@@ -197,9 +197,7 @@ function CalendarYearView({ items, aggregate, heatmap, year, onSetPeriod }: Heat
                                         data-action="open-calendar-month"
                                         data-year={year}
                                         data-month={month}
-                                        aria-label={`${t('calendar.openMonth', { month: getCalendarMonthLabel(language, year, month) })}: ${monthItems.length === 1
-                                            ? t('calendar.itemCount', { count: monthItems.length })
-                                            : t('calendar.itemCountPlural', { count: monthItems.length })}`}
+                                        aria-description={t('calendar.openMonth', { month: getCalendarMonthLabel(language, year, month) })}
                                         onClick={() => onSetPeriod(year, month)}
                                         key={month}
                                     >

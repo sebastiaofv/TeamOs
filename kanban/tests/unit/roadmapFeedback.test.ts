@@ -27,6 +27,11 @@ describe('roadmap temporal scale', () => {
     it('does not repeat calendar days when there is more width than days', () => {
         expect(getRoadmapAxisTicks({ start: parseRoadmapIsoDate('2026-12-31')!, end: parseRoadmapIsoDate('2027-01-01')! }, 'en', 2000)).toHaveLength(2);
     });
+    it('reserves space before a right-aligned final year on a narrow date scale', () => {
+        const years = getRoadmapYearTicks({ start: parseRoadmapIsoDate('2026-10-01')!, end: parseRoadmapIsoDate('2099-12-31')! }, 170);
+        expect(years[years.length - 1].label).toBe('2099');
+        expect((years[years.length - 1].position - years[years.length - 2].position) / 100 * 170).toBeGreaterThanOrEqual(84);
+    });
 });
 
 describe('phase colour persistence', () => {
