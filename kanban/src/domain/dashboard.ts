@@ -109,7 +109,7 @@ export function dashboardHistorySummary(data: BoardData, phaseId: string, from: 
         let dirty = true;
         for (const point of iterateBoardTimeline(data)) {
             const event = point.event;
-            if (!(event.kind === 'task.updated' && !event.snapshot && event.changes && Object.keys(event.changes).every((field) => NON_METRIC_TASK_FIELDS.has(field)))) dirty = true;
+            if (!(event.kind === 'task.updated' && !event.snapshot && !event.checkpoint && event.changes && Object.keys(event.changes).every((field) => NON_METRIC_TASK_FIELDS.has(field)))) dirty = true;
             const date = event.at.slice(0, 10);
             if ((from && date < from) || (to && date > to)) continue;
             if (!counts || dirty) {

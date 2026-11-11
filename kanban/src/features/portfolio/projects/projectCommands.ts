@@ -132,7 +132,7 @@ export function createPortfolioFileActions({
             for (const source of legacy.loaded) {
                 if (knownIds.has(source.data.extensions.project?.id)) continue;
                 try {
-                    source.data.extensions.projectStorage = { version: 1, legacyFileName: source.fileName };
+                    source.data.extensions.projectStorage = { version: 1, baselineEventId: '', legacyFileName: source.fileName };
                     const handle = await createFolder(directory, source.data);
                     if (handle) {
                         const record = await BoardRepository.createRecordFromHandle(handle);

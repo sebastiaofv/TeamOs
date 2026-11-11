@@ -3,7 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { BoardFileHandle, ProjectDirectoryHandle } from '../../src/infrastructure/browser/types';
 
-type FolderDisk = { files: Record<string, number[]>; directories: string[]; reads: Record<string, number>; writes: Record<string, number>; selection: string };
+type FolderDisk = { files: Record<string, number[]>; directories: string[]; reads: Record<string, number>; fullReads: Record<string, number>; writes: Record<string, number>; selection: string };
 declare global { interface Window { __folderDisk: FolderDisk } }
 export function fixtureTree(root: string): { files: Record<string, number[]>; directories: string[] } {
     const files: Record<string, number[]> = {}; const directories = [''];
@@ -18,7 +18,7 @@ export function fixtureTree(root: string): { files: Record<string, number[]>; di
 }
 export async function mockFolderPicker(page: Page, tree: ReturnType<typeof fixtureTree> = { files: {}, directories: [''] }, selection = '') {
     await page.evaluate(({ tree, selection }) => {
-        const disk: FolderDisk = { ...tree, reads: {}, writes: {}, selection };
+        const disk: FolderDisk = { ...tree, reads: {}, fullReads: {}, writes: {}, selection };
         window.__folderDisk = disk;
         const handles = new Map<string, BoardFileHandle>();
         function file(path: string): BoardFileHandle {
@@ -29,7 +29,10 @@ export async function mockFolderPicker(page: Page, tree: ReturnType<typeof fixtu
                 async getFile() {
                     if (!disk.files[path]) throw new DOMException(`${path}: missing file`, 'NotFoundError');
                     disk.reads[path] = (disk.reads[path] || 0) + 1;
-                    return new File([new Uint8Array(disk.files[path])], handle.name, { lastModified: disk.writes[path] || 0 });
+                    const snapshot = new File([new Uint8Array(disk.files[path])], handle.name, { lastModified: disk.writes[path] || 0 });
+                    const text = snapshot.text.bind(snapshot);
+                    snapshot.text = () => { disk.fullReads[path] = (disk.fullReads[path] || 0) + 1; return text(); };
+                    return snapshot;
                 },
                 async createWritable(options = {}) {
                     let bytes = options.keepExistingData ? new Uint8Array(disk.files[path]) : new Uint8Array();

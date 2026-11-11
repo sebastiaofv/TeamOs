@@ -286,7 +286,7 @@ describe('serializeBoardDataFromObject', () => {
     expect(task.priority).toBeNull();
     expect(task.tags).toEqual(['dup', 'ok']);
     expect(task.checklist).toEqual([{ text: 'step', done: true }]);
-    // includeStatusChangedAt: false -> the key must not appear at all.
+    // An absent statusChangedAt remains absent.
     expect('statusChangedAt' in task).toBe(false);
   });
 

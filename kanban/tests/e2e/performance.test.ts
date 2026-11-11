@@ -6,6 +6,8 @@ import { ensureBoardTimelineBaseline } from '../../src/domain/timeline';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 import { gotoApp, identifyOpenProjects, seedPortfolioBoards, selectPortfolioBoard } from '../support/portfolio';
 import { mockFolderPicker } from '../support/folderProjects';
+import { attachmentsToHashes, toProjectFile } from '../../src/domain/projectFormat';
+import { createHistoryWriter, eventToFile, serializeHistoryFile } from '../../src/domain/projectHistoryFormat';
 
 async function openLargeProject(page: Page, tasks: number, events: number) {
     await page.clock.setFixedTime(new Date('2026-11-09T12:00:00Z'));
@@ -20,9 +22,10 @@ async function openLargeProject(page: Page, tasks: number, events: number) {
     const timeline = project.extensions.timeline!;
     delete project.extensions.timeline;
     project.extensions.projectStorage = { version: 1, baselineEventId: timeline.baselineEventId };
+    const writer = createHistoryWriter(undefined);
     await mockFolderPicker(page, { directories: ['', 'perf', 'perf/attachments'], files: {
-        'perf/project.json': [...Buffer.from(JSON.stringify(project))],
-        'perf/history.json': [...Buffer.from(JSON.stringify({ version: 1, timeline, archives: {}, transactions: [] }))]
+        'perf/project.json': [...Buffer.from(JSON.stringify(attachmentsToHashes(toProjectFile(project))))],
+        'perf/history.json': [...Buffer.from(serializeHistoryFile(project.extensions.project!.id, timeline.baselineEventId, timeline.events.map((event) => eventToFile(event, writer)), {}))]
     } }, 'perf');
     await page.locator('#importProjectsBtn').click();
     await expect(page.locator('#projectIdentityModal')).toBeVisible();
@@ -53,7 +56,7 @@ test('a hydrated 1000-event Dashboard stays within its interaction budget and re
     await expect(page.locator('#portfolioDashboard .dashboard-history')).toHaveCount(0);
     expect(elapsed).toBeLessThan(2000);
     testInfo.annotations.push({ type: 'Dashboard interaction', description: `${Math.round(elapsed)} ms; 20 workitems, 1000 events` });
-    expect(await page.evaluate(() => window.__folderDisk.reads['perf/history.json'])).toBe(1);
+    expect(await page.evaluate(() => window.__folderDisk.fullReads['perf/history.json'])).toBe(1);
     await setDashboardDate(page, 'Start date', '03/11/2026');
     await setDashboardDate(page, 'End date', '03/11/2026');
     await expect(page.locator('#portfolioDashboard [role="status"]').first()).toContainText('2026-11-03');
@@ -75,7 +78,7 @@ test('opening details after loading 10000 events stays fast and preserves commen
     await page.getByRole('tab', { name: 'History', exact: true }).click();
     await expect(page.locator('.task-history')).toBeVisible();
     await expect(page.locator('.history-entry')).toHaveCount(0);
-    expect(await page.evaluate(() => window.__folderDisk.reads['perf/history.json'])).toBe(1);
+    expect(await page.evaluate(() => window.__folderDisk.fullReads['perf/history.json'])).toBe(1);
 });
 
 test('switching views preserves an expanded Sprint and its table state', async ({ page }) => {

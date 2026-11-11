@@ -7,6 +7,7 @@ import { TIMELINE_EXTENSION_KEY } from '@/domain/constants';
 import { createBoardStateSnapshot } from '@/domain/serialize';
 import { getBoardExtensionsObject } from '@/domain/extensions';
 import { cloneSerializable } from '@/domain/serializable';
+import { retainControlContext } from '@/domain/controlHistory';
 import { getBoardTimelineData, recordBoardRestoreTimelineEvent } from '@/domain/timeline';
 
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
@@ -74,8 +75,13 @@ export function createTimelineActions(
         closeTaskDetail();
         closeTaskEditor();
         return runPortfolioBoardMutation(view.boardRecord.id, (_, draft) => {
+            const current = draft.data;
             const conversations = cloneSerializable(draft.data.extensions.conversations);
+            // Transfers are receipts of what really happened: a restore never forgets them.
+            const transfers = cloneSerializable(current.extensions.projectTransfers);
             draft.data = createBoardStateSnapshot(view.projectedBoard);
+            if (transfers) draft.data.extensions.projectTransfers = transfers;
+            if (current.extensions.projectStorage) retainControlContext(draft.data, current);
             if (conversations) draft.data.extensions.conversations = conversations;
             getBoardExtensionsObject(draft.data, { create: true })[TIMELINE_EXTENSION_KEY] = cloneSerializable(currentTimeline);
             recordBoardRestoreTimelineEvent(draft.data, view.selectedEvent);

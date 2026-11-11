@@ -18,6 +18,7 @@ import { comparePortfolioDueDateAsc } from './calendar';
 import { normalizeRoadmapExtension, parseRoadmapIsoDate } from './roadmap';
 import { effortRank, priorityRank, taskScore } from './scoring';
 import { normalizeTimelineExtension } from './timelineSchema';
+import { assertControlCatalog } from './controlHistory';
 import { parseTaskRelations } from '@/domain/taskRelations';
 import { parseSprintCatalog } from '@/domain/sprintCatalog';
 import { createProjectData, parseProjectData, validateProjectReferences } from '@/domain/projectData';
@@ -262,6 +263,7 @@ export function validateBoardData(data: unknown): asserts data is BoardData {
     if (!('workflow' in extensions) && data.board.columns.length > MAX_COLUMNS) throw new Error(`Board cannot have more than ${MAX_COLUMNS} legacy columns.`);
     parseSprintResults((extensions as Record<string, unknown>).sprintResults);
     parseProjectControl((extensions as Record<string, unknown>).projectControl);
+    assertControlCatalog((extensions as Record<string, unknown>).controlComments);
     parseSprintCatalog((extensions as Record<string, unknown>).sprintCatalog);
     const workflowData = { extensions: extensions as Record<string, unknown>, board: { columns: data.board.columns } };
     const functionalStatuses = new Set(getWorkflow(workflowData, 'functional').states.map((state) => state.id));

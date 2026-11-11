@@ -175,6 +175,7 @@ async function gotoApp(page: Page) {
 async function identifyOpenProjects(page: Page) {
   while (await page.locator('#projectIdentityModal').count()) {
     const identity = page.locator('#projectIdentityModal');
+    const dialog = await identity.elementHandle();
     const select = identity.locator('select');
     const member = await select.locator('option').evaluateAll((options) => options.map((option) => option.getAttribute('value')).find((value) => value && value !== '@new') || '');
     if (member) await select.selectOption(member);
@@ -183,7 +184,9 @@ async function identifyOpenProjects(page: Page) {
       await identity.locator('input').fill('Test user');
     }
     await identity.locator('.modal-footer button').click();
-    await page.waitForTimeout(25);
+    // Creating a member includes a disk save. Wait for this exact form to
+    // finish instead of selecting again while it is busy or already closing.
+    await dialog?.waitForElementState('hidden');
   }
 }
 

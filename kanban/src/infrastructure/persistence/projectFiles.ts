@@ -1,3 +1,4 @@
+import { withProjectIdentityLock } from './projectLock';
 import { getDirectoryProject, loadDirectoryHistory, mergeDirectoryTimeline, attachHistoryArchives } from './projectDirectory';
 import { parseConversations } from '@/domain/comments';
 import { inheritLegacyTaskIdentities } from '@/domain/taskIdentity';
@@ -216,7 +217,10 @@ export function restoreProjectRecovery(boardId: string, draft: ProjectRecovery):
     const runtime = getProjectFileState(boardId)!;
     if (runtime.inFlight || projectHasUnsavedChanges(boardId)) return false;
     runtime.base = cloneSerializable(draft.base);
-    runtime.lastTextHash = draft.baseHash;
+    // A draft from before the format conversion refers to the file that became this version.
+    const storage = getDirectoryProject(board.handle);
+    const metadata = board.data.extensions.projectStorage;
+    runtime.lastTextHash = storage?.projectHash && metadata?.convertedFromHash === draft.baseHash ? storage.projectHash : draft.baseHash;
     applySnapshotToBoardRecord(board, draft.local);
     markProjectDirty(boardId);
     // A recovered draft always requires an explicit reconciliation/check.
@@ -244,8 +248,7 @@ function publishData(boardId: string, data: BoardData): void {
 
 export async function withProjectLock<T>(board: BoardRecord, operation: () => Promise<T>): Promise<T> {
     const id = board.data.extensions.project?.id || board.id;
-    if (typeof navigator !== 'undefined' && navigator.locks) return navigator.locks.request(`teamos:project:${id}`, operation);
-    return operation();
+    return withProjectIdentityLock(id, operation);
 }
 
 let notifications: BroadcastChannel | undefined;
