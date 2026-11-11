@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { BoardData } from '../../src/domain/types';
 import { validateBoardData } from '../../src/domain/board';
-import { serializeBoardDataFromObject } from '../../src/domain/serialize';
-import { dashboardInProgress, dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardPeriodWorkitems, dashboardReportable, dashboardSnapshot, dashboardStatistics } from '../../src/domain/dashboardOverview';
+import { createBoardStateSnapshot, serializeBoardDataFromObject } from '../../src/domain/serialize';
+import { dashboardInProgress, dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardMilestones, dashboardPeriodWorkitems, dashboardReportable, dashboardSnapshot, dashboardStatistics } from '../../src/domain/dashboardOverview';
 
 const fixture = (): BoardData => serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
 const ids = (items: { id: number }[]) => items.map((item) => item.id);
@@ -267,5 +267,89 @@ describe('dashboard section reporting', () => {
         expect(historic.deliverables.map((record) => record.title)).toEqual(['Open delivery', 'Accepted delivery in period']);
         expect(dashboardControl(data, 'api', '', '2026-11-04').risks).toEqual([]);
         expect(dashboardControl(data, '', '2026-10-31', '2026-11-04').deliverables.map((record) => record.title)).toEqual(['Open delivery']);
+    });
+});
+
+
+describe('relevant Dashboard milestones', () => {
+    function milestonesFixture() {
+        const data = fixture();
+        data.extensions.roadmap!.milestones = [
+            { id: 'old', title: 'Older completion', dueDate: '2026-10-01' },
+            { id: 'recent', title: 'Latest completion', dueDate: '2026-10-02' },
+            { id: 'delayed', title: 'Missed deadline', dueDate: '2026-10-03' },
+            { id: 'next', title: 'Next checkpoint', dueDate: '2026-11-20' },
+            { id: 'later', title: 'Later checkpoint', dueDate: '2026-11-21' }
+        ];
+        const template = data.board.tasks.find((task) => task.id === 905)!;
+        data.board.tasks = data.extensions.roadmap!.milestones.map((milestone, index) => ({ ...template, id: index + 1,
+            permanentId: `milestone-task-${index}`, displayId: `ATL-TK-${index + 1}`, parentId: null,
+            status: 'to-do', milestoneId: milestone.id, milestoneMode: 'explicit', phaseId: '', phaseMode: 'none' }));
+        data.extensions.projectControl!.records = [];
+        delete data.extensions.taskRelations;
+        delete data.extensions.sprintResults;
+        data.extensions.timeline = { version: 1, baselineEventId: 'baseline', events: [
+            { id: 'baseline', at: '2026-10-15T12:00:00Z', kind: 'board.baseline', entityType: 'board', entityId: 'board', summary: 'Baseline', snapshot: createBoardStateSnapshot(data) }
+        ] };
+        return data;
+    }
+    function status(data: BoardData, id: number, after: string, day: string) {
+        const task = data.board.tasks.find((task) => task.id === id)!;
+        data.extensions.timeline!.events.push({ id: `${id}-${day}-${after}`, at: `${day}T12:00:00Z`, kind: 'task.status.changed', entityType: 'task', entityId: String(id), summary: after, changes: { status: { before: task.status, after } } });
+        task.status = after;
+    }
+    it('summarizes all milestones but selects only the latest recent completion, every delay and the next pending date', () => {
+        const data = milestonesFixture();
+        status(data, 1, 'accepted', '2026-10-20');
+        status(data, 2, 'accepted', '2026-10-25');
+        const result = dashboardMilestones(data, '2026-11-04');
+        expect(result.summary).toEqual({ completed: 2, delayed: 1, remaining: 3 });
+        expect(result.visible.map((row) => row.item.id)).toEqual(['recent', 'delayed', 'next']);
+        expect(dashboardMilestones(data, '2026-11-05').visible.map((row) => row.item.id)).toEqual(['delayed', 'next']);
+    });
+    it('selects the latest completion time when several milestones complete on the same day', () => {
+        const data = milestonesFixture();
+        status(data, 1, 'accepted', '2026-10-25');
+        status(data, 2, 'accepted', '2026-10-25');
+        data.extensions.timeline!.events.at(-1)!.at = '2026-10-25T18:00:00Z';
+        expect(dashboardMilestones(data, '2026-11-04').visible.map((row) => row.item.id)).toEqual(['recent', 'delayed', 'next']);
+    });
+    it('uses report-end history, includes the tenth day, and resets completion after reopening', () => {
+        const data = milestonesFixture();
+        status(data, 1, 'accepted', '2026-10-20');
+        status(data, 2, 'accepted', '2026-10-25');
+        status(data, 1, 'doing', '2026-10-26');
+        status(data, 1, 'accepted', '2026-11-01');
+        const historical = dashboardSnapshot(data, '2026-10-30', '2026-11-04')!.data;
+        expect(dashboardMilestones(historical, '2026-10-30').visible.map((row) => row.item.id)).toEqual(['old', 'recent', 'delayed', 'next']);
+        expect(dashboardMilestones(data, '2026-11-11').visible.map((row) => row.item.id)).toEqual(['old', 'delayed', 'next']);
+        expect(dashboardMilestones(data, '2026-11-12').visible.map((row) => row.item.id)).toEqual(['delayed', 'next']);
+    });
+    it('does not invent completion dates for a completed baseline or a file without history', () => {
+        const data = milestonesFixture();
+        data.board.tasks.forEach((task) => { task.status = 'accepted'; });
+        data.extensions.timeline!.events[0].snapshot = createBoardStateSnapshot(data);
+        expect(dashboardMilestones(data, '2026-10-16')).toMatchObject({ summary: { completed: 5, delayed: 0, remaining: 0 }, visible: [] });
+        delete data.extensions.timeline;
+        expect(dashboardMilestones(data, '2026-10-16').visible).toEqual([]);
+    });
+    it('starts the completion window only after pending deliverable acceptance releases the progress gate', () => {
+        const data = milestonesFixture();
+        const record = fixture().extensions.projectControl!.records.find((record) => record.kind === 'deliverables')!;
+        data.extensions.projectControl!.records = [{ ...record, status: 'delivered', related: { phaseIds: [], milestoneIds: ['recent'] } }];
+        data.extensions.timeline!.events[0].snapshot = createBoardStateSnapshot(data);
+        status(data, 2, 'accepted', '2026-10-20');
+        expect(dashboardMilestones(data, '2026-10-25').summary.completed).toBe(0);
+        data.extensions.projectControl!.records[0].status = 'accepted';
+        data.extensions.timeline!.events.push({ id: 'accept', at: '2026-10-30T12:00:00Z', kind: 'board.control.updated', entityType: 'board', entityId: 'board', summary: 'Accepted deliverable', snapshot: createBoardStateSnapshot(data) });
+        expect(dashboardMilestones(data, '2026-11-09').visible.map((row) => row.item.id)).toContain('recent');
+        expect(dashboardMilestones(data, '2026-11-10').visible.map((row) => row.item.id)).not.toContain('recent');
+    });
+    it('shows the next future milestone even when no recent completion or delay exists', () => {
+        const data = milestonesFixture();
+        data.extensions.roadmap!.milestones = data.extensions.roadmap!.milestones.filter((item) => ['next', 'later'].includes(item.id));
+        expect(dashboardMilestones(data, '2026-11-04').visible.map((row) => row.item.id)).toEqual(['next']);
+        data.extensions.roadmap!.milestones = [];
+        expect(dashboardMilestones(data, '2026-11-04').visible).toEqual([]);
     });
 });

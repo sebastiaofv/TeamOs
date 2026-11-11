@@ -43,7 +43,7 @@ test('selected-project metrics count archived leaves and open their exact source
     await page.keyboard.press('4');
     await page.keyboard.press('e');
     await expect(page.locator('#taskModal')).toHaveCount(0);
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('33.3%');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('33%');
     await expect(page.locator('[data-dashboard-statistics]')).toHaveCount(3);
     await kpi(page, 'progress').focus();
     await page.keyboard.press('Enter');
@@ -83,6 +83,8 @@ test('empty projects show unavailable progress and discreet empty widget message
     await seedPortfolioBoards(page, [{ id: 'empty', title: 'Empty project', hasHandle: true, tasks: [] }], { selectedBoardId: 'empty' });
     await page.locator('[data-view-mode="dashboard"]').click();
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('N/A');
+    await expect(page.locator('[data-dashboard-section="milestones"]')).toContainText('No relevant milestones');
+    await expect(page.locator('.dashboard-milestone-summary strong')).toHaveText(['0', '0', '0']);
     await expect(page.locator('[data-dashboard-section="activeSprint"]')).toContainText('No active sprint');
     await expect(page.locator('[data-dashboard-section="epics"]')).toContainText('No started Epics');
     await kpi(page, 'progress').click();
@@ -97,7 +99,7 @@ test('external file reload refreshes metrics and clears stale source lists', asy
     changed.board.tasks.find((task: { id: number }) => task.id === 903).status = 'doing';
     await mutateExternalBoardFile(page, { boardId: 'p', payload: changed });
     await triggerExternalFileCheck(page);
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
     await expect(sources(page).locator('tbody tr')).toHaveCount(0);
     await kpi(page, 'progress').click();
     await expect(sources(page)).toContainText('Independent validated task');
@@ -108,11 +110,11 @@ test('historical period uses saved observations and historical drilldowns instea
     await seed(page);
     await setDashboardDate(page, 'Start date', '16/10/2026');
     await setDashboardDate(page, 'End date', '19/10/2026');
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
     await setDashboardDate(page, 'Start date', '21/10/2026');
     await expect(page.getByRole('alert')).toContainText('The end date');
     await selectDashboardSnapshot(page, '0');
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
     await expect(page.locator('.dashboard-context')).toContainText('Historical snapshot');
     await kpi(page, 'progress').click();
     const row = sources(page).locator('tr', { hasText: 'Validated implementation' });
@@ -121,7 +123,7 @@ test('historical period uses saved observations and historical drilldowns instea
     await expect(page.locator('#taskDetailModal')).toContainText('In progress');
     await page.keyboard.press('Escape');
     await selectDashboardSnapshot(page, 'current');
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('33.3%');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('33%');
     await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
     await selectDashboardSnapshot(page, '0');

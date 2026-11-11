@@ -2,7 +2,7 @@ import type { BoardData, Task } from './types';
 import { dashboardPlanning, dashboardSprints, dashboardTasks } from './dashboard';
 import { controlPending, controlRecords, gateControlProgress } from './projectControl';
 import { phaseDescendants, planningProgress } from './phaseTree';
-import { applyTimelineEventToState, getBoardTimelineData, reconstructBoardStateFromTimeline } from './timeline';
+import { applyTimelineEventToState, getBoardTimelineData, iterateBoardTimeline, reconstructBoardStateFromTimeline } from './timeline';
 import { createBoardStateSnapshot } from './serialize';
 import { getWorkflow, statusCategory, withWorkflowReadCache } from './workflow';
 import { isPlanningUnit, transferDescendants, workitemProgress, workitemType } from './workitems';
@@ -151,6 +151,36 @@ export function dashboardOverviewPlanning(data: BoardData, phaseId: string, end:
     const milestones = planning.filter((group) => group.kind === 'milestones')
         .sort((a, b) => (a.item.dueDate || '9999').localeCompare(b.item.dueDate || '9999') || a.item.id.localeCompare(b.item.id));
     return { phases, milestones };
+}
+
+/** Completion dates come from recorded progress transitions, never the planned due date.
+ * A completed baseline has an unknown completion date until it reopens and completes again. */
+export function dashboardMilestones(data: BoardData, end: string, milestones = dashboardOverviewPlanning(data, '', end).milestones) {
+    return withWorkflowReadCache(() => {
+        const completed = milestones.filter((group) => group.progress.percent === 100);
+        const delayed = milestones.filter((group) => group.progress.percent !== 100 && group.overdue);
+        const remaining = milestones.filter((group) => group.progress.percent !== 100);
+        const completedIds = new Set(completed.map((group) => group.item.id));
+        const completedAt = new Map<string, string>();
+        let previous = new Set<string>();
+        if (completedIds.size) for (const { snapshot, event, index } of iterateBoardTimeline(data, (event) => event.at.slice(0, 10) <= end)) {
+            const current = new Set(dashboardOverviewPlanning(snapshot, '', event.at.slice(0, 10)).milestones
+                .filter((group) => completedIds.has(group.item.id) && group.progress.percent === 100).map((group) => group.item.id));
+            for (const id of completedIds) {
+                if (!current.has(id)) completedAt.delete(id);
+                else if (index > 0 && !previous.has(id)) completedAt.set(id, event.at);
+            }
+            previous = current;
+        }
+        const latest = completed.filter((group) => completedAt.has(group.item.id))
+            .sort((a, b) => completedAt.get(b.item.id)!.localeCompare(completedAt.get(a.item.id)!) || a.item.id.localeCompare(b.item.id))[0];
+        const age = latest ? (Date.parse(end) - Date.parse(completedAt.get(latest.item.id)!.slice(0, 10))) / 86_400_000 : Infinity;
+        const next = remaining.find((group) => !group.overdue);
+        const relevant = new Set([...delayed.map((group) => group.item.id),
+            ...(latest && age >= 0 && age <= 10 ? [latest.item.id] : []), ...(next ? [next.item.id] : [])]);
+        return { summary: { completed: completed.length, delayed: delayed.length, remaining: remaining.length },
+            visible: milestones.filter((group) => relevant.has(group.item.id)) };
+    });
 }
 
 export function dashboardControl(data: BoardData, phaseId: string, start: string, end: string) {
