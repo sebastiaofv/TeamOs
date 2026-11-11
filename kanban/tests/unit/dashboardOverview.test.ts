@@ -209,6 +209,34 @@ describe('dashboard section reporting', () => {
         original.status = 'accepted';
         expect(dashboardEpics(end(data, '2026-10-30'))[0].task.status).toBe('doing');
     });
+    it('totals Epic points across its planning units without duplicating child estimates or unrelated work', () => {
+        const data = fixture();
+        const task = (id: number) => data.board.tasks.find((row) => row.id === id)!;
+        task(902).storyPoints = 8;
+        task(903).storyPoints = 99; // Legacy child estimates never duplicate Story points.
+        task(905).parentId = 901; task(905).storyPoints = 3; task(905).status = 'accepted';
+        task(909).parentId = 901; task(909).storyPoints = 5; task(909).status = 'accepted';
+        task(906).parentId = 909; task(906).storyPoints = 77;
+        task(908).storyPoints = 50; // Unrelated completed work is excluded.
+        expect(dashboardEpics(data)[0].points).toEqual({ completed: 8, total: 16 });
+        expect(dashboardEpics(data)[0].progress.percent).toBeCloseTo(200 / 3);
+        task(904).status = 'accepted';
+        expect(dashboardEpics(data)[0].points).toEqual({ completed: 16, total: 16 });
+        expect(dashboardEpics(data)[0].progress.percent).toBeCloseTo(200 / 3); // Functional acceptance remains separate.
+        task(904).status = 'cancelled';
+        expect(dashboardEpics(data)[0].points.completed).toBe(8); // Cancelled children do not earn completion.
+        data.board.tasks = data.board.tasks.filter((row) => row.id === 901);
+        expect(dashboardEpics(data)[0].points).toEqual({ completed: 0, total: 0 });
+    });
+    it('uses the selected historical hierarchy and estimates for Epic points', () => {
+        const data = fixture();
+        data.board.tasks.find((task) => task.id === 902)!.storyPoints = 100;
+        const baseline = data.extensions.timeline!.events[0].snapshot!.board!.tasks;
+        baseline.find((task) => task.id === 902)!.storyPoints = 8;
+        baseline.find((task) => task.id === 904)!.status = 'accepted';
+        expect(dashboardEpics(end(data, '2026-10-30'))[0].points).toEqual({ completed: 8, total: 8 });
+        expect(dashboardEpics(data)[0].points).toEqual({ completed: 0, total: 100 });
+    });
     it('keeps explicitly active overdue Sprints and counts SP once per planning unit using development completion', () => {
         const data = fixture();
         const sprint = data.extensions.roadmap!.sprints.find((item) => item.id === 'active')!;

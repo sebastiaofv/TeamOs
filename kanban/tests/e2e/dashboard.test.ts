@@ -29,8 +29,7 @@ for (const width of [1280, 390]) for (const tab of ['Overview', 'Sprint Analytic
         await expect(page.getByLabel('Planning scope', { exact: true })).toHaveCount(0);
         await page.locator('.dashboard-range-field').click();
         const sources = page.locator('#dashboardSources');
-        await sources.scrollIntoViewIfNeeded();
-        await expect(sources).toBeInViewport();
+        await expect(sources).toHaveCount(0);
     });
 }
 

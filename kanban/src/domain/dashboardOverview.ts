@@ -5,7 +5,7 @@ import { phaseDescendants, planningProgress } from './phaseTree';
 import { applyTimelineEventToState, getBoardTimelineData, reconstructBoardStateFromTimeline } from './timeline';
 import { createBoardStateSnapshot } from './serialize';
 import { getWorkflow, statusCategory, withWorkflowReadCache } from './workflow';
-import { isPlanningUnit, workitemProgress, workitemType } from './workitems';
+import { isPlanningUnit, transferDescendants, workitemProgress, workitemType } from './workitems';
 import { getSprintCalendarStatus, getSprintStatus } from './roadmap';
 import { developmentCompleted, sprintPointSummary } from './sprintResults';
 
@@ -66,7 +66,13 @@ export function dashboardActiveSprints(data: BoardData, end: string) {
 
 export function dashboardEpics(data: BoardData) {
     return data.board.tasks.filter((task) => workitemType(task) === 'epic' && ['in-progress', 'testing', 'completed'].includes(statusCategory(task.status, data, task)))
-        .map((task) => ({ task, progress: workitemProgress(data, task.id) }));
+        .map((task) => {
+            const units = transferDescendants(data, task.id).filter((child) => isPlanningUnit(data, child));
+            return { task, progress: workitemProgress(data, task.id), points: {
+                total: units.reduce((sum, child) => sum + (child.storyPoints ?? 0), 0),
+                completed: units.filter((child) => developmentCompleted(data, child)).reduce((sum, child) => sum + (child.storyPoints ?? 0), 0)
+            } };
+        });
 }
 
 /** Count actual status changes, not baseline contents, workflow edits, or restores.

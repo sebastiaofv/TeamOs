@@ -17,7 +17,7 @@ import { useI18n } from '@/shared/i18n';
 
 type Props = { dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; start: string; end: string; visible: DashboardSection[]; activityOrder: ActivityWidget[]; inspect: DashboardInspect; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
 function Progress({ value, label }: { value: number | null; label: string }) {
-    return <progress className="dashboard-progress" max={100} value={value ?? 0} aria-label={label} />;
+    return <progress className={`dashboard-progress${value === 100 ? ' dashboard-progress-completed' : ''}`} max={100} value={value ?? 0} aria-label={label} />;
 }
 
 export function DashboardOverview({ dependencyBlockedIds, boardId, data, source, start, end, visible, activityOrder, inspect, openRoadmap }: Props) {
@@ -42,8 +42,7 @@ export function DashboardOverview({ dependencyBlockedIds, boardId, data, source,
     <div className="dashboard-section-grid dashboard-overview-grid">
         {visible.includes('projectProgress') && <section className="dashboard-panel dashboard-third dashboard-project-progress" data-dashboard-section="projectProgress"><h3><WorkspaceIcon name="progress" />{t('dashboard.projectProgress')}</h3>
             <button type="button" className="dashboard-progress-button" data-dashboard-kpi="progress" onClick={() => inspect(t('dashboard.progress'), metrics.eligible)}>
-                <span className="dashboard-progress-summary"><strong>{percent(metrics.progress.percent)}</strong><span className="dashboard-progress-count" title={t('dashboard.progressRule', { done: metrics.completed.length, total: metrics.eligible.length })}>{metrics.completed.length} / {metrics.eligible.length}<small>{t('dashboard.workitems')}</small></span></span>
-                <Progress value={metrics.progress.percent} label={t('dashboard.projectProgress')} />
+                <span className="dashboard-progress-summary"><span className="dashboard-progress-ring" role="progressbar" aria-label={t('dashboard.projectProgress')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={metrics.progress.percent ?? undefined} aria-valuetext={percent(metrics.progress.percent)}><svg viewBox="0 0 120 120" aria-hidden="true"><circle className="dashboard-ring-track" cx="60" cy="60" r="50" /><circle className="dashboard-ring-value" cx="60" cy="60" r="50" pathLength="100" opacity={(metrics.progress.percent ?? 0) > 0 ? 1 : 0} strokeDasharray={`${metrics.progress.percent ?? 0} 100`} /></svg><strong>{percent(metrics.progress.percent)}</strong></span><span className="dashboard-progress-count" title={t('dashboard.progressRule', { done: metrics.completed.length, total: metrics.eligible.length })}>{metrics.completed.length} / {metrics.eligible.length}<small>{t('dashboard.workitems')}</small></span></span>
             </button>
         </section>}
         {visible.includes('activePhases') && <section className="dashboard-panel dashboard-third dashboard-phases" data-dashboard-section="activePhases"><h3><WorkspaceIcon name="phases" />{t('dashboard.section.activePhases')}</h3>
@@ -61,8 +60,8 @@ export function DashboardOverview({ dependencyBlockedIds, boardId, data, source,
         </section>}
         {visible.includes('milestones') && <section className="dashboard-panel dashboard-third" data-dashboard-section="milestones"><h3><WorkspaceIcon name="finish" />{t('dashboard.section.milestones')}</h3>
             {!planning.milestones.length ? <p>{t('dashboard.noOpenMilestones')}</p> : <div className="dashboard-widget-list dashboard-scroll"><table className="dashboard-table dashboard-milestone-table" aria-label={t('dashboard.section.milestones')}><tbody>{planning.milestones.map((group) => <tr key={group.item.id} data-dashboard-planning={group.item.id}>
-                <td>{situation(group.progress.percent === 100 ? 'completed' : group.overdue ? 'overdue' : 'onTarget')}</td>
                 <td><button type="button" className="dashboard-link dashboard-truncate" title={group.item.title} onClick={() => openRoadmap('milestones', group.item)}>{group.item.title}</button></td>
+                <td className="dashboard-milestone-alert">{group.overdue && group.progress.percent !== 100 && <span role="img" aria-label={t('dashboard.overdue')} title={t('dashboard.overdue')}><WorkspaceIcon name="alert" /></span>}</td>
                 <td className="dashboard-secondary">{formatDate(group.item.dueDate || '') || t('dashboard.na')}</td>
                 <td><button type="button" className="dashboard-link dashboard-inline-progress" onClick={() => inspect(group.item.title, group.tasks)}>{percent(group.progress.percent)}<Progress value={group.progress.percent} label={group.item.title} /></button></td>
             </tr>)}</tbody></table></div>}
@@ -85,17 +84,16 @@ export function DashboardOverview({ dependencyBlockedIds, boardId, data, source,
                     {group.states.filter((state) => state.tasks.length).map((state) => {
                         const value = state.tasks.length / group.tasks.length * 100;
                         const label = `${state.name}: ${state.tasks.length} (${percent(value)})`;
-                        return <button type="button" key={state.id} title={label} aria-label={label} style={{ width: `${value}%`, background: state.color }} onClick={() => inspect(`${title} · ${state.name}`, state.tasks)}><span>{state.tasks.length} · {percent(value)}</span></button>;
+                        return <span className="dashboard-status-segment" role="img" key={state.id} title={label} aria-label={label} tabIndex={0} style={{ width: `${value}%`, background: state.color }}><span>{state.tasks.length}</span></span>;
                     })}
                     {!group.tasks.length && <small>{t('dashboard.noWorkitems')}</small>}
                 </div>
-                <button type="button" className="dashboard-link" aria-label={`${title}: ${group.tasks.length}`} onClick={() => inspect(title, group.tasks)}>{group.tasks.length}</button>
             </article>;
         })}</div><div className="dashboard-state-legend">{legend.map((state) => <span key={`${state.name}:${state.color}`}><span className="dashboard-dot" style={{ background: state.color }} />{state.name}</span>)}</div></section>}
         {visible.includes('epics') && <section className="dashboard-panel dashboard-third" data-dashboard-section="epics"><h3><WorkspaceIcon name="folder" />{t('dashboard.section.epics')}</h3>
-            {!epics.length ? <p>{t('dashboard.noStartedEpics')}</p> : <div className="dashboard-widget-list dashboard-scroll"><table className="dashboard-table dashboard-epic-table" aria-label={t('dashboard.section.epics')}><tbody>{epics.map(({ task, progress }) => {
+            {!epics.length ? <p>{t('dashboard.noStartedEpics')}</p> : <div className="dashboard-widget-list dashboard-scroll"><table className="dashboard-table dashboard-epic-table" aria-label={t('dashboard.section.epics')}><tbody>{epics.map(({ task, progress, points }) => {
                 const open = () => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: data, readOnly: true });
-                return <tr key={task.id}><td><button type="button" className="dashboard-link" onClick={open}>{workitemLabel(task)}</button></td><td><button type="button" className="dashboard-link dashboard-truncate" title={task.title} onClick={open}>{task.title}</button></td><td><WorkflowStateBadge state={getWorkflow(data, task).states.find((state) => state.id === task.status)!} /></td><td><span className="dashboard-inline-progress">{percent(progress.percent)}<Progress value={progress.percent} label={`${task.title}: ${percent(progress.percent)}`} /></span></td></tr>;
+                return <tr key={task.id}><td><button type="button" className="dashboard-link" onClick={open}>{workitemLabel(task)}</button></td><td><button type="button" className="dashboard-link dashboard-truncate" title={task.title} onClick={open}>{task.title}</button></td><td><WorkflowStateBadge state={getWorkflow(data, task).states.find((state) => state.id === task.status)!} /></td><td className="dashboard-epic-points"><span>{points.completed} / {points.total}</span><small>{t('dashboard.storyPoints')}</small></td><td><span className="dashboard-inline-progress">{percent(progress.percent)}<Progress value={progress.percent} label={`${task.title}: ${percent(progress.percent)}`} /></span></td></tr>;
             })}</tbody></table></div>}
         </section>}
     </div></section>}

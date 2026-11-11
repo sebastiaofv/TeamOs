@@ -99,7 +99,7 @@ test('phases and milestones are independent compact widgets with dates, progress
     await expect(phases.locator('[data-dashboard-planning="late"]')).toHaveAttribute('data-phase-state', 'overdue');
     await expect(phases.locator('[data-dashboard-planning="delivery"]')).toContainText('01/10/2026');
     const milestones = section(page, 'milestones');
-    await expect(milestones.locator('[data-dashboard-planning="late-milestone"] .dashboard-situation-overdue')).toBeVisible();
+    await expect(milestones.locator('[data-dashboard-planning="late-milestone"] .dashboard-milestone-alert [aria-label="Overdue"]')).toBeVisible();
     await expect(milestones.locator('[data-dashboard-planning="late-milestone"]')).toContainText('0%');
     await expect(milestones).toContainText('Next unassigned checkpoint');
     await milestones.getByRole('button', { name: 'Next unassigned checkpoint', exact: true }).click();
@@ -112,10 +112,10 @@ test('stacked horizontal bars distinguish actual workflow states and exclude chi
     const tasks = page.locator('[data-dashboard-statistics="task"]');
     await expect(tasks.getByRole('group')).toHaveAccessibleName(/Independent Tasks:.*Testing 1/);
     await expect(tasks.getByRole('group')).toHaveAccessibleName(/Independent Tasks:.*In progress 3/);
-    await tasks.getByRole('button', { name: /Testing: 1/, exact: false }).click();
-    await expect(page.locator('#dashboardSources tbody tr')).toHaveCount(1);
-    await expect(page.locator('#dashboardSources')).toContainText('Independent task started');
-    await expect(page.locator('#dashboardSources')).not.toContainText('Child task excluded');
+    await expect(tasks.getByRole('button')).toHaveCount(0);
+    await expect(tasks.locator('.dashboard-status-segment > span')).toHaveText(['1', '3', '1', '3', '1']);
+    await expect(tasks.locator('.dashboard-status-segment[title*="Testing: 1"]')).toHaveAttribute('title', /Testing: 1 \(11.1%\)/);
+    await expect(page.locator('#dashboardSources')).toHaveCount(0);
 });
 
 test('started Epics use their own status and shared progress and open historical details', async ({ page }) => {
@@ -318,7 +318,7 @@ for (const width of [1280, 390]) test(`navigation, range field and compact menus
     await page.getByLabel('End date', { exact: true }).fill('05/11/2026');
     expect(await page.getByLabel('End date', { exact: true }).evaluate((input: HTMLInputElement) => input.validity.valid)).toBe(false);
     await page.getByLabel('End date', { exact: true }).fill('04/11/2026');
-    await page.getByRole('heading', { name: 'Project overview', exact: true }).click();
+    await page.locator('.dashboard-tabs').click({ position: { x: 2, y: 2 } });
     await expect(page.getByLabel('Start date', { exact: true })).toBeHidden();
     await sections.click();
     await page.keyboard.press('Escape');
@@ -348,8 +348,69 @@ test('phase alerts take precedence and completed milestones retain their detail 
     await expect(phases.locator('[data-dashboard-planning="waiting"] .dashboard-missed-date')).toHaveText('01/10/2026');
     await expect(phases.locator('[data-dashboard-planning="finished"] .dashboard-missed-date')).toHaveCount(0);
     const milestone = section(page, 'milestones').locator('[data-dashboard-planning="complete"]');
-    await expect(milestone.locator('td').first()).toHaveText('Completed');
+    await expect(milestone.locator('.dashboard-milestone-alert')).toBeEmpty();
+    await expect(milestone.getByRole('progressbar')).toHaveClass(/dashboard-progress-completed/);
     await expect(milestone.getByRole('progressbar')).toHaveAttribute('value', '100');
     await milestone.getByRole('button', { name: 'Completed checkpoint', exact: true }).click();
     await expect(page.locator('#milestoneWorkitemsModal')).toContainText('Completed checkpoint');
+});
+
+for (const width of [1840, 390]) test(`toolbar stays below main navigation during scrolling at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await seed(page);
+    const toolbar = page.locator('.dashboard-toolbar');
+    await page.locator('#portfolioBoardWrap').evaluate((node) => { node.scrollTop = 700; });
+    await expect.poll(async () => Math.round((await toolbar.boundingBox())!.y)).toBe(Math.round((await page.locator('#portfolioBoardWrap').boundingBox())!.y));
+    await expect(page.getByRole('button', { name: 'Overview', exact: true })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Sprint Analytics', exact: true })).toBeInViewport();
+    await expect(page.locator('.dashboard-visible-sections summary')).toBeInViewport();
+    const range = page.locator('.dashboard-range-field');
+    await expect(range).toBeInViewport();
+    await range.click();
+    await expect(page.getByLabel('End date', { exact: true })).toBeInViewport();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Story point metrics', exact: true })).toBeVisible();
+    await expect(range).toBeInViewport();
+});
+
+for (const style of ['classic', 'modern']) test(`rings, phase circles, continuous bars and Epic points retain their shapes in both themes (${style})`, async ({ page }) => {
+    await page.setViewportSize({ width: 1840, height: 1000 });
+    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    await page.addInitScript((style) => localStorage.setItem('teamOsKanbanThemeStyle', style), style);
+    const epic = data.board.tasks.find((task: { id: number }) => task.id === 901);
+    const story = data.board.tasks.find((task: { id: number }) => task.id === 902);
+    story.storyPoints = 8; story.status = 'accepted';
+    data.board.tasks.find((task: { id: number }) => task.id === 904).status = 'accepted';
+    epic.title = 'Completed epic with estimated story';
+    data.extensions.roadmap.phases.find((phase: { id: string }) => phase.id === 'finished').title = 'A very long parent phase title that must be clamped to exactly two lines with a hover tooltip';
+    await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'shapes', title: 'Shape checks', hasHandle: false, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'shapes' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    for (const theme of ['light', 'dark']) {
+        if (theme === 'dark') await toggleTheme(page);
+        const ring = section(page, 'projectProgress').getByRole('progressbar');
+        await expect(ring).toHaveAttribute('aria-valuenow', /[0-9]+/);
+        await expect(ring.locator('svg circle')).toHaveCount(2);
+        const circles = page.locator('.dashboard-phase-circle');
+        for (const circle of await circles.all()) await expect(circle).toHaveCSS('border-radius', '50%');
+        await expect(page.locator('.dashboard-phase-completed')).toHaveCSS('background-color', 'rgb(21, 153, 107)');
+        await expect(page.locator('.dashboard-phase-overdue').first()).toHaveCSS('border-top-color', await page.locator('.dashboard-phase-overdue').first().evaluate((node) => getComputedStyle(node).color));
+        const phaseName = page.locator('.dashboard-phase-name').first();
+        await expect(phaseName).toHaveAttribute('title', /A very long parent phase/);
+        await expect(phaseName).toHaveCSS('-webkit-line-clamp', '2');
+        const bar = section(page, 'workitemStatus').locator('.dashboard-stacked-bar').first();
+        const segments = await bar.locator('.dashboard-status-segment').all();
+        for (let index = 1; index < segments.length; index++) {
+            const before = (await segments[index - 1].boundingBox())!;
+            const after = (await segments[index].boundingBox())!;
+            expect(Math.abs(before.x + before.width - after.x)).toBeLessThan(1);
+        }
+        await expect(section(page, 'epics').locator('.dashboard-epic-points')).toContainText('8 / 8');
+        await expect(section(page, 'epics').getByRole('progressbar')).toHaveClass(/dashboard-progress-completed/);
+        await expect(section(page, 'epics').getByRole('progressbar')).toHaveCSS('height', '10px');
+        const sprintWidth = (await section(page, 'activeSprint').boundingBox())!.width;
+        expect((await section(page, 'activePhases').boundingBox())!.width).toBeGreaterThan(sprintWidth * 2);
+    }
 });

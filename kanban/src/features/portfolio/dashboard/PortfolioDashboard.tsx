@@ -28,14 +28,14 @@ function Distribution({ metrics, data, inspect }: { metrics: Metrics; data: Boar
     const { t } = useI18n();
     const stateLabel = (task: Task) => `${data.extensions.functionalWorkflow ? `${t(`project.workflow.${workflowKind(task)}`)} · ` : ''}${getWorkflow(data, task).states.find((state) => state.id === task.status)?.name || task.status}`;
     return <div className="dashboard-columns">
-        <section className="dashboard-panel"><h3>{t('dashboard.distribution')}</h3>
+        <section className="dashboard-panel"><h3><WorkspaceIcon name="chart" />{t('dashboard.distribution')}</h3>
             {metrics.states.map((group) => <button className="dashboard-chart-row" type="button" key={group.id} onClick={() => inspect(stateLabel(group.tasks[0]), group.tasks)}>
                 <span>{stateLabel(group.tasks[0])}</span>
                 <span className="dashboard-chart-track" aria-hidden="true"><span style={{ width: `${group.tasks.length / Math.max(1, metrics.tasks.length) * 100}%` }} /></span><strong>{group.tasks.length}</strong>
             </button>)}
             {!metrics.states.length && <p>{t('dashboard.noWorkitems')}</p>}
         </section>
-        <section className="dashboard-panel"><h3>{t('dashboard.typeCounts')}</h3>
+        <section className="dashboard-panel"><h3><WorkspaceIcon name="folder" />{t('dashboard.typeCounts')}</h3>
             {metrics.types.map((group) => <button className="dashboard-chart-row" type="button" key={group.type} onClick={() => inspect(t(`workitems.type.${group.type}`), group.tasks)}>
                 <span>{t(`workitems.type.${group.type}`)}</span><span className="dashboard-chart-track" aria-hidden="true"><span style={{ width: `${group.tasks.length / Math.max(1, metrics.tasks.length) * 100}%` }} /></span><strong>{group.tasks.length}</strong>
             </button>)}
@@ -52,7 +52,7 @@ function SprintAnalytics({ data, phaseId, asOf, inspect }: { data: BoardData; ph
     const single = selectedIds.length === 1 ? visible[0] : null;
     const scopeChanges = useMemo(() => single ? dashboardSprintScopeChanges(data, single.item.id, phaseId) : [], [data, single, phaseId]);
     return <>
-        <section className="dashboard-panel"><h3>{t('dashboard.sprints')}</h3>
+        <section className="dashboard-panel"><h3><WorkspaceIcon name="runner" />{t('dashboard.sprints')}</h3>
             <fieldset className="dashboard-sprint-selection"><legend className="sr-only">{t('dashboard.sprints')}</legend>
                 <label><input type="checkbox" checked={!selectedIds.length} onChange={() => setSelected([])} />{t('dashboard.allSprints')}</label>
                 {sprints.map((sprint) => <label key={sprint.item.id}><input type="checkbox" checked={selectedIds.includes(sprint.item.id)} onChange={(event) => setSelected((ids) => event.target.checked ? [...ids, sprint.item.id] : ids.filter((id) => id !== sprint.item.id))} />
@@ -68,11 +68,11 @@ function SprintAnalytics({ data, phaseId, asOf, inspect }: { data: BoardData; ph
                     <td><button type="button" className="dashboard-link" onClick={() => inspect(`${sprint.item.title} · ${t('dashboard.open')}`, sprint.metrics.open, sprint.data)}>{sprint.metrics.open.length}</button></td>
                 </tr>)}</tbody></table></div>}
         </section>
-        <section className="dashboard-panel"><h3>{t('dashboard.sprintMetrics')}</h3><div className="dashboard-kpis">
+        <section className="dashboard-panel"><h3><WorkspaceIcon name="progress" />{t('dashboard.sprintMetrics')}</h3><div className="dashboard-kpis">
             {(['sprintCapacity', 'plannedSp', 'completedSp', 'completionRate', 'velocity'] as const).map((key) => <div className="dashboard-kpi" key={key}><span>{t(`dashboard.${key}`)}</span><strong>{t('dashboard.na')}</strong></div>)}
         </div><p className="dashboard-note">{t('dashboard.noSp')}</p></section>
-        <div className="dashboard-columns">{(['plannedChart', 'burndown', 'carryOver'] as const).map((key) => <section className="dashboard-panel" key={key}><h3>{t(`dashboard.${key}`)}</h3><p>{t(key === 'carryOver' ? 'dashboard.noClosure' : 'dashboard.noSp')}</p></section>)}</div>
-        {single && <section className="dashboard-panel"><h3>{t('table.sprintIdentity', { number: single.number || t('dashboard.na'), name: single.item.title })}</h3>
+        <div className="dashboard-columns">{(['plannedChart', 'burndown', 'carryOver'] as const).map((key) => <section className="dashboard-panel" key={key}><h3><WorkspaceIcon name="chart" />{t(`dashboard.${key}`)}</h3><p>{t(key === 'carryOver' ? 'dashboard.noClosure' : 'dashboard.noSp')}</p></section>)}</div>
+        {single && <section className="dashboard-panel"><h3><WorkspaceIcon name="runner" />{t('table.sprintIdentity', { number: single.number || t('dashboard.na'), name: single.item.title })}</h3>
             <Distribution metrics={single.metrics} data={single.data} inspect={(name, tasks) => inspect(name, tasks, single.data)} />
             <h4>{t('dashboard.scopeChanges')}</h4>
             {!scopeChanges.length ? <p>{t('dashboard.noScopeChanges')}</p> : <ul className="dashboard-scope-changes">{scopeChanges.map((change, index) => <li key={index}>
@@ -89,7 +89,7 @@ function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string })
     const heading = useRef<HTMLHeadingElement>(null);
     useEffect(() => { if (drill) heading.current?.focus(); }, [drill]);
     return <section className="dashboard-panel dashboard-drilldown" id="dashboardSources" aria-labelledby="dashboardSourcesTitle">
-        <h3 id="dashboardSourcesTitle" ref={heading} tabIndex={-1}>{drill ? t('dashboard.drilldown', { name: drill.name }) : t('dashboard.drillHint')}</h3>
+        <h3 id="dashboardSourcesTitle" ref={heading} tabIndex={-1}><WorkspaceIcon name="search" />{drill ? t('dashboard.drilldown', { name: drill.name }) : t('dashboard.drillHint')}</h3>
         {drill && <><p>{t('dashboard.sourceCount', { count: drill.tasks.length })}</p>
             {drill.activity ? <ActivityWorkitems tasks={drill.tasks} data={drill.data} boardId={boardId} details={drill.activity} /> : !drill.tasks.length ? <p>{t('dashboard.noSources')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th><th>{t('dashboard.dates')}</th></tr></thead>
                 <tbody>{drill.tasks.map((task) => <tr key={task.id}><td>{workitemLabel(task)}</td><td><button type="button" className="dashboard-link" onClick={() => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: drill.data, readOnly: true })}>{task.title}</button></td>
@@ -200,7 +200,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
             <details className="dashboard-reporting-info"><summary aria-label={t('dashboard.reportingInfo')} title={t('dashboard.reportingInfo')}><WorkspaceIcon name="info" /></summary><p className="dashboard-note">{t('dashboard.periodNote', { date: end })}</p></details>
             {tab === 'overview' ? <DashboardOverview dependencyBlockedIds={dependencyBlockedIds} boardId={boardId} data={displayData} source={data} start={from} end={end} visible={shown} activityOrder={activityLayout.order} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId="" asOf={end} inspect={inspect} />}
         </>}
-        <Drilldown drill={displayData ? drill : null} boardId={boardId} />
+        {displayData && drill && <Drilldown drill={drill} boardId={boardId} />}
     </>;
 }
 
