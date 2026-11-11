@@ -1,4 +1,4 @@
-export const ACTIVITY_WIDGETS = ['activitySummary', 'started', 'completedInPeriod', 'currentlyInProgress'] as const;
+export const ACTIVITY_WIDGETS = ['activitySummary', 'started', 'completedInPeriod', 'currentlyInProgress', 'testing'] as const;
 export type ActivityWidget = typeof ACTIVITY_WIDGETS[number];
 export type DashboardActivityLayout = { version: 1; order: ActivityWidget[]; hidden: ActivityWidget[] };
 

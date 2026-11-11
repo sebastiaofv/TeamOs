@@ -14,12 +14,12 @@ import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useI18n } from '@/shared/i18n';
 
-type Props = { dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; start: string; end: string; visible: DashboardSection[]; activityOrder: ActivityWidget[]; inspect: DashboardInspect; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
+type Props = { historyEventIndex?: number; dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; start: string; end: string; visible: DashboardSection[]; activityOrder: ActivityWidget[]; inspect: DashboardInspect; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
 function Progress({ value, label }: { value: number | null; label: string }) {
     return <progress className={`dashboard-progress${value === 100 ? ' dashboard-progress-completed' : ''}`} max={100} value={value ?? 0} aria-label={label} />;
 }
 
-export function DashboardOverview({ dependencyBlockedIds, boardId, data, source, start, end, visible, activityOrder, inspect, openRoadmap }: Props) {
+export function DashboardOverview({ historyEventIndex, dependencyBlockedIds, boardId, data, source, start, end, visible, activityOrder, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
     const actions = usePortfolioActions();
     const [control, setControl] = useState<ControlRecord | null>(null);
@@ -93,7 +93,7 @@ export function DashboardOverview({ dependencyBlockedIds, boardId, data, source,
         })}</div><div className="dashboard-state-legend">{legend.map((state) => <span key={`${state.name}:${state.color}`}><span className="dashboard-dot" style={{ background: state.color }} />{state.name}</span>)}</div></section>}
         {visible.includes('epics') && <section className="dashboard-panel dashboard-third" data-dashboard-section="epics"><h3><WorkspaceIcon name="folder" />{t('dashboard.section.epics')}</h3>
             {!epics.length ? <p>{t('dashboard.noStartedEpics')}</p> : <ul className="dashboard-epic-list dashboard-widget-list" aria-label={t('dashboard.section.epics')}>{epics.map(({ task, progress, points }) => {
-                const open = () => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: data, readOnly: true });
+                const open = () => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: data, readOnly: true, historyEventIndex });
                 const state = getWorkflow(data, task).states.find((state) => state.id === task.status)!;
                 return <li key={task.id} data-dashboard-epic={task.id}>
                     <div className="dashboard-epic-identity"><button type="button" className="dashboard-link dashboard-epic-id" onClick={open}>{workitemLabel(task)}</button><button type="button" className="dashboard-link dashboard-truncate" title={task.title} onClick={open}>{task.title}</button></div>
@@ -104,7 +104,7 @@ export function DashboardOverview({ dependencyBlockedIds, boardId, data, source,
             })}</ul>}
         </section>}
     </div></section>}
-    <DashboardActivity boardId={boardId} data={data} source={source} start={start} end={end} visible={visible.filter(isActivityWidget)} order={activityOrder} inspect={inspect} />
+    <DashboardActivity historyEventIndex={historyEventIndex} boardId={boardId} data={data} source={source} start={start} end={end} visible={visible.filter(isActivityWidget)} order={activityOrder} inspect={inspect} />
     <div className="dashboard-section-grid">
         {(['openRisks', 'deliverables', 'decisions'] as const).filter((key) => visible.includes(key)).map((key) => {
             const records = controls[key === 'openRisks' ? 'risks' : key];

@@ -5,7 +5,7 @@
 .dashboard-controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0; }
 .dashboard-filters { align-items: end; }
 .dashboard-filters > label { flex: 1 1 150px; }
-.dashboard-filters > .dashboard-snapshot, .dashboard-filters > .dashboard-visible-sections { flex: 1 1 220px; }
+.dashboard-filters > .dashboard-visible-sections { flex: 1 1 220px; }
 .dashboard-controls label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.5; min-width: 0; max-width: 100%; }
 .dashboard-controls select, .dashboard-controls input { max-width: 380px; width: 100%; min-height: 34px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); padding: 6px 10px; }
 .dashboard-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
@@ -131,34 +131,30 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-activity-heading::after { content: ''; height: 1px; background: var(--border-light); flex: 1; margin-inline-start: 10px; }
 .dashboard-activity-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .dashboard-activity-grid > .dashboard-panel { margin: 0; border-radius: 12px; background: color-mix(in srgb, var(--bg-card) 96%, var(--accent)); }
-.dashboard-activity-summary { grid-column: 1 / -1; }
-.dashboard-activity-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.dashboard-activity-total { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 8px 20px; border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; text-align: start; cursor: pointer; }
-.dashboard-activity-total + .dashboard-activity-total { border-inline-start: 1px solid var(--border-light); }
+.dashboard-activity-summary { display: flex; flex-direction: column; min-height: 220px; }
+.dashboard-activity-totals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 0; margin-block: auto; }
+.dashboard-activity-total { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 8px 12px; border: 0; background: transparent; color: var(--text-secondary); font: inherit; font-size: 12px; text-align: start; cursor: pointer; }
+.dashboard-activity-total:nth-child(even) { border-inline-start: 1px solid var(--border-light); }
 .dashboard-activity-total:hover:not(:disabled) { background: var(--bg-secondary); border-radius: 6px; }
 .dashboard-activity-total:disabled { cursor: default; }
-.dashboard-activity-total strong { display: block; margin-top: 6px; font-size: 32px; line-height: 1.2; font-weight: 600; color: var(--text-primary); }
+.dashboard-activity-total strong { display: block; margin-top: 6px; font-size: 26px; line-height: 1.2; font-weight: 600; color: var(--text-primary); }
 .dashboard-activity-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-size: 20px; }
 .dashboard-activity-completedInPeriod .dashboard-activity-icon { color: #15996b; background: color-mix(in srgb, #15996b 12%, transparent); }
 .dashboard-activity-detail { height: 350px; display: flex; flex-direction: column; overflow: hidden; }
 .dashboard-activity-detail h3 { display: flex; align-items: center; gap: 8px; }
-.dashboard-activity-count { margin-inline-start: auto; font-size: 18px; font-weight: 600; }
-.dashboard-activity-detail > .dashboard-scroll { min-height: 0; }
-.dashboard-activity-table { table-layout: fixed; }
-.dashboard-activity-table th, .dashboard-activity-table td { padding: 10px 5px; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
-.dashboard-activity-table th { color: var(--text-secondary); font-size: 10px; font-weight: 500; }
-.dashboard-activity-table th:nth-child(1) { width: 14%; }
-.dashboard-activity-table th:nth-child(2) { width: 21%; }
-.dashboard-activity-table th:nth-child(3) { width: 26%; }
-.dashboard-activity-table th:nth-child(4) { width: 18%; }
-.dashboard-activity-table th:nth-child(5) { width: 21%; }
-.dashboard-activity-table tbody tr { cursor: pointer; transition: background 120ms ease; }
-.dashboard-activity-table tbody tr:hover, .dashboard-activity-table tbody tr:focus-within { background: var(--bg-secondary); }
-.dashboard-activity-table button { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-decoration: none; }
-.dashboard-activity-table .dashboard-activity-title button { color: var(--text-primary); }
-.dashboard-type { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; padding: 2px 4px; border-radius: 4px; background: var(--bg-secondary); color: var(--text-secondary); }
-.dashboard-type-story { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.dashboard-activity-view-all { margin-top: auto; padding-top: 12px; font-size: 12px; text-decoration: none; }
+/* Compact activity rows keep all workitems available in a bounded list. */
+.dashboard-activity-list { list-style: none; padding: 0; margin: 0; flex: 1; }
+.dashboard-activity-list > li { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, .85fr) minmax(0, .85fr) 30px; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; }
+.dashboard-activity-list > li:hover, .dashboard-activity-list > li:focus-within { background: var(--bg-secondary); }
+.dashboard-activity-identity { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.dashboard-activity-identity .dashboard-activity-id { max-width: 100%; font-size: 11px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-activity-identity .dashboard-truncate { max-width: 100%; }
+.dashboard-activity-list .workitem-type[data-workitem-type], .dashboard-activity-status { display: flex; align-items: center; gap: 5px; padding: 0; border: 0; border-radius: 0; background: none; min-width: 0; font-size: 11px; color: var(--text-secondary); }
+.dashboard-activity-type > span:last-child, .dashboard-activity-status > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dashboard-activity-list .dashboard-dot { width: 7px; height: 7px; border-radius: 50%; }
+.dashboard-activity-type .dashboard-dot { background: var(--workitem-color); }
+.dashboard-activity-avatar { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, var(--bg-card)); color: var(--text-secondary); font-size: 11px; overflow: hidden; }
+.dashboard-drilldown .dashboard-activity-list { max-height: 420px; }
 .dashboard-activity-empty { color: var(--text-secondary); }
 .dashboard-visible-sections fieldset { max-height: min(70vh, 650px); overflow-y: auto; }
 .dashboard-visible-sections fieldset > .dashboard-layout-row { display: flex; align-items: center; gap: 4px; border: 0; padding: 0; }
@@ -168,11 +164,10 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 @media (max-width: 1100px) { .dashboard-activity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) {
     .dashboard-activity-grid { grid-template-columns: minmax(0, 1fr); }
-    .dashboard-activity-total { padding: 6px; gap: 6px; flex-direction: column; align-items: flex-start; font-size: 11px; }
-    .dashboard-activity-total + .dashboard-activity-total { padding-inline-start: 12px; }
+    .dashboard-activity-total { padding: 6px; gap: 8px; font-size: 11px; }
     .dashboard-activity-total strong { font-size: 26px; }
     .dashboard-activity-heading { font-size: 16px; }
-    .dashboard-activity-table { min-width: 400px; }
+    .dashboard-activity-list > li { gap: 8px; }
 }
 
 /* Dashboard navigation and compact project overview. */
@@ -199,11 +194,11 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-panel h3 > svg { color: var(--accent); flex-shrink: 0; width: 22px; height: 22px; }
 .dashboard-overview-grid > .dashboard-project-progress { grid-column: span 3; }
 .dashboard-overview-grid > .dashboard-phases { grid-column: span 9; }
-.dashboard-overview-grid > [data-dashboard-section="milestones"] { grid-column: span 8; }
+.dashboard-overview-grid > [data-dashboard-section="milestones"] { grid-column: span 4; }
 .dashboard-overview-grid > .dashboard-active-sprint { grid-column: span 4; }
-.dashboard-overview-grid > .dashboard-statistics, .dashboard-overview-grid > [data-dashboard-section="epics"] { grid-column: span 6; }
-.dashboard-project-progress { --dashboard-progress-color: #0f766e; }
-:root[data-theme="dark"] .dashboard-project-progress { --dashboard-progress-color: #5eead4; }
+.dashboard-overview-grid > .dashboard-statistics { grid-column: span 4; }
+.dashboard-overview-grid > [data-dashboard-section="epics"] { grid-column: 1 / -1; }
+.dashboard-project-progress { --dashboard-progress-color: var(--accent); }
 .dashboard-project-progress .dashboard-progress-button { flex: 1; justify-content: center; }
 .dashboard-progress-summary { display: flex; flex-direction: row; align-items: center; gap: 16px; width: 100%; }
 .dashboard-progress-ring { position: relative; width: 156px; max-width: 58%; aspect-ratio: 1; flex: 0 1 156px; display: grid; place-items: center; }
@@ -230,7 +225,8 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-badge { border: 0; border-radius: 12px; padding: 4px 7px; white-space: nowrap; background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .dashboard-situation-overdue, .dashboard-situation-late { background: color-mix(in srgb, var(--priority-high) 10%, transparent); }
 .dashboard-situation-completed { color: #15996b; background: color-mix(in srgb, #15996b 12%, transparent); }
-.dashboard-sprint-summary { padding: 0 0 12px; gap: 22px; border: 0; }
+.dashboard-active-sprint > .dashboard-widget-list { display: flex; flex-direction: column; flex: 1; }
+.dashboard-sprint-summary { flex: 1; justify-content: space-between; min-height: 180px; padding: 4px 0 12px; gap: 24px; border: 0; }
 .dashboard-sprint-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .dashboard-sprint-header > div { min-width: 0; }
 .dashboard-sprint-header .dashboard-link { font-weight: 600; font-size: 16px; text-decoration: none; color: var(--text-primary); }
@@ -241,7 +237,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-sprint-indicators strong { font-size: 24px; font-weight: 600; white-space: nowrap; }
 .dashboard-sprint-indicators small { font-size: 13px; color: var(--text-secondary); }
 .dashboard-statistics-grid { gap: 14px; flex-shrink: 0; }
-.dashboard-status-row { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: center; gap: 12px; }
+.dashboard-status-row { display: grid; grid-template-columns: 100px minmax(0, 1fr); align-items: center; gap: 12px; }
 .dashboard-status-row h4 { margin: 0; font-size: 14px; font-weight: 500; }
 .dashboard-status-row .dashboard-stacked-bar { height: 24px; margin: 0; border-radius: 5px; }
 .dashboard-stacked-bar > .dashboard-status-segment { display: flex; align-items: center; justify-content: center; border: 0; padding: 0; min-width: 0; color: white; text-shadow: 0 1px 3px #000b, 0 0 2px #000b; font: inherit; font-size: 13px; flex-shrink: 0; container-type: inline-size; }
@@ -284,7 +280,6 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-epic-points { text-align: end; font-variant-numeric: tabular-nums; }
 .dashboard-epic-points small { display: block; color: var(--text-secondary); font-size: 11px; }
 .dashboard-activity-icon > svg { width: 22px; height: 22px; }
-.dashboard-activity-table th, .dashboard-activity-table td { font-size: 12px; }
 .dashboard-badge { font-size: 12px; }
 
 /* Relevant milestones and Epics share prominent progress and quiet detail actions. */
@@ -295,7 +290,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-milestone-completed { color: #15996b; }
 .dashboard-milestone-delayed { color: var(--priority-high); }
 .dashboard-milestone-list, .dashboard-epic-list { list-style: none; padding: 0; margin: 0; }
-.dashboard-milestone-list > li { display: grid; grid-template-columns: minmax(0, 1.2fr) auto minmax(100px, 1fr); align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; }
+.dashboard-milestone-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border-light); font-size: 14px; }
 .dashboard-milestone-list .dashboard-truncate, .dashboard-epic-list .dashboard-truncate { max-width: 100%; }
 .dashboard-milestone-date { display: flex; gap: 4px; align-items: center; white-space: nowrap; font-size: 12px; }
 .dashboard-milestone-alert { display: inline-flex; flex-shrink: 0; }
@@ -308,7 +303,8 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-epic-status > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dashboard-epic-status .dashboard-dot { width: 7px; height: 7px; border-radius: 50%; }
 .dashboard-epic-points { white-space: nowrap; }
-.dashboard-epic-list .dashboard-progress { height: 16px; border-radius: 6px; }
+.dashboard-milestone-list .dashboard-inline-progress { grid-column: 1 / -1; }
+.dashboard-epic-list .dashboard-progress, .dashboard-milestone-list .dashboard-progress { height: 16px; border-radius: 6px; }
 @media (max-width: 700px) {
     .dashboard-milestone-list > li { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
     .dashboard-milestone-list .dashboard-inline-progress { grid-column: 1 / -1; }

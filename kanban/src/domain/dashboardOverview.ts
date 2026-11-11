@@ -9,7 +9,7 @@ import { isPlanningUnit, transferDescendants, workitemProgress, workitemType } f
 import { getSprintCalendarStatus, getSprintStatus } from './roadmap';
 import { developmentCompleted, sprintPointSummary } from './sprintResults';
 
-export const DASHBOARD_SECTIONS = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'workitemStatus', 'epics', 'activitySummary', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'] as const;
+export const DASHBOARD_SECTIONS = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'workitemStatus', 'epics', 'activitySummary', 'started', 'completedInPeriod', 'currentlyInProgress', 'testing', 'openRisks', 'deliverables', 'decisions'] as const;
 export type DashboardSection = typeof DASHBOARD_SECTIONS[number];
 
 /** End dates include the entire UTC day. Never use today's state before the first observation. */
@@ -80,10 +80,11 @@ export function dashboardEpics(data: BoardData) {
 export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, phaseId: string, start: string, end: string) {
     return withWorkflowReadCache(() => {
         const timeline = getBoardTimelineData(source);
-        const result = { started: [] as Task[], completed: [] as Task[], availableFrom: timeline?.events[0]?.at.slice(0, 10) || null, available: Boolean(timeline?.events[0]?.snapshot?.board), startedAt: new Map<number, string>(), completedAt: new Map<number, string>(), contexts: new Map<number, BoardData>() };
+        const result = { started: [] as Task[], completed: [] as Task[], testing: [] as Task[], availableFrom: timeline?.events[0]?.at.slice(0, 10) || null, available: Boolean(timeline?.events[0]?.snapshot?.board), startedAt: new Map<number, string>(), completedAt: new Map<number, string>(), testingAt: new Map<number, string>(), contexts: new Map<number, BoardData>() };
         if (!result.available || !timeline) return result;
         const started = new Map<number, Task>();
         const completed = new Map<number, Task>();
+        const testing = new Map<number, Task>();
         // Keep raw replay separate: normalizing a legacy baseline derives a people
         // catalog that must not be fed into later events introducing new members.
         let replay: Parameters<typeof applyTimelineEventToState>[0] = timeline.events[0].snapshot;
@@ -105,6 +106,10 @@ export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, 
                         started.set(task.id, task);
                         if (!result.startedAt.has(task.id)) result.startedAt.set(task.id, event.at);
                     }
+                    if (afterCategory === 'testing') {
+                        testing.set(task.id, task);
+                        if (!result.testingAt.has(task.id)) result.testingAt.set(task.id, event.at);
+                    }
                     if (afterCategory === 'completed') {
                         completed.set(task.id, task);
                         if (!result.completedAt.has(task.id)) result.completedAt.set(task.id, event.at);
@@ -112,20 +117,23 @@ export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, 
                 }
             }
             for (const task of next.board.tasks) {
-                if (date <= end && (started.has(task.id) || completed.has(task.id))) {
+                if (date <= end && (started.has(task.id) || completed.has(task.id) || testing.has(task.id))) {
                     if (started.has(task.id)) started.set(task.id, task);
                     if (completed.has(task.id)) completed.set(task.id, task);
+                    if (testing.has(task.id)) testing.set(task.id, task);
                     result.contexts.set(task.id, next);
                 }
             }
             previous = next;
         }
-        const endRows = (members: Map<number, Task>) => [...members.values()].flatMap((task) => {
-            const atEnd = endData.board.tasks.find((row) => row.id === task.id && row.createdAt === task.createdAt);
-            if (atEnd && (!dashboardReportable(endData, atEnd) || !dashboardTasks(endData, phaseId).some((row) => row.id === atEnd.id))) return [];
+        const endRows = (members: Map<number, Task>, context = endData) => [...members.values()].flatMap((task) => {
+            const atEnd = context.board.tasks.find((row) => row.id === task.id && row.createdAt === task.createdAt);
+            if (atEnd && (!dashboardReportable(context, atEnd) || !dashboardTasks(context, phaseId).some((row) => row.id === atEnd.id))) return [];
             return [atEnd || task];
         });
         result.started = endRows(started); result.completed = endRows(completed);
+        // Testing is a period event; show the current status even after the item leaves Testing.
+        result.testing = endRows(testing, source);
         return result;
     });
 }

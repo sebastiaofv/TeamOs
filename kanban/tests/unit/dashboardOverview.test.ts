@@ -80,6 +80,9 @@ describe('dashboard section reporting', () => {
         expect(ids(dashboardInProgress(snapshot))).not.toContain(914);
         const testingOnly = dashboardPeriodWorkitems(data, snapshot, '', '2026-10-26', '2026-10-30');
         expect(ids(testingOnly.started)).toEqual([914]);
+        expect(ids(testingOnly.testing)).toEqual([911]);
+        expect(ids(report.testing)).toEqual([911]);
+        expect(report.testingAt.get(911)).toBe('2026-10-26T12:00:00.000Z');
     });
     it('counts direct entry into Testing and keeps pre-existing execution in the end-date count', () => {
         const data = fixture();
@@ -95,6 +98,50 @@ describe('dashboard section reporting', () => {
         expect(report.startedAt.get(911)).toBe('2026-10-25T00:00:00.000Z');
         expect(dashboardInProgress(snapshot).length).toBeGreaterThan(report.started.length);
         expect(dashboardInProgress(snapshot).every((task) => !['epic'].includes(task.type || '') && task.id !== 913)).toBe(true);
+    });
+    it('counts Testing by category entry in the period, keeps later current status and excludes child Tasks', () => {
+        const data = fixture();
+        const workflow = data.extensions.workflow!;
+        workflow.states.find((state) => state.id === 'testing')!.category = 'testing';
+        workflow.references.testing = 'testing';
+        workflow.transitions.testing.push('validation');
+        workflow.transitions.validation = ['accepted'];
+        workflow.states.push({ id: 'validation', name: 'QA review', category: 'testing', color: '#8844aa' });
+        data.extensions.functionalWorkflow = structuredClone(workflow);
+        const baseline = data.extensions.timeline!.events[0];
+        baseline.snapshot!.extensions!.workflow = structuredClone(workflow);
+        baseline.snapshot!.extensions!.functionalWorkflow = structuredClone(workflow);
+        // Created before the range, entered Testing twice and completed afterwards.
+        data.extensions.timeline!.events = [baseline,
+            { id: 'qa-start', at: '2026-10-24T00:00:00.000Z', kind: 'task.status.changed', entityType: 'task', entityId: '911', summary: 'QA', changes: { status: { before: 'to-do', after: 'validation' } } },
+            { id: 'qa-next', at: '2026-10-24T12:00:00.000Z', kind: 'task.status.changed', entityType: 'task', entityId: '911', summary: 'QA', changes: { status: { before: 'validation', after: 'testing' } } },
+            { id: 'qa-child', at: '2026-10-25T12:00:00.000Z', kind: 'task.status.changed', entityType: 'task', entityId: '913', summary: 'QA', changes: { status: { before: 'to-do', after: 'testing' } } },
+            { id: 'qa-story', at: '2026-10-25T23:59:59.999Z', kind: 'task.updated', entityType: 'task', entityId: '910', summary: 'QA', changes: { status: { before: 'to-do', after: 'validation' } } },
+            { id: 'qa-end', at: '2026-10-26T00:00:00.000Z', kind: 'task.status.changed', entityType: 'task', entityId: '911', summary: 'Done', changes: { status: { before: 'testing', after: 'accepted' } } }
+        ];
+        data.board.tasks.find((task) => task.id === 911)!.status = 'accepted';
+        data.board.tasks.find((task) => task.id === 910)!.status = 'validation';
+        const report = dashboardPeriodWorkitems(data, end(data, '2026-10-25'), '', '2026-10-24', '2026-10-25');
+        expect(ids(report.testing)).toEqual([911, 910]);
+        expect(report.testing[0].status).toBe('accepted');
+        expect(report.testingAt.get(911)).toBe('2026-10-24T00:00:00.000Z');
+        expect(ids(dashboardPeriodWorkitems(data, data, '', '2026-10-25', '2026-10-25').testing)).toEqual([910]);
+        expect(dashboardPeriodWorkitems(data, data, '', '2026-10-26', '2026-10-26').testing).toEqual([]);
+    });
+    it('does not treat a state named Testing in another category, baselines or workflow edits as Testing events', () => {
+        const data = fixture();
+        expect(dashboardPeriodWorkitems(data, data, '', '2026-10-24', '2026-10-30').testing).toEqual([]);
+        const baseline = data.extensions.timeline!.events[0];
+        const snapshot = structuredClone(baseline.snapshot!);
+        snapshot.extensions!.workflow!.states.find((state) => state.id === 'testing')!.category = 'testing';
+        snapshot.extensions!.workflow!.references.testing = 'testing';
+        snapshot.board!.tasks.find((task) => task.id === 911)!.status = 'testing';
+        data.extensions.timeline!.events = [baseline, { id: 'edit', at: '2026-10-25T12:00:00Z', kind: 'workflow.updated', entityType: 'board', entityId: 'board', summary: 'Workflow', snapshot }];
+        expect(dashboardPeriodWorkitems(data, data, '', '', '2026-10-30').testing).toEqual([]);
+        data.extensions.timeline!.events[1].kind = 'board.restored';
+        expect(dashboardPeriodWorkitems(data, data, '', '', '2026-10-30').testing).toEqual([]);
+        delete data.extensions.timeline;
+        expect(dashboardPeriodWorkitems(data, data, '', '', '2026-10-30')).toMatchObject({ available: false, testing: [] });
     });
     it('distinguishes unavailable history, partial coverage and an observed period without activity', () => {
         const data = fixture();

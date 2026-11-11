@@ -1,4 +1,4 @@
-import { setDashboardDate, selectDashboardSnapshot } from '../support/dashboard';
+import { setDashboardDate } from '../support/dashboard';
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, mutateExternalBoardFile, triggerExternalFileCheck, toggleTheme, openProjectPicker } from '../support/portfolio';
@@ -113,22 +113,24 @@ test('historical period uses saved observations and historical drilldowns instea
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
     await setDashboardDate(page, 'Start date', '21/10/2026');
     await expect(page.getByRole('alert')).toContainText('The end date');
-    await selectDashboardSnapshot(page, '0');
+    await setDashboardDate(page, 'Start date', '15/10/2026');
+    await setDashboardDate(page, 'End date', '15/10/2026');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
-    await expect(page.locator('.dashboard-context')).toContainText('Historical snapshot');
+    await expect(page.locator('.dashboard-context')).toContainText('Snapshot date · 2026-10-15');
     await kpi(page, 'progress').click();
     const row = sources(page).locator('tr', { hasText: 'Validated implementation' });
     await expect(row).toContainText('In progress');
     await row.getByRole('button').click();
     await expect(page.locator('#taskDetailModal')).toContainText('In progress');
     await page.keyboard.press('Escape');
-    await selectDashboardSnapshot(page, 'current');
+    await setDashboardDate(page, 'End date', '31/10/2026');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('33%');
     await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
-    await selectDashboardSnapshot(page, '0');
+    await setDashboardDate(page, 'Start date', '15/10/2026');
+    await setDashboardDate(page, 'End date', '15/10/2026');
     await expect(page.locator('.dashboard-scope-changes button')).toHaveCount(0);
-    await selectDashboardSnapshot(page, '2');
+    await setDashboardDate(page, 'End date', '25/10/2026');
     await expect(page.locator('.dashboard-scope-changes button')).toHaveCount(1);
 });
 

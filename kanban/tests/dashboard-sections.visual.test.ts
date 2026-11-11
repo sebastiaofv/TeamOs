@@ -6,10 +6,14 @@ import { gotoApp, seedPortfolioBoards, toggleTheme } from './support/portfolio';
 for (const style of ['classic', 'modern']) for (const theme of ['light', 'dark']) for (const width of [1840, 390]) {
     test(`dashboard overview widget layout at ${width}px (${theme}, ${style})`, async ({ page }) => {
         await page.setViewportSize({ width, height: 980 });
+        const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+        for (const context of [data, ...data.extensions.timeline.events.flatMap((event: { snapshot?: { extensions?: { workflow?: typeof data.extensions.workflow } } }) => event.snapshot ? [event.snapshot] : [])]) {
+            const workflow = context.extensions?.workflow;
+            if (workflow) { workflow.states.find((state: { id: string }) => state.id === 'testing').category = 'testing'; workflow.references.testing = 'testing'; }
+        }
         await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
         await page.addInitScript((style) => localStorage.setItem('teamOsKanbanThemeStyle', style), style);
         await gotoApp(page);
-        const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
         await seedPortfolioBoards(page, [{ id: 'sections', title: data.board.settings.title, hasHandle: true, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sections' });
         await page.locator('[data-view-mode="dashboard"]').click();
         await setDashboardDate(page, 'Start date', '24/10/2026');
