@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 import { projectActor, selectProjectMember, useProjectIdentityRevision } from './projectIdentity';
 
@@ -13,7 +13,7 @@ export function ProjectIdentityDialog() {
 }
 function IdentityForm({ boardId }: { boardId: string }) {
     const board = useAppStore((state) => state.portfolioBoards.find((record) => record.id === boardId))!;
-    const { addProjectMember } = usePortfolioActions();
+    const { addProjectMember } = portfolioActions;
     const { t } = useI18n();
     const [id, setId] = useState('');
     const [name, setName] = useState('');

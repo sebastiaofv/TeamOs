@@ -1,14 +1,13 @@
 import { formatTimestamp } from '@/domain/dates';
 import { workitemLabel } from '@/domain/taskIdentity';
 import type { TaskDetailViewModel } from '@/features/portfolio/types';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { childrenOf, epicOf, parentOf, workitemProgress, workitemType, WORKITEM_FIELDS, isTerminal } from '@/domain/workitems';
 import { getWorkflow } from '@/domain/workflow';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
 import { useI18n } from '@/shared/i18n';
 
 export function WorkitemLineage({ vm }: { vm: TaskDetailViewModel }) {
-    const actions = usePortfolioActions();
     const { t } = useI18n();
     const data = vm.sourceBoardData;
     const task = data.board.tasks.find((entry) => entry.id === vm.taskId);
@@ -23,7 +22,6 @@ export function WorkitemLineage({ vm }: { vm: TaskDetailViewModel }) {
 }
 
 export function WorkitemHierarchy({ vm }: { vm: TaskDetailViewModel }) {
-    const actions = usePortfolioActions();
     const { t } = useI18n();
     const data = vm.sourceBoardData;
     const task = data.board.tasks.find((entry) => entry.id === vm.taskId);

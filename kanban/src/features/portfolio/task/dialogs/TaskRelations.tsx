@@ -3,14 +3,14 @@ import { workitemId, workitemLabel, workitemLabelFor } from '@/domain/taskIdenti
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { TaskRelationKind } from '@/domain/types';
 import type { TaskDetailViewModel, TaskRelationEntry } from '@/features/portfolio/types';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 
 const GROUPS: TaskRelationKind[] = ['blockedBy', 'blocks', 'related'];
 
 export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
-    const { associatePortfolioTasks, removePortfolioTaskRelation, openPortfolioCreateRelatedTask, openPortfolioTaskDetails } = usePortfolioActions();
+    const { associatePortfolioTasks, removePortfolioTaskRelation, openPortfolioCreateRelatedTask, openPortfolioTaskDetails } = portfolioActions;
     const [mode, setMode] = useState<'link' | 'create' | 'edit' | null>(null);
     const [search, setSearch] = useState('');
     const [otherId, setOtherId] = useState('');

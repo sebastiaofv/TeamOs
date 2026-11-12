@@ -12,7 +12,7 @@ import { workitemLabel } from '@/domain/taskIdentity';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
 import { navigateToRoadmapItem } from '@/features/portfolio/commands/roadmapNavigation';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 
@@ -81,7 +81,6 @@ function SprintAnalytics({ data, phaseId, asOf, inspect }: { data: BoardData; ph
 
 function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string }) {
     const { t } = useI18n();
-    const actions = usePortfolioActions();
     const heading = useRef<HTMLHeadingElement>(null);
     useEffect(() => { if (drill) heading.current?.focus(); }, [drill]);
     return <section className="dashboard-panel dashboard-drilldown" id="dashboardSources" aria-labelledby="dashboardSourcesTitle">
@@ -110,7 +109,6 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     }, [historyUnavailable, timeline, board]);
     const today = useLocalToday();
     const { t } = useI18n();
-    const actions = usePortfolioActions();
     const [tab, setTab] = useState<'overview' | 'sprintAnalytics'>('overview');
     const [phaseId, setPhaseId] = useState('');
     const [drill, setDrill] = useState<Drill | null>(null);

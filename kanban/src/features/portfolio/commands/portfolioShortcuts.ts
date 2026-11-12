@@ -8,7 +8,7 @@ import type { DetailContext } from '@/features/portfolio/state/slices';
 import { createNewProject, importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { closeDocs, toggleDocs } from '@/app/docs/docsMode';
-import { getPortfolioMutationActions, type PortfolioMutationActions } from './portfolioCommands';
+import { portfolioActions } from './portfolioCommands';
 import {
     resetPortfolioFilters,
     selectPortfolioBoard,
@@ -144,7 +144,7 @@ const MOVE_SHORTCUTS: [string, TaskStatus, string][] = [
     ['4', 'done', 'Done']
 ];
 
-export function createPortfolioShortcuts(actions: PortfolioMutationActions = getPortfolioMutationActions()): Shortcut[] {
+function createPortfolioShortcuts(actions = portfolioActions): Shortcut[] {
     return [
     {
         id: 'open-palette', section: 'Global', keys: ['Ctrl/⌘', 'K'], description: 'Open the command palette', contexts: ['global', 'docs', 'detailModal'],
@@ -329,7 +329,7 @@ function isSingleKeyShortcut(entry: Shortcut): boolean {
     return entry.keys.length === 1 && key.length === 1;
 }
 
-export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMutationActions = getPortfolioMutationActions()): void {
+export function handleShortcutKeydown(event: KeyboardEvent): void {
     // A key already handled elsewhere (a dialog closing on Escape, a drag being
     // cancelled) is not also a shortcut.
     if (event.defaultPrevented) return;
@@ -339,10 +339,7 @@ export function handleShortcutKeydown(event: KeyboardEvent, actions: PortfolioMu
     const contextName = (activeDialog && SHORTCUT_CONTEXT_BY_DIALOG[activeDialog])
         || (getState().appMode === 'docs' ? 'docs' : 'global');
     const typing = isTyping();
-    const shortcuts = actions === getPortfolioMutationActions()
-        ? SHORTCUTS
-        : createPortfolioShortcuts(actions);
-    for (const entry of shortcuts) {
+    for (const entry of SHORTCUTS) {
         if (!entry.contexts.includes(contextName)) continue;
         // Card shortcuts must not target the hidden Board's independent rows.
         if (contextName === 'global' && getState().selectedPortfolioViewMode === 'table'

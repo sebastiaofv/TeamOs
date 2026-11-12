@@ -29,7 +29,6 @@ export const THEME_STYLE_STORAGE_KEY = 'teamOsKanbanThemeStyle';
 export const LANGUAGE_STORAGE_KEY = 'teamOsKanbanLanguage';
 export const DEBUG_LOGS_ENABLED = false;
 export const CALENDAR_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-export const CALENDAR_WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export const defaultColumns: readonly BoardColumn[] = [
     { status: 'backlog', title: 'backlog' },
     { status: 'to-do', title: 'to-do' },

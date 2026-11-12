@@ -1,11 +1,11 @@
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import type { RoadmapItem } from '@/domain/types';
 import { getSprintStatus } from '@/domain/roadmap';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 
 export function SprintAction({ sprint, boardId, disabled, compact = false }: { sprint: RoadmapItem; boardId: string; disabled: boolean; compact?: boolean }) {
-    const { changeSprintStatus } = usePortfolioActions();
+    const { changeSprintStatus } = portfolioActions;
     const { t } = useI18n();
     const status = getSprintStatus(sprint);
     if (status === 'done') return null;

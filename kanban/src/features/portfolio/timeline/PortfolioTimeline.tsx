@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import type { PortfolioTimelineViewModel } from '@/features/portfolio/types';
 import type { TimelineEvent } from '@/domain/types';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import type { PortfolioMutationActions } from '@/features/portfolio/commands/portfolioCommands';
 import { formatDateTime } from '@/domain/calendar';
 import { formatTimelineValue } from '@/domain/timeline';
@@ -223,7 +223,6 @@ function PortfolioTimelineView({ view, actions }: {
 }
 
 export function PortfolioTimeline() {
-    const actions = usePortfolioActions();
     const view = useAppStore((state) => state.portfolioTimelineView);
     const boardId = view?.boardId || '';
     const board = useAppStore((state) => state.portfolioBoards.find((entry) => entry.id === boardId));

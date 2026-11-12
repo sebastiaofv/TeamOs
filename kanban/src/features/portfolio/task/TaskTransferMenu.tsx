@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 
 export function TaskTransferMenu({ boardId, taskId, historical = false, allowDelete = false }: { boardId: string; taskId: number; historical?: boolean; allowDelete?: boolean }) {
-    const { transferPortfolioTask, deletePortfolioTask } = usePortfolioActions();
+    const { transferPortfolioTask, deletePortfolioTask } = portfolioActions;
     const { t } = useI18n();
     const menu = useRef<HTMLDetailsElement>(null);
     useEffect(() => {

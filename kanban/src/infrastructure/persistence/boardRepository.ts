@@ -41,9 +41,6 @@ export const BoardRepository = {
     serialize(boardData: unknown): BoardData {
         return serializeBoardDataFromObject(boardData, { reuseTimeline: true });
     },
-    validate(boardData: unknown): void {
-        validateBoardData(boardData);
-    },
     async readHandleFileMeta(handle: BoardFileHandle | null | undefined): Promise<{ file: BoardFile; lastModified: number; size: number }> {
         if (!handle || typeof handle.getFile !== 'function') {
             throw new Error('Project file handle is not readable.');
@@ -58,7 +55,7 @@ export const BoardRepository = {
     async readFileSnapshot(file: BoardFile, textOverride?: string): Promise<BoardSnapshot> {
         const text = textOverride === undefined ? await file.text() : textOverride;
         const parsed = parseProjectText(text);
-        this.validate(parsed);
+        validateBoardData(parsed);
         await validateConversationPixels(parsed as BoardData);
         return {
             parsed: parsed as BoardData,
@@ -75,7 +72,7 @@ export const BoardRepository = {
         if (getDirectoryProject(handle)) await refreshDirectoryHistory(handle, snapshot.fileMeta.textHash, snapshot.parsed);
         if (getDirectoryProject(handle)) attachDirectoryHistory(handle, snapshot.parsed);
         if (getDirectoryProject(handle)?.loaded) {
-            this.validate(snapshot.parsed);
+            validateBoardData(snapshot.parsed);
             parseConversations(snapshot.parsed.extensions.conversations, snapshot.parsed.extensions.timeline?.events);
         }
         return snapshot;
@@ -85,7 +82,7 @@ export const BoardRepository = {
         if (!getDirectoryProject(handle)) assertRequiredExtension(file?.name || '', BOARD_FILE_EXTENSION, 'Project file');
         const text = await file.text();
         const parsed = parseProjectText(text);
-        this.validate(parsed);
+        validateBoardData(parsed);
         await validateConversationPixels(parsed as BoardData);
         if (handle) attachDirectoryHistory(handle, parsed as BoardData);
         if (handle) importedProjectSnapshots.set(handle, { parsed: parsed as BoardData, fileMeta: { lastModified: Number(file.lastModified) || 0, size: Number(file.size) || 0, textHash: hashTextContent(text) } });

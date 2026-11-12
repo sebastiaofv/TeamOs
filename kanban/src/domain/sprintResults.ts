@@ -62,10 +62,6 @@ export function recordSprintCredits(data: BoardData, previous: BoardData): void 
     if (results.credits.length || results.closures.length) data.extensions.sprintResults = results;
 }
 
-export function sprintUnplannedWorkitems(data: BoardData, sprintId: string): Task[] {
-    return sprintUnallocatedWorkitems(data, sprintId).filter((task) => isPlanningUnit(data, task));
-}
-
 /** Current workitems that lose their Sprint allocation on closure. */
 function sprintUnallocatedWorkitems(data: BoardData, sprintId: string): Task[] {
     return data.board.tasks.filter((task) => task.sprintId === sprintId && (isPlanningUnit(data, task) ? hasPendingWork(data, task) : !isTerminal(data, task)));

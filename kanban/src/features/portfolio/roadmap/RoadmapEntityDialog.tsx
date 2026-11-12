@@ -8,7 +8,7 @@ import { useRef, useState, type CSSProperties, type RefObject } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import type { RoadmapEntityDates, RoadmapEntityViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import type { RoadmapFocusField } from '@/features/portfolio/commands/roadmapCommands';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
@@ -22,7 +22,7 @@ import { addBusinessDays, businessDaysBetween } from '@/domain/businessDays';
 type RoadmapEntityFormDraft = RoadmapEntityDates & { existingSprintId: string; parentId: string };
 
 export function RoadmapEntityDialog() {
-    const { closeRoadmapEntity } = usePortfolioActions();
+    const { closeRoadmapEntity } = portfolioActions;
     const open = useAppStore((s) => s.activeDialog === 'roadmapEntity');
     const vm = useAppStore((s) => (s.activeDialog === 'roadmapEntity' ? s.dialogProps as RoadmapEntityViewModel : null));
     const titleRef = useRef<HTMLInputElement>(null);
@@ -64,7 +64,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
     titleRef: RefObject<HTMLInputElement | null>;
     sprintRef: RefObject<HTMLSelectElement | null>;
 }) {
-    const { saveRoadmapEntity, deleteRoadmapEntity, closeRoadmapEntity } = usePortfolioActions();
+    const { saveRoadmapEntity, deleteRoadmapEntity, closeRoadmapEntity } = portfolioActions;
     const { t, language } = useI18n();
     const today = useLocalToday();
     const [busy, setBusy] = useState(false);

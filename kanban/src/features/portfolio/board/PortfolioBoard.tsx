@@ -25,7 +25,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { BoardColumn, WorkflowCategory } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { PortfolioTaskCard, sameTaskCardState, type TaskCardState } from '@/features/portfolio/task/TaskCard';
 import { useI18n, translateCurrent } from '@/shared/i18n';
@@ -94,7 +94,6 @@ function DroppableColumnBody({ column, children }: { column: BoardColumn; childr
 }
 
 function PortfolioBoardView({ state }: { state: BoardViewState }) {
-    const actions = usePortfolioActions();
     const { t } = useI18n();
     const today = useLocalToday();
     const activeSprintsOnly = useAppStore((state) => state.portfolioBoardActiveSprintsOnly);

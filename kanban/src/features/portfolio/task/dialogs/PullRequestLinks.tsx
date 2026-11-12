@@ -2,7 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { parsePullRequestLinks, PullRequestLinkError, safePullRequestHref, validatePullRequestUrl, type PullRequestErrorCode } from '@/domain/pullRequests';
 import { areSerializableValuesEqual } from '@/domain/serializable';
 import { showConfirm } from '@/app/overlays/appMessages';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 
 export function PullRequestLinks({ value, onChange, readOnly = false, draft = false }: {
@@ -78,6 +78,6 @@ export function PullRequestLinks({ value, onChange, readOnly = false, draft = fa
 }
 
 export function TaskPullRequestLinks({ boardId, taskId, links, readOnly }: { boardId: string; taskId: number; links: string[]; readOnly: boolean }) {
-    const { setPortfolioTaskPullRequests } = usePortfolioActions();
+    const { setPortfolioTaskPullRequests } = portfolioActions;
     return <PullRequestLinks value={links} readOnly={readOnly} onChange={(next) => setPortfolioTaskPullRequests(boardId, taskId, next)} />;
 }

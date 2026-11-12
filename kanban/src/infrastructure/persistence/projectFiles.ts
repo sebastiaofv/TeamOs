@@ -1,4 +1,5 @@
 import { withProjectIdentityLock } from './projectLock';
+import { validateBoardData } from '@/domain/board';
 import { getDirectoryProject, loadDirectoryHistory, mergeDirectoryTimeline, attachHistoryArchives } from './projectDirectory';
 import { parseConversations } from '@/domain/comments';
 import { inheritLegacyTaskIdentities } from '@/domain/taskIdentity';
@@ -340,7 +341,7 @@ export async function enqueueProjectSave(boardRecord: BoardRecord | null | undef
                 const source = current.data;
                 const payload = BoardRepository.serialize(source);
                 payload.meta.revision = Math.max(runtime.base.meta.revision || 0, source.meta.revision || 0) + 1;
-                BoardRepository.validate(payload);
+                validateBoardData(payload);
                 await validateConversationPixels(payload);
                 // Pixel validation may be asynchronous; the final conditional
                 // check is immediately before opening the writable stream.
@@ -432,7 +433,7 @@ export async function ensureProjectHistoryLoaded(boardId: string): Promise<void>
         const hydrated = cloneBoardForMutation(current.data);
         hydrated.extensions.timeline = timeline;
         attachHistoryArchives(hydrated, storage.archives);
-        BoardRepository.validate(hydrated);
+        validateBoardData(hydrated);
         storage.loaded = true;
         if (runtime.base) {
             runtime.base = { ...runtime.base, extensions: { ...runtime.base.extensions, timeline: persisted } };

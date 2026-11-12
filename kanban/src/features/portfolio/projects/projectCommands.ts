@@ -203,12 +203,4 @@ export function createPortfolioFileActions({
     };
 }
 
-type PortfolioFileActions = ReturnType<typeof createPortfolioFileActions>;
-
-const activeActions = createPortfolioFileActions();
-
-export const createNewProject: PortfolioFileActions['createNewProject'] = (...args) => activeActions.createNewProject(...args);
-export const importPortfolioProjects: PortfolioFileActions['importPortfolioProjects'] = (...args) => activeActions.importPortfolioProjects(...args);
-export const openPortfolioFromFiles: PortfolioFileActions['openPortfolioFromFiles'] = (...args) => activeActions.openPortfolioFromFiles(...args);
-
-export const checkPortfolioFiles: PortfolioFileActions['checkPortfolioFiles'] = (...args) => activeActions.checkPortfolioFiles(...args);
+export const { createNewProject, importPortfolioProjects, openPortfolioFromFiles, checkPortfolioFiles } = createPortfolioFileActions();

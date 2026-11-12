@@ -40,7 +40,7 @@ import {
     shiftPortfolioPlannerDate,
     showPortfolioPlannerToday
 } from '@/features/portfolio/commands/portfolioControls';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { formatPlannerDateLabel, useI18n } from '@/shared/i18n';
 import { PLANNER_SLOT_PX } from './plannerGeometry';
 import { PlannerBlock, type PlannerBlockHandlers } from './PlannerBlock';
@@ -163,7 +163,6 @@ function ConnectedPlanner() {
         portfolioPlannerMode: s.portfolioPlannerMode,
         activeLanguage: s.activeLanguage
     })));
-    const actions = usePortfolioActions();
     const calendar = useAppStore((state) => state.selectedPortfolioViewMode === 'calendar');
     const setCalendar = (value: boolean) => setPortfolioViewMode(value ? 'calendar' : 'planner');
     const [trayStatuses, setTrayStatuses] = useState<TaskStatus[]>(DEFAULT_TRAY_STATUSES);
