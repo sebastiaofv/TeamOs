@@ -10,7 +10,7 @@
 .dashboard-controls select, .dashboard-controls input { max-width: 380px; width: 100%; min-height: 34px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); padding: 6px 10px; }
 .dashboard-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0; }
 .dashboard-tabs .btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-contrast); border-color: var(--accent); }
-.dashboard-panel { padding: 16px; border: 1px solid var(--border-light); border-radius: 8px; background: var(--bg-card); margin-bottom: 16px; min-width: 0; }
+.dashboard-panel { padding: 16px; border: 1px solid var(--border-light); border-radius: 0; background: var(--bg-card); margin-bottom: 16px; min-width: 0; }
 .dashboard-panel h3 { font-size: 14px; margin-bottom: 14px; }
 .dashboard-panel p { font-size: 12px; line-height: 1.6; }
 .dashboard-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
@@ -172,7 +172,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-section-heading { display: flex; gap: 10px; align-items: center; font-size: 24px; font-weight: 600; margin: 0 0 16px; }
 .dashboard-section-heading > svg { width: 22px; height: 22px; color: var(--accent); }
 .dashboard-overview-grid { grid-template-columns: repeat(24, minmax(0, 1fr)); gap: 14px; }
-.dashboard-overview-grid > [data-dashboard-section] { height: auto; min-height: 260px; padding: 18px; border-radius: 12px; background: color-mix(in srgb, var(--bg-card) 97%, var(--accent)); }
+.dashboard-overview-grid > [data-dashboard-section] { height: auto; min-height: 260px; padding: 18px; background: color-mix(in srgb, var(--bg-card) 97%, var(--accent)); }
 .dashboard-panel h3 { display: flex; align-items: center; gap: 10px; font-size: 19px; line-height: 1.25; margin-bottom: 16px; }
 .dashboard-panel h3 > svg { color: var(--accent); flex-shrink: 0; width: 22px; height: 22px; }
 .dashboard-overview-grid > .dashboard-project-progress { grid-column: span 6; }
