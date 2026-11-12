@@ -108,6 +108,9 @@ export function functionalWorkitemTypes(data?: LooseBoardData | null): WorkitemT
 
 export function workflowKind(subject?: WorkflowSubject | null, data?: LooseBoardData | null): WorkflowKind {
     if (typeof subject === 'string') return subject;
+    // No subject means the project's own process: the technical workflow, which is the Board's columns.
+    // Resolving it as a Task would pick the functional workflow when Tasks are configured to follow it.
+    if (subject == null) return 'technical';
     const type = WORKFLOW_TYPE_IDS.includes(subject?.type as WorkitemType) ? subject!.type as WorkitemType : 'task';
     return functionalWorkitemTypes(data).includes(type) ? 'functional' : 'technical';
 }

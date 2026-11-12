@@ -14,6 +14,7 @@ export function ProjectFileNotices() {
     const states = useAppStore((state) => state.projectSaveStateById);
     const [recoveries, setRecoveries] = useState<ProjectRecovery[]>([]);
     const [error, setError] = useState('');
+    const [refusedId, setRefusedId] = useState('');
     const { t } = useI18n();
     const projectIds = JSON.stringify(boards.filter((board) => board.handle).map((board) => board.data.extensions.project!.id));
     useEffect(() => {
@@ -41,10 +42,11 @@ export function ProjectFileNotices() {
                 {recoveries.filter((draft) => draft.projectId === board.data.extensions.project?.id).map((draft) => <aside className="project-conflict-notice" key={draft.id}>
                     <span>{t('conflict.recovery', { project: board.title, at: new Date(draft.at).toLocaleString() })}</span>
                     <button className="btn" disabled={projectHasUnsavedChanges(board.id)} onClick={() => {
-                        if (!restoreProjectRecovery(board.id, draft)) return;
+                        if (!restoreProjectRecovery(board.id, draft)) { setRefusedId(draft.id); return; }
                         setRecoveries((current) => current.filter((entry) => entry.id !== draft.id));
                         void checkPortfolioFiles();
                     }}>{t('conflict.restore')}</button>
+                    {refusedId === draft.id && <p role="alert">{t('conflict.recoveryRefused')}</p>}
                     <button className="btn" onClick={() => { void removeProjectRecovery(draft.id).then(() => setRecoveries((current) => current.filter((entry) => entry.id !== draft.id))).catch((error: unknown) => setError(String(error))); }}>{t('conflict.discard')}</button>
                 </aside>)}
             </div>;

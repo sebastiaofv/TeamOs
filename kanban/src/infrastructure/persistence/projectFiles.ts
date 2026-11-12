@@ -211,11 +211,18 @@ export async function refreshProjectFileBaseline(boardRecord: BoardRecord | null
     }
 }
 
+function isValidRecoveryVersion(value: unknown): boolean {
+    try { BoardRepository.validate(BoardRepository.serialize(value)); return true; }
+    catch (error) { Logger.error('Project recovery draft is invalid', { error }); return false; }
+}
+
 export function restoreProjectRecovery(boardId: string, draft: ProjectRecovery): boolean {
     const board = getPortfolioBoardRecord(boardId);
     if (!board?.handle || board.data.extensions.project?.id !== draft.projectId) return false;
     const runtime = getProjectFileState(boardId)!;
     if (runtime.inFlight || projectHasUnsavedChanges(boardId)) return false;
+    // Drafts come from IndexedDB, which other tabs and earlier app versions also write.
+    if (!isValidRecoveryVersion(draft.base) || !isValidRecoveryVersion(draft.local)) return false;
     runtime.base = cloneSerializable(draft.base);
     // A draft from before the format conversion refers to the file that became this version.
     const storage = getDirectoryProject(board.handle);

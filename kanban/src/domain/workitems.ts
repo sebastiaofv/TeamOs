@@ -12,7 +12,7 @@ export function workitemFieldNames(type: WorkitemType): readonly typeof WORKITEM
 }
 export const workitemType = (task: Pick<Task, 'type'>): WorkitemType => task.type || 'task';
 export class WorkitemError extends Error {
-    constructor(public code: 'type' | 'immutable' | 'parent' | 'children' | 'criteria' | 'pending' | 'acceptance' | 'sprint' | 'configuration' | 'data' | 'epic' | 'author' | 'stale' | 'childrenState') { super(({ type: 'Unknown workitem type.', immutable: 'A workitem type is immutable after creation.', parent: 'Choose a valid parent in this project.', children: 'Reassign or detach children before deleting or moving this workitem.', criteria: 'Acceptance criteria are required.', pending: 'Complete, cancel or detach pending child Tasks.', acceptance: 'Functional acceptance is required.', sprint: 'Plan this workitem through an eligible Sprint or its Story.', configuration: 'Invalid automation configuration.', data: 'Invalid workitem data.', epic: 'An epic cannot have execution-only fields.', author: 'A non-empty local author is required.', stale: 'The preview is stale; review the changed project.', childrenState: 'Children must be in Backlog or To-do state categories to move.' })[code]); }
+    constructor(public code: 'type' | 'immutable' | 'parent' | 'children' | 'criteria' | 'pending' | 'acceptance' | 'sprint' | 'configuration' | 'data' | 'epic' | 'author' | 'stale' | 'childrenState' | 'sprintMissing') { super(({ type: 'Unknown workitem type.', immutable: 'A workitem type is immutable after creation.', parent: 'Choose a valid parent in this project.', children: 'Reassign or detach children before deleting or moving this workitem.', criteria: 'Acceptance criteria are required.', pending: 'Complete, cancel or detach pending child Tasks.', acceptance: 'Functional acceptance is required.', sprint: 'Plan this workitem through an eligible Sprint or its Story.', configuration: 'Invalid automation configuration.', data: 'Invalid workitem data.', epic: 'An epic cannot have execution-only fields.', author: 'A non-empty local author is required.', stale: 'The preview is stale; review the changed project.', childrenState: 'Children must be in Backlog or To-do state categories to move.', sprintMissing: 'The Sprint no longer exists.' })[code]); }
 }
 export function childrenOf(data: BoardData, id: number): Task[] { return data.board.tasks.filter((task) => task.parentId === id); }
 /** Preorder includes every descendant, so an Epic move also checks its Stories' Tasks. */
@@ -101,6 +101,39 @@ export function assertWorkitems(data: BoardData, previous?: BoardData): void {
     if (data.extensions.hierarchyAutomations !== undefined) parseHierarchyAutomations(data.extensions.hierarchyAutomations);
     validateAutomation(data, data.extensions.workitemAutomation);
 }
+const transitionKey = (task: Task) => task.permanentId || `#${task.id}`;
+const isCompleted = (data: BoardData, task: Task) => statusCategory(task.status, data, task) === 'completed';
+
+/** Rules about how a project may change, as `code:workitem` keys. They hold for
+ * changes, not for every stored document: projects completed before functional
+ * acceptance existed keep opening, but nothing new may enter those states. */
+export function workitemTransitionViolations(next: BoardData, previous: BoardData): string[] {
+    const violations = new Set<string>();
+    const before = new Map(previous.board.tasks.map((task) => [transitionKey(task), task]));
+    const sprints = new Set(next.extensions.roadmap?.sprints.map((sprint) => sprint.id) || []);
+    const previousSprints = new Set(previous.extensions.roadmap?.sprints.map((sprint) => sprint.id) || []);
+    for (const task of next.board.tasks) {
+        const key = transitionKey(task);
+        const old = before.get(key);
+        if (old && (workitemType(old) !== workitemType(task) || old.displayId !== task.displayId)) violations.add(`immutable:${key}`);
+        if (['story', 'bug'].includes(workitemType(task)) && isCompleted(next, task) && !(old && isCompleted(previous, old) && old.status === task.status)) {
+            if (!task.acceptance) violations.add(`acceptance:${key}`);
+            if (childrenOf(next, task.id).some((child) => !isTerminal(next, child))) violations.add(`pending:${key}`);
+        }
+        // A Sprint reference must resolve, unless the same dangling reference was already stored.
+        if (task.sprintId && !sprints.has(task.sprintId) && !(old && old.sprintId === task.sprintId && !previousSprints.has(task.sprintId))) violations.add(`sprintMissing:${key}`);
+    }
+    const recorded = new Set(previous.extensions.sprintParticipation?.entries.map((entry) => `${entry.sprintId}:${entry.task.id}`) || []);
+    for (const entry of next.extensions.sprintParticipation?.entries || []) {
+        if (!sprints.has(entry.sprintId) && !recorded.has(`${entry.sprintId}:${entry.task.id}`)) violations.add(`sprintMissing:participation:${entry.sprintId}:${entry.task.id}`);
+    }
+    return [...violations];
+}
+
+export function assertWorkitemTransition(next: BoardData, previous: BoardData): void {
+    const [violation] = workitemTransitionViolations(next, previous);
+    if (violation) throw new WorkitemError(violation.split(':')[0] as WorkitemError['code']);
+}
 export function assertAcceptance(data: BoardData, task: Task): void {
     if (['story', 'bug'].includes(workitemType(task))) {
         if (childrenOf(data, task.id).some((child) => !isTerminal(data, child))) throw new WorkitemError('pending');
@@ -118,13 +151,16 @@ export function validateAutomation(data: BoardData, config?: WorkitemAutomation)
 }
 /** Current allocation follows unfinished work; the recorded roster is never rebuilt from a parent's current Sprint. */
 export function syncWorkitemPlanning(data: BoardData, previous: BoardData): void {
-    const entries = structuredClone(data.extensions.sprintParticipation?.entries || []);
+    // Participation belongs to a Sprint that exists: a Sprint deleted by this change takes its entries with it.
+    const sprintExists = (id: string) => Boolean(data.extensions.roadmap?.sprints.some((sprint) => sprint.id === id));
+    const removedSprint = (id: string) => !sprintExists(id) && Boolean(previous.extensions.roadmap?.sprints.some((sprint) => sprint.id === id));
+    const entries = structuredClone(data.extensions.sprintParticipation?.entries || []).filter((entry) => !removedSprint(entry.sprintId));
     const entryIndexes = new Map(entries.map((entry, index) => [`${entry.sprintId}:${entry.task.id}`, index]));
     const previousById = new Map(previous.board.tasks.map((task) => [task.id, task]));
     const byId = new Map(data.board.tasks.map((task) => [task.id, task]));
     const capture = (task: Task, overwrite: boolean) => {
         // A closure already holds the frozen roster of its Sprint.
-        if (!task.sprintId || data.extensions.sprintResults?.closures.some((closure) => closure.sprintId === task.sprintId)) return;
+        if (!task.sprintId || !sprintExists(task.sprintId) || data.extensions.sprintResults?.closures.some((closure) => closure.sprintId === task.sprintId)) return;
         const key = `${task.sprintId}:${task.id}`;
         const index = entryIndexes.get(key) ?? -1;
         const entry = { sprintId: task.sprintId, task: structuredClone(task), at: nowIso() };

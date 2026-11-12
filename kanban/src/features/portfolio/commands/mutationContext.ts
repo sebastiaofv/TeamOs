@@ -1,6 +1,8 @@
 import { ControlError } from '@/domain/projectControl';
 import { isProjectTransferLocked } from './projectTransferLocks';
-import { WorkitemError } from '@/domain/workitems';
+import { assertWorkitemTransition, WorkitemError } from '@/domain/workitems';
+import { validateBoardData } from '@/domain/board';
+import { serializeBoardDataFromObject } from '@/domain/serialize';
 import type { BoardData, Task } from '@/domain/types';
 import type { BoardRecord, DialogName } from '@/features/portfolio/types';
 import { useAppStore, type AppStore } from '@/features/portfolio/state/store';
@@ -12,6 +14,15 @@ import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, showChoice, showPrompt, type ConfirmOptions } from '@/app/overlays/appMessages';
 import { translateCurrent } from '@/shared/i18n';
 import { assertUniqueProjectAcronym, ProjectDataError } from '@/domain/projectData';
+
+/** The same document check the save performs, before anything is published or
+ * written to recovery storage. A restore replaces the project with an earlier
+ * accepted version, so only the document check applies to it. */
+export function assertPublishable(next: BoardData, previous: BoardData): void {
+    validateBoardData(serializeBoardDataFromObject(next, { reuseTimeline: true }));
+    const firstEvent = previous.extensions.timeline?.events.length || 0;
+    if (!next.extensions.timeline?.events.slice(firstEvent).some((event) => event.kind === 'board.restored')) assertWorkitemTransition(next, previous);
+}
 
 // A board mutator edits the cloned board data in place; returning false
 // discards the draft.
@@ -84,6 +95,7 @@ export function createBoardMutationContext({
             return false;
         }
         const publish = async (draft: BoardRecord) => {
+            assertPublishable(draft.data, current.data);
             if (draft.data.extensions.project && draft.data.extensions.project.acronym !== current.data.extensions.project?.acronym) assertUniqueProjectAcronym(draft.data.extensions.project, getState().portfolioBoards.filter((board) => board.id !== boardId).flatMap((board) => board.data.extensions.project ? [board.data.extensions.project] : []));
             draft.title = draft.data.board.settings.title;
             const state = getState();

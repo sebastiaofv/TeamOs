@@ -16,8 +16,9 @@ import { validateBoardData } from '@/domain/board';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { translateCurrent as t } from '@/shared/i18n';
 import { lockProjectTransfers, isProjectTransferLocked } from './projectTransferLocks';
+import { tryWithTransferLock } from '@/infrastructure/persistence/projectLock';
 
-export function createProjectTransferActions(context: BoardMutationContext, checkFiles = () => checkPortfolioFiles()) {
+export function createProjectTransferActions(context: BoardMutationContext, checkFiles = () => checkPortfolioFiles(), lock?: typeof tryWithTransferLock) {
     const { getState, getBoardRecord, commitState, enqueueSave, markDirty, alert, choose, confirm, prompt, onBoardChanged } = context;
     let preparing = false;
     const failedCopies = new Map<string, { boardId: string; operationId: string }>();
@@ -72,7 +73,19 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             return await saveCompletedReceipt(destinationId, operation);
         } finally { unlock(); onBoardChanged(destinationId); if (source) onBoardChanged(source.id); }
     }
-    async function resumeProjectTransfer(destinationId: string, operationId: string): Promise<boolean> {
+    /** Another tab of this browser may be transferring the same workitem: refuse rather than wait. */
+    async function exclusive(permanentId: string | undefined, operation: () => Promise<boolean>): Promise<boolean> {
+        if (!permanentId) return operation();
+        // Resolved at call time: this module is created during an import cycle.
+        const result = await (lock || tryWithTransferLock)(permanentId, operation);
+        if (result === undefined) { await alert(t('transfer.error.unavailable')); return false; }
+        return result;
+    }
+    function resumeProjectTransfer(destinationId: string, operationId: string): Promise<boolean> {
+        const operation = getBoardRecord(destinationId)?.data.extensions.projectTransfers?.operations.find((entry) => entry.id === operationId);
+        return exclusive(operation?.from.permanentId, () => resumeUnlocked(destinationId, operationId));
+    }
+    async function resumeUnlocked(destinationId: string, operationId: string): Promise<boolean> {
         try {
             await checkFiles();
             await ensureProjectHistoryLoaded(destinationId);
@@ -86,7 +99,12 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             return complete;
         } catch (error) { await alert(t(error instanceof WorkitemError ? `workitems.error.${error.code}` : error instanceof TransferError ? `transfer.error.${error.code}` : 'transfer.pending')); return false; }
     }
-    async function transferPortfolioTask(boardId: string, taskId: number, mode: TransferMode): Promise<boolean> {
+    function transferPortfolioTask(boardId: string, taskId: number, mode: TransferMode): Promise<boolean> {
+        if (preparing || isProjectTransferLocked(boardId)) return Promise.resolve(false);
+        const permanentId = getBoardRecord(boardId)?.data.board.tasks.find((item) => item.id === taskId)?.permanentId;
+        return exclusive(permanentId, () => transferUnlocked(boardId, taskId, mode));
+    }
+    async function transferUnlocked(boardId: string, taskId: number, mode: TransferMode): Promise<boolean> {
         if (preparing || isProjectTransferLocked(boardId)) return false;
         preparing = true;
         try {
@@ -96,9 +114,9 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const task = source?.data.board.tasks.find((item) => item.id === taskId);
             if (!source || !task || isBoardInHistoricalPreview(getState(), boardId) || ['conflict', 'watch-error'].includes(getState().projectSaveStateById.get(boardId)?.watchStatus || '') || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
             const failedCopy = failedCopies.get(`${boardId}:${task.permanentId}`);
-            if (mode === 'copy' && failedCopy) return await resumeProjectTransfer(failedCopy.boardId, failedCopy.operationId);
+            if (mode === 'copy' && failedCopy) return await resumeUnlocked(failedCopy.boardId, failedCopy.operationId);
             const pending = getState().portfolioBoards.flatMap((board) => (board.data.extensions.projectTransfers?.operations || []).filter((operation) => operation.status === 'pending' && (operation.from.permanentId === task.permanentId || operation.to.permanentId === task.permanentId)).map((operation) => ({ board, operation })))[0];
-            if (pending) return await resumeProjectTransfer(pending.board.id, pending.operation.id);
+            if (pending) return await resumeUnlocked(pending.board.id, pending.operation.id);
             const children = mode === 'move' ? transferDescendants(source.data, taskId) : [];
             const childReview = childTransferReview(source.data, children);
             if (childReview.children?.some((child) => child.blocked)) {
