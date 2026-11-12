@@ -18,11 +18,16 @@ const kpi = (page: Page, key: string) => page.locator(`[data-dashboard-kpi="${ke
 const sources = (page: Page) => page.locator('[data-dashboard-section="activityDetails"]');
 
 for (const width of [1280, 390]) for (const tab of ['Overview', 'Sprint Analytics']) {
-    test(`dashboard keeps date filters and removes recorded history in ${tab} at ${width}px`, async ({ page }) => {
+    test(`dashboard shows the appropriate filters and removes recorded history in ${tab} at ${width}px`, async ({ page }) => {
         await page.setViewportSize({ width, height: 800 });
         await seed(page);
         await page.getByRole('button', { name: tab, exact: true }).click();
         await expect(page.getByRole('heading', { name: 'Recorded history', exact: true })).toHaveCount(0);
+        if (tab === 'Sprint Analytics') {
+            await expect(page.getByRole('combobox', { name: 'Sprint', exact: true })).toHaveValue('');
+            await expect(page.locator('.dashboard-range-field')).toHaveCount(0);
+            return;
+        }
         await page.locator('.dashboard-range-field').click();
         await expect(page.getByLabel('Start date', { exact: true })).toBeVisible();
         await expect(page.getByLabel('End date', { exact: true })).toBeVisible();
@@ -124,30 +129,6 @@ test('historical period uses saved observations and historical drilldowns instea
     await page.keyboard.press('Escape');
     await setDashboardDate(page, 'End date', '31/10/2026');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('33%');
-    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
-    await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
-    await setDashboardDate(page, 'Start date', '15/10/2026');
-    await setDashboardDate(page, 'End date', '15/10/2026');
-    await expect(page.locator('.dashboard-scope-changes button')).toHaveCount(0);
-    await setDashboardDate(page, 'End date', '25/10/2026');
-    await expect(page.locator('.dashboard-scope-changes button')).toHaveCount(1);
-});
-
-test('sprint selection supports all, single and multiple, and uses recorded sources for scope changes', async ({ page }) => {
-    await seed(page);
-    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
-    await expect(page.getByRole('checkbox', { name: 'All Sprints', exact: true })).toBeChecked();
-    await expect(page.locator('[data-dashboard-sprint]')).toHaveCount(3);
-    await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
-    await expect(page.locator('[data-dashboard-sprint]')).toHaveCount(1);
-    await expect(page.getByRole('heading', { name: 'Recorded sprint scope changes', exact: true })).toBeVisible();
-    await page.locator('.dashboard-scope-changes button').click();
-    await expect(sources(page)).toContainText('Dependency blocked follow-up');
-    await page.getByRole('checkbox', { name: 'Sprint 1 - Discovery', exact: true }).check();
-    await expect(page.locator('[data-dashboard-sprint]')).toHaveCount(2);
-    await expect(page.getByText('N/A — no sprint finalization records.', { exact: false })).toBeVisible();
-    await page.getByRole('checkbox', { name: 'All Sprints', exact: true }).check();
-    await expect(page.locator('[data-dashboard-sprint]')).toHaveCount(3);
 });
 
 test('Portuguese dark mobile dashboard stays within viewport and remains keyboard accessible', async ({ page }) => {

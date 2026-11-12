@@ -8,6 +8,7 @@ import { reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
 import { dashboardPeriodWorkitems, dashboardSnapshot } from '../../src/domain/dashboardOverview';
 import { validateBoardData } from '../../src/domain/board';
 import { visibleComments } from '../../src/domain/comments';
+import { allSprintAnalytics } from '../../src/domain/sprintAnalytics';
 import { planningProgress } from '../../src/domain/phaseTree';
 import { getRoadmapTaskFieldTasks } from '../../src/domain/roadmap';
 
@@ -67,4 +68,15 @@ describe('the TeamOS historical example', () => {
         expect(final.board.tasks.map((t) => [t.id,t.status,t.parentId,t.permanentId,t.pullRequests])).toEqual(data.board.tasks.map((t) => [t.id,t.status,t.parentId,t.permanentId,t.pullRequests]));
         expect(timeline.events.every((event, index) => !index || event.at >= timeline.events[index - 1].at)).toBe(true);
     }, 30_000);
+
+    it('feeds All Sprints from the native closure records and recorded initial commitments', async () => {
+        const data = await openExample();
+        const results = allSprintAnalytics(data);
+        expect(results.rows).toHaveLength(6);
+        expect(results.rows.some(row => row.planned !== null && row.planned > 0)).toBe(true);
+        expect(results.rows.reduce((sum, row) => sum + (row.completed ?? 0), 0)).toBe(data.extensions.sprintResults!.closures.reduce((sum, closure) => sum + closure.velocity, 0));
+        expect(results.rows.map(row => row.startDate)).toEqual(results.rows.map(row => row.startDate).sort());
+        expect(results.summary.velocity).toBeGreaterThan(0);
+    });
+
 });

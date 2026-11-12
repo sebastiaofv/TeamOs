@@ -454,8 +454,9 @@ for (const width of [1840, 390]) test(`toolbar stays below main navigation durin
     await expect(page.getByLabel('End date', { exact: true })).toBeInViewport();
     await page.keyboard.press('Escape');
     await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Story point metrics', exact: true })).toBeVisible();
-    await expect(range).toBeInViewport();
+    await expect(page.getByRole('heading', { name: 'Summary', exact: true })).toBeVisible();
+    await expect(range).toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: 'Sprint', exact: true })).toBeInViewport();
 });
 
 for (const style of ['classic', 'modern']) test(`rings, phase circles, continuous bars and Epic points retain their shapes in both themes (${style})`, async ({ page }) => {

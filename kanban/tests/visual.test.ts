@@ -857,7 +857,6 @@ for (const theme of ['light', 'dark']) {
     await page.mouse.move(1, 1);
     await expect(page).toHaveScreenshot(`dashboard-overview-${theme}.png`, { animations: 'disabled' });
     await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
-    await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
     await page.mouse.move(1, 1);
     await expect(page).toHaveScreenshot(`dashboard-sprints-${theme}.png`, { animations: 'disabled' });
   });

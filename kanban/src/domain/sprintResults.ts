@@ -1,3 +1,4 @@
+import { sprintInitialPlan, sprintStartScopes } from './sprintAnalytics';
 import type { BoardData, RoadmapItem, SprintResults, Task } from './types';
 import { childrenOf, hasPendingWork, isPlanningUnit, isTerminal, sprintMembers, workitemType } from './workitems';
 import { getSprintStatus, normalizeRoadmapItems } from './roadmap';
@@ -21,7 +22,8 @@ export function parseSprintResults(value: unknown): SprintResults | undefined {
     }
     const sprintIds = new Set<string>();
     for (const closure of value.closures) {
-        if (!hasExactKeys(closure, ['sprint', 'sprintId', 'closedAt', 'tasks', 'workflow', 'functionalWorkflow', ...(isRecord(closure) && 'workflowTypes' in closure ? ['workflowTypes'] : []), 'plannedPoints', 'completedIds', 'carryOverIds', 'velocity']) || typeof closure.sprintId !== 'string' || !closure.sprintId || sprintIds.has(closure.sprintId) || !normalizeTimestamp(closure.closedAt) || !Array.isArray(closure.tasks) || !points(closure.plannedPoints) || !points(closure.velocity) || !ids(closure.completedIds) || !ids(closure.carryOverIds)) return invalid();
+        if (!hasExactKeys(closure, [...(isRecord(closure) && 'initialPlan' in closure ? ['initialPlan'] : []), 'sprint', 'sprintId', 'closedAt', 'tasks', 'workflow', 'functionalWorkflow', ...(isRecord(closure) && 'workflowTypes' in closure ? ['workflowTypes'] : []), 'plannedPoints', 'completedIds', 'carryOverIds', 'velocity']) || typeof closure.sprintId !== 'string' || !closure.sprintId || sprintIds.has(closure.sprintId) || !normalizeTimestamp(closure.closedAt) || !Array.isArray(closure.tasks) || !points(closure.plannedPoints) || !points(closure.velocity) || !ids(closure.completedIds) || !ids(closure.carryOverIds)) return invalid();
+        if ('initialPlan' in closure && (!hasExactKeys(closure.initialPlan, ['plannedPoints', 'completedPlannedPoints']) || !points(closure.initialPlan.plannedPoints) || !points(closure.initialPlan.completedPlannedPoints) || closure.initialPlan.completedPlannedPoints > closure.initialPlan.plannedPoints)) return invalid();
         if (!isRecord(closure.sprint) || closure.sprint.id !== closure.sprintId || !normalizeRoadmapItems([closure.sprint], ['startDate', 'endDate'], ['startDate', 'endDate'], true, false, true)) return invalid();
         sprintIds.add(closure.sprintId);
         parseWorkflow(closure.workflow); parseWorkflow(closure.functionalWorkflow);
@@ -83,8 +85,10 @@ export function closeSprint(data: BoardData, sprintId: string, finalSprint?: Roa
     // A Story whose Tasks are all finished keeps its status and is not carried over, even while it awaits validation.
     const carryOverIds = units.filter((task) => hasPendingWork(snapshot, task)).map((task) => task.id);
     const timestamp = nowIso();
-    results.closures.push({ sprint: structuredClone({ ...sprint, status: 'done' }), sprintId, closedAt: timestamp, tasks, workflow: structuredClone(getWorkflow(data)), functionalWorkflow: structuredClone(getWorkflow(data, 'functional')), workflowTypes: { version: 1, functional: functionalWorkitemTypes(data) },
-        plannedPoints: units.reduce((sum, task) => sum + (task.storyPoints ?? 0), 0), completedIds: units.filter((task) => developmentCompleted(snapshot, task)).map((task) => task.id), carryOverIds,
+    const completedIds = units.filter((task) => developmentCompleted(snapshot, task)).map((task) => task.id);
+    const initialPlan = sprintInitialPlan(sprintStartScopes(data, new Map([[sprintId, timestamp]])).get(sprintId), completedIds);
+    results.closures.push({ ...(initialPlan ? { initialPlan } : {}), sprint: structuredClone({ ...sprint, status: 'done' }), sprintId, closedAt: timestamp, tasks, workflow: structuredClone(getWorkflow(data)), functionalWorkflow: structuredClone(getWorkflow(data, 'functional')), workflowTypes: { version: 1, functional: functionalWorkitemTypes(data) },
+        plannedPoints: units.reduce((sum, task) => sum + (task.storyPoints ?? 0), 0), completedIds, carryOverIds,
         velocity: results.credits.filter((credit) => credit.sprintId === sprintId).reduce((sum, credit) => sum + credit.storyPoints, 0) });
     // The closure now owns the roster, so participation keeps only Sprints still open.
     const entries = (data.extensions.sprintParticipation?.entries || []).filter((entry) => entry.sprintId !== sprintId);
