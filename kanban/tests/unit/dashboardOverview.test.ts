@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { closeSprint } from '../../src/domain/sprintResults';
+import { vi } from 'vitest';
 import type { BoardData } from '../../src/domain/types';
 import { validateBoardData } from '../../src/domain/board';
 import { createBoardStateSnapshot, serializeBoardDataFromObject } from '../../src/domain/serialize';
@@ -76,7 +78,7 @@ describe('dashboard section reporting', () => {
         expect(ids(report.completed)).toEqual([910, 912, 914]);
         expect(report.startedAt.get(911)?.slice(0, 10)).toBe('2026-10-25');
         expect(report.completedAt.get(914)).toBe('2026-10-31T23:59:59.000Z');
-        expect(ids(dashboardInProgress(snapshot))).toContain(911);
+        expect(ids(dashboardInProgress(snapshot))).not.toContain(911);
         expect(ids(dashboardInProgress(snapshot))).not.toContain(914);
         const testingOnly = dashboardPeriodWorkitems(data, snapshot, '', '2026-10-26', '2026-10-30');
         expect(ids(testingOnly.started)).toEqual([914]);
@@ -179,29 +181,68 @@ describe('dashboard section reporting', () => {
         expect(ids(report.started)).toContain(911);
         expect(report.contexts.get(911)?.board.tasks.find((task) => task.id === 911)?.status).toBe('testing');
     });
-    it('groups actual workflow states separately for Stories, independent Tasks and Bugs', () => {
+    it('counts created Stories across inclusive boundaries regardless of state, including baseline and deleted records', () => {
+        const data = fixture();
+        const templates = data.board.tasks.filter((task) => task.type === 'story');
+        const stories = ['2026-10-23T23:59:59Z', '2026-10-24T00:00:00Z', '2026-10-30T23:59:59Z', '2026-10-31T00:00:00Z'].map((createdAt, index) => ({ ...templates[0], id: 1100 + index, permanentId: `created-${index}`, createdAt, status: index === 1 ? 'accepted' : 'backlog' }));
+        data.board.tasks = stories;
+        delete data.extensions.taskRelations; delete data.extensions.timeline;
+        expect(ids(dashboardPeriodWorkitems(data, data, '', '2026-10-24', '2026-10-30').created)).toEqual([1101, 1102]);
+        data.extensions.timeline = { version: 1, baselineEventId: 'created-baseline', events: [{ id: 'created-baseline', at: '2026-10-30T23:59:59Z', kind: 'board.baseline', entityType: 'board', entityId: 'board', summary: 'Baseline', snapshot: createBoardStateSnapshot(data) }] };
+        data.board.tasks = [];
+        const report = dashboardPeriodWorkitems(data, data, '', '2026-10-24', '2026-10-30');
+        expect(ids(report.created)).toEqual([1101, 1102]);
+        expect(report.contexts.get(1101)?.board.tasks.some((task) => task.id === 1101)).toBe(true);
+    });
+    it('selects active Sprints and closures within the period, retaining frozen metrics after work moves', () => {
+        const data = fixture();
+        const sprint = data.extensions.roadmap!.sprints.find((item) => item.id === 'active')!;
+        sprint.status = 'active';
+        data.board.tasks.find((task) => task.id === 902)!.storyPoints = 8;
+        data.board.tasks.find((task) => task.id === 904)!.status = 'accepted';
+        vi.useFakeTimers();
+        try {
+            vi.setSystemTime(new Date('2026-11-01T23:59:59Z'));
+            closeSprint(data, sprint.id); sprint.status = 'done';
+        } finally { vi.useRealTimers(); }
+        data.extensions.roadmap!.sprints = [sprint];
+        data.extensions.roadmap!.sprints.push({ id: 'parallel', title: 'Parallel', startDate: '2026-10-01', endDate: '2026-10-20', status: 'active' }, { id: 'planned', title: 'Planned', startDate: '2026-11-10', endDate: '2026-11-20', status: 'planned' });
+        const report = dashboardActiveSprints(data, '2026-11-04', '2026-11-01');
+        expect(report.map((row) => row.item.id)).toEqual(['active', 'parallel']);
+        expect(report[0].closed).toBe(true);
+        expect(report[0].points.planned).toBe(8);
+        expect(report[0].units.map((task) => task.id)).toContain(902);
+        expect(report[1].overdue).toBe(true);
+        expect(dashboardActiveSprints(data, '2026-11-04', '2026-11-02').map((row) => row.item.id)).toEqual(['parallel']);
+        expect(dashboardActiveSprints(data, '2026-10-31', '2026-10-24').map((row) => row.item.id)).not.toContain('active');
+    });
+    it('groups workflow categories separately for Stories, independent Tasks and Bugs', () => {
         const data = fixture();
         const groups = dashboardStatistics(data, 'ux');
         expect(ids(groups[0].tasks)).toEqual([910]);
         expect(ids(groups[1].tasks)).toEqual([905, 906, 908, 911, 912]);
-        expect(ids(groups[1].states.find((state) => state.id === 'testing')!.tasks)).toEqual([911]);
+        expect(ids(groups[1].states.find((state) => state.id === 'in-progress')!.tasks)).toEqual([905, 911]);
         expect(ids(groups[2].tasks)).toEqual([914]);
         for (const group of groups) expect(group.states.reduce((total, state) => total + state.tasks.length, 0)).toBe(group.tasks.length);
         data.extensions.functionalWorkflow = structuredClone(data.extensions.workflow!);
         data.extensions.functionalWorkflow.states.find((state) => state.id === 'accepted')!.category = 'in-progress';
         data.extensions.functionalWorkflow.states.find((state) => state.id === 'testing')!.category = 'completed';
         data.extensions.functionalWorkflow.references.completed = 'testing';
-        expect(ids(dashboardStatistics(data, 'ux')[0].states.find((state) => state.id === 'accepted')!.tasks)).toEqual([910]);
+        expect(ids(dashboardStatistics(data, 'ux')[0].states.find((state) => state.id === 'in-progress')!.tasks)).toEqual([910]);
     });
-    it('uses configured labels and colors from each workitem type workflow without merging equal categories', () => {
+    it('merges workflow states into shared categories while respecting each type workflow', () => {
         const data = fixture();
         data.extensions.functionalWorkflow = structuredClone(data.extensions.workflow!);
         const state = data.extensions.functionalWorkflow.states.find((state) => state.id === 'accepted')!;
         state.name = 'Business approved'; state.color = '#123456';
+        data.extensions.functionalWorkflow.states.find((row) => row.id === 'testing')!.category = 'completed';
+        data.extensions.functionalWorkflow.references.completed = 'testing';
+        state.category = 'in-progress';
         const [stories, tasks] = dashboardStatistics(data, '');
-        expect(stories.states.find((row) => row.id === 'accepted')).toMatchObject({ name: 'Business approved', color: '#123456' });
-        expect(tasks.states.find((row) => row.id === 'accepted')?.name).toBe('Validated');
-        expect(tasks.states.filter((row) => row.category === 'in-progress').length).toBeGreaterThan(1);
+        expect(ids(stories.states.find((row) => row.id === 'in-progress')!.tasks)).toContain(910);
+        expect(tasks.states.filter((row) => row.category === 'in-progress')).toHaveLength(1);
+        expect(tasks.states.map((row) => row.id)).toEqual(['backlog', 'to-do', 'in-progress', 'testing', 'completed', 'cancelled']);
+        expect(tasks.states.map((row) => row.color)).toEqual(stories.states.map((row) => row.color));
     });
     it('uses the same independent-Task rule as Table, including Tasks directly under an Epic', () => {
         const data = fixture();

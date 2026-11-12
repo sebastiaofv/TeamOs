@@ -17,13 +17,13 @@ function setup(writable = true) {
 
 describe('shared Dashboard activity layout', () => {
     it('supplies defaults and normalizes unknown widgets, duplicates and missing order entries', () => {
-        expect(dashboardActivityLayout(undefined)).toEqual({ version: 1, order: [...ACTIVITY_WIDGETS], hidden: [] });
-        expect(dashboardActivityLayout({ version: 1, order: ['started', 'missing', 'started'], hidden: ['started', 3, 'started'] })).toEqual({ version: 1, order: ['started', 'activitySummary', 'completedInPeriod', 'currentlyInProgress', 'testing'], hidden: ['started'] });
+        expect(dashboardActivityLayout(undefined)).toEqual({ version: 1, order: [...ACTIVITY_WIDGETS], hidden: ['started', 'completedInPeriod', 'currentlyInProgress', 'testing'] });
+        expect(dashboardActivityLayout({ version: 1, order: ['started', 'missing', 'started'], hidden: ['started', 3, 'started'] })).toEqual({ version: 1, order: ['started', 'activitySummary', 'activityDetails', 'completedInPeriod', 'currentlyInProgress', 'testing'], hidden: ['started'] });
         expect(dashboardActivityLayout({ version: 99 })).toEqual(dashboardActivityLayout(null));
     });
     it('adds Testing visibly to saved layouts without losing existing choices', () => {
         expect(dashboardActivityLayout({ version: 1, order: ['currentlyInProgress', 'completedInPeriod', 'started', 'activitySummary'], hidden: ['started'] }))
-            .toEqual({ version: 1, order: ['currentlyInProgress', 'completedInPeriod', 'started', 'activitySummary', 'testing'], hidden: ['started'] });
+            .toEqual({ version: 1, order: ['currentlyInProgress', 'completedInPeriod', 'started', 'activitySummary', 'activityDetails', 'testing'], hidden: ['started'] });
     });
     it('persists and replays order/visibility, resets defaults and leaves workitems untouched', async () => {
         const { actions, data, save } = setup();

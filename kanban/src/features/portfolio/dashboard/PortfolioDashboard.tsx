@@ -1,4 +1,4 @@
-import { ActivityWorkitems, type ActivityDetails, type DashboardInspect } from './DashboardActivity';
+import type { DashboardInspect } from './DashboardActivity';
 import { ACTIVITY_WIDGETS, dashboardActivityLayout, isActivityWidget, type ActivityWidget, type DashboardActivityLayout } from '@/domain/dashboardActivityLayout';
 import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { formatDate } from '@/domain/dates';
@@ -21,7 +21,7 @@ import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 
 type Metrics = ReturnType<typeof dashboardMetrics>;
-type Drill = { name: string; tasks: Task[]; data: BoardData; historyEventIndex?: number; activity?: ActivityDetails };
+type Drill = { name: string; tasks: Task[]; data: BoardData; historyEventIndex?: number };
 type Inspect = DashboardInspect;
 
 function Distribution({ metrics, data, inspect }: { metrics: Metrics; data: BoardData; inspect: Inspect }) {
@@ -91,7 +91,7 @@ function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string })
     return <section className="dashboard-panel dashboard-drilldown" id="dashboardSources" aria-labelledby="dashboardSourcesTitle">
         <h3 id="dashboardSourcesTitle" ref={heading} tabIndex={-1}><WorkspaceIcon name="search" />{drill ? t('dashboard.drilldown', { name: drill.name }) : t('dashboard.drillHint')}</h3>
         {drill && <><p>{t('dashboard.sourceCount', { count: drill.tasks.length })}</p>
-            {drill.activity ? <ActivityWorkitems tasks={drill.tasks} data={drill.data} boardId={boardId} details={drill.activity} /> : !drill.tasks.length ? <p>{t('dashboard.noSources')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th><th>{t('dashboard.dates')}</th></tr></thead>
+            {!drill.tasks.length ? <p>{t('dashboard.noSources')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th><th>{t('dashboard.dates')}</th></tr></thead>
                 <tbody>{drill.tasks.map((task) => <tr key={task.id}><td>{workitemLabel(task)}</td><td><button type="button" className="dashboard-link" onClick={() => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: drill.data, readOnly: true, historyEventIndex: drill.historyEventIndex })}>{task.title}</button></td>
                     <td>{getWorkflow(drill.data, task).states.find((state) => state.id === task.status)?.name || task.status}</td><td>{task.responsible || t('dashboard.na')}</td><td>{formatDate(task.dueDate || '') || t('dashboard.na')}</td>
                 </tr>)}</tbody></table></div>}
@@ -159,7 +159,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     if (hidden) return null;
     if (historyUnavailable) return <section className="dashboard-panel"><p>{t('dashboard.noHistoryBaseline')}</p><button type="button" className="btn" onClick={() => actions.movePortfolioTimelineToLatest(boardId)}>{t('dashboard.current')}</button></section>;
     if (!board || !data || !timeline) return null;
-    const inspect: Inspect = (name, members, context = displayData || data, activity) => setDrill({ name, tasks: members, data: context, historyEventIndex: context === displayData ? snapshot?.index ?? undefined : undefined, activity });
+    const inspect: Inspect = (name, members, context = displayData || data) => setDrill({ name, tasks: members, data: context, historyEventIndex: context === displayData ? snapshot?.index ?? undefined : undefined });
     const openRoadmap = (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => {
         if (snapshot?.index !== null && snapshot?.index !== undefined) actions.setPortfolioTimelineSelection(boardId, snapshot.index);
         navigateToRoadmapItem(boardId, kind, item.id, displayData || data);

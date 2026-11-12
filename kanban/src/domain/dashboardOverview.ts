@@ -4,12 +4,12 @@ import { controlPending, controlRecords, gateControlProgress } from './projectCo
 import { phaseDescendants, planningProgress } from './phaseTree';
 import { applyTimelineEventToState, getBoardTimelineData, iterateBoardTimeline, reconstructBoardStateFromTimeline } from './timeline';
 import { createBoardStateSnapshot } from './serialize';
-import { getWorkflow, statusCategory, withWorkflowReadCache } from './workflow';
+import { defaultWorkflow, WORKFLOW_CATEGORIES, statusCategory, withWorkflowReadCache } from './workflow';
 import { isPlanningUnit, transferDescendants, workitemProgress, workitemType } from './workitems';
 import { getSprintCalendarStatus, getSprintStatus } from './roadmap';
 import { developmentCompleted, sprintPointSummary } from './sprintResults';
 
-export const DASHBOARD_SECTIONS = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'workitemStatus', 'epics', 'activitySummary', 'started', 'completedInPeriod', 'currentlyInProgress', 'testing', 'openRisks', 'deliverables', 'decisions'] as const;
+export const DASHBOARD_SECTIONS = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'epics', 'workitemStatus', 'activitySummary', 'activityDetails', 'started', 'completedInPeriod', 'currentlyInProgress', 'testing', 'openRisks', 'deliverables', 'decisions'] as const;
 export type DashboardSection = typeof DASHBOARD_SECTIONS[number];
 
 /** End dates include the entire UTC day. Never use today's state before the first observation. */
@@ -37,29 +37,39 @@ export function dashboardReportable(data: BoardData, task: Task): boolean {
 }
 
 export function dashboardInProgress(data: BoardData) {
-    return dashboardTasks(data).filter((task) => dashboardReportable(data, task) && ['in-progress', 'testing'].includes(statusCategory(task.status, data, task)));
+    return dashboardTasks(data).filter((task) => dashboardReportable(data, task) && statusCategory(task.status, data, task) === 'in-progress');
 }
 
 export function dashboardStatistics(data: BoardData, phaseId: string) {
-    const tasks = dashboardTasks(data, phaseId);
-    return (['story', 'task', 'bug'] as const).map((type) => {
-        const members = tasks.filter((task) => workitemType(task) === type && (type !== 'task' || isPlanningUnit(data, task)));
-        const states = getWorkflow(data, { type }).states;
-        return { type, tasks: members, states: states.map((state) => ({
-            ...state, tasks: members.filter((task) => task.status === state.id)
-        })) };
+    return withWorkflowReadCache(() => {
+        const tasks = dashboardTasks(data, phaseId);
+        return (['story', 'task', 'bug'] as const).map((type) => {
+            const members = tasks.filter((task) => workitemType(task) === type && (type !== 'task' || isPlanningUnit(data, task)));
+            return { type, tasks: members, states: WORKFLOW_CATEGORIES.map((category) => ({
+                id: category, category, color: defaultWorkflow().states.find((state) => state.category === category)!.color,
+                tasks: members.filter((task) => statusCategory(task.status, data, task) === category)
+            })) };
+        });
     });
 }
 
-/** Follow the lifecycle for explicit Sprints, including those still active after their deadline. */
-export function dashboardActiveSprints(data: BoardData, end: string) {
-    return dashboardSprints(data, '', end).filter((sprint) => getSprintStatus(sprint.item, end) === 'active').map((sprint) => {
+/** Active at the report end or closed within the inclusive period. Closure data preserves the final roster and metrics. */
+export function dashboardActiveSprints(data: BoardData, end: string, start = end) {
+    return dashboardSprints(data, '', end).filter((sprint) => {
+        const status = getSprintStatus(sprint.item, end);
+        if (status === 'active') return true;
+        const closure = data.extensions.sprintResults?.closures.find((entry) => entry.sprintId === sprint.item.id);
+        // Legacy Sprints without closure observations retain their calendar completion date.
+        const completedOn = closure?.closedAt.slice(0, 10) || sprint.item.endDate;
+        return status === 'done' && Boolean(completedOn && completedOn >= start && completedOn <= end);
+    }).map((sprint) => {
+        const closed = getSprintStatus(sprint.item, end) === 'done';
         const units = sprint.tasks.filter((task) => isPlanningUnit(sprint.data, task) && statusCategory(task.status, sprint.data, task) !== 'cancelled');
         const completed = units.filter((task) => statusCategory(task.status, sprint.data, task) === 'completed');
         const points = sprintPointSummary(data, sprint.item.id);
         const completedPoints = data.board.tasks.filter((task) => task.sprintId === sprint.item.id && developmentCompleted(data, task)).reduce((sum, task) => sum + (task.storyPoints ?? 0), 0);
         return { ...sprint, units, stories: sprint.tasks.filter((task) => workitemType(task) === 'story'),
-            points: { ...points, completed: completedPoints }, percent: units.length ? completed.length / units.length * 100 : null,
+            closed, points: { ...points, completed: closed && points.completed !== null ? points.completed : completedPoints }, percent: units.length ? completed.length / units.length * 100 : null,
             overdue: Boolean(sprint.item.endDate && sprint.item.endDate < end) };
     });
 }
@@ -80,7 +90,9 @@ export function dashboardEpics(data: BoardData) {
 export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, phaseId: string, start: string, end: string) {
     return withWorkflowReadCache(() => {
         const timeline = getBoardTimelineData(source);
-        const result = { started: [] as Task[], completed: [] as Task[], testing: [] as Task[], availableFrom: timeline?.events[0]?.at.slice(0, 10) || null, available: Boolean(timeline?.events[0]?.snapshot?.board), startedAt: new Map<number, string>(), completedAt: new Map<number, string>(), testingAt: new Map<number, string>(), contexts: new Map<number, BoardData>() };
+        const createdInPeriod = (context: BoardData) => dashboardTasks(context, phaseId).filter((task) => workitemType(task) === 'story' && task.createdAt.slice(0, 10) >= start && task.createdAt.slice(0, 10) <= end);
+        const created = new Map(createdInPeriod(endData).map((task) => [task.id, task]));
+        const result = { created: [...created.values()], started: [] as Task[], completed: [] as Task[], testing: [] as Task[], availableFrom: timeline?.events[0]?.at.slice(0, 10) || null, available: Boolean(timeline?.events[0]?.snapshot?.board), startedAt: new Map<number, string>(), completedAt: new Map<number, string>(), testingAt: new Map<number, string>(), contexts: new Map<number, BoardData>() };
         if (!result.available || !timeline) return result;
         const started = new Map<number, Task>();
         const completed = new Map<number, Task>();
@@ -89,11 +101,17 @@ export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, 
         // catalog that must not be fed into later events introducing new members.
         let replay: Parameters<typeof applyTimelineEventToState>[0] = timeline.events[0].snapshot;
         let previous = reconstructBoardStateFromTimeline(source, 0);
+        if (timeline.events[0].at.slice(0, 10) <= end) for (const task of createdInPeriod(previous)) {
+            created.set(task.id, task); result.contexts.set(task.id, previous);
+        }
         for (let index = 1; index < timeline.events.length; index++) {
             const event = timeline.events[index];
             const date = event.at.slice(0, 10);
             replay = applyTimelineEventToState(replay, event) || replay;
             const next = createBoardStateSnapshot(replay);
+            if (date <= end) for (const task of createdInPeriod(next)) {
+                created.set(task.id, task); result.contexts.set(task.id, next);
+            }
             if (date >= start && date <= end && ['task.status.changed', 'task.updated', 'task.created', 'board.workitems.updated'].includes(event.kind)) {
                 const scoped = dashboardTasks(next, phaseId);
                 for (const task of scoped.filter((task) => dashboardReportable(next, task))) {
@@ -131,6 +149,7 @@ export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, 
             if (atEnd && (!dashboardReportable(context, atEnd) || !dashboardTasks(context, phaseId).some((row) => row.id === atEnd.id))) return [];
             return [atEnd || task];
         });
+        result.created = [...created.values()].map((task) => endData.board.tasks.find((row) => row.id === task.id && row.createdAt === task.createdAt) || task);
         result.started = endRows(started); result.completed = endRows(completed);
         // Testing is a period event; show the current status even after the item leaves Testing.
         result.testing = endRows(testing, source);

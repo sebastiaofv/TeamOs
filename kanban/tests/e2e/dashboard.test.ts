@@ -85,7 +85,7 @@ test('empty projects show unavailable progress and discreet empty widget message
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('N/A');
     await expect(page.locator('[data-dashboard-section="milestones"]')).toContainText('No relevant milestones');
     await expect(page.locator('.dashboard-milestone-summary strong')).toHaveText(['0', '0', '0']);
-    await expect(page.locator('[data-dashboard-section="activeSprint"]')).toContainText('No active sprint');
+    await expect(page.locator('[data-dashboard-section="activeSprint"]')).toContainText('No active or completed Sprints');
     await expect(page.locator('[data-dashboard-section="epics"]')).toContainText('No started Epics');
     await kpi(page, 'progress').click();
     await expect(sources(page)).toContainText('No source workitems');

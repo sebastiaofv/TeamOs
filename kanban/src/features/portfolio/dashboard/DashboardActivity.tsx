@@ -1,19 +1,18 @@
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { BoardData, Task } from '@/domain/types';
 import { dashboardInProgress, dashboardPeriodWorkitems } from '@/domain/dashboardOverview';
 import type { ActivityWidget } from '@/domain/dashboardActivityLayout';
-import { formatDate } from '@/domain/dates';
 import { workitemType } from '@/domain/workitems';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { getWorkflow } from '@/domain/workflow';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { useI18n } from '@/shared/i18n';
 
-export type ActivityKind = Exclude<ActivityWidget, 'activitySummary'>;
+export type ActivityKind = Exclude<ActivityWidget, 'activitySummary' | 'activityDetails'> | 'userStoriesCreated';
 export type ActivityDetails = { kind: ActivityKind; historyEventIndex?: number; contexts: Map<number, BoardData>; dates?: Map<number, string> };
-export type DashboardInspect = (name: string, tasks: Task[], data?: BoardData, activity?: ActivityDetails) => void;
-const icons = { started: 'play', completedInPeriod: 'check', currentlyInProgress: 'runner', testing: 'testing' } as const;
+export type DashboardInspect = (name: string, tasks: Task[], data?: BoardData) => void;
+const icons = { started: 'play', completedInPeriod: 'check', currentlyInProgress: 'runner', testing: 'testing', userStoriesCreated: 'plus' } as const;
 
 export function ActivityWorkitems({ tasks, data, boardId, details }: {
     tasks: Task[]; data: BoardData; boardId: string; details: ActivityDetails;
@@ -37,39 +36,33 @@ export function ActivityWorkitems({ tasks, data, boardId, details }: {
     </ul>;
 }
 
-export function DashboardActivity({ historyEventIndex, boardId, data, source, start, end, visible, order, inspect }: {
+export function DashboardActivity({ historyEventIndex, boardId, data, source, start, end, visible, order }: {
     historyEventIndex?: number; boardId: string; data: BoardData; source: BoardData; start: string; end: string;
-    visible: readonly ActivityWidget[]; order: readonly ActivityWidget[]; inspect: DashboardInspect;
+    visible: readonly ActivityWidget[]; order: readonly ActivityWidget[];
 }) {
     const { t } = useI18n();
     const { period, current } = useMemo(() => ({ period: dashboardPeriodWorkitems(source, data, '', start, end), current: dashboardInProgress(data) }), [source, data, start, end]);
+    const [selected, setSelected] = useState<ActivityKind>('started');
     const groups = {
         started: { tasks: period.started, dates: period.startedAt },
         completedInPeriod: { tasks: period.completed, dates: period.completedAt },
         currentlyInProgress: { tasks: current, dates: undefined },
-        testing: { tasks: period.testing, dates: period.testingAt }
+        testing: { tasks: period.testing, dates: period.testingAt },
+        userStoriesCreated: { tasks: period.created, dates: undefined }
     };
-    const available = (kind: ActivityKind) => kind === 'currentlyInProgress' || period.available;
-    const open = (kind: ActivityKind) => inspect(t(`dashboard.section.${kind}`), groups[kind].tasks, kind === 'testing' ? source : data, { kind, historyEventIndex: kind === 'testing' ? undefined : historyEventIndex, contexts: period.contexts, dates: groups[kind].dates });
+    const available = (kind: ActivityKind) => ['currentlyInProgress', 'userStoriesCreated'].includes(kind) || period.available;
     if (!visible.length) return null;
-    return <section className="dashboard-activity" aria-labelledby="dashboardActivityTitle">
-        <h2 id="dashboardActivityTitle" className="dashboard-activity-heading"><WorkspaceIcon name="chart" />{t('dashboard.progressSinceReview')}</h2>
-        <div className="dashboard-activity-grid">{order.filter((key) => visible.includes(key)).map((key) => key === 'activitySummary' ?
-            <section key={key} className="dashboard-panel dashboard-activity-summary" data-dashboard-section={key}>
-                <h3><WorkspaceIcon name="chart" />{t('dashboard.section.activitySummary')}</h3>
-                <div className="dashboard-activity-totals">{(['started', 'completedInPeriod', 'currentlyInProgress', 'testing'] as const).map((kind) => <button key={kind} type="button" className={`dashboard-activity-total dashboard-activity-${kind}`} disabled={!available(kind)} onClick={() => open(kind)}>
-                    <span className="dashboard-activity-icon" aria-hidden="true"><WorkspaceIcon name={icons[kind]} /></span><span>{t(`dashboard.activity.${kind}`)}<strong>{available(kind) ? groups[kind].tasks.length : t('dashboard.na')}</strong></span>
-                </button>)}</div>
-                {!period.available && <p className="dashboard-note">{t('dashboard.noHistoryBaseline')}</p>}
-                {period.available && period.availableFrom && start < period.availableFrom && <p className="dashboard-note">{t('dashboard.partialHistory', { date: formatDate(period.availableFrom) })}</p>}
-            </section> :
-            <section key={key} className={`dashboard-panel dashboard-activity-detail dashboard-activity-${key}`} data-dashboard-section={key}>
-                <h3><span className="dashboard-activity-icon" aria-hidden="true"><WorkspaceIcon name={icons[key]} /></span>{t(`dashboard.section.${key}`)}</h3>
-                {!available(key) ? <p className="dashboard-note">{t('dashboard.noHistoryBaseline')}</p> : <>
-                    {key !== 'currentlyInProgress' && period.availableFrom && start < period.availableFrom && <p className="dashboard-note">{t('dashboard.partialHistory', { date: formatDate(period.availableFrom) })}</p>}
-                    <ActivityWorkitems tasks={groups[key].tasks} data={key === 'testing' ? source : data} boardId={boardId} details={{ kind: key, historyEventIndex: key === 'testing' ? undefined : historyEventIndex, contexts: period.contexts, dates: groups[key].dates }} />
-                </>}
-            </section>
-        )}</div>
-    </section>;
+    return <>{order.filter((key) => visible.includes(key)).map((key) => {
+        if (key === 'activitySummary') return <section key={key} className="dashboard-panel dashboard-activity-summary" data-dashboard-section={key}>
+            <h3><WorkspaceIcon name="chart" />{t('dashboard.section.activitySummary')}</h3>
+            <div className="dashboard-activity-totals">{(['started', 'completedInPeriod', 'currentlyInProgress', 'testing', 'userStoriesCreated'] as const).map((kind) => <button key={kind} type="button" className={`dashboard-activity-total dashboard-activity-${kind}`} aria-pressed={selected === kind} disabled={!available(kind)} onClick={() => setSelected(kind)}>
+                <span className="dashboard-activity-icon" aria-hidden="true"><WorkspaceIcon name={icons[kind]} /></span><span>{t(`dashboard.activity.${kind}`)}<strong>{available(kind) ? groups[kind].tasks.length : t('dashboard.na')}</strong></span>
+            </button>)}</div>
+        </section>;
+        const kind = key === 'activityDetails' ? selected : key;
+        return <section key={key} className={`dashboard-panel dashboard-activity-detail dashboard-activity-${kind}`} data-dashboard-section={key}>
+            <h3><span className="dashboard-activity-icon" aria-hidden="true"><WorkspaceIcon name={icons[kind]} /></span>{t(`dashboard.section.${kind}`)}</h3>
+            {!available(kind) ? <p className="dashboard-note">{t('dashboard.noHistoryBaseline')}</p> : <ActivityWorkitems tasks={groups[kind].tasks} data={kind === 'testing' ? source : data} boardId={boardId} details={{ kind, historyEventIndex: kind === 'testing' ? undefined : historyEventIndex, contexts: period.contexts, dates: groups[kind].dates }} />}
+        </section>;
+    })}</>;
 }
