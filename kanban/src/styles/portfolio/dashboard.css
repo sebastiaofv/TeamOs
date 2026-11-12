@@ -130,7 +130,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-activity-total[aria-pressed="true"], .dashboard-activity-total:hover:not(:disabled) { background: var(--bg-secondary); border-radius: 6px; }
 .dashboard-activity-total:disabled { cursor: default; }
 .dashboard-activity-total strong { display: block; margin-top: 4px; font-size: 24px; line-height: 1.2; font-weight: 600; color: var(--text-primary); }
-.dashboard-activity-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-size: 20px; }
+.dashboard-activity-icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 36px; height: 36px; padding: 8px; box-sizing: border-box; border-radius: 50%; background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-size: 20px; }
 .dashboard-activity-completedInPeriod .dashboard-activity-icon { color: #15996b; background: color-mix(in srgb, #15996b 12%, transparent); }
 .dashboard-activity-detail { height: 300px; display: flex; flex-direction: column; overflow: hidden; }
 .dashboard-activity-detail h3 { display: flex; align-items: center; gap: 8px; }
@@ -264,7 +264,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-inline-progress { font-size: 13px; }
 .dashboard-epic-points { text-align: end; font-variant-numeric: tabular-nums; }
 .dashboard-epic-points small { display: block; color: var(--text-secondary); font-size: 11px; }
-.dashboard-activity-icon > svg { width: 28px; height: 28px; }
+.dashboard-activity-icon > svg { width: 20px; height: 20px; }
 .dashboard-badge { font-size: 12px; }
 
 /* Relevant milestones and Epics share prominent progress and quiet detail actions. */
