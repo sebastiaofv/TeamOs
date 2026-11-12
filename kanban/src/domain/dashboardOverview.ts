@@ -9,8 +9,7 @@ import { isPlanningUnit, transferDescendants, workitemProgress, workitemType } f
 import { getSprintCalendarStatus, getSprintStatus } from './roadmap';
 import { developmentCompleted, sprintPointSummary } from './sprintResults';
 
-export const DASHBOARD_SECTIONS = ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'epics', 'workitemStatus', 'activitySummary', 'activityDetails', 'started', 'completedInPeriod', 'currentlyInProgress', 'testing', 'openRisks', 'deliverables', 'decisions'] as const;
-export type DashboardSection = typeof DASHBOARD_SECTIONS[number];
+export { DASHBOARD_WIDGETS as DASHBOARD_SECTIONS, type DashboardWidget as DashboardSection } from './dashboardActivityLayout';
 
 /** End dates include the entire UTC day. Never use today's state before the first observation. */
 export function dashboardSnapshot(data: BoardData, end: string, currentDate: string) {

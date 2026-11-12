@@ -1,5 +1,5 @@
-import type { DashboardInspect } from './DashboardActivity';
-import { ACTIVITY_WIDGETS, dashboardActivityLayout, isActivityWidget, type ActivityWidget, type DashboardActivityLayout } from '@/domain/dashboardActivityLayout';
+import type { DashboardInspect, DashboardSelection } from './DashboardActivity';
+import { dashboardActivityLayout, type DashboardActivityLayout } from '@/domain/dashboardActivityLayout';
 import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { formatDate } from '@/domain/dates';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
@@ -9,10 +9,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardData, RoadmapItem, Task } from '@/domain/types';
 import { dashboardMetrics, dashboardSprints, dashboardSprintScopeChanges } from '@/domain/dashboard';
-import { DASHBOARD_SECTIONS, dashboardSnapshot, type DashboardSection } from '@/domain/dashboardOverview';
+import { dashboardSnapshot } from '@/domain/dashboardOverview';
 import { DashboardOverview } from './DashboardOverview';
 import { getWorkflow, workflowKind } from '@/domain/workflow';
-import { workitemLabel } from '@/domain/taskIdentity';
+import { DashboardWidgetMenu } from './DashboardWidgetMenu';
+import { DashboardActivity } from './DashboardActivity';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
 import { navigateToRoadmapItem } from '@/features/portfolio/commands/roadmapNavigation';
@@ -21,7 +22,6 @@ import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 
 type Metrics = ReturnType<typeof dashboardMetrics>;
-type Drill = { name: string; tasks: Task[]; data: BoardData; historyEventIndex?: number };
 type Inspect = DashboardInspect;
 
 function Distribution({ metrics, data, inspect }: { metrics: Metrics; data: BoardData; inspect: Inspect }) {
@@ -83,22 +83,6 @@ function SprintAnalytics({ data, phaseId, asOf, inspect }: { data: BoardData; ph
     </>;
 }
 
-function Drilldown({ drill, boardId }: { drill: Drill | null; boardId: string }) {
-    const { t } = useI18n();
-    const actions = usePortfolioActions();
-    const heading = useRef<HTMLHeadingElement>(null);
-    useEffect(() => { if (drill) heading.current?.focus(); }, [drill]);
-    return <section className="dashboard-panel dashboard-drilldown" id="dashboardSources" aria-labelledby="dashboardSourcesTitle">
-        <h3 id="dashboardSourcesTitle" ref={heading} tabIndex={-1}><WorkspaceIcon name="search" />{drill ? t('dashboard.drilldown', { name: drill.name }) : t('dashboard.drillHint')}</h3>
-        {drill && <><p>{t('dashboard.sourceCount', { count: drill.tasks.length })}</p>
-            {!drill.tasks.length ? <p>{t('dashboard.noSources')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th><th>{t('dashboard.dates')}</th></tr></thead>
-                <tbody>{drill.tasks.map((task) => <tr key={task.id}><td>{workitemLabel(task)}</td><td><button type="button" className="dashboard-link" onClick={() => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: drill.data, readOnly: true, historyEventIndex: drill.historyEventIndex })}>{task.title}</button></td>
-                    <td>{getWorkflow(drill.data, task).states.find((state) => state.id === task.status)?.name || task.status}</td><td>{task.responsible || t('dashboard.na')}</td><td>{formatDate(task.dueDate || '') || t('dashboard.na')}</td>
-                </tr>)}</tbody></table></div>}
-        </>}
-    </section>;
-}
-
 function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const state = useAppStore(useShallow((value) => ({ portfolioBoards: value.portfolioBoards, selectedPortfolioBoardId: value.selectedPortfolioBoardId, portfolioTimelineSelection: value.portfolioTimelineSelection, unloadedRelationSources: value.unloadedRelationSources })));
     const timeline = useMemo(() => hidden ? null : getSelectedPortfolioTimelineView(state), [hidden, state]);
@@ -117,32 +101,17 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     const actions = usePortfolioActions();
     const [tab, setTab] = useState<'overview' | 'sprintAnalytics'>('overview');
     const dates = useTableDisclosure(hidden);
-    const sections = useTableDisclosure(hidden);
-    const [drill, setDrill] = useState<Drill | null>(null);
+    const [drill, setDrill] = useState<DashboardSelection>(null);
     const [from, setFrom] = useState(() => { const date = new Date(`${today}T12:00:00Z`); date.setUTCDate(date.getUTCDate() - 7); return date.toISOString().slice(0, 10); });
     const [to, setTo] = useState('');
-    const [visible, setVisible] = useState<DashboardSection[]>([...DASHBOARD_SECTIONS]);
     const [localActivityLayout, setLocalActivityLayout] = useState<DashboardActivityLayout | null>(null);
     const activityLayout = localActivityLayout || dashboardActivityLayout(board?.data.extensions.dashboardActivity);
-    const shown = [...visible.filter((key) => !isActivityWidget(key)), ...activityLayout.order.filter((key) => !activityLayout.hidden.includes(key))];
+    const shown = activityLayout.order.filter((key) => !activityLayout.hidden.includes(key));
     const canSaveLayout = Boolean(board?.handle && !timeline?.isPreview);
     const changeActivityLayout = (layout: DashboardActivityLayout) => {
         setDrill(null);
         if (canSaveLayout) { setLocalActivityLayout(null); void actions.saveDashboardActivityLayout(boardId, layout); }
         else setLocalActivityLayout(layout);
-    };
-    const changeVisibility = (key: DashboardSection, checked: boolean) => {
-        if (isActivityWidget(key)) changeActivityLayout({ ...activityLayout, hidden: checked ? activityLayout.hidden.filter((value) => value !== key) : [...activityLayout.hidden, key] });
-        else setVisible((current) => checked ? [...current, key] : current.filter((value) => value !== key));
-        setDrill(null);
-    };
-    const moveActivity = (key: ActivityWidget, delta: number) => {
-        const order = [...activityLayout.order];
-        const index = order.indexOf(key);
-        const target = index + delta;
-        if (target < 0 || target >= order.length) return;
-        [order[index], order[target]] = [order[target], order[index]];
-        changeActivityLayout({ ...activityLayout, order });
     };
     const referenceDate = timeline?.isPreview ? timeline.selectedEvent!.at.slice(0, 10) : today;
     const end = to || referenceDate;
@@ -155,7 +124,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     [displayData, timeline?.isPreview, end, today, state.portfolioBoards, state.unloadedRelationSources, boardId]);
     // Changing source state invalidates a drilldown so old rows cannot masquerade as current data.
     const source = useRef(displayData);
-    useEffect(() => { if (source.current !== displayData) { source.current = displayData; setDrill(null); } }, [displayData]);
+    useEffect(() => { if (source.current !== displayData) { source.current = displayData; setDrill(current => current && 'kind' in current ? current : null); } }, [displayData]);
     if (hidden) return null;
     if (historyUnavailable) return <section className="dashboard-panel"><p>{t('dashboard.noHistoryBaseline')}</p><button type="button" className="btn" onClick={() => actions.movePortfolioTimelineToLatest(boardId)}>{t('dashboard.current')}</button></section>;
     if (!board || !data || !timeline) return null;
@@ -171,33 +140,22 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
             {(['overview', 'sprintAnalytics'] as const).map((value) => <button type="button" className={`btn${tab === value ? ' active' : ''}`} key={value} aria-pressed={tab === value} onClick={() => { setTab(value); setDrill(null); }}>{t(`dashboard.${value}`)}</button>)}
         </div>
         <div className="dashboard-controls dashboard-filters">
-            <details className="dashboard-visible-sections" ref={sections.detailsRef} onKeyDown={sections.onKeyDown} onToggle={sections.onToggle}><summary className="btn icon-btn" ref={sections.summaryRef} aria-label={t('dashboard.visibleSections')} title={t('dashboard.visibleSections')}><WorkspaceIcon name="settings" /></summary><fieldset data-table-panel><legend className="sr-only">{t('dashboard.visibleSections')}</legend>
-                {DASHBOARD_SECTIONS.filter((key) => !isActivityWidget(key)).map((key) => <label key={key}><input type="checkbox" checked={shown.includes(key)} onChange={(event) => changeVisibility(key, event.target.checked)} />{t(`dashboard.section.${key}`)}</label>)}
-                <p>{t('dashboard.activityLayout')}</p>
-                {activityLayout.order.map((key, index) => <div className="dashboard-layout-row" key={key}>
-                    <label><input type="checkbox" checked={shown.includes(key)} onChange={(event) => changeVisibility(key, event.target.checked)} />{t(`dashboard.section.${key}`)}</label>
-                    <button type="button" className="btn" aria-label={t('dashboard.moveActivityUp', { name: t(`dashboard.section.${key}`) })} disabled={index === 0} onClick={() => moveActivity(key, -1)}>↑</button>
-                    <button type="button" className="btn" aria-label={t('dashboard.moveActivityDown', { name: t(`dashboard.section.${key}`) })} disabled={index === activityLayout.order.length - 1} onClick={() => moveActivity(key, 1)}>↓</button>
-                </div>)}
-                <button className="btn" type="button" onClick={() => changeActivityLayout(dashboardActivityLayout(null))}>{t('dashboard.resetActivity')}</button>
-                {canSaveLayout && <p className="dashboard-note">{t('dashboard.activityShared')}</p>}
-                <div className="dashboard-visibility-actions"><button className="btn" type="button" onClick={() => { setVisible([...DASHBOARD_SECTIONS]); changeActivityLayout({ ...activityLayout, hidden: [] }); }}>{t('dashboard.selectAll')}</button><button className="btn" type="button" onClick={() => { setVisible([]); changeActivityLayout({ ...activityLayout, hidden: [...ACTIVITY_WIDGETS] }); }}>{t('dashboard.clearAll')}</button></div>
-            </fieldset></details>
+            <DashboardWidgetMenu layout={activityLayout} onChange={changeActivityLayout} shared={canSaveLayout} hidden={hidden} />
             <div className="dashboard-date-range"><span id="dashboardDatesLabel" className="sr-only">{t('dashboard.dateRange')}</span>
                 <details ref={dates.detailsRef} onKeyDown={dates.onKeyDown} onToggle={dates.onToggle}>
                     <summary className="btn dashboard-range-field" ref={dates.summaryRef} aria-labelledby="dashboardDatesLabel dashboardDatesValue"><WorkspaceIcon name="planner" /><span id="dashboardDatesValue">{formatDate(from) || t('dashboard.na')} – {formatDate(end)}</span><WorkspaceIcon name="chevronDown" /></summary>
                     <div className="dashboard-range-panel" data-table-panel>
-                        <label>{t('dashboard.startDate')}<DateInput aria-label={t('dashboard.startDate')} value={from} max={end} onChange={(event) => { setFrom(event.target.value); setDrill(null); }} /></label>
-                        <label>{t('dashboard.endDate')}<DateInput aria-label={t('dashboard.endDate')} value={end} min={from} max={referenceDate} onChange={(event) => { setTo(event.target.value); setDrill(null); }} /></label>
+                        <label>{t('dashboard.startDate')}<DateInput aria-label={t('dashboard.startDate')} value={from} max={end} onChange={(event) => { setFrom(event.target.value); setDrill(current => current && 'kind' in current ? current : null); }} /></label>
+                        <label>{t('dashboard.endDate')}<DateInput aria-label={t('dashboard.endDate')} value={end} min={from} max={referenceDate} onChange={(event) => { setTo(event.target.value); setDrill(current => current && 'kind' in current ? current : null); }} /></label>
                     </div>
                 </details>
             </div>
         </div></div>
         {invalidPeriod ? <p role="alert">{t('dashboard.invalidPeriod')}</p> : !displayData ? <p role="status">{t('dashboard.noHistoryBaseline')}</p> : <>
             <details className="dashboard-reporting-info"><summary aria-label={t('dashboard.reportingInfo')} title={t('dashboard.reportingInfo')}><WorkspaceIcon name="info" /></summary><p className="dashboard-note">{t('dashboard.periodNote', { date: end })}</p></details>
-            {tab === 'overview' ? <DashboardOverview historyEventIndex={snapshot?.index ?? undefined} dependencyBlockedIds={dependencyBlockedIds} boardId={boardId} data={displayData} source={data} start={from} end={end} visible={shown} activityOrder={activityLayout.order} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId="" asOf={end} inspect={inspect} />}
+            {tab === 'overview' ? <DashboardOverview historyEventIndex={snapshot?.index ?? undefined} dependencyBlockedIds={dependencyBlockedIds} boardId={boardId} data={displayData} source={data} start={from} end={end} visible={shown} selection={drill} onSelect={setDrill} inspect={inspect} openRoadmap={openRoadmap} /> : <SprintAnalytics data={displayData} phaseId="" asOf={end} inspect={inspect} />}
         </>}
-        {displayData && drill && <Drilldown drill={drill} boardId={boardId} />}
+        {tab === 'sprintAnalytics' && displayData && <DashboardActivity boardId={boardId} data={displayData} source={data} start={from} end={end} visible={['activityDetails']} order={['activityDetails']} selection={drill} onSelect={setDrill} />}
     </>;
 }
 

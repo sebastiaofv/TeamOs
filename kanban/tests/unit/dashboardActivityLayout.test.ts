@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fromPartial } from '@total-typescript/shoehorn';
-import { ACTIVITY_WIDGETS, dashboardActivityLayout } from '../../src/domain/dashboardActivityLayout';
+import { DASHBOARD_WIDGETS, dashboardActivityLayout } from '../../src/domain/dashboardActivityLayout';
 import { createEmptyProjectData, validateBoardData } from '../../src/domain/board';
 import { serializeBoardDataFromObject } from '../../src/domain/serialize';
 import { reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
@@ -17,13 +17,22 @@ function setup(writable = true) {
 
 describe('shared Dashboard activity layout', () => {
     it('supplies defaults and normalizes unknown widgets, duplicates and missing order entries', () => {
-        expect(dashboardActivityLayout(undefined)).toEqual({ version: 1, order: [...ACTIVITY_WIDGETS], hidden: ['started', 'completedInPeriod', 'currentlyInProgress', 'testing'] });
-        expect(dashboardActivityLayout({ version: 1, order: ['started', 'missing', 'started'], hidden: ['started', 3, 'started'] })).toEqual({ version: 1, order: ['started', 'activitySummary', 'activityDetails', 'completedInPeriod', 'currentlyInProgress', 'testing'], hidden: ['started'] });
+        expect(dashboardActivityLayout(undefined)).toEqual({ version: 2, order: [...DASHBOARD_WIDGETS], hidden: ['started', 'completedInPeriod', 'currentlyInProgress', 'testing'] });
+        expect(dashboardActivityLayout({ version: 1, order: ['started', 'missing', 'started'], hidden: ['started', 3, 'started'] })).toEqual({ version: 2, order: ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'epics', 'workitemStatus', 'started', 'activitySummary', 'activityDetails', 'completedInPeriod', 'currentlyInProgress', 'testing', 'openRisks', 'deliverables', 'decisions'], hidden: ['started'] });
         expect(dashboardActivityLayout({ version: 99 })).toEqual(dashboardActivityLayout(null));
     });
     it('adds Testing visibly to saved layouts without losing existing choices', () => {
         expect(dashboardActivityLayout({ version: 1, order: ['currentlyInProgress', 'completedInPeriod', 'started', 'activitySummary'], hidden: ['started'] }))
-            .toEqual({ version: 1, order: ['currentlyInProgress', 'completedInPeriod', 'started', 'activitySummary', 'activityDetails', 'testing'], hidden: ['started'] });
+            .toEqual({ version: 2, order: ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'epics', 'workitemStatus', 'currentlyInProgress', 'completedInPeriod', 'started', 'activitySummary', 'activityDetails', 'testing', 'openRisks', 'deliverables', 'decisions'], hidden: ['started'] });
+    });
+    it('normalizes full layouts and preserves non-activity widget choices on serialization', () => {
+        const layout = dashboardActivityLayout({ version: 2, order: ['epics', 'projectProgress', 'epics', 'unknown'], hidden: ['milestones', 'unknown', 'milestones'] });
+        expect(layout.order.slice(0, 2)).toEqual(['epics', 'projectProgress']);
+        expect(new Set(layout.order)).toEqual(new Set(DASHBOARD_WIDGETS));
+        expect(layout.hidden).toEqual(['milestones']);
+        const data = createEmptyProjectData('Layout');
+        data.extensions.dashboardActivity = layout;
+        expect(serializeBoardDataFromObject(data).extensions.dashboardActivity).toEqual(layout);
     });
     it('persists and replays order/visibility, resets defaults and leaves workitems untouched', async () => {
         const { actions, data, save } = setup();

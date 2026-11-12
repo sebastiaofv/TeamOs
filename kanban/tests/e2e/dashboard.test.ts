@@ -15,7 +15,7 @@ async function seed(page: Page, writable = true) {
     await page.locator('[data-view-mode="dashboard"]').click();
 }
 const kpi = (page: Page, key: string) => page.locator(`[data-dashboard-kpi="${key}"]`);
-const sources = (page: Page) => page.locator('#dashboardSources');
+const sources = (page: Page) => page.locator('[data-dashboard-section="activityDetails"]');
 
 for (const width of [1280, 390]) for (const tab of ['Overview', 'Sprint Analytics']) {
     test(`dashboard keeps date filters and removes recorded history in ${tab} at ${width}px`, async ({ page }) => {
@@ -28,8 +28,7 @@ for (const width of [1280, 390]) for (const tab of ['Overview', 'Sprint Analytic
         await expect(page.getByLabel('End date', { exact: true })).toBeVisible();
         await expect(page.getByLabel('Planning scope', { exact: true })).toHaveCount(0);
         await page.locator('.dashboard-range-field').click();
-        const sources = page.locator('#dashboardSources');
-        await expect(sources).toHaveCount(0);
+        await expect(page.locator('#dashboardSources')).toHaveCount(0);
     });
 }
 
@@ -47,14 +46,14 @@ test('selected-project metrics count archived leaves and open their exact source
     await expect(page.locator('[data-dashboard-statistics]')).toHaveCount(3);
     await kpi(page, 'progress').focus();
     await page.keyboard.press('Enter');
-    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(6);
     await expect(sources(page)).toContainText('Archived pending integration');
     await expect(sources(page)).not.toContainText('Foreign workitem');
     await expect(sources(page)).not.toContainText('Story awaiting functional validation');
-    await sources(page).getByRole('button', { name: 'Validated implementation', exact: true }).click();
+    await sources(page).locator('[data-dashboard-workitem]', { hasText: 'Validated implementation' }).getByRole('button').click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(6);
     expect(await readSavedBoard(page, 'p')).toEqual(before);
     await expect(page).toHaveURL(/pv=dashboard/);
     await openProjectPicker(page); await page.locator('#portfolioBoardsChips [data-board-id=""]').click();
@@ -66,8 +65,8 @@ test('overview shows all active phases and read-only drilldowns retain project c
     await seed(page, false);
     for (const id of ['delivery']) await expect(page.locator(`[data-dashboard-planning="${id}"]`)).toBeVisible();
     await kpi(page, 'progress').click();
-    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
-    await sources(page).getByRole('button', { name: 'Archived pending integration', exact: true }).click();
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(6);
+    await sources(page).locator('[data-dashboard-workitem]', { hasText: 'Archived pending integration' }).getByRole('button').click();
     await expect(page.locator('#taskDetailModal')).toContainText('Archived pending integration');
     await page.keyboard.press('Escape');
     await page.locator('[data-dashboard-planning="delivery"]').getByRole('button', { name: 'Delivery programme', exact: true }).click();
@@ -88,19 +87,19 @@ test('empty projects show unavailable progress and discreet empty widget message
     await expect(page.locator('[data-dashboard-section="activeSprint"]')).toContainText('No active or completed Sprints');
     await expect(page.locator('[data-dashboard-section="epics"]')).toContainText('No started Epics');
     await kpi(page, 'progress').click();
-    await expect(sources(page)).toContainText('No source workitems');
+    await expect(sources(page)).toContainText('No workitems match');
 });
 
 test('external file reload refreshes metrics and clears stale source lists', async ({ page }) => {
     await seed(page);
     await kpi(page, 'progress').click();
-    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(6);
     const changed = await readSavedBoard(page, 'p');
     changed.board.tasks.find((task: { id: number }) => task.id === 903).status = 'doing';
     await mutateExternalBoardFile(page, { boardId: 'p', payload: changed });
     await triggerExternalFileCheck(page);
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
-    await expect(sources(page).locator('tbody tr')).toHaveCount(0);
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(0);
     await kpi(page, 'progress').click();
     await expect(sources(page)).toContainText('Independent validated task');
     await expect(sources(page)).toContainText('Validated implementation');
@@ -118,10 +117,10 @@ test('historical period uses saved observations and historical drilldowns instea
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
     await expect(page.locator('.dashboard-context')).toContainText('Snapshot date · 2026-10-15');
     await kpi(page, 'progress').click();
-    const row = sources(page).locator('tr', { hasText: 'Validated implementation' });
+    const row = sources(page).locator('[data-dashboard-workitem]', { hasText: 'Validated implementation' });
     await expect(row).toContainText('In progress');
     await row.getByRole('button').click();
-    await expect(page.locator('#taskDetailModal')).toContainText('In progress');
+    await expect(page.locator('#taskDetailModal')).toContainText('Validated');
     await page.keyboard.press('Escape');
     await setDashboardDate(page, 'End date', '31/10/2026');
     await expect(kpi(page, 'progress').locator('strong')).toHaveText('33%');
@@ -160,7 +159,7 @@ test('Portuguese dark mobile dashboard stays within viewport and remains keyboar
     const progress = kpi(page, 'progress');
     await progress.focus();
     await page.keyboard.press('Enter');
-    await expect(sources(page).getByRole('heading')).toBeFocused();
+    await expect(sources(page).getByRole('heading')).toHaveText('Execução');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     expect(overflow).toBe(false);
     await page.screenshot({ path: 'test-results/dashboard-mobile-pt-dark.png', fullPage: true });

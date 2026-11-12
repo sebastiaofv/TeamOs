@@ -1,5 +1,5 @@
 import { closeSprint } from '../../src/domain/sprintResults';
-import { ACTIVITY_WIDGETS } from '../../src/domain/dashboardActivityLayout';
+import { ACTIVITY_WIDGETS, DASHBOARD_WIDGETS } from '../../src/domain/dashboardActivityLayout';
 import { setDashboardDate } from '../support/dashboard';
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
@@ -30,8 +30,9 @@ test('one Overview section has the requested default order, opt-in lists and all
     expect((await summary.boundingBox())!.x).toBeLessThan((await start.boundingBox())!.x);
     await summary.click();
     const filter = page.locator('.dashboard-visible-sections');
-    await expect(filter.getByRole('checkbox')).toHaveCount(15);
-    await filter.getByRole('checkbox', { name: 'Workitem status', exact: true }).uncheck();
+    await expect(filter.getByRole('region', { name: 'Visible', exact: true }).locator('[data-column-choice]')).toHaveCount(11);
+    await expect(filter.getByRole('region', { name: 'Hidden', exact: true }).locator('[data-column-choice]')).toHaveCount(4);
+    await filter.getByRole('button', { name: 'Hide '+'Workitem status', exact: true }).click();
     await expect(section(page, 'workitemStatus')).toHaveCount(0);
     await expect(section(page, 'projectProgress')).toBeVisible();
     await filter.getByRole('button', { name: 'Clear all', exact: true }).click();
@@ -114,21 +115,21 @@ test('period activity includes Bugs, actual transition dates and end-date respon
 
 test('historical controls show risks and decisions still open at end date and deliveries in the period', async ({ page }) => {
     await seed(page);
-    await expect(section(page, 'openRisks').locator('tbody tr')).toHaveCount(1);
-    await expect(section(page, 'decisions').locator('tbody tr')).toHaveCount(1);
+    await expect(section(page, 'openRisks').locator('[data-dashboard-control]')).toHaveCount(1);
+    await expect(section(page, 'decisions').locator('[data-dashboard-control]')).toHaveCount(1);
     await setDashboardDate(page, 'End date', '31/10/2026');
-    await expect(section(page, 'openRisks').locator('tbody tr')).toHaveCount(2);
-    await expect(section(page, 'decisions').locator('tbody tr')).toHaveCount(2);
-    await expect(section(page, 'deliverables').locator('tbody tr')).toHaveCount(2);
+    await expect(section(page, 'openRisks').locator('[data-dashboard-control]')).toHaveCount(2);
+    await expect(section(page, 'decisions').locator('[data-dashboard-control]')).toHaveCount(2);
+    await expect(section(page, 'deliverables').locator('[data-dashboard-control]')).toHaveCount(2);
     await expect(section(page, 'deliverables')).toContainText('Accepted delivery in period');
     await expect(section(page, 'deliverables')).not.toContainText('Accepted before period');
     await expect(section(page, 'openRisks')).toContainText('High');
-    for (const [key, title, status] of [['openRisks', 'Risk closed after period', 'Open'], ['deliverables', 'Accepted delivery in period', 'Accepted'], ['decisions', 'Decision resolved after period', 'Proposed']]) {
+    for (const [key, title, status] of [['openRisks', 'Risk closed after period', 'Closed'], ['deliverables', 'Accepted delivery in period', 'Accepted'], ['decisions', 'Decision resolved after period', 'Approved']]) {
         await section(page, key).getByRole('button', { name: title, exact: true }).click();
         const dialog = page.getByRole('dialog');
         await expect(dialog).toContainText(title);
         await expect(dialog.getByLabel('Status', { exact: true })).toHaveValue(status.toLowerCase());
-        await expect(dialog.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
+        await expect(dialog.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
         await page.keyboard.press('Escape');
         await expect(dialog).toHaveCount(0);
     }
@@ -165,7 +166,7 @@ test('stacked horizontal bars merge workflow categories and exclude child Tasks'
     await expect(page.locator('#dashboardSources')).toHaveCount(0);
 });
 
-test('started Epics use their own status and shared progress and open historical details', async ({ page }) => {
+test('started Epics omit status, reuse shared progress and open normal details', async ({ page }) => {
     await seed(page);
     await setDashboardDate(page, 'End date', '31/10/2026');
     const epics = section(page, 'epics');
@@ -181,8 +182,8 @@ test('active sprint displays shared planning-unit completion, dates and navigati
     await seed(page);
     const sprint = section(page, 'activeSprint');
     await expect(sprint).toContainText('Sprint 2 - Implementation');
-    await expect(sprint).toContainText('15/10/2026');
-    await expect(sprint).toContainText('05/11/2026');
+    await expect(sprint).toContainText('15/10');
+    await expect(sprint).toContainText('05/11');
     await expect(sprint).toContainText('2Workitems');
     await expect(sprint).toContainText('0 / 0Story Points');
     await expect(sprint).toContainText('On Target');
@@ -264,7 +265,7 @@ test('consultation leaves the project file untouched', async ({ page }) => {
     await section(page, 'openRisks').getByRole('button', { name: 'Risk closed after period', exact: true }).click();
     await page.keyboard.press('Escape');
     await page.locator('[data-dashboard-kpi="progress"]').click();
-    await page.locator('#dashboardSources tbody button').first().click();
+    await section(page, 'activityDetails').locator('[data-dashboard-workitem] button').first().click();
     await page.keyboard.press('Escape');
     expect(await readSavedBoard(page, 'sections')).toEqual(before);
 });
@@ -336,18 +337,18 @@ test('activity visibility/order are saved in the project and reset without chang
     const original = await readSavedBoard(page, 'sections');
     const filter = page.locator('.dashboard-visible-sections');
     await filter.locator('summary').click();
-    await filter.getByRole('checkbox', { name: 'Started Workitems', exact: true }).uncheck();
+    await filter.getByRole('button', { name: 'Hide '+'Started Workitems', exact: true }).click();
     await expect(section(page, 'started')).toHaveCount(0);
     await filter.getByRole('button', { name: 'Move Completed Workitems up', exact: true }).click();
-    expect(await page.locator('[data-dashboard-section]').filter({ has: page.locator('.dashboard-activity-list, .dashboard-activity-totals, .dashboard-activity-empty') }).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-dashboard-section')))).toEqual(['activitySummary', 'activityDetails', 'completedInPeriod', 'currentlyInProgress', 'testing']);
-    await expect.poll(async () => (await readSavedBoard(page, 'sections')).extensions.dashboardActivity).toEqual({ version: 1, order: ['activitySummary', 'activityDetails', 'completedInPeriod', 'started', 'currentlyInProgress', 'testing'], hidden: ['started'] });
+    expect(await page.locator('[data-dashboard-section]').filter({ has: page.locator('.dashboard-activity-list, .dashboard-activity-totals, .dashboard-activity-empty') }).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-dashboard-section')))).toEqual(['activitySummary', 'completedInPeriod', 'activityDetails', 'currentlyInProgress', 'testing']);
+    await expect.poll(async () => (await readSavedBoard(page, 'sections')).extensions.dashboardActivity).toEqual({ version: 2, order: ['projectProgress', 'activePhases', 'milestones', 'activeSprint', 'epics', 'workitemStatus', 'activitySummary', 'completedInPeriod', 'activityDetails', 'currentlyInProgress', 'testing', 'openRisks', 'deliverables', 'decisions', 'started'], hidden: ['started'] });
     expect(serializeBoardDataFromObject(await readSavedBoard(page, 'sections')).board).toEqual(serializeBoardDataFromObject(original).board);
     const saved = await readSavedBoard(page, 'sections');
     await page.reload();
     await seedPortfolioBoards(page, [{ id: 'sections', title: saved.board.settings.title, hasHandle: true, tasks: saved.board.tasks, extensions: saved.extensions }], { selectedBoardId: 'sections' });
     await page.locator('[data-view-mode="dashboard"]').click();
     await expect(section(page, 'started')).toHaveCount(0);
-    expect(await page.locator('[data-dashboard-section]').filter({ has: page.locator('.dashboard-activity-list, .dashboard-activity-totals, .dashboard-activity-empty') }).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-dashboard-section')))).toEqual(['activitySummary', 'activityDetails', 'completedInPeriod', 'currentlyInProgress', 'testing']);
+    expect(await page.locator('[data-dashboard-section]').filter({ has: page.locator('.dashboard-activity-list, .dashboard-activity-totals, .dashboard-activity-empty') }).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-dashboard-section')))).toEqual(['activitySummary', 'completedInPeriod', 'activityDetails', 'currentlyInProgress', 'testing']);
     await filter.locator('summary').click();
     await filter.getByRole('button', { name: 'Reset to Default', exact: true }).click();
     await expect(section(page, 'started')).toHaveCount(0);
@@ -359,7 +360,7 @@ test('read-only activity changes stay local; zero activity and partial history h
     await seed(page, false);
     const filter = page.locator('.dashboard-visible-sections');
     await filter.locator('summary').click();
-    await filter.getByRole('checkbox', { name: 'Activity Summary', exact: true }).uncheck();
+    await filter.getByRole('button', { name: 'Hide '+'Activity Summary', exact: true }).click();
     await filter.getByRole('button', { name: 'Move Completed Workitems up', exact: true }).click();
     await expect(section(page, 'activitySummary')).toHaveCount(0);
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
@@ -367,6 +368,8 @@ test('read-only activity changes stay local; zero activity and partial history h
     await filter.locator('summary').click();
     await setDashboardDate(page, 'Start date', '15/10/2026');
     await setDashboardDate(page, 'End date', '15/10/2026');
+    await expect(section(page, 'activityDetails')).toContainText('Select an Activity Summary');
+    await section(page, 'activitySummary').getByRole('button', { name: /^Started/ }).click();
     await expect(section(page, 'activityDetails')).toContainText('No workitems match');
     await expect(section(page, 'activitySummary').locator('strong').first()).toHaveText('0');
     await setDashboardDate(page, 'Start date', '01/10/2026');
@@ -591,7 +594,7 @@ for (const width of [390, 1840]) test(`Testing uses transition dates, keeps curr
     await setDashboardDate(page, 'End date', '26/10/2026');
     const filterMenu = page.locator('.dashboard-visible-sections');
     await filterMenu.locator('summary').click();
-    for (const name of ['Testing Workitems', 'In Progress Workitems']) await filterMenu.getByRole('checkbox', { name, exact: true }).check();
+    for (const name of ['Testing Workitems', 'In Progress Workitems']) await filterMenu.getByRole('button', { name: `Show ${name}`, exact: true }).click();
     await filterMenu.locator('summary').click();
     const widget = section(page, 'testing');
     await expect(widget.locator('[data-dashboard-workitem]')).toHaveCount(1);
@@ -607,11 +610,13 @@ for (const width of [390, 1840]) test(`Testing uses transition dates, keeps curr
     await expect(section(page, 'activitySummary').locator('.dashboard-activity-testing strong')).toHaveText('0');
     const filter = page.locator('.dashboard-visible-sections');
     await filter.locator('summary').click();
-    await filter.getByRole('checkbox', { name: 'Testing Workitems', exact: true }).uncheck();
+    await filter.getByRole('button', { name: 'Hide '+'Testing Workitems', exact: true }).click();
     await expect(widget).toHaveCount(0);
     await expect.poll(async () => (await readSavedBoard(page, 'testing')).extensions.dashboardActivity.hidden).toEqual(['started', 'completedInPeriod', 'testing']);
+    await expect(filter.getByRole('button', { name: 'Move Testing Workitems up', exact: true })).toHaveCount(0);
+    await filter.getByRole('button', { name: 'Show Testing Workitems', exact: true }).click();
     await filter.getByRole('button', { name: 'Move Testing Workitems up', exact: true }).click();
-    await expect.poll(async () => (await readSavedBoard(page, 'testing')).extensions.dashboardActivity.order.at(-2)).toBe('testing');
+    await expect.poll(async () => (await readSavedBoard(page, 'testing')).extensions.dashboardActivity.order.indexOf('testing')).toBe(11);
     await filter.getByRole('button', { name: 'Reset to Default', exact: true }).click();
     await expect(widget).toHaveCount(0);
 });
@@ -628,15 +633,18 @@ test('desktop widgets use compact widths, matching progress tracks and balanced 
     const sprint = (await section(page, 'activeSprint').boundingBox())!;
     const metrics = (await section(page, 'activeSprint').locator('.dashboard-sprint-indicators').boundingBox())!;
     const header = (await section(page, 'activeSprint').locator('.dashboard-sprint-header').boundingBox())!;
-    expect(metrics.x).toBeGreaterThan(header.x + header.width);
+    expect(metrics.y).toBeGreaterThan(header.y + header.height);
+    expect(metrics.x).toBeGreaterThan(header.x);
     const epics = (await section(page, 'epics').boundingBox())!;
     expect(epics.x).toBeGreaterThan(sprint.x + sprint.width);
     expect(epics.y).toBe(sprint.y);
+    expect(epics.height).toBe(sprint.height);
     const status = (await section(page, 'workitemStatus').boundingBox())!;
     const summary = (await section(page, 'activitySummary').boundingBox())!;
     const detail = (await section(page, 'activityDetails').boundingBox())!;
     expect(status.y).toBeGreaterThan(sprint.y);
     expect(summary.y).toBe(status.y); expect(detail.y).toBe(status.y);
+    expect(summary.height).toBe(300); expect(detail.height).toBe(summary.height); expect(status.height).toBe(summary.height);
     expect(summary.x).toBeGreaterThan(status.x); expect(detail.x).toBeGreaterThan(summary.x);
     for (const row of await milestones.locator('.dashboard-milestone-list > li').all()) {
         const name = (await row.locator('.dashboard-milestone-name').boundingBox())!;
@@ -644,4 +652,122 @@ test('desktop widgets use compact widths, matching progress tracks and balanced 
         expect(Math.abs(name.y + name.height / 2 - track.y - track.height / 2)).toBeLessThan(2);
     }
     await expect(page.locator('.dashboard-ring-value')).toHaveCSS('stroke', await page.locator('.dashboard-phase-circle.dashboard-phase-future').first().evaluate((node) => getComputedStyle(node).borderTopColor));
+});
+
+for (const width of [1840, 390]) test(`Sprint and every Overview indicator share one detail, with bounded content at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 980 });
+    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
+    delete data.extensions.timeline;
+    const sprint = data.extensions.roadmap!.sprints.find(item => item.id === 'active')!;
+    sprint.status = 'active';
+    sprint.title = 'Implementation with a very long Sprint name which must truncate';
+    data.extensions.roadmap!.sprints = [sprint, { ...sprint, id: 'second', title: 'Second active Sprint' }];
+    await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'sprint-detail', title: 'Sprint detail', hasHandle: true, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sprint-detail' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    const widget = section(page, 'activeSprint');
+    const list = widget.locator('.dashboard-widget-list');
+    const detail = section(page, 'activityDetails');
+    await expect(detail).toContainText('Select an Activity Summary indicator or the Workitems of a Sprint');
+    await expect(section(page, 'activitySummary').locator('[aria-pressed="true"]')).toHaveCount(0);
+    await expect(widget.locator('[data-dashboard-active-sprint]')).toHaveCount(2);
+    expect(await list.evaluate(node => node.scrollHeight <= node.clientHeight + 1)).toBe(true);
+    expect((await widget.boundingBox())!.height).toBe((await section(page, 'epics').boundingBox())!.height);
+    const first = widget.locator('[data-dashboard-active-sprint="active"]');
+    await expect(first.locator('.dashboard-sprint-dates')).toHaveText('15/10 – 05/11');
+    expect(await first.locator('.dashboard-truncate').evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
+    await first.getByRole('button', { name: /Workitems/ }).click();
+    await expect(detail.getByRole('heading')).toHaveText(sprint.title);
+    await expect(detail.locator('[data-dashboard-workitem]')).toHaveCount(2);
+    for (const key of ['progress', 'phase', 'milestone']) {
+        const button = key === 'progress' ? page.locator('[data-dashboard-kpi="progress"]') : key === 'phase' ? section(page, 'activePhases').locator('.dashboard-phase-sequence li').first().getByRole('button').last() : section(page, 'milestones').locator('.dashboard-inline-progress').first();
+        await button.click();
+        await expect(page.locator('#dashboardSources, .dashboard-drilldown')).toHaveCount(0);
+        await expect(detail.locator('[data-dashboard-workitem]')).not.toHaveCount(0);
+    }
+    await section(page, 'activitySummary').getByRole('button', { name: /^In Progress/ }).click();
+    await expect(detail.getByRole('heading')).toHaveText('In Progress');
+    const bounds = (await detail.boundingBox())!;
+    const third = (await detail.locator('[data-dashboard-workitem]').nth(2).boundingBox())!;
+    expect(third.y + third.height).toBeLessThan(bounds.y + bounds.height - 10);
+    for (const target of ['.dashboard-statistics-grid', '.dashboard-state-legend']) {
+        expect(await section(page, 'workitemStatus').locator(target).evaluate(node => node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+    }
+    await expect(section(page, 'epics').locator('.dashboard-epic-status')).toHaveCount(0);
+    await expect(section(page, 'epics').locator('.dashboard-epic-points')).toContainText('SP');
+    for (const key of ['openRisks', 'deliverables', 'decisions']) await expect(section(page, key).locator('table, thead')).toHaveCount(0);
+    await expect(page.locator('#dashboardSources, .dashboard-drilldown')).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    await detail.screenshot({ path: `test-results/issue-83-detail-${width}.png` });
+});
+
+test('three Sprints scroll internally and Workitems open the selected Sprint only', async ({ page }) => {
+    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
+    delete data.extensions.timeline;
+    const sprint = data.extensions.roadmap!.sprints.find(item => item.id === 'active')!;
+    sprint.status = 'active';
+    data.extensions.roadmap!.sprints = [sprint, { ...sprint, id: 'second', title: 'Second Sprint' }, { ...sprint, id: 'third', title: 'Third Sprint' }];
+    await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'three', title: 'Three Sprints', hasHandle: true, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'three' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    const widget = section(page, 'activeSprint');
+    expect(await widget.locator('.dashboard-widget-list').evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
+    await widget.locator('[data-dashboard-active-sprint="third"]').getByRole('button', { name: /Workitems/ }).click();
+    await expect(section(page, 'activityDetails').getByRole('heading')).toHaveText('Third Sprint');
+    await expect(section(page, 'activityDetails')).toContainText('No workitems match');
+    await expect(page.locator('#dashboardSources')).toHaveCount(0);
+});
+
+test('Dashboard workitems and Project Control use the normal writable details and persist edits', async ({ page }) => {
+    await seed(page, true, false);
+    await section(page, 'activitySummary').getByRole('button', { name: /^In Progress/ }).click();
+    await section(page, 'activityDetails').locator('[data-dashboard-workitem="911"] button').click();
+    const task = page.locator('#taskDetailModal');
+    await expect(task.locator('.workitem-readonly')).toHaveCount(0);
+    await expect(task.locator('#taskDetailEditBtn')).toBeVisible();
+    await task.locator('#detailEffortInput').selectOption('M');
+    await expect.poll(async () => (await readSavedBoard(page, 'sections')).board.tasks.find((row: { id: number }) => row.id === 911).effort).toBe('M');
+    await page.keyboard.press('Escape');
+    await section(page, 'openRisks').locator('[data-dashboard-control] button').first().click();
+    const control = page.getByRole('dialog');
+    await expect(control.locator('.workitem-readonly')).toHaveCount(0);
+    await expect(control.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    await control.getByRole('button', { name: 'Edit', exact: true }).click();
+    await control.getByLabel('Title', { exact: true }).fill('Risk edited through Dashboard');
+    await expect(control.getByLabel('Recorded by (local author)', { exact: true })).toHaveValue('Ana');
+    await control.getByRole('button', { name: 'Save', exact: true }).click();
+    await expect(control).toHaveCount(0);
+    await expect(section(page, 'openRisks')).toContainText('Risk edited through Dashboard');
+});
+
+test('widget chooser reorders all visible widgets with pointer and keyboard and restores defaults', async ({ page }) => {
+    await page.setViewportSize({ width: 1840, height: 980 });
+    await seed(page, true, false);
+    const chooser = page.locator('.dashboard-visible-sections');
+    await chooser.locator('summary').click();
+    const visible = chooser.getByRole('region', { name: 'Visible', exact: true });
+    const hidden = chooser.getByRole('region', { name: 'Hidden', exact: true });
+    const keys = () => page.locator('[data-dashboard-section]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-dashboard-section')));
+    await chooser.getByRole('button', { name: 'Hide Project progress', exact: true }).click();
+    await expect(hidden.locator('[data-column-choice="projectProgress"]')).toBeVisible();
+    await chooser.getByRole('button', { name: 'Show Project progress', exact: true }).click();
+    expect((await keys()).at(-1)).toBe('projectProgress');
+    await chooser.getByRole('button', { name: 'Move Project progress up', exact: true }).click();
+    expect((await keys()).at(-2)).toBe('projectProgress');
+    await visible.getByRole('button', { name: 'Move Active phases down', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(async () => (await keys())[0]).toBe('milestones');
+    const from = (await visible.getByRole('button', { name: 'Drag Milestones', exact: true }).boundingBox())!;
+    const to = (await visible.locator('[data-column-choice="activeSprint"]').boundingBox())!;
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down(); await page.mouse.move(from.x + from.width / 2, from.y + 10, { steps: 3 });
+    await page.mouse.move(to.x + 15, to.y + to.height / 2, { steps: 12 }); await page.mouse.up();
+    await expect.poll(async () => (await keys())[0]).toBe('activePhases');
+    await expect.poll(async () => (await readSavedBoard(page, 'sections')).extensions.dashboardActivity.order.slice(0, 3)).toEqual(['activePhases', 'activeSprint', 'milestones']);
+    await chooser.getByRole('button', { name: 'Reset to Default', exact: true }).click();
+    expect(await keys()).toEqual(DASHBOARD_WIDGETS.filter(key => !['started', 'completedInPeriod', 'currentlyInProgress', 'testing'].includes(key)));
+    await expect(hidden.locator('[data-column-choice]')).toHaveCount(4);
+    await chooser.locator('[data-table-panel]').screenshot({ path: 'test-results/issue-83-widget-chooser.png', animations: 'disabled' });
 });
