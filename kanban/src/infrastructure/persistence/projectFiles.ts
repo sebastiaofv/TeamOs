@@ -1,5 +1,5 @@
 import { withProjectIdentityLock } from './projectLock';
-import { getDirectoryProject, loadDirectoryHistory, mergeDirectoryTimeline, attachHistoryArchives } from './projectDirectory';
+import { getDirectoryProject, isDirectoryHistoryLoaded, markDirectoryHistoryLoaded, readDirectoryHistory, mergeDirectoryTimeline, attachHistoryArchives } from './projectDirectory';
 import { parseConversations } from '@/domain/comments';
 import { inheritLegacyTaskIdentities } from '@/domain/taskIdentity';
 import type { BoardData, LooseBoardData } from '@/domain/types';
@@ -394,27 +394,27 @@ export function projectHasUnsavedChanges(boardId: string): boolean {
 /** Hydration is a read, never a mutation or a new recovery revision. */
 export async function ensureProjectHistoryLoaded(boardId: string): Promise<void> {
     const board = getPortfolioBoardRecord(boardId);
-    const storage = getDirectoryProject(board?.handle);
-    if (!board?.handle || !storage || storage.loaded) return;
+    if (!board?.handle || !getDirectoryProject(board.handle) || isDirectoryHistoryLoaded(board.handle)) return;
     const handle = board.handle;
     const runtime = getProjectFileState(boardId)!;
     if (runtime.historyInFlight) return runtime.historyInFlight;
     runtime.historyInFlight = (async () => {
         if (runtime.inFlight) await runtime.inFlight;
         if (getPortfolioBoardRecord(boardId)?.handle !== handle) return;
-        const persisted = await loadDirectoryHistory(handle);
+        const persisted = await readDirectoryHistory(handle);
         const current = getPortfolioBoardRecord(boardId);
         if (!persisted || current?.handle !== handle) return;
-        const timeline = mergeDirectoryTimeline(persisted, current.data.extensions.timeline, false);
+        const timeline = mergeDirectoryTimeline(persisted.timeline, current.data.extensions.timeline, false);
         parseConversations(current.data.extensions.conversations, timeline.events);
         const hydrated = cloneBoardForMutation(current.data);
         hydrated.extensions.timeline = timeline;
-        attachHistoryArchives(hydrated, storage.archives);
+        attachHistoryArchives(hydrated, persisted.archives);
         BoardRepository.validate(hydrated);
-        storage.loaded = true;
+        // Synchronous from validation on: saves made while reading join the loaded history here.
+        const loaded = markDirectoryHistoryLoaded(handle, persisted)!;
         if (runtime.base) {
-            runtime.base = { ...runtime.base, extensions: { ...runtime.base.extensions, timeline: persisted } };
-            attachHistoryArchives(runtime.base, storage.archives);
+            runtime.base = { ...runtime.base, extensions: { ...runtime.base.extensions, timeline: loaded.timeline } };
+            attachHistoryArchives(runtime.base, loaded.archives);
         }
         publishData(boardId, hydrated);
         useAppStore.setState({ portfolioTimelineSelection: { boardId, eventIndex: Math.max(0, timeline.events.length - 1) } });

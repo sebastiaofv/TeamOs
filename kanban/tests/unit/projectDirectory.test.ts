@@ -5,7 +5,7 @@ import { cloneSerializable } from '../../src/domain/serializable';
 import { createAttachmentId } from '../../src/domain/attachments';
 import { createPortfolioRecord } from '../../src/infrastructure/persistence/portfolioRecord';
 import { BoardRepository, writeJsonToFileHandle } from '../../src/infrastructure/persistence/boardRepository';
-import { createProjectDirectory, findProjectDirectories, getDirectoryProject, openProjectDirectory, loadDirectoryHistory, resolveAttachmentBlob, activateDirectoryProject } from '../../src/infrastructure/persistence/projectDirectory';
+import { createProjectDirectory, findProjectDirectories, attachDirectoryHistory, getDirectoryProject, isDirectoryHistoryLoaded, markDirectoryHistoryLoaded, openProjectDirectory, loadDirectoryHistory, readDirectoryHistory, resolveAttachmentBlob, activateDirectoryProject } from '../../src/infrastructure/persistence/projectDirectory';
 import { ensureProjectHistoryLoaded, enqueueProjectSave, markProjectDirty, refreshProjectFileBaseline, syncProjectSaveStates } from '../../src/infrastructure/persistence/projectFiles';
 import { useAppStore } from '../../src/features/portfolio/state/store';
 import { newControlRecord, saveControlRecord } from '../../src/domain/projectControl';
@@ -84,10 +84,45 @@ describe('project directory persistence', () => {
         board.data.board.settings.title = 'Renamed';
         await writeJsonToFileHandle(handle, board.data);
         expect(history.fullReads).toBe(0);
-        expect(getDirectoryProject(handle)?.loaded).toBe(false);
+        expect(isDirectoryHistoryLoaded(handle)).toBe(false);
         expect((await loadDirectoryHistory(handle))?.events.map((event) => event.id)).toEqual([expect.stringContaining('baseline_'), 'old-event', 'new-event']);
         expect(JSON.parse(project.text())).not.toHaveProperty('history');
-        expect(getDirectoryProject(handle)?.loaded).toBe(false);
+        expect(isDirectoryHistoryLoaded(handle)).toBe(false);
+    });
+
+    it('keeps an event saved while the history is being read', async () => {
+        const { directory } = await fixture();
+        const handle = await openProjectDirectory(directory);
+        const board = await BoardRepository.createRecordFromHandle(handle);
+        // The read finishes before the save lands; the mode switches after it.
+        const persisted = (await readDirectoryHistory(handle))!;
+        expect(isDirectoryHistoryLoaded(handle)).toBe(false);
+        appendTimelineEvent(board.data, { id: 'during-load', kind: 'board.settings.updated', entityType: 'board', entityId: 'board', summary: 'Saved during load', changes: { title: { before: board.title, after: 'Renamed' } } });
+        board.data.board.settings.title = 'Renamed';
+        await writeJsonToFileHandle(handle, board.data);
+        const loaded = markDirectoryHistoryLoaded(handle, persisted)!;
+        expect(isDirectoryHistoryLoaded(handle)).toBe(true);
+        expect(loaded.timeline.events.map((event) => event.id)).toEqual([expect.stringContaining('baseline_'), 'old-event', 'during-load']);
+        // An external reload attaches the session's history, so it must hold the event too.
+        const reloaded = attachDirectoryHistory(handle, cloneSerializable(board.data));
+        expect(reloaded.extensions.timeline?.events.map((event) => event.id)).toEqual([expect.stringContaining('baseline_'), 'old-event', 'during-load']);
+        expect(markDirectoryHistoryLoaded(handle, persisted)!.timeline).toBe(loaded.timeline);
+    });
+
+    it('confirms a write\'s journal transaction once its commit marker is on disk', async () => {
+        const { directory, history } = await fixture();
+        const handle = await openProjectDirectory(directory);
+        expect(getDirectoryProject(handle)!.commit).toEqual({ kind: 'none' });
+        const board = await BoardRepository.createRecordFromHandle(handle);
+        appendTimelineEvent(board.data, { id: 'committed-event', kind: 'board.settings.updated', entityType: 'board', entityId: 'board', summary: 'Commit', changes: { title: { before: board.title, after: 'Committed' } } });
+        board.data.board.settings.title = 'Committed';
+        await writeJsonToFileHandle(handle, board.data);
+        const commit = getDirectoryProject(handle)!.commit;
+        expect(commit.kind).toBe('committed');
+        const id = commit.kind === 'committed' ? commit.id : '';
+        expect(JSON.parse(history.text()).transactions.at(-1)).toEqual({ kind: 'commit', id });
+        // Reopening cannot see the marker until it checks the end of history.json.
+        expect(getDirectoryProject(await openProjectDirectory(directory))!.commit).toEqual({ kind: 'unconfirmed', id });
     });
 
     it('does not read or rewrite history for a current-state-only change', async () => {
@@ -274,7 +309,7 @@ describe('loaded-history performance', () => {
         await refreshProjectFileBaseline(record);
         await Promise.all([ensureProjectHistoryLoaded(record.id), ensureProjectHistoryLoaded(record.id)]);
         expect(history.fullReads).toBe(1);
-        expect(getDirectoryProject(handle)!.loaded).toBe(true);
+        expect(isDirectoryHistoryLoaded(handle)).toBe(true);
     });
 
     it('allows retry after a shared history load fails', async () => {
@@ -287,10 +322,10 @@ describe('loaded-history performance', () => {
         await refreshProjectFileBaseline(record);
         const failed = await Promise.allSettled([ensureProjectHistoryLoaded(record.id), ensureProjectHistoryLoaded(record.id)]);
         expect(failed.map((result) => result.status)).toEqual(['rejected', 'rejected']);
-        expect(getDirectoryProject(handle)!.loaded).toBe(false);
+        expect(isDirectoryHistoryLoaded(handle)).toBe(false);
         history.setText(original);
         await ensureProjectHistoryLoaded(record.id);
         expect(history.fullReads).toBe(2);
-        expect(getDirectoryProject(handle)!.loaded).toBe(true);
+        expect(isDirectoryHistoryLoaded(handle)).toBe(true);
     });
 });
