@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useI18n } from '@/shared/i18n';
 
 export function TablePagination({ page, pageCount, pageSize, onPage, onPageSize, scope = '' }: {
@@ -11,7 +12,7 @@ export function TablePagination({ page, pageCount, pageSize, onPage, onPageSize,
                 <select id={scopedId('tablePageSize')} value={pageSize} onChange={event => onPageSize(Number(event.target.value))}>
                     {[25, 50, 100].map(size => <option key={size} value={size}>{size}</option>)}
                 </select>
-                <svg className="table-select-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+                <WorkspaceIcon name="chevronDown" className="table-select-arrow" size={14} />
             </span>
         </label>
         <button className="btn" type="button" id={scopedId('tablePreviousPage')} disabled={page === 0} onClick={() => onPage(page - 1)}>{t('table.previous')}</button>

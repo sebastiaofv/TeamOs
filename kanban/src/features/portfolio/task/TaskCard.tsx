@@ -150,7 +150,7 @@ export const PortfolioTaskCard = memo(function PortfolioTaskCard({ item, state, 
                     <span className="task-card-type">{t(`workitems.type.${type}`)}</span>
                 </span>
                 <span className="task-card-owner" title={`${t('task.responsible')}: ${task.responsible || t('board.notAssigned')}`}>
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M2.5 14v-1a5.5 5.5 0 0 1 11 0v1Z" /></svg>
+                    <WorkspaceIcon name="user" size={14} />
                     <select onMouseDown={(event) => event.stopPropagation()} onTouchStart={(event) => event.stopPropagation()} className="task-card-owner-name" aria-label={t('task.responsible')} value={task.responsible || ''} disabled={!canMutate || busy} onChange={async (event) => { setBusy(true); try { await actions.setPortfolioTaskResponsible(item.boardId, taskId, event.target.value); } finally { setBusy(false); } }}>
                         <option value="">{t('board.notAssigned')}</option>
                         {task.responsible && !members.some((member) => member.name === task.responsible) && <option value={task.responsible}>{task.responsible}</option>}

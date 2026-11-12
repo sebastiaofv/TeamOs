@@ -81,3 +81,5 @@ src/
   canonical type module directly.
 - Prefer a feature's public `src/features/portfolio/index.ts` entry point when
   a consumer needs a stable feature-level interface.
+
+Application icons use `src/shared/ui/WorkspaceIcon.tsx`, the central semantic mapping to named `lucide-react` imports. Reuse that component for UI icons instead of drawing SVG paths or using icon glyphs. Native select backgrounds are generated from Lucide by `scripts/generate-select-icons.mjs`; chart geometry and the brand logo remain separate visual assets.

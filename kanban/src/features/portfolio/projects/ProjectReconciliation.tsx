@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -71,7 +72,7 @@ function ReconciliationForm({ boardId }: { boardId: string }) {
         <div className="modal-header">
             <div><Dialog.Title className="modal-title">{t('conflict.title')} · {board?.title}</Dialog.Title>
                 <Dialog.Description className="reconciliation-description">{t('conflict.help')}</Dialog.Description></div>
-            <Dialog.Close className="modal-close" aria-label={t('common.close')}>×</Dialog.Close>
+            <Dialog.Close className="modal-close" aria-label={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close>
         </div>
         <div className="modal-body">
             {conflicts.some((conflict) => conflict.reason === 'regression') && <p role="note">{t('conflict.regression')}</p>}

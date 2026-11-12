@@ -30,7 +30,7 @@ function QueryControlsContent({ boardMode, scope = '', additionalFields = [], ic
                 {search && <button className="section-search-clear" id={scopedId('portfolioSearchClearBtn')} type="button"
                     aria-label={table ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
                     title={table ? t('palette.cmdClearTableSearch', { query: search }) : t('palette.clearSearch')}
-                    onClick={() => setFilter('search', '')}>×</button>}
+                    onClick={() => setFilter('search', '')}><WorkspaceIcon name="close" /></button>}
             </div>
             <PortfolioToolbarFilters boardMode={boardMode} scope={scope} additionalFields={additionalFields} iconOnly={iconOnlyFilters} />
         </div>

@@ -1,3 +1,4 @@
+import { WorkspaceIcon, type WorkspaceIconName } from '@/shared/ui/WorkspaceIcon';
 import { WORKITEM_TYPES } from '@/domain/workitems';
 // The command palette dialog (⌘K / Ctrl+K, "/", or the toolbar search box).
 // Results come from buildPaletteModel; running an item goes through
@@ -30,9 +31,9 @@ import { loadRecentPaletteItems, rememberPaletteItem } from './recentItems';
 import { requestOpenFilters } from './openCommandPalette';
 import { clearTableFilters, setTableFilter } from '@/features/portfolio/table/tableControls';
 
-const ICONS: Record<PaletteIcon, string> = {
-    task: '●', project: '■', roadmap: '◆', command: '›', filter: '⌕', create: '+', open: '↗', move: '→',
-    assign: '@', priority: '!', plan: '◷', edit: '✎', archive: '▭', person: '', time: '◷'
+const ICONS: Record<PaletteIcon, WorkspaceIconName> = {
+    task: 'task', project: 'folder', roadmap: 'roadmap', command: 'command', filter: 'filters', create: 'plus', open: 'external', move: 'arrowRight',
+    assign: 'assign', priority: 'priority', plan: 'planner', edit: 'edit', archive: 'archive', person: 'user', time: 'clock'
 };
 
 function Highlighted({ text, ranges }: { text: string; ranges: [number, number][] }) {
@@ -49,10 +50,10 @@ function Highlighted({ text, ranges }: { text: string; ranges: [number, number][
 }
 
 function ItemIcon({ item }: { item: PaletteItem }) {
-    if (item.checked !== undefined) return <span className="palette-item-icon" aria-hidden="true">{item.checked ? '✓' : ''}</span>;
+    if (item.checked !== undefined) return <span className="palette-item-icon" aria-hidden="true">{item.checked && <WorkspaceIcon name="check" />}</span>;
     return (
         <span className="palette-item-icon" aria-hidden="true" style={item.color ? { color: item.color } : undefined}>
-            {ICONS[item.icon]}
+            <WorkspaceIcon name={ICONS[item.icon]} />
         </span>
     );
 }
@@ -195,10 +196,7 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
                 </div>
             )}
             <div className="palette-input-row">
-                <svg className="palette-input-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-                    <circle cx="7" cy="7" r="4.5" />
-                    <path d="M10.5 10.5 14 14" />
-                </svg>
+                <WorkspaceIcon name="search" className="palette-input-icon" />
                 <input
                     ref={inputRef}
                     id="commandPaletteInput"

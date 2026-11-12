@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { DateInput } from '@/shared/ui/DateInput';
 // The toolbar's Filters button, its dropdown panel, and the row of active
@@ -23,9 +24,7 @@ export type FilterMenuField = {
 
 function FilterIcon() {
     return (
-        <svg className="portfolio-filters-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-            <path d="M2 3h12l-4.5 5.5V13l-3-1.5v-3z" />
-        </svg>
+        <WorkspaceIcon name="filters" className="portfolio-filters-icon" />
     );
 }
 

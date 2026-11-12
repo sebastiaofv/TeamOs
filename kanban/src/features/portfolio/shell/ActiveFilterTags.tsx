@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useI18n } from '@/shared/i18n';
 import { formatDate } from '@/domain/dates';
 import type { FilterMenuField } from './PortfolioFilterMenu';
@@ -14,7 +15,7 @@ export function ActiveFilterTags({ fields, onClear, scope = '' }: {
                 : field.options.filter(option => values.includes(option.value)).map(option => option.label).join(', ') || values.join(', ');
             return <span className="portfolio-active-filter" key={field.id} data-filter={field.key}>
                 <span className="portfolio-active-filter-name">{field.label}</span><span>{label}</span>
-                <button type="button" aria-label={t('toolbar.removeFilter', { label: field.label, value: label })} onClick={field.reset}>×</button>
+                <button type="button" aria-label={t('toolbar.removeFilter', { label: field.label, value: label })} onClick={field.reset}><WorkspaceIcon name="close" /></button>
             </span>;
         })}
         <button className="btn-text" id={scope ? `portfolioClearFilters-${scope}` : 'portfolioClearFilters'} type="button" onClick={onClear}>{t('toolbar.clearAllFilters')}</button>

@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:standalone": "vite build --config vite.standalone.config.ts",
+    "build": "npm run icons:generate && vite build",
+    "build:standalone": "npm run icons:generate && vite build --config vite.standalone.config.ts",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc",
@@ -16,7 +16,8 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
-    "prepare": "cd .. && husky kanban/.husky"
+    "prepare": "cd .. && husky kanban/.husky",
+    "icons:generate": "node scripts/generate-select-icons.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
@@ -44,6 +45,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/inter": "^5.3.0",
     "@radix-ui/react-dialog": "^1.1.23",
+    "lucide-react": "^1.72.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zustand": "^5.0.15"

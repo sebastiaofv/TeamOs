@@ -85,7 +85,7 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
         role="group" aria-labelledby={`${rowId}-title`}>
         <div className="roadmap-row-main">
             <div className="roadmap-row-labels" style={{ paddingInlineStart: 12 + Math.min(row.depth, 12) * 14 }}>
-                {row.hasChildren ? <button className="roadmap-action-btn roadmap-tree-toggle" type="button" aria-expanded={!row.treeCollapsed} aria-label={t('roadmap.toggleSubphases', { title: item.title })} onClick={() => actions.togglePortfolioRoadmapRowExpanded(view.boardId, `tree:${item.id}`)}>{row.treeCollapsed ? '▸' : '▾'}</button>
+                {row.hasChildren ? <button className="roadmap-action-btn roadmap-tree-toggle" type="button" aria-expanded={!row.treeCollapsed} aria-label={t('roadmap.toggleSubphases', { title: item.title })} onClick={() => actions.togglePortfolioRoadmapRowExpanded(view.boardId, `tree:${item.id}`)}><WorkspaceIcon name={row.treeCollapsed ? "chevronRight" : "chevronDown"} /></button>
                     : <span className="roadmap-tree-spacer" aria-hidden="true" />}
                 <button type="button" className="roadmap-row-title roadmap-edit-name" title={item.title} id={`${rowId}-title`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id, { boardId: view.boardId })}>{item.title}</button>
                 <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={`${t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })}: ${row.visibleCount}/${row.progress.associated}`} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggleWorkitems}><WorkspaceIcon name="table" /> {row.visibleCount}/{row.progress.associated}</button>
@@ -109,7 +109,7 @@ function MilestoneDiamond({ marker }: { marker: RoadmapMilestoneMarker }) {
             <polygon points={points} className="milestone-base" />
             <rect className="milestone-progress-fill" x="0" y="0" height="30" width={(marker.progress.percent ?? 0) / 100 * 30} clipPath={`url(#${clipId})`} />
             <polygon points={points} className="milestone-outline" />
-            {marker.progress.associated > 0 && marker.progress.percent === 100 && <path className="milestone-complete-check" d="M9 15 L13 19 L21 11" />}
+            {marker.progress.associated > 0 && marker.progress.percent === 100 && <g className="milestone-complete-check"><WorkspaceIcon name="check" x={6} y={6} size={18} /></g>}
         </svg>
     </span>;
 }
@@ -153,7 +153,7 @@ function MilestoneDialog({ marker, view, canEdit, close }: { marker?: RoadmapMil
     const anotherDialog = useAppStore((state) => Boolean(state.activeDialog || state.appMessage));
     return <Dialog.Root open={Boolean(marker)} onOpenChange={(open) => { if (!open && !anotherDialog) close(); }}><Dialog.Portal><Dialog.Overlay className="modal active milestone-modal" id="milestoneWorkitemsModal">
         <Dialog.Content className="modal-content milestone-modal-content" aria-describedby={undefined} onKeyDown={(event) => event.stopPropagation()} onEscapeKeyDown={(event) => { if (anotherDialog) { event.preventDefault(); return; } event.preventDefault(); close(); }} {...returnFocus}>
-            {marker && <><div className="modal-header"><div className="milestone-modal-heading"><MilestoneDiamond marker={marker} /><div><Dialog.Title className="modal-title">{marker.item!.title}</Dialog.Title><p>{formatDueDateForUi(marker.item!.dueDate)} · {percent(marker)}</p></div></div><div className="roadmap-modal-actions"><DeleteMenu disabled={!canEdit} onDelete={() => actions.deleteRoadmapEntity('milestones', marker.item!.id, { onApplied: close })} /><Dialog.Close className="modal-close" aria-label={t('common.close')}>×</Dialog.Close></div></div>
+            {marker && <><div className="modal-header"><div className="milestone-modal-heading"><MilestoneDiamond marker={marker} /><div><Dialog.Title className="modal-title">{marker.item!.title}</Dialog.Title><p>{formatDueDateForUi(marker.item!.dueDate)} · {percent(marker)}</p></div></div><div className="roadmap-modal-actions"><DeleteMenu disabled={!canEdit} onDelete={() => actions.deleteRoadmapEntity('milestones', marker.item!.id, { onApplied: close })} /><Dialog.Close className="modal-close" aria-label={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close></div></div>
                 <div className="modal-body"><ScopeTable scope={marker} view={view} scopeId={`roadmap-modal-${marker.key}`} /></div>
                 <div className="modal-footer"><button className="btn" disabled={!canEdit} onClick={() => actions.openRoadmapEntityModal('milestones', marker.item!.id)}>{t('common.edit')}</button>
                     <Dialog.Close className="btn">{t('common.close')}</Dialog.Close></div>

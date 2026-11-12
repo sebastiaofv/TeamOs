@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useRef } from 'react';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -26,7 +27,7 @@ export function AppSettingsDialog({ showTimeline, onShowTimelineChange }: {
                 onEscapeKeyDown={escapeAnswersAppMessage} {...returnFocus} onOpenAutoFocus={(event) => { place(); returnFocus.onOpenAutoFocus(event); }}>
                 <div className="app-settings-heading">
                     <Dialog.Title>{t('appSettings.title')}</Dialog.Title>
-                    <Dialog.Close className="btn icon-btn" aria-label={t('common.close')} title={t('common.close')}>×</Dialog.Close>
+                    <Dialog.Close className="btn icon-btn" aria-label={t('common.close')} title={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close>
                 </div>
                 <fieldset className="app-settings-row"><legend>{t('appSettings.mode')}</legend>
                     <div className="settings-choices">

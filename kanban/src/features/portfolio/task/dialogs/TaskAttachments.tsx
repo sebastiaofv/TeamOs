@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { AttachmentImage, AttachmentDownload } from './AttachmentMedia';
 import { useRef, useState } from 'react';
 import { calculateBoardAttachmentBytes, getTaskAttachments } from '@/domain/attachments';
@@ -47,7 +48,7 @@ export function TaskAttachments({ vm }: { vm: TaskDetailViewModel }) {
                         <div className="detail-attachment-meta"><div className="detail-attachment-name">{item.name}</div><div className="detail-attachment-sub">{item.subLabel}</div></div>
                     </div></td>
                     <td>{item.uploadedBy || t('attachments.unknownAuthor')}</td>
-                    <td><div className="attachment-table-actions"><div className="attachment-preview-actions"><AttachmentOpenLink className="detail-attachment-open attachment-open" dataUrl={item.dataUrl} previewMime={item.previewMime} /><AttachmentDownload className="detail-attachment-download attachment-download" href={item.dataUrl} download={item.name || 'attachment'} aria-label={`${t('common.download')} ${item.name}`}>{t('common.download')}</AttachmentDownload></div>{!vm.readOnly && <button type="button" className="attachment-remove-btn" disabled={busy || picking} aria-label={t('editor.removeAttachment', { name: item.name })} onClick={() => void remove(item.id, item.name)}>×</button>}</div></td>
+                    <td><div className="attachment-table-actions"><div className="attachment-preview-actions"><AttachmentOpenLink className="detail-attachment-open attachment-open" dataUrl={item.dataUrl} previewMime={item.previewMime} /><AttachmentDownload className="detail-attachment-download attachment-download" href={item.dataUrl} download={item.name || 'attachment'} aria-label={`${t('common.download')} ${item.name}`}>{t('common.download')}</AttachmentDownload></div>{!vm.readOnly && <button type="button" className="attachment-remove-btn" disabled={busy || picking} aria-label={t('editor.removeAttachment', { name: item.name })} onClick={() => void remove(item.id, item.name)}><WorkspaceIcon name="close" /></button>}</div></td>
                 </tr>)}</tbody>
             </table>}
     </div>;

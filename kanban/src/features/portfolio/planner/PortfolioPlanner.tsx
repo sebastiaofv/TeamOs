@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -135,9 +136,9 @@ function PlannerHeader({ model, calendar, onCalendar }: { model: PlannerViewMode
     return (
         <header className="planner-header">
             <div className={`planner-nav${calendar ? ' hidden' : ''}`}>
-                <button className="btn" type="button" aria-label={week ? t('planner.previousWeek') : t('planner.previousDay')} onClick={() => shiftPortfolioPlannerDate(-1)}>‹</button>
+                <button className="btn" type="button" aria-label={week ? t('planner.previousWeek') : t('planner.previousDay')} onClick={() => shiftPortfolioPlannerDate(-1)}><WorkspaceIcon name="chevronLeft" /></button>
                 <button className="btn" type="button" onClick={() => showPortfolioPlannerToday()}>{t('planner.today')}</button>
-                <button className="btn" type="button" aria-label={week ? t('planner.nextWeek') : t('planner.nextDay')} onClick={() => shiftPortfolioPlannerDate(1)}>›</button>
+                <button className="btn" type="button" aria-label={week ? t('planner.nextWeek') : t('planner.nextDay')} onClick={() => shiftPortfolioPlannerDate(1)}><WorkspaceIcon name="chevronRight" /></button>
             </div>
             <h2 hidden={calendar} className="planner-period" id="portfolioPlannerPeriod" aria-live="polite">{label}</h2>
             <div className="planner-mode-toggle" role="group" aria-label={t('planner.rangeLabel')}>

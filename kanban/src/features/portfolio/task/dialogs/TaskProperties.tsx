@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { DateInput } from '@/shared/ui/DateInput';
 import { STORY_POINT_OPTIONS } from '@/domain/sprintResults';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -88,6 +89,7 @@ function StatusEditor({ task, workflow, vm }: { task: Task; workflow: Workflow; 
             <select id="detailStatusInput" aria-label={t('task.status')} value={task.status} onChange={(event) => void movePortfolioTaskToStatus(vm.boardId, task.id, event.target.value)}>
                 {workflow.states.filter((state) => state.id === task.status || canTransition(vm.sourceBoardData, task.status, state.id, task)).map((state) => <option key={state.id} value={state.id}>{state.name}</option>)}
             </select>
+            <WorkspaceIcon name="chevronDown" className="detail-status-chevron" size={14} />
         </div>
     </div>;
 }

@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { AttachmentImage, AttachmentDownload } from '../AttachmentMedia';
 import { projectActor } from '@/features/portfolio/projects/projectIdentity';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
@@ -131,7 +132,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
                                 data-attachment-id={item.id}
                                 onClick={() => remove(item.id)}
                             >
-                                ×
+                                <WorkspaceIcon name="close" />
                             </button>
                         </div>
                     </div>

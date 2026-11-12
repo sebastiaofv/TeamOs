@@ -13,11 +13,11 @@ function VisibleWidget({ column, title, index, count, move, hide }: {
     const { t } = useI18n();
     const { setNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({ id: column });
     return <div ref={setNodeRef} className={`table-column-option${isDragging ? ' is-dragging' : ''}`} data-column-choice={column} style={{ transform: CSS.Transform.toString(transform), transition }}>
-        <button className="btn column-drag-handle" type="button" aria-label={t('dashboard.dragWidget', { name: title })} {...attributes} {...listeners}>⠿</button>
+        <button className="btn column-drag-handle" type="button" aria-label={t('dashboard.dragWidget', { name: title })} {...attributes} {...listeners}><WorkspaceIcon name="grip" /></button>
         <span className="table-column-name">{title}</span>
         <button className="btn icon-btn" type="button" aria-label={t('dashboard.hideWidget', { name: title })} onClick={hide}><WorkspaceIcon name="eye" /></button>
-        <button className="btn icon-btn" type="button" disabled={index === 0} aria-label={t('dashboard.moveActivityUp', { name: title })} onClick={() => move(-1)}>↑</button>
-        <button className="btn icon-btn" type="button" disabled={index === count - 1} aria-label={t('dashboard.moveActivityDown', { name: title })} onClick={() => move(1)}>↓</button>
+        <button className="btn icon-btn" type="button" disabled={index === 0} aria-label={t('dashboard.moveActivityUp', { name: title })} onClick={() => move(-1)}><WorkspaceIcon name="arrowUp" /></button>
+        <button className="btn icon-btn" type="button" disabled={index === count - 1} aria-label={t('dashboard.moveActivityDown', { name: title })} onClick={() => move(1)}><WorkspaceIcon name="arrowDown" /></button>
     </div>;
 }
 

@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { buildTaskDetailViewModel } from '@/features/portfolio/commands/taskViewModels';
 import { useProjectHistory } from '@/features/portfolio/hooks/useProjectHistory';
 import { SaveIndicator } from '@/features/portfolio/projects/ProjectSaveStatus';
@@ -82,7 +83,7 @@ export function TaskDetailDialog() {
                                 <Dialog.Title className="workitem-title" id="detailTitle">{vm?.fields.title}</Dialog.Title>
                             </div>
                             <div className="workitem-header-actions">{vm && <SaveIndicator boardId={vm.boardId} />}{vm && <TaskTransferMenu boardId={vm.boardId} taskId={vm.taskId} allowDelete={!vm.readOnly} historical={vm.history?.historicalIndex !== undefined} />}{vm?.readOnly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}
-                                <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
+                                <Dialog.Close className="modal-close" id="taskDetailModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close>
                             </div>
                         </div>
                         <div className="modal-body" ref={bodyRef}>

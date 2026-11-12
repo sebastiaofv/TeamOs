@@ -451,3 +451,5 @@
 /* Keep days readable; their shared parent scrolls headers and slots together. */
 .planner-week { overflow-x: auto; }
 .planner-week > .planner-day-headers, .planner-week > .planner-grid-scroll { min-width: calc(56px + var(--planner-days, 7) * 96px); }
+
+.planner-tray-card-planned { display: inline-flex; align-items: center; gap: 3px; }

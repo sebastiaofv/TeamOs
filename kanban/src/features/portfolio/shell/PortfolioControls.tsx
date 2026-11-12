@@ -138,14 +138,12 @@ function ChipList({ state }: { state: ChipState }) {
                 <button className="chip-link chip-settings" type="button" data-action="project-settings" data-board-id={board.id}
                     aria-label={t('project.settingsFor', { name: board.title || board.fileName })} title={t('project.settings')}
                     aria-haspopup="dialog" onClick={() => { document.getElementById('projectPickerBtn')?.focus(); openProjectSettings(board.id); }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h6m0 0h10M4 12h12m0 0h4M4 18h4m0 0h12M10 3v6m6 0v6M8 15v6" />
-                    </svg>
+                    <WorkspaceIcon name="settings" />
                 </button>
                 {board.handle && saveUi.canRetry && (
                     <button className="chip-link" type="button" title={t('toolbar.retrySave')} data-action="retry-save" data-board-id={board.id} onClick={() => retryPortfolioSave(board.id)}>{t('common.retry')}</button>
                 )}
-                <button className="chip-link chip-link-danger" type="button" aria-label={t('toolbar.removeProject')} title={t('toolbar.removeProject')} data-action="remove-board" data-board-id={board.id} onClick={() => removePortfolioBoard(board.id)}>{grouped ? <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8" /></svg> : t('common.remove')}</button>
+                <button className="chip-link chip-link-danger" type="button" aria-label={t('toolbar.removeProject')} title={t('toolbar.removeProject')} data-action="remove-board" data-board-id={board.id} onClick={() => removePortfolioBoard(board.id)}>{grouped ? <WorkspaceIcon name="close" size={14} /> : t('common.remove')}</button>
             </span>
         );
     };
@@ -173,7 +171,7 @@ function ChipList({ state }: { state: ChipState }) {
 
 function ProductProjectMenu({ product, active, children }: { product: string; active: boolean; children: ReactNode }) {
     return <details className={`product-project-menu${active ? ' active' : ''}`}>
-        <summary><span>{product}</span><span aria-hidden="true">›</span></summary>
+        <summary><span>{product}</span><span aria-hidden="true"><WorkspaceIcon name="chevronRight" /></span></summary>
         <div className="product-projects">{children}</div>
     </details>;
 }
