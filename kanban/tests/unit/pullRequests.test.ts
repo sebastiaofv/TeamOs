@@ -11,7 +11,7 @@ import { createPortfolioMutationActions } from '../../src/features/portfolio/com
 import type { BoardData } from '../../src/domain/types';
 
 const url = 'http://git.internal:8080/org/repo/pull/12?Q=One%2FTwo#Diff';
-const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-8.board.json', 'utf8'));
+const fixture = (): BoardData => JSON.parse(readFileSync('tests/fixtures/manual/us-8.board.json', 'utf8'));
 function setup({ writable = true, saved = true } = {}) {
     const data = createEmptyProjectData('Links');
     data.extensions.project!.members = [{ id: 'ana', name: 'Ana' }];

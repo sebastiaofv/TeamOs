@@ -36,7 +36,7 @@ describe('roadmap temporal scale', () => {
 
 describe('phase colour persistence', () => {
     it('round-trips colours without modifying workitem progress inputs or history', () => {
-        const board = JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
+        const board = JSON.parse(readFileSync('tests/fixtures/manual/us-5.board.json', 'utf8'));
         const saved = serializeBoardDataFromObject(board);
         validateBoardData(saved);
         expect(saved.extensions.roadmap).toEqual(normalizeRoadmapExtension(board.extensions.roadmap));

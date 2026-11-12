@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 
 async function seed(page: Page, writable = true) {
-    const fixture = JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-5.board.json', 'utf8'));
     await page.clock.setFixedTime(new Date('2026-10-19T12:00:00Z'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: writable, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });

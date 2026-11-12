@@ -26,7 +26,7 @@ function setup({ writable = true, saved = true } = {}) {
 
 describe('project master data and curated values', () => {
     it.each(['us-11', 'us-21'])('validates and round-trips the %s manual test board', (name) => {
-        const raw = JSON.parse(readFileSync(`test-board/${name}.board.json`, 'utf8'));
+        const raw = JSON.parse(readFileSync(`tests/fixtures/manual/${name}.board.json`, 'utf8'));
         validateBoardData(raw);
         const migrated = serializeBoardDataFromObject(raw);
         validateBoardData(migrated);

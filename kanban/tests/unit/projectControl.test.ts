@@ -8,7 +8,7 @@ import { appendTimelineEvent, ensureBoardTimelineBaseline, reconstructBoardState
 import { applyProjectSettings } from '../../src/domain/projectData';
 import type { BoardData } from '../../src/domain/types';
 
-const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
+const fixture = (): BoardData => JSON.parse(readFileSync('tests/fixtures/manual/us-20.board.json', 'utf8'));
 describe('Project Control persistence and lifecycle', () => {
     it('migrates v1 workitem links to an archive, preserving IDs, comments and history through round trips', () => {
         const legacy = JSON.parse(readFileSync('tests/fixtures/project-control-v1.json', 'utf8'));

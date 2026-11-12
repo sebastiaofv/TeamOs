@@ -18,7 +18,7 @@ function legacyFolder() {
 }
 
 it('preserves age-in-state after an actual folder save and reopen', async () => {
-    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-6.board.json', 'utf8')));
+    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('tests/fixtures/manual/us-6.board.json', 'utf8')));
     data.board.tasks[0].statusChangedAt = '2026-01-01T00:00:00.000Z';
     data.board.tasks[0].updatedAt = '2026-02-01T00:00:00.000Z';
     const root = new MemoryDirectory('root');

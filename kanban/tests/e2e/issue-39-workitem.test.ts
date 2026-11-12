@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, portfolioCard, readSavedBoard, waitForBoardWrites, answerAppMessage, mockImportProjectsPicker } from '../support/portfolio';
 
-const fixture = JSON.parse(readFileSync('test-board/us-16.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-16.board.json', 'utf8'));
 
 test.beforeEach(async ({ page }) => { await gotoApp(page); });
 

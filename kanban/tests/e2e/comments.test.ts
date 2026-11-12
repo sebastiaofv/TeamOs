@@ -115,7 +115,7 @@ test('a failed save keeps the applied publication and retry saves that same reco
 });
 
 test('manual volume fixture paginates by publication order and historic snapshots cannot show future posts', async ({ page }) => {
-    const fixture = JSON.parse(readFileSync('test-board/us-7.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-7.board.json', 'utf8'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await portfolioCard(page, 'Delivery conversation').click();
@@ -174,7 +174,7 @@ test('independent external edits preserve unsaved publications and the unsent co
 
 test('import rejects structurally PNG-looking but undecodable image content rather than dropping it', async ({ page }) => {
     await gotoApp(page);
-    const fixture = JSON.parse(readFileSync('test-board/us-7.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-7.board.json', 'utf8'));
     const corrupt = Buffer.from(png, 'base64'); corrupt.fill(0, 41, 54);
     fixture.extensions.conversations.entries[0].images[0].dataUrl = `data:image/png;base64,${corrupt.toString('base64')}`;
     await mockImportProjectsPicker(page, [{ fileName: 'invalid-image.board.json', payload: fixture }]);

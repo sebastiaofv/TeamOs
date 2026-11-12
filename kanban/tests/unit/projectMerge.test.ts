@@ -147,7 +147,7 @@ describe('three-way project merge', () => {
 
 describe('US-28 manual fixture', () => {
     it('validates and round-trips stable identities and the revision', () => {
-        const fixture: unknown = JSON.parse(readFileSync('test-board/us-28.board.json', 'utf8'));
+        const fixture: unknown = JSON.parse(readFileSync('tests/fixtures/manual/us-28.board.json', 'utf8'));
         validateBoardData(fixture);
         const saved = serializeBoardDataFromObject(fixture);
         validateBoardData(saved);

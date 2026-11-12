@@ -7,7 +7,7 @@ for (const theme of ['light', 'dark']) {
         test(`workflow dropdown arrows stay inside themed fields at ${width}px (${theme})`, async ({ page }, testInfo) => {
             await page.setViewportSize({ width, height: 900 });
             await gotoApp(page);
-            const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+            const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
             await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
             if (theme === 'dark') await toggleTheme(page);
             await openProjectSettingsFromPicker(page);

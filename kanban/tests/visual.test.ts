@@ -24,7 +24,7 @@ test.describe('US-4 workflow configuration layout', () => {
       test(`state editor and references at ${width}px (${theme})`, async ({ page }) => {
         await gotoVisualApp(page, theme);
         await page.setViewportSize({ width, height: 900 });
-        const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+        const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
         await seedPortfolioBoards(page, [{ id: 'workflow', title: fixture.board.settings.title, hasHandle: true,
           tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'workflow' });
         await openProjectSettingsFromPicker(page);
@@ -779,7 +779,7 @@ test.describe('US-7 dedicated Comments tab', () => {
       test(`composer and recent publications at ${width}px (${theme})`, async ({ page }) => {
         await gotoVisualApp(page, theme);
         await page.setViewportSize({ width, height: 900 });
-        const fixture = JSON.parse(readFileSync('test-board/us-7.board.json', 'utf8'));
+        const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-7.board.json', 'utf8'));
         await seedPortfolioBoards(page, [{ id: 'comments', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'comments' });
         await portfolioCard(page, 'Delivery conversation').click();
         await page.getByRole('tab', { name: 'Comments', exact: true }).click();
@@ -799,7 +799,7 @@ test.describe('US-8 dedicated Pull Requests tab', () => {
       test(`local links at ${width}px (${theme})`, async ({ page }) => {
         await gotoVisualApp(page, theme);
         await page.setViewportSize({ width, height: 900 });
-        const fixture = JSON.parse(readFileSync('test-board/us-8.board.json', 'utf8'));
+        const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-8.board.json', 'utf8'));
         await seedPortfolioBoards(page, [{ id: 'links', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'links' });
         await portfolioCard(page, 'Delivery with multiple servers').click();
         await page.getByRole('tab', { name: 'Pull Requests', exact: true }).click();
@@ -816,7 +816,7 @@ test.describe('US-8 dedicated Pull Requests tab', () => {
 test.describe('US-12 workitem detail and functional acceptance', () => {
   for (const theme of ['light', 'dark']) test(`Story and acceptance follow the existing theme (${theme})`, async ({ page }) => {
     await gotoVisualApp(page, theme);
-    const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-12.board.json', 'utf8'));
     await seedPortfolioBoards(page, [{ id: 'us12', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us12' });
     await page.locator('[data-view-mode="table"]').click();
     await selectTableView(page, 'stories');
@@ -851,7 +851,7 @@ for (const theme of ['light', 'dark']) {
   test(`US-9 dashboard overview and sprint analytics (${theme})`, async ({ page }) => {
     await gotoVisualApp(page, theme);
     await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'));
-    const fixture = JSON.parse(readFileSync('test-board/us-9.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-9.board.json', 'utf8'));
     await seedPortfolioBoards(page, [{ id: 'us9', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'us9' });
     await page.locator('[data-view-mode="dashboard"]').click();
     await page.mouse.move(1, 1);
@@ -868,7 +868,7 @@ test.describe('US-20 Project Control', () => {
       await gotoVisualApp(page, theme);
       await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'));
       await page.setViewportSize({ width, height: 900 });
-      const fixture = JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
+      const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-20.board.json', 'utf8'));
       await seedPortfolioBoards(page, [{ id: 'control', title: 'Atlas control', hasHandle: true,
         tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'control' });
       await page.locator('[data-view-mode="control"]').click();
@@ -904,7 +904,7 @@ test.describe('US-13 product navigation and transfer review', () => {
     test(`product projects and explicit transfer mappings at ${width}px (${theme})`, async ({ page }) => {
       await gotoVisualApp(page, theme);
       await page.setViewportSize({ width, height: 900 });
-      await mockImportProjectsPicker(page, ['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent'].map((name) => ({ fileName: `${name}.board.json`, payload: JSON.parse(readFileSync(`test-board/${name}.board.json`, 'utf8')) })));
+      await mockImportProjectsPicker(page, ['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent'].map((name) => ({ fileName: `${name}.board.json`, payload: JSON.parse(readFileSync(`tests/fixtures/manual/${name}.board.json`, 'utf8')) })));
       await page.locator('#importProjectsBtn').click();
       await openProjectPicker(page);
       for (const product of await page.locator('#portfolioBoardsChips details').all()) {
@@ -936,7 +936,7 @@ test.describe('US-13 hierarchy review', () => {
     test(`ALL and Roadmap share full hierarchy at ${width}px (${theme})`, async ({ page }) => {
       await gotoVisualApp(page, theme);
       await page.setViewportSize({ width, height: 900 });
-      const fixture = JSON.parse(readFileSync('test-board/us-13-hierarchy.board.json', 'utf8'));
+      const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-13-hierarchy.board.json', 'utf8'));
       await seedPortfolioBoards(page, [{ id: 'hierarchy', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'hierarchy' });
       await page.locator('[data-view-mode="table"]').click();
       await selectTableView(page, 'hierarchy');

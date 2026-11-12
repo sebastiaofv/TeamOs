@@ -119,7 +119,7 @@ describe('permanent workitem IDs', () => {
     });
 
     it('migrates schema 4 without rewriting legacy IDs or snapshots', () => {
-        const raw = JSON.parse(readFileSync('test-board/us-12-support.board.json', 'utf8'));
+        const raw = JSON.parse(readFileSync('tests/fixtures/manual/us-12-support.board.json', 'utf8'));
         const tasks = structuredClone(raw.board.tasks), timeline = structuredClone(raw.extensions.timeline);
         const migrated = serializeBoardDataFromObject(raw);
         validateBoardData(migrated);

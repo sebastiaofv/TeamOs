@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 
 test.use({ channel: process.env.PLAYWRIGHT_CHANNEL });
 
-const tree = fixtureTree('test-board/us-25/projects');
+const tree = fixtureTree('tests/fixtures/manual/us-25/projects');
 for (const standalone of [false, true]) {
     test(`${standalone ? 'standalone file' : 'web'}: opens a portfolio lazily, saves isolated edits, and reopens history and attachments`, async ({ page }) => {
         if (standalone) await page.goto(pathToFileURL(resolve('dist-standalone/index.html')).href);
@@ -24,7 +24,7 @@ for (const standalone of [false, true]) {
         await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
         await selectPortfolioBoard(page, 'US-25 Alpha — attachments and comments');
         if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
-        const legacy = JSON.parse(readFileSync('test-board/us-25/migration/legacy.board.json', 'utf8'));
+        const legacy = JSON.parse(readFileSync('tests/fixtures/manual/us-25/migration/legacy.board.json', 'utf8'));
         const title = legacy.board.tasks[0].title;
         await renameTaskViaEditor(page, title, 'Changed without visiting history');
         await expect.poll(async () => (await readFolderJson(page, 'alpha/project.json')).workitems[0].title).toBe('Changed without visiting history');
@@ -87,8 +87,8 @@ test('creates the destination structure and asks for another name on collision',
 
 test('reports incomplete projects, keeps valid siblings, and defers corrupt history and missing binary errors', async ({ page }) => {
     await gotoApp(page);
-    const tree = fixtureTree('test-board/us-25/invalid-projects');
-    const body = readFileSync('test-board/us-25/projects/alpha/history.json', 'utf8').replaceAll('us25-alpha', 'us25-corrupt-history').replace('"events":[', '"events":[invalid');
+    const tree = fixtureTree('tests/fixtures/manual/us-25/invalid-projects');
+    const body = readFileSync('tests/fixtures/manual/us-25/projects/alpha/history.json', 'utf8').replaceAll('us25-alpha', 'us25-corrupt-history').replace('"events":[', '"events":[invalid');
     tree.files['corrupt-history/history.json'] = [...Buffer.from(body)];
     await mockFolderPicker(page, tree);
     await page.locator('#importProjectsBtn').click();
@@ -102,14 +102,14 @@ test('reports incomplete projects, keeps valid siblings, and defers corrupt hist
     await showTimeline(page);
     await page.getByRole('button', { name: 'Load history / timeline', exact: true }).click();
     await expect(page.locator('#portfolioTimelinePanel [role="alert"]')).toContainText('corrupt-history/history.json');
-    const repaired = readFileSync('test-board/us-25/projects/alpha/history.json', 'utf8').replaceAll('us25-alpha', 'us25-corrupt-history');
+    const repaired = readFileSync('tests/fixtures/manual/us-25/projects/alpha/history.json', 'utf8').replaceAll('us25-alpha', 'us25-corrupt-history');
     await page.evaluate((text) => { window.__folderDisk.files['corrupt-history/history.json'] = [...new TextEncoder().encode(text)]; }, repaired);
     await page.getByRole('button', { name: 'Load history / timeline', exact: true }).click();
     await expect(page.locator('#portfolioTimelinePanel [role="alert"]')).toHaveCount(0);
     await expect(page.locator('#portfolioTimelinePanel .timeline-slider')).toBeAttached();
     await selectPortfolioBoard(page, 'US-25 missing-binary');
     if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
-    const legacy = JSON.parse(readFileSync('test-board/us-25/migration/legacy.board.json', 'utf8'));
+    const legacy = JSON.parse(readFileSync('tests/fixtures/manual/us-25/migration/legacy.board.json', 'utf8'));
     await portfolioCard(page, legacy.board.tasks[0].title).click();
     await page.getByRole('tab', { name: 'Attachments', exact: true }).click();
     await expect(page.locator('#detailAttachments [role="alert"]').first()).toContainText('attachments/');
@@ -117,9 +117,9 @@ test('reports incomplete projects, keeps valid siblings, and defers corrupt hist
 
 test('Import Projects converts legacy boards in the selected folder without changing originals', async ({ page }) => {
     await gotoApp(page);
-    const legacyTree = fixtureTree('test-board/us-25/migration');
+    const legacyTree = fixtureTree('tests/fixtures/manual/us-25/migration');
     await mockFolderPicker(page, legacyTree);
-    const legacy = readFileSync('test-board/us-25/migration/legacy.board.json', 'utf8');
+    const legacy = readFileSync('tests/fixtures/manual/us-25/migration/legacy.board.json', 'utf8');
     await page.locator('#importProjectsBtn').click();
     await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
     await identifyOpenProjects(page);

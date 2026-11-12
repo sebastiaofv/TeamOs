@@ -5,7 +5,7 @@ import { LANGUAGE_STORAGE_KEY } from '../../src/domain/constants';
 
 const section = (page: Page, key: string) => page.locator(`[data-dashboard-section="${key}"]`);
 async function seed(page: Page, writable = true) {
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'sections', title: data.board.settings.title, hasHandle: writable, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sections' });
@@ -128,7 +128,7 @@ test('active sprint displays shared planning-unit completion, dates and navigati
 for (const theme of ['light', 'dark']) test(`Portuguese read-only sections remain usable at mobile width (${theme})`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript((key) => localStorage.setItem(key, 'pt'), LANGUAGE_STORAGE_KEY);
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'sections', title: data.board.settings.title, hasHandle: false, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sections' });

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, selectPortfolioBoard, toggleLanguage } from '../support/portfolio';
 
-const fixture = JSON.parse(readFileSync('test-board/us-24.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-24.board.json', 'utf8'));
 
 for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark']) for (const width of [1280, 960, 390]) {
     test(`query controls use existing view toolbars and preserve the project at ${width}px (${style}/${mode})`, async ({ page }, testInfo) => {

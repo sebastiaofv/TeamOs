@@ -7,7 +7,7 @@ import { layoutMilestones, MILESTONE_MARKER_WIDTH, MILESTONE_COLORS, milestoneCo
 
 describe('milestone colours and compatibility', () => {
     it.each([1, 2, 3])('migrates v%i without changing work, IDs or historical events', (version) => {
-        const board = JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
+        const board = JSON.parse(readFileSync('tests/fixtures/manual/us-5.board.json', 'utf8'));
         board.extensions.roadmap.version = version;
         board.extensions.roadmap.milestones.forEach((item: { color?: string }) => delete item.color);
         board.extensions.roadmap.phases.forEach((item: { color?: string }) => delete item.color);
@@ -21,7 +21,7 @@ describe('milestone colours and compatibility', () => {
         expect(board).toEqual(original);
     });
     it('round-trips the coloured board and rejects unsupported colours', () => {
-        const board = JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
+        const board = JSON.parse(readFileSync('tests/fixtures/manual/us-5.board.json', 'utf8'));
         const saved = serializeBoardDataFromObject(board); validateBoardData(saved);
         expect(serializeBoardDataFromObject(saved).extensions.roadmap).toEqual(normalizeRoadmapExtension(board.extensions.roadmap));
         board.extensions.roadmap.milestones[0].color = 'invalid';

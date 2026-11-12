@@ -1,6 +1,6 @@
 // The large legacy fixture keeps only its baseline and record histories in the
 // repository. Its 10,000 identical settings events are rebuilt here, exactly as
-// test-board/us-25/generate.mjs produced them before the v1 format.
+// tests/fixtures/manual/us-25/generate.mjs produced them before the v1 format.
 
 const TITLE = 'US-25 Beta — large history and Project Control';
 

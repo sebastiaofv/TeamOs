@@ -76,7 +76,7 @@ describe('attachment previews', () => {
   });
 
   it('provides a valid manual board with supported, unsupported, generic and empty cases', () => {
-    const board: unknown = JSON.parse(readFileSync('test-board/us-23.board.json', 'utf8'));
+    const board: unknown = JSON.parse(readFileSync('tests/fixtures/manual/us-23.board.json', 'utf8'));
     validateBoardData(board);
     expect(board.board.tasks[0].attachments.map(getAttachmentPreviewMime)).toEqual([
       'image/png', 'image/jpeg', 'application/pdf', 'application/pdf', null, null, null

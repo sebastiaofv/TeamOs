@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, portfolioCard, toggleTheme, toggleLanguage, openProjectPicker } from '../support/portfolio';
 
-const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-12.board.json', 'utf8'));
 test.use({ deviceScaleFactor: 2 });
 
 for (const width of [1280, 390]) {

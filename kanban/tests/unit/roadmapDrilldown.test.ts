@@ -8,7 +8,7 @@ import { createPortfolioMutationActions } from '../../src/features/portfolio/com
 import { DEFAULT_PORTFOLIO_FILTERS } from '../../src/domain/portfolioFilters';
 import { isValidRoadmapAssignment } from '../../src/domain/roadmap';
 
-const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
+const fixture = (): BoardData => JSON.parse(readFileSync('tests/fixtures/manual/us-5.board.json', 'utf8'));
 function setup() {
     const data = fixture();
     const store = createAppStore({ portfolioBoards: [fromPartial({ id: 'p', title: 'Roadmap', handle: {}, data })], selectedPortfolioBoardId: 'p' });

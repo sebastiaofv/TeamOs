@@ -26,7 +26,7 @@ test('workflow settings remain draft-based and renamed states keep their own col
 });
 
 test('same-category state columns support repeated testing cycles without new card or modal controls', async ({ page }) => {
-    const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
     fixture.extensions.boardView = { version: 1, hiddenStateIds: ['backlog', 'to-do', 'done', 'cancelled', 'duplication'] };
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
@@ -44,7 +44,7 @@ test('same-category state columns support repeated testing cycles without new ca
 });
 
 test('drops use the exact destination state in both project and aggregate boards', async ({ page }) => {
-    const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
     fixture.extensions.boardView = { version: 1, hiddenStateIds: ['ready-to-test', 'testing', 're-analysis', 'cancelled', 'duplication'] };
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
@@ -62,7 +62,7 @@ test('drops use the exact destination state in both project and aggregate boards
 });
 
 test('terminal reopening is still configurable without changing the card appearance', async ({ page }) => {
-    const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
     fixture.extensions.boardView = { version: 1, hiddenStateIds: ['backlog', 'to-do', 'ready-to-test', 'testing', 're-analysis', 'cancelled', 'duplication'] };
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
